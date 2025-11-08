@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.together.newverse.ui.theme.BeigeCard
 import com.together.newverse.ui.theme.FabGreen
 import com.together.newverse.ui.theme.Orange
+import com.together.newverse.util.formatPrice
 
 @Composable
 fun ProductDetailCard(
@@ -146,7 +147,7 @@ fun ProductDetailCard(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = String.format("%.2f€", price),
+                                text = "${price.formatPrice()}€",
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = FabGreen

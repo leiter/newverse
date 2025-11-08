@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.theme.FabGreen
+import com.together.newverse.util.formatPrice
 
 @Composable
 fun ProductListItem(
@@ -38,7 +39,7 @@ fun ProductListItem(
             )
 
             Text(
-                text = String.format("%.2f€/%s", price, unit),
+                text = "${price.formatPrice()}€/$unit",
                 style = MaterialTheme.typography.titleMedium,
                 color = FabGreen,
                 fontWeight = FontWeight.Normal
