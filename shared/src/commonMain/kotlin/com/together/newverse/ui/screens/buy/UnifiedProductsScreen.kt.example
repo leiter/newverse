@@ -1,0 +1,165 @@
+package com.together.newverse.ui.screens.buy
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.components.ProductListItem
+import com.together.newverse.ui.state.*
+import org.koin.compose.viewmodel.koinViewModel
+
+/**
+ * Products Screen using the Unified State Management
+ *
+ * This demonstrates how screens use the unified state instead of
+ * having their own ViewModels and state classes.
+ */
+@Composable
+fun UnifiedProductsScreen(
+    viewModel: UnifiedAppViewModel = koinViewModel()
+) {
+    val state by viewModel.state.collectAsState()
+
+    // Extract the specific screen state
+    val productsState = StateSelectors.selectProducts(state)
+    val basketState = StateSelectors.selectBasket(state)
+
+    ProductsContent(
+        state = productsState,
+        basketItemCount = basketState.itemCount,
+        onAction = { action ->
+            // Convert screen-specific actions to app actions
+            when (action) {
+                is ProductsScreenAction.AddToBasket -> {
+                    viewModel.dispatch(UnifiedActions.addToBasket(action.product))
+                }
+                is ProductsScreenAction.SelectProduct -> {
+                    viewModel.dispatch(UnifiedActions.selectProduct(action.product))
+                }
+                is ProductsScreenAction.Refresh -> {
+                    viewModel.dispatch(UnifiedActions.refreshProducts())
+                }
+            }
+        }
+    )
+}
+
+/**
+ * Screen-specific actions (for UI layer)
+ */
+sealed interface ProductsScreenAction {
+    data class AddToBasket(val product: com.together.newverse.domain.model.Article) : ProductsScreenAction
+    data class SelectProduct(val product: com.together.newverse.domain.model.Article) : ProductsScreenAction
+    data object Refresh : ProductsScreenAction
+}
+
+/**
+ * Products Content - Stateless composable
+ *
+ * This remains mostly the same, just using the new state structure
+ */
+@Composable
+fun ProductsContent(
+    state: ProductsScreenState, // This is now ListingState<Article>
+    basketItemCount: Int,
+    onAction: (ProductsScreenAction) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Header with basket count
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Browse Products",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            if (basketItemCount > 0) {
+                Badge {
+                    Text(text = basketItemCount.toString())
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        when {
+            state.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            state.error != null -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = state.error?.message ?: "An error occurred",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Button(onClick = { onAction(ProductsScreenAction.Refresh) }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            }
+
+            state.items.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No products available",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            else -> {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    items(
+                        items = state.items,
+                        key = { article -> article.id }
+                    ) { article ->
+                        ProductListItem(
+                            productName = article.productName,
+                            price = article.price,
+                            unit = article.unit,
+                            onClick = {
+                                onAction(ProductsScreenAction.SelectProduct(article))
+                                onAction(ProductsScreenAction.AddToBasket(article))
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

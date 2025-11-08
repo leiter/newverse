@@ -8,11 +8,15 @@ import com.together.newverse.ui.screens.sell.CreateProductViewModel
 import com.together.newverse.ui.screens.sell.OrdersViewModel
 import com.together.newverse.ui.screens.sell.OverviewViewModel
 import com.together.newverse.ui.screens.sell.SellerProfileViewModel
+import com.together.newverse.ui.state.UnifiedAppViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    // ViewModels - Common
+    // Unified ViewModel - Single source of truth
+    viewModel { UnifiedAppViewModel(get(), get(), get()) }
+
+    // Legacy ViewModels - Keep for backwards compatibility during migration
     viewModel { LoginViewModel() }
 
     // ViewModels - Buy/Customer
