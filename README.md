@@ -176,6 +176,7 @@ iOS flavor setup requires macOS with Xcode. See [docs/IOS_SETUP.md](docs/IOS_SET
 
 - **[THEME_MIGRATION.md](docs/THEME_MIGRATION.md)** - Material3 theme system documentation
 - **[NAVIGATION.md](docs/NAVIGATION.md)** - Navigation architecture and screen structure
+- **[VIEWMODEL_ARCHITECTURE.md](docs/VIEWMODEL_ARCHITECTURE.md)** - Cross-platform ViewModel architecture and patterns
 - **[IOS_SETUP.md](docs/IOS_SETUP.md)** - Complete guide for setting up iOS app with Buy/Sell flavors
 
 ## Development Notes
