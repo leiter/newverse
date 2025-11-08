@@ -15,6 +15,7 @@ val BrownAccent = Color(0xFF7A5012)
 val ErrorRed = Color(0xFFD51D47)
 val InfoYellow = Color(0xFFEAD434)
 val SoftBrown = Color(0xFFC9B9A0)
+val BeigeCard = Color(0xFFD4C4AA)
 
 // Neutral Colors
 val White = Color(0xFFFFFFFF)

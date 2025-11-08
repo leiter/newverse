@@ -1,15 +1,24 @@
 package com.together.newverse.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.Article
+import com.together.newverse.ui.components.ProductDetailCard
+import com.together.newverse.ui.components.ProductListItem
+import com.together.newverse.ui.theme.FabGreen
+import com.together.newverse.ui.theme.Orange
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -17,7 +26,24 @@ import org.koin.compose.viewmodel.koinViewModel
 fun MainScreen(
     viewModel: MainViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    // Sample product data (matching the screenshot)
+    val products = remember {
+        listOf(
+            Article(id = "1", productName = "Erdbeeren", price = 2.96, unit = "Schale"),
+            Article(id = "2", productName = "Stangensellerie", price = 2.90, unit = "Stück"),
+            Article(id = "3", productName = "Knoblauch", price = 10.69, unit = "Kg"),
+            Article(id = "4", productName = "Atomic Red", price = 3.69, unit = "Bund"),
+            Article(id = "5", productName = "Linda Kartoffeln", price = 2.30, unit = "kg"),
+            Article(id = "6", productName = "Eier", price = 0.60, unit = "Stück"),
+            Article(id = "7", productName = "Feigenbananen", price = 2.30, unit = "kg"),
+            Article(id = "8", productName = "Granny Smith", price = 2.30, unit = "kg"),
+            Article(id = "9", productName = "Siglinde Kartoffeln", price = 2.90, unit = "kg")
+        )
+    }
+
+    var selectedProduct by remember { mutableStateOf(products[0]) }
+    var quantity by remember { mutableStateOf(0) }
+    val cartItemCount by remember { mutableStateOf(0) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -25,102 +51,111 @@ fun MainScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Newverse",
-                        style = MaterialTheme.typography.titleLarge
+                        "BODENSCHÄTZE",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = FabGreen
                     )
                 },
+                navigationIcon = {
+                    IconButton(onClick = { /* Profile action */ }) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Orange,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Profile",
+                                tint = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    // Search Icon
+                    IconButton(onClick = { /* Search action */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = Orange,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    // Shopping Cart with Badge
+                    Box(modifier = Modifier.padding(end = 8.dp)) {
+                        IconButton(onClick = { /* Cart action */ }) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = "Shopping Cart",
+                                tint = Orange,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        if (cartItemCount > 0) {
+                            Badge(
+                                containerColor = FabGreen,
+                                contentColor = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier.align(Alignment.TopEnd)
+                            ) {
+                                Text(
+                                    text = cartItemCount.toString(),
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        } else {
+                            Badge(
+                                containerColor = FabGreen,
+                                contentColor = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier.align(Alignment.TopEnd)
+                            ) {
+                                Text(
+                                    text = "0",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = FabGreen
                 )
             )
         }
     ) { paddingValues ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
-            // Welcome Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = uiState.greeting,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Built with Compose Multiplatform & Koin",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Platform Info Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = uiState.platform,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Action Button
-            Button(
-                onClick = { viewModel.onRefresh() },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                )
-            ) {
-                Text(
-                    text = "Refresh",
-                    style = MaterialTheme.typography.labelLarge
+            // Product Detail Card
+            item {
+                ProductDetailCard(
+                    productName = selectedProduct.productName,
+                    quantity = quantity,
+                    price = selectedProduct.price * quantity,
+                    unit = selectedProduct.unit,
+                    onQuantityChange = { newQuantity -> quantity = newQuantity },
+                    onAddToCart = {
+                        // Add to cart logic
+                    },
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Outlined Button
-            OutlinedButton(
-                onClick = { /* TODO: Add action */ },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Secondary Action",
-                    style = MaterialTheme.typography.labelLarge
+            // Product List
+            items(products) { product ->
+                ProductListItem(
+                    productName = product.productName,
+                    price = product.price,
+                    unit = product.unit,
+                    onClick = {
+                        selectedProduct = product
+                        quantity = 0
+                    }
                 )
             }
         }
