@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -76,17 +77,33 @@ fun AppScaffold() {
                 TopAppBar(
                     title = { Text(screenTitle) },
                     navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    drawerState.open()
+                        // Show back arrow for Basket and other detail screens, hamburger menu for main screens
+                        if (currentRoute == NavRoutes.Buy.Basket.route ||
+                            currentRoute == NavRoutes.Buy.Profile.route ||
+                            currentRoute == NavRoutes.About.route) {
+                            IconButton(
+                                onClick = {
+                                    navController.navigateUp()
                                 }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back"
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Menu"
-                            )
+                        } else {
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        drawerState.open()
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Menu"
+                                )
+                            }
                         }
                     },
                     actions = {

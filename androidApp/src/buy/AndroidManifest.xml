@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:icon="@mipmap/ic_vegi"
+        android:roundIcon="@mipmap/ic_vegi"
+        tools:replace="android:icon,android:roundIcon">
+    </application>
+</manifest>
