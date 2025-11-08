@@ -23,9 +23,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(
-    viewModel: MainViewModel = koinViewModel()
-) {
+fun MainScreen() {
     // Sample product data (matching the screenshot)
     val products = remember {
         listOf(

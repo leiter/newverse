@@ -1,7 +1,5 @@
 package com.together.newverse.di
 
-import com.together.newverse.domain.GreetingRepository
-import com.together.newverse.ui.MainViewModel
 import com.together.newverse.ui.screens.buy.BasketViewModel
 import com.together.newverse.ui.screens.buy.CustomerProfileViewModel
 import com.together.newverse.ui.screens.buy.ProductsViewModel
@@ -14,11 +12,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    // Repositories
-    single { GreetingRepository() }
-
     // ViewModels - Common
-    viewModel { MainViewModel(get()) }
     viewModel { LoginViewModel() }
 
     // ViewModels - Buy/Customer
