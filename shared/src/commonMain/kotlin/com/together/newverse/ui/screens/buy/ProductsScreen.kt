@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.preview.PreviewData
 import com.together.newverse.ui.components.ProductListItem
-import com.together.newverse.ui.theme.NewverseTheme
 
 @Composable
 fun ProductsScreen() {
@@ -42,11 +41,4 @@ fun ProductsScreen() {
     }
 }
 
-@Composable
-fun ProductsScreenPreview() {
-    NewverseTheme {
-        Surface {
-            ProductsScreen()
-        }
-    }
-}
+

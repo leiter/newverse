@@ -5,7 +5,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.together.newverse.ui.theme.NewverseTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,11 +66,4 @@ fun CreateProductScreen() {
     }
 }
 
-@Composable
-fun CreateProductScreenPreview() {
-    NewverseTheme {
-        Surface {
-            CreateProductScreen()
-        }
-    }
-}
+

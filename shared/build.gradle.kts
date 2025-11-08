@@ -58,6 +58,10 @@ kotlin {
             implementation("androidx.appcompat:appcompat:1.7.0")
             implementation("androidx.core:core-ktx:1.15.0")
 
+            // Compose UI Tooling for Previews
+            implementation(compose.preview)
+            implementation(compose.uiTooling)
+
             // Koin Android
             implementation("io.insert-koin:koin-android:4.0.0")
         }

@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.sp
 import com.together.newverse.ui.components.ProfileInputField
 import com.together.newverse.ui.theme.BeigeCard
 import com.together.newverse.ui.theme.FabGreen
-import com.together.newverse.ui.theme.NewverseTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -204,9 +203,4 @@ fun CustomerProfileScreen(
     }
 }
 
-@Composable
-fun CustomerProfileScreenPreview() {
-    NewverseTheme {
-        CustomerProfileScreen()
-    }
-}
+

@@ -9,7 +9,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.preview.PreviewData
-import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.formatPrice
 
 @Composable
@@ -149,11 +148,4 @@ private fun BasketItemCard(
     }
 }
 
-@Composable
-fun BasketScreenPreview() {
-    NewverseTheme {
-        Surface {
-            BasketScreen()
-        }
-    }
-}
+

@@ -7,7 +7,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.together.newverse.ui.theme.NewverseTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,9 +73,4 @@ fun LoginScreen() {
     }
 }
 
-@Composable
-fun LoginScreenPreview() {
-    NewverseTheme {
-        LoginScreen()
-    }
-}
+

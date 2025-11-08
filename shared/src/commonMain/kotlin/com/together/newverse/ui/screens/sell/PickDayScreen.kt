@@ -9,7 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.together.newverse.ui.theme.NewverseTheme
 
 @Composable
 fun PickDayScreen() {
@@ -113,11 +112,4 @@ private fun DayCard(
 }
 
 
-@Composable
-fun PickDayScreenPreview() {
-    NewverseTheme {
-        Surface {
-            PickDayScreen()
-        }
-    }
-}
+
