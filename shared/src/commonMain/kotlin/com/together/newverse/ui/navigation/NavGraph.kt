@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.together.newverse.ui.MainScreen
+import com.together.newverse.ui.MainScreenModern
 import com.together.newverse.ui.screens.buy.*
 import com.together.newverse.ui.screens.common.*
 import com.together.newverse.ui.screens.sell.*
@@ -25,12 +25,12 @@ fun NavGraph(
     ) {
         // Home/Main Screen
         composable(NavRoutes.Home.route) {
-            MainScreen()
+            MainScreenModern()
         }
 
         // Common Screens
         composable(NavRoutes.About.route) {
-            AboutScreen(
+            AboutScreenModern(
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -49,7 +49,7 @@ fun NavGraph(
         }
 
         composable(NavRoutes.Buy.Profile.route) {
-            CustomerProfileScreen(
+            CustomerProfileScreenModern(
                 onBackClick = { navController.popBackStack() }
             )
         }

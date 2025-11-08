@@ -2,20 +2,32 @@ package com.together.newverse.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary Colors
-val BrightGreen = Color(0xFF008577)
+// Primary Colors - Organic & Fresh
+val BrightGreen = Color(0xFF008577)  // Keep original teal-green
 val DarkGreen = Color(0xFF00574B)
-val FabGreen = Color(0xFF0A6308)
+val FabGreen = Color(0xFF2E7D32)     // Material Green 700 - more modern
+val LeafGreen = Color(0xFF66BB6A)    // Fresh leaf green for highlights
 
-// Accent Colors
-val Orange = Color(0xFFFA9C4D)
-val BrownAccent = Color(0xFF7A5012)
+// Accent Colors - Warm & Natural
+val Orange = Color(0xFFFF6F00)       // Vibrant orange for CTAs
+val SoftOrange = Color(0xFFFFB74D)   // Softer orange for badges
+val BrownAccent = Color(0xFF6D4C41)  // Refined brown
+
+// Background Colors - Organic & Earthy
+val OrganicBeige = Color(0xFFF5E6D3)     // Warm organic beige
+val LightCream = Color(0xFFFFF8E1)       // Cream for light backgrounds
+val SandColor = Color(0xFFE8D5C4)        // Sand color for cards
+val BeigeCard = Color(0xFFEFE5D8)        // Updated softer beige
 
 // Semantic Colors
-val ErrorRed = Color(0xFFD51D47)
-val InfoYellow = Color(0xFFEAD434)
-val SoftBrown = Color(0xFFC9B9A0)
-val BeigeCard = Color(0xFFD4C4AA)
+val ErrorRed = Color(0xFFD32F2F)         // Material Error
+val SuccessGreen = Color(0xFF4CAF50)     // Material Success
+val InfoBlue = Color(0xFF1976D2)         // Material Info
+val WarningOrange = Color(0xFFF57C00)    // Material Warning
+
+// Surface Colors
+val SurfaceElevated = Color(0xFFFFFBF5)  // Slightly warm white
+val SoftBrown = Color(0xFFBCAAA4)        // Softer brown for dividers
 
 // Neutral Colors
 val White = Color(0xFFFFFFFF)

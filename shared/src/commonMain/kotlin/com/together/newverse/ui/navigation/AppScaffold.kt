@@ -1,13 +1,22 @@
 package com.together.newverse.ui.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.together.newverse.ui.theme.FabGreen
+import com.together.newverse.ui.theme.Orange
 import kotlinx.coroutines.launch
 
 /**
@@ -80,10 +89,49 @@ fun AppScaffold() {
                             )
                         }
                     },
+                    actions = {
+                        // Show search and cart icons only on Home screen
+                        if (currentRoute == NavRoutes.Home.route) {
+                            // Search Icon
+                            IconButton(onClick = { /* TODO: Search action */ }) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Search",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                            // Shopping Cart with Badge
+                            Box(modifier = Modifier.padding(end = 8.dp)) {
+                                IconButton(onClick = {
+                                    navController.navigate(NavRoutes.Buy.Basket.route)
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.ShoppingCart,
+                                        contentDescription = "Shopping Cart",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                // Cart item count badge
+                                Badge(
+                                    containerColor = Orange,
+                                    contentColor = Color.White,
+                                    modifier = Modifier.align(Alignment.TopEnd)
+                                ) {
+                                    Text(
+                                        text = "0",
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        titleContentColor = MaterialTheme.colorScheme.onSecondary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSecondary
                     )
                 )
             }

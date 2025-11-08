@@ -18,7 +18,6 @@ import com.together.newverse.ui.components.ProfileInputField
 import com.together.newverse.ui.theme.BeigeCard
 import com.together.newverse.ui.theme.FabGreen
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerProfileScreen(
     onBackClick: () -> Unit = {}
@@ -27,47 +26,13 @@ fun CustomerProfileScreen(
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Meine Daten",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Normal,
-                        color = Color.White
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* Menu action */ }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Menu",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = FabGreen,
-                    titleContentColor = Color.White
-                )
-            )
-        },
-        containerColor = BeigeCard
-    ) { paddingValues ->
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = BeigeCard
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .padding(top = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
