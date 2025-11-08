@@ -13,12 +13,32 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.components.ProductListItem
 import org.koin.compose.viewmodel.koinViewModel
 
+/**
+ * Products Screen - Stateful composable with ViewModel
+ */
 @Composable
 fun ProductsScreen(
     viewModel: ProductsViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val state by viewModel.state.collectAsState()
 
+    ProductsContent(
+        state = state,
+        onAction = viewModel::onAction
+    )
+}
+
+/**
+ * Products Content - Stateless composable
+ *
+ * @param state The screen state
+ * @param onAction Callback for user actions
+ */
+@Composable
+fun ProductsContent(
+    state: ProductsScreenState,
+    onAction: (ProductsAction) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -32,8 +52,8 @@ fun ProductsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        when (val state = uiState) {
-            is ProductsUiState.Loading -> {
+        when {
+            state.isLoading -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -42,38 +62,7 @@ fun ProductsScreen(
                 }
             }
 
-            is ProductsUiState.Success -> {
-                if (state.articles.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No products available",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(0.dp)
-                    ) {
-                        items(state.articles) { article ->
-                            ProductListItem(
-                                productName = article.productName,
-                                price = article.price,
-                                unit = article.unit,
-                                onClick = {
-                                    viewModel.addToBasket(article)
-                                    // TODO: Show snackbar or navigate to detail
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            is ProductsUiState.Error -> {
+            state.error != null -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -83,13 +72,44 @@ fun ProductsScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = state.message,
+                            text = state.error,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
-                        Button(onClick = { viewModel.refresh() }) {
+                        Button(onClick = { onAction(ProductsAction.Refresh) }) {
                             Text("Retry")
                         }
+                    }
+                }
+            }
+
+            state.articles.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No products available",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            else -> {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    items(state.articles) { article ->
+                        ProductListItem(
+                            productName = article.productName,
+                            price = article.price,
+                            unit = article.unit,
+                            onClick = {
+                                onAction(ProductsAction.AddToBasket(article))
+                                // TODO: Show snackbar or navigate to detail
+                            }
+                        )
                     }
                 }
             }

@@ -13,13 +13,32 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.util.formatPrice
 import org.koin.compose.viewmodel.koinViewModel
 
+/**
+ * Basket Screen - Stateful composable with ViewModel
+ */
 @Composable
 fun BasketScreen(
     viewModel: BasketViewModel = koinViewModel()
 ) {
-    val basketItems by viewModel.basketItems.collectAsState()
-    val total by viewModel.totalAmount.collectAsState()
+    val state by viewModel.state.collectAsState()
 
+    BasketContent(
+        state = state,
+        onAction = viewModel::onAction
+    )
+}
+
+/**
+ * Basket Content - Stateless composable
+ *
+ * @param state The screen state
+ * @param onAction Callback for user actions
+ */
+@Composable
+fun BasketContent(
+    state: BasketScreenState,
+    onAction: (BasketAction) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -33,7 +52,7 @@ fun BasketScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (basketItems.isEmpty()) {
+        if (state.items.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -62,14 +81,16 @@ fun BasketScreen(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(basketItems) { item ->
+                items(state.items) { item ->
                     BasketItemCard(
                         productName = item.productName,
                         price = item.price,
                         unit = item.unit,
                         quantity = item.amountCount,
-                        onRemove = { viewModel.removeItem(item.productId) },
-                        onQuantityChange = { newQty -> viewModel.updateQuantity(item.productId, newQty) }
+                        onRemove = { onAction(BasketAction.RemoveItem(item.productId)) },
+                        onQuantityChange = { newQty ->
+                            onAction(BasketAction.UpdateQuantity(item.productId, newQty))
+                        }
                     )
                 }
             }
@@ -90,7 +111,7 @@ fun BasketScreen(
                 style = MaterialTheme.typography.titleLarge
             )
             Text(
-                text = "${total.formatPrice()}€",
+                text = "${state.total.formatPrice()}€",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -99,11 +120,11 @@ fun BasketScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { viewModel.checkout() },
+            onClick = { onAction(BasketAction.Checkout) },
             modifier = Modifier.fillMaxWidth(),
-            enabled = basketItems.isNotEmpty()
+            enabled = state.items.isNotEmpty() && !state.isCheckingOut
         ) {
-            Text("Proceed to Checkout")
+            Text(if (state.isCheckingOut) "Processing..." else "Proceed to Checkout")
         }
     }
 }

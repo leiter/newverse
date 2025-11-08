@@ -40,22 +40,114 @@ fun LoginScreenPreview() {
 
 // Buy (Customer) Screens
 
-@Preview(name = "Products Screen", showBackground = true)
+@Preview(name = "Products Screen - Loading", showBackground = true)
 @Composable
-fun ProductsScreenPreview() {
+fun ProductsScreenLoadingPreview() {
     NewverseTheme {
         Surface {
-            ProductsScreen()
+            com.together.newverse.ui.screens.buy.ProductsContent(
+                state = com.together.newverse.ui.screens.buy.ProductsScreenState(
+                    isLoading = true
+                ),
+                onAction = {}
+            )
         }
     }
 }
 
-@Preview(name = "Basket Screen", showBackground = true)
+@Preview(name = "Products Screen - Success", showBackground = true)
 @Composable
-fun BasketScreenPreview() {
+fun ProductsScreenSuccessPreview() {
     NewverseTheme {
         Surface {
-            BasketScreen()
+            com.together.newverse.ui.screens.buy.ProductsContent(
+                state = com.together.newverse.ui.screens.buy.ProductsScreenState(
+                    isLoading = false,
+                    articles = PreviewData.sampleArticles
+                ),
+                onAction = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Products Screen - Error", showBackground = true)
+@Composable
+fun ProductsScreenErrorPreview() {
+    NewverseTheme {
+        Surface {
+            com.together.newverse.ui.screens.buy.ProductsContent(
+                state = com.together.newverse.ui.screens.buy.ProductsScreenState(
+                    isLoading = false,
+                    error = "Failed to load products"
+                ),
+                onAction = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Products Screen - Empty", showBackground = true)
+@Composable
+fun ProductsScreenEmptyPreview() {
+    NewverseTheme {
+        Surface {
+            com.together.newverse.ui.screens.buy.ProductsContent(
+                state = com.together.newverse.ui.screens.buy.ProductsScreenState(
+                    isLoading = false,
+                    articles = emptyList()
+                ),
+                onAction = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Basket Screen - Empty", showBackground = true)
+@Composable
+fun BasketScreenEmptyPreview() {
+    NewverseTheme {
+        Surface {
+            com.together.newverse.ui.screens.buy.BasketContent(
+                state = com.together.newverse.ui.screens.buy.BasketScreenState(
+                    items = emptyList(),
+                    total = 0.0
+                ),
+                onAction = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Basket Screen - With Items", showBackground = true)
+@Composable
+fun BasketScreenWithItemsPreview() {
+    NewverseTheme {
+        Surface {
+            com.together.newverse.ui.screens.buy.BasketContent(
+                state = com.together.newverse.ui.screens.buy.BasketScreenState(
+                    items = PreviewData.sampleOrderedProducts.take(3),
+                    total = 12.50
+                ),
+                onAction = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Basket Screen - Checking Out", showBackground = true)
+@Composable
+fun BasketScreenCheckingOutPreview() {
+    NewverseTheme {
+        Surface {
+            com.together.newverse.ui.screens.buy.BasketContent(
+                state = com.together.newverse.ui.screens.buy.BasketScreenState(
+                    items = PreviewData.sampleOrderedProducts.take(2),
+                    total = 8.75,
+                    isCheckingOut = true
+                ),
+                onAction = {}
+            )
         }
     }
 }

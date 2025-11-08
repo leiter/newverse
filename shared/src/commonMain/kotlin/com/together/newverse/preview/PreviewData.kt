@@ -228,10 +228,10 @@ object PreviewData {
             id = "order1",
             buyerProfile = sampleBuyerProfiles[0],
             articles = sampleOrderedProducts.take(2),
-            createdDate = System.currentTimeMillis(),
+            createdDate = 1699027200000L, // Nov 3, 2023
             sellerId = "seller1",
             marketId = "market1",
-            pickUpDate = System.currentTimeMillis() + 86400000L, // +1 day
+            pickUpDate = 1699113600000L, // Nov 4, 2023 (+1 day)
             message = "Bitte ohne Plastik verpacken",
             notFavourite = false
         ),
@@ -239,10 +239,10 @@ object PreviewData {
             id = "order2",
             buyerProfile = sampleBuyerProfiles[1],
             articles = listOf(sampleOrderedProducts[2]),
-            createdDate = System.currentTimeMillis(),
+            createdDate = 1699027200000L, // Nov 3, 2023
             sellerId = "seller1",
             marketId = "market2",
-            pickUpDate = System.currentTimeMillis() + 172800000L, // +2 days
+            pickUpDate = 1699200000000L, // Nov 5, 2023 (+2 days)
             message = "",
             notFavourite = true
         )

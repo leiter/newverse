@@ -7,18 +7,45 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
+ * Actions that can be performed on the Basket screen
+ */
+sealed interface BasketAction {
+    data class AddItem(val item: OrderedProduct) : BasketAction
+    data class RemoveItem(val productId: String) : BasketAction
+    data class UpdateQuantity(val productId: String, val newQuantity: Double) : BasketAction
+    data object ClearBasket : BasketAction
+    data object Checkout : BasketAction
+}
+
+/**
+ * State for the Basket screen
+ */
+data class BasketScreenState(
+    val items: List<OrderedProduct> = emptyList(),
+    val total: Double = 0.0,
+    val isCheckingOut: Boolean = false
+)
+
+/**
  * ViewModel for Shopping Basket screen
  */
 class BasketViewModel : ViewModel() {
 
-    private val _basketItems = MutableStateFlow<List<OrderedProduct>>(emptyList())
-    val basketItems: StateFlow<List<OrderedProduct>> = _basketItems.asStateFlow()
+    private val _state = MutableStateFlow(BasketScreenState())
+    val state: StateFlow<BasketScreenState> = _state.asStateFlow()
 
-    private val _totalAmount = MutableStateFlow(0.0)
-    val totalAmount: StateFlow<Double> = _totalAmount.asStateFlow()
+    fun onAction(action: BasketAction) {
+        when (action) {
+            is BasketAction.AddItem -> addItem(action.item)
+            is BasketAction.RemoveItem -> removeItem(action.productId)
+            is BasketAction.UpdateQuantity -> updateQuantity(action.productId, action.newQuantity)
+            BasketAction.ClearBasket -> clearBasket()
+            BasketAction.Checkout -> checkout()
+        }
+    }
 
-    fun addItem(item: OrderedProduct) {
-        val currentItems = _basketItems.value.toMutableList()
+    private fun addItem(item: OrderedProduct) {
+        val currentItems = _state.value.items.toMutableList()
         val existingIndex = currentItems.indexOfFirst { it.productId == item.productId }
 
         if (existingIndex >= 0) {
@@ -31,36 +58,39 @@ class BasketViewModel : ViewModel() {
             currentItems.add(item)
         }
 
-        _basketItems.value = currentItems
+        _state.value = _state.value.copy(items = currentItems)
         calculateTotal()
     }
 
-    fun removeItem(productId: String) {
-        _basketItems.value = _basketItems.value.filter { it.productId != productId }
+    private fun removeItem(productId: String) {
+        _state.value = _state.value.copy(
+            items = _state.value.items.filter { it.productId != productId }
+        )
         calculateTotal()
     }
 
-    fun updateQuantity(productId: String, newQuantity: Double) {
-        val currentItems = _basketItems.value.toMutableList()
+    private fun updateQuantity(productId: String, newQuantity: Double) {
+        val currentItems = _state.value.items.toMutableList()
         val index = currentItems.indexOfFirst { it.productId == productId }
 
         if (index >= 0) {
             currentItems[index] = currentItems[index].copy(amountCount = newQuantity)
-            _basketItems.value = currentItems
+            _state.value = _state.value.copy(items = currentItems)
             calculateTotal()
         }
     }
 
-    fun clearBasket() {
-        _basketItems.value = emptyList()
-        _totalAmount.value = 0.0
+    private fun clearBasket() {
+        _state.value = BasketScreenState()
     }
 
     private fun calculateTotal() {
-        _totalAmount.value = _basketItems.value.sumOf { it.price * it.amountCount }
+        val total = _state.value.items.sumOf { it.price * it.amountCount }
+        _state.value = _state.value.copy(total = total)
     }
 
-    fun checkout() {
+    private fun checkout() {
         // TODO: Implement checkout flow with OrderRepository
+        _state.value = _state.value.copy(isCheckingOut = true)
     }
 }

@@ -9,46 +9,70 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
+ * Actions that can be performed on the Products screen
+ */
+sealed interface ProductsAction {
+    data class AddToBasket(val article: Article) : ProductsAction
+    data object Refresh : ProductsAction
+}
+
+/**
+ * State for the Products screen
+ */
+data class ProductsScreenState(
+    val isLoading: Boolean = false,
+    val articles: List<Article> = emptyList(),
+    val error: String? = null
+)
+
+/**
  * ViewModel for Products/Browse screen
  */
 class ProductsViewModel : ViewModel() {
 
-    private val _uiState = MutableStateFlow<ProductsUiState>(ProductsUiState.Loading)
-    val uiState: StateFlow<ProductsUiState> = _uiState.asStateFlow()
+    private val _state = MutableStateFlow(ProductsScreenState(isLoading = true))
+    val state: StateFlow<ProductsScreenState> = _state.asStateFlow()
 
     init {
         loadProducts()
     }
 
+    fun onAction(action: ProductsAction) {
+        when (action) {
+            is ProductsAction.AddToBasket -> addToBasket(action.article)
+            ProductsAction.Refresh -> refresh()
+        }
+    }
+
     private fun loadProducts() {
         viewModelScope.launch {
-            _uiState.value = ProductsUiState.Loading
+            _state.value = _state.value.copy(isLoading = true, error = null)
 
             // TODO: Replace with actual repository call when Firebase is integrated
             // For now, use preview data for demonstration
             kotlinx.coroutines.delay(500) // Simulate network delay
 
-            // Import preview data when Firebase is not yet available
             try {
                 val articles = com.together.newverse.preview.PreviewData.sampleArticles
-                _uiState.value = ProductsUiState.Success(articles)
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    articles = articles,
+                    error = null
+                )
             } catch (e: Exception) {
-                _uiState.value = ProductsUiState.Error("Failed to load products: ${e.message}")
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = "Failed to load products: ${e.message}"
+                )
             }
         }
     }
 
-    fun addToBasket(article: Article) {
+    private fun addToBasket(article: Article) {
         // TODO: Implement basket functionality
     }
 
-    fun refresh() {
+    private fun refresh() {
         loadProducts()
     }
-}
-
-sealed interface ProductsUiState {
-    data object Loading : ProductsUiState
-    data class Success(val articles: List<Article>) : ProductsUiState
-    data class Error(val message: String) : ProductsUiState
 }
