@@ -45,6 +45,9 @@ kotlin {
             // Coroutines
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 
+            // DateTime
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+
             // ViewModel
             implementation("androidx.lifecycle:lifecycle-viewmodel:2.8.0")
 

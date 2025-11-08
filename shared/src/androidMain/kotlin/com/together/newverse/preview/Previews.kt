@@ -4,12 +4,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.together.newverse.ui.MainScreen
-import com.together.newverse.ui.screens.buy.BasketScreen
 import com.together.newverse.ui.screens.buy.CustomerProfileScreen
-import com.together.newverse.ui.screens.buy.ProductsScreen
 import com.together.newverse.ui.screens.common.AboutScreen
 import com.together.newverse.ui.screens.common.LoginScreen
-import com.together.newverse.ui.screens.sell.*
+import com.together.newverse.ui.screens.sell.CreateProductScreen
+import com.together.newverse.ui.screens.sell.OrdersScreen
+import com.together.newverse.ui.screens.sell.OverviewScreen
+import com.together.newverse.ui.screens.sell.PickDayScreen
+import com.together.newverse.ui.screens.sell.SellerProfileScreen
 import com.together.newverse.ui.theme.NewverseTheme
 
 // Common Screens
