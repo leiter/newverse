@@ -1,0 +1,18 @@
+package com.together.newverse.domain.model
+
+/**
+ * Represents a product/article available for purchase
+ */
+data class Article(
+    val id: String = "",
+    val productId: String = "",
+    val productName: String = "",
+    val available: Boolean = false,
+    val unit: String = "",
+    val price: Double = 0.0,
+    val weightPerPiece: Double = 0.0,
+    val imageUrl: String = "",
+    val category: String = "",
+    val searchTerms: String = "",
+    val detailInfo: String = "",
+)
