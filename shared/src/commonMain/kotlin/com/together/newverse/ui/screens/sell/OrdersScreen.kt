@@ -8,14 +8,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.together.newverse.preview.PreviewData
+import com.together.newverse.ui.theme.NewverseTheme
+import com.together.newverse.util.formatPrice
 
 @Composable
 fun OrdersScreen() {
-    val dummyOrders = listOf(
-        OrderItem("Order #1234", "John Doe", "Pending", "$25.50"),
-        OrderItem("Order #1235", "Jane Smith", "Processing", "$42.00"),
-        OrderItem("Order #1236", "Bob Wilson", "Completed", "$18.75")
-    )
+    val orders = PreviewData.sampleOrders
 
     Column(
         modifier = Modifier
@@ -33,22 +32,27 @@ fun OrdersScreen() {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(dummyOrders) { order ->
-                OrderCard(order)
+            items(orders) { order ->
+                OrderCard(
+                    orderId = order.id,
+                    customerName = order.buyerProfile.displayName,
+                    itemCount = order.articles.size,
+                    total = order.articles.sumOf { it.price * it.amountCount },
+                    message = order.message
+                )
             }
         }
     }
 }
 
-data class OrderItem(
-    val orderId: String,
-    val customerName: String,
-    val status: String,
-    val total: String
-)
-
 @Composable
-private fun OrderCard(order: OrderItem) {
+private fun OrderCard(
+    orderId: String,
+    customerName: String,
+    itemCount: Int,
+    total: Double,
+    message: String
+) {
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -61,25 +65,43 @@ private fun OrderCard(order: OrderItem) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = order.orderId,
+                    text = "Order #${orderId.take(8)}",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = order.total,
+                    text = "${total.formatPrice()}€",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
             Text(
-                text = order.customerName,
+                text = customerName,
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            AssistChip(
-                onClick = { },
-                label = { Text(order.status) }
+            Text(
+                text = "$itemCount items",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (message.isNotEmpty()) {
+                Text(
+                    text = "Note: $message",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun OrdersScreenPreview() {
+    NewverseTheme {
+        Surface {
+            OrdersScreen()
         }
     }
 }

@@ -19,6 +19,7 @@ import com.together.newverse.ui.components.ProductDetailCard
 import com.together.newverse.ui.components.ProductListItem
 import com.together.newverse.ui.theme.FabGreen
 import com.together.newverse.ui.theme.Orange
+import com.together.newverse.ui.theme.NewverseTheme
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -157,5 +158,12 @@ fun MainScreen() {
                 )
             }
         }
+    }
+}
+
+@Composable
+fun MainScreenPreview() {
+    NewverseTheme {
+        MainScreen()
     }
 }

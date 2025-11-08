@@ -2,14 +2,21 @@ package com.together.newverse.ui.screens.buy
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.together.newverse.preview.PreviewData
+import com.together.newverse.ui.theme.NewverseTheme
+import com.together.newverse.util.formatPrice
 
 @Composable
 fun BasketScreen() {
+    val basketItems = PreviewData.sampleBasketItems
+    val total = basketItems.sumOf { it.article.price * it.quantity }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -23,27 +30,43 @@ fun BasketScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+        if (basketItems.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
             ) {
-                Text(
-                    text = "Your basket is empty",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Add items from the Products screen",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Your basket is empty",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Add items from the Products screen",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(basketItems) { item ->
+                    BasketItemCard(
+                        productName = item.article.productName,
+                        price = item.article.price,
+                        unit = item.article.unit,
+                        quantity = item.quantity
+                    )
+                }
             }
         }
 
@@ -62,7 +85,7 @@ fun BasketScreen() {
                 style = MaterialTheme.typography.titleLarge
             )
             Text(
-                text = "$0.00",
+                text = "${total.formatPrice()}€",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -73,9 +96,64 @@ fun BasketScreen() {
         Button(
             onClick = { /* TODO: Checkout */ },
             modifier = Modifier.fillMaxWidth(),
-            enabled = false
+            enabled = basketItems.isNotEmpty()
         ) {
             Text("Proceed to Checkout")
+        }
+    }
+}
+
+@Composable
+private fun BasketItemCard(
+    productName: String,
+    price: Double,
+    unit: String,
+    quantity: Double
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = productName,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "${price.formatPrice()}€/$unit",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "x ${quantity.formatPrice()}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "${(price * quantity).formatPrice()}€",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun BasketScreenPreview() {
+    NewverseTheme {
+        Surface {
+            BasketScreen()
         }
     }
 }

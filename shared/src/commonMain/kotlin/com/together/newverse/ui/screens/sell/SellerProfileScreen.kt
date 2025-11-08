@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.theme.NewverseTheme
 
 @Composable
 fun SellerProfileScreen() {
@@ -115,6 +116,16 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
+        }
+    }
+}
+
+
+@Composable
+fun SellerProfileScreenPreview() {
+    NewverseTheme {
+        Surface {
+            SellerProfileScreen()
         }
     }
 }

@@ -8,17 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.together.newverse.preview.PreviewData
+import com.together.newverse.ui.components.ProductListItem
+import com.together.newverse.ui.theme.NewverseTheme
 
 @Composable
 fun ProductsScreen() {
-    val dummyProducts = listOf(
-        "Fresh Apples" to "$2.99/kg",
-        "Organic Bananas" to "$1.99/kg",
-        "Cherry Tomatoes" to "$3.49/box",
-        "Mixed Salad" to "$2.49/bag",
-        "Strawberries" to "$4.99/box"
-    )
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -33,45 +28,25 @@ fun ProductsScreen() {
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            items(dummyProducts) { (name, price) ->
-                ProductCard(name, price)
+            items(PreviewData.sampleArticles) { article ->
+                ProductListItem(
+                    productName = article.productName,
+                    price = article.price,
+                    unit = article.unit,
+                    onClick = { /* TODO: Navigate to product detail */ }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ProductCard(name: String, price: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = price,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-
-            Button(onClick = { /* TODO: Add to basket */ }) {
-                Text("Add")
-            }
+fun ProductsScreenPreview() {
+    NewverseTheme {
+        Surface {
+            ProductsScreen()
         }
     }
 }

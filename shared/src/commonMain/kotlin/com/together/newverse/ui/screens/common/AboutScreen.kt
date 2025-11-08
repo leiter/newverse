@@ -19,6 +19,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.together.newverse.ui.theme.FabGreen
+import com.together.newverse.ui.theme.NewverseTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -197,5 +198,12 @@ fun AboutScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+@Composable
+fun AboutScreenPreview() {
+    NewverseTheme {
+        AboutScreen()
     }
 }

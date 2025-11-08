@@ -2,13 +2,20 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.together.newverse.preview.PreviewData
+import com.together.newverse.ui.components.ProductListItem
+import com.together.newverse.ui.theme.NewverseTheme
 
 @Composable
 fun OverviewScreen() {
+    val products = PreviewData.sampleArticles
+    val orders = PreviewData.sampleOrders
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -29,12 +36,12 @@ fun OverviewScreen() {
         ) {
             StatCard(
                 title = "Total Products",
-                value = "12",
+                value = products.size.toString(),
                 modifier = Modifier.weight(1f)
             )
             StatCard(
                 title = "Active Orders",
-                value = "5",
+                value = orders.size.toString(),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -48,18 +55,26 @@ fun OverviewScreen() {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth()
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Product list will appear here",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            items(products.take(5)) { article ->
+                ProductListItem(
+                    productName = article.productName,
+                    price = article.price,
+                    unit = article.unit,
+                    onClick = { /* TODO: Edit product */ }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun OverviewScreenPreview() {
+    NewverseTheme {
+        Surface {
+            OverviewScreen()
         }
     }
 }
