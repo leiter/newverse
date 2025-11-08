@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.together.newverse.ui.MainScreen
 import com.together.newverse.ui.screens.buy.CustomerProfileScreen
-import com.together.newverse.ui.screens.common.AboutScreen
 import com.together.newverse.ui.screens.common.AboutScreenModern
 import com.together.newverse.ui.screens.common.LoginScreen
 import com.together.newverse.ui.screens.sell.CreateProductScreen
