@@ -25,8 +25,16 @@ class ProductsViewModel : ViewModel() {
             _uiState.value = ProductsUiState.Loading
 
             // TODO: Replace with actual repository call when Firebase is integrated
-            // For now, show empty state
-            _uiState.value = ProductsUiState.Success(emptyList())
+            // For now, use preview data for demonstration
+            kotlinx.coroutines.delay(500) // Simulate network delay
+
+            // Import preview data when Firebase is not yet available
+            try {
+                val articles = com.together.newverse.preview.PreviewData.sampleArticles
+                _uiState.value = ProductsUiState.Success(articles)
+            } catch (e: Exception) {
+                _uiState.value = ProductsUiState.Error("Failed to load products: ${e.message}")
+            }
         }
     }
 
