@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash screen colors -->
+    <color name="orange">#FA9C4D</color>
+
+    <!-- Sell flavor specific colors -->
+    <color name="flavor_primary">#0A6308</color>
+    <color name="flavor_accent">#FA9C4D</color>
+</resources>

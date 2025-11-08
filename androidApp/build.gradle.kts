@@ -39,6 +39,24 @@ android {
             )
         }
     }
+
+    flavorDimensions += "userType"
+
+    productFlavors {
+        create("buy") {
+            dimension = "userType"
+            applicationIdSuffix = ".buy"
+            versionCode = 1
+            versionNameSuffix = "-buy"
+        }
+
+        create("sell") {
+            dimension = "userType"
+            applicationIdSuffix = ".sell"
+            versionCode = 1
+            versionNameSuffix = "-sell"
+        }
+    }
 }
 
 dependencies {
