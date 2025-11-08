@@ -1,63 +1,201 @@
 package com.together.newverse.ui.screens.common
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.together.newverse.ui.theme.FabGreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "About",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+fun AboutScreen(
+    onBackClick: () -> Unit = {}
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* Menu action */ }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Menu",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = FabGreen,
+                    titleContentColor = Color.White
+                )
             )
+        },
+        containerColor = Color.White
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            // Title
+            Text(
+                text = "Impressum",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = FabGreen,
+                fontSize = 32.sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Address Section
+            Text(
+                text = "Eric Dehn",
+                style = MaterialTheme.typography.bodyLarge,
+                color = FabGreen,
+                fontSize = 18.sp
+            )
+            Text(
+                text = "Neue Gartenstraße",
+                style = MaterialTheme.typography.bodyLarge,
+                color = FabGreen,
+                fontSize = 18.sp
+            )
+            Text(
+                text = "15517 Fürstenwalde / Spree",
+                style = MaterialTheme.typography.bodyLarge,
+                color = FabGreen,
+                fontSize = 18.sp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Vertreten durch Section
+            Text(
+                text = "Vertreten durch:",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = FabGreen,
+                fontSize = 18.sp
+            )
+            Text(
+                text = "Eric Dehn",
+                style = MaterialTheme.typography.bodyLarge,
+                color = FabGreen,
+                fontSize = 18.sp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Kontakt Section
+            Text(
+                text = "Kontakt:",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = FabGreen,
+                fontSize = 18.sp
+            )
+            Text(
+                text = "Telefon: 0172 - 46 23 741",
+                style = MaterialTheme.typography.bodyLarge,
+                color = FabGreen,
+                fontSize = 18.sp
+            )
+
+            // Email with underline
+            Row {
                 Text(
-                    text = "Newverse App",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    text = "E-Mail: ",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = FabGreen,
+                    fontSize = 18.sp
                 )
-                Text(
-                    text = "Version 1.0.0",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Built with Kotlin Multiplatform",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                val annotatedEmail = buildAnnotatedString {
+                    pushStringAnnotation(tag = "email", annotation = "bodenschaetze@posteo.de")
+                    withStyle(
+                        style = SpanStyle(
+                            color = FabGreen,
+                            fontSize = 18.sp,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    ) {
+                        append("bodenschaetze@posteo.de")
+                    }
+                    pop()
+                }
+                ClickableText(
+                    text = annotatedEmail,
+                    onClick = { offset ->
+                        annotatedEmail.getStringAnnotations(tag = "email", start = offset, end = offset)
+                            .firstOrNull()?.let { annotation ->
+                                // Handle email click (could open email client)
+                            }
+                    }
                 )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Datenschutz Section
+            Text(
+                text = "Datenschutz",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = FabGreen,
+                fontSize = 18.sp
+            )
+
+            Text(
+                text = "Wir nehmen den Schutz aller persönlichen Daten sehr ernst.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = FabGreen,
+                fontSize = 18.sp,
+                lineHeight = 24.sp
+            )
+
+            Text(
+                text = "Alle personenbezogenen Informationen werden vertraulich und gemäß den gesetzlichen Vorschriften behandelt. Die App kann selbstverständlich genutzt werden, ohne dass Sie persönliche Daten angeben. Wenn jedoch zu irgendeinem Zeitpunkt persönliche Daten wie z.B. Name, Adresse oder E-Mail abgefragt werden, wird dies auf freiwilliger Basis geschehen. Niemals werden von uns erhobene Daten ohne Ihre spezielle Genehmigung an Dritte weitergegeben. Datenübertragung im Internet, wie zum Beispiel über E-Mail, kann immer Sicherheitslücken aufweisen. Der komplette Schutz der Daten ist im Internet nicht möglich.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = FabGreen,
+                fontSize = 18.sp,
+                lineHeight = 24.sp
+            )
+
+            Text(
+                text = "Der Nutzung von im Rahmen der Impressumspflicht veröffentlichten Kontaktdaten durch Dritte zur",
+                style = MaterialTheme.typography.bodyLarge,
+                color = FabGreen,
+                fontSize = 18.sp,
+                lineHeight = 24.sp
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "This screen is a placeholder for the About functionality from the Universe project.",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

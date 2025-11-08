@@ -30,7 +30,9 @@ fun NavGraph(
 
         // Common Screens
         composable(NavRoutes.About.route) {
-            AboutScreen()
+            AboutScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
 
         composable(NavRoutes.Login.route) {
@@ -47,7 +49,9 @@ fun NavGraph(
         }
 
         composable(NavRoutes.Buy.Profile.route) {
-            CustomerProfileScreen()
+            CustomerProfileScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
 
         // Sell (Merchant) Screens
