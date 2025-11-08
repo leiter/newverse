@@ -135,7 +135,7 @@ The project uses a comprehensive Material3 theme system migrated from the Univer
 - ✅ Consistent rounded corners (4dp to 28dp)
 - ✅ Semantic color roles for accessibility
 
-For detailed theme documentation, see [THEME_MIGRATION.md](THEME_MIGRATION.md)
+For detailed theme documentation, see [docs/THEME_MIGRATION.md](docs/THEME_MIGRATION.md)
 
 ## Navigation System
 
@@ -153,7 +153,30 @@ The app features a complete navigation system with a modal drawer:
 - ✅ State preservation
 - ✅ Dynamic screen titles
 
-For detailed navigation documentation, see [NAVIGATION.md](NAVIGATION.md)
+For detailed navigation documentation, see [docs/NAVIGATION.md](docs/NAVIGATION.md)
+
+## Product Flavors
+
+The project supports two product flavors:
+
+### Android
+- **Buy Flavor**: `com.together.newverse.buy` - Customer-facing app
+- **Sell Flavor**: `com.together.newverse.sell` - Vendor-facing app
+
+Build commands:
+```bash
+./gradlew :androidApp:assembleBuyDebug
+./gradlew :androidApp:assembleSellDebug
+```
+
+### iOS
+iOS flavor setup requires macOS with Xcode. See [docs/IOS_SETUP.md](docs/IOS_SETUP.md) for complete instructions.
+
+## Documentation
+
+- **[THEME_MIGRATION.md](docs/THEME_MIGRATION.md)** - Material3 theme system documentation
+- **[NAVIGATION.md](docs/NAVIGATION.md)** - Navigation architecture and screen structure
+- **[IOS_SETUP.md](docs/IOS_SETUP.md)** - Complete guide for setting up iOS app with Buy/Sell flavors
 
 ## Development Notes
 
@@ -161,6 +184,7 @@ For detailed navigation documentation, see [NAVIGATION.md](NAVIGATION.md)
 - Gradle daemon is configured with Java module exports for Kotlin compatibility
 - iOS targets require macOS with Xcode for building
 - Theme follows Material3 guidelines for cross-platform consistency
+- Both Buy and Sell flavors can be installed side-by-side on the same device
 
 ## Running the App
 
