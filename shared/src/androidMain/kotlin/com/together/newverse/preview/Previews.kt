@@ -3,7 +3,7 @@ package com.together.newverse.preview
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.together.newverse.ui.MainScreen
+import com.together.newverse.ui.MainScreenModern
 import com.together.newverse.ui.screens.buy.CustomerProfileScreen
 import com.together.newverse.ui.screens.common.AboutScreenModern
 import com.together.newverse.ui.screens.common.LoginScreen
@@ -20,7 +20,7 @@ import com.together.newverse.ui.theme.NewverseTheme
 @Composable
 fun MainScreenPreview() {
     NewverseTheme {
-        MainScreen()
+        MainScreenModern()
     }
 }
 

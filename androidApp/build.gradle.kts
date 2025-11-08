@@ -3,6 +3,7 @@ plugins {
     kotlin("android")
     id("org.jetbrains.compose")
     kotlin("plugin.compose")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -10,7 +11,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.together.newverse"
+        applicationId = "com.together"
         minSdk = 23
         targetSdk = 35
         versionCode = 1
@@ -30,7 +31,19 @@ android {
         jvmTarget = "17"
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("../debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(

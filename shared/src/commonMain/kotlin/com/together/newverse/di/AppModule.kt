@@ -14,7 +14,7 @@ import org.koin.dsl.module
 
 val appModule = module {
     // Unified ViewModel - Single source of truth
-    viewModel { UnifiedAppViewModel(get(), get(), get()) }
+    viewModel { UnifiedAppViewModel(get(), get(), get(), get()) }
 
     // Legacy ViewModels - Keep for backwards compatibility during migration
     viewModel { LoginViewModel() }

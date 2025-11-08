@@ -6,9 +6,11 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.repository.ArticleRepository
+import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.navigation.NavRoutes
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +26,8 @@ import kotlinx.coroutines.launch
 class UnifiedAppViewModel(
     private val articleRepository: ArticleRepository,
     private val orderRepository: OrderRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UnifiedAppState())
@@ -33,6 +36,32 @@ class UnifiedAppViewModel(
     init {
         // Initialize app on startup
         initializeApp()
+
+        // Observe auth state changes
+        observeAuthState()
+    }
+
+    private fun observeAuthState() {
+        viewModelScope.launch {
+            authRepository.observeAuthState().collect { userId ->
+                _state.update { current ->
+                    current.copy(
+                        common = current.common.copy(
+                            user = if (userId != null) {
+                                UserState.LoggedIn(
+                                    id = userId,
+                                    email = "", // Will be populated from profile
+                                    name = "", // Will be populated from profile
+                                    role = UserRole.CUSTOMER // Default role
+                                )
+                            } else {
+                                UserState.Guest
+                            }
+                        )
+                    )
+                }
+            }
+        }
     }
 
     // ===== Public Action Handlers =====
@@ -166,9 +195,89 @@ class UnifiedAppViewModel(
 
     private fun initializeApp() {
         viewModelScope.launch {
-            // Load initial data
-            loadProducts()
-            loadUserProfile()
+            // Set app to initializing state
+            _state.update { current ->
+                current.copy(
+                    meta = current.meta.copy(
+                        isInitializing = true,
+                        initializationStep = "Checking authentication..."
+                    )
+                )
+            }
+
+            // Step 1: Check authentication status FIRST
+            checkAuthenticationStatus()
+
+            // Step 2: Wait a bit to ensure auth state is propagated
+            kotlinx.coroutines.delay(100)
+
+            // Step 3: Load data based on auth status
+            val isAuthenticated = _state.value.common.user is UserState.LoggedIn
+
+            if (isAuthenticated) {
+                // User is logged in, load user-specific data
+                _state.update { current ->
+                    current.copy(
+                        meta = current.meta.copy(
+                            initializationStep = "Loading user data..."
+                        )
+                    )
+                }
+                loadUserProfile()
+                loadProducts()
+            } else {
+                // Guest mode, load public data only
+                _state.update { current ->
+                    current.copy(
+                        meta = current.meta.copy(
+                            initializationStep = "Loading products..."
+                        )
+                    )
+                }
+                loadProducts()
+            }
+
+            // Step 4: Mark initialization complete
+            _state.update { current ->
+                current.copy(
+                    meta = current.meta.copy(
+                        isInitializing = false,
+                        isInitialized = true,
+                        initializationStep = ""
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * Check if user has a persisted authentication session
+     * This runs BEFORE any Firebase connections
+     */
+    private suspend fun checkAuthenticationStatus() {
+        try {
+            // Cast to InMemoryAuthRepository to access checkPersistedAuth
+            // In production, this would be part of the AuthRepository interface
+            val repository = authRepository as? com.together.newverse.data.repository.InMemoryAuthRepository
+
+            repository?.checkPersistedAuth()?.fold(
+                onSuccess = { userId ->
+                    if (userId != null) {
+                        // User has valid persisted session
+                        println("App Startup: Restored auth session for user: $userId")
+                    } else {
+                        // No persisted session, user is guest
+                        println("App Startup: No persisted auth, starting as guest")
+                    }
+                },
+                onFailure = { error ->
+                    // Failed to check auth, default to guest
+                    println("App Startup: Failed to check auth - ${error.message}")
+                }
+            )
+        } catch (e: Exception) {
+            // Error checking auth, proceed as guest
+            println("App Startup: Exception checking auth - ${e.message}")
         }
     }
 
@@ -482,21 +591,120 @@ class UnifiedAppViewModel(
 
     // Placeholder implementations for other methods
     private fun login(email: String, password: String) {
-        // TODO: Implement login
+        viewModelScope.launch {
+            // Set loading state on auth screen
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        auth = current.screens.auth.copy(isLoading = true)
+                    )
+                )
+            }
+
+            // Attempt sign in
+            authRepository.signInWithEmail(email, password)
+                .onSuccess { userId ->
+                    // Success - auth state will be updated via observeAuthState()
+                    showSnackbar("Signed in successfully", SnackbarType.SUCCESS)
+
+                    // Clear loading state
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                auth = current.screens.auth.copy(isLoading = false)
+                            )
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    // Show error
+                    showSnackbar(error.message ?: "Sign in failed", SnackbarType.ERROR)
+
+                    // Clear loading state
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                auth = current.screens.auth.copy(
+                                    isLoading = false,
+                                    error = ErrorState(
+                                        message = error.message ?: "Sign in failed",
+                                        type = ErrorType.AUTHENTICATION
+                                    )
+                                )
+                            )
+                        )
+                    }
+                }
+        }
     }
 
     private fun logout() {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    user = UserState.Guest
-                )
-            )
+        viewModelScope.launch {
+            authRepository.signOut()
+                .onSuccess {
+                    // Clear basket and other user-specific data
+                    _state.update { current ->
+                        current.copy(
+                            common = current.common.copy(
+                                user = UserState.Guest,
+                                basket = BasketState()
+                            )
+                        )
+                    }
+                    showSnackbar("Signed out successfully", SnackbarType.SUCCESS)
+                }
+                .onFailure { error ->
+                    showSnackbar(error.message ?: "Sign out failed", SnackbarType.ERROR)
+                }
         }
     }
 
     private fun register(email: String, password: String, name: String) {
-        // TODO: Implement register
+        viewModelScope.launch {
+            // Set loading state on auth screen
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        auth = current.screens.auth.copy(isLoading = true)
+                    )
+                )
+            }
+
+            // Attempt sign up
+            authRepository.signUpWithEmail(email, password)
+                .onSuccess { userId ->
+                    // Success - auth state will be updated via observeAuthState()
+                    showSnackbar("Account created successfully", SnackbarType.SUCCESS)
+
+                    // Clear loading state
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                auth = current.screens.auth.copy(isLoading = false)
+                            )
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    // Show error
+                    showSnackbar(error.message ?: "Sign up failed", SnackbarType.ERROR)
+
+                    // Clear loading state
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                auth = current.screens.auth.copy(
+                                    isLoading = false,
+                                    error = ErrorState(
+                                        message = error.message ?: "Sign up failed",
+                                        type = ErrorType.AUTHENTICATION
+                                    )
+                                )
+                            )
+                        )
+                    }
+                }
+        }
     }
 
     private fun updateProfile(profile: UserProfile) {

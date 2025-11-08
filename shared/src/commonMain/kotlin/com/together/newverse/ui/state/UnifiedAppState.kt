@@ -408,7 +408,10 @@ data class AppMetaState(
     val version: String = "1.0.0",
     val environment: Environment = Environment.PRODUCTION,
     val buildNumber: Int = 1,
-    val lastSyncTime: Long? = null
+    val lastSyncTime: Long? = null,
+    val isInitializing: Boolean = false,
+    val isInitialized: Boolean = false,
+    val initializationStep: String = ""
 )
 
 enum class Environment {
