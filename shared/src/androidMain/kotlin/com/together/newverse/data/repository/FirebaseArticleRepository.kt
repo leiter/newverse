@@ -35,54 +35,101 @@ class FirebaseArticleRepository : ArticleRepository {
      * Similar to the RxJava Observable pattern from the universe project
      */
     override fun observeArticles(sellerId: String): Flow<Article> = callbackFlow {
-        val articlesRef = if (sellerId.isEmpty()) {
-            Database.articles()
-        } else {
-            Database.providerArticles(sellerId)
-        }
+        println("🔥 FirebaseArticleRepository.observeArticles: START with sellerId='$sellerId'")
 
-        val listener = object : ChildEventListener {
+        var articlesRef: com.google.firebase.database.DatabaseReference? = null
+        var listener: ChildEventListener? = null
+
+        // Create the listener
+        val articleListener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                println("🔥 FirebaseArticleRepository: onChildAdded - key=${snapshot.key}")
                 val dto = snapshot.getValue(ArticleDto::class.java)
                 if (dto != null) {
                     val article = dto.toDomain(snapshot.key ?: "").copy(mode = MODE_ADDED)
+                    println("🔥 FirebaseArticleRepository: Sending ADDED article '${article.productName}' (id=${article.id})")
                     trySend(article)
+                } else {
+                    println("⚠️ FirebaseArticleRepository: onChildAdded - dto is null for key=${snapshot.key}")
                 }
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                println("🔥 FirebaseArticleRepository: onChildChanged - key=${snapshot.key}")
                 val dto = snapshot.getValue(ArticleDto::class.java)
                 if (dto != null) {
                     val article = dto.toDomain(snapshot.key ?: "").copy(mode = MODE_CHANGED)
+                    println("🔥 FirebaseArticleRepository: Sending CHANGED article '${article.productName}' (id=${article.id})")
                     trySend(article)
                 }
             }
 
             override fun onChildRemoved(snapshot: DataSnapshot) {
+                println("🔥 FirebaseArticleRepository: onChildRemoved - key=${snapshot.key}")
                 val dto = snapshot.getValue(ArticleDto::class.java)
                 if (dto != null) {
                     val article = dto.toDomain(snapshot.key ?: "").copy(mode = MODE_REMOVED)
+                    println("🔥 FirebaseArticleRepository: Sending REMOVED article '${article.productName}' (id=${article.id})")
                     trySend(article)
                 }
             }
 
             override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
+                println("🔥 FirebaseArticleRepository: onChildMoved - key=${snapshot.key}")
                 val dto = snapshot.getValue(ArticleDto::class.java)
                 if (dto != null) {
                     val article = dto.toDomain(snapshot.key ?: "").copy(mode = MODE_MOVED)
+                    println("🔥 FirebaseArticleRepository: Sending MOVED article '${article.productName}' (id=${article.id})")
                     trySend(article)
                 }
             }
 
-            override fun onCancelled(error: DatabaseError) {
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                println("❌ FirebaseArticleRepository: onCancelled - ${error.message}")
+                error.toException().printStackTrace()
                 close(error.toException())
             }
         }
 
-        articlesRef.addChildEventListener(listener)
+        // Determine which seller to load articles from
+        if (sellerId.isEmpty()) {
+            // Buyer mode: Get the first seller from seller_profile list
+            println("🔥 FirebaseArticleRepository.observeArticles: sellerId is empty, fetching first seller from database...")
+
+            Database.getFirstSellerIdRef().get().addOnSuccessListener { snapshot ->
+                val firstSellerId = snapshot.children.firstOrNull()?.key
+                if (firstSellerId != null) {
+                    println("🔥 FirebaseArticleRepository.observeArticles: Found first seller ID: $firstSellerId")
+                    articlesRef = Database.providerArticles(firstSellerId)
+                    println("🔥 FirebaseArticleRepository.observeArticles: Database reference obtained: ${articlesRef!!.path}")
+                    println("🔥 FirebaseArticleRepository.observeArticles: Adding ChildEventListener...")
+                    listener = articleListener
+                    articlesRef!!.addChildEventListener(articleListener)
+                    println("🔥 FirebaseArticleRepository.observeArticles: ChildEventListener added, waiting for events...")
+                } else {
+                    println("❌ FirebaseArticleRepository.observeArticles: No sellers found in seller_profile")
+                    close(Exception("No sellers available in the database"))
+                }
+            }.addOnFailureListener { e ->
+                println("❌ FirebaseArticleRepository.observeArticles: ERROR fetching seller ID - ${e.message}")
+                e.printStackTrace()
+                close(e)
+            }
+        } else {
+            println("🔥 FirebaseArticleRepository.observeArticles: Using provided sellerId: $sellerId")
+            articlesRef = Database.providerArticles(sellerId)
+            println("🔥 FirebaseArticleRepository.observeArticles: Database reference obtained: ${articlesRef!!.path}")
+            println("🔥 FirebaseArticleRepository.observeArticles: Adding ChildEventListener...")
+            listener = articleListener
+            articlesRef!!.addChildEventListener(articleListener)
+            println("🔥 FirebaseArticleRepository.observeArticles: ChildEventListener added, waiting for events...")
+        }
 
         awaitClose {
-            articlesRef.removeEventListener(listener)
+            println("🔥 FirebaseArticleRepository.observeArticles: Removing ChildEventListener")
+            if (articlesRef != null && listener != null) {
+                articlesRef!!.removeEventListener(listener!!)
+            }
         }
     }
 

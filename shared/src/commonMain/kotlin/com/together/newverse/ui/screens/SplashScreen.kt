@@ -22,9 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.together.newverse.ui.theme.FabGreen
-import com.together.newverse.ui.theme.LightCream
-import com.together.newverse.ui.theme.Orange
 import kotlinx.coroutines.delay
 
 /**
@@ -54,7 +51,7 @@ fun SplashScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(LightCream),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -66,7 +63,7 @@ fun SplashScreen(
                 modifier = Modifier
                     .size(120.dp)
                     .background(
-                        color = Orange,
+                        color = MaterialTheme.colorScheme.tertiary,
                         shape = MaterialTheme.shapes.large
                     ),
                 contentAlignment = Alignment.Center
@@ -84,7 +81,7 @@ fun SplashScreen(
                 text = "BODENSCHÄTZE",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = FabGreen
+                color = MaterialTheme.colorScheme.primary
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -101,7 +98,7 @@ fun SplashScreen(
             // Loading indicator
             CircularProgressIndicator(
                 modifier = Modifier.size(40.dp),
-                color = FabGreen
+                color = MaterialTheme.colorScheme.primary
             )
 
             Spacer(modifier = Modifier.height(16.dp))

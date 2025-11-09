@@ -49,4 +49,16 @@ interface AuthRepository {
      * Delete current user account
      */
     suspend fun deleteAccount(): Result<Unit>
+
+    /**
+     * Sign in anonymously as a guest
+     * @return User ID or error
+     */
+    suspend fun signInAnonymously(): Result<String>
+
+    /**
+     * Check if current user is anonymous/guest
+     * @return true if user is anonymous, false otherwise
+     */
+    suspend fun isAnonymous(): Boolean
 }

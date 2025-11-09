@@ -39,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,31 +54,38 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 // Removed hard-coded color imports - will use theme colors instead
 import com.together.newverse.util.formatPrice
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun MainScreenModern(
+    viewModel: MainScreenViewModel = koinViewModel(),
     onProfileClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onCartClick: () -> Unit = {}
 ) {
-    // Sample product data
-    val products = remember {
-        listOf(
-            Article(id = "1", productName = "Bio Erdbeeren", price = 2.96, unit = "Schale", category = "Obst"),
-            Article(id = "2", productName = "Stangensellerie", price = 2.90, unit = "Stück", category = "Gemüse"),
-            Article(id = "3", productName = "Knoblauch", price = 10.69, unit = "kg", category = "Gemüse"),
-            Article(id = "4", productName = "Atomic Red Möhren", price = 3.69, unit = "Bund", category = "Gemüse"),
-            Article(id = "5", productName = "Linda Kartoffeln", price = 2.30, unit = "kg", category = "Gemüse"),
-            Article(id = "6", productName = "Bio Eier", price = 0.60, unit = "Stück", category = "Eier"),
-            Article(id = "7", productName = "Feigenbananen", price = 2.30, unit = "kg", category = "Obst"),
-            Article(id = "8", productName = "Granny Smith", price = 2.30, unit = "kg", category = "Obst"),
-            Article(id = "9", productName = "Siglinde Kartoffeln", price = 2.90, unit = "kg", category = "Gemüse")
-        )
-    }
+    val state by viewModel.state.collectAsState()
 
-    var selectedProduct by remember { mutableStateOf(products[0]) }
-    var quantity by remember { mutableStateOf(0) }
-    val cartItemCount by remember { mutableStateOf(0) }
+    MainScreenModernContent(
+        state = state,
+        onAction = viewModel::onAction,
+        onProfileClick = onProfileClick,
+        onSearchClick = onSearchClick,
+        onCartClick = onCartClick
+    )
+}
+
+@Composable
+private fun MainScreenModernContent(
+    state: MainScreenState,
+    onAction: (MainScreenAction) -> Unit,
+    onProfileClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {},
+    onCartClick: () -> Unit = {}
+) {
+    val products = state.articles
+    val selectedProduct = state.selectedArticle
+    val quantity = state.selectedQuantity
+    val cartItemCount = state.cartItemCount
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -90,12 +98,14 @@ fun MainScreenModern(
         ) {
             // Hero Section - Featured Product
             item {
-                HeroProductCard(
-                    product = selectedProduct,
-                    quantity = quantity,
-                    onQuantityChange = { quantity = it },
-                    onAddToCart = { /* Add to cart logic */ }
-                )
+                selectedProduct?.let { product ->
+                    HeroProductCard(
+                        product = product,
+                        quantity = quantity,
+                        onQuantityChange = { onAction(MainScreenAction.UpdateQuantity(it)) },
+                        onAddToCart = { onAction(MainScreenAction.AddToCart) }
+                    )
+                }
             }
 
             // Category Filter Chips
@@ -111,6 +121,37 @@ fun MainScreenModern(
                 )
             }
 
+            // Show loading or error state
+            if (state.isLoading && products.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Loading articles...", style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+
+            if (state.error != null) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            state.error,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+
             // Product Grid
             items(products.chunked(2)) { productPair ->
                 Row(
@@ -122,8 +163,7 @@ fun MainScreenModern(
                             product = product,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                selectedProduct = product
-                                quantity = 0
+                                onAction(MainScreenAction.SelectArticle(product))
                             }
                         )
                     }

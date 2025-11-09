@@ -45,14 +45,19 @@ class FirebaseAuthRepository : AuthRepository {
     }
 
     override fun observeAuthState(): Flow<String?> = callbackFlow {
+        println("🔐 FirebaseAuthRepository.observeAuthState: Setting up auth state listener")
+
         val authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             val user = firebaseAuth.currentUser
+            println("🔐 FirebaseAuthRepository.observeAuthState: Auth state changed - userId=${user?.uid}, isAnonymous=${user?.isAnonymous}")
             trySend(user?.uid)
         }
 
         auth.addAuthStateListener(authStateListener)
+        println("🔐 FirebaseAuthRepository.observeAuthState: Auth state listener added")
 
         awaitClose {
+            println("🔐 FirebaseAuthRepository.observeAuthState: Removing auth state listener")
             auth.removeAuthStateListener(authStateListener)
         }
     }
@@ -281,19 +286,31 @@ class FirebaseAuthRepository : AuthRepository {
     /**
      * Sign in anonymously (for guest users)
      */
-    suspend fun signInAnonymously(): Result<String> {
+    override suspend fun signInAnonymously(): Result<String> {
         return try {
+            println("🔐 FirebaseAuthRepository.signInAnonymously: Starting anonymous sign in...")
             val authResult = auth.signInAnonymously().await()
             val user = authResult.user
 
             if (user != null) {
+                println("🔐 FirebaseAuthRepository.signInAnonymously: SUCCESS - userId=${user.uid}, isAnonymous=${user.isAnonymous}")
                 Result.success(user.uid)
             } else {
+                println("❌ FirebaseAuthRepository.signInAnonymously: FAILED - user is null")
                 Result.failure(Exception("Anonymous sign in failed"))
             }
         } catch (e: Exception) {
+            println("❌ FirebaseAuthRepository.signInAnonymously: EXCEPTION - ${e.message}")
+            e.printStackTrace()
             Result.failure(Exception("Anonymous sign in failed: ${e.message}"))
         }
+    }
+
+    /**
+     * Check if current user is anonymous/guest
+     */
+    override suspend fun isAnonymous(): Boolean {
+        return auth.currentUser?.isAnonymous ?: false
     }
 
     /**

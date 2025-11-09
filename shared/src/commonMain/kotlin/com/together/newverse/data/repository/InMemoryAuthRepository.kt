@@ -189,6 +189,31 @@ class InMemoryAuthRepository : AuthRepository {
         }
     }
 
+    override suspend fun signInAnonymously(): Result<String> {
+        return try {
+            // Simulate network delay
+            delay(300)
+
+            // Generate anonymous user ID
+            val userId = "guest_${Clock.System.now().toEpochMilliseconds()}"
+
+            // Set current user as anonymous
+            _currentUserId.value = userId
+
+            // Note: We don't persist anonymous sessions
+            // They're meant to be temporary
+
+            Result.success(userId)
+        } catch (e: Exception) {
+            Result.failure(Exception("Anonymous sign in failed: ${e.message}"))
+        }
+    }
+
+    override suspend fun isAnonymous(): Boolean {
+        // In this mock implementation, if user ID starts with "guest_", it's anonymous
+        return _currentUserId.value?.startsWith("guest_") ?: false
+    }
+
     /**
      * Internal data class for storing user credentials
      */

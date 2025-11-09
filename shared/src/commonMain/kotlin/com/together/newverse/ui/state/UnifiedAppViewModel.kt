@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -209,25 +211,31 @@ class UnifiedAppViewModel(
             // Step 1: Check authentication status FIRST
             checkAuthenticationStatus()
 
-            // Step 2: Wait a bit to ensure auth state is propagated
-            kotlinx.coroutines.delay(100)
+            // Step 2: Wait for auth state to be ready (non-null userId)
+            try {
+                println("App Init: Waiting for authentication to complete...")
+                val userId = authRepository.observeAuthState()
+                    .filterNotNull()
+                    .first()
 
-            // Step 3: Load data based on auth status
-            val isAuthenticated = _state.value.common.user is UserState.LoggedIn
+                println("App Init: Authentication complete, user ID: $userId")
 
-            if (isAuthenticated) {
-                // User is logged in, load user-specific data
-                _state.update { current ->
-                    current.copy(
-                        meta = current.meta.copy(
-                            initializationStep = "Loading user data..."
+                // Step 3: Load data based on auth status
+                val isAuthenticated = _state.value.common.user is UserState.LoggedIn
+
+                if (isAuthenticated) {
+                    // User is logged in, load user-specific data
+                    _state.update { current ->
+                        current.copy(
+                            meta = current.meta.copy(
+                                initializationStep = "Loading user data..."
+                            )
                         )
-                    )
+                    }
+                    loadUserProfile()
                 }
-                loadUserProfile()
-                loadProducts()
-            } else {
-                // Guest mode, load public data only
+
+                // Load products for both authenticated and guest users
                 _state.update { current ->
                     current.copy(
                         meta = current.meta.copy(
@@ -236,17 +244,30 @@ class UnifiedAppViewModel(
                     )
                 }
                 loadProducts()
-            }
 
-            // Step 4: Mark initialization complete
-            _state.update { current ->
-                current.copy(
-                    meta = current.meta.copy(
-                        isInitializing = false,
-                        isInitialized = true,
-                        initializationStep = ""
+                // Step 4: Mark initialization complete
+                _state.update { current ->
+                    current.copy(
+                        meta = current.meta.copy(
+                            isInitializing = false,
+                            isInitialized = true,
+                            initializationStep = ""
+                        )
                     )
-                )
+                }
+
+                println("App Init: Initialization complete")
+            } catch (e: Exception) {
+                println("App Init: Error waiting for auth: ${e.message}")
+                _state.update { current ->
+                    current.copy(
+                        meta = current.meta.copy(
+                            isInitializing = false,
+                            isInitialized = false,
+                            initializationStep = "Failed to initialize: ${e.message}"
+                        )
+                    )
+                }
             }
         }
     }
@@ -254,9 +275,18 @@ class UnifiedAppViewModel(
     /**
      * Check if user has a persisted authentication session
      * This runs BEFORE any Firebase connections
+     * If no persisted session exists, automatically sign in as guest
      */
     private suspend fun checkAuthenticationStatus() {
         try {
+            _state.update { current ->
+                current.copy(
+                    meta = current.meta.copy(
+                        initializationStep = "Checking authentication..."
+                    )
+                )
+            }
+
             // Check for persisted authentication session
             authRepository.checkPersistedAuth().fold(
                 onSuccess = { userId ->
@@ -271,33 +301,64 @@ class UnifiedAppViewModel(
                             )
                         }
                     } else {
-                        // No persisted session, user is guest
-                        println("App Startup: No persisted auth, starting as guest")
+                        // No persisted session, sign in as guest
+                        println("App Startup: No persisted auth, signing in as guest...")
                         _state.update { current ->
                             current.copy(
                                 meta = current.meta.copy(
-                                    initializationStep = "Loading products..."
+                                    initializationStep = "Creating guest session..."
                                 )
                             )
                         }
+                        signInAsGuest()
                     }
                 },
                 onFailure = { error ->
-                    // Failed to check auth, default to guest
-                    println("App Startup: Failed to check auth - ${error.message}")
+                    // Failed to check auth, sign in as guest
+                    println("App Startup: Failed to check auth - ${error.message}, signing in as guest...")
                     _state.update { current ->
                         current.copy(
                             meta = current.meta.copy(
-                                initializationStep = "Starting in guest mode..."
+                                initializationStep = "Creating guest session..."
                             )
                         )
                     }
+                    signInAsGuest()
                 }
             )
         } catch (e: Exception) {
-            // Error checking auth, proceed as guest
-            println("App Startup: Exception checking auth - ${e.message}")
+            // Error checking auth, sign in as guest
+            println("App Startup: Exception checking auth - ${e.message}, signing in as guest...")
+            signInAsGuest()
         }
+    }
+
+    /**
+     * Sign in anonymously as a guest user
+     */
+    private suspend fun signInAsGuest() {
+        authRepository.signInAnonymously().fold(
+            onSuccess = { userId ->
+                println("App Startup: Guest sign-in successful, user ID: $userId")
+                _state.update { current ->
+                    current.copy(
+                        meta = current.meta.copy(
+                            initializationStep = "Guest session created"
+                        )
+                    )
+                }
+            },
+            onFailure = { error ->
+                println("App Startup: Guest sign-in failed - ${error.message}")
+                _state.update { current ->
+                    current.copy(
+                        meta = current.meta.copy(
+                            initializationStep = "Failed to create session: ${error.message}"
+                        )
+                    )
+                }
+            }
+        )
     }
 
     private fun navigateTo(route: NavRoutes) {
@@ -354,6 +415,8 @@ class UnifiedAppViewModel(
 
     private fun loadProducts() {
         viewModelScope.launch {
+            println("📦 UnifiedAppViewModel.loadProducts: START")
+
             // Update loading state
             _state.update { current ->
                 current.copy(
@@ -363,10 +426,17 @@ class UnifiedAppViewModel(
                 )
             }
 
+            println("📦 UnifiedAppViewModel.loadProducts: Set loading state to true")
+
             // Load products for demo - using empty sellerId for now
             // TODO: Get sellerId from user state
-            articleRepository.getArticles("")
+            val sellerId = ""
+            println("📦 UnifiedAppViewModel.loadProducts: Calling articleRepository.getArticles(sellerId='$sellerId')")
+
+            articleRepository.getArticles(sellerId)
                 .catch { e ->
+                    println("❌ UnifiedAppViewModel.loadProducts: ERROR - ${e.message}")
+                    e.printStackTrace()
                     _state.update { current ->
                         current.copy(
                             screens = current.screens.copy(
@@ -382,20 +452,33 @@ class UnifiedAppViewModel(
                     }
                 }
                 .collect { article ->
+                    println("📦 UnifiedAppViewModel.loadProducts: Received article event - mode=${article.mode}, id=${article.id}, name=${article.productName}")
+
                     // Handle individual article events
                     _state.update { current ->
                         val currentProducts = current.screens.products.items.toMutableList()
+                        val beforeCount = currentProducts.size
 
                         when (article.mode) {
-                            Article.MODE_ADDED -> currentProducts.add(article)
+                            Article.MODE_ADDED -> {
+                                currentProducts.add(article)
+                                println("📦 UnifiedAppViewModel.loadProducts: ADDED article '${article.productName}' (id=${article.id})")
+                            }
                             Article.MODE_CHANGED -> {
                                 val index = currentProducts.indexOfFirst { it.id == article.id }
-                                if (index >= 0) currentProducts[index] = article
+                                if (index >= 0) {
+                                    currentProducts[index] = article
+                                    println("📦 UnifiedAppViewModel.loadProducts: CHANGED article '${article.productName}' at index $index")
+                                }
                             }
                             Article.MODE_REMOVED -> {
                                 currentProducts.removeAll { it.id == article.id }
+                                println("📦 UnifiedAppViewModel.loadProducts: REMOVED article '${article.productName}' (id=${article.id})")
                             }
                         }
+
+                        val afterCount = currentProducts.size
+                        println("📦 UnifiedAppViewModel.loadProducts: Product count: $beforeCount → $afterCount")
 
                         current.copy(
                             screens = current.screens.copy(

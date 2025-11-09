@@ -1,5 +1,6 @@
 package com.together.newverse.di
 
+import com.together.newverse.ui.MainScreenViewModel
 import com.together.newverse.ui.screens.buy.BasketViewModel
 import com.together.newverse.ui.screens.buy.CustomerProfileViewModel
 import com.together.newverse.ui.screens.buy.ProductsViewModel
@@ -15,6 +16,9 @@ import org.koin.dsl.module
 val appModule = module {
     // Unified ViewModel - Single source of truth
     viewModel { UnifiedAppViewModel(get(), get(), get(), get()) }
+
+    // Main Screen ViewModel
+    viewModel { MainScreenViewModel(get(), get()) }
 
     // Legacy ViewModels - Keep for backwards compatibility during migration
     viewModel { LoginViewModel() }

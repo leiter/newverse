@@ -119,4 +119,12 @@ object Database {
         }
         return FirebaseStorage.getInstance().reference.child(path)
     }
+
+    /**
+     * Get the first seller ID from the seller_profile list
+     * This is used by buyers to connect to their default seller
+     */
+    fun getFirstSellerIdRef(): com.google.firebase.database.Query {
+        return fire().reference.child(SELLER_PROFILE).limitToFirst(1)
+    }
 }
