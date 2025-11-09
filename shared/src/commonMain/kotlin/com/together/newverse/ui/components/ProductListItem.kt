@@ -41,6 +41,7 @@ fun ProductListItem(
         ) {
             // Product image thumbnail
             if (imageUrl.isNotEmpty()) {
+                println("🖼️ ProductListItem: Loading image for '$productName' from URL: $imageUrl")
                 AsyncImage(
                     model = imageUrl,
                     contentDescription = productName,
@@ -50,6 +51,7 @@ fun ProductListItem(
                     contentScale = ContentScale.Crop,
                 )
             } else {
+                println("🖼️ ProductListItem: No image URL for '$productName', showing placeholder")
                 // Placeholder when no image
                 Box(
                     modifier = Modifier

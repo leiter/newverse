@@ -61,6 +61,7 @@ fun OverviewScreen() {
                 ProductListItem(
                     productName = article.productName,
                     price = article.price,
+                    imageUrl = article.imageUrl,
                     unit = article.unit,
                     onClick = { /* TODO: Edit product */ }
                 )

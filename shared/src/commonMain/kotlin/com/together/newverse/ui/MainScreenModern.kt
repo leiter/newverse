@@ -4,6 +4,9 @@ package com.together.newverse.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -411,39 +414,54 @@ private fun ModernProductCard(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // Product Image Placeholder with Category Icon
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = when (product.category) {
-                    "Obst" -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                    "Gemüse" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                    "Eier" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-                    else -> MaterialTheme.colorScheme.surfaceVariant
-                }
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
+            // Product Image
+            if (product.imageUrl.isNotEmpty()) {
+                println("🖼️ ModernProductCard: Loading image for '${product.productName}' from URL: ${product.imageUrl}")
+                AsyncImage(
+                    model = product.imageUrl,
+                    contentDescription = product.productName,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                println("🖼️ ModernProductCard: No image URL for '${product.productName}', showing placeholder")
+                // Placeholder with Category Icon when no image
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = when (product.category) {
+                        "Obst" -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                        "Gemüse" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        "Eier" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
                 ) {
-                    Icon(
-                        imageVector = when (product.category) {
-                            "Obst" -> Icons.Default.Star
-                            "Gemüse" -> Icons.Default.Favorite
-                            "Eier" -> Icons.Default.Settings
-                            else -> Icons.Default.ShoppingCart
-                        },
-                        contentDescription = null,
-                        tint = when (product.category) {
-                            "Obst" -> MaterialTheme.colorScheme.secondary
-                            "Gemüse" -> MaterialTheme.colorScheme.primary
-                            "Eier" -> MaterialTheme.colorScheme.tertiary
-                            else -> MaterialTheme.colorScheme.outline
-                        },
-                        modifier = Modifier.size(40.dp)
-                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            imageVector = when (product.category) {
+                                "Obst" -> Icons.Default.Star
+                                "Gemüse" -> Icons.Default.Favorite
+                                "Eier" -> Icons.Default.Settings
+                                else -> Icons.Default.ShoppingCart
+                            },
+                            contentDescription = null,
+                            tint = when (product.category) {
+                                "Obst" -> MaterialTheme.colorScheme.secondary
+                                "Gemüse" -> MaterialTheme.colorScheme.primary
+                                "Eier" -> MaterialTheme.colorScheme.tertiary
+                                else -> MaterialTheme.colorScheme.outline
+                            },
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
                 }
             }
 

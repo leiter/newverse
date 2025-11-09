@@ -79,10 +79,16 @@ kotlin {
 
             // Coroutines Play Services
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+            // Ktor HTTP client engine for Coil image loading
+            implementation("io.ktor:ktor-client-okhttp:3.0.1")
         }
 
         iosMain.dependencies {
             // iOS specific dependencies
+
+            // Ktor HTTP client engine for Coil image loading
+            implementation("io.ktor:ktor-client-darwin:3.0.1")
         }
     }
 }

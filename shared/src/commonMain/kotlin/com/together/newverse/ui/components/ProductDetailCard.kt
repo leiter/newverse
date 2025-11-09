@@ -59,6 +59,7 @@ fun ProductDetailCard(
 
             // Product Image
             if (imageUrl.isNotEmpty()) {
+                println("🖼️ ProductDetailCard: Loading image for '$productName' from URL: $imageUrl")
                 AsyncImage(
                     model = imageUrl,
                     contentDescription = productName,
@@ -69,6 +70,7 @@ fun ProductDetailCard(
                     contentScale = ContentScale.Crop,
                 )
             } else {
+                println("🖼️ ProductDetailCard: No image URL for '$productName', showing placeholder")
                 // Placeholder when no image is available
                 Box(
                     modifier = Modifier
