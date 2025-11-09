@@ -36,7 +36,7 @@ import androidx.navigation.compose.rememberNavController
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.state.UnifiedAppViewModel
 import com.together.newverse.ui.state.UnifiedAppAction
-import com.together.newverse.ui.theme.Orange
+// Removed hard-coded color import - will use theme colors instead
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -168,7 +168,7 @@ fun AppScaffold() {
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = "Search",
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -181,14 +181,14 @@ fun AppScaffold() {
                                     Icon(
                                         imageVector = Icons.Default.ShoppingCart,
                                         contentDescription = "Shopping Cart",
-                                        tint = Color.White,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
                                 // Cart item count badge
                                 Badge(
-                                    containerColor = Orange,
-                                    contentColor = Color.White,
+                                    containerColor = MaterialTheme.colorScheme.tertiary,
+                                    contentColor = MaterialTheme.colorScheme.onTertiary,
                                     modifier = Modifier.align(Alignment.TopEnd)
                                 ) {
                                     Text(

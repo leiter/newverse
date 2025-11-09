@@ -17,8 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 import com.together.newverse.ui.components.ProductDetailCard
 import com.together.newverse.ui.components.ProductListItem
-import com.together.newverse.ui.theme.FabGreen
-import com.together.newverse.ui.theme.Orange
+// Removed hard-coded color imports - will use theme colors instead
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,14 +51,14 @@ fun MainScreen() {
                         "BODENSCHÄTZE",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = FabGreen
+                        color = MaterialTheme.colorScheme.primary
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { /* Profile action */ }) {
                         Surface(
                             shape = CircleShape,
-                            color = Orange,
+                            color = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
@@ -77,7 +76,7 @@ fun MainScreen() {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search",
-                            tint = Orange,
+                            tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -88,13 +87,13 @@ fun MainScreen() {
                             Icon(
                                 imageVector = Icons.Default.ShoppingCart,
                                 contentDescription = "Shopping Cart",
-                                tint = Orange,
+                                tint = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
                         if (cartItemCount > 0) {
                             Badge(
-                                containerColor = FabGreen,
+                                containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.surface,
                                 modifier = Modifier.align(Alignment.TopEnd)
                             ) {
@@ -105,7 +104,7 @@ fun MainScreen() {
                             }
                         } else {
                             Badge(
-                                containerColor = FabGreen,
+                                containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.surface,
                                 modifier = Modifier.align(Alignment.TopEnd)
                             ) {
@@ -119,7 +118,7 @@ fun MainScreen() {
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = FabGreen
+                    titleContentColor = MaterialTheme.colorScheme.primary
                 )
             )
         }

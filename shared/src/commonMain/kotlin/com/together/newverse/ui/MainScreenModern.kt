@@ -51,19 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
-import com.together.newverse.ui.theme.DarkGreen
-import com.together.newverse.ui.theme.FabGreen
-import com.together.newverse.ui.theme.Gray300
-import com.together.newverse.ui.theme.Gray400
-import com.together.newverse.ui.theme.Gray600
-import com.together.newverse.ui.theme.Gray900
-import com.together.newverse.ui.theme.LeafGreen
-import com.together.newverse.ui.theme.LightCream
-import com.together.newverse.ui.theme.Orange
-import com.together.newverse.ui.theme.OrganicBeige
-import com.together.newverse.ui.theme.SoftOrange
-import com.together.newverse.ui.theme.SuccessGreen
-import com.together.newverse.ui.theme.White
+// Removed hard-coded color imports - will use theme colors instead
 import com.together.newverse.util.formatPrice
 
 @Composable
@@ -93,7 +81,7 @@ fun MainScreenModern(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = LightCream
+        color = MaterialTheme.colorScheme.background
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -162,7 +150,7 @@ private fun HeroProductCard(
             .fillMaxWidth()
             .height(200.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = OrganicBeige),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -174,7 +162,7 @@ private fun HeroProductCard(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                LeafGreen.copy(alpha = 0.1f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                 Color.Transparent
                             )
                         )
@@ -194,8 +182,8 @@ private fun HeroProductCard(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Badge(
-                            containerColor = SuccessGreen,
-                            contentColor = White
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ) {
                             Text(
                                 "Tagesfrisch",
@@ -210,20 +198,20 @@ private fun HeroProductCard(
                             text = product.productName,
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
-                            color = DarkGreen
+                            color = MaterialTheme.colorScheme.primary
                         )
 
                         Text(
                             text = "${product.price.formatPrice()}€ / ${product.unit}",
                             style = MaterialTheme.typography.titleMedium,
-                            color = FabGreen
+                            color = MaterialTheme.colorScheme.secondary
                         )
                     }
 
                     // Eco Badge
                     Surface(
                         shape = CircleShape,
-                        color = LeafGreen,
+                        color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(48.dp)
                     ) {
                         Box(
@@ -233,7 +221,7 @@ private fun HeroProductCard(
                             Icon(
                                 Icons.Default.Favorite,
                                 contentDescription = "Bio",
-                                tint = White,
+                                tint = MaterialTheme.colorScheme.onSecondary,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -251,7 +239,7 @@ private fun HeroProductCard(
                     // Quantity Selector
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = White,
+                        color = MaterialTheme.colorScheme.surface,
                         modifier = Modifier.weight(1f)
                     ) {
                         Row(
@@ -288,8 +276,8 @@ private fun HeroProductCard(
                         onClick = onAddToCart,
                         enabled = quantity > 0,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Orange,
-                            disabledContainerColor = Gray300
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.height(44.dp)
@@ -332,9 +320,9 @@ private fun CategoryChips(
                     { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = FabGreen,
-                    selectedLabelColor = White,
-                    selectedLeadingIconColor = White
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -352,13 +340,13 @@ private fun SectionHeader(
             text = title,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = DarkGreen
+            color = MaterialTheme.colorScheme.primary
         )
         subtitle?.let {
             Text(
                 text = it,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Gray600
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -375,7 +363,7 @@ private fun ModernProductCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -390,10 +378,10 @@ private fun ModernProductCard(
                     .height(100.dp),
                 shape = RoundedCornerShape(12.dp),
                 color = when (product.category) {
-                    "Obst" -> LeafGreen.copy(alpha = 0.1f)
-                    "Gemüse" -> FabGreen.copy(alpha = 0.1f)
-                    "Eier" -> SoftOrange.copy(alpha = 0.1f)
-                    else -> OrganicBeige
+                    "Obst" -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                    "Gemüse" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    "Eier" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                    else -> MaterialTheme.colorScheme.surfaceVariant
                 }
             ) {
                 Box(
@@ -409,10 +397,10 @@ private fun ModernProductCard(
                         },
                         contentDescription = null,
                         tint = when (product.category) {
-                            "Obst" -> LeafGreen
-                            "Gemüse" -> FabGreen
-                            "Eier" -> SoftOrange
-                            else -> Gray400
+                            "Obst" -> MaterialTheme.colorScheme.secondary
+                            "Gemüse" -> MaterialTheme.colorScheme.primary
+                            "Eier" -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.outline
                         },
                         modifier = Modifier.size(40.dp)
                     )
@@ -428,7 +416,7 @@ private fun ModernProductCard(
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                color = Gray900
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -443,12 +431,12 @@ private fun ModernProductCard(
                     text = "${product.price.formatPrice()}€",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = FabGreen
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = "/ ${product.unit}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Gray600
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -457,12 +445,12 @@ private fun ModernProductCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
                     shape = RoundedCornerShape(4.dp),
-                    color = SuccessGreen.copy(alpha = 0.1f)
+                    color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
                         text = "BIO",
                         style = MaterialTheme.typography.labelSmall,
-                        color = SuccessGreen,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }

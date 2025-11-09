@@ -15,9 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.together.newverse.ui.theme.BeigeCard
-import com.together.newverse.ui.theme.FabGreen
-import com.together.newverse.ui.theme.Orange
+// Removed hard-coded color imports - will use theme colors instead
 import com.together.newverse.util.formatPrice
 
 @Composable
@@ -33,7 +31,7 @@ fun ProductDetailCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = BeigeCard
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -46,7 +44,7 @@ fun ProductDetailCard(
             Text(
                 text = productName,
                 style = MaterialTheme.typography.headlineMedium,
-                color = FabGreen,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
@@ -61,14 +59,14 @@ fun ProductDetailCard(
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = "Info",
-                    tint = FabGreen,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = productName,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = FabGreen
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -84,7 +82,7 @@ fun ProductDetailCard(
                 Text(
                     text = "(",
                     fontSize = 80.sp,
-                    color = FabGreen.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                     modifier = Modifier.padding(end = 8.dp)
                 )
 
@@ -150,7 +148,7 @@ fun ProductDetailCard(
                                 text = "${price.formatPrice()}€",
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = FabGreen
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -171,14 +169,14 @@ fun ProductDetailCard(
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Add",
-                                tint = FabGreen,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
                         Text(
                             text = "Schale",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = FabGreen,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -188,7 +186,7 @@ fun ProductDetailCard(
                     // Shopping Cart FAB
                     FloatingActionButton(
                         onClick = onAddToCart,
-                        containerColor = FabGreen,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(64.dp)
                     ) {

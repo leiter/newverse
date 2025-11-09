@@ -74,33 +74,40 @@ val LightOnSurfaceVariant = Gray700
 val LightOutline = Gray400
 val LightOutlineVariant = Gray300
 
-// Dark Theme Colors
-val DarkPrimary = Color(0xFF80D4CA)
-val DarkOnPrimary = Color(0xFF003731)
-val DarkPrimaryContainer = Color(0xFF005048)
-val DarkOnPrimaryContainer = Color(0xFFA9F2E7)
+// Dark Theme Colors - Improved for better readability and organic feel
+// Using a warm-tinted dark theme that complements the organic/fresh theme
 
-val DarkSecondary = Color(0xFF9DD499)
-val DarkOnSecondary = Color(0xFF063505)
-val DarkSecondaryContainer = Color(0xFF094D07)
-val DarkOnSecondaryContainer = Color(0xFFB8F0B4)
+// Primary - Lighter, more vibrant green for dark mode
+val DarkPrimary = Color(0xFF4DB6AC)  // Teal-green, brighter than light mode
+val DarkOnPrimary = Color(0xFF00251F)
+val DarkPrimaryContainer = Color(0xFF00574B)
+val DarkOnPrimaryContainer = Color(0xFFB2DFDB)
 
-val DarkTertiary = Color(0xFFFFCC80)
-val DarkOnTertiary = Color(0xFF4A2800)
-val DarkTertiaryContainer = Color(0xFF6A3C00)
-val DarkOnTertiaryContainer = Color(0xFFFFDDB3)
+// Secondary - Fresh green tones
+val DarkSecondary = Color(0xFF81C784)  // Light green for good contrast
+val DarkOnSecondary = Color(0xFF1B5E20)
+val DarkSecondaryContainer = Color(0xFF2E7D32)
+val DarkOnSecondaryContainer = Color(0xFFC8E6C9)
 
-val DarkError = Color(0xFFFFB4AB)
-val DarkOnError = Color(0xFF690005)
-val DarkErrorContainer = Color(0xFF93000A)
-val DarkOnErrorContainer = Color(0xFFFFDAD6)
+// Tertiary - Warm orange accents
+val DarkTertiary = Color(0xFFFFB74D)  // Warm orange, softer than light mode
+val DarkOnTertiary = Color(0xFF5D2F00)
+val DarkTertiaryContainer = Color(0xFF8D4E00)
+val DarkOnTertiaryContainer = Color(0xFFFFE0B2)
 
-val DarkBackground = Color(0xFF1A1C1A)
-val DarkOnBackground = Color(0xFFE2E3DE)
-val DarkSurface = Color(0xFF1A1C1A)
-val DarkOnSurface = Color(0xFFE2E3DE)
-val DarkSurfaceVariant = Color(0xFF40484A)
-val DarkOnSurfaceVariant = Color(0xFFC0C8CA)
+// Error colors
+val DarkError = Color(0xFFEF9A9A)
+val DarkOnError = Color(0xFF5F0A0A)
+val DarkErrorContainer = Color(0xFFC62828)
+val DarkOnErrorContainer = Color(0xFFFFCDD2)
 
-val DarkOutline = Gray600
-val DarkOutlineVariant = Gray700
+// Background & Surface - Darker with organic warmth
+val DarkBackground = Color(0xFF0F0E0D)  // Very dark brown-black (almost black)
+val DarkOnBackground = Color(0xFFF5F5F0)
+val DarkSurface = Color(0xFF1A1816)     // Dark brown surface
+val DarkOnSurface = Color(0xFFF5F5F0)
+val DarkSurfaceVariant = Color(0xFF2C2826)  // Elevated card backgrounds
+val DarkOnSurfaceVariant = Color(0xFFE0D8D3)
+
+val DarkOutline = Color(0xFF8D8985)
+val DarkOutlineVariant = Color(0xFF5C5955)

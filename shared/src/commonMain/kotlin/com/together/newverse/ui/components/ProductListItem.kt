@@ -10,7 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.together.newverse.ui.theme.FabGreen
+// Removed hard-coded color import - will use theme colors instead
 import com.together.newverse.util.formatPrice
 
 @Composable
@@ -33,7 +33,7 @@ fun ProductListItem(
             Text(
                 text = productName,
                 style = MaterialTheme.typography.titleMedium,
-                color = FabGreen,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
@@ -41,7 +41,7 @@ fun ProductListItem(
             Text(
                 text = "${price.formatPrice()}€/$unit",
                 style = MaterialTheme.typography.titleMedium,
-                color = FabGreen,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Normal
             )
         }
