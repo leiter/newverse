@@ -61,4 +61,19 @@ interface AuthRepository {
      * @return true if user is anonymous, false otherwise
      */
     suspend fun isAnonymous(): Boolean
+
+    /**
+     * Sign in with Google
+     * @param idToken Google ID token from Google Sign-In
+     * @return User ID or error
+     */
+    suspend fun signInWithGoogle(idToken: String): Result<String>
+
+    /**
+     * Sign in with Twitter
+     * @param token Twitter OAuth token
+     * @param secret Twitter OAuth secret
+     * @return User ID or error
+     */
+    suspend fun signInWithTwitter(token: String, secret: String): Result<String>
 }

@@ -77,6 +77,9 @@ kotlin {
             implementation("com.google.firebase:firebase-database-ktx:21.0.0")
             implementation("com.google.firebase:firebase-storage-ktx:21.0.0")
 
+            // Google Sign-In
+            implementation("com.google.android.gms:play-services-auth:21.2.0")
+
             // Coroutines Play Services
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 

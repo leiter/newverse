@@ -117,6 +117,8 @@ class UnifiedAppViewModel(
     private fun handleUserAction(action: UnifiedUserAction) {
         when (action) {
             is UnifiedUserAction.Login -> login(action.email, action.password)
+            is UnifiedUserAction.LoginWithGoogle -> loginWithGoogle()
+            is UnifiedUserAction.LoginWithTwitter -> loginWithTwitter()
             is UnifiedUserAction.Logout -> logout()
             is UnifiedUserAction.Register -> register(action.email, action.password, action.name)
             is UnifiedUserAction.UpdateProfile -> updateProfile(action.profile)
@@ -757,6 +759,56 @@ class UnifiedAppViewModel(
                         )
                     }
                 }
+        }
+    }
+
+    private fun loginWithGoogle() {
+        println("🔐 UnifiedAppViewModel.loginWithGoogle: Triggering Google Sign-In flow")
+        _state.update { current ->
+            current.copy(
+                common = current.common.copy(
+                    triggerGoogleSignIn = true
+                )
+            )
+        }
+    }
+
+    private fun loginWithTwitter() {
+        println("🔐 UnifiedAppViewModel.loginWithTwitter: Triggering Twitter Sign-In flow")
+        _state.update { current ->
+            current.copy(
+                common = current.common.copy(
+                    triggerTwitterSignIn = true
+                )
+            )
+        }
+    }
+
+    /**
+     * Reset Google Sign-In trigger after it's been handled
+     */
+    fun resetGoogleSignInTrigger() {
+        println("🔐 UnifiedAppViewModel.resetGoogleSignInTrigger: Resetting trigger")
+        _state.update { current ->
+            current.copy(
+                common = current.common.copy(
+                    triggerGoogleSignIn = false
+                )
+            )
+        }
+    }
+
+    /**
+     * Reset Twitter Sign-In trigger after it's been handled
+     */
+    fun resetTwitterSignInTrigger() {
+        println("🔐 UnifiedAppViewModel.resetTwitterSignInTrigger: Resetting trigger")
+        _state.update { current ->
+            current.copy(
+                common = current.common.copy(
+                    triggerTwitterSignIn = false
+                )
+            )
         }
     }
 

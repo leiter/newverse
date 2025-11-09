@@ -191,6 +191,56 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Google Sign-In Button
+        OutlinedButton(
+            onClick = {
+                onAction(UnifiedUserAction.LoginWithGoogle)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            enabled = !authState.isLoading,
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            // Google logo placeholder
+            Text(
+                text = "G",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(end = 12.dp)
+            )
+            Text("Sign in with Google", style = MaterialTheme.typography.labelLarge)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Twitter Sign-In Button
+        OutlinedButton(
+            onClick = {
+                onAction(UnifiedUserAction.LoginWithTwitter)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            enabled = !authState.isLoading,
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            // Twitter logo placeholder
+            Text(
+                text = "𝕏",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(end = 12.dp)
+            )
+            Text("Sign in with Twitter", style = MaterialTheme.typography.labelLarge)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Continue as Guest Button
         OutlinedButton(
             onClick = {

@@ -214,6 +214,16 @@ class InMemoryAuthRepository : AuthRepository {
         return _currentUserId.value?.startsWith("guest_") ?: false
     }
 
+    override suspend fun signInWithGoogle(idToken: String): Result<String> {
+        // Mock implementation - not supported in InMemoryAuthRepository
+        return Result.failure(Exception("Google Sign-In is only available with Firebase authentication"))
+    }
+
+    override suspend fun signInWithTwitter(token: String, secret: String): Result<String> {
+        // Mock implementation - not supported in InMemoryAuthRepository
+        return Result.failure(Exception("Twitter Sign-In is only available with Firebase authentication"))
+    }
+
     /**
      * Internal data class for storing user credentials
      */

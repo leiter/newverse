@@ -1,6 +1,8 @@
 package com.together.newverse.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.TwitterAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.together.newverse.domain.repository.AuthRepository
@@ -341,6 +343,84 @@ class FirebaseAuthRepository : AuthRepository {
                 e.message?.contains("EMAIL_EXISTS") == true -> "This email is already in use"
                 e.message?.contains("CREDENTIAL_ALREADY_IN_USE") == true -> "This credential is already linked to another account"
                 else -> e.message ?: "Account linking failed"
+            }
+            Result.failure(Exception(errorMessage))
+        }
+    }
+
+    /**
+     * Sign in with Google using ID token
+     */
+    override suspend fun signInWithGoogle(idToken: String): Result<String> {
+        return try {
+            println("🔐 FirebaseAuthRepository.signInWithGoogle: Starting Google sign in...")
+
+            // Create Google credential with the ID token
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+
+            // Sign in with the credential
+            val authResult = auth.signInWithCredential(credential).await()
+            val user = authResult.user
+
+            if (user != null) {
+                println("🔐 FirebaseAuthRepository.signInWithGoogle: SUCCESS - userId=${user.uid}, email=${user.email}")
+                Result.success(user.uid)
+            } else {
+                println("❌ FirebaseAuthRepository.signInWithGoogle: FAILED - user is null")
+                Result.failure(Exception("Google sign in failed: User is null"))
+            }
+        } catch (e: Exception) {
+            println("❌ FirebaseAuthRepository.signInWithGoogle: EXCEPTION - ${e.message}")
+            e.printStackTrace()
+            val errorMessage = when {
+                e.message?.contains("ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL") == true ->
+                    "An account already exists with the same email but different sign-in credentials"
+                e.message?.contains("INVALID_CREDENTIAL") == true ->
+                    "Invalid Google credentials"
+                e.message?.contains("USER_DISABLED") == true ->
+                    "This account has been disabled"
+                e.message?.contains("NETWORK_ERROR") == true ->
+                    "Network error. Please check your connection"
+                else -> e.message ?: "Google sign in failed"
+            }
+            Result.failure(Exception(errorMessage))
+        }
+    }
+
+    /**
+     * Sign in with Twitter using OAuth token and secret
+     */
+    override suspend fun signInWithTwitter(token: String, secret: String): Result<String> {
+        return try {
+            println("🔐 FirebaseAuthRepository.signInWithTwitter: Starting Twitter sign in...")
+
+            // Create Twitter credential with the OAuth token and secret
+            val credential = TwitterAuthProvider.getCredential(token, secret)
+
+            // Sign in with the credential
+            val authResult = auth.signInWithCredential(credential).await()
+            val user = authResult.user
+
+            if (user != null) {
+                println("🔐 FirebaseAuthRepository.signInWithTwitter: SUCCESS - userId=${user.uid}, displayName=${user.displayName}")
+                Result.success(user.uid)
+            } else {
+                println("❌ FirebaseAuthRepository.signInWithTwitter: FAILED - user is null")
+                Result.failure(Exception("Twitter sign in failed: User is null"))
+            }
+        } catch (e: Exception) {
+            println("❌ FirebaseAuthRepository.signInWithTwitter: EXCEPTION - ${e.message}")
+            e.printStackTrace()
+            val errorMessage = when {
+                e.message?.contains("ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL") == true ->
+                    "An account already exists with the same email but different sign-in credentials"
+                e.message?.contains("INVALID_CREDENTIAL") == true ->
+                    "Invalid Twitter credentials"
+                e.message?.contains("USER_DISABLED") == true ->
+                    "This account has been disabled"
+                e.message?.contains("NETWORK_ERROR") == true ->
+                    "Network error. Please check your connection"
+                else -> e.message ?: "Twitter sign in failed"
             }
             Result.failure(Exception(errorMessage))
         }

@@ -21,6 +21,8 @@ sealed interface UnifiedNavigationAction : UnifiedAppAction {
 // ===== User/Auth Actions =====
 sealed interface UnifiedUserAction : UnifiedAppAction {
     data class Login(val email: String, val password: String) : UnifiedUserAction
+    data object LoginWithGoogle : UnifiedUserAction
+    data object LoginWithTwitter : UnifiedUserAction
     data object Logout : UnifiedUserAction
     data class Register(val email: String, val password: String, val name: String) : UnifiedUserAction
     data class UpdateProfile(val profile: UserProfile) : UnifiedUserAction

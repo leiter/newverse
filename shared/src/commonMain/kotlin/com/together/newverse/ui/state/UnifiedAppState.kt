@@ -35,7 +35,10 @@ data class CommonState(
     val navigation: NavigationState = NavigationState(),
     val ui: GlobalUiState = GlobalUiState(),
     val connection: ConnectionState = ConnectionState.Connected,
-    val notifications: NotificationState = NotificationState()
+    val notifications: NotificationState = NotificationState(),
+    // Triggers for platform-specific actions
+    val triggerGoogleSignIn: Boolean = false,
+    val triggerTwitterSignIn: Boolean = false
 )
 
 /**
