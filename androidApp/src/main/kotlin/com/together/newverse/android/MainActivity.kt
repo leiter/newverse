@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
         val googleSignInLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.StartActivityForResult()
         ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
+            if (result.resultCode == RESULT_OK) {
                 Log.d("MainActivity", "Google Sign-In result received")
 
                 // Handle the sign-in result

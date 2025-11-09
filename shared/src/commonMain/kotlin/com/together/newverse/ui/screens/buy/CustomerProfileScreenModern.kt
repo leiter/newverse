@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
@@ -31,8 +33,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -70,6 +70,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+
 // Removed hard-coded color imports - will use theme colors instead
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -663,7 +664,7 @@ private fun MembershipCard() {
             }
 
             Icon(
-                Icons.Default.KeyboardArrowRight,
+                Icons.AutoMirrored.Default.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -688,7 +689,7 @@ private fun QuickActionsCard() {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             ActionButton(
-                icon = Icons.Default.List,
+                icon = Icons.AutoMirrored.Default.List,
                 text = "Bestellungen",
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)

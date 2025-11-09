@@ -2,7 +2,6 @@ package com.together.newverse.util
 
 import android.content.Context
 import android.content.Intent
-import androidx.activity.result.ActivityResultLauncher
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient

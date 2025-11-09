@@ -52,7 +52,7 @@ class InMemoryAuthRepository : AuthRepository {
     override suspend fun checkPersistedAuth(): Result<String?> {
         return try {
             // Simulate network/storage delay
-            kotlinx.coroutines.delay(500)
+            delay(500)
 
             if (!hasCheckedPersistedAuth) {
                 hasCheckedPersistedAuth = true
