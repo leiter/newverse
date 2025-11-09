@@ -15,4 +15,13 @@ data class Article(
     val category: String = "",
     val searchTerms: String = "",
     val detailInfo: String = "",
-)
+    val mode: Int = MODE_UNDEFINED
+) {
+    companion object {
+        const val MODE_ADDED = 0
+        const val MODE_CHANGED = 1
+        const val MODE_MOVED = 2
+        const val MODE_REMOVED = 3
+        const val MODE_UNDEFINED = -1
+    }
+}

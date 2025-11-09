@@ -9,17 +9,19 @@ import kotlinx.coroutines.flow.Flow
 interface ArticleRepository {
     /**
      * Observe articles for a specific seller
-     * @param sellerId The seller's ID
-     * @return Flow of articles with real-time updates
+     * @param sellerId The seller's ID (empty string for current user)
+     * @return Flow of individual Article events with mode flags (ADDED, CHANGED, REMOVED, MOVED)
+     * Each emission represents a single article change event from Firebase
      */
-    fun observeArticles(sellerId: String): Flow<List<Article>>
+    fun observeArticles(sellerId: String): Flow<Article>
 
     /**
-     * Get articles for a specific seller
-     * @param sellerId The seller's ID
-     * @return List of articles
+     * Get articles for a specific seller as a Flow
+     * @param sellerId The seller's ID (empty string for current user)
+     * @return Flow of individual Article events with mode flags (ADDED, CHANGED, REMOVED, MOVED)
+     * This is the same as observeArticles - kept for backwards compatibility
      */
-    suspend fun getArticles(sellerId: String): Result<List<Article>>
+    fun getArticles(sellerId: String): Flow<Article>
 
     /**
      * Get a specific article by ID

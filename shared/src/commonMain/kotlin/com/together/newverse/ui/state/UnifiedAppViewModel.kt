@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -362,56 +363,51 @@ class UnifiedAppViewModel(
                 )
             }
 
-            try {
-                // Load products for demo - using empty sellerId for now
-                // TODO: Get sellerId from user state
-                val result = articleRepository.getArticles("")
-
-                result.fold(
-                    onSuccess = { products ->
-                        _state.update { current ->
-                            current.copy(
-                                screens = current.screens.copy(
-                                    products = current.screens.products.copy(
-                                        isLoading = false,
-                                        items = products,
-                                        error = null
+            // Load products for demo - using empty sellerId for now
+            // TODO: Get sellerId from user state
+            articleRepository.getArticles("")
+                .catch { e ->
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                products = current.screens.products.copy(
+                                    isLoading = false,
+                                    error = ErrorState(
+                                        message = e.message ?: "Failed to load products",
+                                        type = ErrorType.NETWORK
                                     )
-                                )
-                            )
-                        }
-                    },
-                    onFailure = { e ->
-                        _state.update { current ->
-                            current.copy(
-                                screens = current.screens.copy(
-                                    products = current.screens.products.copy(
-                                        isLoading = false,
-                                        error = ErrorState(
-                                            message = e.message ?: "Failed to load products",
-                                            type = ErrorType.NETWORK
-                                        )
-                                    )
-                                )
-                            )
-                        }
-                    }
-                )
-            } catch (e: Exception) {
-                _state.update { current ->
-                    current.copy(
-                        screens = current.screens.copy(
-                            products = current.screens.products.copy(
-                                isLoading = false,
-                                error = ErrorState(
-                                    message = e.message ?: "Failed to load products",
-                                    type = ErrorType.NETWORK
                                 )
                             )
                         )
-                    )
+                    }
                 }
-            }
+                .collect { article ->
+                    // Handle individual article events
+                    _state.update { current ->
+                        val currentProducts = current.screens.products.items.toMutableList()
+
+                        when (article.mode) {
+                            Article.MODE_ADDED -> currentProducts.add(article)
+                            Article.MODE_CHANGED -> {
+                                val index = currentProducts.indexOfFirst { it.id == article.id }
+                                if (index >= 0) currentProducts[index] = article
+                            }
+                            Article.MODE_REMOVED -> {
+                                currentProducts.removeAll { it.id == article.id }
+                            }
+                        }
+
+                        current.copy(
+                            screens = current.screens.copy(
+                                products = current.screens.products.copy(
+                                    isLoading = false,
+                                    items = currentProducts,
+                                    error = null
+                                )
+                            )
+                        )
+                    }
+                }
         }
     }
 

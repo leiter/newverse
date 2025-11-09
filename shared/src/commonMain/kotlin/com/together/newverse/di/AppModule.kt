@@ -20,12 +20,12 @@ val appModule = module {
     viewModel { LoginViewModel() }
 
     // ViewModels - Buy/Customer
-    viewModel { ProductsViewModel() }
+    viewModel { ProductsViewModel(get()) }
     viewModel { BasketViewModel() }
     viewModel { CustomerProfileViewModel() }
 
     // ViewModels - Sell/Seller
-    viewModel { OverviewViewModel() }
+    viewModel { OverviewViewModel(get()) }
     viewModel { OrdersViewModel() }
     viewModel { CreateProductViewModel() }
     viewModel { SellerProfileViewModel() }

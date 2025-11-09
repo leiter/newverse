@@ -1,32 +1,35 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.preview.PreviewData
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
 
 /**
  * Mock implementation of ArticleRepository for development and testing
  */
 class MockArticleRepository : ArticleRepository {
 
-    private val _articles = MutableStateFlow(PreviewData.sampleArticles)
-
-    override fun observeArticles(sellerId: String): Flow<List<Article>> {
-        return _articles.asStateFlow()
+    /**
+     * Observe articles - emits each article with MODE_ADDED flag
+     */
+    override fun observeArticles(sellerId: String): Flow<Article> = flow {
+        delay(500) // Simulate network delay
+        // Emit each article as an individual event with ADDED mode
+        PreviewData.sampleArticles.forEach { article ->
+            emit(article.copy(mode = MODE_ADDED))
+            delay(50) // Small delay between emissions
+        }
     }
 
-    override suspend fun getArticles(sellerId: String): Result<List<Article>> {
-        return try {
-            // Simulate network delay
-            delay(500)
-            Result.success(PreviewData.sampleArticles)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    /**
+     * Get articles - same as observeArticles for mock
+     */
+    override fun getArticles(sellerId: String): Flow<Article> {
+        return observeArticles(sellerId)
     }
 
     override suspend fun getArticle(sellerId: String, articleId: String): Result<Article> {
@@ -46,14 +49,8 @@ class MockArticleRepository : ArticleRepository {
     override suspend fun saveArticle(sellerId: String, article: Article): Result<Unit> {
         return try {
             delay(300)
-            val currentArticles = _articles.value.toMutableList()
-            val index = currentArticles.indexOfFirst { it.id == article.id }
-            if (index >= 0) {
-                currentArticles[index] = article
-            } else {
-                currentArticles.add(article)
-            }
-            _articles.value = currentArticles
+            // For mock implementation, just simulate success
+            // In real implementation, this would trigger Firebase write and emit CHANGED/ADDED event
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -63,9 +60,8 @@ class MockArticleRepository : ArticleRepository {
     override suspend fun deleteArticle(sellerId: String, articleId: String): Result<Unit> {
         return try {
             delay(300)
-            val currentArticles = _articles.value.toMutableList()
-            currentArticles.removeAll { it.id == articleId }
-            _articles.value = currentArticles
+            // For mock implementation, just simulate success
+            // In real implementation, this would trigger Firebase delete and emit REMOVED event
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
