@@ -1,7 +1,6 @@
 package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.Article
-import com.together.newverse.domain.model.Order
 import com.together.newverse.ui.navigation.NavRoutes
 
 /**

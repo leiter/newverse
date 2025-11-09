@@ -70,25 +70,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.together.newverse.ui.theme.BrownAccent
-import com.together.newverse.ui.theme.DarkGreen
-import com.together.newverse.ui.theme.ErrorRed
-import com.together.newverse.ui.theme.FabGreen
-import com.together.newverse.ui.theme.Gray100
-import com.together.newverse.ui.theme.Gray200
-import com.together.newverse.ui.theme.Gray300
-import com.together.newverse.ui.theme.Gray400
-import com.together.newverse.ui.theme.Gray600
-import com.together.newverse.ui.theme.Gray700
-import com.together.newverse.ui.theme.Gray800
-import com.together.newverse.ui.theme.InfoBlue
-import com.together.newverse.ui.theme.LeafGreen
-import com.together.newverse.ui.theme.LightCream
-import com.together.newverse.ui.theme.Orange
-import com.together.newverse.ui.theme.OrganicBeige
-import com.together.newverse.ui.theme.SuccessGreen
-import com.together.newverse.ui.theme.WarningOrange
-import com.together.newverse.ui.theme.White
+// Removed hard-coded color imports - will use theme colors instead
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,7 +92,7 @@ fun CustomerProfileScreenModern(
     Box(modifier = Modifier.fillMaxSize()) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = LightCream
+            color = MaterialTheme.colorScheme.background
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 // Background gradient
@@ -121,7 +103,7 @@ fun CustomerProfileScreenModern(
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    LeafGreen.copy(alpha = 0.05f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
                                     Color.Transparent
                                 )
                             )
@@ -222,7 +204,7 @@ private fun ProfileHeaderCard(
             .fillMaxWidth()
             .animateContentSize(animationSpec = spring()),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -234,8 +216,8 @@ private fun ProfileHeaderCard(
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
-                                FabGreen.copy(alpha = 0.1f),
-                                LeafGreen.copy(alpha = 0.1f)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
                             )
                         )
                     )
@@ -250,15 +232,15 @@ private fun ProfileHeaderCard(
                 // Profile Picture
                 Surface(
                     shape = CircleShape,
-                    color = Orange,
+                    color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier
                         .size(100.dp)
-                        .border(4.dp, White, CircleShape)
+                        .border(4.dp, MaterialTheme.colorScheme.surface, CircleShape)
                 ) {
                     Icon(
                         Icons.Default.Person,
                         contentDescription = null,
-                        tint = White,
+                        tint = MaterialTheme.colorScheme.onTertiary,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(24.dp)
@@ -276,14 +258,14 @@ private fun ProfileHeaderCard(
                         text = displayName,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = DarkGreen
+                        color = MaterialTheme.colorScheme.primary
                     )
                     if (isVerified) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             Icons.Default.CheckCircle,
                             contentDescription = "Verifiziert",
-                            tint = SuccessGreen,
+                            tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -292,7 +274,7 @@ private fun ProfileHeaderCard(
                 Text(
                     text = email,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Gray600
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -300,12 +282,12 @@ private fun ProfileHeaderCard(
                 // Member since badge
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = SuccessGreen.copy(alpha = 0.1f)
+                    color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
                         text = "Kunde seit 2023",
                         style = MaterialTheme.typography.labelMedium,
-                        color = SuccessGreen,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                     )
                 }
@@ -327,7 +309,7 @@ private fun PersonalInfoCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -338,7 +320,7 @@ private fun PersonalInfoCard(
             SectionHeader(
                 icon = Icons.Default.Person,
                 title = "Persönliche Daten",
-                iconColor = FabGreen
+                iconColor = MaterialTheme.colorScheme.primary
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -390,7 +372,7 @@ private fun DeliveryPreferencesCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = OrganicBeige.copy(alpha = 0.3f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -401,7 +383,7 @@ private fun DeliveryPreferencesCard(
             SectionHeader(
                 icon = Icons.Default.LocationOn,
                 title = "Abholpräferenzen",
-                iconColor = BrownAccent
+                iconColor = MaterialTheme.colorScheme.tertiary
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -412,10 +394,10 @@ private fun DeliveryPreferencesCard(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .clickable(enabled = isEditing) { /* Open market selection */ },
-                color = if (isEditing) White else Gray100,
+                color = if (isEditing) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
                 border = BorderStroke(
                     1.dp,
-                    if (isEditing) FabGreen else Color.Transparent
+                    if (isEditing) MaterialTheme.colorScheme.primary else Color.Transparent
                 )
             ) {
                 Row(
@@ -432,19 +414,19 @@ private fun DeliveryPreferencesCard(
                         Icon(
                             Icons.Outlined.LocationOn,
                             contentDescription = null,
-                            tint = FabGreen
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Column {
                             Text(
                                 text = "Marktplatz",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Gray600
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = selectedMarket,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
-                                color = Gray800
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -452,7 +434,7 @@ private fun DeliveryPreferencesCard(
                         Icon(
                             Icons.Default.ArrowDropDown,
                             contentDescription = null,
-                            tint = Gray600
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -466,10 +448,10 @@ private fun DeliveryPreferencesCard(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .clickable(enabled = isEditing) { /* Open time picker */ },
-                color = if (isEditing) White else Gray100,
+                color = if (isEditing) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
                 border = BorderStroke(
                     1.dp,
-                    if (isEditing) FabGreen else Color.Transparent
+                    if (isEditing) MaterialTheme.colorScheme.primary else Color.Transparent
                 )
             ) {
                 Row(
@@ -486,19 +468,19 @@ private fun DeliveryPreferencesCard(
                         Icon(
                             Icons.Default.DateRange,
                             contentDescription = null,
-                            tint = FabGreen
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Column {
                             Text(
                                 text = "Abholzeit",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Gray600
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "$pickupTime Uhr",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
-                                color = Gray800
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -506,7 +488,7 @@ private fun DeliveryPreferencesCard(
                         Icon(
                             Icons.Default.DateRange,
                             contentDescription = null,
-                            tint = Gray600
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -526,7 +508,7 @@ private fun NotificationSettingsCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -537,7 +519,7 @@ private fun NotificationSettingsCard(
             SectionHeader(
                 icon = Icons.Default.Notifications,
                 title = "Benachrichtigungen",
-                iconColor = InfoBlue
+                iconColor = MaterialTheme.colorScheme.secondary
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -555,7 +537,7 @@ private fun NotificationSettingsCard(
                     Icon(
                         Icons.Default.Notifications,
                         contentDescription = null,
-                        tint = if (notificationsEnabled) SuccessGreen else Gray400,
+                        tint = if (notificationsEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(20.dp)
                     )
                     Column {
@@ -563,12 +545,12 @@ private fun NotificationSettingsCard(
                             text = "Bestellupdates",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
-                            color = Gray800
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Push-Benachrichtigungen erhalten",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Gray600
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -577,8 +559,8 @@ private fun NotificationSettingsCard(
                     onCheckedChange = onNotificationToggle,
                     enabled = isEditing,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = White,
-                        checkedTrackColor = SuccessGreen
+                        checkedThumbColor = MaterialTheme.colorScheme.surface,
+                        checkedTrackColor = MaterialTheme.colorScheme.tertiary
                     )
                 )
             }
@@ -598,7 +580,7 @@ private fun NotificationSettingsCard(
                     Icon(
                         Icons.Default.Email,
                         contentDescription = null,
-                        tint = if (newsletterEnabled) SuccessGreen else Gray400,
+                        tint = if (newsletterEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(20.dp)
                     )
                     Column {
@@ -606,12 +588,12 @@ private fun NotificationSettingsCard(
                             text = "Newsletter",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
-                            color = Gray800
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Wöchentliche Angebote",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Gray600
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -620,8 +602,8 @@ private fun NotificationSettingsCard(
                     onCheckedChange = onNewsletterToggle,
                     enabled = isEditing,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = White,
-                        checkedTrackColor = SuccessGreen
+                        checkedThumbColor = MaterialTheme.colorScheme.surface,
+                        checkedTrackColor = MaterialTheme.colorScheme.tertiary
                     )
                 )
             }
@@ -635,7 +617,7 @@ private fun MembershipCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = LeafGreen.copy(alpha = 0.1f)
+            containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -652,13 +634,13 @@ private fun MembershipCard() {
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = SuccessGreen,
+                    color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         Icons.Default.Star,
                         contentDescription = null,
-                        tint = White,
+                        tint = MaterialTheme.colorScheme.surface,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(12.dp)
@@ -670,12 +652,12 @@ private fun MembershipCard() {
                         text = "Stammkunde",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = FabGreen
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "5% Rabatt auf alle Bestellungen",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Gray600
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -683,7 +665,7 @@ private fun MembershipCard() {
             Icon(
                 Icons.Default.KeyboardArrowRight,
                 contentDescription = null,
-                tint = FabGreen
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }
@@ -698,7 +680,7 @@ private fun QuickActionsCard() {
             text = "Schnellaktionen",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = DarkGreen
+            color = MaterialTheme.colorScheme.primary
         )
 
         Row(
@@ -708,14 +690,14 @@ private fun QuickActionsCard() {
             ActionButton(
                 icon = Icons.Default.List,
                 text = "Bestellungen",
-                color = FabGreen,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             ) { /* Navigate to orders */ }
 
             ActionButton(
                 icon = Icons.Outlined.FavoriteBorder,
                 text = "Favoriten",
-                color = ErrorRed,
+                color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f)
             ) { /* Navigate to favorites */ }
         }
@@ -727,14 +709,14 @@ private fun QuickActionsCard() {
             ActionButton(
                 icon = Icons.Default.AccountBox,
                 text = "Zahlung",
-                color = InfoBlue,
+                color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.weight(1f)
             ) { /* Navigate to payment */ }
 
             ActionButton(
                 icon = Icons.Default.Info,
                 text = "Hilfe",
-                color = WarningOrange,
+                color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
                 modifier = Modifier.weight(1f)
             ) { /* Navigate to help */ }
         }
@@ -752,7 +734,7 @@ private fun ActionButton(
     Card(
         modifier = modifier.clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -773,7 +755,7 @@ private fun ActionButton(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = Gray700
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -787,7 +769,7 @@ private fun SaveBottomBar(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shadowElevation = 8.dp,
-        color = White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
@@ -799,7 +781,7 @@ private fun SaveBottomBar(
                 onClick = onCancel,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Gray600
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             ) {
                 Text("Abbrechen")
@@ -809,7 +791,7 @@ private fun SaveBottomBar(
                 onClick = onSave,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = SuccessGreen
+                    containerColor = MaterialTheme.colorScheme.tertiary
                 )
             ) {
                 Icon(
@@ -835,7 +817,7 @@ private fun SaveConfirmationDialog(
             TextButton(
                 onClick = onConfirm,
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = SuccessGreen
+                    contentColor = MaterialTheme.colorScheme.tertiary
                 )
             ) {
                 Text("Bestätigen")
@@ -850,7 +832,7 @@ private fun SaveConfirmationDialog(
             Icon(
                 Icons.Default.CheckCircle,
                 contentDescription = null,
-                tint = SuccessGreen,
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(48.dp)
             )
         },
@@ -899,7 +881,7 @@ private fun SectionHeader(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = DarkGreen
+            color = MaterialTheme.colorScheme.primary
         )
     }
 }
@@ -923,7 +905,7 @@ private fun ModernTextField(
             Icon(
                 leadingIcon,
                 contentDescription = null,
-                tint = if (enabled && isValid) FabGreen else Gray400
+                tint = if (enabled && isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
         },
         trailingIcon = {
@@ -931,7 +913,7 @@ private fun ModernTextField(
                 Icon(
                     if (isValid) Icons.Default.Check else Icons.Default.Close,
                     contentDescription = null,
-                    tint = if (isValid) SuccessGreen else ErrorRed,
+                    tint = if (isValid) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -940,10 +922,10 @@ private fun ModernTextField(
         singleLine = true,
         keyboardOptions = keyboardOptions,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = FabGreen,
-            unfocusedBorderColor = Gray300,
-            disabledBorderColor = Gray200,
-            focusedLabelColor = FabGreen
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            focusedLabelColor = MaterialTheme.colorScheme.primary
         ),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
