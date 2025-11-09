@@ -53,6 +53,10 @@ kotlin {
 
             // Navigation
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.8.0-alpha10")
+
+            // Coil3 for image loading (supports Android, iOS, Desktop, Web)
+            implementation("io.coil-kt.coil3:coil-compose:3.0.4")
+            implementation("io.coil-kt.coil3:coil-network-ktor3:3.0.4")
         }
 
         androidMain.dependencies {

@@ -3,19 +3,24 @@ package com.together.newverse.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 // Removed hard-coded color imports - will use theme colors instead
+import coil3.compose.AsyncImage
 import com.together.newverse.util.formatPrice
 
 @Composable
@@ -24,6 +29,7 @@ fun ProductDetailCard(
     quantity: Int,
     price: Double,
     unit: String,
+    imageUrl: String = "",
     onQuantityChange: (Int) -> Unit,
     onAddToCart: () -> Unit,
     modifier: Modifier = Modifier
@@ -48,6 +54,38 @@ fun ProductDetailCard(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Product Image
+            if (imageUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = productName,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                // Placeholder when no image is available
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "No image",
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 

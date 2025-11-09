@@ -149,6 +149,7 @@ fun MainScreen() {
                     productName = product.productName,
                     price = product.price,
                     unit = product.unit,
+                    imageUrl = product.imageUrl,
                     onClick = {
                         selectedProduct = product
                         quantity = 0

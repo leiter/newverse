@@ -105,6 +105,7 @@ fun ProductsContent(
                             productName = article.productName,
                             price = article.price,
                             unit = article.unit,
+                            imageUrl = article.imageUrl,
                             onClick = {
                                 onAction(ProductsAction.AddToBasket(article))
                                 // TODO: Show snackbar or navigate to detail
