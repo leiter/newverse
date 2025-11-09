@@ -11,8 +11,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Switch from splash theme to app theme
-        setTheme(com.together.newverse.android.R.style.AppTheme)
+        setTheme(R.style.AppTheme)
 
         enableEdgeToEdge()
         setContent {

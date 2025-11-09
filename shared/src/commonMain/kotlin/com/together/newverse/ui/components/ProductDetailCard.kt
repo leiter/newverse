@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 // Removed hard-coded color imports - will use theme colors instead
 import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
 import com.together.newverse.util.formatPrice
 
 @Composable
@@ -60,7 +62,7 @@ fun ProductDetailCard(
             // Product Image
             if (imageUrl.isNotEmpty()) {
                 println("🖼️ ProductDetailCard: Loading image for '$productName' from URL: $imageUrl")
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = imageUrl,
                     contentDescription = productName,
                     modifier = Modifier
@@ -68,6 +70,33 @@ fun ProductDetailCard(
                         .height(200.dp)
                         .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    error = {
+                        // Show landscape placeholder on error
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Error loading image",
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
                 )
             } else {
                 println("🖼️ ProductDetailCard: No image URL for '$productName', showing placeholder")

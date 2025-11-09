@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,9 +56,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.together.newverse.domain.model.Article
 // Removed hard-coded color imports - will use theme colors instead
 import com.together.newverse.util.formatPrice
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.place_holder_landscape
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -417,7 +423,7 @@ private fun ModernProductCard(
             // Product Image
             if (product.imageUrl.isNotEmpty()) {
                 println("🖼️ ModernProductCard: Loading image for '${product.productName}' from URL: ${product.imageUrl}")
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = product.imageUrl,
                     contentDescription = product.productName,
                     modifier = Modifier
@@ -425,6 +431,40 @@ private fun ModernProductCard(
                         .height(100.dp)
                         .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(32.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    error = {
+                        // Show landscape placeholder on error
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Show portrait placeholder on error
+                            androidx.compose.foundation.Image(
+                                painter = painterResource(Res.drawable.place_holder_landscape),
+                                contentDescription = "Error loading image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+//                            Icon(
+//                                imageVector = Icons.Default.Star,
+//                                contentDescription = "Error loading image",
+//                                modifier = Modifier.zIndex(2f).size(40.dp),
+//                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+//                            )
+                        }
+                    }
                 )
             } else {
                 println("🖼️ ModernProductCard: No image URL for '${product.productName}', showing placeholder")
