@@ -67,6 +67,14 @@ kotlin {
 
             // Koin Android
             implementation("io.insert-koin:koin-android:4.0.0")
+
+            // Firebase
+            implementation("com.google.firebase:firebase-auth-ktx:23.0.0")
+            implementation("com.google.firebase:firebase-database-ktx:21.0.0")
+            implementation("com.google.firebase:firebase-storage-ktx:21.0.0")
+
+            // Coroutines Play Services
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
         }
 
         iosMain.dependencies {

@@ -22,6 +22,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -34,6 +35,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.state.UnifiedAppViewModel
+import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.theme.Orange
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
@@ -65,6 +67,26 @@ fun AppScaffold() {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    // Observe navigation state changes from ViewModel
+    LaunchedEffect(appState.common.navigation.currentRoute) {
+        val targetRoute = appState.common.navigation.currentRoute
+        val currentDestination = navController.currentBackStackEntry?.destination?.route
+
+        // Only navigate if we're not already at the target route
+        if (targetRoute.route != currentDestination && targetRoute.route != NavRoutes.Home.route) {
+            navController.navigate(targetRoute.route) {
+                // Pop up to the start destination to avoid building up a large stack
+                popUpTo(NavRoutes.Home.route) {
+                    saveState = true
+                }
+                // Avoid multiple copies of the same destination
+                launchSingleTop = true
+                // Restore state when reselecting a previously selected item
+                restoreState = true
+            }
+        }
+    }
 
     // Get current route for highlighting in drawer
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -111,7 +133,8 @@ fun AppScaffold() {
                         // Show back arrow for Basket and other detail screens, hamburger menu for main screens
                         if (currentRoute == NavRoutes.Buy.Basket.route ||
                             currentRoute == NavRoutes.Buy.Profile.route ||
-                            currentRoute == NavRoutes.About.route) {
+                            currentRoute == NavRoutes.About.route ||
+                            currentRoute == NavRoutes.Register.route) {
                             IconButton(
                                 onClick = {
                                     navController.navigateUp()
@@ -188,7 +211,11 @@ fun AppScaffold() {
                 modifier = Modifier.padding(paddingValues),
                 color = MaterialTheme.colorScheme.background
             ) {
-                NavGraph(navController = navController)
+                NavGraph(
+                    navController = navController,
+                    appState = appState,
+                    onAction = { action -> viewModel.dispatch(action) }
+                )
             }
         }
     }

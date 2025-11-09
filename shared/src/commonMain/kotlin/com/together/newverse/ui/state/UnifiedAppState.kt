@@ -422,15 +422,16 @@ enum class Environment {
 
 // Custom screen states that don't fit generic patterns
 data class AuthScreenState(
-    override val isLoading: Boolean = false,
-    override val error: ErrorState? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val isSuccess: Boolean = false,
     val mode: AuthMode = AuthMode.LOGIN,
     val email: String = "",
     val password: String = "",
     val confirmPassword: String = "",
     val name: String = "",
     val validationErrors: Map<String, String> = emptyMap()
-) : ScreenState
+)
 
 enum class AuthMode {
     LOGIN,

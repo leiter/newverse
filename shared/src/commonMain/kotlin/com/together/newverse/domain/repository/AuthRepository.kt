@@ -7,6 +7,12 @@ import kotlinx.coroutines.flow.Flow
  */
 interface AuthRepository {
     /**
+     * Check if user has a persisted session and restore it
+     * @return User ID if authenticated, null if not
+     */
+    suspend fun checkPersistedAuth(): Result<String?>
+
+    /**
      * Observe authentication state
      * @return Flow of user ID (null if logged out)
      */

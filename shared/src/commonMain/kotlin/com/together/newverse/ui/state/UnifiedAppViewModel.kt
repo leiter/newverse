@@ -256,23 +256,41 @@ class UnifiedAppViewModel(
      */
     private suspend fun checkAuthenticationStatus() {
         try {
-            // Cast to InMemoryAuthRepository to access checkPersistedAuth
-            // In production, this would be part of the AuthRepository interface
-            val repository = authRepository as? com.together.newverse.data.repository.InMemoryAuthRepository
-
-            repository?.checkPersistedAuth()?.fold(
+            // Check for persisted authentication session
+            authRepository.checkPersistedAuth().fold(
                 onSuccess = { userId ->
                     if (userId != null) {
                         // User has valid persisted session
                         println("App Startup: Restored auth session for user: $userId")
+                        _state.update { current ->
+                            current.copy(
+                                meta = current.meta.copy(
+                                    initializationStep = "Loading user data..."
+                                )
+                            )
+                        }
                     } else {
                         // No persisted session, user is guest
                         println("App Startup: No persisted auth, starting as guest")
+                        _state.update { current ->
+                            current.copy(
+                                meta = current.meta.copy(
+                                    initializationStep = "Loading products..."
+                                )
+                            )
+                        }
                     }
                 },
                 onFailure = { error ->
                     // Failed to check auth, default to guest
                     println("App Startup: Failed to check auth - ${error.message}")
+                    _state.update { current ->
+                        current.copy(
+                            meta = current.meta.copy(
+                                initializationStep = "Starting in guest mode..."
+                            )
+                        )
+                    }
                 }
             )
         } catch (e: Exception) {
@@ -592,11 +610,15 @@ class UnifiedAppViewModel(
     // Placeholder implementations for other methods
     private fun login(email: String, password: String) {
         viewModelScope.launch {
-            // Set loading state on auth screen
+            // Clear any previous errors and set loading state
             _state.update { current ->
                 current.copy(
                     screens = current.screens.copy(
-                        auth = current.screens.auth.copy(isLoading = true)
+                        auth = current.screens.auth.copy(
+                            isLoading = true,
+                            error = null,
+                            isSuccess = false
+                        )
                     )
                 )
             }
@@ -607,29 +629,50 @@ class UnifiedAppViewModel(
                     // Success - auth state will be updated via observeAuthState()
                     showSnackbar("Signed in successfully", SnackbarType.SUCCESS)
 
-                    // Clear loading state
-                    _state.update { current ->
-                        current.copy(
-                            screens = current.screens.copy(
-                                auth = current.screens.auth.copy(isLoading = false)
-                            )
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    // Show error
-                    showSnackbar(error.message ?: "Sign in failed", SnackbarType.ERROR)
-
-                    // Clear loading state
+                    // Set success state and clear loading
                     _state.update { current ->
                         current.copy(
                             screens = current.screens.copy(
                                 auth = current.screens.auth.copy(
                                     isLoading = false,
-                                    error = ErrorState(
-                                        message = error.message ?: "Sign in failed",
-                                        type = ErrorType.AUTHENTICATION
-                                    )
+                                    isSuccess = true,
+                                    error = null
+                                )
+                            )
+                        )
+                    }
+
+                    // Navigate to home after a short delay
+                    kotlinx.coroutines.delay(500)
+                    navigateTo(NavRoutes.Home)
+                }
+                .onFailure { error ->
+                    // Parse error message for user-friendly display
+                    val errorMessage = when {
+                        error.message?.contains("No account found", true) == true ->
+                            "No account found with this email address"
+                        error.message?.contains("Incorrect password", true) == true ->
+                            "Incorrect password. Please try again"
+                        error.message?.contains("Invalid email", true) == true ->
+                            "Please enter a valid email address"
+                        error.message?.contains("Network", true) == true ->
+                            "Network error. Please check your connection"
+                        error.message?.contains("too many", true) == true ->
+                            "Too many failed attempts. Please try again later"
+                        else -> error.message ?: "Sign in failed. Please try again"
+                    }
+
+                    // Show error snackbar
+                    showSnackbar(errorMessage, SnackbarType.ERROR)
+
+                    // Update state with error
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                auth = current.screens.auth.copy(
+                                    isLoading = false,
+                                    error = errorMessage,
+                                    isSuccess = false
                                 )
                             )
                         )
@@ -661,11 +704,15 @@ class UnifiedAppViewModel(
 
     private fun register(email: String, password: String, name: String) {
         viewModelScope.launch {
-            // Set loading state on auth screen
+            // Clear any previous errors and set loading state
             _state.update { current ->
                 current.copy(
                     screens = current.screens.copy(
-                        auth = current.screens.auth.copy(isLoading = true)
+                        auth = current.screens.auth.copy(
+                            isLoading = true,
+                            error = null,
+                            isSuccess = false
+                        )
                     )
                 )
             }
@@ -673,36 +720,62 @@ class UnifiedAppViewModel(
             // Attempt sign up
             authRepository.signUpWithEmail(email, password)
                 .onSuccess { userId ->
-                    // Success - auth state will be updated via observeAuthState()
-                    showSnackbar("Account created successfully", SnackbarType.SUCCESS)
-
-                    // Clear loading state
+                    // Update user state with name
                     _state.update { current ->
                         current.copy(
+                            common = current.common.copy(
+                                user = UserState.LoggedIn(
+                                    id = userId,
+                                    name = name,
+                                    email = email,
+                                    role = UserRole.CUSTOMER // Default to customer for new registrations
+                                )
+                            ),
                             screens = current.screens.copy(
-                                auth = current.screens.auth.copy(isLoading = false)
+                                auth = current.screens.auth.copy(
+                                    isLoading = false,
+                                    error = null,
+                                    isSuccess = true
+                                )
                             )
                         )
                     }
+
+                    // Show success message
+                    showSnackbar("Account created successfully! Please check your email for verification.", SnackbarType.SUCCESS)
+
+                    // Navigate to login after a short delay
+                    delay(1500)
+                    navigateTo(NavRoutes.Login)
                 }
                 .onFailure { error ->
-                    // Show error
-                    showSnackbar(error.message ?: "Sign up failed", SnackbarType.ERROR)
+                    // Provide user-friendly error messages
+                    val errorMessage = when {
+                        error.message?.contains("email-already-in-use") == true ->
+                            "An account with this email already exists. Please sign in instead."
+                        error.message?.contains("weak-password") == true ->
+                            "Password is too weak. Please use at least 6 characters."
+                        error.message?.contains("invalid-email") == true ->
+                            "Invalid email address. Please check and try again."
+                        error.message?.contains("network") == true ->
+                            "Network error. Please check your connection and try again."
+                        else ->
+                            "Registration failed. Please try again."
+                    }
 
-                    // Clear loading state
                     _state.update { current ->
                         current.copy(
                             screens = current.screens.copy(
                                 auth = current.screens.auth.copy(
                                     isLoading = false,
-                                    error = ErrorState(
-                                        message = error.message ?: "Sign up failed",
-                                        type = ErrorType.AUTHENTICATION
-                                    )
+                                    error = errorMessage,
+                                    isSuccess = false
                                 )
                             )
                         )
                     }
+
+                    showSnackbar(errorMessage, SnackbarType.ERROR)
                 }
         }
     }

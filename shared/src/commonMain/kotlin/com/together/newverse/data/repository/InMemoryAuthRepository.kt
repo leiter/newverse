@@ -42,14 +42,14 @@ class InMemoryAuthRepository : AuthRepository {
 
         // Simulate auto-login for development - comment this out to test guest flow
         // Uncomment the line below to test auto-login on app start
-        persistedUserId = "buyer_001"  // TEST: Auto-login as buyer
+        // persistedUserId = "buyer_001"  // TEST: Auto-login as buyer (disabled for Firebase testing)
     }
 
     /**
      * Check if user has a persisted session and restore it
      * Simulates checking stored tokens/credentials on app startup
      */
-    suspend fun checkPersistedAuth(): Result<String?> {
+    override suspend fun checkPersistedAuth(): Result<String?> {
         return try {
             // Simulate network/storage delay
             kotlinx.coroutines.delay(500)

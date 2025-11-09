@@ -8,6 +8,8 @@ import com.together.newverse.ui.MainScreenModern
 import com.together.newverse.ui.screens.buy.*
 import com.together.newverse.ui.screens.common.*
 import com.together.newverse.ui.screens.sell.*
+import com.together.newverse.ui.state.UnifiedAppAction
+import com.together.newverse.ui.state.UnifiedAppState
 
 /**
  * Navigation Graph for Newverse App
@@ -17,6 +19,8 @@ import com.together.newverse.ui.screens.sell.*
 @Composable
 fun NavGraph(
     navController: NavHostController,
+    appState: UnifiedAppState,
+    onAction: (UnifiedAppAction) -> Unit,
     startDestination: String = NavRoutes.Home.route
 ) {
     NavHost(
@@ -36,7 +40,17 @@ fun NavGraph(
         }
 
         composable(NavRoutes.Login.route) {
-            LoginScreen()
+            LoginScreen(
+                authState = appState.screens.auth,
+                onAction = onAction
+            )
+        }
+
+        composable(NavRoutes.Register.route) {
+            RegisterScreen(
+                authState = appState.screens.auth,
+                onAction = onAction
+            )
         }
 
         // Buy (Customer) Screens
