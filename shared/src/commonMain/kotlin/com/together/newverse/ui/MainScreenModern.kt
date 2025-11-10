@@ -1,19 +1,15 @@
 package com.together.newverse.ui
 
-// Using filled icons instead of outlined for better compatibility
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import coil3.compose.AsyncImage
-import coil3.compose.SubcomposeAsyncImage
-import coil3.compose.SubcomposeAsyncImageContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +20,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -40,6 +38,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -51,14 +50,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
+import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
-// Removed hard-coded color imports - will use theme colors instead
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.place_holder_landscape
@@ -68,28 +71,20 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun MainScreenModern(
     viewModel: MainScreenViewModel = koinViewModel(),
-    onProfileClick: () -> Unit = {},
-    onSearchClick: () -> Unit = {},
-    onCartClick: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
 
     MainScreenModernContent(
         state = state,
         onAction = viewModel::onAction,
-        onProfileClick = onProfileClick,
-        onSearchClick = onSearchClick,
-        onCartClick = onCartClick
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainScreenModernContent(
     state: MainScreenState,
     onAction: (MainScreenAction) -> Unit,
-    onProfileClick: () -> Unit = {},
-    onSearchClick: () -> Unit = {},
-    onCartClick: () -> Unit = {}
 ) {
     val products = state.articles
     val selectedProduct = state.selectedArticle
@@ -105,22 +100,28 @@ private fun MainScreenModernContent(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Hero Section - Featured Product
-            item {
-                selectedProduct?.let { product ->
-                    HeroProductCard(
-                        product = product,
-                        quantity = quantity,
-                        onQuantityChange = { onAction(MainScreenAction.UpdateQuantity(it)) },
-                        onAddToCart = { onAction(MainScreenAction.AddToCart) }
+            // Hero Section - Featured Product (sticky header)
+            stickyHeader {
+                Column(
+                    modifier = Modifier.background(
+                        MaterialTheme.colorScheme.surfaceContainer
                     )
+                ) {
+                    selectedProduct?.let { product ->
+                        HeroProductCard(
+                            product = product,
+                            quantity = quantity,
+                            onQuantityChange = { onAction(MainScreenAction.UpdateQuantity(it)) },
+                            onAddToCart = { onAction(MainScreenAction.AddToCart) }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    CategoryChips()
+
                 }
             }
 
             // Category Filter Chips
-            item {
-                CategoryChips()
-            }
 
             // Section Header
             item {
@@ -189,11 +190,18 @@ private fun MainScreenModernContent(
 @Composable
 private fun HeroProductCard(
     product: Article,
-    quantity: Int,
-    onQuantityChange: (Int) -> Unit,
+    quantity: Double,
+    onQuantityChange: (Double) -> Unit,
     onAddToCart: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
+    // Helper function to check if unit is weight-based
+    val isWeightBased = product.unit.lowercase() in listOf("kg", "g", "kilogramm", "gramm")
+
+    // Local state for text field
+    var quantityText by remember(quantity, product.id) {
+        mutableStateOf(formatQuantity(quantity, isWeightBased))
+    }
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -250,11 +258,31 @@ private fun HeroProductCard(
                             color = MaterialTheme.colorScheme.primary
                         )
 
-                        Text(
-                            text = "${product.price.formatPrice()}€ / ${product.unit}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "${product.price.formatPrice()}€ / ${product.unit}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            if (quantity > 0.0) {
+                                Text(
+                                    text = "•",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                val totalPrice = product.price * quantity
+                                Text(
+                                    text = "${totalPrice.formatPrice()}€",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                        }
                     }
 
                     // Eco Badge
@@ -289,33 +317,105 @@ private fun HeroProductCard(
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp) // Fixed height to prevent vertical shifts
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .fillMaxHeight()
                                 .padding(4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(
-                                onClick = { if (quantity > 0) onQuantityChange(quantity - 1) },
-                                modifier = Modifier.size(36.dp)
+                            // Show +/- buttons only for piece-based products, but reserve space
+                            Box(
+                                modifier = Modifier.size(36.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text("-", style = MaterialTheme.typography.titleLarge)
+                                if (!isWeightBased) {
+                                    IconButton(
+                                        onClick = {
+                                            val newQuantity = (quantity - 1.0).coerceAtLeast(0.0)
+                                            onQuantityChange(newQuantity)
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Text("-", style = MaterialTheme.typography.titleLarge)
+                                    }
+                                }
                             }
 
-                            Text(
-                                text = quantity.toString(),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            IconButton(
-                                onClick = { onQuantityChange(quantity + 1) },
-                                modifier = Modifier.size(36.dp)
+                            // Editable TextField for quantity with unit display
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null)
+                                Box(
+                                    modifier = Modifier.width(60.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    BasicTextField(
+                                        value = quantityText,
+                                        onValueChange = { newText ->
+                                            // Allow only valid input (numbers, comma, dot)
+                                            val filtered = newText.filter { it.isDigit() || it == ',' || it == '.' }
+                                            if (filtered.count { it == ',' || it == '.' } <= 1) {
+                                                quantityText = filtered
+                                                // Parse and update quantity
+                                                val parsedQuantity = filtered.replace(",", ".").toDoubleOrNull()
+                                                if (parsedQuantity != null) {
+                                                    onQuantityChange(parsedQuantity)
+                                                }
+                                            }
+                                        },
+                                        textStyle = LocalTextStyle.current.copy(
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center
+                                        ),
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = if (isWeightBased) KeyboardType.Decimal else KeyboardType.Number
+                                        ),
+                                        singleLine = true,
+                                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 4.dp)
+                                    )
+                                }
+
+                                // Unit label - only show for weight-based products
+                                if (isWeightBased) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+
+                                    Text(
+                                        text = product.unit,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+
+                            // Show +/- buttons only for piece-based products, but reserve space
+                            Box(
+                                modifier = Modifier.size(36.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (!isWeightBased) {
+                                    IconButton(
+                                        onClick = {
+                                            onQuantityChange(quantity + 1.0)
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null)
+                                    }
+                                }
                             }
                         }
                     }
@@ -323,7 +423,7 @@ private fun HeroProductCard(
                     // Add to Cart Button
                     Button(
                         onClick = onAddToCart,
-                        enabled = quantity > 0,
+                        enabled = quantity > 0.0,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.tertiary,
                             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -350,7 +450,7 @@ private fun HeroProductCard(
 
 @Composable
 private fun CategoryChips(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val categories = listOf("Alle", "Obst", "Gemüse", "Milch", "Eier", "Brot")
     var selectedCategory by remember { mutableStateOf("Alle") }
@@ -382,7 +482,7 @@ private fun CategoryChips(
 private fun SectionHeader(
     title: String,
     subtitle: String? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
         Text(
@@ -405,7 +505,7 @@ private fun SectionHeader(
 private fun ModernProductCard(
     product: Article,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
         modifier = modifier
@@ -557,3 +657,26 @@ private fun ModernProductCard(
     }
 }
 
+/**
+ * Formats quantity for display based on whether it's weight-based or piece-based
+ */
+private fun formatQuantity(quantity: Double, isWeightBased: Boolean): String {
+    return if (isWeightBased) {
+        if (quantity == 0.0) {
+            "0"
+        } else {
+            // Format with 3 decimal places and trim trailing zeros
+            val formatted = (quantity * 1000).toInt() / 1000.0
+            val parts = formatted.toString().split('.')
+            if (parts.size == 2) {
+                val intPart = parts[0]
+                val decPart = parts[1].take(3).trimEnd('0')
+                if (decPart.isEmpty()) intPart else "$intPart.$decPart"
+            } else {
+                parts[0]
+            }
+        }
+    } else {
+        quantity.toInt().toString()
+    }
+}

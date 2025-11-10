@@ -27,7 +27,7 @@ fun AppDrawer(
         ) {
             // App Header
             Text(
-                text = "Newverse",
+                text = "Bodenschätze",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 16.dp)

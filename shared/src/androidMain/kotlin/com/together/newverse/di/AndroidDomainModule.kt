@@ -2,10 +2,12 @@ package com.together.newverse.di
 
 import com.together.newverse.data.repository.FirebaseArticleRepository
 import com.together.newverse.data.repository.FirebaseAuthRepository
+import com.together.newverse.data.repository.InMemoryBasketRepository
 import com.together.newverse.data.repository.MockOrderRepository
 import com.together.newverse.data.repository.MockProfileRepository
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import org.koin.dsl.module
@@ -17,6 +19,9 @@ import org.koin.dsl.module
 val androidDomainModule = module {
     // Auth Repository - Using Firebase for production
     single<AuthRepository> { FirebaseAuthRepository() }
+
+    // Basket Repository - Using in-memory implementation
+    single<BasketRepository> { InMemoryBasketRepository() }
 
     // Article Repository - Using Firebase for production
     single<ArticleRepository> { FirebaseArticleRepository() }

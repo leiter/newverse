@@ -35,9 +35,9 @@ sealed class NavRoutes(val route: String) {
         fun getAllRoutes(): List<NavRoutes> = listOf(
             Home,
             // Common
-            About,
             Login,
             Register,
+            About,
             // Buy routes
             Buy.Products,
             Buy.Basket,
@@ -52,7 +52,7 @@ sealed class NavRoutes(val route: String) {
 
         // Get display name for route
         fun getDisplayName(route: NavRoutes): String = when (route) {
-            Home -> "Home"
+            Home -> "Bodenschätze"
             About -> "About"
             Login -> "Login"
             Register -> "Sign Up"

@@ -6,8 +6,10 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
 import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
+import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.BasketRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +25,7 @@ data class MainScreenState(
     val isLoading: Boolean = true,
     val articles: List<Article> = emptyList(),
     val selectedArticle: Article? = null,
-    val selectedQuantity: Int = 0,
+    val selectedQuantity: Double = 0.0,
     val cartItemCount: Int = 0,
     val error: String? = null
 )
@@ -33,7 +35,8 @@ data class MainScreenState(
  */
 sealed interface MainScreenAction {
     data class SelectArticle(val article: Article) : MainScreenAction
-    data class UpdateQuantity(val quantity: Int) : MainScreenAction
+    data class UpdateQuantity(val quantity: Double) : MainScreenAction
+    data class UpdateQuantityText(val text: String) : MainScreenAction
     data object AddToCart : MainScreenAction
     data object Refresh : MainScreenAction
 }
@@ -43,7 +46,8 @@ sealed interface MainScreenAction {
  */
 class MainScreenViewModel(
     private val articleRepository: ArticleRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val basketRepository: BasketRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MainScreenState())
@@ -52,6 +56,9 @@ class MainScreenViewModel(
     init {
         // Wait for authentication before loading articles
         waitForAuthThenLoad()
+
+        // Observe basket to update cart item count
+        observeBasket()
     }
 
     /**
@@ -87,6 +94,7 @@ class MainScreenViewModel(
         when (action) {
             is MainScreenAction.SelectArticle -> selectArticle(action.article)
             is MainScreenAction.UpdateQuantity -> updateQuantity(action.quantity)
+            is MainScreenAction.UpdateQuantityText -> updateQuantityFromText(action.text)
             MainScreenAction.AddToCart -> addToCart()
             MainScreenAction.Refresh -> refresh()
         }
@@ -156,25 +164,90 @@ class MainScreenViewModel(
     }
 
     private fun selectArticle(article: Article) {
+        // Check if this product is already in the basket
+        val basketItems = basketRepository.observeBasket().value
+        val existingItem = basketItems.find { it.productId == article.id }
+
+        // If it exists, pre-populate the quantity with the existing amount
+        val initialQuantity = existingItem?.amountCount ?: 0.0
+
         _state.value = _state.value.copy(
             selectedArticle = article,
-            selectedQuantity = 0
+            selectedQuantity = initialQuantity
+        )
+
+        println("🎯 MainScreenViewModel.selectArticle: Selected ${article.productName}, existing quantity: $initialQuantity")
+    }
+
+    private fun updateQuantity(quantity: Double) {
+        _state.value = _state.value.copy(
+            selectedQuantity = quantity.coerceAtLeast(0.0)
         )
     }
 
-    private fun updateQuantity(quantity: Int) {
-        _state.value = _state.value.copy(
-            selectedQuantity = quantity.coerceAtLeast(0)
-        )
+    private fun updateQuantityFromText(text: String) {
+        val quantity = text.replace(",", ".").toDoubleOrNull() ?: 0.0
+        updateQuantity(quantity)
     }
 
     private fun addToCart() {
-        // TODO: Implement cart functionality
-        val currentCount = _state.value.cartItemCount
-        _state.value = _state.value.copy(
-            cartItemCount = currentCount + 1,
-            selectedQuantity = 0
-        )
+        val selectedArticle = _state.value.selectedArticle ?: return
+        val quantity = _state.value.selectedQuantity
+
+        if (quantity <= 0.0) {
+            // If quantity is 0, remove from basket if it exists
+            viewModelScope.launch {
+                basketRepository.removeItem(selectedArticle.id)
+            }
+            return
+        }
+
+        // Check if item already exists in basket
+        val basketItems = basketRepository.observeBasket().value
+        val existingItem = basketItems.find { it.productId == selectedArticle.id }
+
+        if (existingItem != null) {
+            // Update existing item quantity
+            viewModelScope.launch {
+                basketRepository.updateQuantity(selectedArticle.id, quantity)
+            }
+            println("🛒 MainScreenViewModel.addToCart: Updated ${selectedArticle.productName} to ${quantity} ${selectedArticle.unit}")
+        } else {
+            // Create new OrderedProduct from selected article and quantity
+            val orderedProduct = OrderedProduct(
+                id = "", // Will be generated when order is placed
+                productId = selectedArticle.id,
+                productName = selectedArticle.productName,
+                unit = selectedArticle.unit,
+                price = selectedArticle.price,
+                amount = quantity.toString(),
+                amountCount = quantity,
+                piecesCount = if (selectedArticle.unit.lowercase() in listOf("kg", "g")) {
+                    (quantity / selectedArticle.weightPerPiece).toInt()
+                } else {
+                    quantity.toInt()
+                }
+            )
+
+            // Add to basket via BasketRepository
+            viewModelScope.launch {
+                basketRepository.addItem(orderedProduct)
+            }
+            println("🛒 MainScreenViewModel.addToCart: Added ${selectedArticle.productName} (${quantity} ${selectedArticle.unit}) to basket")
+        }
+
+        // Reset quantity after adding
+        _state.value = _state.value.copy(selectedQuantity = 0.0)
+    }
+
+    private fun observeBasket() {
+        viewModelScope.launch {
+            basketRepository.observeBasket().collect { basketItems ->
+                _state.value = _state.value.copy(
+                    cartItemCount = basketItems.size
+                )
+            }
+        }
     }
 
     private fun refresh() {

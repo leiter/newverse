@@ -1,10 +1,13 @@
 package com.together.newverse.ui.screens.buy
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.repository.BasketRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Actions that can be performed on the Basket screen
@@ -29,10 +32,24 @@ data class BasketScreenState(
 /**
  * ViewModel for Shopping Basket screen
  */
-class BasketViewModel : ViewModel() {
+class BasketViewModel(
+    private val basketRepository: BasketRepository
+) : ViewModel() {
 
     private val _state = MutableStateFlow(BasketScreenState())
     val state: StateFlow<BasketScreenState> = _state.asStateFlow()
+
+    init {
+        // Observe basket changes from repository
+        viewModelScope.launch {
+            basketRepository.observeBasket().collect { items ->
+                _state.value = _state.value.copy(
+                    items = items,
+                    total = basketRepository.getTotal()
+                )
+            }
+        }
+    }
 
     fun onAction(action: BasketAction) {
         when (action) {
@@ -45,48 +62,27 @@ class BasketViewModel : ViewModel() {
     }
 
     private fun addItem(item: OrderedProduct) {
-        val currentItems = _state.value.items.toMutableList()
-        val existingIndex = currentItems.indexOfFirst { it.productId == item.productId }
-
-        if (existingIndex >= 0) {
-            // Update quantity if item already exists
-            val existing = currentItems[existingIndex]
-            currentItems[existingIndex] = existing.copy(
-                amountCount = existing.amountCount + item.amountCount
-            )
-        } else {
-            currentItems.add(item)
+        viewModelScope.launch {
+            basketRepository.addItem(item)
         }
-
-        _state.value = _state.value.copy(items = currentItems)
-        calculateTotal()
     }
 
     private fun removeItem(productId: String) {
-        _state.value = _state.value.copy(
-            items = _state.value.items.filter { it.productId != productId }
-        )
-        calculateTotal()
+        viewModelScope.launch {
+            basketRepository.removeItem(productId)
+        }
     }
 
     private fun updateQuantity(productId: String, newQuantity: Double) {
-        val currentItems = _state.value.items.toMutableList()
-        val index = currentItems.indexOfFirst { it.productId == productId }
-
-        if (index >= 0) {
-            currentItems[index] = currentItems[index].copy(amountCount = newQuantity)
-            _state.value = _state.value.copy(items = currentItems)
-            calculateTotal()
+        viewModelScope.launch {
+            basketRepository.updateQuantity(productId, newQuantity)
         }
     }
 
     private fun clearBasket() {
-        _state.value = BasketScreenState()
-    }
-
-    private fun calculateTotal() {
-        val total = _state.value.items.sumOf { it.price * it.amountCount }
-        _state.value = _state.value.copy(total = total)
+        viewModelScope.launch {
+            basketRepository.clearBasket()
+        }
     }
 
     private fun checkout() {

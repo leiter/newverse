@@ -29,14 +29,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.state.UnifiedAppViewModel
-import com.together.newverse.ui.state.UnifiedAppAction
-// Removed hard-coded color import - will use theme colors instead
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -100,6 +98,14 @@ fun AppScaffold() {
             ?: "Newverse"
     }
 
+    // Scroll behavior for collapsing toolbar (only for Home screen)
+    // Using exitUntilCollapsedScrollBehavior for snappy hide/show behavior
+    val scrollBehavior = if (currentRoute == NavRoutes.Home.route) {
+        TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    } else {
+        null
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -126,6 +132,11 @@ fun AppScaffold() {
         }
     ) {
         Scaffold(
+            modifier = if (scrollBehavior != null) {
+                Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+            } else {
+                Modifier
+            },
             topBar = {
                 TopAppBar(
                     title = { Text(screenTitle) },
@@ -203,7 +214,8 @@ fun AppScaffold() {
                         containerColor = MaterialTheme.colorScheme.secondary,
                         titleContentColor = MaterialTheme.colorScheme.onSecondary,
                         navigationIconContentColor = MaterialTheme.colorScheme.onSecondary
-                    )
+                    ),
+                    scrollBehavior = scrollBehavior
                 )
             }
         ) { paddingValues ->

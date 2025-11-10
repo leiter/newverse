@@ -97,13 +97,13 @@ fun AboutScreenModern(
                 HeroSection()
 
                 // Contact Card
-                ContactCard()
+                ContactCard(uriHandler = uriHandler)
 
                 // Legal Information Card
                 LegalInfoCard()
 
                 // Privacy Policy Card
-                PrivacyCard()
+                PrivacyCard(uriHandler = uriHandler)
 
                 // Mission Statement
                 MissionCard()
@@ -176,7 +176,7 @@ private fun HeroSection() {
 }
 
 @Composable
-private fun ContactCard() {
+private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -218,11 +218,48 @@ private fun ContactCard() {
             Spacer(modifier = Modifier.height(16.dp))
 
             // Phone
-            ContactRow(
-                icon = Icons.Default.Phone,
-                text = "0172 - 46 23 741",
-                iconColor = FabGreen
-            )
+            val phoneAnnotatedString = buildAnnotatedString {
+                pushStringAnnotation(
+                    tag = "URL",
+                    annotation = "tel:017246237410"
+                )
+                withStyle(
+                    style = SpanStyle(
+                        color = FabGreen,
+                        textDecoration = TextDecoration.Underline,
+                        fontWeight = FontWeight.Medium
+                    )
+                ) {
+                    append("0172 - 46 23 741")
+                }
+                pop()
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Phone,
+                    contentDescription = null,
+                    tint = FabGreen,
+                    modifier = Modifier.size(20.dp)
+                )
+
+                ClickableText(
+                    text = phoneAnnotatedString,
+                    style = MaterialTheme.typography.bodyLarge,
+                    onClick = { offset ->
+                        phoneAnnotatedString.getStringAnnotations(
+                            tag = "URL",
+                            start = offset,
+                            end = offset
+                        ).firstOrNull()?.let { annotation ->
+                            uriHandler.openUri(annotation.item)
+                        }
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -264,7 +301,7 @@ private fun ContactCard() {
                             start = offset,
                             end = offset
                         ).firstOrNull()?.let { annotation ->
-                            // Handle email click
+                            uriHandler.openUri(annotation.item)
                         }
                     }
                 )
@@ -347,7 +384,7 @@ private fun LegalInfoCard() {
 }
 
 @Composable
-private fun PrivacyCard() {
+private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -407,7 +444,9 @@ private fun PrivacyCard() {
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
-                onClick = { /* Open privacy policy */ },
+                onClick = {
+                    uriHandler.openUri("https://fitbytracking.web.app/")
+                },
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = FabGreen
                 ),
