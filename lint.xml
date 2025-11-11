@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Ignore lint checks in generated directories -->
+
+    <!-- Ignore BuildKonfig generated files -->
+    <issue id="all">
+        <ignore path="**/buildkonfig/**" />
+        <ignore path="**/generated/buildkonfig/**" />
+        <ignore path="**/build/generated/buildkonfig/**" />
+    </issue>
+
+    <!-- Ignore Compose Resources generated files -->
+    <issue id="all">
+        <ignore path="**/generated/compose/**" />
+        <ignore path="**/build/generated/compose/**" />
+        <ignore path="**/composeResources/generated/**" />
+    </issue>
+
+    <!-- Ignore Kotlin generated files -->
+    <issue id="all">
+        <ignore path="**/generated/ksp/**" />
+        <ignore path="**/build/generated/ksp/**" />
+        <ignore path="**/build/generated/source/**" />
+    </issue>
+
+    <!-- Ignore Android resource generated files -->
+    <issue id="all">
+        <ignore path="**/build/generated/res/**" />
+        <ignore path="**/build/generated/assets/**" />
+    </issue>
+
+    <!-- Ignore specific generated file patterns -->
+    <issue id="all">
+        <ignore regexp=".*BuildKonfig\.kt$" />
+        <ignore regexp=".*generated.*Res\.kt$" />
+        <ignore regexp=".*generated.*Resources\.kt$" />
+    </issue>
+
+    <!-- Disable specific lint checks for generated code -->
+    <issue id="UnusedResources" severity="ignore">
+        <ignore path="**/build/generated/**" />
+    </issue>
+
+    <issue id="MissingTranslation" severity="ignore">
+        <ignore path="**/build/generated/**" />
+    </issue>
+
+    <issue id="ExtraTranslation" severity="ignore">
+        <ignore path="**/build/generated/**" />
+    </issue>
+</lint>

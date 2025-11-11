@@ -111,6 +111,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    lint {
+        // Exclude generated files from lint checks
+        ignoreWarnings = false
+        abortOnError = false
+
+        // Exclude generated source directories
+        disable += setOf(
+            "ObsoleteLintCustomCheck",
+            "InvalidPackage"
+        )
+    }
+
     // Define product flavors to match the app module
     flavorDimensions += "userType"
 

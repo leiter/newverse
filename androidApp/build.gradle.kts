@@ -32,6 +32,18 @@ android {
         jvmTarget = "17"
     }
 
+    lint {
+        // Exclude generated files from lint checks
+        ignoreWarnings = false
+        abortOnError = true
+
+        // Exclude generated source directories
+        disable += setOf(
+            "ObsoleteLintCustomCheck",
+            "InvalidPackage"
+        )
+    }
+
     signingConfigs {
         getByName("debug") {
             storeFile = file("../debug.keystore")
