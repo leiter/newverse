@@ -2,7 +2,6 @@ package com.together.newverse.di
 
 import com.together.newverse.ui.MainScreenViewModel
 import com.together.newverse.ui.screens.buy.BasketViewModel
-import com.together.newverse.ui.screens.buy.CustomerProfileViewModel
 import com.together.newverse.ui.screens.buy.ProductsViewModel
 import com.together.newverse.ui.screens.common.LoginViewModel
 import com.together.newverse.ui.screens.sell.CreateProductViewModel
@@ -26,7 +25,7 @@ val appModule = module {
     // ViewModels - Buy/Customer
     viewModel { ProductsViewModel(get()) }
     viewModel { BasketViewModel(get(), get(), get(), get()) }
-    viewModel { CustomerProfileViewModel(get(), get(), get()) }
+    // CustomerProfileViewModel removed - now using UnifiedAppViewModel
 
     // ViewModels - Sell/Seller
     viewModel { OverviewViewModel(get()) }

@@ -101,6 +101,7 @@ data class ScreenStates(
     // Browse/List screens
     val products: ProductsScreenState = ProductsScreenState(),
     val orders: OrdersScreenState = OrdersScreenState(),
+    val orderHistory: OrderHistoryScreenState = OrderHistoryScreenState(),
 
     // Detail screens
     val productDetail: ProductDetailScreenState = ProductDetailScreenState(),
@@ -113,12 +114,14 @@ data class ScreenStates(
 
     // Custom screens (don't fit the generic patterns)
     val auth: AuthScreenState = AuthScreenState(),
-    val dashboard: DashboardScreenState = DashboardScreenState()
+    val dashboard: DashboardScreenState = DashboardScreenState(),
+    val customerProfile: CustomerProfileScreenState = CustomerProfileScreenState()
 )
 
 // Type aliases for specific screen states using generic states
 typealias ProductsScreenState = ListingState<Article>
 typealias OrdersScreenState = ListingState<Order>
+typealias OrderHistoryScreenState = ListingState<Order>
 typealias ProductDetailScreenState = DetailState<Article>
 typealias OrderDetailScreenState = DetailState<Order>
 
@@ -485,6 +488,13 @@ data class ChartPoint(
     val y: Any,
     val label: String? = null
 )
+
+data class CustomerProfileScreenState(
+    override val isLoading: Boolean = false,
+    override val error: ErrorState? = null,
+    val profile: com.together.newverse.domain.model.BuyerProfile? = null,
+    val photoUrl: String? = null
+) : ScreenState
 
 // Feature states
 data class SearchFeatureState(

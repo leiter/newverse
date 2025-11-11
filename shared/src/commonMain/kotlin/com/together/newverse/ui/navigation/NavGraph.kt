@@ -58,16 +58,49 @@ fun NavGraph(
             ProductsScreen()
         }
 
-        composable(NavRoutes.Buy.Basket.route) {
+        composable(
+            route = "buy/basket?orderId={orderId}&orderDate={orderDate}",
+            arguments = listOf(
+                androidx.navigation.navArgument("orderId") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                androidx.navigation.navArgument("orderDate") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val orderIdArg = backStackEntry.arguments?.getString("orderId")
+            val orderDateArg = backStackEntry.arguments?.getString("orderDate")
+
             BasketScreen(
-                orderId = appState.common.basket.currentOrderId,
-                orderDate = appState.common.basket.currentOrderDate
+                orderId = orderIdArg ?: appState.common.basket.currentOrderId,
+                orderDate = orderDateArg ?: appState.common.basket.currentOrderDate
             )
         }
 
         composable(NavRoutes.Buy.Profile.route) {
             CustomerProfileScreenModern(
-                onAction = onAction
+                appState = appState,
+                onAction = onAction,
+                onNavigateToOrderHistory = {
+                    navController.navigate(NavRoutes.Buy.OrderHistory.route)
+                }
+            )
+        }
+
+        composable(NavRoutes.Buy.OrderHistory.route) {
+            OrderHistoryScreen(
+                appState = appState,
+                onAction = onAction,
+                onBackClick = { navController.popBackStack() },
+                onOrderClick = { orderId, orderDate ->
+                    // Navigate to basket screen with order details
+                    navController.navigate(NavRoutes.Buy.Basket.createRoute(orderId, orderDate))
+                }
             )
         }
 

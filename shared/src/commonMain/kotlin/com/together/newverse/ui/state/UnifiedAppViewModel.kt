@@ -258,6 +258,9 @@ class UnifiedAppViewModel(
             is UnifiedProfileAction.UpdateProfileField -> updateProfileField(action.field, action.value)
             is UnifiedProfileAction.SaveProfile -> saveProfile()
             is UnifiedProfileAction.CancelProfileEdit -> cancelProfileEdit()
+            is UnifiedProfileAction.LoadCustomerProfile -> loadCustomerProfile()
+            is UnifiedProfileAction.LoadOrderHistory -> loadOrderHistory()
+            is UnifiedProfileAction.RefreshCustomerProfile -> refreshCustomerProfile()
         }
     }
 
@@ -1033,7 +1036,172 @@ class UnifiedAppViewModel(
     }
 
     private fun loadProfile() {
-        // TODO: Implement load profile
+        // TODO: Implement generic load profile
+    }
+
+    private fun loadCustomerProfile() {
+        viewModelScope.launch {
+            println("👤 UnifiedAppViewModel.loadCustomerProfile: START")
+
+            // Set loading state
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        customerProfile = current.screens.customerProfile.copy(
+                            isLoading = true,
+                            error = null
+                        )
+                    )
+                )
+            }
+
+            try {
+                // Get buyer profile from repository
+                val result = profileRepository.getBuyerProfile()
+                result.onSuccess { profile ->
+                    println("✅ UnifiedAppViewModel.loadCustomerProfile: Success - ${profile.displayName}, photoUrl=${profile.photoUrl}")
+
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                customerProfile = current.screens.customerProfile.copy(
+                                    isLoading = false,
+                                    profile = profile,
+                                    photoUrl = profile.photoUrl,
+                                    error = null
+                                )
+                            )
+                        )
+                    }
+                }.onFailure { error ->
+                    println("❌ UnifiedAppViewModel.loadCustomerProfile: Error - ${error.message}")
+
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                customerProfile = current.screens.customerProfile.copy(
+                                    isLoading = false,
+                                    error = ErrorState(
+                                        message = error.message ?: "Failed to load profile",
+                                        type = ErrorType.GENERAL
+                                    )
+                                )
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                println("❌ UnifiedAppViewModel.loadCustomerProfile: Exception - ${e.message}")
+                e.printStackTrace()
+
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            customerProfile = current.screens.customerProfile.copy(
+                                isLoading = false,
+                                error = ErrorState(
+                                    message = e.message ?: "Failed to load profile",
+                                    type = ErrorType.GENERAL
+                                )
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun loadOrderHistory() {
+        viewModelScope.launch {
+            println("📋 UnifiedAppViewModel.loadOrderHistory: START")
+
+            // Set loading state
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        orderHistory = current.screens.orderHistory.copy(
+                            isLoading = true,
+                            error = null
+                        )
+                    )
+                )
+            }
+
+            try {
+                val profile = _state.value.screens.customerProfile.profile
+                if (profile != null && profile.placedOrderIds.isNotEmpty()) {
+                    // Load orders using the placedOrderIds from profile
+                    val result = orderRepository.getBuyerOrders("", profile.placedOrderIds)
+                    result.onSuccess { orders ->
+                        println("✅ UnifiedAppViewModel.loadOrderHistory: Loaded ${orders.size} orders")
+
+                        _state.update { current ->
+                            current.copy(
+                                screens = current.screens.copy(
+                                    orderHistory = current.screens.orderHistory.copy(
+                                        isLoading = false,
+                                        items = orders,
+                                        error = null
+                                    )
+                                )
+                            )
+                        }
+                    }.onFailure { error ->
+                        println("❌ UnifiedAppViewModel.loadOrderHistory: Error - ${error.message}")
+
+                        _state.update { current ->
+                            current.copy(
+                                screens = current.screens.copy(
+                                    orderHistory = current.screens.orderHistory.copy(
+                                        isLoading = false,
+                                        error = ErrorState(
+                                            message = error.message ?: "Failed to load order history",
+                                            type = ErrorType.GENERAL
+                                        )
+                                    )
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    println("⚠️ UnifiedAppViewModel.loadOrderHistory: No orders to load")
+
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                orderHistory = current.screens.orderHistory.copy(
+                                    isLoading = false,
+                                    items = emptyList(),
+                                    error = null
+                                )
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                println("❌ UnifiedAppViewModel.loadOrderHistory: Exception - ${e.message}")
+                e.printStackTrace()
+
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            orderHistory = current.screens.orderHistory.copy(
+                                isLoading = false,
+                                error = ErrorState(
+                                    message = e.message ?: "Failed to load order history",
+                                    type = ErrorType.GENERAL
+                                )
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun refreshCustomerProfile() {
+        loadCustomerProfile()
+        loadOrderHistory()
     }
 
     private fun updateProfileField(field: String, value: String) {

@@ -73,6 +73,9 @@ sealed interface UnifiedProfileAction : UnifiedAppAction {
     data class UpdateProfileField(val field: String, val value: String) : UnifiedProfileAction
     data object SaveProfile : UnifiedProfileAction
     data object CancelProfileEdit : UnifiedProfileAction
+    data object LoadCustomerProfile : UnifiedProfileAction
+    data object LoadOrderHistory : UnifiedProfileAction
+    data object RefreshCustomerProfile : UnifiedProfileAction
 }
 
 // ===== Search Actions =====

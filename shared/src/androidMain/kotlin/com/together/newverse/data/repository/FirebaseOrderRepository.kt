@@ -92,18 +92,31 @@ class FirebaseOrderRepository : OrderRepository {
         placedOrderIds: Map<String, String>
     ): Result<List<Order>> {
         return try {
+            println("🔥 FirebaseOrderRepository.getBuyerOrders: START")
+            println("🔥 FirebaseOrderRepository.getBuyerOrders: sellerId=$sellerId")
+            println("🔥 FirebaseOrderRepository.getBuyerOrders: placedOrderIds count=${placedOrderIds.size}")
+            placedOrderIds.forEach { (date, orderId) ->
+                println("🔥 FirebaseOrderRepository.getBuyerOrders:   - date=$date, orderId=$orderId")
+            }
+
             val orders = mutableListOf<Order>()
 
             placedOrderIds.forEach { (date, orderId) ->
+                println("🔥 FirebaseOrderRepository.getBuyerOrders: Loading order for date=$date, orderId=$orderId")
                 val orderResult = loadOrder(sellerId, date, orderId)
                 orderResult.onSuccess { order ->
+                    println("✅ FirebaseOrderRepository.getBuyerOrders: Successfully loaded order $orderId with ${order.articles.size} items")
                     orders.add(order)
+                }.onFailure { error ->
+                    println("❌ FirebaseOrderRepository.getBuyerOrders: Failed to load order $orderId - ${error.message}")
                 }
             }
 
+            println("✅ FirebaseOrderRepository.getBuyerOrders: Loaded ${orders.size} orders total")
             Result.success(orders)
         } catch (e: Exception) {
             println("❌ FirebaseOrderRepository.getBuyerOrders: Error - ${e.message}")
+            e.printStackTrace()
             Result.failure(e)
         }
     }

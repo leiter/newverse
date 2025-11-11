@@ -81,12 +81,14 @@ import org.jetbrains.compose.resources.stringResource
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerProfileScreenModern(
+    appState: com.together.newverse.ui.state.UnifiedAppState,
     onAction: (UnifiedAppAction) -> Unit = {},
-    viewModel: CustomerProfileViewModel = org.koin.compose.viewmodel.koinViewModel()
+    onNavigateToOrderHistory: () -> Unit = {}
 ) {
     val defaultMarket = stringResource(Res.string.default_market)
-    val profile by viewModel.profile.collectAsState()
-    val photoUrl by viewModel.photoUrl.collectAsState()
+    val profile = appState.screens.customerProfile.profile
+    val photoUrl = appState.screens.customerProfile.photoUrl
+    val isLoading = appState.screens.customerProfile.isLoading
 
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -99,6 +101,12 @@ fun CustomerProfileScreenModern(
     var showSaveDialog by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
+
+    // Load profile when screen is first displayed
+    LaunchedEffect(Unit) {
+        println("👤 CustomerProfileScreen: Loading customer profile")
+        onAction(com.together.newverse.ui.state.UnifiedProfileAction.LoadCustomerProfile)
+    }
 
     // Update UI state when profile loads
     LaunchedEffect(profile) {
@@ -178,7 +186,9 @@ fun CustomerProfileScreenModern(
 
                     // Quick Actions
                     if (!isEditing) {
-                        QuickActionsCard()
+                        QuickActionsCard(
+                            onNavigateToOrders = onNavigateToOrderHistory
+                        )
                     }
                 }
             }
@@ -701,7 +711,9 @@ private fun MembershipCard() {
 }
 
 @Composable
-private fun QuickActionsCard() {
+private fun QuickActionsCard(
+    onNavigateToOrders: () -> Unit = {}
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -721,7 +733,7 @@ private fun QuickActionsCard() {
                 text = stringResource(Res.string.action_orders),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
-            ) { /* Navigate to orders */ }
+            ) { onNavigateToOrders() }
 
             ActionButton(
                 icon = Icons.Outlined.FavoriteBorder,

@@ -4,7 +4,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.together.newverse.ui.MainScreenModern
-import com.together.newverse.ui.screens.buy.CustomerProfileScreenModern
 import com.together.newverse.ui.screens.common.AboutScreenModern
 import com.together.newverse.ui.screens.common.LoginScreen
 import com.together.newverse.ui.screens.sell.CreateProductScreen
@@ -158,7 +157,8 @@ fun BasketScreenCheckingOutPreview() {
 @Composable
 fun CustomerProfileScreenPreview() {
     NewverseTheme {
-        CustomerProfileScreenModern()
+        // Preview disabled - requires UnifiedAppState
+        // CustomerProfileScreenModern()
     }
 }
 

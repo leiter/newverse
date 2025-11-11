@@ -12,16 +12,25 @@ sealed class NavRoutes(val route: String) {
 
     // Common routes
     data object Home : NavRoutes("home")
-    data object About : NavRoutes("about")
     data object Login : NavRoutes("login")
     data object Register : NavRoutes("register")
+    data object About : NavRoutes("about")
     data object NoInternet : NavRoutes("no_internet")
 
     // Buy (Customer) routes
     sealed class Buy(route: String) : NavRoutes(route) {
         data object Products : Buy("buy/products")
-        data object Basket : Buy("buy/basket")
+        data object Basket : Buy("buy/basket") {
+            fun createRoute(orderId: String? = null, orderDate: String? = null): String {
+                return if (orderId != null && orderDate != null) {
+                    "buy/basket?orderId=$orderId&orderDate=$orderDate"
+                } else {
+                    "buy/basket"
+                }
+            }
+        }
         data object Profile : Buy("buy/profile")
+        data object OrderHistory : Buy("buy/order_history")
     }
 
     // Sell (Merchant) routes
@@ -45,6 +54,7 @@ sealed class NavRoutes(val route: String) {
             Buy.Products,
             Buy.Basket,
             Buy.Profile,
+            Buy.OrderHistory,
             // Sell routes
             Sell.Overview,
             Sell.Orders,
@@ -88,6 +98,7 @@ sealed class NavRoutes(val route: String) {
             Buy.Products -> Res.string.nav_browse_products
             Buy.Basket -> Res.string.nav_shopping_basket
             Buy.Profile -> Res.string.nav_customer_profile
+            Buy.OrderHistory -> Res.string.action_orders
             Sell.Overview -> Res.string.nav_product_overview
             Sell.Orders -> Res.string.nav_manage_orders
             Sell.Create -> Res.string.nav_create_product
