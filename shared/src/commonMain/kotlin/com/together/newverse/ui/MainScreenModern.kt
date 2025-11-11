@@ -61,6 +61,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
+import com.together.newverse.ui.state.MainScreenState
+import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.place_holder_landscape
@@ -68,8 +70,8 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun MainScreenModern(
-    state: com.together.newverse.ui.state.MainScreenState,
-    onAction: (com.together.newverse.ui.state.UnifiedAppAction) -> Unit
+    state: MainScreenState,
+    onAction: (UnifiedAppAction) -> Unit
 ) {
     MainScreenModernContent(
         state = state,
@@ -80,8 +82,8 @@ fun MainScreenModern(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainScreenModernContent(
-    state: com.together.newverse.ui.state.MainScreenState,
-    onAction: (com.together.newverse.ui.state.UnifiedAppAction) -> Unit,
+    state: MainScreenState,
+    onAction: (UnifiedAppAction) -> Unit,
 ) {
     val products = state.articles
     val selectedProduct = state.selectedArticle

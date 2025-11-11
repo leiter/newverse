@@ -19,7 +19,7 @@ sealed class NavRoutes(val route: String) {
 
     // Buy (Customer) routes
     sealed class Buy(route: String) : NavRoutes(route) {
-        data object Products : Buy("buy/products")
+        // Note: Products browsing is handled by MainScreenModern (Home route)
         data object Basket : Buy("buy/basket") {
             fun createRoute(orderId: String? = null, orderDate: String? = null): String {
                 return if (orderId != null && orderDate != null) {
@@ -51,7 +51,6 @@ sealed class NavRoutes(val route: String) {
             Register,
             About,
             // Buy routes
-            Buy.Products,
             Buy.Basket,
             Buy.Profile,
             Buy.OrderHistory,
@@ -95,7 +94,6 @@ sealed class NavRoutes(val route: String) {
             Login -> Res.string.nav_login
             Register -> Res.string.nav_register
             NoInternet -> Res.string.nav_no_internet
-            Buy.Products -> Res.string.nav_browse_products
             Buy.Basket -> Res.string.nav_shopping_basket
             Buy.Profile -> Res.string.nav_customer_profile
             Buy.OrderHistory -> Res.string.action_orders
