@@ -59,6 +59,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
 import com.together.newverse.ui.state.MainScreenState
@@ -106,19 +112,24 @@ private fun MainScreenModernContent(
                         MaterialTheme.colorScheme.background
                     )
                 ) {
-                    selectedProduct?.let { product ->
-                        val isInBasket = basketItems.any { it.productId == product.id }
-                        val isFavourite = state.favouriteArticles.contains(product.id)
-                        HeroProductCard(
-                            product = product,
-                            quantity = quantity,
-                            isInBasket = isInBasket,
-                            isFavourite = isFavourite,
-                            onQuantityChange = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.UpdateQuantity(it)) },
-                            onAddToCart = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.AddToCart) },
-                            onRemoveFromBasket = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.RemoveFromBasket) },
-                            onToggleFavourite = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.ToggleFavourite(product.id)) }
-                        )
+                    // Show skeleton or actual product
+                    if (state.isLoading && selectedProduct == null) {
+                        HeroProductCardSkeleton()
+                    } else {
+                        selectedProduct?.let { product ->
+                            val isInBasket = basketItems.any { it.productId == product.id }
+                            val isFavourite = state.favouriteArticles.contains(product.id)
+                            HeroProductCard(
+                                product = product,
+                                quantity = quantity,
+                                isInBasket = isInBasket,
+                                isFavourite = isFavourite,
+                                onQuantityChange = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.UpdateQuantity(it)) },
+                                onAddToCart = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.AddToCart) },
+                                onRemoveFromBasket = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.RemoveFromBasket) },
+                                onToggleFavourite = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.ToggleFavourite(product.id)) }
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -138,16 +149,16 @@ private fun MainScreenModernContent(
                 )
             }
 
-            // Show loading or error state
+            // Show loading skeleton
             if (state.isLoading && products.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
+                // Show skeleton product grid (6 items in 3 rows)
+                items(3) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Loading articles...", style = MaterialTheme.typography.bodyLarge)
+                        ProductCardSkeleton(modifier = Modifier.weight(1f))
+                        ProductCardSkeleton(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -708,5 +719,201 @@ private fun formatQuantity(quantity: Double, isWeightBased: Boolean): String {
         }
     } else {
         quantity.toInt().toString()
+    }
+}
+
+// ===== Loading Skeleton Components =====
+
+@Composable
+private fun ShimmerBrush(): Brush {
+    val shimmerColors = listOf(
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
+    )
+
+    val transition = rememberInfiniteTransition()
+    val translateAnim = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    return Brush.horizontalGradient(
+        colors = shimmerColors,
+        startX = -1000f + translateAnim.value * 2000f,
+        endX = translateAnim.value * 2000f
+    )
+}
+
+@Composable
+private fun HeroProductCardSkeleton(
+    modifier: Modifier = Modifier
+) {
+    val shimmerBrush = ShimmerBrush()
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(200.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    // Badge skeleton
+                    Box(
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(20.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(shimmerBrush)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Title skeleton
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmerBrush)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Price skeleton
+                    Box(
+                        modifier = Modifier
+                            .width(120.dp)
+                            .height(20.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmerBrush)
+                    )
+                }
+
+                // Favourite button skeleton
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(shimmerBrush)
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Bottom controls skeleton
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Quantity selector skeleton
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(shimmerBrush)
+                )
+
+                // Button skeleton
+                Box(
+                    modifier = Modifier
+                        .width(140.dp)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(shimmerBrush)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProductCardSkeleton(
+    modifier: Modifier = Modifier
+) {
+    val shimmerBrush = ShimmerBrush()
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            // Image skeleton
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(shimmerBrush)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Title skeleton
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(shimmerBrush)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Second line of title
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.5f)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(shimmerBrush)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Price skeleton
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(60.dp)
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(shimmerBrush)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(shimmerBrush)
+                )
+            }
+        }
     }
 }

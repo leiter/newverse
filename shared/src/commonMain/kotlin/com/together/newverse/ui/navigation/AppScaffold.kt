@@ -16,6 +16,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -150,6 +152,24 @@ fun AppScaffold(
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Observe snackbar state changes from ViewModel
+    LaunchedEffect(appState.common.ui.snackbar) {
+        appState.common.ui.snackbar?.let { snackbar ->
+            snackbarHostState.showSnackbar(
+                message = snackbar.message,
+                actionLabel = snackbar.actionLabel,
+                duration = when (snackbar.duration) {
+                    com.together.newverse.ui.state.SnackbarDuration.SHORT -> androidx.compose.material3.SnackbarDuration.Short
+                    com.together.newverse.ui.state.SnackbarDuration.LONG -> androidx.compose.material3.SnackbarDuration.Long
+                    com.together.newverse.ui.state.SnackbarDuration.INDEFINITE -> androidx.compose.material3.SnackbarDuration.Indefinite
+                }
+            )
+            // Auto-hide snackbar after showing
+            viewModel.dispatch(com.together.newverse.ui.state.UnifiedUiAction.HideSnackbar)
+        }
+    }
 
     // Observe navigation state changes from ViewModel
     LaunchedEffect(appState.common.navigation.currentRoute) {
@@ -223,6 +243,9 @@ fun AppScaffold(
                 Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
             } else {
                 Modifier
+            },
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState)
             },
             topBar = {
                 TopAppBar(
