@@ -199,15 +199,12 @@ fun AppScaffold(
             AppDrawer(
                 currentRoute = currentRoute,
                 onNavigate = { route ->
-                    navController.navigate(route.route) {
-                        // Pop up to the start destination to avoid building up a large stack
-                        popUpTo(NavRoutes.Home.route) {
-                            saveState = true
-                        }
-                        // Avoid multiple copies of the same destination
-                        launchSingleTop = true
-                        // Restore state when reselecting a previously selected item
-                        restoreState = true
+                    // Use unified navigation action
+                    viewModel.dispatch(
+                        com.together.newverse.ui.state.UnifiedNavigationAction.NavigateTo(route)
+                    )
+                    scope.launch {
+                        drawerState.close()
                     }
                 },
                 onClose = {

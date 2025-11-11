@@ -83,8 +83,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun CustomerProfileScreenModern(
     state: com.together.newverse.ui.state.CustomerProfileScreenState,
-    onAction: (UnifiedAppAction) -> Unit,
-    onNavigateToOrderHistory: () -> Unit = {}
+    onAction: (UnifiedAppAction) -> Unit
 ) {
     val defaultMarket = stringResource(Res.string.default_market)
     val profile = state.profile
@@ -203,7 +202,11 @@ fun CustomerProfileScreenModern(
                     // Quick Actions
                     if (!isEditing) {
                         QuickActionsCard(
-                            onNavigateToOrders = onNavigateToOrderHistory
+                            onNavigateToOrders = {
+                                onAction(com.together.newverse.ui.state.UnifiedNavigationAction.NavigateTo(
+                                    com.together.newverse.ui.navigation.NavRoutes.Buy.OrderHistory
+                                ))
+                            }
                         )
                     }
                 }

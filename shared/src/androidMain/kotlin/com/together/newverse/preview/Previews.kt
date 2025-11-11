@@ -185,8 +185,7 @@ fun CustomerProfileScreenPreview() {
         Surface {
             com.together.newverse.ui.screens.buy.CustomerProfileScreenModern(
                 state = PreviewData.sampleCustomerProfileState,
-                onAction = {},
-                onNavigateToOrderHistory = {}
+                onAction = {}
             )
         }
     }
@@ -199,8 +198,7 @@ fun CustomerProfileScreenLoadingPreview() {
         Surface {
             com.together.newverse.ui.screens.buy.CustomerProfileScreenModern(
                 state = PreviewData.sampleCustomerProfileStateLoading,
-                onAction = {},
-                onNavigateToOrderHistory = {}
+                onAction = {}
             )
         }
     }
@@ -213,8 +211,7 @@ fun CustomerProfileScreenEmptyPreview() {
         Surface {
             com.together.newverse.ui.screens.buy.CustomerProfileScreenModern(
                 state = PreviewData.sampleCustomerProfileStateEmpty,
-                onAction = {},
-                onNavigateToOrderHistory = {}
+                onAction = {}
             )
         }
     }
