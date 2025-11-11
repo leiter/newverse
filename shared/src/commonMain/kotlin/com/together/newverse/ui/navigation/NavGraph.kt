@@ -59,8 +59,9 @@ fun NavGraph(
         // Buy (Customer) Screens
         // ProductsScreen removed - MainScreenModern is used instead
 
+        // Basket screen - uses base route with optional query parameters
         composable(
-            route = "buy/basket?orderId={orderId}&orderDate={orderDate}",
+            route = NavRoutes.Buy.Basket.route + "?orderId={orderId}&orderDate={orderDate}",
             arguments = listOf(
                 androidx.navigation.navArgument("orderId") {
                     type = androidx.navigation.NavType.StringType

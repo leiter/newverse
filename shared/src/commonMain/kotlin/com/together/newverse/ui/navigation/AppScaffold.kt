@@ -157,7 +157,7 @@ fun AppScaffold(
         val currentDestination = navController.currentBackStackEntry?.destination?.route
 
         // Only navigate if we're not already at the target route
-        if (targetRoute.route != currentDestination && targetRoute.route != NavRoutes.Home.route) {
+        if (targetRoute.route != currentDestination) {
             navController.navigate(targetRoute.route) {
                 // Pop up to the start destination to avoid building up a large stack
                 popUpTo(NavRoutes.Home.route) {
@@ -179,7 +179,10 @@ fun AppScaffold(
     val defaultAppName = stringResource(Res.string.app_name)
     val screenTitle = remember(currentRoute) {
         NavRoutes.getAllRoutes()
-            .find { it.route == currentRoute }
+            .find { route ->
+                // Match routes with or without query parameters
+                currentRoute == route.route || currentRoute.startsWith(route.route + "?")
+            }
     }
     val displayTitle = screenTitle?.let {
         stringResource(NavRoutes.getDisplayNameRes(it))
@@ -226,8 +229,10 @@ fun AppScaffold(
                     title = { Text(displayTitle) },
                     navigationIcon = {
                         // Show back arrow for Basket and other detail screens, hamburger menu for main screens
-                        if (currentRoute == NavRoutes.Buy.Basket.route ||
-                            currentRoute == NavRoutes.Buy.Profile.route ||
+                        // Use startsWith to match routes with query parameters
+                        if (currentRoute.startsWith(NavRoutes.Buy.Basket.route) ||
+                            currentRoute.startsWith(NavRoutes.Buy.Profile.route) ||
+                            currentRoute == NavRoutes.Buy.OrderHistory.route ||
                             currentRoute == NavRoutes.About.route ||
                             currentRoute == NavRoutes.Register.route) {
                             IconButton(

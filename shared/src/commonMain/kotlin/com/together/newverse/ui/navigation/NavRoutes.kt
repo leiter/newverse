@@ -15,7 +15,7 @@ sealed class NavRoutes(val route: String) {
     data object Login : NavRoutes("login")
     data object Register : NavRoutes("register")
     data object About : NavRoutes("about")
-    data object NoInternet : NavRoutes("no_internet")
+    // Note: NoInternet removed - no screen implementation exists
 
     // Buy (Customer) routes
     sealed class Buy(route: String) : NavRoutes(route) {
@@ -93,7 +93,6 @@ sealed class NavRoutes(val route: String) {
             About -> Res.string.nav_about
             Login -> Res.string.nav_login
             Register -> Res.string.nav_register
-            NoInternet -> Res.string.nav_no_internet
             Buy.Basket -> Res.string.nav_shopping_basket
             Buy.Profile -> Res.string.nav_customer_profile
             Buy.OrderHistory -> Res.string.action_orders
@@ -106,7 +105,7 @@ sealed class NavRoutes(val route: String) {
 
         // Get category for grouping in drawer (returns StringResource)
         fun getCategoryRes(route: NavRoutes): StringResource = when (route) {
-            Home, About, Login, Register, NoInternet -> Res.string.nav_category_common
+            Home, About, Login, Register -> Res.string.nav_category_common
             is Buy -> Res.string.nav_category_customer
             is Sell -> Res.string.nav_category_seller
         }

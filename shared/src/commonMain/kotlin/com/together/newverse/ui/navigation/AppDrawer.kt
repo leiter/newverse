@@ -70,7 +70,7 @@ fun AppDrawer(
                             isSelected = currentRoute == route.route,
                             onClick = {
                                 onNavigate(route)
-                                onClose()
+                                // Note: drawer closing is handled in AppScaffold's onNavigate callback
                             }
                         )
                     }
