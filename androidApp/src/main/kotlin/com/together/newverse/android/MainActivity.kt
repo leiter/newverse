@@ -1,6 +1,5 @@
 package com.together.newverse.android
 
-import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -9,17 +8,20 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.ui.navigation.AppScaffold
+import com.together.newverse.ui.navigation.NavRoutes
+import com.together.newverse.ui.navigation.PlatformAction
+import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.UnifiedAppViewModel
+import com.together.newverse.ui.state.UnifiedNavigationAction
+import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.GoogleSignInHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.compose.koinInject
@@ -48,6 +50,7 @@ class MainActivity : ComponentActivity() {
     private fun AppScaffoldWithGoogleSignIn() {
         val context = LocalContext.current
         val googleSignInHelper = GoogleSignInHelper(context, webClientId)
+        val viewModel: UnifiedAppViewModel = koinInject()
 
         // Register for Google Sign-In activity result
         val googleSignInLauncher = rememberLauncherForActivityResult(
@@ -66,34 +69,64 @@ class MainActivity : ComponentActivity() {
                             authRepository.signInWithGoogle(idToken)
                                 .onSuccess { userId ->
                                     Log.d("MainActivity", "✅ Successfully signed in with Google: $userId")
+
+                                    // Show success message
+                                    viewModel.dispatch(UnifiedUiAction.ShowSnackbar(
+                                        message = "Signed in successfully",
+                                        type = SnackbarType.SUCCESS
+                                    ))
+
+                                    // Navigate to home after short delay
+                                    delay(500)
+                                    viewModel.dispatch(UnifiedNavigationAction.NavigateTo(NavRoutes.Home))
                                 }
                                 .onFailure { error ->
                                     Log.e("MainActivity", "❌ Failed to sign in with Google: ${error.message}")
+
+                                    // Show error message
+                                    viewModel.dispatch(UnifiedUiAction.ShowSnackbar(
+                                        message = "Sign in failed: ${error.message}",
+                                        type = SnackbarType.ERROR
+                                    ))
                                 }
                         }
                     }
                     .onFailure { error ->
                         Log.e("MainActivity", "❌ Failed to get ID token: ${error.message}")
+
+                        // Show error message
+                        viewModel.dispatch(UnifiedUiAction.ShowSnackbar(
+                            message = "Failed to get ID token: ${error.message}",
+                            type = SnackbarType.ERROR
+                        ))
                     }
             } else {
                 Log.d("MainActivity", "Google Sign-In cancelled or failed: ${result.resultCode}")
             }
         }
 
-        // Pass the Google Sign-In callback to AppScaffold
+        // Pass the platform action handler to AppScaffold
         AppScaffold(
-            onGoogleSignInRequested = {
-                try {
-                    Log.d("MainActivity", "🔐 MainActivity: Google Sign-In requested")
-                    Log.d("MainActivity", "🔐 Web Client ID: $webClientId")
+            onPlatformAction = { action ->
+                when (action) {
+                    is PlatformAction.GoogleSignIn -> {
+                        try {
+                            Log.d("MainActivity", "🔐 MainActivity: Handling GoogleSignIn action")
+                            Log.d("MainActivity", "🔐 Web Client ID: $webClientId")
 
-                    val signInIntent = googleSignInHelper.getSignInIntent()
-                    Log.d("MainActivity", "🔐 Got sign-in intent: $signInIntent")
+                            val signInIntent = googleSignInHelper.getSignInIntent()
+                            Log.d("MainActivity", "🔐 Got sign-in intent: $signInIntent")
 
-                    googleSignInLauncher.launch(signInIntent)
-                    Log.d("MainActivity", "🔐 Launcher.launch() called")
-                } catch (e: Exception) {
-                    Log.e("MainActivity", "❌ Exception launching Google Sign-In: ${e.message}", e)
+                            googleSignInLauncher.launch(signInIntent)
+                            Log.d("MainActivity", "🔐 Launcher.launch() called")
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "❌ Exception launching Google Sign-In: ${e.message}", e)
+                        }
+                    }
+                    is PlatformAction.TwitterSignIn -> {
+                        Log.d("MainActivity", "🔐 MainActivity: Handling TwitterSignIn action")
+                        // TODO: Implement Twitter sign-in
+                    }
                 }
             }
         )
