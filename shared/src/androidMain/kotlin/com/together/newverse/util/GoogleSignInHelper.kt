@@ -24,20 +24,26 @@ class GoogleSignInHelper(
     private val googleSignInClient: GoogleSignInClient
 
     init {
+        println("🔐 GoogleSignInHelper: Initializing with webClientId: $webClientId")
         // Configure Google Sign-In
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(webClientId)
             .requestEmail()
             .build()
 
+        println("🔐 GoogleSignInHelper: Creating GoogleSignInClient...")
         googleSignInClient = GoogleSignIn.getClient(context, gso)
+        println("🔐 GoogleSignInHelper: Initialization complete")
     }
 
     /**
      * Get the sign-in intent to launch with ActivityResultLauncher
      */
     fun getSignInIntent(): Intent {
-        return googleSignInClient.signInIntent
+        println("🔐 GoogleSignInHelper.getSignInIntent(): Getting sign-in intent...")
+        val intent = googleSignInClient.signInIntent
+        println("🔐 GoogleSignInHelper.getSignInIntent(): Intent created: $intent")
+        return intent
     }
 
     /**

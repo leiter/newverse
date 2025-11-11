@@ -212,6 +212,33 @@ class UnifiedAppViewModel(
             // Step 1: Check authentication status FIRST
             checkAuthenticationStatus()
 
+            // Step 2: For manual testing, skip waiting for auth and initialize app immediately
+            println("App Init: Skipping auth wait for manual testing...")
+
+            // Load products immediately (no auth required)
+            _state.update { current ->
+                current.copy(
+                    meta = current.meta.copy(
+                        initializationStep = "Loading products..."
+                    )
+                )
+            }
+            loadProducts()
+
+            // Step 3: Mark initialization complete
+            _state.update { current ->
+                current.copy(
+                    meta = current.meta.copy(
+                        isInitializing = false,
+                        isInitialized = true,
+                        initializationStep = ""
+                    )
+                )
+            }
+
+            println("App Init: Initialization complete (manual testing mode)")
+
+            /* ORIGINAL CODE - DISABLED FOR MANUAL TESTING
             // Step 2: Wait for auth state to be ready (non-null userId)
             try {
                 println("App Init: Waiting for authentication to complete...")
@@ -270,6 +297,7 @@ class UnifiedAppViewModel(
                     )
                 }
             }
+            */
         }
     }
 
@@ -277,6 +305,8 @@ class UnifiedAppViewModel(
      * Check if user has a persisted authentication session
      * This runs BEFORE any Firebase connections
      * If no persisted session exists, automatically sign in as guest
+     *
+     * NOTE: Auto sign-in is DISABLED for manual testing
      */
     private suspend fun checkAuthenticationStatus() {
         try {
@@ -302,35 +332,35 @@ class UnifiedAppViewModel(
                             )
                         }
                     } else {
-                        // No persisted session, sign in as guest
-                        println("App Startup: No persisted auth, signing in as guest...")
+                        // No persisted session - AUTO SIGN-IN DISABLED FOR TESTING
+                        println("App Startup: No persisted auth - waiting for manual login...")
                         _state.update { current ->
                             current.copy(
                                 meta = current.meta.copy(
-                                    initializationStep = "Creating guest session..."
+                                    initializationStep = "Ready for login"
                                 )
                             )
                         }
-                        signInAsGuest()
+                        // DISABLED: signInAsGuest()
                     }
                 },
                 onFailure = { error ->
-                    // Failed to check auth, sign in as guest
-                    println("App Startup: Failed to check auth - ${error.message}, signing in as guest...")
+                    // Failed to check auth - AUTO SIGN-IN DISABLED FOR TESTING
+                    println("App Startup: Failed to check auth - ${error.message}, waiting for manual login...")
                     _state.update { current ->
                         current.copy(
                             meta = current.meta.copy(
-                                initializationStep = "Creating guest session..."
+                                initializationStep = "Ready for login"
                             )
                         )
                     }
-                    signInAsGuest()
+                    // DISABLED: signInAsGuest()
                 }
             )
         } catch (e: Exception) {
-            // Error checking auth, sign in as guest
-            println("App Startup: Exception checking auth - ${e.message}, signing in as guest...")
-            signInAsGuest()
+            // Error checking auth - AUTO SIGN-IN DISABLED FOR TESTING
+            println("App Startup: Exception checking auth - ${e.message}, waiting for manual login...")
+            // DISABLED: signInAsGuest()
         }
     }
 

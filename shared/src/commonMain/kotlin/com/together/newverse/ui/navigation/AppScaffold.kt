@@ -60,10 +60,32 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppScaffold() {
+fun AppScaffold(
+    onGoogleSignInRequested: () -> Unit = {},
+    onTwitterSignInRequested: () -> Unit = {}
+) {
     // Get the unified ViewModel
     val viewModel = koinViewModel<UnifiedAppViewModel>()
     val appState by viewModel.state.collectAsState()
+
+    // Observe Google Sign-In trigger
+    LaunchedEffect(appState.common.triggerGoogleSignIn) {
+        println("🔍 AppScaffold: LaunchedEffect triggered, triggerGoogleSignIn=${appState.common.triggerGoogleSignIn}")
+        if (appState.common.triggerGoogleSignIn) {
+            println("🔐 AppScaffold: Calling onGoogleSignInRequested")
+            onGoogleSignInRequested()
+            viewModel.resetGoogleSignInTrigger()
+        }
+    }
+
+    // Observe Twitter Sign-In trigger
+    LaunchedEffect(appState.common.triggerTwitterSignIn) {
+        if (appState.common.triggerTwitterSignIn) {
+            println("🔐 AppScaffold: Calling onTwitterSignInRequested")
+            onTwitterSignInRequested()
+            viewModel.resetTwitterSignInTrigger()
+        }
+    }
 
     // Get BasketRepository to observe cart count
     val basketRepository = koinInject<BasketRepository>()

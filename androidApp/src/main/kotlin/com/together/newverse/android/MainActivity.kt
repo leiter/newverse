@@ -28,8 +28,8 @@ class MainActivity : ComponentActivity() {
 
     private val authRepository: AuthRepository by inject()
 
-    // TODO: Replace with your actual Web Client ID from Firebase Console
-    private val webClientId = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
+    // Web Client ID from Firebase Console (google-services.json)
+    private val webClientId = "352833414422-4qt81mifve0h0v5pu1em0tnarjmq0j7j.apps.googleusercontent.com"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +47,6 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun AppScaffoldWithGoogleSignIn() {
         val context = LocalContext.current
-        val viewModel: UnifiedAppViewModel = koinInject()
         val googleSignInHelper = GoogleSignInHelper(context, webClientId)
 
         // Register for Google Sign-In activity result
@@ -81,21 +80,22 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Observe when user wants to sign in with Google
-        val state by viewModel.state.collectAsState()
+        // Pass the Google Sign-In callback to AppScaffold
+        AppScaffold(
+            onGoogleSignInRequested = {
+                try {
+                    Log.d("MainActivity", "🔐 MainActivity: Google Sign-In requested")
+                    Log.d("MainActivity", "🔐 Web Client ID: $webClientId")
 
-        // Listen for Google Sign-In trigger
-        LaunchedEffect(state.common.triggerGoogleSignIn) {
-            if (state.common.triggerGoogleSignIn) {
-                Log.d("MainActivity", "🔐 Launching Google Sign-In...")
-                val signInIntent = googleSignInHelper.getSignInIntent()
-                googleSignInLauncher.launch(signInIntent)
+                    val signInIntent = googleSignInHelper.getSignInIntent()
+                    Log.d("MainActivity", "🔐 Got sign-in intent: $signInIntent")
 
-                // Reset the trigger
-                viewModel.resetGoogleSignInTrigger()
+                    googleSignInLauncher.launch(signInIntent)
+                    Log.d("MainActivity", "🔐 Launcher.launch() called")
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "❌ Exception launching Google Sign-In: ${e.message}", e)
+                }
             }
-        }
-
-        AppScaffold()
+        )
     }
 }
