@@ -104,7 +104,7 @@ private fun MainScreenModernContent(
             stickyHeader {
                 Column(
                     modifier = Modifier.background(
-                        MaterialTheme.colorScheme.surfaceContainer
+                        MaterialTheme.colorScheme.background
                     )
                 ) {
                     selectedProduct?.let { product ->

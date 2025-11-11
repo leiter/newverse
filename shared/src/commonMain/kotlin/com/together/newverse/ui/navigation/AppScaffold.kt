@@ -21,14 +21,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import com.together.newverse.domain.repository.BasketRepository
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -36,6 +44,7 @@ import androidx.navigation.compose.rememberNavController
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.state.UnifiedAppViewModel
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -52,6 +61,45 @@ fun AppScaffold() {
     // Get the unified ViewModel
     val viewModel = koinViewModel<UnifiedAppViewModel>()
     val appState by viewModel.state.collectAsState()
+
+    // Get BasketRepository to observe cart count
+    val basketRepository = koinInject<BasketRepository>()
+    val basketItems by basketRepository.observeBasket().collectAsState()
+
+    // Animation state for cart shake
+    val shakeOffset = remember { Animatable(0f) }
+    var previousBasketSize by remember { mutableStateOf(basketItems.size) }
+
+    // Trigger shake animation when basket size increases
+    LaunchedEffect(basketItems.size) {
+        if (basketItems.size > previousBasketSize) {
+            // Shake animation: rotate left-right-left-right
+            shakeOffset.animateTo(
+                targetValue = 15f,
+                animationSpec = tween(durationMillis = 50)
+            )
+            shakeOffset.animateTo(
+                targetValue = -15f,
+                animationSpec = tween(durationMillis = 100)
+            )
+            shakeOffset.animateTo(
+                targetValue = 10f,
+                animationSpec = tween(durationMillis = 100)
+            )
+            shakeOffset.animateTo(
+                targetValue = -10f,
+                animationSpec = tween(durationMillis = 100)
+            )
+            shakeOffset.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessHigh
+                )
+            )
+        }
+        previousBasketSize = basketItems.size
+    }
 
     // Check if app is still initializing
     if (appState.meta.isInitializing) {
@@ -193,19 +241,25 @@ fun AppScaffold() {
                                         imageVector = Icons.Default.ShoppingCart,
                                         contentDescription = "Shopping Cart",
                                         tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .graphicsLayer {
+                                                rotationZ = shakeOffset.value
+                                            }
                                     )
                                 }
                                 // Cart item count badge
-                                Badge(
-                                    containerColor = MaterialTheme.colorScheme.tertiary,
-                                    contentColor = MaterialTheme.colorScheme.onTertiary,
-                                    modifier = Modifier.align(Alignment.TopEnd)
-                                ) {
-                                    Text(
-                                        text = "0",
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
+                                if (basketItems.isNotEmpty()) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.tertiary,
+                                        contentColor = MaterialTheme.colorScheme.onTertiary,
+                                        modifier = Modifier.align(Alignment.TopEnd)
+                                    ) {
+                                        Text(
+                                            text = basketItems.size.toString(),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
                                 }
                             }
                         }

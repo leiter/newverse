@@ -236,8 +236,6 @@ class MainScreenViewModel(
             println("🛒 MainScreenViewModel.addToCart: Added ${selectedArticle.productName} (${quantity} ${selectedArticle.unit}) to basket")
         }
 
-        // Reset quantity after adding
-        _state.value = _state.value.copy(selectedQuantity = 0.0)
     }
 
     private fun observeBasket() {

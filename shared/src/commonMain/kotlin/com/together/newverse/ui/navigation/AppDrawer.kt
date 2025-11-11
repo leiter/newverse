@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.together.newverse.BuildFlavor
 
 /**
  * Navigation Drawer for the app
@@ -41,9 +42,25 @@ fun AppDrawer(
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Group routes by category
-                val groupedRoutes = NavRoutes.getAllRoutes()
-                    .groupBy { NavRoutes.getCategory(it) }
+                // Group routes by category and filter based on build flavor
+                val allRoutes = NavRoutes.getAllRoutes()
+                val filteredRoutes = when {
+                    BuildFlavor.isBuyFlavor -> {
+                        // Buy flavor: Show Common and Customer Features only
+                        allRoutes.filter { route ->
+                            route !is NavRoutes.Sell
+                        }
+                    }
+                    BuildFlavor.isSellFlavor -> {
+                        // Sell flavor: Show Common and Seller Features only
+                        allRoutes.filter { route ->
+                            route !is NavRoutes.Buy
+                        }
+                    }
+                    else -> allRoutes // Fallback: show all
+                }
+
+                val groupedRoutes = filteredRoutes.groupBy { NavRoutes.getCategory(it) }
 
                 groupedRoutes.forEach { (category, routes) ->
                     item {
