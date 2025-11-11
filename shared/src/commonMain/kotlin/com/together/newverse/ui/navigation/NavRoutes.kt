@@ -1,5 +1,8 @@
 package com.together.newverse.ui.navigation
 
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.StringResource
+
 /**
  * Navigation routes for the Newverse app
  *
@@ -75,28 +78,28 @@ sealed class NavRoutes(val route: String) {
             }
         }
 
-        // Get display name for route
-        fun getDisplayName(route: NavRoutes): String = when (route) {
-            Home -> "Bodenschätze"
-            About -> "About"
-            Login -> "Login"
-            Register -> "Sign Up"
-            NoInternet -> "No Internet"
-            Buy.Products -> "Browse Products"
-            Buy.Basket -> "Shopping Basket"
-            Buy.Profile -> "Customer Profile"
-            Sell.Overview -> "Product Overview"
-            Sell.Orders -> "Manage Orders"
-            Sell.Create -> "Create Product"
-            Sell.Profile -> "Seller Profile"
-            Sell.PickDay -> "Pick Delivery Day"
+        // Get display name for route (returns StringResource)
+        fun getDisplayNameRes(route: NavRoutes): StringResource = when (route) {
+            Home -> Res.string.nav_home
+            About -> Res.string.nav_about
+            Login -> Res.string.nav_login
+            Register -> Res.string.nav_register
+            NoInternet -> Res.string.nav_no_internet
+            Buy.Products -> Res.string.nav_browse_products
+            Buy.Basket -> Res.string.nav_shopping_basket
+            Buy.Profile -> Res.string.nav_customer_profile
+            Sell.Overview -> Res.string.nav_product_overview
+            Sell.Orders -> Res.string.nav_manage_orders
+            Sell.Create -> Res.string.nav_create_product
+            Sell.Profile -> Res.string.nav_seller_profile
+            Sell.PickDay -> Res.string.nav_pick_delivery_day
         }
 
-        // Get category for grouping in drawer
-        fun getCategory(route: NavRoutes): String = when (route) {
-            Home, About, Login, Register, NoInternet -> "Common"
-            is Buy -> "Customer Features"
-            is Sell -> "Seller Features"
+        // Get category for grouping in drawer (returns StringResource)
+        fun getCategoryRes(route: NavRoutes): StringResource = when (route) {
+            Home, About, Login, Register, NoInternet -> Res.string.nav_category_common
+            is Buy -> Res.string.nav_category_customer
+            is Sell -> Res.string.nav_category_seller
         }
     }
 }

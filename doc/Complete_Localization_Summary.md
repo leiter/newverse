@@ -41,13 +41,13 @@ The entire Newverse KMP application has been fully localized. All hardcoded UI s
 
 ## String Resources
 
-### **Total Strings:** 117 localized resources
+### **Total Strings:** 127 localized resources (117 screen strings + 10 navigation strings)
 
 ### **Resource Files:**
 ```
 shared/src/commonMain/composeResources/
-├── values/strings.xml              # German (default) - 262 lines
-└── values-en/strings.xml           # English - 262 lines
+├── values/strings.xml              # German (default) - 288 lines
+└── values-en/strings.xml           # English - 288 lines
 ```
 
 ### **Categories:**
@@ -55,6 +55,7 @@ shared/src/commonMain/composeResources/
 | Category | Count | Examples |
 |----------|-------|----------|
 | **Application Common** | 5 | App name, tagline, established year |
+| **Navigation Routes** | 10 | Route names, categories for drawer |
 | **Common Buttons** | 11 | Cancel, Save, Sign In, Sign Out, etc. |
 | **Common Labels** | 9 | Email, Password, Phone, Price, etc. |
 | **Days of Week** | 7 | Monday through Sunday |
@@ -179,6 +180,14 @@ var selectedMarket by remember { mutableStateOf(defaultMarket) }
        ├── SellerProfileScreen.kt
        ├── PickDayScreen.kt
        └── OverviewScreen.kt
+```
+
+### **Navigation Files Modified:** 3
+```
+✅ shared/src/commonMain/kotlin/com/together/newverse/ui/navigation/
+   ├── NavRoutes.kt        # Changed to return StringResource instead of String
+   ├── AppDrawer.kt        # Updated to resolve string resources
+   └── AppScaffold.kt      # Updated top bar title to use localized strings
 ```
 
 ### **Resource Files:**
@@ -388,11 +397,12 @@ var selectedMarket by remember { mutableStateOf(defaultMarket) }
 | Metric | Value |
 |--------|-------|
 | **Total Screens Localized** | 11 |
-| **Total Strings** | 117+ |
+| **Total Strings** | 127 (117 screen + 10 navigation) |
 | **Languages Supported** | 2 (German, English) |
-| **Lines of XML** | 262 per language file |
+| **Lines of XML** | 288 per language file |
 | **Format Strings** | 9 |
-| **Common Strings** | 25 |
+| **Common Strings** | 35 (25 common + 10 navigation) |
+| **Navigation Routes Localized** | 13 routes + 3 categories |
 | **Build Flavors** | 2 (buy, sell) |
 | **Platforms Ready** | Android, iOS |
 | **Build Status** | ✅ SUCCESS |

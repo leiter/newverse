@@ -28,6 +28,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.app_name
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -139,12 +142,14 @@ fun AppScaffold() {
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.Home.route
 
     // Get screen title based on current route
+    val defaultAppName = stringResource(Res.string.app_name)
     val screenTitle = remember(currentRoute) {
         NavRoutes.getAllRoutes()
             .find { it.route == currentRoute }
-            ?.let { NavRoutes.getDisplayName(it) }
-            ?: "Newverse"
     }
+    val displayTitle = screenTitle?.let {
+        stringResource(NavRoutes.getDisplayNameRes(it))
+    } ?: defaultAppName
 
     // Scroll behavior for collapsing toolbar (only for Home screen)
     // Using exitUntilCollapsedScrollBehavior for snappy hide/show behavior
@@ -187,7 +192,7 @@ fun AppScaffold() {
             },
             topBar = {
                 TopAppBar(
-                    title = { Text(screenTitle) },
+                    title = { Text(displayTitle) },
                     navigationIcon = {
                         // Show back arrow for Basket and other detail screens, hamburger menu for main screens
                         if (currentRoute == NavRoutes.Buy.Basket.route ||

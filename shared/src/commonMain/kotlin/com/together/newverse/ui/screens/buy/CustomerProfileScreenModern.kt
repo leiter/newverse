@@ -147,8 +147,6 @@ fun CustomerProfileScreenModern(
                         selectedMarket = selectedMarket,
                         pickupTime = pickupTime,
                         isEditing = isEditing,
-                        onMarketChange = { selectedMarket = it },
-                        onTimeChange = { pickupTime = it }
                     )
 
                     // Notification Settings Card
@@ -372,8 +370,6 @@ private fun DeliveryPreferencesCard(
     selectedMarket: String,
     pickupTime: String,
     isEditing: Boolean,
-    onMarketChange: (String) -> Unit,
-    onTimeChange: (String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),

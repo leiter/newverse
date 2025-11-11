@@ -11,6 +11,32 @@
     <string name="app_leaf_icon">🌿</string>
 
     <!-- ========================================= -->
+    <!-- NAVIGATION ROUTES -->
+    <!-- ========================================= -->
+    <string name="nav_home">Bodenschätze</string>
+    <string name="nav_about">Über uns</string>
+    <string name="nav_login">Anmelden</string>
+    <string name="nav_register">Registrieren</string>
+    <string name="nav_no_internet">Kein Internet</string>
+
+    <!-- Buy/Customer Routes -->
+    <string name="nav_browse_products">Produkte durchsuchen</string>
+    <string name="nav_shopping_basket">Warenkorb</string>
+    <string name="nav_customer_profile">Kundenprofil</string>
+
+    <!-- Sell/Merchant Routes -->
+    <string name="nav_product_overview">Produktübersicht</string>
+    <string name="nav_manage_orders">Bestellungen verwalten</string>
+    <string name="nav_create_product">Produkt erstellen</string>
+    <string name="nav_seller_profile">Verkäuferprofil</string>
+    <string name="nav_pick_delivery_day">Liefertag wählen</string>
+
+    <!-- Navigation Categories -->
+    <string name="nav_category_common">Allgemein</string>
+    <string name="nav_category_customer">Kunden-Features</string>
+    <string name="nav_category_seller">Verkäufer-Features</string>
+
+    <!-- ========================================= -->
     <!-- COMMON BUTTONS & ACTIONS -->
     <!-- ========================================= -->
     <string name="button_cancel">Abbrechen</string>

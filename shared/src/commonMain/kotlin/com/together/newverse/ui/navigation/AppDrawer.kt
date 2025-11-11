@@ -7,6 +7,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.app_name
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Navigation Drawer for the app
@@ -28,7 +31,7 @@ fun AppDrawer(
         ) {
             // App Header
             Text(
-                text = "Bodenschätze",
+                text = stringResource(Res.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -45,12 +48,12 @@ fun AppDrawer(
                 // Get routes filtered by current build flavor
                 val filteredRoutes = NavRoutes.getRoutesForCurrentFlavor()
 
-                val groupedRoutes = filteredRoutes.groupBy { NavRoutes.getCategory(it) }
+                val groupedRoutes = filteredRoutes.groupBy { NavRoutes.getCategoryRes(it) }
 
-                groupedRoutes.forEach { (category, routes) ->
+                groupedRoutes.forEach { (categoryRes, routes) ->
                     item {
                         Text(
-                            text = category,
+                            text = stringResource(categoryRes),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(
@@ -85,7 +88,7 @@ private fun DrawerItem(
 ) {
     NavigationDrawerItem(
         label = {
-            Text(NavRoutes.getDisplayName(route))
+            Text(stringResource(NavRoutes.getDisplayNameRes(route)))
         },
         selected = isSelected,
         onClick = onClick,
