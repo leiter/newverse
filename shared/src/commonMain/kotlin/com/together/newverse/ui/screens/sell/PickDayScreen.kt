@@ -9,11 +9,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PickDayScreen() {
     val daysOfWeek = listOf(
-        "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+        stringResource(Res.string.day_monday),
+        stringResource(Res.string.day_tuesday),
+        stringResource(Res.string.day_wednesday),
+        stringResource(Res.string.day_thursday),
+        stringResource(Res.string.day_friday),
+        stringResource(Res.string.day_saturday),
+        stringResource(Res.string.day_sunday)
     )
     var selectedDays by remember { mutableStateOf(setOf<String>()) }
 
@@ -23,7 +32,7 @@ fun PickDayScreen() {
             .padding(16.dp)
     ) {
         Text(
-            text = "Pick Delivery Days",
+            text = stringResource(Res.string.pick_day_title),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -31,7 +40,7 @@ fun PickDayScreen() {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Select the days you're available for deliveries",
+            text = stringResource(Res.string.pick_day_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -63,7 +72,7 @@ fun PickDayScreen() {
             modifier = Modifier.fillMaxWidth(),
             enabled = selectedDays.isNotEmpty()
         ) {
-            Text("Save Delivery Days")
+            Text(stringResource(Res.string.pick_day_save))
         }
     }
 }
@@ -110,6 +119,5 @@ private fun DayCard(
         }
     }
 }
-
 
 

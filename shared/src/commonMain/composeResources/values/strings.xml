@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========================================= -->
+    <!-- APPLICATION COMMON STRINGS -->
+    <!-- ========================================= -->
+    <string name="app_name">BODENSCHÄTZE</string>
+    <string name="app_tagline">Frisch vom Markt</string>
+    <string name="app_tagline_full">Bio • Regional • Frisch</string>
+    <string name="app_established">Seit 2020</string>
+    <string name="app_icon">🥕</string>
+    <string name="app_leaf_icon">🌿</string>
+
+    <!-- ========================================= -->
+    <!-- COMMON BUTTONS & ACTIONS -->
+    <!-- ========================================= -->
+    <string name="button_cancel">Abbrechen</string>
+    <string name="button_save">Speichern</string>
+    <string name="button_confirm">Bestätigen</string>
+    <string name="button_retry">Wiederholen</string>
+    <string name="button_remove">Entfernen</string>
+    <string name="button_sign_in">Anmelden</string>
+    <string name="button_sign_up">Registrieren</string>
+    <string name="button_sign_out">Abmelden</string>
+    <string name="button_continue_guest">Als Gast fortfahren</string>
+    <string name="button_create">Erstellen</string>
+    <string name="button_edit">Bearbeiten</string>
+
+    <!-- ========================================= -->
+    <!-- COMMON LABELS -->
+    <!-- ========================================= -->
+    <string name="label_email">E-Mail-Adresse</string>
+    <string name="label_password">Passwort</string>
+    <string name="label_display_name">Anzeigename</string>
+    <string name="label_phone">Telefonnummer</string>
+    <string name="label_name">Name</string>
+    <string name="label_full_name">Vollständiger Name</string>
+    <string name="label_price">Preis</string>
+    <string name="label_description">Beschreibung</string>
+    <string name="label_total">Gesamt:</string>
+
+    <!-- ========================================= -->
+    <!-- COMMON VISIBILITY TOGGLES -->
+    <!-- ========================================= -->
+    <string name="toggle_show">Anzeigen</string>
+    <string name="toggle_hide">Verbergen</string>
+
+    <!-- ========================================= -->
+    <!-- COMMON DIVIDERS -->
+    <!-- ========================================= -->
+    <string name="divider_or"> ODER </string>
+
+    <!-- ========================================= -->
+    <!-- DAYS OF THE WEEK -->
+    <!-- ========================================= -->
+    <string name="day_monday">Montag</string>
+    <string name="day_tuesday">Dienstag</string>
+    <string name="day_wednesday">Mittwoch</string>
+    <string name="day_thursday">Donnerstag</string>
+    <string name="day_friday">Freitag</string>
+    <string name="day_saturday">Samstag</string>
+    <string name="day_sunday">Sonntag</string>
+
+    <!-- ========================================= -->
+    <!-- FORMAT STRINGS (PARAMETERIZED) -->
+    <!-- ========================================= -->
+    <string name="format_price_euro">%s€</string>
+    <string name="format_price_per_unit">%s€/%s</string>
+    <string name="format_item_count">%d Artikel</string>
+    <string name="format_quantity">x %s</string>
+    <string name="format_order_id">Bestellung #%s</string>
+    <string name="format_note">Hinweis: %s</string>
+    <string name="format_total_price">%s€</string>
+    <string name="format_loading">Laden%s</string>
+    <string name="format_loading_step">%s...</string>
+
+    <!-- ========================================= -->
+    <!-- SPLASH SCREEN -->
+    <!-- ========================================= -->
+    <string name="splash_loading">Laden</string>
+
+    <!-- ========================================= -->
+    <!-- LOGIN SCREEN -->
+    <!-- ========================================= -->
+    <string name="login_title">Willkommen zurück</string>
+    <string name="login_subtitle">Anmelden, um fortzufahren</string>
+    <string name="login_email_placeholder">ihre@email.de</string>
+    <string name="login_password_placeholder">Geben Sie Ihr Passwort ein</string>
+    <string name="login_forgot_password">Passwort vergessen?</string>
+    <string name="login_sign_in_google">Mit Google anmelden</string>
+    <string name="login_sign_in_twitter">Mit Twitter anmelden</string>
+    <string name="login_google_icon">G</string>
+    <string name="login_twitter_icon">𝕏</string>
+    <string name="login_no_account">Noch kein Konto? </string>
+    <string name="login_sign_up_link">Registrieren</string>
+    <string name="login_success">Anmeldung erfolgreich! Weiterleitung...</string>
+
+    <!-- Login Validation Errors -->
+    <string name="error_email_required">E-Mail-Adresse ist erforderlich</string>
+    <string name="error_email_invalid">Ungültiges E-Mail-Format</string>
+    <string name="error_password_required">Passwort ist erforderlich</string>
+    <string name="error_password_length">Passwort muss mindestens 6 Zeichen lang sein</string>
+    <string name="error_login_failed">Anmeldung fehlgeschlagen</string>
+    <string name="error_credentials_required">E-Mail und Passwort sind erforderlich</string>
+
+    <!-- ========================================= -->
+    <!-- REGISTER SCREEN -->
+    <!-- ========================================= -->
+    <string name="register_title">Konto erstellen</string>
+    <string name="register_subtitle">Treten Sie unserem Bio-Marktplatz bei</string>
+    <string name="register_name_placeholder">Max Mustermann</string>
+    <string name="register_email_placeholder">ihre@email.de</string>
+    <string name="register_password_placeholder">Mindestens 6 Zeichen</string>
+    <string name="register_password_hint">Muss Buchstaben und Zahlen enthalten</string>
+    <string name="register_confirm_password">Passwort bestätigen</string>
+    <string name="register_confirm_password_placeholder">Passwort erneut eingeben</string>
+    <string name="register_password_match_desc">Passwörter stimmen überein</string>
+    <string name="register_terms_agreement">Ich stimme den Nutzungsbedingungen und der Datenschutzerklärung zu</string>
+    <string name="register_already_account">Haben Sie bereits ein Konto? </string>
+    <string name="register_sign_in_link">Anmelden</string>
+    <string name="register_success">Konto erfolgreich erstellt!</string>
+    <string name="register_verify_email">Bitte überprüfen Sie Ihre E-Mail, um Ihr Konto zu verifizieren.</string>
+
+    <!-- Register Validation Errors -->
+    <string name="error_name_required">Name ist erforderlich</string>
+    <string name="error_name_length">Name muss mindestens 2 Zeichen lang sein</string>
+    <string name="error_password_no_number">Passwort muss mindestens eine Zahl enthalten</string>
+    <string name="error_password_no_letter">Passwort muss mindestens einen Buchstaben enthalten</string>
+    <string name="error_confirm_password">Bitte bestätigen Sie Ihr Passwort</string>
+    <string name="error_passwords_mismatch">Passwörter stimmen nicht überein</string>
+    <string name="error_terms_required">Sie müssen den Nutzungsbedingungen zustimmen</string>
+    <string name="error_signup_failed">Registrierung fehlgeschlagen</string>
+
+    <!-- ========================================= -->
+    <!-- PRODUCTS SCREEN (BUY MODULE) -->
+    <!-- ========================================= -->
+    <string name="products_title">Produkte durchsuchen</string>
+    <string name="products_empty">Keine Produkte verfügbar</string>
+    <string name="products_error_load">Fehler beim Laden der Produkte: %s</string>
+
+    <!-- ========================================= -->
+    <!-- BASKET SCREEN (BUY MODULE) -->
+    <!-- ========================================= -->
+    <string name="basket_title">Warenkorb</string>
+    <string name="basket_empty_title">Ihr Warenkorb ist leer</string>
+    <string name="basket_empty_description">Fügen Sie Artikel vom Produktbildschirm hinzu</string>
+    <string name="basket_checkout_processing">Wird bearbeitet...</string>
+    <string name="basket_checkout_proceed">Zur Kasse gehen</string>
+
+    <!-- ========================================= -->
+    <!-- CUSTOMER PROFILE SCREEN (BUY MODULE) -->
+    <!-- ========================================= -->
+    <string name="profile_new_customer">Neuer Kunde</string>
+    <string name="profile_no_email">Keine E-Mail</string>
+    <string name="profile_verified">Verifiziert</string>
+    <string name="profile_member_since">Kunde seit %s</string>
+
+    <!-- Personal Information Section -->
+    <string name="section_personal_info">Persönliche Daten</string>
+
+    <!-- Delivery Preferences Section -->
+    <string name="section_delivery_preferences">Abholpräferenzen</string>
+    <string name="label_marketplace">Marktplatz</string>
+    <string name="label_pickup_time">Abholzeit</string>
+    <string name="pickup_time_format">%s Uhr</string>
+    <string name="default_market">Ökomarkt im Hansaviertel</string>
+
+    <!-- Notification Settings Section -->
+    <string name="section_notifications">Benachrichtigungen</string>
+    <string name="notification_order_updates">Bestellupdates</string>
+    <string name="notification_push_desc">Push-Benachrichtigungen erhalten</string>
+    <string name="notification_newsletter">Newsletter</string>
+    <string name="notification_newsletter_desc">Wöchentliche Angebote</string>
+
+    <!-- Membership -->
+    <string name="membership_regular">Stammkunde</string>
+    <string name="membership_discount">5% Rabatt auf alle Bestellungen</string>
+
+    <!-- Quick Actions -->
+    <string name="quick_actions_title">Schnellaktionen</string>
+    <string name="action_orders">Bestellungen</string>
+    <string name="action_favorites">Favoriten</string>
+    <string name="action_payment">Zahlung</string>
+    <string name="action_help">Hilfe</string>
+
+    <!-- Dialog -->
+    <string name="dialog_save_title">Änderungen speichern?</string>
+    <string name="dialog_save_message">Ihre Profiländerungen werden gespeichert.</string>
+
+    <!-- ========================================= -->
+    <!-- ORDERS SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="orders_title">Bestellungen verwalten</string>
+    <string name="orders_order_prefix">Bestellung #</string>
+    <string name="orders_items_suffix"> Artikel</string>
+    <string name="orders_note_prefix">Hinweis: </string>
+
+    <!-- ========================================= -->
+    <!-- CREATE PRODUCT SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="create_product_title">Produkt erstellen</string>
+    <string name="create_product_name">Produktname</string>
+    <string name="create_product_price_prefix">$</string>
+    <string name="create_product_description">Beschreibung</string>
+    <string name="create_product_button">Produkt erstellen</string>
+
+    <!-- ========================================= -->
+    <!-- SELLER PROFILE SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="seller_profile_title">Verkäuferprofil</string>
+    <string name="seller_profile_placeholder_name">Hofladen Frischemarkt</string>
+    <string name="seller_profile_placeholder_email">verkäufer@hofladen.de</string>
+    <string name="seller_profile_stats_title">Geschäftsstatistiken</string>
+    <string name="seller_profile_stat_products">Produkte</string>
+    <string name="seller_profile_stat_products_count">12</string>
+    <string name="seller_profile_stat_orders">Bestellungen</string>
+    <string name="seller_profile_stat_orders_count">45</string>
+    <string name="seller_profile_settings_title">Kontoeinstellungen</string>
+    <string name="seller_profile_edit">Profil bearbeiten</string>
+    <string name="seller_profile_payment">Zahlungseinstellungen</string>
+
+    <!-- ========================================= -->
+    <!-- PICK DAY SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="pick_day_title">Liefertage auswählen</string>
+    <string name="pick_day_description">Wählen Sie die Tage aus, an denen Sie für Lieferungen verfügbar sind</string>
+    <string name="pick_day_save">Liefertage speichern</string>
+
+    <!-- ========================================= -->
+    <!-- OVERVIEW SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="overview_title">Produktübersicht</string>
+    <string name="overview_total_products">Gesamtprodukte</string>
+    <string name="overview_active_orders">Aktive Bestellungen</string>
+    <string name="overview_your_products">Ihre Produkte</string>
+
+    <!-- ========================================= -->
+    <!-- ABOUT SCREEN -->
+    <!-- ========================================= -->
+    <string name="about_contact_title">Kontakt</string>
+    <string name="about_phone">0172 - 46 23 741</string>
+    <string name="about_email">bodenschaetze@posteo.de</string>
+    <string name="about_location">Ökomarkt im Hansaviertel</string>
+
+    <!-- Impressum Section -->
+    <string name="about_impressum_title">Impressum</string>
+    <string name="about_impressum_owner_label">Inhaber</string>
+    <string name="about_impressum_owner_name">Eric Dehn</string>
+    <string name="about_impressum_address_label">Anschrift</string>
+    <string name="about_impressum_address">Neue Gartenstraße\n15517 Fürstenwalde / Spree</string>
+    <string name="about_impressum_represented_label">Vertreten durch</string>
+    <string name="about_impressum_represented_name">Eric Dehn</string>
+
+    <!-- Privacy Section -->
+    <string name="about_privacy_title">Datenschutz</string>
+    <string name="about_privacy_intro">Wir nehmen den Schutz aller persönlichen Daten sehr ernst.</string>
+    <string name="about_privacy_description">Alle personenbezogenen Informationen werden vertraulich und gemäß den geltenden Datenschutzbestimmungen behandelt. Ihre Daten werden ausschließlich zur Bestellabwicklung und Kommunikation verwendet.</string>
+    <string name="about_privacy_button">Vollständige Datenschutzerklärung</string>
+
+    <!-- Mission Section -->
+    <string name="about_mission_title">Unsere Mission</string>
+    <string name="about_mission_text">Wir bringen frische, biologische und regionale Lebensmittel direkt vom Feld zu Ihnen nach Hause. Für eine nachhaltige Zukunft und gesunde Ernährung.</string>
+</resources>

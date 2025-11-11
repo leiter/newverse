@@ -12,6 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.components.ProductListItem
 import org.koin.compose.viewmodel.koinViewModel
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Products Screen - Stateful composable with ViewModel
@@ -45,7 +48,7 @@ fun ProductsContent(
             .padding(16.dp)
     ) {
         Text(
-            text = "Browse Products",
+            text = stringResource(Res.string.products_title),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -77,7 +80,7 @@ fun ProductsContent(
                             color = MaterialTheme.colorScheme.error
                         )
                         Button(onClick = { onAction(ProductsAction.Refresh) }) {
-                            Text("Retry")
+                            Text(stringResource(Res.string.button_retry))
                         }
                     }
                 }
@@ -89,7 +92,7 @@ fun ProductsContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No products available",
+                        text = stringResource(Res.string.products_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

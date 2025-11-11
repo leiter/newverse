@@ -9,6 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.preview.PreviewData
 import com.together.newverse.ui.components.ProductListItem
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun OverviewScreen() {
@@ -21,7 +24,7 @@ fun OverviewScreen() {
             .padding(16.dp)
     ) {
         Text(
-            text = "Product Overview",
+            text = stringResource(Res.string.overview_title),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -34,12 +37,12 @@ fun OverviewScreen() {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatCard(
-                title = "Total Products",
+                title = stringResource(Res.string.overview_total_products),
                 value = products.size.toString(),
                 modifier = Modifier.weight(1f)
             )
             StatCard(
-                title = "Active Orders",
+                title = stringResource(Res.string.overview_active_orders),
                 value = orders.size.toString(),
                 modifier = Modifier.weight(1f)
             )
@@ -48,7 +51,7 @@ fun OverviewScreen() {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Your Products",
+            text = stringResource(Res.string.overview_your_products),
             style = MaterialTheme.typography.titleMedium
         )
 

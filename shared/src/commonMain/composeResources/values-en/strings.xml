@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========================================= -->
+    <!-- APPLICATION COMMON STRINGS -->
+    <!-- ========================================= -->
+    <string name="app_name">BODENSCHÄTZE</string>
+    <string name="app_tagline">Fresh from the Market</string>
+    <string name="app_tagline_full">Organic • Regional • Fresh</string>
+    <string name="app_established">Since 2020</string>
+    <string name="app_icon">🥕</string>
+    <string name="app_leaf_icon">🌿</string>
+
+    <!-- ========================================= -->
+    <!-- COMMON BUTTONS & ACTIONS -->
+    <!-- ========================================= -->
+    <string name="button_cancel">Cancel</string>
+    <string name="button_save">Save</string>
+    <string name="button_confirm">Confirm</string>
+    <string name="button_retry">Retry</string>
+    <string name="button_remove">Remove</string>
+    <string name="button_sign_in">Sign In</string>
+    <string name="button_sign_up">Sign Up</string>
+    <string name="button_sign_out">Sign Out</string>
+    <string name="button_continue_guest">Continue as Guest</string>
+    <string name="button_create">Create</string>
+    <string name="button_edit">Edit</string>
+
+    <!-- ========================================= -->
+    <!-- COMMON LABELS -->
+    <!-- ========================================= -->
+    <string name="label_email">Email Address</string>
+    <string name="label_password">Password</string>
+    <string name="label_display_name">Display Name</string>
+    <string name="label_phone">Phone Number</string>
+    <string name="label_name">Name</string>
+    <string name="label_full_name">Full Name</string>
+    <string name="label_price">Price</string>
+    <string name="label_description">Description</string>
+    <string name="label_total">Total:</string>
+
+    <!-- ========================================= -->
+    <!-- COMMON VISIBILITY TOGGLES -->
+    <!-- ========================================= -->
+    <string name="toggle_show">Show</string>
+    <string name="toggle_hide">Hide</string>
+
+    <!-- ========================================= -->
+    <!-- COMMON DIVIDERS -->
+    <!-- ========================================= -->
+    <string name="divider_or"> OR </string>
+
+    <!-- ========================================= -->
+    <!-- DAYS OF THE WEEK -->
+    <!-- ========================================= -->
+    <string name="day_monday">Monday</string>
+    <string name="day_tuesday">Tuesday</string>
+    <string name="day_wednesday">Wednesday</string>
+    <string name="day_thursday">Thursday</string>
+    <string name="day_friday">Friday</string>
+    <string name="day_saturday">Saturday</string>
+    <string name="day_sunday">Sunday</string>
+
+    <!-- ========================================= -->
+    <!-- FORMAT STRINGS (PARAMETERIZED) -->
+    <!-- ========================================= -->
+    <string name="format_price_euro">%s€</string>
+    <string name="format_price_per_unit">%s€/%s</string>
+    <string name="format_item_count">%d items</string>
+    <string name="format_quantity">x %s</string>
+    <string name="format_order_id">Order #%s</string>
+    <string name="format_note">Note: %s</string>
+    <string name="format_total_price">%s€</string>
+    <string name="format_loading">Loading%s</string>
+    <string name="format_loading_step">%s...</string>
+
+    <!-- ========================================= -->
+    <!-- SPLASH SCREEN -->
+    <!-- ========================================= -->
+    <string name="splash_loading">Loading</string>
+
+    <!-- ========================================= -->
+    <!-- LOGIN SCREEN -->
+    <!-- ========================================= -->
+    <string name="login_title">Welcome Back</string>
+    <string name="login_subtitle">Sign in to continue</string>
+    <string name="login_email_placeholder">your@email.com</string>
+    <string name="login_password_placeholder">Enter your password</string>
+    <string name="login_forgot_password">Forgot Password?</string>
+    <string name="login_sign_in_google">Sign in with Google</string>
+    <string name="login_sign_in_twitter">Sign in with Twitter</string>
+    <string name="login_google_icon">G</string>
+    <string name="login_twitter_icon">𝕏</string>
+    <string name="login_no_account">Don\'t have an account? </string>
+    <string name="login_sign_up_link">Sign Up</string>
+    <string name="login_success">Login successful! Redirecting...</string>
+
+    <!-- Login Validation Errors -->
+    <string name="error_email_required">Email is required</string>
+    <string name="error_email_invalid">Invalid email format</string>
+    <string name="error_password_required">Password is required</string>
+    <string name="error_password_length">Password must be at least 6 characters</string>
+    <string name="error_login_failed">Login failed</string>
+    <string name="error_credentials_required">Email and password are required</string>
+
+    <!-- ========================================= -->
+    <!-- REGISTER SCREEN -->
+    <!-- ========================================= -->
+    <string name="register_title">Create Account</string>
+    <string name="register_subtitle">Join our organic marketplace</string>
+    <string name="register_name_placeholder">John Doe</string>
+    <string name="register_email_placeholder">your@email.com</string>
+    <string name="register_password_placeholder">At least 6 characters</string>
+    <string name="register_password_hint">Must contain letters and numbers</string>
+    <string name="register_confirm_password">Confirm Password</string>
+    <string name="register_confirm_password_placeholder">Re-enter your password</string>
+    <string name="register_password_match_desc">Passwords match</string>
+    <string name="register_terms_agreement">I agree to the Terms of Service and Privacy Policy</string>
+    <string name="register_already_account">Already have an account? </string>
+    <string name="register_sign_in_link">Sign In</string>
+    <string name="register_success">Account created successfully!</string>
+    <string name="register_verify_email">Please check your email to verify your account.</string>
+
+    <!-- Register Validation Errors -->
+    <string name="error_name_required">Name is required</string>
+    <string name="error_name_length">Name must be at least 2 characters</string>
+    <string name="error_password_no_number">Password must contain at least one number</string>
+    <string name="error_password_no_letter">Password must contain at least one letter</string>
+    <string name="error_confirm_password">Please confirm your password</string>
+    <string name="error_passwords_mismatch">Passwords do not match</string>
+    <string name="error_terms_required">You must accept the terms and conditions</string>
+    <string name="error_signup_failed">Sign up failed</string>
+
+    <!-- ========================================= -->
+    <!-- PRODUCTS SCREEN (BUY MODULE) -->
+    <!-- ========================================= -->
+    <string name="products_title">Browse Products</string>
+    <string name="products_empty">No products available</string>
+    <string name="products_error_load">Failed to load products: %s</string>
+
+    <!-- ========================================= -->
+    <!-- BASKET SCREEN (BUY MODULE) -->
+    <!-- ========================================= -->
+    <string name="basket_title">Shopping Basket</string>
+    <string name="basket_empty_title">Your basket is empty</string>
+    <string name="basket_empty_description">Add items from the Products screen</string>
+    <string name="basket_checkout_processing">Processing...</string>
+    <string name="basket_checkout_proceed">Proceed to Checkout</string>
+
+    <!-- ========================================= -->
+    <!-- CUSTOMER PROFILE SCREEN (BUY MODULE) -->
+    <!-- ========================================= -->
+    <string name="profile_new_customer">New Customer</string>
+    <string name="profile_no_email">No Email</string>
+    <string name="profile_verified">Verified</string>
+    <string name="profile_member_since">Member since %s</string>
+
+    <!-- Personal Information Section -->
+    <string name="section_personal_info">Personal Information</string>
+
+    <!-- Delivery Preferences Section -->
+    <string name="section_delivery_preferences">Pickup Preferences</string>
+    <string name="label_marketplace">Marketplace</string>
+    <string name="label_pickup_time">Pickup Time</string>
+    <string name="pickup_time_format">%s</string>
+    <string name="default_market">Organic Market at Hansaviertel</string>
+
+    <!-- Notification Settings Section -->
+    <string name="section_notifications">Notifications</string>
+    <string name="notification_order_updates">Order Updates</string>
+    <string name="notification_push_desc">Receive push notifications</string>
+    <string name="notification_newsletter">Newsletter</string>
+    <string name="notification_newsletter_desc">Weekly offers</string>
+
+    <!-- Membership -->
+    <string name="membership_regular">Regular Customer</string>
+    <string name="membership_discount">5% discount on all orders</string>
+
+    <!-- Quick Actions -->
+    <string name="quick_actions_title">Quick Actions</string>
+    <string name="action_orders">Orders</string>
+    <string name="action_favorites">Favorites</string>
+    <string name="action_payment">Payment</string>
+    <string name="action_help">Help</string>
+
+    <!-- Dialog -->
+    <string name="dialog_save_title">Save changes?</string>
+    <string name="dialog_save_message">Your profile changes will be saved.</string>
+
+    <!-- ========================================= -->
+    <!-- ORDERS SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="orders_title">Manage Orders</string>
+    <string name="orders_order_prefix">Order #</string>
+    <string name="orders_items_suffix"> items</string>
+    <string name="orders_note_prefix">Note: </string>
+
+    <!-- ========================================= -->
+    <!-- CREATE PRODUCT SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="create_product_title">Create Product</string>
+    <string name="create_product_name">Product Name</string>
+    <string name="create_product_price_prefix">$</string>
+    <string name="create_product_description">Description</string>
+    <string name="create_product_button">Create Product</string>
+
+    <!-- ========================================= -->
+    <!-- SELLER PROFILE SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="seller_profile_title">Seller Profile</string>
+    <string name="seller_profile_placeholder_name">Farm Fresh Market</string>
+    <string name="seller_profile_placeholder_email">seller@farmfresh.com</string>
+    <string name="seller_profile_stats_title">Business Stats</string>
+    <string name="seller_profile_stat_products">Products</string>
+    <string name="seller_profile_stat_products_count">12</string>
+    <string name="seller_profile_stat_orders">Orders</string>
+    <string name="seller_profile_stat_orders_count">45</string>
+    <string name="seller_profile_settings_title">Account Settings</string>
+    <string name="seller_profile_edit">Edit Profile</string>
+    <string name="seller_profile_payment">Payment Settings</string>
+
+    <!-- ========================================= -->
+    <!-- PICK DAY SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="pick_day_title">Pick Delivery Days</string>
+    <string name="pick_day_description">Select the days you\'re available for deliveries</string>
+    <string name="pick_day_save">Save Delivery Days</string>
+
+    <!-- ========================================= -->
+    <!-- OVERVIEW SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="overview_title">Product Overview</string>
+    <string name="overview_total_products">Total Products</string>
+    <string name="overview_active_orders">Active Orders</string>
+    <string name="overview_your_products">Your Products</string>
+
+    <!-- ========================================= -->
+    <!-- ABOUT SCREEN -->
+    <!-- ========================================= -->
+    <string name="about_contact_title">Contact</string>
+    <string name="about_phone">0172 - 46 23 741</string>
+    <string name="about_email">bodenschaetze@posteo.de</string>
+    <string name="about_location">Organic Market at Hansaviertel</string>
+
+    <!-- Impressum Section -->
+    <string name="about_impressum_title">Legal Notice</string>
+    <string name="about_impressum_owner_label">Owner</string>
+    <string name="about_impressum_owner_name">Eric Dehn</string>
+    <string name="about_impressum_address_label">Address</string>
+    <string name="about_impressum_address">Neue Gartenstraße\n15517 Fürstenwalde / Spree</string>
+    <string name="about_impressum_represented_label">Represented by</string>
+    <string name="about_impressum_represented_name">Eric Dehn</string>
+
+    <!-- Privacy Section -->
+    <string name="about_privacy_title">Privacy</string>
+    <string name="about_privacy_intro">We take the protection of all personal data very seriously.</string>
+    <string name="about_privacy_description">All personal information is treated confidentially and in accordance with applicable data protection regulations. Your data will only be used for order processing and communication.</string>
+    <string name="about_privacy_button">Complete Privacy Policy</string>
+
+    <!-- Mission Section -->
+    <string name="about_mission_title">Our Mission</string>
+    <string name="about_mission_text">We bring fresh, organic and regional food directly from the field to your home. For a sustainable future and healthy nutrition.</string>
+</resources>

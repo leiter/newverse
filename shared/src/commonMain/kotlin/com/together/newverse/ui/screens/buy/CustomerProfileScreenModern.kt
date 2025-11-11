@@ -70,18 +70,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.state.UnifiedAppAction
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
-// Removed hard-coded color imports - will use theme colors instead
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerProfileScreenModern(
-    onBackClick: () -> Unit = {}
+    onAction: (UnifiedAppAction) -> Unit = {}
 ) {
+    val defaultMarket = stringResource(Res.string.default_market)
+
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var selectedMarket by remember { mutableStateOf("Ökomarkt im Hansaviertel") }
+    var selectedMarket by remember { mutableStateOf(defaultMarket) }
     var pickupTime by remember { mutableStateOf("15:45") }
     var notificationsEnabled by remember { mutableStateOf(true) }
     var newsletterEnabled by remember { mutableStateOf(false) }
@@ -121,8 +126,8 @@ fun CustomerProfileScreenModern(
                 ) {
                     // Profile Header Card
                     ProfileHeaderCard(
-                        displayName = displayName.ifEmpty { "Neuer Kunde" },
-                        email = email.ifEmpty { "Keine E-Mail" },
+                        displayName = displayName.ifEmpty { stringResource(Res.string.profile_new_customer) },
+                        email = email.ifEmpty { stringResource(Res.string.profile_no_email) },
                         isVerified = email.isNotEmpty()
                     )
 
@@ -265,7 +270,7 @@ private fun ProfileHeaderCard(
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             Icons.Default.CheckCircle,
-                            contentDescription = "Verifiziert",
+                            contentDescription = stringResource(Res.string.profile_verified),
                             tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(24.dp)
                         )
@@ -286,7 +291,7 @@ private fun ProfileHeaderCard(
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
-                        text = "Kunde seit 2023",
+                        text = stringResource(Res.string.profile_member_since, "2023"),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
@@ -320,7 +325,7 @@ private fun PersonalInfoCard(
         ) {
             SectionHeader(
                 icon = Icons.Default.Person,
-                title = "Persönliche Daten",
+                title = stringResource(Res.string.section_personal_info),
                 iconColor = MaterialTheme.colorScheme.primary
             )
 
@@ -329,7 +334,7 @@ private fun PersonalInfoCard(
             ModernTextField(
                 value = displayName,
                 onValueChange = onDisplayNameChange,
-                label = "Anzeigename",
+                label = stringResource(Res.string.label_display_name),
                 leadingIcon = Icons.Default.Person,
                 enabled = isEditing,
                 isValid = displayName.isNotEmpty()
@@ -340,7 +345,7 @@ private fun PersonalInfoCard(
             ModernTextField(
                 value = email,
                 onValueChange = onEmailChange,
-                label = "E-Mail-Adresse",
+                label = stringResource(Res.string.label_email),
                 leadingIcon = Icons.Default.Email,
                 enabled = isEditing,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -352,7 +357,7 @@ private fun PersonalInfoCard(
             ModernTextField(
                 value = phone,
                 onValueChange = onPhoneChange,
-                label = "Telefonnummer",
+                label = stringResource(Res.string.label_phone),
                 leadingIcon = Icons.Default.Phone,
                 enabled = isEditing,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -383,7 +388,7 @@ private fun DeliveryPreferencesCard(
         ) {
             SectionHeader(
                 icon = Icons.Default.LocationOn,
-                title = "Abholpräferenzen",
+                title = stringResource(Res.string.section_delivery_preferences),
                 iconColor = MaterialTheme.colorScheme.tertiary
             )
 
@@ -419,7 +424,7 @@ private fun DeliveryPreferencesCard(
                         )
                         Column {
                             Text(
-                                text = "Marktplatz",
+                                text = stringResource(Res.string.label_marketplace),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -473,12 +478,12 @@ private fun DeliveryPreferencesCard(
                         )
                         Column {
                             Text(
-                                text = "Abholzeit",
+                                text = stringResource(Res.string.label_pickup_time),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "$pickupTime Uhr",
+                                text = stringResource(Res.string.pickup_time_format, pickupTime),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -519,7 +524,7 @@ private fun NotificationSettingsCard(
         ) {
             SectionHeader(
                 icon = Icons.Default.Notifications,
-                title = "Benachrichtigungen",
+                title = stringResource(Res.string.section_notifications),
                 iconColor = MaterialTheme.colorScheme.secondary
             )
 
@@ -543,13 +548,13 @@ private fun NotificationSettingsCard(
                     )
                     Column {
                         Text(
-                            text = "Bestellupdates",
+                            text = stringResource(Res.string.notification_order_updates),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Push-Benachrichtigungen erhalten",
+                            text = stringResource(Res.string.notification_push_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -586,13 +591,13 @@ private fun NotificationSettingsCard(
                     )
                     Column {
                         Text(
-                            text = "Newsletter",
+                            text = stringResource(Res.string.notification_newsletter),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Wöchentliche Angebote",
+                            text = stringResource(Res.string.notification_newsletter_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -650,13 +655,13 @@ private fun MembershipCard() {
 
                 Column {
                     Text(
-                        text = "Stammkunde",
+                        text = stringResource(Res.string.membership_regular),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "5% Rabatt auf alle Bestellungen",
+                        text = stringResource(Res.string.membership_discount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -678,7 +683,7 @@ private fun QuickActionsCard() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "Schnellaktionen",
+            text = stringResource(Res.string.quick_actions_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
@@ -690,14 +695,14 @@ private fun QuickActionsCard() {
         ) {
             ActionButton(
                 icon = Icons.AutoMirrored.Default.List,
-                text = "Bestellungen",
+                text = stringResource(Res.string.action_orders),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             ) { /* Navigate to orders */ }
 
             ActionButton(
                 icon = Icons.Outlined.FavoriteBorder,
-                text = "Favoriten",
+                text = stringResource(Res.string.action_favorites),
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f)
             ) { /* Navigate to favorites */ }
@@ -709,14 +714,14 @@ private fun QuickActionsCard() {
         ) {
             ActionButton(
                 icon = Icons.Default.AccountBox,
-                text = "Zahlung",
+                text = stringResource(Res.string.action_payment),
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.weight(1f)
             ) { /* Navigate to payment */ }
 
             ActionButton(
                 icon = Icons.Default.Info,
-                text = "Hilfe",
+                text = stringResource(Res.string.action_help),
                 color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
                 modifier = Modifier.weight(1f)
             ) { /* Navigate to help */ }
@@ -785,7 +790,7 @@ private fun SaveBottomBar(
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             ) {
-                Text("Abbrechen")
+                Text(stringResource(Res.string.button_cancel))
             }
 
             Button(
@@ -801,7 +806,7 @@ private fun SaveBottomBar(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Speichern")
+                Text(stringResource(Res.string.button_save))
             }
         }
     }
@@ -821,12 +826,12 @@ private fun SaveConfirmationDialog(
                     contentColor = MaterialTheme.colorScheme.tertiary
                 )
             ) {
-                Text("Bestätigen")
+                Text(stringResource(Res.string.button_confirm))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
+                Text(stringResource(Res.string.button_cancel))
             }
         },
         icon = {
@@ -839,14 +844,14 @@ private fun SaveConfirmationDialog(
         },
         title = {
             Text(
-                "Änderungen speichern?",
+                stringResource(Res.string.dialog_save_title),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center
             )
         },
         text = {
             Text(
-                "Ihre Profiländerungen werden gespeichert.",
+                stringResource(Res.string.dialog_save_message),
                 textAlign = TextAlign.Center
             )
         }

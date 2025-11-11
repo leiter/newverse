@@ -5,6 +5,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun SellerProfileScreen() {
@@ -15,7 +18,7 @@ fun SellerProfileScreen() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Seller Profile",
+            text = stringResource(Res.string.seller_profile_title),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -31,12 +34,12 @@ fun SellerProfileScreen() {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Farm Fresh Market",
+                    text = stringResource(Res.string.seller_profile_placeholder_name),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Text(
-                    text = "seller@farmfresh.com",
+                    text = stringResource(Res.string.seller_profile_placeholder_email),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -44,7 +47,7 @@ fun SellerProfileScreen() {
         }
 
         Text(
-            text = "Business Stats",
+            text = stringResource(Res.string.seller_profile_stats_title),
             style = MaterialTheme.typography.titleMedium
         )
 
@@ -52,12 +55,12 @@ fun SellerProfileScreen() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            StatCard("Products", "12", Modifier.weight(1f))
-            StatCard("Orders", "45", Modifier.weight(1f))
+            StatCard(stringResource(Res.string.seller_profile_stat_products), stringResource(Res.string.seller_profile_stat_products_count), Modifier.weight(1f))
+            StatCard(stringResource(Res.string.seller_profile_stat_orders), stringResource(Res.string.seller_profile_stat_orders_count), Modifier.weight(1f))
         }
 
         Text(
-            text = "Account Settings",
+            text = stringResource(Res.string.seller_profile_settings_title),
             style = MaterialTheme.typography.titleMedium
         )
 
@@ -66,7 +69,7 @@ fun SellerProfileScreen() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Edit Profile",
+                text = stringResource(Res.string.seller_profile_edit),
                 modifier = Modifier.padding(16.dp),
                 style = MaterialTheme.typography.bodyLarge
             )
@@ -77,7 +80,7 @@ fun SellerProfileScreen() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Payment Settings",
+                text = stringResource(Res.string.seller_profile_payment),
                 modifier = Modifier.padding(16.dp),
                 style = MaterialTheme.typography.bodyLarge
             )
@@ -89,7 +92,7 @@ fun SellerProfileScreen() {
             onClick = { /* TODO: Logout */ },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Sign Out")
+            Text(stringResource(Res.string.button_sign_out))
         }
     }
 }
@@ -118,6 +121,5 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
         }
     }
 }
-
 
 

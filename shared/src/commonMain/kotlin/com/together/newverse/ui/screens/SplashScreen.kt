@@ -23,6 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Splash screen shown during app initialization
@@ -69,7 +72,7 @@ fun SplashScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "🥕",
+                    text = stringResource(Res.string.app_icon),
                     fontSize = 60.sp
                 )
             }
@@ -78,7 +81,7 @@ fun SplashScreen(
 
             // App Name
             Text(
-                text = "BODENSCHÄTZE",
+                text = stringResource(Res.string.app_name),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -88,7 +91,7 @@ fun SplashScreen(
 
             // Tagline
             Text(
-                text = "Frisch vom Markt",
+                text = stringResource(Res.string.app_tagline),
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
@@ -106,13 +109,13 @@ fun SplashScreen(
             // Status text
             if (initializationStep.isNotEmpty()) {
                 Text(
-                    text = initializationStep + dots,
+                    text = stringResource(Res.string.format_loading_step, initializationStep + dots),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
             } else {
                 Text(
-                    text = "Loading$dots",
+                    text = stringResource(Res.string.format_loading, dots),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )

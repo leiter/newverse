@@ -20,6 +20,9 @@ import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedNavigationAction
 import com.together.newverse.ui.state.UnifiedUserAction
 import com.together.newverse.ui.navigation.NavRoutes
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,11 +45,23 @@ fun RegisterScreen(
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
     var termsError by remember { mutableStateOf<String?>(null) }
 
+    val errorNameRequired = stringResource(Res.string.error_name_required)
+    val errorNameLength = stringResource(Res.string.error_name_length)
+    val errorEmailRequired = stringResource(Res.string.error_email_required)
+    val errorEmailInvalid = stringResource(Res.string.error_email_invalid)
+    val errorPasswordRequired = stringResource(Res.string.error_password_required)
+    val errorPasswordLength = stringResource(Res.string.error_password_length)
+    val errorPasswordNoNumber = stringResource(Res.string.error_password_no_number)
+    val errorPasswordNoLetter = stringResource(Res.string.error_password_no_letter)
+    val errorConfirmPassword = stringResource(Res.string.error_confirm_password)
+    val errorPasswordsMismatch = stringResource(Res.string.error_passwords_mismatch)
+    val errorTermsRequired = stringResource(Res.string.error_terms_required)
+
     // Validation functions
     fun validateName(): Boolean {
         nameError = when {
-            name.isBlank() -> "Name is required"
-            name.length < 2 -> "Name must be at least 2 characters"
+            name.isBlank() -> errorNameRequired
+            name.length < 2 -> errorNameLength
             else -> null
         }
         return nameError == null
@@ -54,8 +69,8 @@ fun RegisterScreen(
 
     fun validateEmail(): Boolean {
         emailError = when {
-            email.isBlank() -> "Email is required"
-            !email.contains("@") || !email.contains(".") -> "Invalid email format"
+            email.isBlank() -> errorEmailRequired
+            !email.contains("@") || !email.contains(".") -> errorEmailInvalid
             else -> null
         }
         return emailError == null
@@ -63,10 +78,10 @@ fun RegisterScreen(
 
     fun validatePassword(): Boolean {
         passwordError = when {
-            password.isBlank() -> "Password is required"
-            password.length < 6 -> "Password must be at least 6 characters"
-            !password.any { it.isDigit() } -> "Password must contain at least one number"
-            !password.any { it.isLetter() } -> "Password must contain at least one letter"
+            password.isBlank() -> errorPasswordRequired
+            password.length < 6 -> errorPasswordLength
+            !password.any { it.isDigit() } -> errorPasswordNoNumber
+            !password.any { it.isLetter() } -> errorPasswordNoLetter
             else -> null
         }
         return passwordError == null
@@ -74,15 +89,15 @@ fun RegisterScreen(
 
     fun validateConfirmPassword(): Boolean {
         confirmPasswordError = when {
-            confirmPassword.isBlank() -> "Please confirm your password"
-            confirmPassword != password -> "Passwords do not match"
+            confirmPassword.isBlank() -> errorConfirmPassword
+            confirmPassword != password -> errorPasswordsMismatch
             else -> null
         }
         return confirmPasswordError == null
     }
 
     fun validateTerms(): Boolean {
-        termsError = if (!acceptTerms) "You must accept the terms and conditions" else null
+        termsError = if (!acceptTerms) errorTermsRequired else null
         return termsError == null
     }
 
@@ -99,7 +114,7 @@ fun RegisterScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Text(
-                text = "🌿",
+                text = stringResource(Res.string.app_leaf_icon),
                 style = MaterialTheme.typography.displayMedium,
                 modifier = Modifier.padding(16.dp),
                 textAlign = TextAlign.Center
@@ -107,13 +122,13 @@ fun RegisterScreen(
         }
 
         Text(
-            text = "Create Account",
+            text = stringResource(Res.string.register_title),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary
         )
 
         Text(
-            text = "Join our organic marketplace",
+            text = stringResource(Res.string.register_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
@@ -126,8 +141,8 @@ fun RegisterScreen(
                 name = it
                 nameError = null
             },
-            label = { Text("Full Name") },
-            placeholder = { Text("John Doe") },
+            label = { Text(stringResource(Res.string.label_full_name)) },
+            placeholder = { Text(stringResource(Res.string.register_name_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = !authState.isLoading,
@@ -145,8 +160,8 @@ fun RegisterScreen(
                 email = it
                 emailError = null
             },
-            label = { Text("Email") },
-            placeholder = { Text("your@email.com") },
+            label = { Text(stringResource(Res.string.label_email)) },
+            placeholder = { Text(stringResource(Res.string.register_email_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = !authState.isLoading,
@@ -168,15 +183,15 @@ fun RegisterScreen(
                     confirmPasswordError = null
                 }
             },
-            label = { Text("Password") },
-            placeholder = { Text("At least 6 characters") },
+            label = { Text(stringResource(Res.string.label_password)) },
+            placeholder = { Text(stringResource(Res.string.register_password_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             singleLine = true,
             enabled = !authState.isLoading,
             isError = passwordError != null,
             supportingText = passwordError?.let { { Text(it) } } ?: {
-                Text("Must contain letters and numbers", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(Res.string.register_password_hint), style = MaterialTheme.typography.bodySmall)
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             trailingIcon = {
@@ -184,7 +199,7 @@ fun RegisterScreen(
                     onClick = { passwordVisible = !passwordVisible },
                     enabled = !authState.isLoading
                 ) {
-                    Text(if (passwordVisible) "Hide" else "Show")
+                    Text(if (passwordVisible) stringResource(Res.string.toggle_hide) else stringResource(Res.string.toggle_show))
                 }
             }
         )
@@ -198,8 +213,8 @@ fun RegisterScreen(
                 confirmPassword = it
                 confirmPasswordError = null
             },
-            label = { Text("Confirm Password") },
-            placeholder = { Text("Re-enter your password") },
+            label = { Text(stringResource(Res.string.register_confirm_password)) },
+            placeholder = { Text(stringResource(Res.string.register_confirm_password_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             singleLine = true,
@@ -211,7 +226,7 @@ fun RegisterScreen(
                 if (confirmPassword.isNotEmpty() && confirmPassword == password) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Passwords match",
+                        contentDescription = stringResource(Res.string.register_password_match_desc),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 } else {
@@ -219,7 +234,7 @@ fun RegisterScreen(
                         onClick = { confirmPasswordVisible = !confirmPasswordVisible },
                         enabled = !authState.isLoading
                     ) {
-                        Text(if (confirmPasswordVisible) "Hide" else "Show")
+                        Text(if (confirmPasswordVisible) stringResource(Res.string.toggle_hide) else stringResource(Res.string.toggle_show))
                     }
                 }
             }
@@ -242,7 +257,7 @@ fun RegisterScreen(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "I agree to the Terms of Service and Privacy Policy",
+                    text = stringResource(Res.string.register_terms_agreement),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 if (termsError != null) {
@@ -281,7 +296,7 @@ fun RegisterScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Create Account", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(Res.string.button_sign_up), style = MaterialTheme.typography.labelLarge)
             }
         }
 
@@ -294,7 +309,7 @@ fun RegisterScreen(
         ) {
             HorizontalDivider(modifier = Modifier.weight(1f))
             Text(
-                text = " OR ",
+                text = stringResource(Res.string.divider_or),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -308,7 +323,7 @@ fun RegisterScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Already have an account? ",
+                text = stringResource(Res.string.register_already_account),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -318,7 +333,7 @@ fun RegisterScreen(
                 },
                 enabled = !authState.isLoading
             ) {
-                Text("Sign In")
+                Text(stringResource(Res.string.register_sign_in_link))
             }
         }
 
@@ -355,18 +370,18 @@ fun RegisterScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Success",
+                        contentDescription = stringResource(Res.string.register_success),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(32.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Account created successfully!",
+                        text = stringResource(Res.string.register_success),
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "Please check your email to verify your account.",
+                        text = stringResource(Res.string.register_verify_email),
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         style = MaterialTheme.typography.bodySmall
                     )

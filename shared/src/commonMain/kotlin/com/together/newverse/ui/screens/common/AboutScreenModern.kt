@@ -58,6 +58,9 @@ import com.together.newverse.ui.theme.LightCream
 import com.together.newverse.ui.theme.OrganicBeige
 import com.together.newverse.ui.theme.SuccessGreen
 import com.together.newverse.ui.theme.White
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun AboutScreenModern(
@@ -145,14 +148,14 @@ private fun HeroSection() {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "BODENSCHÄTZE",
+                text = stringResource(Res.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = FabGreen
             )
 
             Text(
-                text = "Bio • Regional • Frisch",
+                text = stringResource(Res.string.app_tagline_full),
                 style = MaterialTheme.typography.bodyLarge,
                 color = Gray600,
                 textAlign = TextAlign.Center
@@ -165,7 +168,7 @@ private fun HeroSection() {
                 color = SuccessGreen.copy(alpha = 0.1f)
             ) {
                 Text(
-                    text = "Seit 2020",
+                    text = stringResource(Res.string.app_established),
                     style = MaterialTheme.typography.labelMedium,
                     color = SuccessGreen,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
@@ -208,7 +211,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                 }
 
                 Text(
-                    text = "Kontakt",
+                    text = stringResource(Res.string.about_contact_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = DarkGreen
@@ -230,7 +233,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                         fontWeight = FontWeight.Medium
                     )
                 ) {
-                    append("0172 - 46 23 741")
+                    append(stringResource(Res.string.about_phone))
                 }
                 pop()
             }
@@ -276,7 +279,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                         fontWeight = FontWeight.Medium
                     )
                 ) {
-                    append("bodenschaetze@posteo.de")
+                    append(stringResource(Res.string.about_email))
                 }
                 pop()
             }
@@ -312,7 +315,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
             // Location
             ContactRow(
                 icon = Icons.Default.LocationOn,
-                text = "Ökomarkt im Hansaviertel",
+                text = stringResource(Res.string.about_location),
                 iconColor = FabGreen
             )
         }
@@ -352,7 +355,7 @@ private fun LegalInfoCard() {
                 }
 
                 Text(
-                    text = "Impressum",
+                    text = stringResource(Res.string.about_impressum_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = DarkGreen
@@ -362,22 +365,22 @@ private fun LegalInfoCard() {
             Spacer(modifier = Modifier.height(16.dp))
 
             InfoSection(
-                title = "Inhaber",
-                content = "Eric Dehn"
+                title = stringResource(Res.string.about_impressum_owner_label),
+                content = stringResource(Res.string.about_impressum_owner_name)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             InfoSection(
-                title = "Anschrift",
-                content = "Neue Gartenstraße\n15517 Fürstenwalde / Spree"
+                title = stringResource(Res.string.about_impressum_address_label),
+                content = stringResource(Res.string.about_impressum_address)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             InfoSection(
-                title = "Vertreten durch",
-                content = "Eric Dehn"
+                title = stringResource(Res.string.about_impressum_represented_label),
+                content = stringResource(Res.string.about_impressum_represented_name)
             )
         }
     }
@@ -416,7 +419,7 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                 }
 
                 Text(
-                    text = "Datenschutz",
+                    text = stringResource(Res.string.about_privacy_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = DarkGreen
@@ -426,7 +429,7 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Wir nehmen den Schutz aller persönlichen Daten sehr ernst.",
+                text = stringResource(Res.string.about_privacy_intro),
                 style = MaterialTheme.typography.bodyLarge,
                 color = Gray700,
                 fontWeight = FontWeight.Medium
@@ -435,7 +438,7 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Alle personenbezogenen Informationen werden vertraulich und gemäß den geltenden Datenschutzbestimmungen behandelt. Ihre Daten werden ausschließlich zur Bestellabwicklung und Kommunikation verwendet.",
+                text = stringResource(Res.string.about_privacy_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Gray600,
                 lineHeight = 22.sp
@@ -456,7 +459,7 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                     )
                 )
             ) {
-                Text("Vollständige Datenschutzerklärung")
+                Text(stringResource(Res.string.about_privacy_button))
             }
         }
     }
@@ -488,7 +491,7 @@ private fun MissionCard() {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Unsere Mission",
+                text = stringResource(Res.string.about_mission_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = FabGreen,
@@ -498,7 +501,7 @@ private fun MissionCard() {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Wir bringen frische, biologische und regionale Lebensmittel direkt vom Feld zu Ihnen nach Hause. Für eine nachhaltige Zukunft und gesunde Ernährung.",
+                text = stringResource(Res.string.about_mission_text),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Gray700,
                 textAlign = TextAlign.Center,

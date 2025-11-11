@@ -10,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.preview.PreviewData
 import com.together.newverse.util.formatPrice
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun OrdersScreen() {
@@ -21,7 +24,7 @@ fun OrdersScreen() {
             .padding(16.dp)
     ) {
         Text(
-            text = "Manage Orders",
+            text = stringResource(Res.string.orders_title),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -64,11 +67,11 @@ private fun OrderCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Order #${orderId.take(8)}",
+                    text = stringResource(Res.string.format_order_id, orderId.take(8)),
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "${total.formatPrice()}€",
+                    text = stringResource(Res.string.format_price_euro, total.formatPrice()),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -80,14 +83,14 @@ private fun OrderCard(
             )
 
             Text(
-                text = "$itemCount items",
+                text = stringResource(Res.string.format_item_count, itemCount),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             if (message.isNotEmpty()) {
                 Text(
-                    text = "Note: $message",
+                    text = stringResource(Res.string.format_note, message),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -95,5 +98,4 @@ private fun OrderCard(
         }
     }
 }
-
 

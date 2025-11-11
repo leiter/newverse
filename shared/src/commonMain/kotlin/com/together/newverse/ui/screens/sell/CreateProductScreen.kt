@@ -5,6 +5,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,7 +23,7 @@ fun CreateProductScreen() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Create Product",
+            text = stringResource(Res.string.create_product_title),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -28,22 +31,22 @@ fun CreateProductScreen() {
         OutlinedTextField(
             value = productName,
             onValueChange = { productName = it },
-            label = { Text("Product Name") },
+            label = { Text(stringResource(Res.string.create_product_name)) },
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
             value = price,
             onValueChange = { price = it },
-            label = { Text("Price") },
+            label = { Text(stringResource(Res.string.label_price)) },
             modifier = Modifier.fillMaxWidth(),
-            prefix = { Text("$") }
+            prefix = { Text(stringResource(Res.string.create_product_price_prefix)) }
         )
 
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
-            label = { Text("Description") },
+            label = { Text(stringResource(Res.string.label_description)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 4
         )
@@ -54,16 +57,15 @@ fun CreateProductScreen() {
             onClick = { /* TODO: Save product */ },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Create Product")
+            Text(stringResource(Res.string.create_product_button))
         }
 
         OutlinedButton(
             onClick = { /* TODO: Cancel */ },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Cancel")
+            Text(stringResource(Res.string.button_cancel))
         }
     }
 }
-
 

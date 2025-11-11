@@ -21,6 +21,9 @@ import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedNavigationAction
 import com.together.newverse.ui.state.UnifiedUserAction
 import com.together.newverse.ui.navigation.NavRoutes
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,11 +37,16 @@ fun LoginScreen(
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
 
+    val errorEmailRequired = stringResource(Res.string.error_email_required)
+    val errorEmailInvalid = stringResource(Res.string.error_email_invalid)
+    val errorPasswordRequired = stringResource(Res.string.error_password_required)
+    val errorPasswordLength = stringResource(Res.string.error_password_length)
+
     // Validate email format
     fun validateEmail(): Boolean {
         emailError = when {
-            email.isBlank() -> "Email is required"
-            !email.contains("@") -> "Invalid email format"
+            email.isBlank() -> errorEmailRequired
+            !email.contains("@") -> errorEmailInvalid
             else -> null
         }
         return emailError == null
@@ -47,8 +55,8 @@ fun LoginScreen(
     // Validate password
     fun validatePassword(): Boolean {
         passwordError = when {
-            password.isBlank() -> "Password is required"
-            password.length < 6 -> "Password must be at least 6 characters"
+            password.isBlank() -> errorPasswordRequired
+            password.length < 6 -> errorPasswordLength
             else -> null
         }
         return passwordError == null
@@ -68,7 +76,7 @@ fun LoginScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Text(
-                text = "🌿",
+                text = stringResource(Res.string.app_leaf_icon),
                 style = MaterialTheme.typography.displayLarge,
                 modifier = Modifier.padding(16.dp),
                 textAlign = TextAlign.Center
@@ -76,13 +84,13 @@ fun LoginScreen(
         }
 
         Text(
-            text = "Welcome Back",
+            text = stringResource(Res.string.login_title),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary
         )
 
         Text(
-            text = "Sign in to continue",
+            text = stringResource(Res.string.login_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
@@ -95,8 +103,8 @@ fun LoginScreen(
                 email = it
                 emailError = null
             },
-            label = { Text("Email") },
-            placeholder = { Text("your@email.com") },
+            label = { Text(stringResource(Res.string.label_email)) },
+            placeholder = { Text(stringResource(Res.string.login_email_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = !authState.isLoading,
@@ -114,8 +122,8 @@ fun LoginScreen(
                 password = it
                 passwordError = null
             },
-            label = { Text("Password") },
-            placeholder = { Text("Enter your password") },
+            label = { Text(stringResource(Res.string.label_password)) },
+            placeholder = { Text(stringResource(Res.string.login_password_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             singleLine = true,
@@ -128,7 +136,7 @@ fun LoginScreen(
                     onClick = { passwordVisible = !passwordVisible },
                     enabled = !authState.isLoading
                 ) {
-                    Text(if (passwordVisible) "Hide" else "Show")
+                    Text(if (passwordVisible) stringResource(Res.string.toggle_hide) else stringResource(Res.string.toggle_show))
                 }
             }
         )
@@ -143,7 +151,7 @@ fun LoginScreen(
                 .padding(top = 8.dp),
             enabled = !authState.isLoading
         ) {
-            Text("Forgot Password?")
+            Text(stringResource(Res.string.login_forgot_password))
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -169,7 +177,7 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Sign In", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(Res.string.button_sign_in), style = MaterialTheme.typography.labelLarge)
             }
         }
 
@@ -182,7 +190,7 @@ fun LoginScreen(
         ) {
             HorizontalDivider(modifier = Modifier.weight(1f))
             Text(
-                text = " OR ",
+                text = stringResource(Res.string.divider_or),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -206,12 +214,12 @@ fun LoginScreen(
         ) {
             // Google logo placeholder
             Text(
-                text = "G",
+                text = stringResource(Res.string.login_google_icon),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(end = 12.dp)
             )
-            Text("Sign in with Google", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(Res.string.login_sign_in_google), style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -231,12 +239,12 @@ fun LoginScreen(
         ) {
             // Twitter logo placeholder
             Text(
-                text = "𝕏",
+                text = stringResource(Res.string.login_twitter_icon),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(end = 12.dp)
             )
-            Text("Sign in with Twitter", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(Res.string.login_sign_in_twitter), style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -252,7 +260,7 @@ fun LoginScreen(
                 .height(56.dp),
             enabled = !authState.isLoading
         ) {
-            Text("Continue as Guest", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(Res.string.button_continue_guest), style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -262,7 +270,7 @@ fun LoginScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Don't have an account? ",
+                text = stringResource(Res.string.login_no_account),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -273,7 +281,7 @@ fun LoginScreen(
                 },
                 enabled = !authState.isLoading
             ) {
-                Text("Sign Up")
+                Text(stringResource(Res.string.login_sign_up_link))
             }
         }
 
@@ -305,7 +313,7 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Login successful! Redirecting...",
+                    text = stringResource(Res.string.login_success),
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.bodyMedium

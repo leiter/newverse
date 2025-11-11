@@ -64,7 +64,7 @@ fun NavGraph(
 
         composable(NavRoutes.Buy.Profile.route) {
             CustomerProfileScreenModern(
-                onBackClick = { navController.popBackStack() }
+                onAction = onAction
             )
         }
 

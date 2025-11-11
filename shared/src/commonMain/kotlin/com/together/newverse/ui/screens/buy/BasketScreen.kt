@@ -12,6 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.util.formatPrice
 import org.koin.compose.viewmodel.koinViewModel
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Basket Screen - Stateful composable with ViewModel
@@ -45,7 +48,7 @@ fun BasketContent(
             .padding(16.dp)
     ) {
         Text(
-            text = "Shopping Basket",
+            text = stringResource(Res.string.basket_title),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -64,13 +67,13 @@ fun BasketContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Your basket is empty",
+                        text = stringResource(Res.string.basket_empty_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Add items from the Products screen",
+                        text = stringResource(Res.string.basket_empty_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -107,11 +110,11 @@ fun BasketContent(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Total:",
+                text = stringResource(Res.string.label_total),
                 style = MaterialTheme.typography.titleLarge
             )
             Text(
-                text = "${state.total.formatPrice()}€",
+                text = stringResource(Res.string.format_price_euro, state.total.formatPrice()),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -124,7 +127,7 @@ fun BasketContent(
             modifier = Modifier.fillMaxWidth(),
             enabled = state.items.isNotEmpty() && !state.isCheckingOut
         ) {
-            Text(if (state.isCheckingOut) "Processing..." else "Proceed to Checkout")
+            Text(if (state.isCheckingOut) stringResource(Res.string.basket_checkout_processing) else stringResource(Res.string.basket_checkout_proceed))
         }
     }
 }
@@ -185,7 +188,7 @@ private fun BasketItemCard(
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(onClick = onRemove) {
-                    Text("Remove")
+                    Text(stringResource(Res.string.button_remove))
                 }
             }
         }
