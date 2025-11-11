@@ -170,7 +170,7 @@
     <string name="basket_empty_title">Ihr Warenkorb ist leer</string>
     <string name="basket_empty_description">Fügen Sie Artikel vom Produktbildschirm hinzu</string>
     <string name="basket_checkout_processing">Wird bearbeitet...</string>
-    <string name="basket_checkout_proceed">Zur Kasse gehen</string>
+    <string name="basket_checkout_proceed">Bestellen</string>
 
     <!-- ========================================= -->
     <!-- CUSTOMER PROFILE SCREEN (BUY MODULE) -->

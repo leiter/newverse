@@ -27,6 +27,7 @@ data class MainScreenState(
     val selectedArticle: Article? = null,
     val selectedQuantity: Double = 0.0,
     val cartItemCount: Int = 0,
+    val basketItems: List<OrderedProduct> = emptyList(),
     val error: String? = null
 )
 
@@ -38,6 +39,7 @@ sealed interface MainScreenAction {
     data class UpdateQuantity(val quantity: Double) : MainScreenAction
     data class UpdateQuantityText(val text: String) : MainScreenAction
     data object AddToCart : MainScreenAction
+    data object RemoveFromBasket : MainScreenAction
     data object Refresh : MainScreenAction
 }
 
@@ -96,6 +98,7 @@ class MainScreenViewModel(
             is MainScreenAction.UpdateQuantity -> updateQuantity(action.quantity)
             is MainScreenAction.UpdateQuantityText -> updateQuantityFromText(action.text)
             MainScreenAction.AddToCart -> addToCart()
+            MainScreenAction.RemoveFromBasket -> removeFromBasket()
             MainScreenAction.Refresh -> refresh()
         }
     }
@@ -238,11 +241,24 @@ class MainScreenViewModel(
 
     }
 
+    private fun removeFromBasket() {
+        val selectedArticle = _state.value.selectedArticle ?: return
+
+        viewModelScope.launch {
+            basketRepository.removeItem(selectedArticle.id)
+            // Reset quantity to 0 after removing
+            _state.value = _state.value.copy(selectedQuantity = 0.0)
+        }
+
+        println("🗑️ MainScreenViewModel.removeFromBasket: Removed ${selectedArticle.productName} from basket")
+    }
+
     private fun observeBasket() {
         viewModelScope.launch {
             basketRepository.observeBasket().collect { basketItems ->
                 _state.value = _state.value.copy(
-                    cartItemCount = basketItems.size
+                    cartItemCount = basketItems.size,
+                    basketItems = basketItems
                 )
             }
         }

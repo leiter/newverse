@@ -97,4 +97,27 @@ class MockOrderRepository : OrderRepository {
             Result.failure(e)
         }
     }
+
+    override suspend fun getOpenEditableOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?> {
+        return try {
+            delay(300)
+            // Get all orders
+            val orders = _orders.value.filter { order ->
+                placedOrderIds.values.contains(order.id)
+            }
+
+            // Filter for editable orders (more than 3 days before pickup)
+            val now = Clock.System.now().toEpochMilliseconds()
+            val editableOrders = orders.filter { order ->
+                val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
+                now < threeDaysBeforePickup
+            }
+
+            // Return the most recent editable order
+            val mostRecent = editableOrders.maxByOrNull { it.pickUpDate }
+            Result.success(mostRecent)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

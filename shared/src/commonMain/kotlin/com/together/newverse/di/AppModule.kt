@@ -15,7 +15,7 @@ import org.koin.dsl.module
 
 val appModule = module {
     // Unified ViewModel - Single source of truth
-    viewModel { UnifiedAppViewModel(get(), get(), get(), get()) }
+    viewModel { UnifiedAppViewModel(get(), get(), get(), get(), get()) }
 
     // Main Screen ViewModel
     viewModel { MainScreenViewModel(get(), get(), get()) }
@@ -25,7 +25,7 @@ val appModule = module {
 
     // ViewModels - Buy/Customer
     viewModel { ProductsViewModel(get()) }
-    viewModel { BasketViewModel(get()) }
+    viewModel { BasketViewModel(get(), get(), get(), get()) }
     viewModel { CustomerProfileViewModel() }
 
     // ViewModels - Sell/Seller

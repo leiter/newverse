@@ -90,6 +90,7 @@ private fun MainScreenModernContent(
     val selectedProduct = state.selectedArticle
     val quantity = state.selectedQuantity
     val cartItemCount = state.cartItemCount
+    val basketItems = state.basketItems
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -108,11 +109,14 @@ private fun MainScreenModernContent(
                     )
                 ) {
                     selectedProduct?.let { product ->
+                        val isInBasket = basketItems.any { it.productId == product.id }
                         HeroProductCard(
                             product = product,
                             quantity = quantity,
+                            isInBasket = isInBasket,
                             onQuantityChange = { onAction(MainScreenAction.UpdateQuantity(it)) },
-                            onAddToCart = { onAction(MainScreenAction.AddToCart) }
+                            onAddToCart = { onAction(MainScreenAction.AddToCart) },
+                            onRemoveFromBasket = { onAction(MainScreenAction.RemoveFromBasket) }
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -191,8 +195,10 @@ private fun MainScreenModernContent(
 private fun HeroProductCard(
     product: Article,
     quantity: Double,
+    isInBasket: Boolean,
     onQuantityChange: (Double) -> Unit,
     onAddToCart: () -> Unit,
+    onRemoveFromBasket: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Helper function to check if unit is weight-based
@@ -420,27 +426,52 @@ private fun HeroProductCard(
                         }
                     }
 
-                    // Add to Cart Button
-                    Button(
-                        onClick = onAddToCart,
-                        enabled = quantity > 0.0,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiary,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.height(44.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.ShoppingCart,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "In den Korb",
-                            style = MaterialTheme.typography.labelLarge
-                        )
+                    // Add to Cart or Remove Button
+                    if (isInBasket) {
+                        // Remove from Basket Button
+                        Button(
+                            onClick = onRemoveFromBasket,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.height(44.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Aus Korb",
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                    } else {
+                        // Add to Cart Button
+                        Button(
+                            onClick = onAddToCart,
+                            enabled = quantity > 0.0,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiary,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.height(44.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.ShoppingCart,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "In den Korb",
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
                     }
                 }
             }

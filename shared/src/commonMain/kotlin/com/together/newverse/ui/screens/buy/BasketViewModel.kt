@@ -2,12 +2,21 @@ package com.together.newverse.ui.screens.buy
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
+import com.together.newverse.domain.repository.OrderRepository
+import com.together.newverse.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Actions that can be performed on the Basket screen
@@ -18,6 +27,9 @@ sealed interface BasketAction {
     data class UpdateQuantity(val productId: String, val newQuantity: Double) : BasketAction
     data object ClearBasket : BasketAction
     data object Checkout : BasketAction
+    data class LoadOrder(val orderId: String, val date: String) : BasketAction
+    data object UpdateOrder : BasketAction
+    data object EnableEditing : BasketAction
 }
 
 /**
@@ -26,29 +38,87 @@ sealed interface BasketAction {
 data class BasketScreenState(
     val items: List<OrderedProduct> = emptyList(),
     val total: Double = 0.0,
-    val isCheckingOut: Boolean = false
+    val isCheckingOut: Boolean = false,
+    val orderSuccess: Boolean = false,
+    val orderError: String? = null,
+    // Order viewing/editing
+    val orderId: String? = null,
+    val orderDate: String? = null,
+    val pickupDate: Long? = null,
+    val createdDate: Long? = null,
+    val isEditMode: Boolean = false,
+    val canEdit: Boolean = false,
+    val isLoadingOrder: Boolean = false,
+    // Track if order has been modified
+    val originalOrderItems: List<OrderedProduct> = emptyList(),
+    val hasChanges: Boolean = false
 )
 
 /**
  * ViewModel for Shopping Basket screen
  */
 class BasketViewModel(
-    private val basketRepository: BasketRepository
+    private val basketRepository: BasketRepository,
+    private val orderRepository: OrderRepository,
+    private val authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BasketScreenState())
     val state: StateFlow<BasketScreenState> = _state.asStateFlow()
 
+    // Hardcoded seller ID - in production this should come from app configuration or first seller lookup
+    // This matches the universe project where there's typically a single seller
+    private val SELLER_ID = "" // Will be looked up from Firebase
+
     init {
         // Observe basket changes from repository
         viewModelScope.launch {
             basketRepository.observeBasket().collect { items ->
+                val hasChanges = checkIfBasketHasChanges(items, _state.value.originalOrderItems)
                 _state.value = _state.value.copy(
                     items = items,
-                    total = basketRepository.getTotal()
+                    total = basketRepository.getTotal(),
+                    hasChanges = hasChanges
                 )
             }
         }
+    }
+
+    /**
+     * Check if current basket items differ from original order items
+     */
+    private fun checkIfBasketHasChanges(currentItems: List<OrderedProduct>, originalItems: List<OrderedProduct>): Boolean {
+        // If there's no original order, no changes to track
+        if (originalItems.isEmpty() && currentItems.isEmpty()) return false
+        if (originalItems.isEmpty()) return true
+
+        // Different number of items = changed
+        if (currentItems.size != originalItems.size) return true
+
+        // Check if any item quantity or content changed
+        currentItems.forEach { currentItem ->
+            val originalItem = originalItems.find { it.productId == currentItem.productId }
+            if (originalItem == null) {
+                // New item added
+                return true
+            }
+            if (originalItem.amountCount != currentItem.amountCount) {
+                // Quantity changed
+                return true
+            }
+        }
+
+        // Check if any original items were removed
+        originalItems.forEach { originalItem ->
+            val currentItem = currentItems.find { it.productId == originalItem.productId }
+            if (currentItem == null) {
+                // Item removed
+                return true
+            }
+        }
+
+        return false
     }
 
     fun onAction(action: BasketAction) {
@@ -58,6 +128,9 @@ class BasketViewModel(
             is BasketAction.UpdateQuantity -> updateQuantity(action.productId, action.newQuantity)
             BasketAction.ClearBasket -> clearBasket()
             BasketAction.Checkout -> checkout()
+            is BasketAction.LoadOrder -> loadOrder(action.orderId, action.date)
+            BasketAction.UpdateOrder -> updateOrder()
+            BasketAction.EnableEditing -> enableEditing()
         }
     }
 
@@ -86,7 +159,354 @@ class BasketViewModel(
     }
 
     private fun checkout() {
-        // TODO: Implement checkout flow with OrderRepository
-        _state.value = _state.value.copy(isCheckingOut = true)
+        viewModelScope.launch {
+            println("🛒 BasketViewModel.checkout: START")
+            _state.value = _state.value.copy(
+                isCheckingOut = true,
+                orderSuccess = false,
+                orderError = null
+            )
+
+            try {
+                // Get current user ID
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId == null) {
+                    println("❌ BasketViewModel.checkout: User not authenticated")
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = "Bitte melden Sie sich an, um eine Bestellung aufzugeben"
+                    )
+                    return@launch
+                }
+
+                // Get basket items
+                val items = _state.value.items
+                if (items.isEmpty()) {
+                    println("❌ BasketViewModel.checkout: Basket is empty")
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = "Warenkorb ist leer"
+                    )
+                    return@launch
+                }
+
+                // Get buyer profile from repository
+                val buyerProfile = try {
+                    val profileResult = profileRepository.getBuyerProfile()
+                    profileResult.getOrNull() ?: BuyerProfile(
+                        id = currentUserId,
+                        displayName = "Kunde",
+                        emailAddress = "",
+                        anonymous = false
+                    )
+                } catch (e: Exception) {
+                    println("⚠️ BasketViewModel.checkout: Could not load buyer profile, using defaults - ${e.message}")
+                    BuyerProfile(
+                        id = currentUserId,
+                        displayName = "Kunde",
+                        emailAddress = "",
+                        anonymous = false
+                    )
+                }
+
+                println("🛒 BasketViewModel.checkout: Using buyer profile - name=${buyerProfile.displayName}, email=${buyerProfile.emailAddress}")
+
+                // Calculate pickup date (tomorrow at noon as default)
+                val tomorrow = Clock.System.now().toEpochMilliseconds() + (24 * 60 * 60 * 1000)
+
+                // Create order
+                val order = Order(
+                    buyerProfile = buyerProfile,
+                    createdDate = Clock.System.now().toEpochMilliseconds(),
+                    sellerId = SELLER_ID,
+                    marketId = "", // Default market
+                    pickUpDate = tomorrow,
+                    message = "",
+                    articles = items
+                )
+
+                println("🛒 BasketViewModel.checkout: Placing order with ${items.size} items, total=${_state.value.total}")
+
+                // Place order via repository
+                val result = orderRepository.placeOrder(order)
+
+                result.onSuccess { placedOrder ->
+                    println("✅ BasketViewModel.checkout: Order placed successfully - orderId=${placedOrder.id}")
+
+                    // Calculate date key for the order
+                    val dateKey = formatDateKey(placedOrder.pickUpDate)
+
+                    // Don't clear basket - instead load the order so user can see it
+                    loadOrder(placedOrder.id, dateKey)
+
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderSuccess = true
+                    )
+                }.onFailure { error ->
+                    println("❌ BasketViewModel.checkout: Order placement failed - ${error.message}")
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = error.message ?: "Bestellung fehlgeschlagen"
+                    )
+                }
+
+            } catch (e: Exception) {
+                println("❌ BasketViewModel.checkout: Exception - ${e.message}")
+                _state.value = _state.value.copy(
+                    isCheckingOut = false,
+                    orderError = e.message ?: "Ein Fehler ist aufgetreten"
+                )
+            }
+        }
+    }
+
+    /**
+     * Reset order state after displaying success/error
+     */
+    fun resetOrderState() {
+        _state.value = _state.value.copy(
+            orderSuccess = false,
+            orderError = null
+        )
+    }
+
+    /**
+     * Load an existing order for viewing/editing
+     */
+    private fun loadOrder(orderId: String, date: String) {
+        viewModelScope.launch {
+            println("🛒 BasketViewModel.loadOrder: START - orderId=$orderId, date=$date")
+            _state.value = _state.value.copy(
+                isLoadingOrder = true,
+                orderError = null
+            )
+
+            try {
+                val result = orderRepository.loadOrder(SELLER_ID, date, orderId)
+
+                result.onSuccess { order ->
+                    println("✅ BasketViewModel.loadOrder: Order loaded successfully")
+
+                    // Calculate if order can still be edited (3 days before pickup)
+                    val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
+                    val canEdit = Clock.System.now().toEpochMilliseconds() < threeDaysBeforePickup
+
+                    // Clear basket and add order items
+                    basketRepository.clearBasket()
+                    order.articles.forEach { item ->
+                        basketRepository.addItem(item)
+                    }
+
+                    _state.value = _state.value.copy(
+                        orderId = orderId,
+                        orderDate = date,
+                        pickupDate = order.pickUpDate,
+                        createdDate = order.createdDate,
+                        isEditMode = false,
+                        canEdit = canEdit,
+                        isLoadingOrder = false,
+                        items = order.articles,
+                        total = order.articles.sumOf { it.price * it.amountCount },
+                        originalOrderItems = order.articles,
+                        hasChanges = false
+                    )
+                }.onFailure { error ->
+                    println("❌ BasketViewModel.loadOrder: Failed - ${error.message}")
+                    _state.value = _state.value.copy(
+                        isLoadingOrder = false,
+                        orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
+                    )
+                }
+            } catch (e: Exception) {
+                println("❌ BasketViewModel.loadOrder: Exception - ${e.message}")
+                _state.value = _state.value.copy(
+                    isLoadingOrder = false,
+                    orderError = "Fehler beim Laden der Bestellung: ${e.message}"
+                )
+            }
+        }
+    }
+
+    /**
+     * Enable editing mode for the current order
+     */
+    private fun enableEditing() {
+        if (_state.value.canEdit) {
+            _state.value = _state.value.copy(isEditMode = true)
+            println("🛒 BasketViewModel.enableEditing: Edit mode enabled")
+        } else {
+            println("⚠️ BasketViewModel.enableEditing: Cannot edit - deadline passed")
+            _state.value = _state.value.copy(
+                orderError = "Bestellung kann nicht mehr bearbeitet werden (weniger als 3 Tage bis Abholung)"
+            )
+        }
+    }
+
+    /**
+     * Update an existing order with current basket items
+     */
+    private fun updateOrder() {
+        viewModelScope.launch {
+            println("🛒 BasketViewModel.updateOrder: START")
+            _state.value = _state.value.copy(
+                isCheckingOut = true,
+                orderError = null
+            )
+
+            try {
+                val orderId = _state.value.orderId
+                val pickupDate = _state.value.pickupDate
+                val createdDate = _state.value.createdDate
+
+                if (orderId == null || pickupDate == null || createdDate == null) {
+                    println("❌ BasketViewModel.updateOrder: Missing order information")
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = "Bestellinformationen fehlen"
+                    )
+                    return@launch
+                }
+
+                // Check if still within edit deadline
+                val threeDaysBeforePickup = pickupDate - (3 * 24 * 60 * 60 * 1000)
+                if (Clock.System.now().toEpochMilliseconds() >= threeDaysBeforePickup) {
+                    println("❌ BasketViewModel.updateOrder: Edit deadline passed")
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = "Bearbeitungsfrist abgelaufen (weniger als 3 Tage bis Abholung)"
+                    )
+                    return@launch
+                }
+
+                // Get current user
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId == null) {
+                    println("❌ BasketViewModel.updateOrder: User not authenticated")
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = "Benutzer nicht angemeldet"
+                    )
+                    return@launch
+                }
+
+                // Get basket items
+                val items = _state.value.items
+                if (items.isEmpty()) {
+                    println("❌ BasketViewModel.updateOrder: Basket is empty")
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = "Warenkorb ist leer"
+                    )
+                    return@launch
+                }
+
+                // Get buyer profile from repository
+                val buyerProfile = try {
+                    val profileResult = profileRepository.getBuyerProfile()
+                    profileResult.getOrNull() ?: BuyerProfile(
+                        id = currentUserId,
+                        displayName = "Kunde",
+                        emailAddress = "",
+                        anonymous = false
+                    )
+                } catch (e: Exception) {
+                    println("⚠️ BasketViewModel.updateOrder: Could not load buyer profile, using defaults - ${e.message}")
+                    BuyerProfile(
+                        id = currentUserId,
+                        displayName = "Kunde",
+                        emailAddress = "",
+                        anonymous = false
+                    )
+                }
+
+                println("🛒 BasketViewModel.updateOrder: Using buyer profile - name=${buyerProfile.displayName}, email=${buyerProfile.emailAddress}")
+
+                // Create updated order
+                val updatedOrder = Order(
+                    id = orderId,
+                    buyerProfile = buyerProfile,
+                    createdDate = createdDate,
+                    sellerId = SELLER_ID,
+                    marketId = "",
+                    pickUpDate = pickupDate,
+                    message = "",
+                    articles = items
+                )
+
+                println("🛒 BasketViewModel.updateOrder: Updating order with ${items.size} items, total=${_state.value.total}")
+
+                // Update order via repository
+                val result = orderRepository.updateOrder(updatedOrder)
+
+                result.onSuccess {
+                    println("✅ BasketViewModel.updateOrder: Order updated successfully")
+
+                    // Update original order items to current items after successful update
+                    val currentItems = _state.value.items
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderSuccess = true,
+                        isEditMode = false,
+                        originalOrderItems = currentItems,
+                        hasChanges = false
+                    )
+                }.onFailure { error ->
+                    println("❌ BasketViewModel.updateOrder: Update failed - ${error.message}")
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = error.message ?: "Aktualisierung fehlgeschlagen"
+                    )
+                }
+
+            } catch (e: Exception) {
+                println("❌ BasketViewModel.updateOrder: Exception - ${e.message}")
+                _state.value = _state.value.copy(
+                    isCheckingOut = false,
+                    orderError = e.message ?: "Ein Fehler ist aufgetreten"
+                )
+            }
+        }
+    }
+
+    /**
+     * Check if order can be edited based on pickup date
+     * Returns true if more than 3 days before pickup
+     */
+    fun canEditOrder(pickupDate: Long): Boolean {
+        val threeDaysBeforePickup = pickupDate - (3 * 24 * 60 * 60 * 1000)
+        return Clock.System.now().toEpochMilliseconds() < threeDaysBeforePickup
+    }
+
+    /**
+     * Format timestamp to readable date string
+     */
+    fun formatDate(timestamp: Long): String {
+        val instant = Instant.fromEpochMilliseconds(timestamp)
+        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val day = dateTime.dayOfMonth.toString().padStart(2, '0')
+        val month = dateTime.monthNumber.toString().padStart(2, '0')
+        val year = dateTime.year
+        return "$day.$month.$year"
+    }
+
+    /**
+     * Format timestamp to date key (yyyyMMdd) for Firebase paths
+     */
+    private fun formatDateKey(timestamp: Long): String {
+        val instant = Instant.fromEpochMilliseconds(timestamp)
+        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val year = dateTime.year
+        val month = dateTime.monthNumber.toString().padStart(2, '0')
+        val day = dateTime.dayOfMonth.toString().padStart(2, '0')
+        return "$year$month$day"
+    }
+
+    /**
+     * Get days until pickup
+     */
+    fun getDaysUntilPickup(pickupDate: Long): Long {
+        val diff = pickupDate - Clock.System.now().toEpochMilliseconds()
+        return diff / (24 * 60 * 60 * 1000)
     }
 }

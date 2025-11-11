@@ -301,7 +301,10 @@ data class BasketState(
     val totalAmount: Double = 0.0,
     val itemCount: Int = 0,
     val appliedDiscount: DiscountState? = null,
-    val isCheckingOut: Boolean = false
+    val isCheckingOut: Boolean = false,
+    // Current order info (if basket contains an existing order)
+    val currentOrderId: String? = null,
+    val currentOrderDate: String? = null
 )
 
 data class DiscountState(

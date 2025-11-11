@@ -94,43 +94,49 @@ fun AppScaffold(
         }
     }
 
-    // Get BasketRepository to observe cart count
+    // Get BasketRepository to observe cart count (actual basket items)
     val basketRepository = koinInject<BasketRepository>()
     val basketItems by basketRepository.observeBasket().collectAsState()
+    val basketItemCount = basketItems.size
 
     // Animation state for cart shake
     val shakeOffset = remember { Animatable(0f) }
-    var previousBasketSize by remember { mutableStateOf(basketItems.size) }
+    var previousBasketItems by remember { mutableStateOf(basketItems) }
 
-    // Trigger shake animation when basket size increases
-    LaunchedEffect(basketItems.size) {
-        if (basketItems.size > previousBasketSize) {
-            // Shake animation: rotate left-right-left-right
-            shakeOffset.animateTo(
-                targetValue = 15f,
-                animationSpec = tween(durationMillis = 50)
-            )
-            shakeOffset.animateTo(
-                targetValue = -15f,
-                animationSpec = tween(durationMillis = 100)
-            )
-            shakeOffset.animateTo(
-                targetValue = 10f,
-                animationSpec = tween(durationMillis = 100)
-            )
-            shakeOffset.animateTo(
-                targetValue = -10f,
-                animationSpec = tween(durationMillis = 100)
-            )
-            shakeOffset.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessHigh
+    // Trigger shake animation when basket changes (items added, removed, or quantities changed)
+    LaunchedEffect(basketItems) {
+        // Check if basket actually changed (not just initial load)
+        if (previousBasketItems.isNotEmpty() || basketItems.isNotEmpty()) {
+            val hasChanged = basketItems != previousBasketItems
+
+            if (hasChanged && previousBasketItems.isNotEmpty()) {
+                // Shake animation: rotate left-right-left-right
+                shakeOffset.animateTo(
+                    targetValue = 15f,
+                    animationSpec = tween(durationMillis = 50)
                 )
-            )
+                shakeOffset.animateTo(
+                    targetValue = -15f,
+                    animationSpec = tween(durationMillis = 100)
+                )
+                shakeOffset.animateTo(
+                    targetValue = 10f,
+                    animationSpec = tween(durationMillis = 100)
+                )
+                shakeOffset.animateTo(
+                    targetValue = -10f,
+                    animationSpec = tween(durationMillis = 100)
+                )
+                shakeOffset.animateTo(
+                    targetValue = 0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessHigh
+                    )
+                )
+            }
         }
-        previousBasketSize = basketItems.size
+        previousBasketItems = basketItems
     }
 
     // Check if app is still initializing

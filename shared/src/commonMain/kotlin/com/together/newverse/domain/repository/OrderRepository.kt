@@ -53,4 +53,13 @@ interface OrderRepository {
      * @return Order details
      */
     suspend fun loadOrder(sellerId: String, orderId: String, orderPath: String): Result<Order>
+
+    /**
+     * Get the most recent open/editable order for the current buyer
+     * An order is considered editable if it's more than 3 days before pickup
+     * @param sellerId The seller's ID
+     * @param placedOrderIds Map of date to order ID
+     * @return The most recent editable order, or null if none found
+     */
+    suspend fun getOpenEditableOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?>
 }

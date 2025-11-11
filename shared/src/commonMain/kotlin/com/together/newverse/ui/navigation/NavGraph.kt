@@ -59,7 +59,10 @@ fun NavGraph(
         }
 
         composable(NavRoutes.Buy.Basket.route) {
-            BasketScreen()
+            BasketScreen(
+                orderId = appState.common.basket.currentOrderId,
+                orderDate = appState.common.basket.currentOrderDate
+            )
         }
 
         composable(NavRoutes.Buy.Profile.route) {

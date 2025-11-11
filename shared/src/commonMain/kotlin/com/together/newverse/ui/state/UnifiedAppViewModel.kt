@@ -6,6 +6,7 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.navigation.NavRoutes
@@ -16,6 +17,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Unified ViewModel managing all app state
@@ -27,7 +31,8 @@ class UnifiedAppViewModel(
     private val articleRepository: ArticleRepository,
     private val orderRepository: OrderRepository,
     private val profileRepository: ProfileRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val basketRepository: BasketRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UnifiedAppState())
@@ -60,8 +65,89 @@ class UnifiedAppViewModel(
                         )
                     )
                 }
+
+                // Load open order after successful authentication
+                if (userId != null) {
+                    loadOpenOrderAfterAuth()
+                }
             }
         }
+    }
+
+    /**
+     * Load the most recent open/editable order after successful authentication
+     * This populates the cart badge with the order item count
+     */
+    private fun loadOpenOrderAfterAuth() {
+        viewModelScope.launch {
+            try {
+                println("🛒 UnifiedAppViewModel.loadOpenOrderAfterAuth: START")
+
+                // Get buyer profile to get placed order IDs
+                val profileResult = profileRepository.getBuyerProfile()
+                profileResult.onSuccess { buyerProfile ->
+                    val placedOrderIds = buyerProfile.placedOrderIds
+
+                    if (placedOrderIds.isEmpty()) {
+                        println("🛒 UnifiedAppViewModel.loadOpenOrderAfterAuth: No placed orders found")
+                        return@launch
+                    }
+
+                    println("🛒 UnifiedAppViewModel.loadOpenOrderAfterAuth: Found ${placedOrderIds.size} placed orders")
+
+                    // Get the most recent editable order
+                    val sellerId = "" // Using empty seller ID for now
+                    val orderResult = orderRepository.getOpenEditableOrder(sellerId, placedOrderIds)
+
+                    orderResult.onSuccess { order ->
+                        if (order != null) {
+                            println("✅ UnifiedAppViewModel.loadOpenOrderAfterAuth: Loaded editable order - orderId=${order.id}, ${order.articles.size} items")
+
+                            // Clear basket and add order items to BasketRepository
+                            basketRepository.clearBasket()
+                            order.articles.forEach { item ->
+                                basketRepository.addItem(item)
+                            }
+
+                            // Update state to store order info for later retrieval
+                            _state.update { current ->
+                                current.copy(
+                                    common = current.common.copy(
+                                        basket = current.common.basket.copy(
+                                            currentOrderId = order.id,
+                                            currentOrderDate = formatDateKey(order.pickUpDate)
+                                        )
+                                    )
+                                )
+                            }
+
+                            val itemCount = order.articles.size
+                            println("✅ UnifiedAppViewModel.loadOpenOrderAfterAuth: Cart badge updated with $itemCount items")
+                        } else {
+                            println("🛒 UnifiedAppViewModel.loadOpenOrderAfterAuth: No editable orders found")
+                        }
+                    }.onFailure { error ->
+                        println("❌ UnifiedAppViewModel.loadOpenOrderAfterAuth: Failed to load order - ${error.message}")
+                    }
+                }.onFailure { error ->
+                    println("❌ UnifiedAppViewModel.loadOpenOrderAfterAuth: Failed to load buyer profile - ${error.message}")
+                }
+            } catch (e: Exception) {
+                println("❌ UnifiedAppViewModel.loadOpenOrderAfterAuth: Exception - ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Format timestamp to date key (yyyyMMdd) for Firebase paths
+     */
+    private fun formatDateKey(timestamp: Long): String {
+        val instant = Instant.fromEpochMilliseconds(timestamp)
+        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val year = dateTime.year
+        val month = dateTime.monthNumber.toString().padStart(2, '0')
+        val day = dateTime.dayOfMonth.toString().padStart(2, '0')
+        return "$year$month$day"
     }
 
     // ===== Public Action Handlers =====
