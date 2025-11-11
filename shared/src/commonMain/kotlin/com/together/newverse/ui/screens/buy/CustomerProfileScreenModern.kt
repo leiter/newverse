@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
@@ -47,6 +48,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -98,6 +100,7 @@ fun CustomerProfileScreenModern(
     var notificationsEnabled by remember { mutableStateOf(true) }
     var newsletterEnabled by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
+    var isEditingPersonalInfo by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
@@ -159,10 +162,24 @@ fun CustomerProfileScreenModern(
                         displayName = displayName,
                         email = email,
                         phone = phone,
-                        isEditing = isEditing,
+                        isEditing = isEditingPersonalInfo,
                         onDisplayNameChange = { displayName = it },
                         onEmailChange = { email = it },
-                        onPhoneChange = { phone = it }
+                        onPhoneChange = { phone = it },
+                        onEditClick = { isEditingPersonalInfo = true },
+                        onSaveClick = {
+                            // TODO: Save the changes
+                            isEditingPersonalInfo = false
+                        },
+                        onCancelClick = {
+                            // Restore original values
+                            profile?.let {
+                                displayName = it.displayName
+                                email = it.emailAddress
+                                phone = it.telephoneNumber
+                            }
+                            isEditingPersonalInfo = false
+                        }
                     )
 
                     // Delivery Preferences Card
@@ -345,7 +362,10 @@ private fun PersonalInfoCard(
     isEditing: Boolean,
     onDisplayNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
-    onPhoneChange: (String) -> Unit
+    onPhoneChange: (String) -> Unit,
+    onEditClick: () -> Unit,
+    onSaveClick: () -> Unit,
+    onCancelClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -358,11 +378,31 @@ private fun PersonalInfoCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            SectionHeader(
-                icon = Icons.Default.Person,
-                title = stringResource(Res.string.section_personal_info),
-                iconColor = MaterialTheme.colorScheme.primary
-            )
+            // Section Header with Edit Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SectionHeader(
+                    icon = Icons.Default.Person,
+                    title = stringResource(Res.string.section_personal_info),
+                    iconColor = MaterialTheme.colorScheme.primary
+                )
+
+                if (!isEditing) {
+                    IconButton(
+                        onClick = onEditClick,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Bearbeiten",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -398,6 +438,42 @@ private fun PersonalInfoCard(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 isValid = phone.length >= 10
             )
+
+            // Save and Cancel Buttons (only show when editing)
+            if (isEditing) {
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onCancelClick,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Text(stringResource(Res.string.button_cancel))
+                    }
+
+                    Button(
+                        onClick = onSaveClick,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(Res.string.button_save))
+                    }
+                }
+            }
         }
     }
 }

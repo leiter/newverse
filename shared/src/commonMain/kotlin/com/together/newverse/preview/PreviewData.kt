@@ -262,4 +262,38 @@ object PreviewData {
             quantity = 1.0
         )
     )
+
+    // Mock MainScreenState for previews
+    val sampleMainScreenState = com.together.newverse.ui.MainScreenState(
+        isLoading = false,
+        articles = sampleArticles,
+        selectedArticle = sampleArticles.firstOrNull(),
+        selectedQuantity = 2.0,
+        cartItemCount = 3,
+        basketItems = sampleOrderedProducts,
+        favouriteArticles = listOf("0", "1", "5"), // IDs of favourite articles
+        error = null
+    )
+
+    val sampleMainScreenStateEmpty = com.together.newverse.ui.MainScreenState(
+        isLoading = false,
+        articles = emptyList(),
+        selectedArticle = null,
+        selectedQuantity = 0.0,
+        cartItemCount = 0,
+        basketItems = emptyList(),
+        favouriteArticles = emptyList(),
+        error = null
+    )
+
+    val sampleMainScreenStateLoading = com.together.newverse.ui.MainScreenState(
+        isLoading = true,
+        articles = emptyList(),
+        selectedArticle = null,
+        selectedQuantity = 0.0,
+        cartItemCount = 0,
+        basketItems = emptyList(),
+        favouriteArticles = emptyList(),
+        error = null
+    )
 }

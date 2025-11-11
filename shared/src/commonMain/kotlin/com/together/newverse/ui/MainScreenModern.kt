@@ -44,7 +44,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,17 +66,15 @@ import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.place_holder_landscape
 import org.jetbrains.compose.resources.painterResource
-import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun MainScreenModern(
-    viewModel: MainScreenViewModel = koinViewModel(),
+    state: MainScreenState,
+    onAction: (MainScreenAction) -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
-
     MainScreenModernContent(
         state = state,
-        onAction = viewModel::onAction,
+        onAction = onAction,
     )
 }
 
@@ -90,7 +87,6 @@ private fun MainScreenModernContent(
     val products = state.articles
     val selectedProduct = state.selectedArticle
     val quantity = state.selectedQuantity
-    val cartItemCount = state.cartItemCount
     val basketItems = state.basketItems
 
     Surface(

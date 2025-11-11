@@ -19,7 +19,32 @@ import com.together.newverse.ui.theme.NewverseTheme
 @Composable
 fun MainScreenPreview() {
     NewverseTheme {
-        MainScreenModern()
+        MainScreenModern(
+            state = PreviewData.sampleMainScreenState,
+            onAction = {}
+        )
+    }
+}
+
+@Preview(name = "Main Screen - Loading", showBackground = true)
+@Composable
+fun MainScreenLoadingPreview() {
+    NewverseTheme {
+        MainScreenModern(
+            state = PreviewData.sampleMainScreenStateLoading,
+            onAction = {}
+        )
+    }
+}
+
+@Preview(name = "Main Screen - Empty", showBackground = true)
+@Composable
+fun MainScreenEmptyPreview() {
+    NewverseTheme {
+        MainScreenModern(
+            state = PreviewData.sampleMainScreenStateEmpty,
+            onAction = {}
+        )
     }
 }
 

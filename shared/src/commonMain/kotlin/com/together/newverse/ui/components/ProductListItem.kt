@@ -1,6 +1,5 @@
 package com.together.newverse.ui.components
 
-// Removed hard-coded color import - will use theme colors instead
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,7 +26,6 @@ import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.place_holder_landscape
-import newverse.shared.generated.resources.place_holder_portrait
 import org.jetbrains.compose.resources.painterResource
 
 @Composable

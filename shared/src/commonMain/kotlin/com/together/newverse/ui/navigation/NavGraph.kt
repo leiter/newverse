@@ -1,15 +1,19 @@
 package com.together.newverse.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.together.newverse.ui.MainScreenModern
+import com.together.newverse.ui.MainScreenViewModel
 import com.together.newverse.ui.screens.buy.*
 import com.together.newverse.ui.screens.common.*
 import com.together.newverse.ui.screens.sell.*
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedAppState
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Navigation Graph for Newverse App
@@ -29,7 +33,13 @@ fun NavGraph(
     ) {
         // Home/Main Screen
         composable(NavRoutes.Home.route) {
-            MainScreenModern()
+            val viewModel: MainScreenViewModel = koinViewModel()
+            val mainScreenState by viewModel.state.collectAsState()
+
+            MainScreenModern(
+                state = mainScreenState,
+                onAction = viewModel::onAction
+            )
         }
 
         // Common Screens
