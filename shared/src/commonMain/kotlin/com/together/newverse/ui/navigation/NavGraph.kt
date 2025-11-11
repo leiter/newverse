@@ -94,7 +94,7 @@ fun NavGraph(
 
         composable(NavRoutes.Buy.Profile.route) {
             CustomerProfileScreenModern(
-                appState = appState,
+                state = appState.screens.customerProfile,
                 onAction = onAction,
                 onNavigateToOrderHistory = {
                     navController.navigate(NavRoutes.Buy.OrderHistory.route)

@@ -60,7 +60,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -83,14 +82,14 @@ import org.jetbrains.compose.resources.stringResource
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerProfileScreenModern(
-    appState: com.together.newverse.ui.state.UnifiedAppState,
-    onAction: (UnifiedAppAction) -> Unit = {},
+    state: com.together.newverse.ui.state.CustomerProfileScreenState,
+    onAction: (UnifiedAppAction) -> Unit,
     onNavigateToOrderHistory: () -> Unit = {}
 ) {
     val defaultMarket = stringResource(Res.string.default_market)
-    val profile = appState.screens.customerProfile.profile
-    val photoUrl = appState.screens.customerProfile.photoUrl
-    val isLoading = appState.screens.customerProfile.isLoading
+    val profile = state.profile
+    val photoUrl = state.photoUrl
+    val isLoading = state.isLoading
 
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }

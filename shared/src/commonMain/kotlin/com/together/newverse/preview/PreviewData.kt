@@ -296,4 +296,26 @@ object PreviewData {
         favouriteArticles = emptyList(),
         error = null
     )
+
+    // Mock CustomerProfileScreenState for previews
+    val sampleCustomerProfileState = com.together.newverse.ui.state.CustomerProfileScreenState(
+        isLoading = false,
+        error = null,
+        profile = sampleBuyerProfiles[0],
+        photoUrl = "https://i.pravatar.cc/300"
+    )
+
+    val sampleCustomerProfileStateLoading = com.together.newverse.ui.state.CustomerProfileScreenState(
+        isLoading = true,
+        error = null,
+        profile = null,
+        photoUrl = null
+    )
+
+    val sampleCustomerProfileStateEmpty = com.together.newverse.ui.state.CustomerProfileScreenState(
+        isLoading = false,
+        error = null,
+        profile = null,
+        photoUrl = null
+    )
 }

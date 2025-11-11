@@ -840,7 +840,7 @@ class UnifiedAppViewModel(
                     }
 
                     // Navigate to home after a short delay
-                    kotlinx.coroutines.delay(500)
+                    delay(500)
                     navigateTo(NavRoutes.Home)
                 }
                 .onFailure { error ->

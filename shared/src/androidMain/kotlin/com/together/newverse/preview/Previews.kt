@@ -182,8 +182,41 @@ fun BasketScreenCheckingOutPreview() {
 @Composable
 fun CustomerProfileScreenPreview() {
     NewverseTheme {
-        // Preview disabled - requires UnifiedAppState
-        // CustomerProfileScreenModern()
+        Surface {
+            com.together.newverse.ui.screens.buy.CustomerProfileScreenModern(
+                state = PreviewData.sampleCustomerProfileState,
+                onAction = {},
+                onNavigateToOrderHistory = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Customer Profile Screen - Loading", showBackground = true)
+@Composable
+fun CustomerProfileScreenLoadingPreview() {
+    NewverseTheme {
+        Surface {
+            com.together.newverse.ui.screens.buy.CustomerProfileScreenModern(
+                state = PreviewData.sampleCustomerProfileStateLoading,
+                onAction = {},
+                onNavigateToOrderHistory = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Customer Profile Screen - Empty", showBackground = true)
+@Composable
+fun CustomerProfileScreenEmptyPreview() {
+    NewverseTheme {
+        Surface {
+            com.together.newverse.ui.screens.buy.CustomerProfileScreenModern(
+                state = PreviewData.sampleCustomerProfileStateEmpty,
+                onAction = {},
+                onNavigateToOrderHistory = {}
+            )
+        }
     }
 }
 

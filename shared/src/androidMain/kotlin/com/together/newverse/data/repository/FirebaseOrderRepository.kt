@@ -5,7 +5,6 @@ import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.together.newverse.data.firebase.Database
-import com.together.newverse.data.firebase.awaitResult
 import com.together.newverse.data.firebase.getSingleValue
 import com.together.newverse.data.firebase.model.OrderDto
 import com.together.newverse.data.firebase.model.BuyerProfileDto
