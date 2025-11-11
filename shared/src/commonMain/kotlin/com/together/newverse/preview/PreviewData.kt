@@ -264,37 +264,37 @@ object PreviewData {
     )
 
     // Mock MainScreenState for previews
-    val sampleMainScreenState = com.together.newverse.ui.MainScreenState(
+    val sampleMainScreenState = com.together.newverse.ui.state.MainScreenState(
         isLoading = false,
+        error = null,
         articles = sampleArticles,
         selectedArticle = sampleArticles.firstOrNull(),
         selectedQuantity = 2.0,
         cartItemCount = 3,
         basketItems = sampleOrderedProducts,
-        favouriteArticles = listOf("0", "1", "5"), // IDs of favourite articles
-        error = null
+        favouriteArticles = listOf("0", "1", "5") // IDs of favourite articles
     )
 
-    val sampleMainScreenStateEmpty = com.together.newverse.ui.MainScreenState(
+    val sampleMainScreenStateEmpty = com.together.newverse.ui.state.MainScreenState(
         isLoading = false,
+        error = null,
         articles = emptyList(),
         selectedArticle = null,
         selectedQuantity = 0.0,
         cartItemCount = 0,
         basketItems = emptyList(),
-        favouriteArticles = emptyList(),
-        error = null
+        favouriteArticles = emptyList()
     )
 
-    val sampleMainScreenStateLoading = com.together.newverse.ui.MainScreenState(
+    val sampleMainScreenStateLoading = com.together.newverse.ui.state.MainScreenState(
         isLoading = true,
+        error = null,
         articles = emptyList(),
         selectedArticle = null,
         selectedQuantity = 0.0,
         cartItemCount = 0,
         basketItems = emptyList(),
-        favouriteArticles = emptyList(),
-        error = null
+        favouriteArticles = emptyList()
     )
 
     // Mock CustomerProfileScreenState for previews

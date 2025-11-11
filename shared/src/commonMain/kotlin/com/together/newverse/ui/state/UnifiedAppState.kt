@@ -115,7 +115,8 @@ data class ScreenStates(
     // Custom screens (don't fit the generic patterns)
     val auth: AuthScreenState = AuthScreenState(),
     val dashboard: DashboardScreenState = DashboardScreenState(),
-    val customerProfile: CustomerProfileScreenState = CustomerProfileScreenState()
+    val customerProfile: CustomerProfileScreenState = CustomerProfileScreenState(),
+    val mainScreen: MainScreenState = MainScreenState()
 )
 
 // Type aliases for specific screen states using generic states
@@ -494,6 +495,17 @@ data class CustomerProfileScreenState(
     override val error: ErrorState? = null,
     val profile: com.together.newverse.domain.model.BuyerProfile? = null,
     val photoUrl: String? = null
+) : ScreenState
+
+data class MainScreenState(
+    override val isLoading: Boolean = true,
+    override val error: ErrorState? = null,
+    val articles: List<Article> = emptyList(),
+    val selectedArticle: Article? = null,
+    val selectedQuantity: Double = 0.0,
+    val cartItemCount: Int = 0,
+    val basketItems: List<OrderedProduct> = emptyList(),
+    val favouriteArticles: List<String> = emptyList()
 ) : ScreenState
 
 // Feature states

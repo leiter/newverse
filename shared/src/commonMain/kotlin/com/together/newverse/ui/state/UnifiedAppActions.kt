@@ -94,6 +94,17 @@ sealed interface UnifiedFilterAction : UnifiedAppAction {
     data class LoadSavedFilter(val filterId: String) : UnifiedFilterAction
 }
 
+// ===== Main Screen Actions =====
+sealed interface UnifiedMainScreenAction : UnifiedAppAction {
+    data class SelectArticle(val article: Article) : UnifiedMainScreenAction
+    data class UpdateQuantity(val quantity: Double) : UnifiedMainScreenAction
+    data class UpdateQuantityText(val text: String) : UnifiedMainScreenAction
+    data object AddToCart : UnifiedMainScreenAction
+    data object RemoveFromBasket : UnifiedMainScreenAction
+    data class ToggleFavourite(val articleId: String) : UnifiedMainScreenAction
+    data object Refresh : UnifiedMainScreenAction
+}
+
 /**
  * Convenience builders for common actions
  */

@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -44,6 +46,18 @@ class UnifiedAppViewModel(
 
         // Observe auth state changes
         observeAuthState()
+
+        // Initialize MainScreen observers
+        observeMainScreenBasket()
+        observeMainScreenBuyerProfile()
+
+        // Load MainScreen articles after auth is ready
+        viewModelScope.launch {
+            authRepository.observeAuthState()
+                .filterNotNull()
+                .first()
+            loadMainScreenArticles()
+        }
     }
 
     private fun observeAuthState() {
@@ -183,6 +197,9 @@ class UnifiedAppViewModel(
 
             // Filter actions
             is UnifiedFilterAction -> handleFilterAction(action)
+
+            // Main Screen actions
+            is UnifiedMainScreenAction -> handleMainScreenAction(action)
         }
     }
 
@@ -279,6 +296,18 @@ class UnifiedAppViewModel(
             is UnifiedFilterAction.ClearFilters -> clearFilters()
             is UnifiedFilterAction.SaveFilter -> saveFilter(action.name)
             is UnifiedFilterAction.LoadSavedFilter -> loadSavedFilter(action.filterId)
+        }
+    }
+
+    private fun handleMainScreenAction(action: UnifiedMainScreenAction) {
+        when (action) {
+            is UnifiedMainScreenAction.SelectArticle -> selectMainScreenArticle(action.article)
+            is UnifiedMainScreenAction.UpdateQuantity -> updateMainScreenQuantity(action.quantity)
+            is UnifiedMainScreenAction.UpdateQuantityText -> updateMainScreenQuantityFromText(action.text)
+            UnifiedMainScreenAction.AddToCart -> addMainScreenToCart()
+            UnifiedMainScreenAction.RemoveFromBasket -> removeMainScreenFromBasket()
+            is UnifiedMainScreenAction.ToggleFavourite -> toggleMainScreenFavourite(action.articleId)
+            UnifiedMainScreenAction.Refresh -> refreshMainScreen()
         }
     }
 
@@ -1286,5 +1315,286 @@ class UnifiedAppViewModel(
 
     private fun loadSavedFilter(filterId: String) {
         // TODO: Implement load saved filter
+    }
+
+    // ===== Main Screen Implementation Methods =====
+
+    private fun selectMainScreenArticle(article: Article) {
+        // Check if this product is already in the basket
+        val basketItems = basketRepository.observeBasket().value
+        val existingItem = basketItems.find { it.productId == article.id }
+
+        // If it exists, pre-populate the quantity with the existing amount
+        val initialQuantity = existingItem?.amountCount ?: 0.0
+
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    mainScreen = current.screens.mainScreen.copy(
+                        selectedArticle = article,
+                        selectedQuantity = initialQuantity
+                    )
+                )
+            )
+        }
+
+        println("🎯 UnifiedAppViewModel.selectMainScreenArticle: Selected ${article.productName}, existing quantity: $initialQuantity")
+    }
+
+    private fun updateMainScreenQuantity(quantity: Double) {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    mainScreen = current.screens.mainScreen.copy(
+                        selectedQuantity = quantity.coerceAtLeast(0.0)
+                    )
+                )
+            )
+        }
+    }
+
+    private fun updateMainScreenQuantityFromText(text: String) {
+        val quantity = text.replace(",", ".").toDoubleOrNull() ?: 0.0
+        updateMainScreenQuantity(quantity)
+    }
+
+    private fun addMainScreenToCart() {
+        val selectedArticle = _state.value.screens.mainScreen.selectedArticle ?: return
+        val quantity = _state.value.screens.mainScreen.selectedQuantity
+
+        if (quantity <= 0.0) {
+            // If quantity is 0, remove from basket if it exists
+            viewModelScope.launch {
+                basketRepository.removeItem(selectedArticle.id)
+            }
+            return
+        }
+
+        // Check if item already exists in basket
+        val basketItems = basketRepository.observeBasket().value
+        val existingItem = basketItems.find { it.productId == selectedArticle.id }
+
+        if (existingItem != null) {
+            // Update existing item quantity
+            viewModelScope.launch {
+                basketRepository.updateQuantity(selectedArticle.id, quantity)
+            }
+            println("🛒 UnifiedAppViewModel.addMainScreenToCart: Updated ${selectedArticle.productName} to ${quantity} ${selectedArticle.unit}")
+        } else {
+            // Create new OrderedProduct from selected article and quantity
+            val orderedProduct = OrderedProduct(
+                id = "", // Will be generated when order is placed
+                productId = selectedArticle.id,
+                productName = selectedArticle.productName,
+                unit = selectedArticle.unit,
+                price = selectedArticle.price,
+                amount = quantity.toString(),
+                amountCount = quantity,
+                piecesCount = if (selectedArticle.unit.lowercase() in listOf("kg", "g")) {
+                    (quantity / selectedArticle.weightPerPiece).toInt()
+                } else {
+                    quantity.toInt()
+                }
+            )
+
+            // Add to basket via BasketRepository
+            viewModelScope.launch {
+                basketRepository.addItem(orderedProduct)
+            }
+            println("🛒 UnifiedAppViewModel.addMainScreenToCart: Added ${selectedArticle.productName} (${quantity} ${selectedArticle.unit}) to basket")
+        }
+    }
+
+    private fun removeMainScreenFromBasket() {
+        val selectedArticle = _state.value.screens.mainScreen.selectedArticle ?: return
+
+        viewModelScope.launch {
+            basketRepository.removeItem(selectedArticle.id)
+            // Reset quantity to 0 after removing
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        mainScreen = current.screens.mainScreen.copy(selectedQuantity = 0.0)
+                    )
+                )
+            }
+        }
+
+        println("🗑️ UnifiedAppViewModel.removeMainScreenFromBasket: Removed ${selectedArticle.productName} from basket")
+    }
+
+    private fun toggleMainScreenFavourite(articleId: String) {
+        viewModelScope.launch {
+            try {
+                println("⭐ UnifiedAppViewModel.toggleMainScreenFavourite: START - articleId=$articleId")
+
+                // Get current buyer profile
+                val profileResult = profileRepository.getBuyerProfile()
+                val currentProfile = profileResult.getOrNull()
+
+                if (currentProfile == null) {
+                    println("❌ UnifiedAppViewModel.toggleMainScreenFavourite: No buyer profile found")
+                    return@launch
+                }
+
+                // Check if article is already a favourite
+                val isFavourite = currentProfile.favouriteArticles.contains(articleId)
+                val updatedFavourites = if (isFavourite) {
+                    // Remove from favourites
+                    currentProfile.favouriteArticles.filter { it != articleId }
+                } else {
+                    // Add to favourites
+                    currentProfile.favouriteArticles + articleId
+                }
+
+                println("⭐ UnifiedAppViewModel.toggleMainScreenFavourite: ${if (isFavourite) "Removing" else "Adding"} article")
+
+                // Update profile with new favourites list
+                val updatedProfile = currentProfile.copy(favouriteArticles = updatedFavourites)
+                val saveResult = profileRepository.saveBuyerProfile(updatedProfile)
+
+                saveResult.onSuccess {
+                    println("✅ UnifiedAppViewModel.toggleMainScreenFavourite: Successfully updated favourites")
+                }.onFailure { error ->
+                    println("❌ UnifiedAppViewModel.toggleMainScreenFavourite: Failed to save - ${error.message}")
+                }
+
+            } catch (e: Exception) {
+                println("❌ UnifiedAppViewModel.toggleMainScreenFavourite: Exception - ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun refreshMainScreen() {
+        loadMainScreenArticles()
+    }
+
+    /**
+     * Load articles for MainScreen
+     */
+    private fun loadMainScreenArticles() {
+        viewModelScope.launch {
+            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: START")
+
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        mainScreen = current.screens.mainScreen.copy(
+                            isLoading = true,
+                            error = null
+                        )
+                    )
+                )
+            }
+            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Set loading state to true")
+
+            // Load articles for a specific seller or use empty string for current user
+            val sellerId = "" // Empty string for current authenticated user
+            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Calling articleRepository.getArticles(sellerId='$sellerId')")
+
+            articleRepository.getArticles(sellerId)
+                .catch { e ->
+                    println("❌ UnifiedAppViewModel.loadMainScreenArticles: ERROR - ${e.message}")
+                    e.printStackTrace()
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                mainScreen = current.screens.mainScreen.copy(
+                                    isLoading = false,
+                                    error = ErrorState(
+                                        message = e.message ?: "Failed to load articles",
+                                        type = ErrorType.NETWORK
+                                    )
+                                )
+                            )
+                        )
+                    }
+                }
+                .collect { article ->
+                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Received article event - mode=${article.mode}, id=${article.id}, name=${article.productName}")
+
+                    val currentArticles = _state.value.screens.mainScreen.articles.toMutableList()
+                    val beforeCount = currentArticles.size
+
+                    when (article.mode) {
+                        Article.MODE_ADDED -> {
+                            currentArticles.add(article)
+                            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: ADDED article '${article.productName}' (id=${article.id})")
+                        }
+                        Article.MODE_CHANGED -> {
+                            val index = currentArticles.indexOfFirst { it.id == article.id }
+                            if (index >= 0) {
+                                currentArticles[index] = article
+                                println("🎬 UnifiedAppViewModel.loadMainScreenArticles: CHANGED article '${article.productName}' at index $index")
+                            }
+                        }
+                        Article.MODE_REMOVED -> {
+                            currentArticles.removeAll { it.id == article.id }
+                            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: REMOVED article '${article.productName}' (id=${article.id})")
+                        }
+                        // MODE_MOVED typically doesn't need special handling
+                    }
+
+                    val afterCount = currentArticles.size
+                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Article count: $beforeCount → $afterCount")
+
+                    // Auto-select first article if none selected
+                    val selectedArticle = _state.value.screens.mainScreen.selectedArticle
+                        ?: currentArticles.firstOrNull()
+
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                mainScreen = current.screens.mainScreen.copy(
+                                    isLoading = false,
+                                    articles = currentArticles,
+                                    selectedArticle = selectedArticle,
+                                    error = null
+                                )
+                            )
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * Observe basket to update MainScreen cart item count
+     */
+    private fun observeMainScreenBasket() {
+        viewModelScope.launch {
+            basketRepository.observeBasket().collect { basketItems ->
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            mainScreen = current.screens.mainScreen.copy(
+                                cartItemCount = basketItems.size,
+                                basketItems = basketItems
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Observe buyer profile to update MainScreen favourite articles
+     */
+    private fun observeMainScreenBuyerProfile() {
+        viewModelScope.launch {
+            profileRepository.observeBuyerProfile().collect { profile ->
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            mainScreen = current.screens.mainScreen.copy(
+                                favouriteArticles = profile?.favouriteArticles ?: emptyList()
+                            )
+                        )
+                    )
+                }
+            }
+        }
     }
 }

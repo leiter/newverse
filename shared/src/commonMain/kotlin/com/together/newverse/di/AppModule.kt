@@ -1,9 +1,7 @@
 package com.together.newverse.di
 
-import com.together.newverse.ui.MainScreenViewModel
 import com.together.newverse.ui.screens.buy.BasketViewModel
 import com.together.newverse.ui.screens.buy.ProductsViewModel
-import com.together.newverse.ui.screens.common.LoginViewModel
 import com.together.newverse.ui.screens.sell.CreateProductViewModel
 import com.together.newverse.ui.screens.sell.OrdersViewModel
 import com.together.newverse.ui.screens.sell.OverviewViewModel
@@ -16,11 +14,9 @@ val appModule = module {
     // Unified ViewModel - Single source of truth
     viewModel { UnifiedAppViewModel(get(), get(), get(), get(), get()) }
 
-    // Main Screen ViewModel
-    viewModel { MainScreenViewModel(get(), get(), get(), get()) }
-
     // Legacy ViewModels - Keep for backwards compatibility during migration
-    viewModel { LoginViewModel() }
+    // LoginViewModel removed - now using UnifiedAppViewModel
+    // MainScreenViewModel removed - now using UnifiedAppViewModel
 
     // ViewModels - Buy/Customer
     viewModel { ProductsViewModel(get()) }

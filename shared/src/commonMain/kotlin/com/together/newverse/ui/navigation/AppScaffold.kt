@@ -105,36 +105,35 @@ fun AppScaffold(
 
     // Trigger shake animation when basket changes (items added, removed, or quantities changed)
     LaunchedEffect(basketItems) {
-        // Check if basket actually changed (not just initial load)
-        if (previousBasketItems.isNotEmpty() || basketItems.isNotEmpty()) {
-            val hasChanged = basketItems != previousBasketItems
+        val hasChanged = basketItems != previousBasketItems
+        val isInitialLoad = previousBasketItems.isEmpty() && basketItems.isEmpty()
 
-            if (hasChanged && previousBasketItems.isNotEmpty()) {
-                // Shake animation: rotate left-right-left-right
-                shakeOffset.animateTo(
-                    targetValue = 15f,
-                    animationSpec = tween(durationMillis = 50)
+        // Trigger animation if basket changed and it's not the initial empty load
+        if (hasChanged && !isInitialLoad) {
+            // Shake animation: rotate left-right-left-right
+            shakeOffset.animateTo(
+                targetValue = 15f,
+                animationSpec = tween(durationMillis = 50)
+            )
+            shakeOffset.animateTo(
+                targetValue = -15f,
+                animationSpec = tween(durationMillis = 100)
+            )
+            shakeOffset.animateTo(
+                targetValue = 10f,
+                animationSpec = tween(durationMillis = 100)
+            )
+            shakeOffset.animateTo(
+                targetValue = -10f,
+                animationSpec = tween(durationMillis = 100)
+            )
+            shakeOffset.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessHigh
                 )
-                shakeOffset.animateTo(
-                    targetValue = -15f,
-                    animationSpec = tween(durationMillis = 100)
-                )
-                shakeOffset.animateTo(
-                    targetValue = 10f,
-                    animationSpec = tween(durationMillis = 100)
-                )
-                shakeOffset.animateTo(
-                    targetValue = -10f,
-                    animationSpec = tween(durationMillis = 100)
-                )
-                shakeOffset.animateTo(
-                    targetValue = 0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessHigh
-                    )
-                )
-            }
+            )
         }
         previousBasketItems = basketItems
     }

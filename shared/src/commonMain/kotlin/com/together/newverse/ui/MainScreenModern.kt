@@ -68,8 +68,8 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun MainScreenModern(
-    state: MainScreenState,
-    onAction: (MainScreenAction) -> Unit
+    state: com.together.newverse.ui.state.MainScreenState,
+    onAction: (com.together.newverse.ui.state.UnifiedAppAction) -> Unit
 ) {
     MainScreenModernContent(
         state = state,
@@ -80,8 +80,8 @@ fun MainScreenModern(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainScreenModernContent(
-    state: MainScreenState,
-    onAction: (MainScreenAction) -> Unit,
+    state: com.together.newverse.ui.state.MainScreenState,
+    onAction: (com.together.newverse.ui.state.UnifiedAppAction) -> Unit,
 ) {
     val products = state.articles
     val selectedProduct = state.selectedArticle
@@ -112,19 +112,21 @@ private fun MainScreenModernContent(
                             quantity = quantity,
                             isInBasket = isInBasket,
                             isFavourite = isFavourite,
-                            onQuantityChange = { onAction(MainScreenAction.UpdateQuantity(it)) },
-                            onAddToCart = { onAction(MainScreenAction.AddToCart) },
-                            onRemoveFromBasket = { onAction(MainScreenAction.RemoveFromBasket) },
-                            onToggleFavourite = { onAction(MainScreenAction.ToggleFavourite(product.id)) }
+                            onQuantityChange = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.UpdateQuantity(it)) },
+                            onAddToCart = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.AddToCart) },
+                            onRemoveFromBasket = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.RemoveFromBasket) },
+                            onToggleFavourite = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.ToggleFavourite(product.id)) }
                         )
                     }
+
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    // Category Filter Chips
                     CategoryChips()
 
                 }
             }
 
-            // Category Filter Chips
 
             // Section Header
             item {
@@ -157,7 +159,7 @@ private fun MainScreenModernContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            state.error,
+                            state.error.message,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -176,7 +178,7 @@ private fun MainScreenModernContent(
                             product = product,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                onAction(MainScreenAction.SelectArticle(product))
+                                onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.SelectArticle(product))
                             }
                         )
                     }
@@ -478,7 +480,7 @@ private fun HeroProductCard(
 private fun CategoryChips(
     modifier: Modifier = Modifier,
 ) {
-    val categories = listOf("Alle", "Obst", "Gemüse", "Milch", "Eier", "Brot")
+    val categories = listOf("Alle", "Favouriten", "Obst", "Gemüse")
     var selectedCategory by remember { mutableStateOf("Alle") }
 
     androidx.compose.foundation.lazy.LazyRow(
