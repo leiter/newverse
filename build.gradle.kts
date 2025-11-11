@@ -12,6 +12,9 @@ plugins {
 
     // Google Services
     id("com.google.gms.google-services").version("4.4.2").apply(false)
+
+    // BuildKonfig for build configurations
+    id("com.codingfeline.buildkonfig").version("0.15.2").apply(false)
 }
 
 tasks.register("clean", Delete::class) {

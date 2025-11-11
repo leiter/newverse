@@ -1,34 +1,42 @@
 package com.together.newverse
 
+import com.together.newverse.shared.BuildKonfig
+
 /**
  * Build flavor configuration
- * Initialized at app startup with the current flavor
+ * Now uses BuildKonfig for compile-time flavor detection (no initialization needed)
  */
 object BuildFlavor {
-    private var _flavorName: String = "buy" // Default to buy
-
-    /**
-     * Initialize the flavor (call this from the Android app's onCreate)
-     */
-    fun initialize(flavor: String) {
-        _flavorName = flavor
-    }
-
     /**
      * Returns true if this is the "buy" flavor (customer/buyer app)
      */
     val isBuyFlavor: Boolean
-        get() = _flavorName == "buy"
+        get() = BuildKonfig.IS_BUY_APP
 
     /**
      * Returns true if this is the "sell" flavor (merchant/seller app)
      */
     val isSellFlavor: Boolean
-        get() = _flavorName == "sell"
+        get() = BuildKonfig.IS_SELL_APP
 
     /**
      * Returns the flavor name ("buy" or "sell")
      */
     val flavorName: String
-        get() = _flavorName
+        get() = BuildKonfig.USER_TYPE
+
+    /**
+     * Returns the app name for the current flavor
+     */
+    val appName: String
+        get() = BuildKonfig.APP_NAME
+
+    /**
+     * @deprecated No longer needed - BuildKonfig provides compile-time configuration
+     * Kept for backward compatibility but does nothing
+     */
+    @Deprecated("No longer needed - BuildKonfig provides compile-time configuration")
+    fun initialize(flavor: String) {
+        // No-op: BuildKonfig handles this at compile time
+    }
 }

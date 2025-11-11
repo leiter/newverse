@@ -1,11 +1,13 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type
 
 plugins {
     kotlin("multiplatform")
     id("com.android.library")
     id("org.jetbrains.compose")
     kotlin("plugin.compose")
+    id("com.codingfeline.buildkonfig")
 }
 
 kotlin {
@@ -107,5 +109,57 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    // Define product flavors to match the app module
+    flavorDimensions += "userType"
+
+    productFlavors {
+        create("buy") {
+            dimension = "userType"
+        }
+
+        create("sell") {
+            dimension = "userType"
+        }
+    }
+}
+
+// Detect the flavor from gradle tasks being executed
+val requestedTasks = gradle.startParameter.taskRequests.flatMap { it.args }
+val isBuyFlavor = requestedTasks.any { it.contains("Buy", ignoreCase = true) }
+val isSellFlavor = requestedTasks.any { it.contains("Sell", ignoreCase = true) }
+
+val currentFlavor = when {
+    isBuyFlavor -> "buy"
+    isSellFlavor -> "sell"
+    else -> "buy" // default to buy
+}
+
+buildkonfig {
+    packageName = "com.together.newverse.shared"
+
+    // Default configuration based on detected flavor
+    defaultConfigs {
+        when (currentFlavor) {
+            "buy" -> {
+                buildConfigField(Type.STRING, "APP_NAME", "Newverse Buy")
+                buildConfigField(Type.BOOLEAN, "IS_BUY_APP", "true")
+                buildConfigField(Type.BOOLEAN, "IS_SELL_APP", "false")
+                buildConfigField(Type.STRING, "USER_TYPE", "buy")
+            }
+            "sell" -> {
+                buildConfigField(Type.STRING, "APP_NAME", "Newverse Sell")
+                buildConfigField(Type.BOOLEAN, "IS_BUY_APP", "false")
+                buildConfigField(Type.BOOLEAN, "IS_SELL_APP", "true")
+                buildConfigField(Type.STRING, "USER_TYPE", "sell")
+            }
+            else -> {
+                buildConfigField(Type.STRING, "APP_NAME", "Newverse")
+                buildConfigField(Type.BOOLEAN, "IS_BUY_APP", "false")
+                buildConfigField(Type.BOOLEAN, "IS_SELL_APP", "false")
+                buildConfigField(Type.STRING, "USER_TYPE", "default")
+            }
+        }
     }
 }

@@ -31,8 +31,8 @@ sealed class NavRoutes(val route: String) {
     }
 
     companion object {
-        // Get all routes for navigation drawer
-        fun getAllRoutes(): List<NavRoutes> = listOf(
+        // Get all routes (unfiltered - for internal use)
+        private fun getAllRoutesUnfiltered(): List<NavRoutes> = listOf(
             Home,
             // Common
             Login,
@@ -49,6 +49,31 @@ sealed class NavRoutes(val route: String) {
             Sell.Profile,
             Sell.PickDay
         )
+
+        // Get all routes for navigation drawer (filtered by build flavor)
+        fun getAllRoutes(): List<NavRoutes> {
+            return getAllRoutesUnfiltered()
+        }
+
+        // Get routes filtered by current build flavor
+        fun getRoutesForCurrentFlavor(): List<NavRoutes> {
+            val allRoutes = getAllRoutesUnfiltered()
+
+            return when {
+                com.together.newverse.shared.BuildKonfig.IS_BUY_APP -> {
+                    // Buy flavor: Show Common and Customer Features only
+                    allRoutes.filter { route -> route !is Sell }
+                }
+                com.together.newverse.shared.BuildKonfig.IS_SELL_APP -> {
+                    // Sell flavor: Show Common and Seller Features only
+                    allRoutes.filter { route -> route !is Buy }
+                }
+                else -> {
+                    // Default/fallback: show all routes
+                    allRoutes
+                }
+            }
+        }
 
         // Get display name for route
         fun getDisplayName(route: NavRoutes): String = when (route) {
