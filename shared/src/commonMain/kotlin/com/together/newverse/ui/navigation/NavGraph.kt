@@ -57,9 +57,7 @@ fun NavGraph(
         }
 
         // Buy (Customer) Screens
-        composable(NavRoutes.Buy.Products.route) {
-            ProductsScreen()
-        }
+        // ProductsScreen removed - MainScreenModern is used instead
 
         composable(
             route = "buy/basket?orderId={orderId}&orderDate={orderDate}",

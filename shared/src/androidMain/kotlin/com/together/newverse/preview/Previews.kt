@@ -65,69 +65,7 @@ fun LoginScreenPreview() {
 }
 
 // Buy (Customer) Screens
-
-@Preview(name = "Products Screen - Loading", showBackground = true)
-@Composable
-fun ProductsScreenLoadingPreview() {
-    NewverseTheme {
-        Surface {
-            com.together.newverse.ui.screens.buy.ProductsContent(
-                state = com.together.newverse.ui.screens.buy.ProductsScreenState(
-                    isLoading = true
-                ),
-                onAction = {}
-            )
-        }
-    }
-}
-
-@Preview(name = "Products Screen - Success", showBackground = true)
-@Composable
-fun ProductsScreenSuccessPreview() {
-    NewverseTheme {
-        Surface {
-            com.together.newverse.ui.screens.buy.ProductsContent(
-                state = com.together.newverse.ui.screens.buy.ProductsScreenState(
-                    isLoading = false,
-                    articles = PreviewData.sampleArticles
-                ),
-                onAction = {}
-            )
-        }
-    }
-}
-
-@Preview(name = "Products Screen - Error", showBackground = true)
-@Composable
-fun ProductsScreenErrorPreview() {
-    NewverseTheme {
-        Surface {
-            com.together.newverse.ui.screens.buy.ProductsContent(
-                state = com.together.newverse.ui.screens.buy.ProductsScreenState(
-                    isLoading = false,
-                    error = "Failed to load products"
-                ),
-                onAction = {}
-            )
-        }
-    }
-}
-
-@Preview(name = "Products Screen - Empty", showBackground = true)
-@Composable
-fun ProductsScreenEmptyPreview() {
-    NewverseTheme {
-        Surface {
-            com.together.newverse.ui.screens.buy.ProductsContent(
-                state = com.together.newverse.ui.screens.buy.ProductsScreenState(
-                    isLoading = false,
-                    articles = emptyList()
-                ),
-                onAction = {}
-            )
-        }
-    }
-}
+// ProductsScreen previews removed - ProductsScreen was deprecated in favor of MainScreenModern
 
 @Preview(name = "Basket Screen - Empty", showBackground = true)
 @Composable

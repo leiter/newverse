@@ -1,5 +1,6 @@
 package com.together.newverse.data.repository
 
+import com.google.firebase.auth.FirebaseAuth
 import com.together.newverse.data.firebase.Database
 import com.together.newverse.data.firebase.getSingleValue
 import com.together.newverse.data.firebase.model.BuyerProfileDto
@@ -34,7 +35,7 @@ class FirebaseProfileRepository : ProfileRepository {
             val dto = snapshot.getValue(BuyerProfileDto::class.java)
 
             // Get current user from Firebase Auth
-            val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+            val currentUser = FirebaseAuth.getInstance().currentUser
             val userId = currentUser?.uid ?: ""
             val authPhotoUrl = currentUser?.photoUrl?.toString() ?: ""
             val authDisplayName = currentUser?.displayName ?: ""
@@ -47,7 +48,7 @@ class FirebaseProfileRepository : ProfileRepository {
                 val profile = dto.toDomain().copy(
                     id = userId,
                     // Use Firebase Auth photo if available, otherwise use what's in the database
-                    photoUrl = authPhotoUrl.ifEmpty { dto.photoUrl },
+                    photoUrl = dto.photoUrl.ifEmpty { authPhotoUrl },
                     // Use Firebase Auth displayName if profile doesn't have one
                     displayName = dto.displayName.ifEmpty { authDisplayName },
                     // Use Firebase Auth email if profile doesn't have one
