@@ -18,7 +18,7 @@ val appModule = module {
     viewModel { UnifiedAppViewModel(get(), get(), get(), get(), get()) }
 
     // Main Screen ViewModel
-    viewModel { MainScreenViewModel(get(), get(), get()) }
+    viewModel { MainScreenViewModel(get(), get(), get(), get()) }
 
     // Legacy ViewModels - Keep for backwards compatibility during migration
     viewModel { LoginViewModel() }
@@ -26,7 +26,7 @@ val appModule = module {
     // ViewModels - Buy/Customer
     viewModel { ProductsViewModel(get()) }
     viewModel { BasketViewModel(get(), get(), get(), get()) }
-    viewModel { CustomerProfileViewModel() }
+    viewModel { CustomerProfileViewModel(get(), get(), get()) }
 
     // ViewModels - Sell/Seller
     viewModel { OverviewViewModel(get()) }

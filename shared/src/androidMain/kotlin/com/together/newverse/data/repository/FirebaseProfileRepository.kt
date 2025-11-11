@@ -33,21 +33,37 @@ class FirebaseProfileRepository : ProfileRepository {
             val snapshot = Database.buyer().getSingleValue()
             val dto = snapshot.getValue(BuyerProfileDto::class.java)
 
-            // Get current user ID from Firebase Auth
-            val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+            // Get current user from Firebase Auth
+            val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+            val userId = currentUser?.uid ?: ""
+            val authPhotoUrl = currentUser?.photoUrl?.toString() ?: ""
+            val authDisplayName = currentUser?.displayName ?: ""
+            val authEmail = currentUser?.email ?: ""
+
+            println("🔥 FirebaseProfileRepository.getBuyerProfile: Auth user - photoUrl=$authPhotoUrl, displayName=$authDisplayName")
 
             if (dto != null) {
-                val profile = dto.toDomain().copy(id = userId)
+                // Merge Firebase Auth data with profile data
+                val profile = dto.toDomain().copy(
+                    id = userId,
+                    // Use Firebase Auth photo if available, otherwise use what's in the database
+                    photoUrl = authPhotoUrl.ifEmpty { dto.photoUrl },
+                    // Use Firebase Auth displayName if profile doesn't have one
+                    displayName = dto.displayName.ifEmpty { authDisplayName },
+                    // Use Firebase Auth email if profile doesn't have one
+                    emailAddress = dto.emailAddress.ifEmpty { authEmail }
+                )
                 _buyerProfile.value = profile
-                println("✅ FirebaseProfileRepository.getBuyerProfile: Success - ${profile.displayName}, ${profile.placedOrderIds.size} orders")
+                println("✅ FirebaseProfileRepository.getBuyerProfile: Success - ${profile.displayName}, photoUrl=${profile.photoUrl}, ${profile.placedOrderIds.size} orders")
                 Result.success(profile)
             } else {
-                println("⚠️ FirebaseProfileRepository.getBuyerProfile: No profile found, creating default")
-                // Create a default empty profile
+                println("⚠️ FirebaseProfileRepository.getBuyerProfile: No profile found, creating default from Auth")
+                // Create a default profile from Firebase Auth data
                 val defaultProfile = BuyerProfile(
                     id = userId,
-                    displayName = "",
-                    emailAddress = "",
+                    displayName = authDisplayName,
+                    emailAddress = authEmail,
+                    photoUrl = authPhotoUrl,
                     placedOrderIds = emptyMap()
                 )
                 Result.success(defaultProfile)

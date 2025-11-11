@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
@@ -110,13 +111,16 @@ private fun MainScreenModernContent(
                 ) {
                     selectedProduct?.let { product ->
                         val isInBasket = basketItems.any { it.productId == product.id }
+                        val isFavourite = state.favouriteArticles.contains(product.id)
                         HeroProductCard(
                             product = product,
                             quantity = quantity,
                             isInBasket = isInBasket,
+                            isFavourite = isFavourite,
                             onQuantityChange = { onAction(MainScreenAction.UpdateQuantity(it)) },
                             onAddToCart = { onAction(MainScreenAction.AddToCart) },
-                            onRemoveFromBasket = { onAction(MainScreenAction.RemoveFromBasket) }
+                            onRemoveFromBasket = { onAction(MainScreenAction.RemoveFromBasket) },
+                            onToggleFavourite = { onAction(MainScreenAction.ToggleFavourite(product.id)) }
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -196,9 +200,11 @@ private fun HeroProductCard(
     product: Article,
     quantity: Double,
     isInBasket: Boolean,
+    isFavourite: Boolean,
     onQuantityChange: (Double) -> Unit,
     onAddToCart: () -> Unit,
     onRemoveFromBasket: () -> Unit,
+    onToggleFavourite: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Helper function to check if unit is weight-based
@@ -291,23 +297,17 @@ private fun HeroProductCard(
                         }
                     }
 
-                    // Eco Badge
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.secondary,
+                    // Favourite Button
+                    IconButton(
+                        onClick = onToggleFavourite,
                         modifier = Modifier.size(48.dp)
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Icon(
-                                Icons.Default.Favorite,
-                                contentDescription = "Bio",
-                                tint = MaterialTheme.colorScheme.onSecondary,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = if (isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
+                            tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                 }
 

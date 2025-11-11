@@ -83,6 +83,50 @@ class BasketViewModel(
                 )
             }
         }
+
+        // Auto-load the most recent editable order if it exists
+        viewModelScope.launch {
+            loadMostRecentEditableOrder()
+        }
+    }
+
+    /**
+     * Load the most recent editable order for the current user
+     */
+    private suspend fun loadMostRecentEditableOrder() {
+        try {
+            println("🛒 BasketViewModel.loadMostRecentEditableOrder: START")
+
+            // Get buyer profile to access placedOrderIds
+            val profileResult = profileRepository.getBuyerProfile()
+            val buyerProfile = profileResult.getOrNull()
+
+            if (buyerProfile == null || buyerProfile.placedOrderIds.isEmpty()) {
+                println("🛒 BasketViewModel.loadMostRecentEditableOrder: No buyer profile or orders found")
+                return
+            }
+
+            println("🛒 BasketViewModel.loadMostRecentEditableOrder: Found ${buyerProfile.placedOrderIds.size} placed orders")
+
+            // Get the most recent editable order
+            val orderResult = orderRepository.getOpenEditableOrder(SELLER_ID, buyerProfile.placedOrderIds)
+            val order = orderResult.getOrNull()
+
+            if (order != null) {
+                println("🛒 BasketViewModel.loadMostRecentEditableOrder: Found editable order - orderId=${order.id}")
+
+                // Calculate date key
+                val dateKey = formatDateKey(order.pickUpDate)
+
+                // Load the order (this will populate the basket)
+                loadOrder(order.id, dateKey)
+            } else {
+                println("🛒 BasketViewModel.loadMostRecentEditableOrder: No editable orders found")
+            }
+        } catch (e: Exception) {
+            println("❌ BasketViewModel.loadMostRecentEditableOrder: Error - ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     /**
@@ -213,6 +257,22 @@ class BasketViewModel(
 
                 // Calculate pickup date (tomorrow at noon as default)
                 val tomorrow = Clock.System.now().toEpochMilliseconds() + (24 * 60 * 60 * 1000)
+                val dateKey = formatDateKey(tomorrow)
+
+                // Check if there's already an order for this date
+                val existingOrderId = buyerProfile.placedOrderIds[dateKey]
+                if (existingOrderId != null) {
+                    println("⚠️ BasketViewModel.checkout: Order already exists for date $dateKey - orderId=$existingOrderId")
+
+                    // Load the existing order instead of creating a new one
+                    loadOrder(existingOrderId, dateKey)
+
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = "Für dieses Datum existiert bereits eine Bestellung. Sie können diese bearbeiten."
+                    )
+                    return@launch
+                }
 
                 // Create order
                 val order = Order(

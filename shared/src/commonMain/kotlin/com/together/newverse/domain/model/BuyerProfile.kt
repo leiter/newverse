@@ -13,4 +13,5 @@ data class BuyerProfile(
     val defaultMarket: String = "",
     val defaultPickUpTime: String = "",
     val placedOrderIds: Map<String, String> = emptyMap(), // Date -> orderId
+    val favouriteArticles: List<String> = emptyList(), // List of article IDs marked as favourite
 )

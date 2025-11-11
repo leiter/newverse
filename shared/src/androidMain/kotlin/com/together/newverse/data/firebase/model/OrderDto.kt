@@ -66,6 +66,7 @@ data class BuyerProfileDto(
     val defaultMarket: String = "",
     val defaultTime: String = "", // Note: using "defaultTime" to match universe project
     val placedOrderIds: Map<String, String> = emptyMap(),
+    val favouriteArticles: List<String> = emptyList(),
 ) {
     fun toDomain(): BuyerProfile {
         return BuyerProfile(
@@ -76,7 +77,8 @@ data class BuyerProfileDto(
             anonymous = anonymous,
             defaultMarket = defaultMarket,
             defaultPickUpTime = defaultTime,
-            placedOrderIds = placedOrderIds
+            placedOrderIds = placedOrderIds,
+            favouriteArticles = favouriteArticles
         )
     }
 
@@ -90,7 +92,8 @@ data class BuyerProfileDto(
                 anonymous = profile.anonymous,
                 defaultMarket = profile.defaultMarket,
                 defaultTime = profile.defaultPickUpTime,
-                placedOrderIds = profile.placedOrderIds
+                placedOrderIds = profile.placedOrderIds,
+                favouriteArticles = profile.favouriteArticles
             )
         }
     }

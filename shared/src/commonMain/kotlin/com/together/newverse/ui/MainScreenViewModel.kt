@@ -10,6 +10,7 @@ import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
+import com.together.newverse.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +29,7 @@ data class MainScreenState(
     val selectedQuantity: Double = 0.0,
     val cartItemCount: Int = 0,
     val basketItems: List<OrderedProduct> = emptyList(),
+    val favouriteArticles: List<String> = emptyList(), // List of favourite article IDs
     val error: String? = null
 )
 
@@ -40,6 +42,7 @@ sealed interface MainScreenAction {
     data class UpdateQuantityText(val text: String) : MainScreenAction
     data object AddToCart : MainScreenAction
     data object RemoveFromBasket : MainScreenAction
+    data class ToggleFavourite(val articleId: String) : MainScreenAction
     data object Refresh : MainScreenAction
 }
 
@@ -49,7 +52,8 @@ sealed interface MainScreenAction {
 class MainScreenViewModel(
     private val articleRepository: ArticleRepository,
     private val authRepository: AuthRepository,
-    private val basketRepository: BasketRepository
+    private val basketRepository: BasketRepository,
+    private val profileRepository: ProfileRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MainScreenState())
@@ -61,6 +65,9 @@ class MainScreenViewModel(
 
         // Observe basket to update cart item count
         observeBasket()
+
+        // Observe buyer profile to update favourite articles
+        observeBuyerProfile()
     }
 
     /**
@@ -99,6 +106,7 @@ class MainScreenViewModel(
             is MainScreenAction.UpdateQuantityText -> updateQuantityFromText(action.text)
             MainScreenAction.AddToCart -> addToCart()
             MainScreenAction.RemoveFromBasket -> removeFromBasket()
+            is MainScreenAction.ToggleFavourite -> toggleFavourite(action.articleId)
             MainScreenAction.Refresh -> refresh()
         }
     }
@@ -260,6 +268,59 @@ class MainScreenViewModel(
                     cartItemCount = basketItems.size,
                     basketItems = basketItems
                 )
+            }
+        }
+    }
+
+    private fun observeBuyerProfile() {
+        viewModelScope.launch {
+            profileRepository.observeBuyerProfile().collect { profile ->
+                _state.value = _state.value.copy(
+                    favouriteArticles = profile?.favouriteArticles ?: emptyList()
+                )
+            }
+        }
+    }
+
+    private fun toggleFavourite(articleId: String) {
+        viewModelScope.launch {
+            try {
+                println("⭐ MainScreenViewModel.toggleFavourite: START - articleId=$articleId")
+
+                // Get current buyer profile
+                val profileResult = profileRepository.getBuyerProfile()
+                val currentProfile = profileResult.getOrNull()
+
+                if (currentProfile == null) {
+                    println("❌ MainScreenViewModel.toggleFavourite: No buyer profile found")
+                    return@launch
+                }
+
+                // Check if article is already a favourite
+                val isFavourite = currentProfile.favouriteArticles.contains(articleId)
+                val updatedFavourites = if (isFavourite) {
+                    // Remove from favourites
+                    currentProfile.favouriteArticles.filter { it != articleId }
+                } else {
+                    // Add to favourites
+                    currentProfile.favouriteArticles + articleId
+                }
+
+                println("⭐ MainScreenViewModel.toggleFavourite: ${if (isFavourite) "Removing" else "Adding"} article")
+
+                // Update profile with new favourites list
+                val updatedProfile = currentProfile.copy(favouriteArticles = updatedFavourites)
+                val saveResult = profileRepository.saveBuyerProfile(updatedProfile)
+
+                saveResult.onSuccess {
+                    println("✅ MainScreenViewModel.toggleFavourite: Successfully updated favourites")
+                }.onFailure { error ->
+                    println("❌ MainScreenViewModel.toggleFavourite: Failed to save - ${error.message}")
+                }
+
+            } catch (e: Exception) {
+                println("❌ MainScreenViewModel.toggleFavourite: Exception - ${e.message}")
+                e.printStackTrace()
             }
         }
     }

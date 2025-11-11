@@ -57,6 +57,8 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,9 +81,12 @@ import org.jetbrains.compose.resources.stringResource
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerProfileScreenModern(
-    onAction: (UnifiedAppAction) -> Unit = {}
+    onAction: (UnifiedAppAction) -> Unit = {},
+    viewModel: CustomerProfileViewModel = org.koin.compose.viewmodel.koinViewModel()
 ) {
     val defaultMarket = stringResource(Res.string.default_market)
+    val profile by viewModel.profile.collectAsState()
+    val photoUrl by viewModel.photoUrl.collectAsState()
 
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -94,6 +99,15 @@ fun CustomerProfileScreenModern(
     var showSaveDialog by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
+
+    // Update UI state when profile loads
+    LaunchedEffect(profile) {
+        profile?.let {
+            displayName = it.displayName
+            email = it.emailAddress
+            phone = it.telephoneNumber
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Surface(
@@ -128,6 +142,7 @@ fun CustomerProfileScreenModern(
                     ProfileHeaderCard(
                         displayName = displayName.ifEmpty { stringResource(Res.string.profile_new_customer) },
                         email = email.ifEmpty { stringResource(Res.string.profile_no_email) },
+                        photoUrl = photoUrl,
                         isVerified = email.isNotEmpty()
                     )
 
@@ -201,6 +216,7 @@ fun CustomerProfileScreenModern(
 private fun ProfileHeaderCard(
     displayName: String,
     email: String,
+    photoUrl: String?,
     isVerified: Boolean
 ) {
     Card(
@@ -241,14 +257,25 @@ private fun ProfileHeaderCard(
                         .size(100.dp)
                         .border(4.dp, MaterialTheme.colorScheme.surface, CircleShape)
                 ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiary,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp)
-                    )
+                    if (!photoUrl.isNullOrEmpty()) {
+                        // Use Coil AsyncImage to load profile picture
+                        coil3.compose.AsyncImage(
+                            model = photoUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        // Fallback to icon if no photo
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onTertiary,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
