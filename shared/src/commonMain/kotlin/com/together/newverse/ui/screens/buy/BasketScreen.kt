@@ -66,13 +66,12 @@ fun BasketContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = stringResource(Res.string.basket_title),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
+//        Text(
+//            text = stringResource(Res.string.basket_title),
+//            style = MaterialTheme.typography.headlineMedium,
+//            color = MaterialTheme.colorScheme.primary
+//        )
+//        Spacer(modifier = Modifier.height(16.dp))
 
         // Show order information if viewing an order
         if (state.orderId != null && state.pickupDate != null) {

@@ -284,9 +284,8 @@ fun AppScaffold(
                         }
                     },
                     actions = {
-                        // Show search and cart icons only on Home screen
+                        // Show search icon only on Home screen
                         if (currentRoute == NavRoutes.Home.route) {
-                            // Search Icon
                             IconButton(onClick = { /* TODO: Search action */ }) {
                                 Icon(
                                     imageVector = Icons.Default.Search,
@@ -295,11 +294,17 @@ fun AppScaffold(
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
+                        }
 
-                            // Shopping Cart with Badge
+                        // Show cart icon on Home and Basket screens
+                        if (currentRoute == NavRoutes.Home.route ||
+                            currentRoute.startsWith(NavRoutes.Buy.Basket.route)) {
                             Box(modifier = Modifier.padding(end = 8.dp)) {
                                 IconButton(onClick = {
-                                    navController.navigate(NavRoutes.Buy.Basket.route)
+                                    // Only navigate if not already on basket screen
+                                    if (!currentRoute.startsWith(NavRoutes.Buy.Basket.route)) {
+                                        navController.navigate(NavRoutes.Buy.Basket.route)
+                                    }
                                 }) {
                                     Icon(
                                         imageVector = Icons.Default.ShoppingCart,
