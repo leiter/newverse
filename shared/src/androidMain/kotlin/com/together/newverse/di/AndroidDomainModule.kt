@@ -8,6 +8,11 @@ import com.together.newverse.data.repository.FirebaseAuthRepository
 import com.together.newverse.data.repository.FirebaseOrderRepository
 import com.together.newverse.data.repository.FirebaseProfileRepository
 import com.together.newverse.data.repository.InMemoryBasketRepository
+import com.together.newverse.data.repository.PlatformArticleRepository
+import com.together.newverse.data.repository.PlatformAuthRepository
+import com.together.newverse.data.repository.PlatformOrderRepository
+import com.together.newverse.data.repository.PlatformProfileRepository
+import com.together.newverse.data.repository.ProfileRepositoryFactory
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
@@ -33,25 +38,44 @@ val androidDomainModule = module {
         // FeatureFlagConfig.configureForABTesting(50)    // 50/50 split
 
         // Default to production (Firebase) for safety
-        FeatureFlagConfig.configureForGitLiveTesting()
+        // Change this to test different configurations:
+        // FeatureFlagConfig.configureForProduction()     // Firebase only (stable)
+        // FeatureFlagConfig.configureForGitLiveTesting()  // GitLive only (testing)
+        // FeatureFlagConfig.configureForDevelopment()     // Mixed mode
+        FeatureFlagConfig.configureForProduction()
     }
 
-    // Auth Repository - Now uses factory to switch between implementations
+    // Auth Repository - Uses platform-specific implementation that handles switching
     single<AuthRepository> {
-        // Get repository based on feature flags
-        // This allows runtime switching between Firebase and GitLive
-        AuthRepositoryFactory.getAuthRepository()
+        // Platform-specific implementation that properly loads Firebase or GitLive
+        PlatformAuthRepository()
     }
 
     // Basket Repository - Using in-memory implementation
     single<BasketRepository> { InMemoryBasketRepository() }
 
-    // Article Repository - Using Firebase for production
-    single<ArticleRepository> { FirebaseArticleRepository() }
+    // Article Repository - Uses platform-specific implementation that handles switching
+    single<ArticleRepository> {
+        // Get auth repository (needed for GitLive implementation)
+        val authRepository = get<AuthRepository>()
+        // Platform-specific implementation that properly loads Firebase or GitLive
+        PlatformArticleRepository(authRepository)
+    }
 
-    // Order Repository - Using Firebase for production
-    single<OrderRepository> { FirebaseOrderRepository() }
+    // Order Repository - Uses platform-specific implementation that handles switching
+    single<OrderRepository> {
+        // Get required dependencies
+        val authRepository = get<AuthRepository>()
+        val profileRepository = get<ProfileRepository>()
+        // Platform-specific implementation that properly loads Firebase or GitLive
+        PlatformOrderRepository(authRepository, profileRepository)
+    }
 
-    // Profile Repository - Using Firebase for production
-    single<ProfileRepository> { FirebaseProfileRepository() }
+    // Profile Repository - Uses platform-specific implementation that handles switching
+    single<ProfileRepository> {
+        // Get auth repository first (needed for GitLive implementation)
+        val authRepository = get<AuthRepository>()
+        // Platform-specific implementation that properly loads Firebase or GitLive
+        PlatformProfileRepository(authRepository)
+    }
 }
