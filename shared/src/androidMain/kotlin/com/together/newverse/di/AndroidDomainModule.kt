@@ -40,9 +40,9 @@ val androidDomainModule = module {
         // Default to production (Firebase) for safety
         // Change this to test different configurations:
         // FeatureFlagConfig.configureForProduction()     // Firebase only (stable)
-        // FeatureFlagConfig.configureForGitLiveTesting()  // GitLive only (testing)
+         FeatureFlagConfig.configureForGitLiveTesting()  // GitLive only (testing)
         // FeatureFlagConfig.configureForDevelopment()     // Mixed mode
-        FeatureFlagConfig.configureForProduction()
+//        FeatureFlagConfig.configureForProduction()
     }
 
     // Auth Repository - Uses platform-specific implementation that handles switching
