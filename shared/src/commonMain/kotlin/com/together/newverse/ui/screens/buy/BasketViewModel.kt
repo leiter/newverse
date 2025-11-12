@@ -124,7 +124,7 @@ class BasketViewModel(
                 val result = orderRepository.loadOrder(SELLER_ID, orderDate, orderId)
                 result.onSuccess { order ->
                     val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
-                    val canEdit = kotlinx.datetime.Clock.System.now().toEpochMilliseconds() < threeDaysBeforePickup
+                    val canEdit = Clock.System.now().toEpochMilliseconds() < threeDaysBeforePickup
 
                     // Get current basket items from repository (may have been modified on MainScreen)
                     val currentBasketItems = basketRepository.observeBasket().value

@@ -713,7 +713,7 @@ private fun DateOption(
                 )
                 if (isSelected) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Check,
+                        imageVector = Icons.Default.Check,
                         contentDescription = "Ausgewählt",
                         tint = MaterialTheme.colorScheme.primary
                     )
