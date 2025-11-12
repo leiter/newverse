@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
 
 class MainActivity : ComponentActivity() {
@@ -40,8 +41,10 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            NewverseTheme {
-                AppScaffoldWithGoogleSignIn()
+            KoinContext {
+                NewverseTheme {
+                    AppScaffoldWithGoogleSignIn()
+                }
             }
         }
     }

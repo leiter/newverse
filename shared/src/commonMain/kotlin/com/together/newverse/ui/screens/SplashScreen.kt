@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.together.newverse.ui.state.InitializationStep
 import kotlinx.coroutines.delay
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -33,7 +34,7 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 fun SplashScreen(
-    initializationStep: String = "",
+    initializationStep: InitializationStep = InitializationStep.NotStarted,
     modifier: Modifier = Modifier
 ) {
     var dots by remember { mutableStateOf("") }
@@ -107,19 +108,11 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Status text
-            if (initializationStep.isNotEmpty()) {
-                Text(
-                    text = stringResource(Res.string.format_loading_step, initializationStep + dots),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
-            } else {
-                Text(
-                    text = stringResource(Res.string.format_loading, dots),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
-            }
+            Text(
+                text = initializationStep.displayMessage() + dots,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            )
         }
     }
 }

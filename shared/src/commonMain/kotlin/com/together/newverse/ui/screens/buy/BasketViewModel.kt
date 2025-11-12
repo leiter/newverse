@@ -92,10 +92,38 @@ class BasketViewModel(
 
     /**
      * Load the most recent editable order for the current user
+     * Only loads if BasketRepository doesn't already have an order loaded
      */
     private suspend fun loadMostRecentEditableOrder() {
         try {
             println("🛒 BasketViewModel.loadMostRecentEditableOrder: START")
+
+            // Check if BasketRepository already has an order loaded
+            val loadedOrderInfo = basketRepository.getLoadedOrderInfo()
+            if (loadedOrderInfo != null) {
+                val (orderId, orderDate) = loadedOrderInfo
+                println("🛒 BasketViewModel.loadMostRecentEditableOrder: Order already loaded in basket - orderId=$orderId, date=$orderDate")
+
+                // Sync the loaded order info to our state
+                val result = orderRepository.loadOrder(SELLER_ID, orderDate, orderId)
+                result.onSuccess { order ->
+                    val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
+                    val canEdit = kotlinx.datetime.Clock.System.now().toEpochMilliseconds() < threeDaysBeforePickup
+
+                    _state.value = _state.value.copy(
+                        orderId = orderId,
+                        orderDate = orderDate,
+                        pickupDate = order.pickUpDate,
+                        createdDate = order.createdDate,
+                        isEditMode = false,
+                        canEdit = canEdit,
+                        originalOrderItems = order.articles,
+                        hasChanges = false
+                    )
+                    println("🛒 BasketViewModel.loadMostRecentEditableOrder: Synced state with loaded order")
+                }
+                return
+            }
 
             // Get buyer profile to access placedOrderIds
             val profileResult = profileRepository.getBuyerProfile()
@@ -255,9 +283,18 @@ class BasketViewModel(
 
                 println("🛒 BasketViewModel.checkout: Using buyer profile - name=${buyerProfile.displayName}, email=${buyerProfile.emailAddress}")
 
-                // Calculate pickup date (tomorrow at noon as default)
+                // DEVELOPMENT: Offset pickup date by 9 days for testing
+                // This allows testing orders with pickup dates 9 days in the future
+                val devOffsetMillis = 9L * 24 * 60 * 60 * 1000 // 9 days in milliseconds
                 val tomorrow = Clock.System.now().toEpochMilliseconds() + (24 * 60 * 60 * 1000)
-                val dateKey = formatDateKey(tomorrow)
+                val adjustedPickUpDate = tomorrow + devOffsetMillis // Tomorrow + 9 days = 10 days from now
+
+                println("🛒 BasketViewModel.checkout: DEVELOPMENT MODE - 9 day pickup offset")
+                println("🛒   createdDate: ${Clock.System.now().toEpochMilliseconds()} (today)")
+                println("🛒   Original pickUpDate: $tomorrow (tomorrow)")
+                println("🛒   Adjusted pickUpDate: $adjustedPickUpDate (tomorrow + 9 days)")
+
+                val dateKey = formatDateKey(adjustedPickUpDate)
 
                 // Check if there's already an order for this date
                 val existingOrderId = buyerProfile.placedOrderIds[dateKey]
@@ -274,13 +311,13 @@ class BasketViewModel(
                     return@launch
                 }
 
-                // Create order
+                // Create order with today's date and future pickup date
                 val order = Order(
                     buyerProfile = buyerProfile,
                     createdDate = Clock.System.now().toEpochMilliseconds(),
                     sellerId = SELLER_ID,
                     marketId = "", // Default market
-                    pickUpDate = tomorrow,
+                    pickUpDate = adjustedPickUpDate, // Tomorrow + 9 days
                     message = "",
                     articles = items
                 )
@@ -296,7 +333,7 @@ class BasketViewModel(
                     // Calculate date key for the order
                     val dateKey = formatDateKey(placedOrder.pickUpDate)
 
-                    // Don't clear basket - instead load the order so user can see it
+                    // Load the order so user can see it (this also updates basket repository)
                     loadOrder(placedOrder.id, dateKey)
 
                     _state.value = _state.value.copy(
@@ -352,11 +389,8 @@ class BasketViewModel(
                     val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
                     val canEdit = Clock.System.now().toEpochMilliseconds() < threeDaysBeforePickup
 
-                    // Clear basket and add order items
-                    basketRepository.clearBasket()
-                    order.articles.forEach { item ->
-                        basketRepository.addItem(item)
-                    }
+                    // Load order items into BasketRepository with order metadata
+                    basketRepository.loadOrderItems(order.articles, orderId, date)
 
                     _state.value = _state.value.copy(
                         orderId = orderId,

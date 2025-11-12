@@ -48,4 +48,19 @@ interface BasketRepository {
      * @return Number of items in basket
      */
     fun getItemCount(): Int
+
+    /**
+     * Load items from an existing order
+     * Clears basket and adds all order items
+     * @param items The order items to load
+     * @param orderId The order ID
+     * @param orderDate The order date key
+     */
+    suspend fun loadOrderItems(items: List<OrderedProduct>, orderId: String, orderDate: String)
+
+    /**
+     * Get current loaded order info
+     * @return Pair of orderId and orderDate, or null if no order is loaded
+     */
+    fun getLoadedOrderInfo(): Pair<String, String>?
 }

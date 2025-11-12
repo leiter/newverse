@@ -133,8 +133,9 @@ class FirebaseOrderRepository : OrderRepository {
                 ?: return Result.failure(IllegalStateException("User not authenticated"))
 
             // Calculate date key from pickUpDate (format: yyyyMMdd)
+            // Note: Order dates are already adjusted in BasketViewModel for dev mode
             val date = formatDateKey(order.pickUpDate)
-            println("🔥 FirebaseOrderRepository.placeOrder: date='$date'")
+            println("🔥 FirebaseOrderRepository.placeOrder: date='$date', pickUpDate=${order.pickUpDate}")
 
             // Get buyer profile to check if order already exists
             val buyerProfileSnapshot = Database.buyer().getSingleValue()

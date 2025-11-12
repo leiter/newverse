@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 class InMemoryBasketRepository : BasketRepository {
 
     private val _basket = MutableStateFlow<List<OrderedProduct>>(emptyList())
+    private var _loadedOrderId: String? = null
+    private var _loadedOrderDate: String? = null
 
     override fun observeBasket(): StateFlow<List<OrderedProduct>> {
         return _basket.asStateFlow()
@@ -67,6 +69,8 @@ class InMemoryBasketRepository : BasketRepository {
 
     override suspend fun clearBasket() {
         _basket.value = emptyList()
+        _loadedOrderId = null
+        _loadedOrderDate = null
         println("🛒 BasketRepository.clearBasket: Basket cleared")
     }
 
@@ -76,5 +80,20 @@ class InMemoryBasketRepository : BasketRepository {
 
     override fun getItemCount(): Int {
         return _basket.value.size
+    }
+
+    override suspend fun loadOrderItems(items: List<OrderedProduct>, orderId: String, orderDate: String) {
+        _basket.value = items
+        _loadedOrderId = orderId
+        _loadedOrderDate = orderDate
+        println("🛒 BasketRepository.loadOrderItems: Loaded ${items.size} items from order $orderId (date: $orderDate)")
+    }
+
+    override fun getLoadedOrderInfo(): Pair<String, String>? {
+        return if (_loadedOrderId != null && _loadedOrderDate != null) {
+            Pair(_loadedOrderId!!, _loadedOrderDate!!)
+        } else {
+            null
+        }
     }
 }

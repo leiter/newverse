@@ -117,11 +117,11 @@ class UnifiedAppViewModel(
                         if (order != null) {
                             println("✅ UnifiedAppViewModel.loadOpenOrderAfterAuth: Loaded editable order - orderId=${order.id}, ${order.articles.size} items")
 
-                            // Clear basket and add order items to BasketRepository
-                            basketRepository.clearBasket()
-                            order.articles.forEach { item ->
-                                basketRepository.addItem(item)
-                            }
+                            // Calculate date key
+                            val dateKey = formatDateKey(order.pickUpDate)
+
+                            // Load order items into BasketRepository with order metadata
+                            basketRepository.loadOrderItems(order.articles, order.id, dateKey)
 
                             // Update state to store order info for later retrieval
                             _state.update { current ->
@@ -129,7 +129,7 @@ class UnifiedAppViewModel(
                                     common = current.common.copy(
                                         basket = current.common.basket.copy(
                                             currentOrderId = order.id,
-                                            currentOrderDate = formatDateKey(order.pickUpDate)
+                                            currentOrderDate = dateKey
                                         )
                                     )
                                 )
@@ -313,107 +313,99 @@ class UnifiedAppViewModel(
 
     // ===== Implementation Methods =====
 
+    /**
+     * Main initialization flow - executes sequentially based on auth state
+     * Flow:
+     * 1. Check Auth
+     * 2. If signed in: Load Profile → Load Order
+     * 3. Load Articles (for all users)
+     */
     private fun initializeApp() {
         viewModelScope.launch {
-            // Set app to initializing state
-            _state.update { current ->
-                current.copy(
-                    meta = current.meta.copy(
-                        isInitializing = true,
-                        initializationStep = "Checking authentication..."
-                    )
-                )
-            }
-
-            // Step 1: Check authentication status FIRST
-            checkAuthenticationStatus()
-
-            // Step 2: For manual testing, skip waiting for auth and initialize app immediately
-            println("App Init: Skipping auth wait for manual testing...")
-
-            // Load products immediately (no auth required)
-            _state.update { current ->
-                current.copy(
-                    meta = current.meta.copy(
-                        initializationStep = "Loading products..."
-                    )
-                )
-            }
-            loadProducts()
-
-            // Step 3: Mark initialization complete
-            _state.update { current ->
-                current.copy(
-                    meta = current.meta.copy(
-                        isInitializing = false,
-                        isInitialized = true,
-                        initializationStep = ""
-                    )
-                )
-            }
-
-            println("App Init: Initialization complete (manual testing mode)")
-
-            /* ORIGINAL CODE - DISABLED FOR MANUAL TESTING
-            // Step 2: Wait for auth state to be ready (non-null userId)
             try {
-                println("App Init: Waiting for authentication to complete...")
+                // Start initialization
+                _state.update { it.copy(
+                    meta = it.meta.copy(
+                        isInitializing = true,
+                        initializationStep = InitializationStep.CheckingAuth
+                    )
+                )}
+
+                // Step 1: Check authentication status
+                checkAuthenticationStatus()
+
+                // Step 2: Wait for auth state to stabilize
+                println("🚀 App Init: Waiting for authentication to complete...")
                 val userId = authRepository.observeAuthState()
                     .filterNotNull()
                     .first()
 
-                println("App Init: Authentication complete, user ID: $userId")
+                println("🚀 App Init: Authentication complete, user ID: $userId")
 
-                // Step 3: Load data based on auth status
-                val isAuthenticated = _state.value.common.user is UserState.LoggedIn
+                // Step 3: Sequential loading based on user state
+                val userState = _state.value.common.user
 
-                if (isAuthenticated) {
-                    // User is logged in, load user-specific data
-                    _state.update { current ->
-                        current.copy(
-                            meta = current.meta.copy(
-                                initializationStep = "Loading user data..."
+                when (userState) {
+                    is UserState.LoggedIn -> {
+                        println("🚀 App Init: User logged in, loading user-specific data...")
+
+                        // Step 3a: Load Profile
+                        _state.update { it.copy(
+                            meta = it.meta.copy(
+                                initializationStep = InitializationStep.LoadingProfile
                             )
-                        )
+                        )}
+                        loadUserProfile()
+
+                        // Step 3b: Load current order
+                        _state.update { it.copy(
+                            meta = it.meta.copy(
+                                initializationStep = InitializationStep.LoadingOrder
+                            )
+                        )}
+                        loadCurrentOrder()
                     }
-                    loadUserProfile()
+                    is UserState.Guest -> {
+                        println("🚀 App Init: Guest user, skipping user-specific data")
+                    }
+                    is UserState.Loading -> {
+                        println("🚀 App Init: User state still loading, skipping user-specific data")
+                    }
                 }
 
-                // Load products for both authenticated and guest users
-                _state.update { current ->
-                    current.copy(
-                        meta = current.meta.copy(
-                            initializationStep = "Loading products..."
-                        )
+                // Step 4: Load articles (for all users)
+                _state.update { it.copy(
+                    meta = it.meta.copy(
+                        initializationStep = InitializationStep.LoadingArticles
                     )
-                }
+                )}
                 loadProducts()
 
-                // Step 4: Mark initialization complete
-                _state.update { current ->
-                    current.copy(
-                        meta = current.meta.copy(
-                            isInitializing = false,
-                            isInitialized = true,
-                            initializationStep = ""
-                        )
+                // Step 5: Mark initialization complete
+                _state.update { it.copy(
+                    meta = it.meta.copy(
+                        isInitializing = false,
+                        isInitialized = true,
+                        initializationStep = InitializationStep.Complete
                     )
-                }
+                )}
 
-                println("App Init: Initialization complete")
+                println("🚀 App Init: Initialization complete!")
+
             } catch (e: Exception) {
-                println("App Init: Error waiting for auth: ${e.message}")
-                _state.update { current ->
-                    current.copy(
-                        meta = current.meta.copy(
-                            isInitializing = false,
-                            isInitialized = false,
-                            initializationStep = "Failed to initialize: ${e.message}"
+                println("❌ App Init: Error during initialization: ${e.message}")
+                e.printStackTrace()
+                _state.update { it.copy(
+                    meta = it.meta.copy(
+                        isInitializing = false,
+                        isInitialized = false,
+                        initializationStep = InitializationStep.Failed(
+                            step = "initialization",
+                            message = e.message ?: "Unknown error"
                         )
                     )
-                }
+                )}
             }
-            */
         }
     }
 
@@ -427,7 +419,7 @@ class UnifiedAppViewModel(
             _state.update { current ->
                 current.copy(
                     meta = current.meta.copy(
-                        initializationStep = "Checking authentication..."
+                        initializationStep = InitializationStep.CheckingAuth
                     )
                 )
             }
@@ -441,7 +433,7 @@ class UnifiedAppViewModel(
                         _state.update { current ->
                             current.copy(
                                 meta = current.meta.copy(
-                                    initializationStep = "Loading user data..."
+                                    initializationStep = InitializationStep.LoadingProfile
                                 )
                             )
                         }
@@ -451,7 +443,7 @@ class UnifiedAppViewModel(
                         _state.update { current ->
                             current.copy(
                                 meta = current.meta.copy(
-                                    initializationStep = "Creating guest session..."
+                                    initializationStep = InitializationStep.CheckingAuth
                                 )
                             )
                         }
@@ -464,7 +456,7 @@ class UnifiedAppViewModel(
                     _state.update { current ->
                         current.copy(
                             meta = current.meta.copy(
-                                initializationStep = "Creating guest session..."
+                                initializationStep = InitializationStep.CheckingAuth
                             )
                         )
                     }
@@ -488,7 +480,7 @@ class UnifiedAppViewModel(
                 _state.update { current ->
                     current.copy(
                         meta = current.meta.copy(
-                            initializationStep = "Guest session created"
+                            initializationStep = InitializationStep.CheckingAuth
                         )
                     )
                 }
@@ -498,7 +490,10 @@ class UnifiedAppViewModel(
                 _state.update { current ->
                     current.copy(
                         meta = current.meta.copy(
-                            initializationStep = "Failed to create session: ${error.message}"
+                            initializationStep = InitializationStep.Failed(
+                                step = "authentication",
+                                message = error.message ?: "Failed to create session"
+                            )
                         )
                     )
                 }
@@ -1058,12 +1053,87 @@ class UnifiedAppViewModel(
         // TODO: Implement update profile
     }
 
-    private fun loadUserProfile() {
-        // TODO: Implement load profile
+    /**
+     * Load user profile during initialization
+     * Loads the profile data for the currently logged-in user
+     */
+    private suspend fun loadUserProfile() {
+        try {
+            val userId = (_state.value.common.user as? UserState.LoggedIn)?.id ?: return
+
+            println("👤 Loading user profile for userId: $userId")
+
+            val result = profileRepository.getBuyerProfile()
+
+            result.onSuccess { profile ->
+                println("✅ Profile loaded successfully: ${profile.displayName}")
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            customerProfile = current.screens.customerProfile.copy(
+                                profile = profile,
+                                isLoading = false,
+                                error = null
+                            )
+                        )
+                    )
+                }
+            }.onFailure { error ->
+                println("❌ Failed to load profile: ${error.message}")
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            customerProfile = current.screens.customerProfile.copy(
+                                isLoading = false,
+                                error = ErrorState(
+                                    message = "Failed to load profile: ${error.message}",
+                                    type = ErrorType.NETWORK
+                                )
+                            )
+                        )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            println("❌ Exception loading profile: ${e.message}")
+        }
+    }
+
+    /**
+     * Load current editable order during initialization
+     * Finds the most recent order in EDITABLE state for the user
+     */
+    private suspend fun loadCurrentOrder() {
+        try {
+            val userId = (_state.value.common.user as? UserState.LoggedIn)?.id ?: return
+
+            println("📦 Loading current order for userId: $userId")
+
+            // Get profile to access placedOrderIds
+            val profileResult = profileRepository.getBuyerProfile()
+
+            profileResult.onSuccess { profile ->
+                // Load orders using profile's placedOrderIds
+                // Note: We'll need to know the sellerId - for now, use a default or skip
+                // This is simplified - in production, you'd need to handle multiple sellers
+                if (profile.placedOrderIds.isNotEmpty()) {
+                    println("📦 Found ${profile.placedOrderIds.size} placed orders")
+                    // TODO: Implement proper order loading with sellerId
+                    // For now, just log that we found orders
+                } else {
+                    println("ℹ️ No placed orders found in profile")
+                }
+            }.onFailure { error ->
+                println("❌ Failed to load profile for order check: ${error.message}")
+            }
+        } catch (e: Exception) {
+            println("❌ Exception loading current order: ${e.message}")
+        }
     }
 
     private fun loadProfile() {
-        // TODO: Implement generic load profile
+        // Redirect to loadCustomerProfile for now
+        loadCustomerProfile()
     }
 
     private fun loadCustomerProfile() {

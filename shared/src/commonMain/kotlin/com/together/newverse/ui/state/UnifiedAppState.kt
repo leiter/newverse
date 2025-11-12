@@ -416,13 +416,42 @@ data class NotificationPermissions(
 
 data class AppMetaState(
     val version: String = "1.0.0",
-    val environment: Environment = Environment.PRODUCTION,
+    val environment: Environment = Environment.DEVELOPMENT,
     val buildNumber: Int = 1,
     val lastSyncTime: Long? = null,
     val isInitializing: Boolean = false,
     val isInitialized: Boolean = false,
-    val initializationStep: String = ""
+    val initializationStep: InitializationStep = InitializationStep.NotStarted,
+    val devOrderDateOffsetDays: Int = 9 // For development: offset order dates by N days
 )
+
+/**
+ * Represents the current step in the app initialization process.
+ * This controls the sequential loading flow:
+ * 1. Check Auth
+ * 2. Load Profile (if signed in)
+ * 3. Load Order (if signed in)
+ * 4. Load Articles
+ */
+sealed class InitializationStep {
+    data object NotStarted : InitializationStep()
+    data object CheckingAuth : InitializationStep()
+    data object LoadingProfile : InitializationStep()
+    data object LoadingOrder : InitializationStep()
+    data object LoadingArticles : InitializationStep()
+    data object Complete : InitializationStep()
+    data class Failed(val step: String, val message: String) : InitializationStep()
+
+    fun displayMessage(): String = when (this) {
+        is NotStarted -> "Starting app..."
+        is CheckingAuth -> "Checking authentication..."
+        is LoadingProfile -> "Loading your profile..."
+        is LoadingOrder -> "Loading current order..."
+        is LoadingArticles -> "Loading products..."
+        is Complete -> "Ready!"
+        is Failed -> "Error: $message"
+    }
+}
 
 enum class Environment {
     DEVELOPMENT,
