@@ -59,6 +59,11 @@ kotlin {
             // Coil3 for image loading (supports Android, iOS, Desktop, Web)
             implementation("io.coil-kt.coil3:coil-compose:3.0.4")
             implementation("io.coil-kt.coil3:coil-network-ktor3:3.0.4")
+
+            // GitLive Firebase SDK for cross-platform support
+            // Note: GitLive provides Kotlin Multiplatform support for Firebase
+            implementation("dev.gitlive:firebase-auth:2.1.0")
+            implementation("dev.gitlive:firebase-common:2.1.0")
         }
 
         androidMain.dependencies {
