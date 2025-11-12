@@ -126,6 +126,12 @@ class BasketViewModel(
                     val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
                     val canEdit = kotlinx.datetime.Clock.System.now().toEpochMilliseconds() < threeDaysBeforePickup
 
+                    // Get current basket items from repository (may have been modified on MainScreen)
+                    val currentBasketItems = basketRepository.observeBasket().value
+
+                    // Check if basket has changes compared to original order
+                    val hasChanges = checkIfBasketHasChanges(currentBasketItems, order.articles)
+
                     _state.value = _state.value.copy(
                         orderId = orderId,
                         orderDate = orderDate,
@@ -134,9 +140,9 @@ class BasketViewModel(
                         isEditMode = false,
                         canEdit = canEdit,
                         originalOrderItems = order.articles,
-                        hasChanges = false
+                        hasChanges = hasChanges  // ✅ Calculate from current basket state
                     )
-                    println("🛒 BasketViewModel.loadMostRecentEditableOrder: Synced state with loaded order")
+                    println("🛒 BasketViewModel.loadMostRecentEditableOrder: Synced state with loaded order - hasChanges=$hasChanges")
                 }
                 return
             }
@@ -432,8 +438,26 @@ class BasketViewModel(
                     val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
                     val canEdit = Clock.System.now().toEpochMilliseconds() < threeDaysBeforePickup
 
-                    // Load order items into BasketRepository with order metadata
-                    basketRepository.loadOrderItems(order.articles, orderId, date)
+                    // Get current basket items BEFORE loading order
+                    val currentBasketItems = basketRepository.observeBasket().value
+
+                    // Only load order items into basket if it's empty or different order
+                    // This prevents overwriting user's MainScreen modifications
+                    val shouldLoadOrderItems = currentBasketItems.isEmpty() ||
+                        basketRepository.getLoadedOrderInfo()?.first != orderId
+
+                    if (shouldLoadOrderItems) {
+                        println("🛒 BasketViewModel.loadOrder: Loading order items into basket")
+                        basketRepository.loadOrderItems(order.articles, orderId, date)
+                    } else {
+                        println("🛒 BasketViewModel.loadOrder: Basket already has items, preserving user modifications")
+                    }
+
+                    // Get final basket items (either just loaded or existing with modifications)
+                    val finalBasketItems = basketRepository.observeBasket().value
+
+                    // Check if there are changes compared to original order
+                    val hasChanges = checkIfBasketHasChanges(finalBasketItems, order.articles)
 
                     _state.value = _state.value.copy(
                         orderId = orderId,
@@ -443,11 +467,12 @@ class BasketViewModel(
                         isEditMode = false,
                         canEdit = canEdit,
                         isLoadingOrder = false,
-                        items = order.articles,
-                        total = order.articles.sumOf { it.price * it.amountCount },
+                        items = finalBasketItems,  // ✅ Use actual basket items, not original order
+                        total = finalBasketItems.sumOf { it.price * it.amountCount },
                         originalOrderItems = order.articles,
-                        hasChanges = false
+                        hasChanges = hasChanges  // ✅ Calculate from actual basket state
                     )
+                    println("🛒 BasketViewModel.loadOrder: State updated - hasChanges=$hasChanges, items=${finalBasketItems.size}")
                 }.onFailure { error ->
                     println("❌ BasketViewModel.loadOrder: Failed - ${error.message}")
                     _state.value = _state.value.copy(

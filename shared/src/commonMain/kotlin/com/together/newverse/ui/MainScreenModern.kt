@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Settings
@@ -117,11 +118,14 @@ private fun MainScreenModernContent(
                         HeroProductCardSkeleton()
                     } else {
                         selectedProduct?.let { product ->
-                            val isInBasket = basketItems.any { it.productId == product.id }
+                            val basketItem = basketItems.find { it.productId == product.id }
+                            val isInBasket = basketItem != null
+                            val originalQuantity = basketItem?.amountCount ?: 0.0
                             val isFavourite = state.favouriteArticles.contains(product.id)
                             HeroProductCard(
                                 product = product,
                                 quantity = quantity,
+                                originalQuantity = originalQuantity,
                                 isInBasket = isInBasket,
                                 isFavourite = isFavourite,
                                 onQuantityChange = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.UpdateQuantity(it)) },
@@ -209,6 +213,7 @@ private fun MainScreenModernContent(
 private fun HeroProductCard(
     product: Article,
     quantity: Double,
+    originalQuantity: Double,
     isInBasket: Boolean,
     isFavourite: Boolean,
     onQuantityChange: (Double) -> Unit,
@@ -219,6 +224,9 @@ private fun HeroProductCard(
 ) {
     // Helper function to check if unit is weight-based
     val isWeightBased = product.unit.lowercase() in listOf("kg", "g", "kilogramm", "gramm")
+
+    // Check if quantity has changed from original
+    val hasChanges = isInBasket && quantity != originalQuantity
 
     // Local state for text field
     var quantityText by remember(quantity, product.id) {
@@ -326,7 +334,7 @@ private fun HeroProductCard(
                 // Quantity and Add to Cart
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Quantity Selector
@@ -436,31 +444,34 @@ private fun HeroProductCard(
                         }
                     }
 
-                    // Add to Cart or Remove Button
+                    // Add to Cart or Apply Changes Button
                     if (isInBasket) {
-                        // Remove from Basket Button
+                        // Apply Changes Button (disabled if no changes)
                         Button(
-                            onClick = onRemoveFromBasket,
+                            onClick = onAddToCart,
+                            enabled = hasChanges,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                containerColor = MaterialTheme.colorScheme.tertiary,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                             ),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.height(44.dp)
                         ) {
                             Icon(
-                                Icons.Default.Check,
+                                if (hasChanges) Icons.Default.Check else Icons.Default.ShoppingCart,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "Aus Korb",
-                                style = MaterialTheme.typography.labelLarge
+                                "Ändern",
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1
                             )
                         }
                     } else {
-                        // Add to Cart Button
+                        // Add to Cart Button (for items not in basket)
                         Button(
                             onClick = onAddToCart,
                             enabled = quantity > 0.0,
@@ -480,6 +491,22 @@ private fun HeroProductCard(
                             Text(
                                 "In den Korb",
                                 style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                    }
+                    // Cancel button (X) - only show when item is in basket
+                    if (isInBasket) {
+                        IconButton(
+                            onClick = {
+                                // Reset to original quantity
+                                onQuantityChange(originalQuantity)
+                            },
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Cancel changes",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
