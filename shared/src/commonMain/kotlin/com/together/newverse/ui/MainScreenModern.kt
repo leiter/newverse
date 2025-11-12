@@ -499,7 +499,8 @@ private fun HeroProductCard(
                         IconButton(
                             onClick = {
                                 // Reset to original quantity
-                                onQuantityChange(originalQuantity)
+                                onRemoveFromBasket()
+                               // onQuantityChange(originalQuantity)
                             },
                             modifier = Modifier.size(44.dp)
                         ) {

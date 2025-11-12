@@ -1607,21 +1607,25 @@ class UnifiedAppViewModel(
                     val afterCount = currentArticles.size
                     println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Article count: $beforeCount → $afterCount")
 
-                    // Auto-select first article if none selected
-                    val selectedArticle = _state.value.screens.mainScreen.selectedArticle
-                        ?: currentArticles.firstOrNull()
-
+                    // Update articles list first
                     _state.update { current ->
                         current.copy(
                             screens = current.screens.copy(
                                 mainScreen = current.screens.mainScreen.copy(
                                     isLoading = false,
                                     articles = currentArticles,
-                                    selectedArticle = selectedArticle,
                                     error = null
                                 )
                             )
                         )
+                    }
+
+                    // Auto-select first article if none selected (using proper selection logic)
+                    val currentSelectedArticle = _state.value.screens.mainScreen.selectedArticle
+                    if (currentSelectedArticle == null && currentArticles.isNotEmpty()) {
+                        val firstArticle = currentArticles.first()
+                        println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Auto-selecting first article: ${firstArticle.productName}")
+                        selectMainScreenArticle(firstArticle)  // ✅ Use proper selection method
                     }
                 }
         }
