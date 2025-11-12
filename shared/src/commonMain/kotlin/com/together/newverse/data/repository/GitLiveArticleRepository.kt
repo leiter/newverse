@@ -7,36 +7,26 @@ import com.together.newverse.domain.model.Article.Companion.MODE_MOVED
 import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.database.database
+import dev.gitlive.firebase.database.DatabaseReference
+import dev.gitlive.firebase.database.DataSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
-// TODO: Import GitLive SDK classes when ready
-// import dev.gitlive.firebase.database.DatabaseReference
-// import dev.gitlive.firebase.database.Firebase
-// import dev.gitlive.firebase.database.database
-// import dev.gitlive.firebase.database.ChildEvent
+import kotlinx.coroutines.flow.first
 
 /**
  * GitLive implementation of ArticleRepository for cross-platform article management.
- *
- * This implementation will use GitLive's Firebase SDK to provide:
- * - Cross-platform support (Android, iOS, Web, Desktop)
- * - Real-time article synchronization
- * - Product catalog management
- * - Image storage integration
- *
- * Data structure in Firebase:
- * - /articles/{sellerId}/{articleId} - Article data
- * - /seller_profiles/ - List of sellers
+ * This version uses the correct GitLive Firebase SDK APIs.
  */
 class GitLiveArticleRepository(
     private val authRepository: AuthRepository
 ) : ArticleRepository {
 
-    // TODO: Initialize GitLive Firebase Database when SDK is ready
-    // private val database = Firebase.database
-    // private val articlesRootRef = database.reference("articles")
-    // private val sellersRef = database.reference("seller_profiles")
+    // GitLive Firebase Database references
+    private val database = Firebase.database
+    private val articlesRootRef = database.reference("articles")
+    private val sellersRef = database.reference("seller_profiles")
 
     // Cache for articles
     private val articlesCache = mutableMapOf<String, MutableMap<String, Article>>()
@@ -44,66 +34,49 @@ class GitLiveArticleRepository(
     /**
      * Observe articles for a specific seller with real-time updates.
      * Emits individual Article events with mode flags.
+     *
+     * Note: Using valueEvents instead of childEvents due to GitLive SDK limitations.
+     * This means all articles are emitted as ADDED events when the data changes.
      */
     override fun observeArticles(sellerId: String): Flow<Article> = flow {
         println("🔐 GitLiveArticleRepository.observeArticles: START with sellerId='$sellerId'")
 
-        // Determine seller ID
-        val targetSellerId = if (sellerId.isEmpty()) {
-            // Buyer mode: Get first available seller
-            getFirstSellerId() ?: "seller_001"
-        } else {
-            // Seller mode: Use provided ID
-            sellerId
-        }
-
-        println("🔐 GitLiveArticleRepository.observeArticles: Using sellerId='$targetSellerId'")
-
-        // TODO: Implement real-time listener with GitLive
-        // val articlesRef = articlesRootRef.child(targetSellerId)
-        // articlesRef.childEvents.collect { event ->
-        //     when (event) {
-        //         is ChildEvent.Added -> {
-        //             val article = event.snapshot.value<ArticleDto>()?.toDomain(event.snapshot.key ?: "")
-        //             if (article != null) {
-        //                 emit(article.copy(mode = MODE_ADDED))
-        //             }
-        //         }
-        //         is ChildEvent.Changed -> {
-        //             val article = event.snapshot.value<ArticleDto>()?.toDomain(event.snapshot.key ?: "")
-        //             if (article != null) {
-        //                 emit(article.copy(mode = MODE_CHANGED))
-        //             }
-        //         }
-        //         is ChildEvent.Removed -> {
-        //             val article = event.snapshot.value<ArticleDto>()?.toDomain(event.snapshot.key ?: "")
-        //             if (article != null) {
-        //                 emit(article.copy(mode = MODE_REMOVED))
-        //             }
-        //         }
-        //         is ChildEvent.Moved -> {
-        //             val article = event.snapshot.value<ArticleDto>()?.toDomain(event.snapshot.key ?: "")
-        //             if (article != null) {
-        //                 emit(article.copy(mode = MODE_MOVED))
-        //             }
-        //         }
-        //     }
-        // }
-
-        // Temporary mock implementation - emit test articles
-        val mockArticles = createMockArticles(targetSellerId)
-
-        // Store in cache
-        articlesCache.getOrPut(targetSellerId) { mutableMapOf() }.apply {
-            mockArticles.forEach { article ->
-                put(article.id, article)
+        try {
+            // Determine seller ID
+            val targetSellerId = if (sellerId.isEmpty()) {
+                // Buyer mode: Get first available seller
+                val firstSellerId = getFirstSellerId()
+                println("🔐 GitLiveArticleRepository.observeArticles: Using first seller: $firstSellerId")
+                firstSellerId
+            } else {
+                // Seller mode: Use provided ID
+                sellerId
             }
-        }
 
-        // Emit articles as ADDED events
-        mockArticles.forEach { article ->
-            println("🔐 GitLiveArticleRepository: Emitting mock article '${article.productName}'")
-            emit(article.copy(mode = MODE_ADDED))
+            // Create reference to seller's articles
+            val articlesRef = articlesRootRef.child(targetSellerId)
+
+            // Listen for value changes (simplified approach for GitLive)
+            articlesRef.valueEvents.collect { snapshot ->
+                // Clear and rebuild cache
+                articlesCache[targetSellerId]?.clear()
+
+                // Process all children as articles
+                snapshot.children.forEach { childSnapshot ->
+                    val article = mapSnapshotToArticle(childSnapshot)
+                    if (article != null) {
+                        // Store in cache
+                        articlesCache.getOrPut(targetSellerId) { mutableMapOf() }[article.id] = article
+
+                        // Emit as ADDED event
+                        println("🔐 GitLiveArticleRepository: Emitting article '${article.productName}'")
+                        emit(article.copy(mode = MODE_ADDED))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            println("❌ GitLiveArticleRepository.observeArticles: Error - ${e.message}")
+            throw e
         }
     }
 
@@ -129,17 +102,25 @@ class GitLiveArticleRepository(
                 return Result.success(cachedArticle)
             }
 
-            // TODO: Implement with GitLive
-            // val snapshot = articlesRootRef.child(sellerId).child(articleId).get()
-            // val articleDto = snapshot.value<ArticleDto>()
-            // val article = articleDto?.toDomain(articleId)
+            // Fetch from GitLive Firebase
+            val articleRef = articlesRootRef.child(sellerId).child(articleId)
+            val snapshot = articleRef.valueEvents.first()
 
-            // For now, return mock article
-            val mockArticle = createMockArticle(articleId, sellerId)
-            articlesCache.getOrPut(sellerId) { mutableMapOf() }[articleId] = mockArticle
+            if (snapshot.exists) {
+                val article = mapSnapshotToArticle(snapshot)
+                if (article != null) {
+                    // Update cache
+                    articlesCache.getOrPut(sellerId) { mutableMapOf() }[articleId] = article
 
-            println("✅ GitLiveArticleRepository.getArticle: Created mock article")
-            Result.success(mockArticle)
+                    println("✅ GitLiveArticleRepository.getArticle: Fetched from Firebase")
+                    Result.success(article)
+                } else {
+                    Result.failure(Exception("Failed to parse article data"))
+                }
+            } else {
+                println("❌ GitLiveArticleRepository.getArticle: Article not found")
+                Result.failure(Exception("Article not found"))
+            }
 
         } catch (e: Exception) {
             println("❌ GitLiveArticleRepository.getArticle: Error - ${e.message}")
@@ -160,14 +141,17 @@ class GitLiveArticleRepository(
                 return Result.failure(Exception("User not authenticated"))
             }
 
-            // TODO: Implement with GitLive
-            // val dto = ArticleDto.fromDomain(article)
-            // articlesRootRef.child(sellerId).child(article.id).setValue(dto)
+            // Convert to map for Firebase
+            val articleMap = articleToMap(article)
+
+            // Save to GitLive Firebase
+            val articleRef = articlesRootRef.child(sellerId).child(article.id)
+            articleRef.setValue(articleMap)
 
             // Update cache
             articlesCache.getOrPut(sellerId) { mutableMapOf() }[article.id] = article
 
-            println("✅ GitLiveArticleRepository.saveArticle: Success - saved to cache")
+            println("✅ GitLiveArticleRepository.saveArticle: Success")
             Result.success(Unit)
 
         } catch (e: Exception) {
@@ -189,8 +173,9 @@ class GitLiveArticleRepository(
                 return Result.failure(Exception("User not authenticated"))
             }
 
-            // TODO: Implement with GitLive
-            // articlesRootRef.child(sellerId).child(articleId).removeValue()
+            // Remove from GitLive Firebase
+            val articleRef = articlesRootRef.child(sellerId).child(articleId)
+            articleRef.removeValue()
 
             // Remove from cache
             articlesCache[sellerId]?.remove(articleId)
@@ -210,154 +195,68 @@ class GitLiveArticleRepository(
      * Get the first available seller ID.
      * Used when buyer doesn't specify a seller.
      */
-    private suspend fun getFirstSellerId(): String? {
-        // TODO: Implement with GitLive
-        // val snapshot = sellersRef.get()
-        // return snapshot.children.firstOrNull()?.key
+    private suspend fun getFirstSellerId(): String {
+        return try {
+            val snapshot = sellersRef.valueEvents.first()
 
-        // For now, return default test seller
-        return "seller_001"
-    }
+            // Get the first child key
+            val firstSellerKey = snapshot.children.firstOrNull()?.key
 
-    /**
-     * Create mock articles for testing.
-     */
-    private fun createMockArticles(sellerId: String): List<Article> {
-        return listOf(
-            Article(
-                id = "article_001",
-                productId = "PROD001",
-                productName = "Fresh Apples (GitLive)",
-                available = true,
-                unit = "kg",
-                price = 2.99,
-                weightPerPiece = 0.2,
-                imageUrl = "https://example.com/apples.jpg",
-                category = "Fruits",
-                searchTerms = "apple fruit fresh organic",
-                detailInfo = "Crispy and sweet apples from local farms"
-            ),
-            Article(
-                id = "article_002",
-                productId = "PROD002",
-                productName = "Organic Bananas (GitLive)",
-                available = true,
-                unit = "kg",
-                price = 1.99,
-                weightPerPiece = 0.15,
-                imageUrl = "https://example.com/bananas.jpg",
-                category = "Fruits",
-                searchTerms = "banana fruit organic yellow",
-                detailInfo = "Fresh organic bananas, perfect for smoothies"
-            ),
-            Article(
-                id = "article_003",
-                productId = "PROD003",
-                productName = "Farm Eggs (GitLive)",
-                available = true,
-                unit = "dozen",
-                price = 4.50,
-                weightPerPiece = 0.6,
-                imageUrl = "https://example.com/eggs.jpg",
-                category = "Dairy",
-                searchTerms = "eggs farm fresh protein",
-                detailInfo = "Free-range eggs from happy chickens"
-            ),
-            Article(
-                id = "article_004",
-                productId = "PROD004",
-                productName = "Whole Milk (GitLive)",
-                available = false,
-                unit = "liter",
-                price = 1.29,
-                weightPerPiece = 1.0,
-                imageUrl = "https://example.com/milk.jpg",
-                category = "Dairy",
-                searchTerms = "milk dairy fresh whole",
-                detailInfo = "Fresh whole milk from local dairy farms"
-            ),
-            Article(
-                id = "article_005",
-                productId = "PROD005",
-                productName = "Sourdough Bread (GitLive)",
-                available = true,
-                unit = "loaf",
-                price = 3.50,
-                weightPerPiece = 0.5,
-                imageUrl = "https://example.com/bread.jpg",
-                category = "Bakery",
-                searchTerms = "bread sourdough fresh bakery",
-                detailInfo = "Artisan sourdough bread baked daily"
-            )
-        )
-    }
-
-    /**
-     * Create a single mock article.
-     */
-    private fun createMockArticle(articleId: String, sellerId: String): Article {
-        return Article(
-            id = articleId,
-            productId = "MOCK_${articleId}",
-            productName = "Mock Product (GitLive)",
-            available = true,
-            unit = "piece",
-            price = 9.99,
-            weightPerPiece = 1.0,
-            imageUrl = "",
-            category = "Test",
-            searchTerms = "mock test product",
-            detailInfo = "This is a mock product for testing GitLive integration"
-        )
-    }
-}
-
-/**
- * Data Transfer Object for Article.
- * Maps between domain model and Firebase structure.
- */
-private data class ArticleDto(
-    val productId: String = "",
-    val productName: String = "",
-    val available: Boolean = false,
-    val unit: String = "",
-    val price: Double = 0.0,
-    val weightPerPiece: Double = 0.0,
-    val imageUrl: String = "",
-    val category: String = "",
-    val searchTerms: String = "",
-    val detailInfo: String = ""
-) {
-    fun toDomain(id: String): Article {
-        return Article(
-            id = id,
-            productId = productId,
-            productName = productName,
-            available = available,
-            unit = unit,
-            price = price,
-            weightPerPiece = weightPerPiece,
-            imageUrl = imageUrl,
-            category = category,
-            searchTerms = searchTerms,
-            detailInfo = detailInfo
-        )
-    }
-
-    companion object {
-        fun fromDomain(article: Article): ArticleDto {
-            return ArticleDto(
-                productId = article.productId,
-                productName = article.productName,
-                available = article.available,
-                unit = article.unit,
-                price = article.price,
-                weightPerPiece = article.weightPerPiece,
-                imageUrl = article.imageUrl,
-                category = article.category,
-                searchTerms = article.searchTerms,
-                detailInfo = article.detailInfo
-            )
+            if (firstSellerKey != null) {
+                println("🔐 GitLiveArticleRepository.getFirstSellerId: Found seller: $firstSellerKey")
+                firstSellerKey
+            } else {
+                println("⚠️ GitLiveArticleRepository.getFirstSellerId: No sellers found, using default")
+                "seller_001" // Default fallback
+            }
+        } catch (e: Exception) {
+            println("❌ GitLiveArticleRepository.getFirstSellerId: Error - ${e.message}, using default")
+            "seller_001" // Default fallback
         }
+    }
+
+    /**
+     * Map a DataSnapshot to an Article domain model.
+     */
+    private fun mapSnapshotToArticle(snapshot: DataSnapshot): Article? {
+        val articleId = snapshot.key ?: return null
+        val value = snapshot.value
+
+        return when (value) {
+            is Map<*, *> -> {
+                Article(
+                    id = articleId,
+                    productId = value["productId"] as? String ?: "",
+                    productName = value["productName"] as? String ?: "",
+                    available = value["available"] as? Boolean ?: false,
+                    unit = value["unit"] as? String ?: "",
+                    price = (value["price"] as? Number)?.toDouble() ?: 0.0,
+                    weightPerPiece = (value["weightPerPiece"] as? Number)?.toDouble() ?: 0.0,
+                    imageUrl = value["imageUrl"] as? String ?: "",
+                    category = value["category"] as? String ?: "",
+                    searchTerms = value["searchTerms"] as? String ?: "",
+                    detailInfo = value["detailInfo"] as? String ?: ""
+                )
+            }
+            else -> null
+        }
+    }
+
+    /**
+     * Convert an Article to a map for Firebase storage.
+     */
+    private fun articleToMap(article: Article): Map<String, Any?> {
+        return mapOf(
+            "productId" to article.productId,
+            "productName" to article.productName,
+            "available" to article.available,
+            "unit" to article.unit,
+            "price" to article.price,
+            "weightPerPiece" to article.weightPerPiece,
+            "imageUrl" to article.imageUrl,
+            "category" to article.category,
+            "searchTerms" to article.searchTerms,
+            "detailInfo" to article.detailInfo
+        )
     }
 }
