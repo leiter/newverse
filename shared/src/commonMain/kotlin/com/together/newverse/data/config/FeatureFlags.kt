@@ -117,15 +117,17 @@ enum class Platform {
     companion object {
         /**
          * Detect the current platform.
-         * This will be implemented with expect/actual pattern.
+         * Implemented using expect/actual pattern.
          */
-        fun getCurrentPlatform(): Platform {
-            // This will be replaced with actual platform detection
-            // For now, default to Android since that's what we're building
-            return ANDROID
-        }
+        fun getCurrentPlatform(): Platform = getPlatform()
     }
 }
+
+/**
+ * Platform detection - expect/actual pattern.
+ * Each platform provides its own implementation.
+ */
+internal expect fun getPlatform(): Platform
 
 /**
  * Configuration helper for easy feature flag setup.

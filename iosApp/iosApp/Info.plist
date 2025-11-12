@@ -53,5 +53,16 @@
 	<string>We need access to your photo library to upload product images</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera to take product photos</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.352833414422-llkofcdstuc7pcf0qubpratujmkrj106</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
