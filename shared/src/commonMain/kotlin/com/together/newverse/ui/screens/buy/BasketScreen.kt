@@ -3,6 +3,10 @@ package com.together.newverse.ui.screens.buy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -10,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
 import org.koin.compose.viewmodel.koinViewModel
 import newverse.shared.generated.resources.Res
@@ -123,6 +128,27 @@ fun BasketContent(
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Show pickup date selector for draft orders (no orderId = new order)
+        if (state.orderId == null && state.items.isNotEmpty()) {
+            PickupDateSelector(
+                selectedDate = state.selectedPickupDate,
+                onShowPicker = { onAction(BasketAction.ShowDatePicker) }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Show date picker dialog
+        if (state.showDatePicker) {
+            DatePickerDialog(
+                availableDates = state.availablePickupDates,
+                selectedDate = state.selectedPickupDate,
+                onDateSelected = { date ->
+                    onAction(BasketAction.SelectPickupDate(date))
+                },
+                onDismiss = { onAction(BasketAction.HideDatePicker) }
+            )
         }
 
         if (state.items.isEmpty()) {
@@ -486,6 +512,238 @@ private fun formatDate(timestamp: Long): String {
 private fun getDaysUntilPickup(pickupDate: Long): Long {
     val diff = pickupDate - Clock.System.now().toEpochMilliseconds()
     return diff / (24 * 60 * 60 * 1000)
+}
+
+// ===== Date Picker Components =====
+
+/**
+ * Pickup Date Selector Card
+ * Shows selected date or prompts user to select one
+ */
+@Composable
+fun PickupDateSelector(
+    selectedDate: Long?,
+    onShowPicker: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selectedDate != null) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer
+            }
+        ),
+        onClick = onShowPicker
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "Abholdatum",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (selectedDate != null) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    }
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                if (selectedDate != null) {
+                    val instant = Instant.fromEpochMilliseconds(selectedDate)
+                    val formatted = OrderDateUtils.formatDisplayDate(instant)
+                    val deadline = OrderDateUtils.calculateEditDeadline(instant)
+                    val deadlineFormatted = OrderDateUtils.formatDisplayDateTime(deadline)
+
+                    Text(
+                        text = "Donnerstag, $formatted",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Bestellbar bis: $deadlineFormatted",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                } else {
+                    Text(
+                        text = "Datum auswählen",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Tippen Sie hier um ein Abholdatum zu wählen",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            Icon(
+                imageVector = if (selectedDate != null) Icons.Default.Edit else Icons.Default.DateRange,
+                contentDescription = "Datum wählen",
+                tint = if (selectedDate != null) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Date Picker Dialog
+ * Shows available pickup dates with deadlines
+ */
+@Composable
+fun DatePickerDialog(
+    availableDates: List<Long>,
+    selectedDate: Long?,
+    onDateSelected: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Abholdatum wählen",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            if (availableDates.isEmpty()) {
+                // No dates available
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Derzeit sind keine Abholtermine verfügbar.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            } else {
+                // Show available dates
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(availableDates) { date ->
+                        DateOption(
+                            date = date,
+                            isSelected = date == selectedDate,
+                            onSelected = { onDateSelected(date) }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            // Empty - selection happens via clicking date cards
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
+    )
+}
+
+/**
+ * Individual date option card in the picker
+ */
+@Composable
+private fun DateOption(
+    date: Long,
+    isSelected: Boolean,
+    onSelected: () -> Unit
+) {
+    val instant = Instant.fromEpochMilliseconds(date)
+    val formatted = OrderDateUtils.formatDisplayDate(instant)
+    val deadline = OrderDateUtils.calculateEditDeadline(instant)
+    val deadlineFormatted = OrderDateUtils.formatDisplayDateTime(deadline)
+    val timeRemaining = OrderDateUtils.formatTimeUntilDeadline(instant)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        border = if (isSelected) {
+            androidx.compose.foundation.BorderStroke(
+                2.dp,
+                MaterialTheme.colorScheme.primary
+            )
+        } else null,
+        onClick = onSelected
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Donnerstag, $formatted",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                if (isSelected) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Default.Check,
+                        contentDescription = "Ausgewählt",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Bestellbar bis: $deadlineFormatted",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                }
+            )
+
+            Text(
+                text = "Verbleibende Zeit: $timeRemaining",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                }
+            )
+        }
+    }
 }
 
 

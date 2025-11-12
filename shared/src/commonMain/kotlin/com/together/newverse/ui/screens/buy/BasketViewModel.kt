@@ -9,6 +9,7 @@ import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
+import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +31,12 @@ sealed interface BasketAction {
     data class LoadOrder(val orderId: String, val date: String) : BasketAction
     data object UpdateOrder : BasketAction
     data object EnableEditing : BasketAction
+
+    // Pickup date selection actions
+    data object ShowDatePicker : BasketAction
+    data object HideDatePicker : BasketAction
+    data class SelectPickupDate(val date: Long) : BasketAction
+    data object LoadAvailableDates : BasketAction
 }
 
 /**
@@ -51,7 +58,11 @@ data class BasketScreenState(
     val isLoadingOrder: Boolean = false,
     // Track if order has been modified
     val originalOrderItems: List<OrderedProduct> = emptyList(),
-    val hasChanges: Boolean = false
+    val hasChanges: Boolean = false,
+    // Pickup date selection for draft orders
+    val selectedPickupDate: Long? = null,
+    val availablePickupDates: List<Long> = emptyList(),
+    val showDatePicker: Boolean = false
 )
 
 /**
@@ -82,6 +93,11 @@ class BasketViewModel(
                     hasChanges = hasChanges
                 )
             }
+        }
+
+        // Load available pickup dates for draft orders
+        viewModelScope.launch {
+            loadAvailableDates()
         }
 
         // Auto-load the most recent editable order if it exists
@@ -203,6 +219,11 @@ class BasketViewModel(
             is BasketAction.LoadOrder -> loadOrder(action.orderId, action.date)
             BasketAction.UpdateOrder -> updateOrder()
             BasketAction.EnableEditing -> enableEditing()
+            // Pickup date selection actions
+            BasketAction.ShowDatePicker -> showDatePicker()
+            BasketAction.HideDatePicker -> hideDatePicker()
+            is BasketAction.SelectPickupDate -> selectPickupDate(action.date)
+            BasketAction.LoadAvailableDates -> loadAvailableDates()
         }
     }
 
@@ -283,18 +304,40 @@ class BasketViewModel(
 
                 println("🛒 BasketViewModel.checkout: Using buyer profile - name=${buyerProfile.displayName}, email=${buyerProfile.emailAddress}")
 
-                // DEVELOPMENT: Offset pickup date by 9 days for testing
-                // This allows testing orders with pickup dates 9 days in the future
-                val devOffsetMillis = 9L * 24 * 60 * 60 * 1000 // 9 days in milliseconds
-                val tomorrow = Clock.System.now().toEpochMilliseconds() + (24 * 60 * 60 * 1000)
-                val adjustedPickUpDate = tomorrow + devOffsetMillis // Tomorrow + 9 days = 10 days from now
+                // NEW: Check if pickup date has been selected
+                val selectedDate = _state.value.selectedPickupDate
+                if (selectedDate == null) {
+                    println("❌ BasketViewModel.checkout: No pickup date selected")
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = "Bitte wählen Sie ein Abholdatum",
+                        showDatePicker = true  // Automatically show picker
+                    )
+                    return@launch
+                }
 
-                println("🛒 BasketViewModel.checkout: DEVELOPMENT MODE - 9 day pickup offset")
+                // NEW: Validate selected date is still valid
+                val isDateValid = OrderDateUtils.isPickupDateValid(Instant.fromEpochMilliseconds(selectedDate))
+                if (!isDateValid) {
+                    println("❌ BasketViewModel.checkout: Selected date is no longer valid")
+                    _state.value = _state.value.copy(
+                        isCheckingOut = false,
+                        orderError = "Gewähltes Datum ist nicht mehr verfügbar. Bitte wählen Sie ein neues Datum.",
+                        selectedPickupDate = null,
+                        showDatePicker = true
+                    )
+                    // Reload available dates
+                    loadAvailableDates()
+                    return@launch
+                }
+
+                // Use the selected pickup date
+                val pickUpDate = selectedDate
+                println("🛒 BasketViewModel.checkout: Using selected pickup date: ${formatDate(pickUpDate)}")
                 println("🛒   createdDate: ${Clock.System.now().toEpochMilliseconds()} (today)")
-                println("🛒   Original pickUpDate: $tomorrow (tomorrow)")
-                println("🛒   Adjusted pickUpDate: $adjustedPickUpDate (tomorrow + 9 days)")
+                println("🛒   pickUpDate: $pickUpDate (${formatDate(pickUpDate)})")
 
-                val dateKey = formatDateKey(adjustedPickUpDate)
+                val dateKey = formatDateKey(pickUpDate)
 
                 // Check if there's already an order for this date
                 val existingOrderId = buyerProfile.placedOrderIds[dateKey]
@@ -311,13 +354,13 @@ class BasketViewModel(
                     return@launch
                 }
 
-                // Create order with today's date and future pickup date
+                // Create order with today's date and selected pickup date
                 val order = Order(
                     buyerProfile = buyerProfile,
                     createdDate = Clock.System.now().toEpochMilliseconds(),
                     sellerId = SELLER_ID,
                     marketId = "", // Default market
-                    pickUpDate = adjustedPickUpDate, // Tomorrow + 9 days
+                    pickUpDate = pickUpDate, // User-selected Thursday
                     message = "",
                     articles = items
                 )
@@ -562,6 +605,70 @@ class BasketViewModel(
             }
         }
     }
+
+    // ===== Pickup Date Selection Functions =====
+
+    /**
+     * Load available pickup dates (Thursdays where deadline hasn't passed)
+     */
+    private fun loadAvailableDates() {
+        println("📅 BasketViewModel.loadAvailableDates: START")
+        val dates = OrderDateUtils.getAvailablePickupDates(count = 5)
+        _state.value = _state.value.copy(
+            availablePickupDates = dates.map { it.toEpochMilliseconds() }
+        )
+        println("📅 BasketViewModel.loadAvailableDates: Loaded ${dates.size} available dates")
+    }
+
+    /**
+     * Show date picker dialog
+     */
+    private fun showDatePicker() {
+        println("📅 BasketViewModel.showDatePicker")
+        // Ensure dates are loaded
+        if (_state.value.availablePickupDates.isEmpty()) {
+            loadAvailableDates()
+        }
+        _state.value = _state.value.copy(showDatePicker = true)
+    }
+
+    /**
+     * Hide date picker dialog
+     */
+    private fun hideDatePicker() {
+        println("📅 BasketViewModel.hideDatePicker")
+        _state.value = _state.value.copy(showDatePicker = false)
+    }
+
+    /**
+     * Select a pickup date
+     */
+    private fun selectPickupDate(date: Long) {
+        println("📅 BasketViewModel.selectPickupDate: Selected ${formatDate(date)}")
+
+        // Validate the selected date is still valid
+        val isValid = OrderDateUtils.isPickupDateValid(Instant.fromEpochMilliseconds(date))
+
+        if (!isValid) {
+            println("❌ BasketViewModel.selectPickupDate: Selected date is no longer valid")
+            _state.value = _state.value.copy(
+                orderError = "Gewähltes Datum ist nicht mehr verfügbar. Bitte wählen Sie ein neues Datum.",
+                selectedPickupDate = null,
+                showDatePicker = true
+            )
+            // Reload dates
+            loadAvailableDates()
+            return
+        }
+
+        _state.value = _state.value.copy(
+            selectedPickupDate = date,
+            showDatePicker = false,
+            orderError = null  // Clear any previous errors
+        )
+    }
+
+    // ===== Utility Functions =====
 
     /**
      * Check if order can be edited based on pickup date
