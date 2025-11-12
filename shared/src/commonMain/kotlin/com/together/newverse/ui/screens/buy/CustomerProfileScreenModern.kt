@@ -69,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -88,7 +89,6 @@ fun CustomerProfileScreenModern(
     val defaultMarket = stringResource(Res.string.default_market)
     val profile = state.profile
     val photoUrl = state.photoUrl
-    val isLoading = state.isLoading
 
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -973,7 +973,7 @@ private fun SaveConfirmationDialog(
 
 @Composable
 private fun SectionHeader(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     iconColor: Color
 ) {
@@ -1011,7 +1011,7 @@ private fun ModernTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    leadingIcon: ImageVector,
     enabled: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     isValid: Boolean = true
@@ -1024,7 +1024,8 @@ private fun ModernTextField(
             Icon(
                 leadingIcon,
                 contentDescription = null,
-                tint = if (enabled && isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                tint = if (enabled && isValid) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
         },
         trailingIcon = {
@@ -1032,7 +1033,8 @@ private fun ModernTextField(
                 Icon(
                     if (isValid) Icons.Default.Check else Icons.Default.Close,
                     contentDescription = null,
-                    tint = if (isValid) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                    tint = if (isValid) MaterialTheme.colorScheme.tertiary
+                    else MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(20.dp)
                 )
             }
