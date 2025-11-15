@@ -355,7 +355,9 @@ private fun HeroProductCard(
                         ) {
                             // Show +/- buttons only for piece-based products, but reserve space
                             Box(
-                                modifier = Modifier.size(36.dp),
+                                modifier = Modifier.size(
+                                    if (!isWeightBased) 36.dp else 16.dp
+                                ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (!isWeightBased) {
@@ -378,7 +380,7 @@ private fun HeroProductCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
-                                    modifier = Modifier.width(50.dp),
+                                    modifier = Modifier.width(80.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     BasicTextField(
@@ -429,7 +431,9 @@ private fun HeroProductCard(
 
                             // Show +/- buttons only for piece-based products, but reserve space
                             Box(
-                                modifier = Modifier.size(36.dp),
+                                modifier = Modifier.size(
+                                    if (!isWeightBased) 36.dp else 16.dp
+                                ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (!isWeightBased) {
