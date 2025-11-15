@@ -378,7 +378,7 @@ private fun HeroProductCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
-                                    modifier = Modifier.width(60.dp),
+                                    modifier = Modifier.width(50.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     BasicTextField(
@@ -414,13 +414,15 @@ private fun HeroProductCard(
 
                                 // Unit label - only show for weight-based products
                                 if (isWeightBased) {
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(2.dp))
 
                                     Text(
                                         text = product.unit,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontWeight = FontWeight.Medium
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
