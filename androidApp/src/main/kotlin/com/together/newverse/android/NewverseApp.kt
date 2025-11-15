@@ -2,6 +2,9 @@ package com.together.newverse.android
 
 import android.app.Application
 import com.google.firebase.FirebaseApp
+import com.together.newverse.data.config.FeatureFlags
+import com.together.newverse.data.config.AuthProvider
+import com.together.newverse.data.firebase.GitLiveFirebaseInit
 import com.together.newverse.di.androidDomainModule
 import com.together.newverse.di.appModule
 import org.koin.android.ext.koin.androidContext
@@ -12,8 +15,15 @@ class NewverseApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize Firebase
+        // Initialize Firebase (required for both Firebase and GitLive SDKs)
         FirebaseApp.initializeApp(this)
+
+        // Initialize GitLive if configured
+        if (FeatureFlags.authProvider == AuthProvider.GITLIVE ||
+            FeatureFlags.authProvider == AuthProvider.AUTO) {
+            println("🚀 NewverseApp: Initializing GitLive Firebase SDK")
+            GitLiveFirebaseInit.initialize()
+        }
 
         startKoin {
             androidLogger()

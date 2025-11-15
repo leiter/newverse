@@ -1,0 +1,342 @@
+package com.together.newverse.data.repository
+
+import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.Market
+import com.together.newverse.domain.model.SellerProfile
+import com.together.newverse.domain.repository.ProfileRepository
+import com.together.newverse.domain.repository.AuthRepository
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.database.database
+import dev.gitlive.firebase.database.DatabaseReference
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
+
+/**
+ * GitLive implementation of ProfileRepository for cross-platform profile management.
+ * This is the REAL implementation using GitLive Firebase SDK.
+ */
+class GitLiveProfileRepository(
+    private val authRepository: AuthRepository
+) : ProfileRepository {
+
+    // GitLive Firebase Database references
+    private val database = Firebase.database
+    private val buyersRef = database.reference("profiles/buyers")
+    private val sellersRef = database.reference("seller_profiles")
+
+    // Local cache for performance
+    private val _buyerProfile = MutableStateFlow<BuyerProfile?>(null)
+    private val sellerProfileCache = mutableMapOf<String, SellerProfile>()
+
+    override fun observeBuyerProfile(): Flow<BuyerProfile?> {
+        println("🔐 GitLiveProfileRepository.observeBuyerProfile: Setting up profile observer")
+        return _buyerProfile.asStateFlow()
+    }
+
+    override suspend fun getBuyerProfile(): Result<BuyerProfile> {
+        return try {
+            println("🔐 GitLiveProfileRepository.getBuyerProfile: START")
+
+            val userId = authRepository.getCurrentUserId()
+            if (userId == null) {
+                println("❌ GitLiveProfileRepository.getBuyerProfile: No authenticated user")
+                return Result.failure(Exception("User not authenticated"))
+            }
+
+            // Check cache first
+            val cachedProfile = _buyerProfile.value
+            if (cachedProfile != null) {
+                println("✅ GitLiveProfileRepository.getBuyerProfile: Returning cached profile")
+                return Result.success(cachedProfile)
+            }
+
+            // Fetch from GitLive Firebase
+            val snapshot = buyersRef.child(userId).valueEvents.first()
+            val profileData = snapshot.value as? Map<*, *>
+
+            if (profileData != null) {
+                // Manual mapping from Firebase data
+                val profile = mapToBuyerProfile(userId, profileData)
+                _buyerProfile.value = profile
+                println("✅ GitLiveProfileRepository.getBuyerProfile: Fetched from Firebase")
+                Result.success(profile)
+            } else {
+                // Create default profile for new users
+                val defaultProfile = createDefaultBuyerProfile(userId)
+                _buyerProfile.value = defaultProfile
+                println("✅ GitLiveProfileRepository.getBuyerProfile: Created default profile")
+                Result.success(defaultProfile)
+            }
+
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.getBuyerProfile: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun saveBuyerProfile(profile: BuyerProfile): Result<BuyerProfile> {
+        return try {
+            println("🔐 GitLiveProfileRepository.saveBuyerProfile: START - ${profile.displayName}")
+
+            val userId = authRepository.getCurrentUserId()
+            if (userId == null) {
+                println("❌ GitLiveProfileRepository.saveBuyerProfile: No authenticated user")
+                return Result.failure(Exception("User not authenticated"))
+            }
+
+            // Ensure profile ID matches authenticated user
+            val profileWithCorrectId = profile.copy(id = userId)
+
+            // Save to GitLive Firebase
+            val dto = BuyerProfileDto.fromDomain(profileWithCorrectId)
+            buyersRef.child(userId).setValue(dto)
+
+            // Update local cache
+            _buyerProfile.value = profileWithCorrectId
+
+            println("✅ GitLiveProfileRepository.saveBuyerProfile: Success")
+            Result.success(profileWithCorrectId)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.saveBuyerProfile: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getSellerProfile(sellerId: String): Result<SellerProfile> {
+        return try {
+            println("🔐 GitLiveProfileRepository.getSellerProfile: START - sellerId=$sellerId")
+
+            // Check cache first
+            if (sellerId.isNotEmpty() && sellerProfileCache.containsKey(sellerId)) {
+                println("✅ GitLiveProfileRepository.getSellerProfile: Returning cached profile")
+                return Result.success(sellerProfileCache[sellerId]!!)
+            }
+
+            val targetSellerId = if (sellerId.isEmpty()) {
+                // Get first seller for buyers
+                val sellersSnapshot = sellersRef.get()
+                val firstSellerKey = sellersSnapshot.children.firstOrNull()?.key ?: "seller_001"
+                firstSellerKey
+            } else {
+                sellerId
+            }
+
+            // Fetch from GitLive Firebase
+            val snapshot = sellersRef.child(targetSellerId).get()
+            val profileDto = snapshot.getValue<SellerProfileDto>()
+
+            if (profileDto != null) {
+                val profile = profileDto.toDomain()
+                sellerProfileCache[targetSellerId] = profile
+                println("✅ GitLiveProfileRepository.getSellerProfile: Fetched from Firebase")
+                Result.success(profile)
+            } else {
+                // Return mock for testing if no seller found
+                val mockProfile = createMockSellerProfile(targetSellerId)
+                sellerProfileCache[targetSellerId] = mockProfile
+                println("✅ GitLiveProfileRepository.getSellerProfile: Created mock profile")
+                Result.success(mockProfile)
+            }
+
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.getSellerProfile: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun saveSellerProfile(profile: SellerProfile): Result<Unit> {
+        return try {
+            println("🔐 GitLiveProfileRepository.saveSellerProfile: START - ${profile.displayName}")
+
+            // Save to GitLive Firebase
+            val dto = SellerProfileDto.fromDomain(profile)
+            sellersRef.child(profile.id).setValue(dto)
+
+            // Update cache
+            sellerProfileCache[profile.id] = profile
+
+            println("✅ GitLiveProfileRepository.saveSellerProfile: Success")
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.saveSellerProfile: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<Boolean> {
+        return try {
+            println("🔐 GitLiveProfileRepository.clearUserData: START")
+
+            // Clear local state
+            _buyerProfile.value = null
+            sellerProfileCache.remove(sellerId)
+
+            println("✅ GitLiveProfileRepository.clearUserData: Success")
+            Result.success(true)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.clearUserData: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    // Helper functions
+
+    private fun createDefaultBuyerProfile(userId: String): BuyerProfile {
+        return BuyerProfile(
+            id = userId,
+            displayName = "New User",
+            emailAddress = "",
+            telephoneNumber = "",
+            photoUrl = "",
+            anonymous = false,
+            defaultMarket = "",
+            defaultPickUpTime = "",
+            placedOrderIds = emptyMap(),
+            favouriteArticles = emptyList()
+        )
+    }
+
+    private fun createMockSellerProfile(sellerId: String): SellerProfile {
+        return SellerProfile(
+            id = sellerId,
+            displayName = when (sellerId) {
+                "seller_001" -> "Test Store"
+                "seller_002" -> "Demo Shop"
+                else -> "GitLive Seller"
+            },
+            firstName = "Test",
+            lastName = "Seller",
+            street = "Main Street",
+            houseNumber = "123",
+            city = "Test City",
+            zipCode = "12345",
+            telephoneNumber = "+49123456789",
+            lat = "52.520008",
+            lng = "13.404954",
+            sellerId = sellerId,
+            markets = emptyList(),
+            urls = emptyList(),
+            knownClientIds = emptyList()
+        )
+    }
+}
+
+/**
+ * Data Transfer Object for Buyer Profile.
+ * Uses kotlinx.serialization for GitLive Firebase.
+ */
+@Serializable
+private data class BuyerProfileDto(
+    val id: String = "",
+    val displayName: String = "",
+    val emailAddress: String = "",
+    val telephoneNumber: String = "",
+    val photoUrl: String = "",
+    val anonymous: Boolean = true,
+    val defaultMarket: String = "",
+    val defaultPickUpTime: String = "",
+    val placedOrderIds: Map<String, String> = emptyMap(),
+    val favouriteArticles: List<String> = emptyList()
+) {
+    fun toDomain(): BuyerProfile {
+        return BuyerProfile(
+            id = id,
+            displayName = displayName,
+            emailAddress = emailAddress,
+            telephoneNumber = telephoneNumber,
+            photoUrl = photoUrl,
+            anonymous = anonymous,
+            defaultMarket = defaultMarket,
+            defaultPickUpTime = defaultPickUpTime,
+            placedOrderIds = placedOrderIds,
+            favouriteArticles = favouriteArticles
+        )
+    }
+
+    companion object {
+        fun fromDomain(profile: BuyerProfile): BuyerProfileDto {
+            return BuyerProfileDto(
+                id = profile.id,
+                displayName = profile.displayName,
+                emailAddress = profile.emailAddress,
+                telephoneNumber = profile.telephoneNumber,
+                photoUrl = profile.photoUrl,
+                anonymous = profile.anonymous,
+                defaultMarket = profile.defaultMarket,
+                defaultPickUpTime = profile.defaultPickUpTime,
+                placedOrderIds = profile.placedOrderIds,
+                favouriteArticles = profile.favouriteArticles
+            )
+        }
+    }
+}
+
+/**
+ * Data Transfer Object for Seller Profile.
+ * Uses kotlinx.serialization for GitLive Firebase.
+ */
+@Serializable
+private data class SellerProfileDto(
+    val id: String = "",
+    val displayName: String = "",
+    val firstName: String = "",
+    val lastName: String = "",
+    val street: String = "",
+    val houseNumber: String = "",
+    val city: String = "",
+    val zipCode: String = "",
+    val telephoneNumber: String = "",
+    val lat: String = "",
+    val lng: String = "",
+    val sellerId: String = "",
+    // Note: Markets might need custom serialization
+    val urls: List<String> = emptyList(),
+    val knownClientIds: List<String> = emptyList()
+) {
+    fun toDomain(): SellerProfile {
+        return SellerProfile(
+            id = id,
+            displayName = displayName,
+            firstName = firstName,
+            lastName = lastName,
+            street = street,
+            houseNumber = houseNumber,
+            city = city,
+            zipCode = zipCode,
+            telephoneNumber = telephoneNumber,
+            lat = lat,
+            lng = lng,
+            sellerId = sellerId,
+            markets = emptyList(), // Markets would need proper deserialization
+            urls = urls,
+            knownClientIds = knownClientIds
+        )
+    }
+
+    companion object {
+        fun fromDomain(profile: SellerProfile): SellerProfileDto {
+            return SellerProfileDto(
+                id = profile.id,
+                displayName = profile.displayName,
+                firstName = profile.firstName,
+                lastName = profile.lastName,
+                street = profile.street,
+                houseNumber = profile.houseNumber,
+                city = profile.city,
+                zipCode = profile.zipCode,
+                telephoneNumber = profile.telephoneNumber,
+                lat = profile.lat,
+                lng = profile.lng,
+                sellerId = profile.sellerId,
+                urls = profile.urls,
+                knownClientIds = profile.knownClientIds
+            )
+        }
+    }
+}
