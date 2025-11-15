@@ -3,18 +3,22 @@ package com.together.newverse.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import com.together.newverse.ui.MainScreenModern
-import com.together.newverse.ui.screens.buy.*
-import com.together.newverse.ui.screens.common.*
-import com.together.newverse.ui.screens.sell.*
+import com.together.newverse.shared.BuildKonfig
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedAppState
 
 /**
  * Navigation Graph for Newverse App
  *
- * Defines all navigation routes and their corresponding screens
+ * Composes modular navigation graphs based on build flavor:
+ * - Buy flavor (IS_BUY_APP=true): Common + Buy routes
+ * - Sell flavor (IS_SELL_APP=true): Common + Sell routes
+ * - Combined (both flags false): Common + Buy + Sell routes
+ *
+ * This design allows for:
+ * - Clean separation of flavor-specific navigation
+ * - Support for buy-only, sell-only, or combined builds
+ * - Easy addition of new routes to specific flavors
  */
 @Composable
 fun NavGraph(
@@ -27,101 +31,27 @@ fun NavGraph(
         navController = navController,
         startDestination = startDestination
     ) {
-        // Home/Main Screen
-        composable(NavRoutes.Home.route) {
-            MainScreenModern(
-                state = appState.screens.mainScreen,
-                onAction = onAction
-            )
+        // Always include common routes (Home, Login, Register, About)
+        commonNavGraph(navController, appState, onAction)
+
+        // Include Buy routes based on flavor configuration
+        // Include if: IS_BUY_APP is true OR it's a combined build (both flags false)
+        if (BuildKonfig.IS_BUY_APP || isCombinedBuild()) {
+            buyNavGraph(navController, appState, onAction)
         }
 
-        // Common Screens
-        composable(NavRoutes.About.route) {
-            AboutScreenModern(
-                onBackClick = { navController.popBackStack() }
-            )
-        }
-
-        composable(NavRoutes.Login.route) {
-            LoginScreen(
-                authState = appState.screens.auth,
-                onAction = onAction
-            )
-        }
-
-        composable(NavRoutes.Register.route) {
-            RegisterScreen(
-                authState = appState.screens.auth,
-                onAction = onAction
-            )
-        }
-
-        // Buy (Customer) Screens
-        // ProductsScreen removed - MainScreenModern is used instead
-
-        // Basket screen - uses base route with optional query parameters
-        composable(
-            route = NavRoutes.Buy.Basket.route + "?orderId={orderId}&orderDate={orderDate}",
-            arguments = listOf(
-                androidx.navigation.navArgument("orderId") {
-                    type = androidx.navigation.NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                androidx.navigation.navArgument("orderDate") {
-                    type = androidx.navigation.NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val orderIdArg = backStackEntry.arguments?.getString("orderId")
-            val orderDateArg = backStackEntry.arguments?.getString("orderDate")
-
-            BasketScreen(
-                orderId = orderIdArg ?: appState.common.basket.currentOrderId,
-                orderDate = orderDateArg ?: appState.common.basket.currentOrderDate
-            )
-        }
-
-        composable(NavRoutes.Buy.Profile.route) {
-            CustomerProfileScreenModern(
-                state = appState.screens.customerProfile,
-                onAction = onAction
-            )
-        }
-
-        composable(NavRoutes.Buy.OrderHistory.route) {
-            OrderHistoryScreen(
-                appState = appState,
-                onAction = onAction,
-                onBackClick = { navController.popBackStack() },
-                onOrderClick = { orderId, orderDate ->
-                    // Navigate to basket screen with order details
-                    navController.navigate(NavRoutes.Buy.Basket.createRoute(orderId, orderDate))
-                }
-            )
-        }
-
-        // Sell (Merchant) Screens
-        composable(NavRoutes.Sell.Overview.route) {
-            OverviewScreen()
-        }
-
-        composable(NavRoutes.Sell.Orders.route) {
-            OrdersScreen()
-        }
-
-        composable(NavRoutes.Sell.Create.route) {
-            CreateProductScreen()
-        }
-
-        composable(NavRoutes.Sell.Profile.route) {
-            SellerProfileScreen()
-        }
-
-        composable(NavRoutes.Sell.PickDay.route) {
-            PickDayScreen()
+        // Include Sell routes based on flavor configuration
+        // Include if: IS_SELL_APP is true OR it's a combined build (both flags false)
+        if (BuildKonfig.IS_SELL_APP || isCombinedBuild()) {
+            sellNavGraph()
         }
     }
+}
+
+/**
+ * Check if this is a combined build (both Buy and Sell features enabled)
+ * This happens when neither IS_BUY_APP nor IS_SELL_APP is set to true
+ */
+private fun isCombinedBuild(): Boolean {
+    return !BuildKonfig.IS_BUY_APP && !BuildKonfig.IS_SELL_APP
 }

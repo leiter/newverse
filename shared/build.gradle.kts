@@ -153,10 +153,14 @@ val requestedTasks = gradle.startParameter.taskRequests.flatMap { it.args }
 val isBuyFlavor = requestedTasks.any { it.contains("Buy", ignoreCase = true) }
 val isSellFlavor = requestedTasks.any { it.contains("Sell", ignoreCase = true) }
 
+// Determine current flavor:
+// - "buy" for Buy-only builds
+// - "sell" for Sell-only builds
+// - "combined" for builds with both Buy and Sell features (default for development)
 val currentFlavor = when {
-    isBuyFlavor -> "buy"
-    isSellFlavor -> "sell"
-    else -> "buy" // default to buy
+    isBuyFlavor && !isSellFlavor -> "buy"
+    isSellFlavor && !isBuyFlavor -> "sell"
+    else -> "combined" // Default to combined build (both features enabled)
 }
 
 buildkonfig {
@@ -178,10 +182,11 @@ buildkonfig {
                 buildConfigField(Type.STRING, "USER_TYPE", "sell")
             }
             else -> {
+                // Combined build: both Buy and Sell features enabled
                 buildConfigField(Type.STRING, "APP_NAME", "Newverse")
                 buildConfigField(Type.BOOLEAN, "IS_BUY_APP", "false")
                 buildConfigField(Type.BOOLEAN, "IS_SELL_APP", "false")
-                buildConfigField(Type.STRING, "USER_TYPE", "default")
+                buildConfigField(Type.STRING, "USER_TYPE", "combined")
             }
         }
     }

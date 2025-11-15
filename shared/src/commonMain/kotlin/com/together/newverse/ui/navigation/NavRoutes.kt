@@ -81,10 +81,26 @@ sealed class NavRoutes(val route: String) {
                     allRoutes.filter { route -> route !is Buy }
                 }
                 else -> {
-                    // Default/fallback: show all routes
+                    // Combined build (both flags false): show all routes
                     allRoutes
                 }
             }
+        }
+
+        // Check if this is a combined build (both Buy and Sell features enabled)
+        fun isCombinedBuild(): Boolean {
+            return !com.together.newverse.shared.BuildKonfig.IS_BUY_APP &&
+                   !com.together.newverse.shared.BuildKonfig.IS_SELL_APP
+        }
+
+        // Check if Buy features are available in current build
+        fun hasBuyFeatures(): Boolean {
+            return com.together.newverse.shared.BuildKonfig.IS_BUY_APP || isCombinedBuild()
+        }
+
+        // Check if Sell features are available in current build
+        fun hasSellFeatures(): Boolean {
+            return com.together.newverse.shared.BuildKonfig.IS_SELL_APP || isCombinedBuild()
         }
 
         // Get display name for route (returns StringResource)
