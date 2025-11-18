@@ -27,7 +27,11 @@ fun NavGraph(
     navController: NavHostController,
     appState: UnifiedAppState,
     onAction: (UnifiedAppAction) -> Unit,
-    startDestination: String = NavRoutes.Home.route
+    startDestination: String = NavRoutes.Home.route,
+    isSelectionMode: Boolean = false,
+    onSelectionModeChange: (Boolean) -> Unit = {},
+    isAvailabilityMode: Boolean = false,
+    onAvailabilityModeChange: (Boolean) -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -45,7 +49,7 @@ fun NavGraph(
         // Include Sell routes based on flavor configuration
         // Include if: IS_SELL_APP is true OR it's a combined build (both flags false)
         if (BuildKonfig.IS_SELL_APP || isCombinedBuild()) {
-            sellNavGraph(navController)
+            sellNavGraph(navController, isSelectionMode, onSelectionModeChange, isAvailabilityMode, onAvailabilityModeChange)
         }
     }
 }

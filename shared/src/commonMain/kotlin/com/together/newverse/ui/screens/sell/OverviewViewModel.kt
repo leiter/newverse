@@ -105,6 +105,86 @@ class OverviewViewModel(
         activeOrdersCount = 0
         loadOverview()
     }
+
+    fun deleteArticles(articleIds: Set<String>) {
+        viewModelScope.launch {
+            // Get current seller ID
+            val sellerId = authRepository.getCurrentUserId()
+            if (sellerId == null) {
+                println("❌ Cannot delete articles: User not authenticated")
+                _uiState.value = OverviewUiState.Error("Authentication required to delete products")
+                return@launch
+            }
+
+            // Delete each article from Firebase
+            articleIds.forEach { articleId ->
+                try {
+                    println("🗑️ Deleting article from Firebase: $articleId")
+                    val result = articleRepository.deleteArticle(sellerId, articleId)
+                    result.onSuccess {
+                        println("✅ Successfully deleted article: $articleId")
+                        // Remove from local list
+                        articles.removeAll { it.id == articleId }
+                    }.onFailure { error ->
+                        println("❌ Failed to delete article $articleId: ${error.message}")
+                    }
+                } catch (e: Exception) {
+                    println("❌ Exception deleting article $articleId: ${e.message}")
+                    e.printStackTrace()
+                }
+            }
+
+            // Update UI state after all deletions
+            updateUiState()
+        }
+    }
+
+    fun updateArticlesAvailability(articleIds: Set<String>, available: Boolean) {
+        viewModelScope.launch {
+            // Get current seller ID
+            val sellerId = authRepository.getCurrentUserId()
+            if (sellerId == null) {
+                println("❌ Cannot update articles: User not authenticated")
+                _uiState.value = OverviewUiState.Error("Authentication required to update products")
+                return@launch
+            }
+
+            println("📝 Updating ${articleIds.size} articles to available=$available")
+
+            // Update each article's availability in Firebase
+            articleIds.forEach { articleId ->
+                try {
+                    // Find the article in local list
+                    val article = articles.find { it.id == articleId }
+                    if (article != null) {
+                        // Update the article with new availability
+                        val updatedArticle = article.copy(available = available)
+                        println("📝 Updating article in Firebase: ${article.productName} (id=$articleId) -> available=$available")
+
+                        val result = articleRepository.saveArticle(sellerId, updatedArticle)
+                        result.onSuccess {
+                            println("✅ Successfully updated article: ${article.productName}")
+                            // Update local list
+                            val index = articles.indexOfFirst { it.id == articleId }
+                            if (index >= 0) {
+                                articles[index] = updatedArticle
+                            }
+                        }.onFailure { error ->
+                            println("❌ Failed to update article $articleId: ${error.message}")
+                        }
+                    } else {
+                        println("⚠️ Article $articleId not found in local list")
+                    }
+                } catch (e: Exception) {
+                    println("❌ Exception updating article $articleId: ${e.message}")
+                    e.printStackTrace()
+                }
+            }
+
+            // Update UI state after all updates
+            updateUiState()
+        }
+    }
 }
 
 sealed interface OverviewUiState {

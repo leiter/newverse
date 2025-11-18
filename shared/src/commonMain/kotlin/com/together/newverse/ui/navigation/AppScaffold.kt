@@ -6,10 +6,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -162,6 +166,9 @@ fun AppScaffold(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showOverflowMenu by remember { mutableStateOf(false) }
+    var isSelectionMode by remember { mutableStateOf(false) }
+    var isAvailabilityMode by remember { mutableStateOf(false) }
 
     // Observe snackbar state changes from ViewModel
     LaunchedEffect(appState.common.ui.snackbar) {
@@ -341,6 +348,58 @@ fun AppScaffold(
                                 }
                             }
                         }
+
+                        // Show refresh and overflow menu on Seller Overview screen
+                        if (currentRoute == NavRoutes.Sell.Overview.route) {
+                            // Refresh button
+                            IconButton(onClick = {
+                                // Recreate the screen to trigger refresh
+                                navController.navigate(NavRoutes.Sell.Overview.route) {
+                                    popUpTo(NavRoutes.Sell.Overview.route) { inclusive = true }
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Refresh",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                            // Overflow menu button
+                            Box {
+                                IconButton(onClick = { showOverflowMenu = true }) {
+                                    Icon(
+                                        imageVector = Icons.Default.MoreVert,
+                                        contentDescription = "More options",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = showOverflowMenu,
+                                    onDismissRequest = { showOverflowMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(if (isSelectionMode) "Cancel selection" else "Mark for deletion") },
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            isAvailabilityMode = false
+                                            isSelectionMode = !isSelectionMode
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(if (isAvailabilityMode) "Cancel selection" else "Verfügbarkeit") },
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            isSelectionMode = false
+                                            isAvailabilityMode = !isAvailabilityMode
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
@@ -358,7 +417,11 @@ fun AppScaffold(
                 NavGraph(
                     navController = navController,
                     appState = appState,
-                    onAction = { action -> viewModel.dispatch(action) }
+                    onAction = { action -> viewModel.dispatch(action) },
+                    isSelectionMode = isSelectionMode,
+                    onSelectionModeChange = { isSelectionMode = it },
+                    isAvailabilityMode = isAvailabilityMode,
+                    onAvailabilityModeChange = { isAvailabilityMode = it }
                 )
             }
         }

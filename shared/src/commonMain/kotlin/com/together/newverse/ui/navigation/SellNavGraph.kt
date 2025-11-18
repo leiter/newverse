@@ -18,10 +18,19 @@ import com.together.newverse.ui.screens.sell.*
  * Note: CreateProductScreen retrieves ImagePicker from LocalImagePicker CompositionLocal
  */
 fun NavGraphBuilder.sellNavGraph(
-    navController: NavHostController
+    navController: NavHostController,
+    isSelectionMode: Boolean = false,
+    onSelectionModeChange: (Boolean) -> Unit = {},
+    isAvailabilityMode: Boolean = false,
+    onAvailabilityModeChange: (Boolean) -> Unit = {}
 ) {
     composable(NavRoutes.Sell.Overview.route) {
-        OverviewScreen()
+        OverviewScreen(
+            isSelectionMode = isSelectionMode,
+            onSelectionModeChange = onSelectionModeChange,
+            isAvailabilityMode = isAvailabilityMode,
+            onAvailabilityModeChange = onAvailabilityModeChange
+        )
     }
 
     composable(NavRoutes.Sell.Orders.route) {
