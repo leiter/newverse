@@ -23,7 +23,7 @@ val appModule = module {
     viewModel { BasketViewModel(get(), get(), get(), get()) }
 
     // ViewModels - Sell/Seller
-    viewModel { OverviewViewModel(get()) }
+    viewModel { OverviewViewModel(get(), get(), get()) }
     viewModel { OrdersViewModel() }
     viewModel { CreateProductViewModel(get(), get(), get()) }
     viewModel { SellerProfileViewModel() }

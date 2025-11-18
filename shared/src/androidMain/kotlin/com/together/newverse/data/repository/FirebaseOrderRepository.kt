@@ -36,35 +36,66 @@ class FirebaseOrderRepository : OrderRepository {
 
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                snapshot.children.forEach { orderSnapshot ->
-                    val dto = orderSnapshot.getValue(OrderDto::class.java)
-                    if (dto != null) {
-                        val order = dto.toDomain(orderSnapshot.key ?: "")
-                        orders.add(order)
+                try {
+                    println("🔥 onChildAdded: snapshot.key=${snapshot.key}, childrenCount=${snapshot.childrenCount}")
+                    snapshot.children.forEach { orderSnapshot ->
+                        try {
+                            println("🔥 Processing order: key=${orderSnapshot.key}")
+                            val dto = orderSnapshot.getValue(OrderDto::class.java)
+                            if (dto != null) {
+                                val order = dto.toDomain(orderSnapshot.key ?: "")
+                                orders.add(order)
+                                println("✅ Added order: ${order.id}")
+                            } else {
+                                println("⚠️ Order DTO is null for key=${orderSnapshot.key}")
+                            }
+                        } catch (e: Exception) {
+                            println("❌ Error converting order ${orderSnapshot.key}: ${e.message}")
+                            e.printStackTrace()
+                        }
                     }
+                    trySend(orders.toList())
+                } catch (e: Exception) {
+                    println("❌ Error in onChildAdded: ${e.message}")
+                    e.printStackTrace()
                 }
-                trySend(orders.toList())
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
-                snapshot.children.forEach { orderSnapshot ->
-                    val dto = orderSnapshot.getValue(OrderDto::class.java)
-                    if (dto != null) {
-                        val order = dto.toDomain(orderSnapshot.key ?: "")
-                        val index = orders.indexOfFirst { it.id == order.id }
-                        if (index >= 0) {
-                            orders[index] = order
+                try {
+                    println("🔥 onChildChanged: snapshot.key=${snapshot.key}")
+                    snapshot.children.forEach { orderSnapshot ->
+                        try {
+                            val dto = orderSnapshot.getValue(OrderDto::class.java)
+                            if (dto != null) {
+                                val order = dto.toDomain(orderSnapshot.key ?: "")
+                                val index = orders.indexOfFirst { it.id == order.id }
+                                if (index >= 0) {
+                                    orders[index] = order
+                                    println("✅ Updated order: ${order.id}")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            println("❌ Error converting changed order ${orderSnapshot.key}: ${e.message}")
                         }
                     }
+                    trySend(orders.toList())
+                } catch (e: Exception) {
+                    println("❌ Error in onChildChanged: ${e.message}")
                 }
-                trySend(orders.toList())
             }
 
             override fun onChildRemoved(snapshot: DataSnapshot) {
-                snapshot.children.forEach { orderSnapshot ->
-                    orders.removeAll { it.id == orderSnapshot.key }
+                try {
+                    println("🔥 onChildRemoved: snapshot.key=${snapshot.key}")
+                    snapshot.children.forEach { orderSnapshot ->
+                        orders.removeAll { it.id == orderSnapshot.key }
+                        println("✅ Removed order: ${orderSnapshot.key}")
+                    }
+                    trySend(orders.toList())
+                } catch (e: Exception) {
+                    println("❌ Error in onChildRemoved: ${e.message}")
                 }
-                trySend(orders.toList())
             }
 
             override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
