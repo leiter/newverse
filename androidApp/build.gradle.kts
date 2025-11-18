@@ -113,8 +113,4 @@ dependencies {
 
     // Coroutines Play Services
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-
-    // Coil3 for image caching configuration
-    implementation("io.coil-kt.coil3:coil:3.0.4")
-    implementation("io.coil-kt.coil3:coil-compose:3.0.4")
 }

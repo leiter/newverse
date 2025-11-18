@@ -11,14 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import coil3.ImageLoader
-import coil3.PlatformContext
-import coil3.SingletonImageLoader
-import coil3.disk.DiskCache
-import coil3.disk.directory
-import coil3.memory.MemoryCache
-import coil3.request.crossfade
-import coil3.util.DebugLogger
+import com.together.newverse.util.initializeImageLoader
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.ui.navigation.AppScaffold
 import com.together.newverse.ui.navigation.NavRoutes
@@ -75,37 +68,10 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Configure Coil ImageLoader with disk and memory caching
+     * Uses shared multiplatform configuration
      */
     private fun setupImageLoader() {
-        SingletonImageLoader.setSafe { context ->
-            ImageLoader.Builder(context)
-                // Memory Cache - 25% of available memory
-                .memoryCache {
-                    MemoryCache.Builder()
-                        .maxSizePercent(context, 0.25)
-                        .build()
-                }
-                // Disk Cache - 100MB for product images
-                .diskCache {
-                    DiskCache.Builder()
-                        .directory(cacheDir.resolve("image_cache"))
-                        .maxSizeBytes(100 * 1024 * 1024) // 100 MB
-                        .build()
-                }
-                // Enable crossfade animation
-                .crossfade(true)
-                // Enable logging in debug builds
-                .apply {
-                    if (BuildConfig.DEBUG) {
-                        logger(DebugLogger())
-                    }
-                }
-                .build()
-        }
-
-        Log.d("MainActivity", "✅ Coil ImageLoader configured with caching:")
-        Log.d("MainActivity", "   - Memory cache: 25% of available memory")
-        Log.d("MainActivity", "   - Disk cache: 100MB at ${cacheDir.resolve("image_cache")}")
+        initializeImageLoader(this)
     }
 
     @Composable
