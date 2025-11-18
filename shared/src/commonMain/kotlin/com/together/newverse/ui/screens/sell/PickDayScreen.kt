@@ -31,11 +31,11 @@ fun PickDayScreen() {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = stringResource(Res.string.pick_day_title),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
+//        Text(
+//            text = stringResource(Res.string.pick_day_title),
+//            style = MaterialTheme.typography.headlineMedium,
+//            color = MaterialTheme.colorScheme.primary
+//        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
