@@ -12,6 +12,7 @@ import com.together.newverse.ui.screens.sell.OverviewScreen
 import com.together.newverse.ui.screens.sell.PickDayScreen
 import com.together.newverse.ui.screens.sell.SellerProfileScreen
 import com.together.newverse.ui.theme.NewverseTheme
+import com.together.newverse.util.ImagePicker
 
 // Common Screens
 
@@ -182,7 +183,15 @@ fun OrdersScreenPreview() {
 fun CreateProductScreenPreview() {
     NewverseTheme {
         Surface {
-            CreateProductScreen()
+            // Preview with mock ImagePicker via CompositionLocal
+            val context = androidx.compose.ui.platform.LocalContext.current
+            androidx.compose.runtime.CompositionLocalProvider(
+                com.together.newverse.util.LocalImagePicker provides ImagePicker(context as androidx.activity.ComponentActivity)
+            ) {
+                CreateProductScreen(
+                    onNavigateBack = {}
+                )
+            }
         }
     }
 }

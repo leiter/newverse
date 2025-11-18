@@ -15,6 +15,11 @@ class NewverseApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // Initialize feature flags BEFORE Firebase and Koin
+        // This must happen first to ensure all dependencies use the correct configuration
+        com.together.newverse.data.config.FeatureFlagConfig.configureForProduction()
+        println("🚀 NewverseApp: Feature flags configured for PRODUCTION (Firebase only)")
+
         // Initialize Firebase (required for both Firebase and GitLive SDKs)
         FirebaseApp.initializeApp(this)
 

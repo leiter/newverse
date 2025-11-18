@@ -12,12 +12,14 @@ import com.together.newverse.data.repository.PlatformArticleRepository
 import com.together.newverse.data.repository.PlatformAuthRepository
 import com.together.newverse.data.repository.PlatformOrderRepository
 import com.together.newverse.data.repository.PlatformProfileRepository
+import com.together.newverse.data.repository.PlatformStorageRepository
 import com.together.newverse.data.repository.ProfileRepositoryFactory
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
+import com.together.newverse.domain.repository.StorageRepository
 import org.koin.dsl.module
 
 /**
@@ -28,22 +30,8 @@ import org.koin.dsl.module
  * based on feature flags for gradual migration.
  */
 val androidDomainModule = module {
-    // Initialize feature flags based on build configuration
-    // You can change this to test different configurations
-    single {
-        // Options:
-        // FeatureFlagConfig.configureForProduction()     // Use Firebase only
-        // FeatureFlagConfig.configureForDevelopment()    // Test with 10% GitLive
-        // FeatureFlagConfig.configureForGitLiveTesting() // Use GitLive only
-        // FeatureFlagConfig.configureForABTesting(50)    // 50/50 split
-
-        // Default to production (Firebase) for safety
-        // Change this to test different configurations:
-        // FeatureFlagConfig.configureForProduction()     // Firebase only (stable)
-         FeatureFlagConfig.configureForGitLiveTesting()  // GitLive only (testing)
-        // FeatureFlagConfig.configureForDevelopment()     // Mixed mode
-//        FeatureFlagConfig.configureForProduction()
-    }
+    // Feature flags are now initialized in NewverseApp.onCreate() before Koin starts
+    // This ensures correct configuration is applied before any dependencies are created
 
     // Auth Repository - Uses platform-specific implementation that handles switching
     single<AuthRepository> {
@@ -77,5 +65,11 @@ val androidDomainModule = module {
         val authRepository = get<AuthRepository>()
         // Platform-specific implementation that properly loads Firebase or GitLive
         PlatformProfileRepository(authRepository)
+    }
+
+    // Storage Repository - Uses platform-specific implementation that handles switching
+    single<StorageRepository> {
+        // Platform-specific implementation that properly loads Firebase or GitLive
+        PlatformStorageRepository()
     }
 }

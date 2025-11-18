@@ -2,6 +2,7 @@ package com.together.newverse.ui.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.config.BuildFlavor
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.repository.ArticleRepository
@@ -75,6 +76,14 @@ class UnifiedAppViewModel(
                                 )
                             } else {
                                 UserState.Guest
+                            },
+                            // Set requiresLogin based on auth state and flavor
+                            requiresLogin = if (BuildFlavor.isSeller) {
+                                // Seller flavor: require login only if no user
+                                userId == null
+                            } else {
+                                // Buy flavor: never require login (guest access allowed)
+                                false
                             }
                         )
                     )
@@ -412,7 +421,10 @@ class UnifiedAppViewModel(
     /**
      * Check if user has a persisted authentication session
      * This runs BEFORE any Firebase connections
-     * If no persisted session exists, automatically sign in as guest
+     *
+     * Behavior depends on build flavor:
+     * - BUY flavor: If no session, automatically sign in as guest
+     * - SELL flavor: If no session, require login (no guest access)
      */
     private suspend fun checkAuthenticationStatus() {
         try {
@@ -424,12 +436,14 @@ class UnifiedAppViewModel(
                 )
             }
 
+            println("🔍 App Startup: Checking authentication (flavor: ${BuildFlavor.current})")
+
             // Check for persisted authentication session
             authRepository.checkPersistedAuth().fold(
                 onSuccess = { userId ->
                     if (userId != null) {
                         // User has valid persisted session
-                        println("App Startup: Restored auth session for user: $userId")
+                        println("✅ App Startup: Restored auth session for user: $userId")
                         _state.update { current ->
                             current.copy(
                                 meta = current.meta.copy(
@@ -438,35 +452,76 @@ class UnifiedAppViewModel(
                             )
                         }
                     } else {
-                        // No persisted session - automatically sign in as guest
-                        println("App Startup: No persisted auth - signing in as guest...")
-                        _state.update { current ->
-                            current.copy(
-                                meta = current.meta.copy(
-                                    initializationStep = InitializationStep.CheckingAuth
+                        // No persisted session - behavior depends on flavor
+                        if (BuildFlavor.allowsGuestAccess) {
+                            // BUY flavor: Auto sign-in as guest
+                            println("🛒 App Startup: No auth (BUY flavor) - signing in as guest...")
+                            signInAsGuest()
+                        } else {
+                            // SELL flavor: Require login
+                            println("🏪 App Startup: No auth (SELL flavor) - login required")
+                            _state.update { current ->
+                                current.copy(
+                                    common = current.common.copy(
+                                        user = UserState.Guest, // Not authenticated
+                                        requiresLogin = true  // Flag that login is required
+                                    ),
+                                    meta = current.meta.copy(
+                                        isInitializing = false,
+                                        isInitialized = true,
+                                        initializationStep = InitializationStep.Complete
+                                    )
                                 )
-                            )
+                            }
                         }
-                        signInAsGuest()
                     }
                 },
                 onFailure = { error ->
-                    // Failed to check auth - sign in as guest
-                    println("App Startup: Failed to check auth - ${error.message}, signing in as guest...")
-                    _state.update { current ->
-                        current.copy(
-                            meta = current.meta.copy(
-                                initializationStep = InitializationStep.CheckingAuth
+                    // Failed to check auth - behavior depends on flavor
+                    println("⚠️ App Startup: Failed to check auth - ${error.message}")
+                    if (BuildFlavor.allowsGuestAccess) {
+                        println("🛒 App Startup: BUY flavor - signing in as guest...")
+                        signInAsGuest()
+                    } else {
+                        println("🏪 App Startup: SELL flavor - login required")
+                        _state.update { current ->
+                            current.copy(
+                                common = current.common.copy(
+                                    user = UserState.Guest,
+                                    requiresLogin = true
+                                ),
+                                meta = current.meta.copy(
+                                    isInitializing = false,
+                                    isInitialized = true,
+                                    initializationStep = InitializationStep.Complete
+                                )
                             )
-                        )
+                        }
                     }
-                    signInAsGuest()
                 }
             )
         } catch (e: Exception) {
-            // Error checking auth - sign in as guest
-            println("App Startup: Exception checking auth - ${e.message}, signing in as guest...")
-            signInAsGuest()
+            // Error checking auth - behavior depends on flavor
+            println("❌ App Startup: Exception checking auth - ${e.message}")
+            if (BuildFlavor.allowsGuestAccess) {
+                println("🛒 App Startup: BUY flavor - signing in as guest...")
+                signInAsGuest()
+            } else {
+                println("🏪 App Startup: SELL flavor - login required")
+                _state.update { current ->
+                    current.copy(
+                        common = current.common.copy(
+                            user = UserState.Guest,
+                            requiresLogin = true
+                        ),
+                        meta = current.meta.copy(
+                            isInitializing = false,
+                            isInitialized = true,
+                            initializationStep = InitializationStep.Complete
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -845,10 +900,10 @@ class UnifiedAppViewModel(
             // Attempt sign in
             authRepository.signInWithEmail(email, password)
                 .onSuccess { userId ->
-                    // Success - auth state will be updated via observeAuthState()
-                    showSnackbar("Signed in successfully", SnackbarType.SUCCESS)
+                    println("✅ Login Success: userId=$userId, flavor=${BuildFlavor.current}")
 
-                    // Set success state and clear loading
+                    // Success - just clear the forced login flag and let the app naturally navigate
+                    // Don't try to navigate manually - let AppScaffold handle it
                     _state.update { current ->
                         current.copy(
                             screens = current.screens.copy(
@@ -857,13 +912,22 @@ class UnifiedAppViewModel(
                                     isSuccess = true,
                                     error = null
                                 )
+                            ),
+                            common = current.common.copy(
+                                requiresLogin = false // Clear forced login flag - this will hide ForcedLoginScreen
+                            ),
+                            meta = current.meta.copy(
+                                isInitializing = false,
+                                isInitialized = true,
+                                initializationStep = InitializationStep.Complete
                             )
                         )
                     }
 
-                    // Navigate to home after a short delay
-                    delay(500)
-                    navigateTo(NavRoutes.Home)
+                    // Show success message
+                    showSnackbar("Signed in successfully", SnackbarType.SUCCESS)
+
+                    println("🎯 Login complete - requiresLogin cleared, app will show main UI")
                 }
                 .onFailure { error ->
                     // Parse error message for user-friendly display

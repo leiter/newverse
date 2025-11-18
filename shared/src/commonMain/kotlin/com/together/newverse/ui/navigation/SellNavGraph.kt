@@ -1,6 +1,7 @@
 package com.together.newverse.ui.navigation
 
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.together.newverse.ui.screens.sell.*
 
@@ -13,8 +14,12 @@ import com.together.newverse.ui.screens.sell.*
  * - Create Product
  * - Seller Profile
  * - Pick Delivery Day
+ *
+ * Note: CreateProductScreen retrieves ImagePicker from LocalImagePicker CompositionLocal
  */
-fun NavGraphBuilder.sellNavGraph() {
+fun NavGraphBuilder.sellNavGraph(
+    navController: NavHostController
+) {
     composable(NavRoutes.Sell.Overview.route) {
         OverviewScreen()
     }
@@ -24,7 +29,9 @@ fun NavGraphBuilder.sellNavGraph() {
     }
 
     composable(NavRoutes.Sell.Create.route) {
-        CreateProductScreen()
+        CreateProductScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
     }
 
     composable(NavRoutes.Sell.Profile.route) {

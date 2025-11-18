@@ -19,6 +19,8 @@ import com.together.newverse.ui.state.UnifiedAppState
  * - Clean separation of flavor-specific navigation
  * - Support for buy-only, sell-only, or combined builds
  * - Easy addition of new routes to specific flavors
+ *
+ * Note: ImagePicker for seller features is provided via LocalImagePicker CompositionLocal
  */
 @Composable
 fun NavGraph(
@@ -43,7 +45,7 @@ fun NavGraph(
         // Include Sell routes based on flavor configuration
         // Include if: IS_SELL_APP is true OR it's a combined build (both flags false)
         if (BuildKonfig.IS_SELL_APP || isCombinedBuild()) {
-            sellNavGraph()
+            sellNavGraph(navController)
         }
     }
 }

@@ -149,6 +149,15 @@ fun AppScaffold(
         return // Exit early, don't show main UI yet
     }
 
+    // Check if login is required (seller flavor without authentication)
+    if (appState.common.requiresLogin) {
+        // Show forced login screen
+        com.together.newverse.ui.screens.common.ForcedLoginScreen(
+            onAction = { action -> viewModel.dispatch(action) }
+        )
+        return // Exit early, don't show main UI yet
+    }
+
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()

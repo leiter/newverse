@@ -56,6 +56,13 @@ object FeatureFlags {
     )
 
     /**
+     * Use GitLive Storage instead of Firebase Storage.
+     * When true, uses GitLive firebase-storage SDK (cross-platform).
+     * When false, uses native Firebase Storage (Android only).
+     */
+    var useGitLiveStorage: Boolean = true
+
+    /**
      * Check if GitLive should be used for a specific user.
      * This considers test users, rollout percentage, and platform.
      */
@@ -142,6 +149,7 @@ object FeatureFlagConfig {
         FeatureFlags.enableAuthDebugLogging = false
         FeatureFlags.enableAuthParallelTesting = false
         FeatureFlags.gitLiveRolloutPercentage = 0
+        FeatureFlags.useGitLiveStorage = false
     }
 
     /**
@@ -152,6 +160,7 @@ object FeatureFlagConfig {
         FeatureFlags.enableAuthDebugLogging = true
         FeatureFlags.enableAuthParallelTesting = true
         FeatureFlags.gitLiveRolloutPercentage = 10 // Test with 10% of users
+        FeatureFlags.useGitLiveStorage = true
     }
 
     /**
@@ -162,6 +171,7 @@ object FeatureFlagConfig {
         FeatureFlags.enableAuthDebugLogging = true
         FeatureFlags.enableAuthParallelTesting = false
         FeatureFlags.gitLiveRolloutPercentage = 100
+        FeatureFlags.useGitLiveStorage = true
     }
 
     /**
@@ -172,5 +182,6 @@ object FeatureFlagConfig {
         FeatureFlags.enableAuthDebugLogging = true
         FeatureFlags.enableAuthParallelTesting = true
         FeatureFlags.gitLiveRolloutPercentage = percentage.coerceIn(0, 100)
+        FeatureFlags.useGitLiveStorage = true
     }
 }
