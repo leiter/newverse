@@ -47,7 +47,7 @@ class TestContainerActivity : AppCompatActivity(), FirebaseAuth.AuthStateListene
         loginButton.setOnClickListener {
             loading(true)
             CoroutineScope(Dispatchers.Main).launch {
-                authRepository.signIn(testData.emailAddress, testData.passWord)
+                authRepository.signInWithEmail(testData.emailAddress, testData.passWord)
                     .onSuccess {
                         testData.isLoggedIn = true
                         loading(false)
@@ -62,7 +62,7 @@ class TestContainerActivity : AppCompatActivity(), FirebaseAuth.AuthStateListene
         createAccountButton.setOnClickListener {
             loading(true)
             CoroutineScope(Dispatchers.Main).launch {
-                authRepository.signUp(testData.emailAddress, testData.passWord)
+                authRepository.signUpWithEmail(testData.emailAddress, testData.passWord)
                     .onSuccess {
                         testData.isLoggedIn = true
                         loading(false)
