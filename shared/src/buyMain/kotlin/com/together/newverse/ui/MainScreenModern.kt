@@ -75,6 +75,12 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.place_holder_landscape
 import org.jetbrains.compose.resources.painterResource
 
+/**
+ * Buy flavor MainScreenModern (default)
+ *
+ * This is the buyer/customer version of the main screen.
+ * The sell flavor has its own version in sellMain.
+ */
 @Composable
 fun MainScreenModern(
     state: MainScreenState,

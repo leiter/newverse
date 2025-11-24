@@ -31,6 +31,28 @@ kotlin {
     }
 
     sourceSets {
+        // Buy flavor source set - only for Buy builds
+        val buyMain by creating {
+            dependsOn(commonMain.get())
+        }
+
+        // Sell flavor source set - only for Sell builds
+        val sellMain by creating {
+            dependsOn(commonMain.get())
+        }
+
+        // Android flavor-specific source sets that depend on KMP source sets
+        // These link the KMP source sets (buyMain/sellMain) to Android flavors
+        val androidBuy by creating {
+            dependsOn(androidMain.get())
+            dependsOn(buyMain)
+        }
+
+        val androidSell by creating {
+            dependsOn(androidMain.get())
+            dependsOn(sellMain)
+        }
+
         commonMain.dependencies {
             // Compose Multiplatform
             implementation(compose.runtime)
