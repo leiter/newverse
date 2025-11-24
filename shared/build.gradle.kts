@@ -146,6 +146,16 @@ android {
             dimension = "userType"
         }
     }
+
+    // Configure flavor-specific source sets for gradual separation
+    sourceSets {
+        getByName("buy") {
+            kotlin.srcDirs("src/buyMain/kotlin")
+        }
+        getByName("sell") {
+            kotlin.srcDirs("src/sellMain/kotlin")
+        }
+    }
 }
 
 // Detect the flavor from gradle tasks being executed

@@ -5,19 +5,20 @@ import com.together.newverse.ui.screens.sell.CreateProductViewModel
 import com.together.newverse.ui.screens.sell.OrdersViewModel
 import com.together.newverse.ui.screens.sell.OverviewViewModel
 import com.together.newverse.ui.screens.sell.SellerProfileViewModel
-import com.together.newverse.ui.state.UnifiedAppViewModel
+import com.together.newverse.ui.state.AppViewModel
+import com.together.newverse.ui.state.BuyAppViewModel
 import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
+/**
+ * Common app module with shared dependencies
+ * This is used by both buy and sell flavors
+ */
 val appModule = module {
-    // Unified ViewModel - Single source of truth
-    viewModel { UnifiedAppViewModel(get(), get(), get(), get(), get()) }
-
-    // Legacy ViewModels - Keep for backwards compatibility during migration
-    // LoginViewModel removed - now using UnifiedAppViewModel
-    // MainScreenViewModel removed - now using UnifiedAppViewModel
-    // ProductsViewModel removed - now using UnifiedAppViewModel
-    // CustomerProfileViewModel removed - now using UnifiedAppViewModel
+    // Buy flavor ViewModel - default for commonMain/buy flavor
+    // The sell flavor will override this with SellAppViewModel
+    viewModel { BuyAppViewModel(get(), get(), get(), get(), get()) } bind AppViewModel::class
 
     // ViewModels - Buy/Customer
     viewModel { BasketViewModel(get(), get(), get(), get()) }

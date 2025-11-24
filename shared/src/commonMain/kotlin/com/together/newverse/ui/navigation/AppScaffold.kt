@@ -51,7 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.together.newverse.ui.screens.SplashScreen
-import com.together.newverse.ui.state.UnifiedAppViewModel
+import com.together.newverse.ui.state.BuyAppViewModel
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -77,8 +77,8 @@ sealed interface PlatformAction {
 fun AppScaffold(
     onPlatformAction: (PlatformAction) -> Unit = {}
 ) {
-    // Get the unified ViewModel
-    val viewModel = koinViewModel<UnifiedAppViewModel>()
+    // Get the app ViewModel (BuyAppViewModel in buy flavor, SellAppViewModel in sell flavor)
+    val viewModel = koinViewModel<BuyAppViewModel>()
     val appState by viewModel.state.collectAsState()
 
     // Observe Google Sign-In trigger

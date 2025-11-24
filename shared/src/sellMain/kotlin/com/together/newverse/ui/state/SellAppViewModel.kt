@@ -25,21 +25,21 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 /**
- * Unified ViewModel managing all app state
+ * Sell flavor ViewModel managing all app state for seller/vendor app
  *
- * This is the single ViewModel for the entire app, implementing
+ * This is the single ViewModel for the sell flavor, implementing
  * a Redux-like pattern with actions and reducers.
  */
-class UnifiedAppViewModel(
+class SellAppViewModel(
     private val articleRepository: ArticleRepository,
     private val orderRepository: OrderRepository,
     private val profileRepository: ProfileRepository,
     private val authRepository: AuthRepository,
     private val basketRepository: BasketRepository
-) : ViewModel() {
+) : ViewModel(), AppViewModel {
 
     private val _state = MutableStateFlow(UnifiedAppState())
-    val state: StateFlow<UnifiedAppState> = _state.asStateFlow()
+    override val state: StateFlow<UnifiedAppState> = _state.asStateFlow()
 
     init {
         // Initialize app on startup
@@ -178,7 +178,7 @@ class UnifiedAppViewModel(
     /**
      * Main action dispatcher - all UI actions go through here
      */
-    fun dispatch(action: UnifiedAppAction) {
+    override fun dispatch(action: UnifiedAppAction) {
         when (action) {
             // Navigation actions
             is UnifiedNavigationAction -> handleNavigationAction(action)
@@ -989,7 +989,7 @@ class UnifiedAppViewModel(
     /**
      * Reset Google Sign-In trigger after it's been handled
      */
-    fun resetGoogleSignInTrigger() {
+    override fun resetGoogleSignInTrigger() {
         println("🔐 UnifiedAppViewModel.resetGoogleSignInTrigger: Resetting trigger")
         _state.update { current ->
             current.copy(
@@ -1003,7 +1003,7 @@ class UnifiedAppViewModel(
     /**
      * Reset Twitter Sign-In trigger after it's been handled
      */
-    fun resetTwitterSignInTrigger() {
+    override fun resetTwitterSignInTrigger() {
         println("🔐 UnifiedAppViewModel.resetTwitterSignInTrigger: Resetting trigger")
         _state.update { current ->
             current.copy(

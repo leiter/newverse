@@ -16,8 +16,8 @@ import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.ui.navigation.AppScaffold
 import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.navigation.PlatformAction
+import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.SnackbarType
-import com.together.newverse.ui.state.UnifiedAppViewModel
 import com.together.newverse.ui.state.UnifiedNavigationAction
 import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.ui.theme.NewverseTheme
@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
     private fun AppScaffoldWithGoogleSignIn() {
         val context = LocalContext.current
         val googleSignInHelper = GoogleSignInHelper(context, webClientId)
-        val viewModel: UnifiedAppViewModel = koinInject()
+        val viewModel: BuyAppViewModel = koinInject()
 
         // Register for Google Sign-In activity result
         val googleSignInLauncher = rememberLauncherForActivityResult(
