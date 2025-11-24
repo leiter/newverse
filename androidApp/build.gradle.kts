@@ -113,4 +113,7 @@ dependencies {
 
     // Coroutines Play Services
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    // WorkManager for background task scheduling
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }
