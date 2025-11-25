@@ -19,10 +19,7 @@ val appModule = module {
     viewModel {
         SellAppViewModel(
             articleRepository = get(),
-            orderRepository = get(),
-            profileRepository = get(),
-            authRepository = get(),
-            basketRepository = get()
+            authRepository = get()
         )
     }
 

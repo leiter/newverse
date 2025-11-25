@@ -2,14 +2,9 @@ package com.together.newverse.ui.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.config.BuildFlavor
 import com.together.newverse.domain.model.Article
-import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
-import com.together.newverse.domain.repository.BasketRepository
-import com.together.newverse.domain.repository.OrderRepository
-import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.navigation.NavRoutes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,22 +15,19 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
 /**
  * Sell flavor ViewModel managing all app state for seller/vendor app
  *
  * This is the single ViewModel for the sell flavor, implementing
  * a Redux-like pattern with actions and reducers.
+ *
+ * Note: This ViewModel is slimmed down compared to BuyAppViewModel,
+ * as sellers don't need basket, favorites, or buyer-specific features.
  */
 class SellAppViewModel(
     private val articleRepository: ArticleRepository,
-    private val orderRepository: OrderRepository,
-    private val profileRepository: ProfileRepository,
-    private val authRepository: AuthRepository,
-    private val basketRepository: BasketRepository
+    private val authRepository: AuthRepository
 ) : ViewModel(), AppViewModel {
 
     private val _state = MutableStateFlow(UnifiedAppState())
@@ -48,16 +40,12 @@ class SellAppViewModel(
         // Observe auth state changes
         observeAuthState()
 
-        // Initialize MainScreen observers
-        observeMainScreenBasket()
-        observeMainScreenBuyerProfile()
-
-        // Load MainScreen articles after auth is ready
+        // Load articles after auth is ready
         viewModelScope.launch {
             authRepository.observeAuthState()
                 .filterNotNull()
                 .first()
-            loadMainScreenArticles()
+            loadProducts()
         }
     }
 
@@ -70,145 +58,36 @@ class SellAppViewModel(
                             user = if (userId != null) {
                                 UserState.LoggedIn(
                                     id = userId,
-                                    email = "", // Will be populated from profile
-                                    name = "", // Will be populated from profile
-                                    role = UserRole.CUSTOMER // Default role
+                                    email = "",
+                                    name = "",
+                                    role = UserRole.SELLER
                                 )
                             } else {
                                 UserState.Guest
                             },
-                            // Set requiresLogin based on auth state and flavor
-                            requiresLogin = if (BuildFlavor.isSeller) {
-                                // Seller flavor: require login only if no user
-                                userId == null
-                            } else {
-                                // Buy flavor: never require login (guest access allowed)
-                                false
-                            }
+                            // Seller flavor: require login if no user
+                            requiresLogin = userId == null
                         )
                     )
                 }
-
-                // Load open order after successful authentication
-                if (userId != null) {
-                    loadOpenOrderAfterAuth()
-                }
             }
         }
-    }
-
-    /**
-     * Load the most recent open/editable order after successful authentication
-     * This populates the cart badge with the order item count
-     */
-    private fun loadOpenOrderAfterAuth() {
-        viewModelScope.launch {
-            try {
-                println("🛒 UnifiedAppViewModel.loadOpenOrderAfterAuth: START")
-
-                // Get buyer profile to get placed order IDs
-                val profileResult = profileRepository.getBuyerProfile()
-                profileResult.onSuccess { buyerProfile ->
-                    val placedOrderIds = buyerProfile.placedOrderIds
-
-                    if (placedOrderIds.isEmpty()) {
-                        println("🛒 UnifiedAppViewModel.loadOpenOrderAfterAuth: No placed orders found")
-                        return@launch
-                    }
-
-                    println("🛒 UnifiedAppViewModel.loadOpenOrderAfterAuth: Found ${placedOrderIds.size} placed orders")
-
-                    // Get the most recent editable order
-                    val sellerId = "" // Using empty seller ID for now
-                    val orderResult = orderRepository.getOpenEditableOrder(sellerId, placedOrderIds)
-
-                    orderResult.onSuccess { order ->
-                        if (order != null) {
-                            println("✅ UnifiedAppViewModel.loadOpenOrderAfterAuth: Loaded editable order - orderId=${order.id}, ${order.articles.size} items")
-
-                            // Calculate date key
-                            val dateKey = formatDateKey(order.pickUpDate)
-
-                            // Load order items into BasketRepository with order metadata
-                            basketRepository.loadOrderItems(order.articles, order.id, dateKey)
-
-                            // Update state to store order info for later retrieval
-                            _state.update { current ->
-                                current.copy(
-                                    common = current.common.copy(
-                                        basket = current.common.basket.copy(
-                                            currentOrderId = order.id,
-                                            currentOrderDate = dateKey
-                                        )
-                                    )
-                                )
-                            }
-
-                            val itemCount = order.articles.size
-                            println("✅ UnifiedAppViewModel.loadOpenOrderAfterAuth: Cart badge updated with $itemCount items")
-                        } else {
-                            println("🛒 UnifiedAppViewModel.loadOpenOrderAfterAuth: No editable orders found")
-                        }
-                    }.onFailure { error ->
-                        println("❌ UnifiedAppViewModel.loadOpenOrderAfterAuth: Failed to load order - ${error.message}")
-                    }
-                }.onFailure { error ->
-                    println("❌ UnifiedAppViewModel.loadOpenOrderAfterAuth: Failed to load buyer profile - ${error.message}")
-                }
-            } catch (e: Exception) {
-                println("❌ UnifiedAppViewModel.loadOpenOrderAfterAuth: Exception - ${e.message}")
-            }
-        }
-    }
-
-    /**
-     * Format timestamp to date key (yyyyMMdd) for Firebase paths
-     */
-    private fun formatDateKey(timestamp: Long): String {
-        val instant = Instant.fromEpochMilliseconds(timestamp)
-        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-        val year = dateTime.year
-        val month = dateTime.monthNumber.toString().padStart(2, '0')
-        val day = dateTime.dayOfMonth.toString().padStart(2, '0')
-        return "$year$month$day"
     }
 
     // ===== Public Action Handlers =====
 
-    /**
-     * Main action dispatcher - all UI actions go through here
-     */
     override fun dispatch(action: UnifiedAppAction) {
         when (action) {
-            // Navigation actions
             is UnifiedNavigationAction -> handleNavigationAction(action)
-
-            // User actions
             is UnifiedUserAction -> handleUserAction(action)
-
-            // Product actions
             is UnifiedProductAction -> handleProductAction(action)
-
-            // Basket actions
-            is UnifiedBasketAction -> handleBasketAction(action)
-
-            // Order actions
+            is UnifiedBasketAction -> { /* Not used in seller app */ }
             is UnifiedOrderAction -> handleOrderAction(action)
-
-            // UI actions
             is UnifiedUiAction -> handleUiAction(action)
-
-            // Profile actions
             is UnifiedProfileAction -> handleProfileAction(action)
-
-            // Search actions
-            is UnifiedSearchAction -> handleSearchAction(action)
-
-            // Filter actions
-            is UnifiedFilterAction -> handleFilterAction(action)
-
-            // Main Screen actions
-            is UnifiedMainScreenAction -> handleMainScreenAction(action)
+            is UnifiedSearchAction -> { /* Not used in seller app */ }
+            is UnifiedFilterAction -> { /* Not used in seller app */ }
+            is UnifiedMainScreenAction -> { /* Not used in seller app - seller uses OverviewScreen */ }
         }
     }
 
@@ -230,7 +109,7 @@ class SellAppViewModel(
             is UnifiedUserAction.LoginWithTwitter -> loginWithTwitter()
             is UnifiedUserAction.Logout -> logout()
             is UnifiedUserAction.Register -> register(action.email, action.password, action.name)
-            is UnifiedUserAction.UpdateProfile -> updateProfile(action.profile)
+            is UnifiedUserAction.UpdateProfile -> { /* TODO */ }
         }
     }
 
@@ -239,30 +118,19 @@ class SellAppViewModel(
             is UnifiedProductAction.LoadProducts -> loadProducts()
             is UnifiedProductAction.RefreshProducts -> refreshProducts()
             is UnifiedProductAction.SelectProduct -> selectProduct(action.product)
-            is UnifiedProductAction.ViewProductDetail -> viewProductDetail(action.productId)
-            is UnifiedProductAction.CreateProduct -> createProduct(action.productData)
-            is UnifiedProductAction.UpdateProduct -> updateProduct(action.productId, action.productData)
-            is UnifiedProductAction.DeleteProduct -> deleteProduct(action.productId)
-        }
-    }
-
-    private fun handleBasketAction(action: UnifiedBasketAction) {
-        when (action) {
-            is UnifiedBasketAction.AddToBasket -> addToBasket(action.product, action.quantity)
-            is UnifiedBasketAction.RemoveFromBasket -> removeFromBasket(action.productId)
-            is UnifiedBasketAction.UpdateQuantity -> updateBasketQuantity(action.productId, action.quantity)
-            is UnifiedBasketAction.ClearBasket -> clearBasket()
-            is UnifiedBasketAction.ApplyPromoCode -> applyPromoCode(action.code)
-            is UnifiedBasketAction.StartCheckout -> startCheckout()
+            is UnifiedProductAction.ViewProductDetail -> { /* TODO */ }
+            is UnifiedProductAction.CreateProduct -> { /* Handled by CreateProductViewModel */ }
+            is UnifiedProductAction.UpdateProduct -> { /* TODO */ }
+            is UnifiedProductAction.DeleteProduct -> { /* Handled by OverviewViewModel */ }
         }
     }
 
     private fun handleOrderAction(action: UnifiedOrderAction) {
         when (action) {
-            is UnifiedOrderAction.LoadOrders -> loadOrders()
-            is UnifiedOrderAction.ViewOrderDetail -> viewOrderDetail(action.orderId)
-            is UnifiedOrderAction.PlaceOrder -> placeOrder(action.checkoutData)
-            is UnifiedOrderAction.CancelOrder -> cancelOrder(action.orderId)
+            is UnifiedOrderAction.LoadOrders -> { /* Handled by OrdersViewModel */ }
+            is UnifiedOrderAction.ViewOrderDetail -> { /* Handled by navigation */ }
+            is UnifiedOrderAction.PlaceOrder -> { /* Not used in seller app */ }
+            is UnifiedOrderAction.CancelOrder -> { /* TODO */ }
         }
     }
 
@@ -272,83 +140,30 @@ class SellAppViewModel(
             is UnifiedUiAction.HideSnackbar -> hideSnackbar()
             is UnifiedUiAction.ShowDialog -> showDialog(action.dialog)
             is UnifiedUiAction.HideDialog -> hideDialog()
-            is UnifiedUiAction.ShowBottomSheet -> showBottomSheet(action.sheet)
-            is UnifiedUiAction.HideBottomSheet -> hideBottomSheet()
+            is UnifiedUiAction.ShowBottomSheet -> { /* TODO */ }
+            is UnifiedUiAction.HideBottomSheet -> { /* TODO */ }
             is UnifiedUiAction.SetRefreshing -> setRefreshing(action.isRefreshing)
         }
     }
 
     private fun handleProfileAction(action: UnifiedProfileAction) {
         when (action) {
-            is UnifiedProfileAction.LoadProfile -> loadProfile()
-            is UnifiedProfileAction.UpdateProfileField -> updateProfileField(action.field, action.value)
-            is UnifiedProfileAction.SaveProfile -> saveProfile()
-            is UnifiedProfileAction.CancelProfileEdit -> cancelProfileEdit()
-            is UnifiedProfileAction.LoadCustomerProfile -> loadCustomerProfile()
-            is UnifiedProfileAction.LoadOrderHistory -> loadOrderHistory()
-            is UnifiedProfileAction.RefreshCustomerProfile -> refreshCustomerProfile()
+            is UnifiedProfileAction.LoadProfile -> { /* Handled by SellerProfileScreen */ }
+            is UnifiedProfileAction.UpdateProfileField -> { /* TODO */ }
+            is UnifiedProfileAction.SaveProfile -> { /* TODO */ }
+            is UnifiedProfileAction.CancelProfileEdit -> { /* TODO */ }
+            is UnifiedProfileAction.LoadCustomerProfile -> { /* Not used in seller app */ }
+            is UnifiedProfileAction.LoadOrderHistory -> { /* Not used in seller app */ }
+            is UnifiedProfileAction.RefreshCustomerProfile -> { /* Not used in seller app */ }
             is UnifiedProfileAction.SaveBuyerProfile -> { /* Not used in seller app */ }
         }
     }
 
-    private fun handleSearchAction(action: UnifiedSearchAction) {
-        when (action) {
-            is UnifiedSearchAction.Search -> search(action.query)
-            is UnifiedSearchAction.ClearSearch -> clearSearch()
-            is UnifiedSearchAction.AddToSearchHistory -> addToSearchHistory(action.query)
-        }
-    }
+    // ===== Initialization =====
 
-    private fun handleFilterAction(action: UnifiedFilterAction) {
-        when (action) {
-            is UnifiedFilterAction.ApplyFilter -> applyFilter(action.key, action.value)
-            is UnifiedFilterAction.RemoveFilter -> removeFilter(action.key)
-            is UnifiedFilterAction.ClearFilters -> clearFilters()
-            is UnifiedFilterAction.SaveFilter -> saveFilter(action.name)
-            is UnifiedFilterAction.LoadSavedFilter -> loadSavedFilter(action.filterId)
-        }
-    }
-
-    private fun handleMainScreenAction(action: UnifiedMainScreenAction) {
-        when (action) {
-            is UnifiedMainScreenAction.SelectArticle -> selectMainScreenArticle(action.article)
-            is UnifiedMainScreenAction.UpdateQuantity -> updateMainScreenQuantity(action.quantity)
-            is UnifiedMainScreenAction.UpdateQuantityText -> updateMainScreenQuantityFromText(action.text)
-            UnifiedMainScreenAction.AddToCart -> addMainScreenToCart()
-            UnifiedMainScreenAction.RemoveFromBasket -> removeMainScreenFromBasket()
-            is UnifiedMainScreenAction.ToggleFavourite -> toggleMainScreenFavourite(action.articleId)
-            is UnifiedMainScreenAction.SetFilter -> setMainScreenFilter(action.filter)
-            UnifiedMainScreenAction.Refresh -> refreshMainScreen()
-            UnifiedMainScreenAction.DismissNewOrderSnackbar -> { /* Not applicable for seller */ }
-            UnifiedMainScreenAction.StartNewOrder -> { /* Not applicable for seller */ }
-        }
-    }
-
-    private fun setMainScreenFilter(filter: ProductFilter) {
-        _state.update { current ->
-            current.copy(
-                screens = current.screens.copy(
-                    mainScreen = current.screens.mainScreen.copy(
-                        activeFilter = filter
-                    )
-                )
-            )
-        }
-    }
-
-    // ===== Implementation Methods =====
-
-    /**
-     * Main initialization flow - executes sequentially based on auth state
-     * Flow:
-     * 1. Check Auth
-     * 2. If signed in: Load Profile → Load Order
-     * 3. Load Articles (for all users)
-     */
     private fun initializeApp() {
         viewModelScope.launch {
             try {
-                // Start initialization
                 _state.update { it.copy(
                     meta = it.meta.copy(
                         isInitializing = true,
@@ -356,49 +171,16 @@ class SellAppViewModel(
                     )
                 )}
 
-                // Step 1: Check authentication status
                 checkAuthenticationStatus()
 
-                // Step 2: Wait for auth state to stabilize
-                println("🚀 App Init: Waiting for authentication to complete...")
+                // Wait for auth state to stabilize
                 val userId = authRepository.observeAuthState()
                     .filterNotNull()
                     .first()
 
-                println("🚀 App Init: Authentication complete, user ID: $userId")
+                println("🚀 Sell App Init: Authentication complete, user ID: $userId")
 
-                // Step 3: Sequential loading based on user state
-                val userState = _state.value.common.user
-
-                when (userState) {
-                    is UserState.LoggedIn -> {
-                        println("🚀 App Init: User logged in, loading user-specific data...")
-
-                        // Step 3a: Load Profile
-                        _state.update { it.copy(
-                            meta = it.meta.copy(
-                                initializationStep = InitializationStep.LoadingProfile
-                            )
-                        )}
-                        loadUserProfile()
-
-                        // Step 3b: Load current order
-                        _state.update { it.copy(
-                            meta = it.meta.copy(
-                                initializationStep = InitializationStep.LoadingOrder
-                            )
-                        )}
-                        loadCurrentOrder()
-                    }
-                    is UserState.Guest -> {
-                        println("🚀 App Init: Guest user, skipping user-specific data")
-                    }
-                    is UserState.Loading -> {
-                        println("🚀 App Init: User state still loading, skipping user-specific data")
-                    }
-                }
-
-                // Step 4: Load articles (for all users)
+                // Load products
                 _state.update { it.copy(
                     meta = it.meta.copy(
                         initializationStep = InitializationStep.LoadingArticles
@@ -406,7 +188,7 @@ class SellAppViewModel(
                 )}
                 loadProducts()
 
-                // Step 5: Mark initialization complete
+                // Mark initialization complete
                 _state.update { it.copy(
                     meta = it.meta.copy(
                         isInitializing = false,
@@ -415,11 +197,10 @@ class SellAppViewModel(
                     )
                 )}
 
-                println("🚀 App Init: Initialization complete!")
+                println("🚀 Sell App Init: Initialization complete!")
 
             } catch (e: Exception) {
-                println("❌ App Init: Error during initialization: ${e.message}")
-                e.printStackTrace()
+                println("❌ Sell App Init: Error - ${e.message}")
                 _state.update { it.copy(
                     meta = it.meta.copy(
                         isInitializing = false,
@@ -434,72 +215,17 @@ class SellAppViewModel(
         }
     }
 
-    /**
-     * Check if user has a persisted authentication session
-     * This runs BEFORE any Firebase connections
-     *
-     * Behavior depends on build flavor:
-     * - BUY flavor: If no session, automatically sign in as guest
-     * - SELL flavor: If no session, require login (no guest access)
-     */
     private suspend fun checkAuthenticationStatus() {
         try {
-            _state.update { current ->
-                current.copy(
-                    meta = current.meta.copy(
-                        initializationStep = InitializationStep.CheckingAuth
-                    )
-                )
-            }
+            println("🔍 Sell App: Checking authentication")
 
-            println("🔍 App Startup: Checking authentication (flavor: ${BuildFlavor.current})")
-
-            // Check for persisted authentication session
             authRepository.checkPersistedAuth().fold(
                 onSuccess = { userId ->
                     if (userId != null) {
-                        // User has valid persisted session
-                        println("✅ App Startup: Restored auth session for user: $userId")
-                        _state.update { current ->
-                            current.copy(
-                                meta = current.meta.copy(
-                                    initializationStep = InitializationStep.LoadingProfile
-                                )
-                            )
-                        }
+                        println("✅ Sell App: Restored auth session for user: $userId")
                     } else {
-                        // No persisted session - behavior depends on flavor
-                        if (BuildFlavor.allowsGuestAccess) {
-                            // BUY flavor: Auto sign-in as guest
-                            println("🛒 App Startup: No auth (BUY flavor) - signing in as guest...")
-                            signInAsGuest()
-                        } else {
-                            // SELL flavor: Require login
-                            println("🏪 App Startup: No auth (SELL flavor) - login required")
-                            _state.update { current ->
-                                current.copy(
-                                    common = current.common.copy(
-                                        user = UserState.Guest, // Not authenticated
-                                        requiresLogin = true  // Flag that login is required
-                                    ),
-                                    meta = current.meta.copy(
-                                        isInitializing = false,
-                                        isInitialized = true,
-                                        initializationStep = InitializationStep.Complete
-                                    )
-                                )
-                            }
-                        }
-                    }
-                },
-                onFailure = { error ->
-                    // Failed to check auth - behavior depends on flavor
-                    println("⚠️ App Startup: Failed to check auth - ${error.message}")
-                    if (BuildFlavor.allowsGuestAccess) {
-                        println("🛒 App Startup: BUY flavor - signing in as guest...")
-                        signInAsGuest()
-                    } else {
-                        println("🏪 App Startup: SELL flavor - login required")
+                        // Seller flavor requires login
+                        println("🏪 Sell App: No auth - login required")
                         _state.update { current ->
                             current.copy(
                                 common = current.common.copy(
@@ -514,63 +240,43 @@ class SellAppViewModel(
                             )
                         }
                     }
+                },
+                onFailure = { error ->
+                    println("⚠️ Sell App: Failed to check auth - ${error.message}")
+                    _state.update { current ->
+                        current.copy(
+                            common = current.common.copy(
+                                user = UserState.Guest,
+                                requiresLogin = true
+                            ),
+                            meta = current.meta.copy(
+                                isInitializing = false,
+                                isInitialized = true,
+                                initializationStep = InitializationStep.Complete
+                            )
+                        )
+                    }
                 }
             )
         } catch (e: Exception) {
-            // Error checking auth - behavior depends on flavor
-            println("❌ App Startup: Exception checking auth - ${e.message}")
-            if (BuildFlavor.allowsGuestAccess) {
-                println("🛒 App Startup: BUY flavor - signing in as guest...")
-                signInAsGuest()
-            } else {
-                println("🏪 App Startup: SELL flavor - login required")
-                _state.update { current ->
-                    current.copy(
-                        common = current.common.copy(
-                            user = UserState.Guest,
-                            requiresLogin = true
-                        ),
-                        meta = current.meta.copy(
-                            isInitializing = false,
-                            isInitialized = true,
-                            initializationStep = InitializationStep.Complete
-                        )
+            println("❌ Sell App: Exception checking auth - ${e.message}")
+            _state.update { current ->
+                current.copy(
+                    common = current.common.copy(
+                        user = UserState.Guest,
+                        requiresLogin = true
+                    ),
+                    meta = current.meta.copy(
+                        isInitializing = false,
+                        isInitialized = true,
+                        initializationStep = InitializationStep.Complete
                     )
-                }
+                )
             }
         }
     }
 
-    /**
-     * Sign in anonymously as a guest user
-     */
-    private suspend fun signInAsGuest() {
-        authRepository.signInAnonymously().fold(
-            onSuccess = { userId ->
-                println("App Startup: Guest sign-in successful, user ID: $userId")
-                _state.update { current ->
-                    current.copy(
-                        meta = current.meta.copy(
-                            initializationStep = InitializationStep.CheckingAuth
-                        )
-                    )
-                }
-            },
-            onFailure = { error ->
-                println("App Startup: Guest sign-in failed - ${error.message}")
-                _state.update { current ->
-                    current.copy(
-                        meta = current.meta.copy(
-                            initializationStep = InitializationStep.Failed(
-                                step = "authentication",
-                                message = error.message ?: "Failed to create session"
-                            )
-                        )
-                    )
-                }
-            }
-        )
-    }
+    // ===== Navigation =====
 
     private fun navigateTo(route: NavRoutes) {
         _state.update { current ->
@@ -624,11 +330,12 @@ class SellAppViewModel(
         }
     }
 
+    // ===== Products =====
+
     private fun loadProducts() {
         viewModelScope.launch {
-            println("📦 UnifiedAppViewModel.loadProducts: START")
+            println("📦 SellAppViewModel.loadProducts: START")
 
-            // Update loading state
             _state.update { current ->
                 current.copy(
                     screens = current.screens.copy(
@@ -637,17 +344,10 @@ class SellAppViewModel(
                 )
             }
 
-            println("📦 UnifiedAppViewModel.loadProducts: Set loading state to true")
-
-            // Load products for demo - using empty sellerId for now
-            // TODO: Get sellerId from user state
             val sellerId = ""
-            println("📦 UnifiedAppViewModel.loadProducts: Calling articleRepository.getArticles(sellerId='$sellerId')")
-
             articleRepository.getArticles(sellerId)
                 .catch { e ->
-                    println("❌ UnifiedAppViewModel.loadProducts: ERROR - ${e.message}")
-                    e.printStackTrace()
+                    println("❌ SellAppViewModel.loadProducts: ERROR - ${e.message}")
                     _state.update { current ->
                         current.copy(
                             screens = current.screens.copy(
@@ -663,33 +363,17 @@ class SellAppViewModel(
                     }
                 }
                 .collect { article ->
-                    println("📦 UnifiedAppViewModel.loadProducts: Received article event - mode=${article.mode}, id=${article.id}, name=${article.productName}")
-
-                    // Handle individual article events
                     _state.update { current ->
                         val currentProducts = current.screens.products.items.toMutableList()
-                        val beforeCount = currentProducts.size
 
                         when (article.mode) {
-                            Article.MODE_ADDED -> {
-                                currentProducts.add(article)
-                                println("📦 UnifiedAppViewModel.loadProducts: ADDED article '${article.productName}' (id=${article.id})")
-                            }
+                            Article.MODE_ADDED -> currentProducts.add(article)
                             Article.MODE_CHANGED -> {
                                 val index = currentProducts.indexOfFirst { it.id == article.id }
-                                if (index >= 0) {
-                                    currentProducts[index] = article
-                                    println("📦 UnifiedAppViewModel.loadProducts: CHANGED article '${article.productName}' at index $index")
-                                }
+                                if (index >= 0) currentProducts[index] = article
                             }
-                            Article.MODE_REMOVED -> {
-                                currentProducts.removeAll { it.id == article.id }
-                                println("📦 UnifiedAppViewModel.loadProducts: REMOVED article '${article.productName}' (id=${article.id})")
-                            }
+                            Article.MODE_REMOVED -> currentProducts.removeAll { it.id == article.id }
                         }
-
-                        val afterCount = currentProducts.size
-                        println("📦 UnifiedAppViewModel.loadProducts: Product count: $beforeCount → $afterCount")
 
                         current.copy(
                             screens = current.screens.copy(
@@ -733,97 +417,7 @@ class SellAppViewModel(
         }
     }
 
-    private fun addToBasket(product: Article, quantity: Double) {
-        _state.update { current ->
-            val currentItems = current.common.basket.items.toMutableList()
-            val existingIndex = currentItems.indexOfFirst { it.productId == product.id }
-
-            if (existingIndex >= 0) {
-                // Update quantity if product already in basket
-                val existingItem = currentItems[existingIndex]
-                currentItems[existingIndex] = existingItem.copy(
-                    amountCount = existingItem.amountCount + quantity
-                )
-            } else {
-                // Add new item to basket
-                currentItems.add(
-                    OrderedProduct(
-                        productId = product.id,
-                        productName = product.productName,
-                        price = product.price,
-                        amountCount = quantity,
-                        piecesCount = quantity.toInt()
-                    )
-                )
-            }
-
-            val newTotal = currentItems.sumOf { it.price * it.amountCount }
-            val newCount = currentItems.sumOf { it.piecesCount }
-
-            current.copy(
-                common = current.common.copy(
-                    basket = current.common.basket.copy(
-                        items = currentItems,
-                        totalAmount = newTotal,
-                        itemCount = newCount
-                    )
-                )
-            )
-        }
-
-        // Show success snackbar
-        showSnackbar("Added to basket", SnackbarType.SUCCESS)
-    }
-
-    private fun removeFromBasket(productId: String) {
-        _state.update { current ->
-            val newItems = current.common.basket.items.filter { it.productId != productId }
-            val newTotal = newItems.sumOf { it.price * it.amountCount }
-            val newCount = newItems.sumOf { it.piecesCount }
-
-            current.copy(
-                common = current.common.copy(
-                    basket = current.common.basket.copy(
-                        items = newItems,
-                        totalAmount = newTotal,
-                        itemCount = newCount
-                    )
-                )
-            )
-        }
-    }
-
-    private fun updateBasketQuantity(productId: String, quantity: Double) {
-        _state.update { current ->
-            val newItems = current.common.basket.items.map { item ->
-                if (item.productId == productId) {
-                    item.copy(amountCount = quantity, piecesCount = quantity.toInt())
-                } else item
-            }
-            val newTotal = newItems.sumOf { it.price * it.amountCount }
-            val newCount = newItems.sumOf { it.piecesCount }
-
-            current.copy(
-                common = current.common.copy(
-                    basket = current.common.basket.copy(
-                        items = newItems,
-                        totalAmount = newTotal,
-                        itemCount = newCount
-                    )
-                )
-            )
-        }
-    }
-
-    private fun clearBasket() {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    basket = BasketState()
-                )
-            )
-        }
-    }
+    // ===== UI =====
 
     private fun showSnackbar(message: String, type: SnackbarType) {
         _state.update { current ->
@@ -867,26 +461,6 @@ class SellAppViewModel(
         }
     }
 
-    private fun showBottomSheet(sheet: BottomSheetState) {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    ui = current.common.ui.copy(bottomSheet = sheet)
-                )
-            )
-        }
-    }
-
-    private fun hideBottomSheet() {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    ui = current.common.ui.copy(bottomSheet = null)
-                )
-            )
-        }
-    }
-
     private fun setRefreshing(isRefreshing: Boolean) {
         _state.update { current ->
             current.copy(
@@ -897,10 +471,10 @@ class SellAppViewModel(
         }
     }
 
-    // Placeholder implementations for other methods
+    // ===== Authentication =====
+
     private fun login(email: String, password: String) {
         viewModelScope.launch {
-            // Clear any previous errors and set loading state
             _state.update { current ->
                 current.copy(
                     screens = current.screens.copy(
@@ -913,13 +487,10 @@ class SellAppViewModel(
                 )
             }
 
-            // Attempt sign in
             authRepository.signInWithEmail(email, password)
                 .onSuccess { userId ->
-                    println("✅ Login Success: userId=$userId, flavor=${BuildFlavor.current}")
+                    println("✅ Seller Login Success: userId=$userId")
 
-                    // Success - just clear the forced login flag and let the app naturally navigate
-                    // Don't try to navigate manually - let AppScaffold handle it
                     _state.update { current ->
                         current.copy(
                             screens = current.screens.copy(
@@ -930,7 +501,7 @@ class SellAppViewModel(
                                 )
                             ),
                             common = current.common.copy(
-                                requiresLogin = false // Clear forced login flag - this will hide ForcedLoginScreen
+                                requiresLogin = false
                             ),
                             meta = current.meta.copy(
                                 isInitializing = false,
@@ -940,31 +511,21 @@ class SellAppViewModel(
                         )
                     }
 
-                    // Show success message
-                    showSnackbar("Signed in successfully", SnackbarType.SUCCESS)
-
-                    println("🎯 Login complete - requiresLogin cleared, app will show main UI")
+                    showSnackbar("Anmeldung erfolgreich", SnackbarType.SUCCESS)
                 }
                 .onFailure { error ->
-                    // Parse error message for user-friendly display
                     val errorMessage = when {
                         error.message?.contains("No account found", true) == true ->
-                            "No account found with this email address"
+                            "Kein Konto mit dieser E-Mail gefunden"
                         error.message?.contains("Incorrect password", true) == true ->
-                            "Incorrect password. Please try again"
+                            "Falsches Passwort"
                         error.message?.contains("Invalid email", true) == true ->
-                            "Please enter a valid email address"
-                        error.message?.contains("Network", true) == true ->
-                            "Network error. Please check your connection"
-                        error.message?.contains("too many", true) == true ->
-                            "Too many failed attempts. Please try again later"
-                        else -> error.message ?: "Sign in failed. Please try again"
+                            "Ungültige E-Mail-Adresse"
+                        else -> error.message ?: "Anmeldung fehlgeschlagen"
                     }
 
-                    // Show error snackbar
                     showSnackbar(errorMessage, SnackbarType.ERROR)
 
-                    // Update state with error
                     _state.update { current ->
                         current.copy(
                             screens = current.screens.copy(
@@ -981,51 +542,35 @@ class SellAppViewModel(
     }
 
     private fun loginWithGoogle() {
-        println("🔐 UnifiedAppViewModel.loginWithGoogle: Triggering Google Sign-In flow")
+        println("🔐 SellAppViewModel.loginWithGoogle: Triggering Google Sign-In")
         _state.update { current ->
             current.copy(
-                common = current.common.copy(
-                    triggerGoogleSignIn = true
-                )
+                common = current.common.copy(triggerGoogleSignIn = true)
             )
         }
     }
 
     private fun loginWithTwitter() {
-        println("🔐 UnifiedAppViewModel.loginWithTwitter: Triggering Twitter Sign-In flow")
+        println("🔐 SellAppViewModel.loginWithTwitter: Triggering Twitter Sign-In")
         _state.update { current ->
             current.copy(
-                common = current.common.copy(
-                    triggerTwitterSignIn = true
-                )
+                common = current.common.copy(triggerTwitterSignIn = true)
             )
         }
     }
 
-    /**
-     * Reset Google Sign-In trigger after it's been handled
-     */
     override fun resetGoogleSignInTrigger() {
-        println("🔐 UnifiedAppViewModel.resetGoogleSignInTrigger: Resetting trigger")
         _state.update { current ->
             current.copy(
-                common = current.common.copy(
-                    triggerGoogleSignIn = false
-                )
+                common = current.common.copy(triggerGoogleSignIn = false)
             )
         }
     }
 
-    /**
-     * Reset Twitter Sign-In trigger after it's been handled
-     */
     override fun resetTwitterSignInTrigger() {
-        println("🔐 UnifiedAppViewModel.resetTwitterSignInTrigger: Resetting trigger")
         _state.update { current ->
             current.copy(
-                common = current.common.copy(
-                    triggerTwitterSignIn = false
-                )
+                common = current.common.copy(triggerTwitterSignIn = false)
             )
         }
     }
@@ -1034,26 +579,24 @@ class SellAppViewModel(
         viewModelScope.launch {
             authRepository.signOut()
                 .onSuccess {
-                    // Clear basket and other user-specific data
                     _state.update { current ->
                         current.copy(
                             common = current.common.copy(
                                 user = UserState.Guest,
-                                basket = BasketState()
+                                requiresLogin = true
                             )
                         )
                     }
-                    showSnackbar("Signed out successfully", SnackbarType.SUCCESS)
+                    showSnackbar("Abgemeldet", SnackbarType.SUCCESS)
                 }
                 .onFailure { error ->
-                    showSnackbar(error.message ?: "Sign out failed", SnackbarType.ERROR)
+                    showSnackbar(error.message ?: "Abmeldung fehlgeschlagen", SnackbarType.ERROR)
                 }
         }
     }
 
     private fun register(email: String, password: String, name: String) {
         viewModelScope.launch {
-            // Clear any previous errors and set loading state
             _state.update { current ->
                 current.copy(
                     screens = current.screens.copy(
@@ -1066,10 +609,8 @@ class SellAppViewModel(
                 )
             }
 
-            // Attempt sign up
             authRepository.signUpWithEmail(email, password)
                 .onSuccess { userId ->
-                    // Update user state with name
                     _state.update { current ->
                         current.copy(
                             common = current.common.copy(
@@ -1077,7 +618,7 @@ class SellAppViewModel(
                                     id = userId,
                                     name = name,
                                     email = email,
-                                    role = UserRole.CUSTOMER // Default to customer for new registrations
+                                    role = UserRole.SELLER
                                 )
                             ),
                             screens = current.screens.copy(
@@ -1090,26 +631,17 @@ class SellAppViewModel(
                         )
                     }
 
-                    // Show success message
-                    showSnackbar("Account created successfully! Please check your email for verification.", SnackbarType.SUCCESS)
-
-                    // Navigate to login after a short delay
+                    showSnackbar("Konto erstellt!", SnackbarType.SUCCESS)
                     delay(1500)
                     navigateTo(NavRoutes.Login)
                 }
                 .onFailure { error ->
-                    // Provide user-friendly error messages
                     val errorMessage = when {
                         error.message?.contains("email-already-in-use") == true ->
-                            "An account with this email already exists. Please sign in instead."
+                            "E-Mail bereits registriert"
                         error.message?.contains("weak-password") == true ->
-                            "Password is too weak. Please use at least 6 characters."
-                        error.message?.contains("invalid-email") == true ->
-                            "Invalid email address. Please check and try again."
-                        error.message?.contains("network") == true ->
-                            "Network error. Please check your connection and try again."
-                        else ->
-                            "Registration failed. Please try again."
+                            "Passwort zu schwach"
+                        else -> "Registrierung fehlgeschlagen"
                     }
 
                     _state.update { current ->
@@ -1126,627 +658,6 @@ class SellAppViewModel(
 
                     showSnackbar(errorMessage, SnackbarType.ERROR)
                 }
-        }
-    }
-
-    private fun updateProfile(profile: UserProfile) {
-        // TODO: Implement update profile
-    }
-
-    /**
-     * Load user profile during initialization
-     * Loads the profile data for the currently logged-in user
-     */
-    private suspend fun loadUserProfile() {
-        try {
-            val userId = (_state.value.common.user as? UserState.LoggedIn)?.id ?: return
-
-            println("👤 Loading user profile for userId: $userId")
-
-            val result = profileRepository.getBuyerProfile()
-
-            result.onSuccess { profile ->
-                println("✅ Profile loaded successfully: ${profile.displayName}")
-                _state.update { current ->
-                    current.copy(
-                        screens = current.screens.copy(
-                            customerProfile = current.screens.customerProfile.copy(
-                                profile = profile,
-                                isLoading = false,
-                                error = null
-                            )
-                        )
-                    )
-                }
-            }.onFailure { error ->
-                println("❌ Failed to load profile: ${error.message}")
-                _state.update { current ->
-                    current.copy(
-                        screens = current.screens.copy(
-                            customerProfile = current.screens.customerProfile.copy(
-                                isLoading = false,
-                                error = ErrorState(
-                                    message = "Failed to load profile: ${error.message}",
-                                    type = ErrorType.NETWORK
-                                )
-                            )
-                        )
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            println("❌ Exception loading profile: ${e.message}")
-        }
-    }
-
-    /**
-     * Load current editable order during initialization
-     * Finds the most recent order in EDITABLE state for the user
-     */
-    private suspend fun loadCurrentOrder() {
-        try {
-            val userId = (_state.value.common.user as? UserState.LoggedIn)?.id ?: return
-
-            println("📦 Loading current order for userId: $userId")
-
-            // Get profile to access placedOrderIds
-            val profileResult = profileRepository.getBuyerProfile()
-
-            profileResult.onSuccess { profile ->
-                // Load orders using profile's placedOrderIds
-                // Note: We'll need to know the sellerId - for now, use a default or skip
-                // This is simplified - in production, you'd need to handle multiple sellers
-                if (profile.placedOrderIds.isNotEmpty()) {
-                    println("📦 Found ${profile.placedOrderIds.size} placed orders")
-                    // TODO: Implement proper order loading with sellerId
-                    // For now, just log that we found orders
-                } else {
-                    println("ℹ️ No placed orders found in profile")
-                }
-            }.onFailure { error ->
-                println("❌ Failed to load profile for order check: ${error.message}")
-            }
-        } catch (e: Exception) {
-            println("❌ Exception loading current order: ${e.message}")
-        }
-    }
-
-    private fun loadProfile() {
-        // Redirect to loadCustomerProfile for now
-        loadCustomerProfile()
-    }
-
-    private fun loadCustomerProfile() {
-        viewModelScope.launch {
-            println("👤 UnifiedAppViewModel.loadCustomerProfile: START")
-
-            // Set loading state
-            _state.update { current ->
-                current.copy(
-                    screens = current.screens.copy(
-                        customerProfile = current.screens.customerProfile.copy(
-                            isLoading = true,
-                            error = null
-                        )
-                    )
-                )
-            }
-
-            try {
-                // Get buyer profile from repository
-                val result = profileRepository.getBuyerProfile()
-                result.onSuccess { profile ->
-                    println("✅ UnifiedAppViewModel.loadCustomerProfile: Success - ${profile.displayName}, photoUrl=${profile.photoUrl}")
-
-                    _state.update { current ->
-                        current.copy(
-                            screens = current.screens.copy(
-                                customerProfile = current.screens.customerProfile.copy(
-                                    isLoading = false,
-                                    profile = profile,
-                                    photoUrl = profile.photoUrl,
-                                    error = null
-                                )
-                            )
-                        )
-                    }
-                }.onFailure { error ->
-                    println("❌ UnifiedAppViewModel.loadCustomerProfile: Error - ${error.message}")
-
-                    _state.update { current ->
-                        current.copy(
-                            screens = current.screens.copy(
-                                customerProfile = current.screens.customerProfile.copy(
-                                    isLoading = false,
-                                    error = ErrorState(
-                                        message = error.message ?: "Failed to load profile",
-                                        type = ErrorType.GENERAL
-                                    )
-                                )
-                            )
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                println("❌ UnifiedAppViewModel.loadCustomerProfile: Exception - ${e.message}")
-                e.printStackTrace()
-
-                _state.update { current ->
-                    current.copy(
-                        screens = current.screens.copy(
-                            customerProfile = current.screens.customerProfile.copy(
-                                isLoading = false,
-                                error = ErrorState(
-                                    message = e.message ?: "Failed to load profile",
-                                    type = ErrorType.GENERAL
-                                )
-                            )
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    private fun loadOrderHistory() {
-        viewModelScope.launch {
-            println("📋 UnifiedAppViewModel.loadOrderHistory: START")
-
-            // Set loading state
-            _state.update { current ->
-                current.copy(
-                    screens = current.screens.copy(
-                        orderHistory = current.screens.orderHistory.copy(
-                            isLoading = true,
-                            error = null
-                        )
-                    )
-                )
-            }
-
-            try {
-                val profile = _state.value.screens.customerProfile.profile
-                if (profile != null && profile.placedOrderIds.isNotEmpty()) {
-                    // Load orders using the placedOrderIds from profile
-                    val result = orderRepository.getBuyerOrders("", profile.placedOrderIds)
-                    result.onSuccess { orders ->
-                        println("✅ UnifiedAppViewModel.loadOrderHistory: Loaded ${orders.size} orders")
-
-                        _state.update { current ->
-                            current.copy(
-                                screens = current.screens.copy(
-                                    orderHistory = current.screens.orderHistory.copy(
-                                        isLoading = false,
-                                        items = orders,
-                                        error = null
-                                    )
-                                )
-                            )
-                        }
-                    }.onFailure { error ->
-                        println("❌ UnifiedAppViewModel.loadOrderHistory: Error - ${error.message}")
-
-                        _state.update { current ->
-                            current.copy(
-                                screens = current.screens.copy(
-                                    orderHistory = current.screens.orderHistory.copy(
-                                        isLoading = false,
-                                        error = ErrorState(
-                                            message = error.message ?: "Failed to load order history",
-                                            type = ErrorType.GENERAL
-                                        )
-                                    )
-                                )
-                            )
-                        }
-                    }
-                } else {
-                    println("⚠️ UnifiedAppViewModel.loadOrderHistory: No orders to load")
-
-                    _state.update { current ->
-                        current.copy(
-                            screens = current.screens.copy(
-                                orderHistory = current.screens.orderHistory.copy(
-                                    isLoading = false,
-                                    items = emptyList(),
-                                    error = null
-                                )
-                            )
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                println("❌ UnifiedAppViewModel.loadOrderHistory: Exception - ${e.message}")
-                e.printStackTrace()
-
-                _state.update { current ->
-                    current.copy(
-                        screens = current.screens.copy(
-                            orderHistory = current.screens.orderHistory.copy(
-                                isLoading = false,
-                                error = ErrorState(
-                                    message = e.message ?: "Failed to load order history",
-                                    type = ErrorType.GENERAL
-                                )
-                            )
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    private fun refreshCustomerProfile() {
-        loadCustomerProfile()
-        loadOrderHistory()
-    }
-
-    private fun updateProfileField(field: String, value: String) {
-        // TODO: Implement update profile field
-    }
-
-    private fun saveProfile() {
-        // TODO: Implement save profile
-    }
-
-    private fun cancelProfileEdit() {
-        // TODO: Implement cancel profile edit
-    }
-
-    private fun viewProductDetail(productId: String) {
-        // TODO: Implement view product detail
-    }
-
-    private fun createProduct(productData: ProductFormData) {
-        // TODO: Implement create product
-    }
-
-    private fun updateProduct(productId: String, productData: ProductFormData) {
-        // TODO: Implement update product
-    }
-
-    private fun deleteProduct(productId: String) {
-        // TODO: Implement delete product
-    }
-
-    private fun applyPromoCode(code: String) {
-        // TODO: Implement apply promo code
-    }
-
-    private fun startCheckout() {
-        // TODO: Implement start checkout
-    }
-
-    private fun loadOrders() {
-        // TODO: Implement load orders
-    }
-
-    private fun viewOrderDetail(orderId: String) {
-        // TODO: Implement view order detail
-    }
-
-    private fun placeOrder(checkoutData: CheckoutData) {
-        // TODO: Implement place order
-    }
-
-    private fun cancelOrder(orderId: String) {
-        // TODO: Implement cancel order
-    }
-
-    private fun search(query: String) {
-        // TODO: Implement search
-    }
-
-    private fun clearSearch() {
-        // TODO: Implement clear search
-    }
-
-    private fun addToSearchHistory(query: String) {
-        // TODO: Implement add to search history
-    }
-
-    private fun applyFilter(key: String, value: FilterValue) {
-        // TODO: Implement apply filter
-    }
-
-    private fun removeFilter(key: String) {
-        // TODO: Implement remove filter
-    }
-
-    private fun clearFilters() {
-        // TODO: Implement clear filters
-    }
-
-    private fun saveFilter(name: String) {
-        // TODO: Implement save filter
-    }
-
-    private fun loadSavedFilter(filterId: String) {
-        // TODO: Implement load saved filter
-    }
-
-    // ===== Main Screen Implementation Methods =====
-
-    private fun selectMainScreenArticle(article: Article) {
-        // Check if this product is already in the basket
-        val basketItems = basketRepository.observeBasket().value
-        val existingItem = basketItems.find { it.productId == article.id }
-
-        // If it exists, pre-populate the quantity with the existing amount
-        val initialQuantity = existingItem?.amountCount ?: 0.0
-
-        _state.update { current ->
-            current.copy(
-                screens = current.screens.copy(
-                    mainScreen = current.screens.mainScreen.copy(
-                        selectedArticle = article,
-                        selectedQuantity = initialQuantity
-                    )
-                )
-            )
-        }
-
-        println("🎯 UnifiedAppViewModel.selectMainScreenArticle: Selected ${article.productName}, existing quantity: $initialQuantity")
-    }
-
-    private fun updateMainScreenQuantity(quantity: Double) {
-        _state.update { current ->
-            current.copy(
-                screens = current.screens.copy(
-                    mainScreen = current.screens.mainScreen.copy(
-                        selectedQuantity = quantity.coerceAtLeast(0.0)
-                    )
-                )
-            )
-        }
-    }
-
-    private fun updateMainScreenQuantityFromText(text: String) {
-        val quantity = text.replace(",", ".").toDoubleOrNull() ?: 0.0
-        updateMainScreenQuantity(quantity)
-    }
-
-    private fun addMainScreenToCart() {
-        val selectedArticle = _state.value.screens.mainScreen.selectedArticle ?: return
-        val quantity = _state.value.screens.mainScreen.selectedQuantity
-
-        if (quantity <= 0.0) {
-            // If quantity is 0, remove from basket if it exists
-            viewModelScope.launch {
-                basketRepository.removeItem(selectedArticle.id)
-            }
-            return
-        }
-
-        // Check if item already exists in basket
-        val basketItems = basketRepository.observeBasket().value
-        val existingItem = basketItems.find { it.productId == selectedArticle.id }
-
-        if (existingItem != null) {
-            // Update existing item quantity
-            viewModelScope.launch {
-                basketRepository.updateQuantity(selectedArticle.id, quantity)
-            }
-            println("🛒 UnifiedAppViewModel.addMainScreenToCart: Updated ${selectedArticle.productName} to ${quantity} ${selectedArticle.unit}")
-        } else {
-            // Create new OrderedProduct from selected article and quantity
-            val orderedProduct = OrderedProduct(
-                id = "", // Will be generated when order is placed
-                productId = selectedArticle.id,
-                productName = selectedArticle.productName,
-                unit = selectedArticle.unit,
-                price = selectedArticle.price,
-                amount = quantity.toString(),
-                amountCount = quantity,
-                piecesCount = if (selectedArticle.unit.lowercase() in listOf("kg", "g")) {
-                    (quantity / selectedArticle.weightPerPiece).toInt()
-                } else {
-                    quantity.toInt()
-                }
-            )
-
-            // Add to basket via BasketRepository
-            viewModelScope.launch {
-                basketRepository.addItem(orderedProduct)
-            }
-            println("🛒 UnifiedAppViewModel.addMainScreenToCart: Added ${selectedArticle.productName} (${quantity} ${selectedArticle.unit}) to basket")
-        }
-    }
-
-    private fun removeMainScreenFromBasket() {
-        val selectedArticle = _state.value.screens.mainScreen.selectedArticle ?: return
-
-        viewModelScope.launch {
-            basketRepository.removeItem(selectedArticle.id)
-            // Reset quantity to 0 after removing
-            _state.update { current ->
-                current.copy(
-                    screens = current.screens.copy(
-                        mainScreen = current.screens.mainScreen.copy(selectedQuantity = 0.0)
-                    )
-                )
-            }
-        }
-
-        println("🗑️ UnifiedAppViewModel.removeMainScreenFromBasket: Removed ${selectedArticle.productName} from basket")
-    }
-
-    private fun toggleMainScreenFavourite(articleId: String) {
-        viewModelScope.launch {
-            try {
-                println("⭐ UnifiedAppViewModel.toggleMainScreenFavourite: START - articleId=$articleId")
-
-                // Get current buyer profile
-                val profileResult = profileRepository.getBuyerProfile()
-                val currentProfile = profileResult.getOrNull()
-
-                if (currentProfile == null) {
-                    println("❌ UnifiedAppViewModel.toggleMainScreenFavourite: No buyer profile found")
-                    return@launch
-                }
-
-                // Check if article is already a favourite
-                val isFavourite = currentProfile.favouriteArticles.contains(articleId)
-                val updatedFavourites = if (isFavourite) {
-                    // Remove from favourites
-                    currentProfile.favouriteArticles.filter { it != articleId }
-                } else {
-                    // Add to favourites
-                    currentProfile.favouriteArticles + articleId
-                }
-
-                println("⭐ UnifiedAppViewModel.toggleMainScreenFavourite: ${if (isFavourite) "Removing" else "Adding"} article")
-
-                // Update profile with new favourites list
-                val updatedProfile = currentProfile.copy(favouriteArticles = updatedFavourites)
-                val saveResult = profileRepository.saveBuyerProfile(updatedProfile)
-
-                saveResult.onSuccess {
-                    println("✅ UnifiedAppViewModel.toggleMainScreenFavourite: Successfully updated favourites")
-                }.onFailure { error ->
-                    println("❌ UnifiedAppViewModel.toggleMainScreenFavourite: Failed to save - ${error.message}")
-                }
-
-            } catch (e: Exception) {
-                println("❌ UnifiedAppViewModel.toggleMainScreenFavourite: Exception - ${e.message}")
-                e.printStackTrace()
-            }
-        }
-    }
-
-    private fun refreshMainScreen() {
-        loadMainScreenArticles()
-    }
-
-    /**
-     * Load articles for MainScreen
-     */
-    private fun loadMainScreenArticles() {
-        viewModelScope.launch {
-            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: START")
-
-            _state.update { current ->
-                current.copy(
-                    screens = current.screens.copy(
-                        mainScreen = current.screens.mainScreen.copy(
-                            isLoading = true,
-                            error = null
-                        )
-                    )
-                )
-            }
-            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Set loading state to true")
-
-            // Load articles for a specific seller or use empty string for current user
-            val sellerId = "" // Empty string for current authenticated user
-            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Calling articleRepository.getArticles(sellerId='$sellerId')")
-
-            articleRepository.getArticles(sellerId)
-                .catch { e ->
-                    println("❌ UnifiedAppViewModel.loadMainScreenArticles: ERROR - ${e.message}")
-                    e.printStackTrace()
-                    _state.update { current ->
-                        current.copy(
-                            screens = current.screens.copy(
-                                mainScreen = current.screens.mainScreen.copy(
-                                    isLoading = false,
-                                    error = ErrorState(
-                                        message = e.message ?: "Failed to load articles",
-                                        type = ErrorType.NETWORK
-                                    )
-                                )
-                            )
-                        )
-                    }
-                }
-                .collect { article ->
-                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Received article event - mode=${article.mode}, id=${article.id}, name=${article.productName}")
-
-                    val currentArticles = _state.value.screens.mainScreen.articles.toMutableList()
-                    val beforeCount = currentArticles.size
-
-                    when (article.mode) {
-                        Article.MODE_ADDED -> {
-                            currentArticles.add(article)
-                            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: ADDED article '${article.productName}' (id=${article.id})")
-                        }
-                        Article.MODE_CHANGED -> {
-                            val index = currentArticles.indexOfFirst { it.id == article.id }
-                            if (index >= 0) {
-                                currentArticles[index] = article
-                                println("🎬 UnifiedAppViewModel.loadMainScreenArticles: CHANGED article '${article.productName}' at index $index")
-                            }
-                        }
-                        Article.MODE_REMOVED -> {
-                            currentArticles.removeAll { it.id == article.id }
-                            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: REMOVED article '${article.productName}' (id=${article.id})")
-                        }
-                        // MODE_MOVED typically doesn't need special handling
-                    }
-
-                    val afterCount = currentArticles.size
-                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Article count: $beforeCount → $afterCount")
-
-                    // Update articles list first
-                    _state.update { current ->
-                        current.copy(
-                            screens = current.screens.copy(
-                                mainScreen = current.screens.mainScreen.copy(
-                                    isLoading = false,
-                                    articles = currentArticles,
-                                    error = null
-                                )
-                            )
-                        )
-                    }
-
-                    // Auto-select first article if none selected (using proper selection logic)
-                    val currentSelectedArticle = _state.value.screens.mainScreen.selectedArticle
-                    if (currentSelectedArticle == null && currentArticles.isNotEmpty()) {
-                        val firstArticle = currentArticles.first()
-                        println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Auto-selecting first article: ${firstArticle.productName}")
-                        selectMainScreenArticle(firstArticle)  // ✅ Use proper selection method
-                    }
-                }
-        }
-    }
-
-    /**
-     * Observe basket to update MainScreen cart item count
-     */
-    private fun observeMainScreenBasket() {
-        viewModelScope.launch {
-            basketRepository.observeBasket().collect { basketItems ->
-                _state.update { current ->
-                    current.copy(
-                        screens = current.screens.copy(
-                            mainScreen = current.screens.mainScreen.copy(
-                                cartItemCount = basketItems.size,
-                                basketItems = basketItems
-                            )
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    /**
-     * Observe buyer profile to update MainScreen favourite articles
-     */
-    private fun observeMainScreenBuyerProfile() {
-        viewModelScope.launch {
-            profileRepository.observeBuyerProfile().collect { profile ->
-                _state.update { current ->
-                    current.copy(
-                        screens = current.screens.copy(
-                            mainScreen = current.screens.mainScreen.copy(
-                                favouriteArticles = profile?.favouriteArticles ?: emptyList()
-                            )
-                        )
-                    )
-                }
-            }
         }
     }
 }
