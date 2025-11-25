@@ -7,7 +7,6 @@ import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
 import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.model.Order
-import com.together.newverse.domain.model.isActive
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
@@ -79,8 +78,8 @@ class OverviewViewModel(
                         // Don't fail the whole screen, just show 0 orders
                     }
                     .collect { orders ->
-                        // Count only active orders (not completed or cancelled)
-                        activeOrdersCount = orders.count { it.status.isActive() }
+                        // Count only active orders (not completed, cancelled, or outdated)
+                        activeOrdersCount = orders.count { it.isActiveOrder() }
                         println("📊 Active orders count: $activeOrdersCount (total: ${orders.size})")
 
                         // Update UI state with current data

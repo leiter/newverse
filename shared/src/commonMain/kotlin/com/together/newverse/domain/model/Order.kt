@@ -115,4 +115,19 @@ data class Order(
 
         return "Abholung $day.$month.$year um $hour:$minute Uhr"
     }
+
+    /**
+     * Check if this order is still active (open and not outdated)
+     * An order is active if:
+     * - Status is not COMPLETED or CANCELLED
+     * - Pickup date has not passed
+     */
+    fun isActiveOrder(now: Instant = Clock.System.now()): Boolean {
+        // Check status first
+        if (!status.isActive()) return false
+
+        // Check if pickup date has passed
+        val pickupInstant = Instant.fromEpochMilliseconds(pickUpDate)
+        return now < pickupInstant
+    }
 }

@@ -10,6 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.together.newverse.ui.navigation.NavRoutes
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Bottom navigation bar for Seller app
@@ -21,14 +25,15 @@ fun SellerBottomNavigationBar(
 ) {
     NavigationBar {
         SellerBottomNavItems.forEach { item ->
+            val label = stringResource(item.labelRes)
             NavigationBarItem(
                 icon = {
                     Icon(
                         imageVector = item.icon,
-                        contentDescription = item.label
+                        contentDescription = label
                     )
                 },
-                label = { Text(item.label) },
+                label = { Text(label) },
                 selected = currentRoute == item.route,
                 onClick = {
                     if (currentRoute != item.route) {
@@ -42,34 +47,34 @@ fun SellerBottomNavigationBar(
 
 private data class BottomNavItem(
     val route: String,
-    val label: String,
+    val labelRes: StringResource,
     val icon: ImageVector
 )
 
 private val SellerBottomNavItems = listOf(
     BottomNavItem(
         route = NavRoutes.Sell.Overview.route,
-        label = "Dashboard",
+        labelRes = Res.string.bottomnav_dashboard,
         icon = Icons.Default.Home
     ),
     BottomNavItem(
         route = NavRoutes.Sell.Orders.route,
-        label = "Bestellungen",
+        labelRes = Res.string.bottomnav_demand,
         icon = Icons.Default.ShoppingCart
     ),
     BottomNavItem(
         route = NavRoutes.Sell.Products.route,
-        label = "Produkte",
+        labelRes = Res.string.bottomnav_products,
         icon = Icons.AutoMirrored.Filled.List
     ),
     BottomNavItem(
         route = NavRoutes.Sell.Create.route,
-        label = "Neu",
+        labelRes = Res.string.bottomnav_new,
         icon = Icons.Default.Add
     ),
     BottomNavItem(
         route = NavRoutes.Sell.Profile.route,
-        label = "Profil",
+        labelRes = Res.string.bottomnav_profile,
         icon = Icons.Default.Person
     )
 )

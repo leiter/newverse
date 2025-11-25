@@ -33,13 +33,8 @@ fun OrdersScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = stringResource(Res.string.orders_title),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        //Spacer(modifier = Modifier.height(16.dp))
 
         // Content based on state
         when (val state = uiState) {

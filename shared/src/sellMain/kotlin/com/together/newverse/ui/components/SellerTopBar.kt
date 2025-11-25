@@ -3,6 +3,7 @@ package com.together.newverse.ui.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -15,6 +16,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.together.newverse.ui.navigation.NavRoutes
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Top bar for Seller app
@@ -36,12 +40,53 @@ fun SellerTopBar(
 ) {
     var showOverflowMenu by remember { mutableStateOf(false) }
 
+    val isInSelectionMode = isSelectionMode || isAvailabilityMode
+
+    // Get localized titles
+    val sortimentTitle = stringResource(Res.string.topbar_sortiment)
+    val ordersTitle = stringResource(Res.string.topbar_orders)
+    val productsTitle = stringResource(Res.string.topbar_products)
+    val newProductTitle = stringResource(Res.string.topbar_new_product)
+    val profileTitle = stringResource(Res.string.topbar_profile)
+    val notificationsTitle = stringResource(Res.string.topbar_notifications)
+    val sellerTitle = stringResource(Res.string.topbar_seller)
+    val selectDeleteTitle = stringResource(Res.string.topbar_select_delete)
+    val changeAvailabilityTitle = stringResource(Res.string.topbar_change_availability)
+
     TopAppBar(
         title = {
-            Text(getRouteTitle(currentRoute))
+            Text(
+                if (isInSelectionMode) {
+                    if (isSelectionMode) selectDeleteTitle else changeAvailabilityTitle
+                } else {
+                    getRouteTitle(
+                        currentRoute,
+                        sortimentTitle,
+                        ordersTitle,
+                        productsTitle,
+                        newProductTitle,
+                        profileTitle,
+                        notificationsTitle,
+                        sellerTitle
+                    )
+                }
+            )
         },
         navigationIcon = {
-            if (shouldShowBackButton(currentRoute)) {
+            if (isInSelectionMode) {
+                // Show close button to cancel selection mode
+                IconButton(
+                    onClick = {
+                        if (isSelectionMode) onToggleSelectionMode()
+                        if (isAvailabilityMode) onToggleAvailabilityMode()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Auswahl abbrechen"
+                    )
+                }
+            } else if (shouldShowBackButton(currentRoute)) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -51,88 +96,100 @@ fun SellerTopBar(
             }
         },
         actions = {
-            if (pendingOrdersCount > 0) {
-                BadgedBox(
-                    badge = {
-                        Badge {
-                            Text(pendingOrdersCount.toString())
+            // Hide normal actions when in selection mode for cleaner UI
+            if (!isInSelectionMode) {
+                if (pendingOrdersCount > 0) {
+                    BadgedBox(
+                        badge = {
+                            Badge {
+                                Text(pendingOrdersCount.toString())
+                            }
+                        }
+                    ) {
+                        IconButton(onClick = onNavigateToOrders) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = "Bestellungen"
+                            )
                         }
                     }
-                ) {
-                    IconButton(onClick = onNavigateToOrders) {
+                }
+
+                // Show refresh and overflow menu on Overview screen
+                if (currentRoute == NavRoutes.Sell.Overview.route) {
+                    IconButton(onClick = onRefresh) {
                         Icon(
-                            imageVector = Icons.Default.ShoppingCart,
-                            contentDescription = "Bestellungen"
-                        )
-                    }
-                }
-            }
-
-            // Show refresh and overflow menu on Overview screen
-            if (currentRoute == NavRoutes.Sell.Overview.route) {
-                IconButton(onClick = onRefresh) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Aktualisieren"
-                    )
-                }
-
-                Box {
-                    IconButton(onClick = { showOverflowMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Mehr Optionen"
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Aktualisieren"
                         )
                     }
 
-                    DropdownMenu(
-                        expanded = showOverflowMenu,
-                        onDismissRequest = { showOverflowMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(if (isSelectionMode) "Auswahl abbrechen" else "Zum Löschen markieren") },
-                            onClick = {
-                                showOverflowMenu = false
-                                onToggleSelectionMode()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(if (isAvailabilityMode) "Auswahl abbrechen" else "Verfügbarkeit ändern") },
-                            onClick = {
-                                showOverflowMenu = false
-                                onToggleAvailabilityMode()
-                            }
-                        )
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Mehr Optionen"
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(selectDeleteTitle) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onToggleSelectionMode()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(changeAvailabilityTitle) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onToggleAvailabilityMode()
+                                }
+                            )
+                        }
                     }
                 }
-            }
 
-            IconButton(onClick = onNavigateToNotifications) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Benachrichtigungen"
-                )
-            }
+//                IconButton(onClick = onNavigateToNotifications) {
+//                    Icon(
+//                        imageVector = Icons.Default.Notifications,
+//                        contentDescription = "Benachrichtigungen"
+//                    )
+//                }
 
-            IconButton(onClick = onNavigateToProfile) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Profil"
-                )
+//                IconButton(onClick = onNavigateToProfile) {
+//                    Icon(
+//                        imageVector = Icons.Default.Person,
+//                        contentDescription = "Profil"
+//                    )
+//                }
             }
         }
     )
 }
 
-private fun getRouteTitle(route: String): String {
+private fun getRouteTitle(
+    route: String,
+    sortimentTitle: String,
+    ordersTitle: String,
+    productsTitle: String,
+    newProductTitle: String,
+    profileTitle: String,
+    notificationsTitle: String,
+    sellerTitle: String
+): String {
     return when (route) {
-        NavRoutes.Sell.Overview.route -> "Dashboard"
-        NavRoutes.Sell.Orders.route -> "Bestellungen"
-        NavRoutes.Sell.Products.route -> "Produkte"
-        NavRoutes.Sell.Create.route -> "Neues Produkt"
-        NavRoutes.Sell.Profile.route -> "Profil"
-        NavRoutes.Sell.NotificationSettings.route -> "Benachrichtigungen"
-        else -> "Verkäufer"
+        NavRoutes.Sell.Overview.route -> sortimentTitle
+        NavRoutes.Sell.Orders.route -> ordersTitle
+        NavRoutes.Sell.Products.route -> productsTitle
+        NavRoutes.Sell.Create.route -> newProductTitle
+        NavRoutes.Sell.Profile.route -> profileTitle
+        NavRoutes.Sell.NotificationSettings.route -> notificationsTitle
+        else -> sellerTitle
     }
 }
 

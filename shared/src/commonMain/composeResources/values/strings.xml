@@ -281,6 +281,28 @@
     <string name="overview_your_products">Ihre Produkte</string>
 
     <!-- ========================================= -->
+    <!-- SELLER TOP BAR TITLES -->
+    <!-- ========================================= -->
+    <string name="topbar_sortiment">Sortiment</string>
+    <string name="topbar_orders">Bestellungen</string>
+    <string name="topbar_products">Produkte</string>
+    <string name="topbar_new_product">Neues Produkt</string>
+    <string name="topbar_profile">Profil</string>
+    <string name="topbar_notifications">Benachrichtigungen</string>
+    <string name="topbar_seller">Verkäufer</string>
+    <string name="topbar_select_delete">Zum Löschen auswählen</string>
+    <string name="topbar_change_availability">Verfügbarkeit ändern</string>
+
+    <!-- ========================================= -->
+    <!-- SELLER BOTTOM NAV LABELS -->
+    <!-- ========================================= -->
+    <string name="bottomnav_dashboard">Sortiment</string>
+    <string name="bottomnav_demand">Nachfrage</string>
+    <string name="bottomnav_products">Produkte</string>
+    <string name="bottomnav_new">Neu</string>
+    <string name="bottomnav_profile">Profil</string>
+
+    <!-- ========================================= -->
     <!-- ABOUT SCREEN -->
     <!-- ========================================= -->
     <string name="about_contact_title">Kontakt</string>
