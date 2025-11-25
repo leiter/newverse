@@ -276,6 +276,8 @@ fun AppScaffold(
                             currentRoute == NavRoutes.Register.route) {
                             IconButton(
                                 onClick = {
+                                    // Update ViewModel state to stay in sync
+                                    viewModel.dispatch(com.together.newverse.ui.state.UnifiedNavigationAction.NavigateBack)
                                     navController.navigateUp()
                                 }
                             ) {

@@ -433,7 +433,27 @@ private fun HeroProductCard(
                                         value = quantityText,
                                         onValueChange = { newText ->
                                             // Allow only valid input (numbers, comma, dot)
-                                            val filtered = newText.filter { it.isDigit() || it == ',' || it == '.' }
+                                            var filtered = newText.filter { it.isDigit() || it == ',' || it == '.' }
+
+                                            // If current text is just "0" and a non-zero digit was added,
+                                            // replace the zero with the new digit
+                                            if (quantityText == "0" && filtered.length == 2) {
+                                                val nonZeroDigit = filtered.firstOrNull { it.isDigit() && it != '0' }
+                                                if (nonZeroDigit != null && !filtered.contains('.') && !filtered.contains(',')) {
+                                                    filtered = nonZeroDigit.toString()
+                                                }
+                                            }
+
+                                            // Remove leading zeros except for decimal numbers like "0.5" or "0,5"
+                                            if (filtered.length > 1 && filtered.startsWith("0")) {
+                                                val secondChar = filtered[1]
+                                                if (secondChar.isDigit()) {
+                                                    // "05" -> "5", "007" -> "7"
+                                                    filtered = filtered.dropWhile { it == '0' }.ifEmpty { "0" }
+                                                }
+                                                // "0." or "0," stays as is
+                                            }
+
                                             if (filtered.count { it == ',' || it == '.' } <= 1) {
                                                 quantityText = filtered
                                                 // Parse and update quantity
