@@ -81,4 +81,20 @@ class PlatformOrderRepository(
     ): Result<Order?> {
         return actualRepository.getOpenEditableOrder(sellerId, placedOrderIds)
     }
+
+    override suspend fun hideOrderForSeller(
+        sellerId: String,
+        date: String,
+        orderId: String
+    ): Result<Boolean> {
+        return actualRepository.hideOrderForSeller(sellerId, date, orderId)
+    }
+
+    override suspend fun hideOrderForBuyer(
+        sellerId: String,
+        date: String,
+        orderId: String
+    ): Result<Boolean> {
+        return actualRepository.hideOrderForBuyer(sellerId, date, orderId)
+    }
 }

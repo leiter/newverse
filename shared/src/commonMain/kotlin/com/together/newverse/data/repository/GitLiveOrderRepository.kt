@@ -5,19 +5,16 @@ import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.isEditable
-import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.database.database
-import dev.gitlive.firebase.database.DatabaseReference
 import dev.gitlive.firebase.database.DataSnapshot
+import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 /**
@@ -57,7 +54,7 @@ class GitLiveOrderRepository(
                     // Process order snapshots within each date
                     dateSnapshot.children.forEach { orderSnapshot ->
                         val order = mapSnapshotToOrder(orderSnapshot)
-                        if (order != null) {
+                        if (order != null && !order.hiddenBySeller) {
                             orders.add(order)
                         }
                     }
@@ -393,7 +390,9 @@ class GitLiveOrderRepository(
                             OrderStatus.valueOf(value["status"] as? String ?: "DRAFT")
                         } catch (e: Exception) {
                             OrderStatus.DRAFT
-                        }
+                        },
+                        hiddenBySeller = value["hiddenBySeller"] as? Boolean ?: false,
+                        hiddenByBuyer = value["hiddenByBuyer"] as? Boolean ?: false
                     )
                 } catch (e: Exception) {
                     println("❌ Error mapping order snapshot: ${e.message}")
@@ -431,8 +430,42 @@ class GitLiveOrderRepository(
                     "piecesCount" to article.piecesCount
                 )
             },
-            "status" to order.status.name
+            "status" to order.status.name,
+            "hiddenBySeller" to order.hiddenBySeller,
+            "hiddenByBuyer" to order.hiddenByBuyer
         )
+    }
+
+    override suspend fun hideOrderForSeller(sellerId: String, date: String, orderId: String): Result<Boolean> {
+        return try {
+            println("🔐 GitLiveOrderRepository.hideOrderForSeller: START - orderId=$orderId")
+
+            val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId).child("hiddenBySeller")
+            orderRef.setValue(true)
+
+            println("✅ GitLiveOrderRepository.hideOrderForSeller: Success")
+            Result.success(true)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.hideOrderForSeller: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String): Result<Boolean> {
+        return try {
+            println("🔐 GitLiveOrderRepository.hideOrderForBuyer: START - orderId=$orderId")
+
+            val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId).child("hiddenByBuyer")
+            orderRef.setValue(true)
+
+            println("✅ GitLiveOrderRepository.hideOrderForBuyer: Success")
+            Result.success(true)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.hideOrderForBuyer: Error - ${e.message}")
+            Result.failure(e)
+        }
     }
 
     /**

@@ -10,7 +10,9 @@ import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun SellerProfileScreen() {
+fun SellerProfileScreen(
+    onNotificationSettingsClick: () -> Unit = {}
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -81,6 +83,17 @@ fun SellerProfileScreen() {
         ) {
             Text(
                 text = stringResource(Res.string.seller_profile_payment),
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+
+        OutlinedCard(
+            onClick = onNotificationSettingsClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(Res.string.nav_notification_settings),
                 modifier = Modifier.padding(16.dp),
                 style = MaterialTheme.typography.bodyLarge
             )

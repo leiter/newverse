@@ -28,7 +28,7 @@ val appModule = module {
 
     // Sell-specific ViewModels
     viewModel { OverviewViewModel(get(), get(), get()) }
-    viewModel { OrdersViewModel() }
+    viewModel { OrdersViewModel(get(), get()) }
     viewModel { CreateProductViewModel(get(), get(), get()) }
     viewModel { SellerProfileViewModel() }
 }

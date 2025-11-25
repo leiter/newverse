@@ -31,7 +31,9 @@ fun NavGraph(
     isSelectionMode: Boolean = false,
     onSelectionModeChange: (Boolean) -> Unit = {},
     isAvailabilityMode: Boolean = false,
-    onAvailabilityModeChange: (Boolean) -> Unit = {}
+    onAvailabilityModeChange: (Boolean) -> Unit = {},
+    notificationSettingsContent: @Composable () -> Unit = {},
+    productsContent: @Composable (() -> Unit) -> Unit = { onCreateProduct -> }
 ) {
     NavHost(
         navController = navController,
@@ -49,7 +51,15 @@ fun NavGraph(
         // Include Sell routes based on flavor configuration
         // Include if: IS_SELL_APP is true OR it's a combined build (both flags false)
         if (BuildKonfig.IS_SELL_APP || isCombinedBuild()) {
-            sellNavGraph(navController, isSelectionMode, onSelectionModeChange, isAvailabilityMode, onAvailabilityModeChange)
+            sellNavGraph(
+                navController = navController,
+                isSelectionMode = isSelectionMode,
+                onSelectionModeChange = onSelectionModeChange,
+                isAvailabilityMode = isAvailabilityMode,
+                onAvailabilityModeChange = onAvailabilityModeChange,
+                notificationSettingsContent = notificationSettingsContent,
+                productsContent = productsContent
+            )
         }
     }
 }

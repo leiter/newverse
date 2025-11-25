@@ -37,9 +37,16 @@ sealed class NavRoutes(val route: String) {
     sealed class Sell(route: String) : NavRoutes(route) {
         data object Overview : Sell("sell/overview")
         data object Orders : Sell("sell/orders")
+        data object OrderDetail : Sell("sell/order/{orderId}") {
+            fun createRoute(orderId: String): String {
+                return "sell/order/$orderId"
+            }
+        }
+        data object Products : Sell("sell/products")
         data object Create : Sell("sell/create")
         data object Profile : Sell("sell/profile")
         data object PickDay : Sell("sell/pick_day")
+        data object NotificationSettings : Sell("sell/notification_settings")
     }
 
     companion object {
@@ -57,6 +64,7 @@ sealed class NavRoutes(val route: String) {
             // Sell routes
             Sell.Overview,
             Sell.Orders,
+            Sell.Products,
             Sell.Create,
             Sell.Profile,
             Sell.PickDay
@@ -114,9 +122,12 @@ sealed class NavRoutes(val route: String) {
             Buy.OrderHistory -> Res.string.action_orders
             Sell.Overview -> Res.string.nav_product_overview
             Sell.Orders -> Res.string.nav_manage_orders
+            Sell.OrderDetail -> Res.string.order_detail_title
+            Sell.Products -> Res.string.overview_your_products
             Sell.Create -> Res.string.nav_create_product
             Sell.Profile -> Res.string.nav_seller_profile
             Sell.PickDay -> Res.string.nav_pick_delivery_day
+            Sell.NotificationSettings -> Res.string.nav_notification_settings
         }
 
         // Get category for grouping in drawer (returns StringResource)

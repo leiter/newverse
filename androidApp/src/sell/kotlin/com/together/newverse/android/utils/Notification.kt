@@ -4,7 +4,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import com.together.newverse.android.MainActivity
+import com.together.newverse.android.SellMainActivity
 import com.together.newverse.android.R
 
 fun provideBaseNotificationBuilder(
@@ -22,7 +22,7 @@ fun provideActivityPendingIntent(
     PendingIntent.getActivity(
         context,
         0,
-        Intent(context, MainActivity::class.java).apply {
+        Intent(context, SellMainActivity::class.java).apply {
             action = ACTION_SHOW_ORDER_FRAGMENT
         },
         PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE

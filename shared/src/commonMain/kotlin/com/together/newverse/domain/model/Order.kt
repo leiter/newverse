@@ -4,6 +4,8 @@ import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.OrderWindowStatus
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Represents a customer order
@@ -18,7 +20,9 @@ data class Order(
     val message: String = "",
     val notFavourite: Boolean = true,
     val articles: List<OrderedProduct> = emptyList(),
-    val status: OrderStatus = OrderStatus.DRAFT
+    val status: OrderStatus = OrderStatus.DRAFT,
+    val hiddenBySeller: Boolean = false,
+    val hiddenByBuyer: Boolean = false
 ) {
     /**
      * Check if this order can be edited based on current time
@@ -92,5 +96,23 @@ data class Order(
             pickupDate = Instant.fromEpochMilliseconds(pickUpDate),
             now = now
         )
+    }
+
+    /**
+     * Get formatted pickup date and time
+     * Format: "Abholung DD.MM.YYYY um HH:MM Uhr"
+     * Based on universe project's toPickUpText() extension
+     */
+    fun getFormattedPickupDateAndTime(): String {
+        val instant = Instant.fromEpochMilliseconds(pickUpDate)
+        val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+
+        val day = localDateTime.dayOfMonth.toString().padStart(2, '0')
+        val month = localDateTime.monthNumber.toString().padStart(2, '0')
+        val year = localDateTime.year
+        val hour = localDateTime.hour.toString().padStart(2, '0')
+        val minute = localDateTime.minute.toString().padStart(2, '0')
+
+        return "Abholung $day.$month.$year um $hour:$minute Uhr"
     }
 }

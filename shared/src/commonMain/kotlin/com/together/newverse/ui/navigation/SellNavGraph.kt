@@ -1,8 +1,11 @@
 package com.together.newverse.ui.navigation
 
+import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.together.newverse.ui.screens.sell.*
 
 /**
@@ -22,7 +25,9 @@ fun NavGraphBuilder.sellNavGraph(
     isSelectionMode: Boolean = false,
     onSelectionModeChange: (Boolean) -> Unit = {},
     isAvailabilityMode: Boolean = false,
-    onAvailabilityModeChange: (Boolean) -> Unit = {}
+    onAvailabilityModeChange: (Boolean) -> Unit = {},
+    notificationSettingsContent: @Composable () -> Unit = {},
+    productsContent: @Composable (() -> Unit) -> Unit = { onCreateProduct -> }
 ) {
     composable(NavRoutes.Sell.Overview.route) {
         OverviewScreen(
@@ -34,7 +39,24 @@ fun NavGraphBuilder.sellNavGraph(
     }
 
     composable(NavRoutes.Sell.Orders.route) {
-        OrdersScreen()
+        OrdersScreen(
+            onOrderClick = { orderId ->
+                navController.navigate(NavRoutes.Sell.OrderDetail.createRoute(orderId))
+            }
+        )
+    }
+
+    composable(
+        route = NavRoutes.Sell.OrderDetail.route,
+        arguments = listOf(
+            navArgument("orderId") { type = NavType.StringType }
+        )
+    ) { backStackEntry ->
+        val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
+        OrderDetailScreen(
+            orderId = orderId,
+            onNavigateBack = { navController.popBackStack() }
+        )
     }
 
     composable(NavRoutes.Sell.Create.route) {
@@ -44,10 +66,24 @@ fun NavGraphBuilder.sellNavGraph(
     }
 
     composable(NavRoutes.Sell.Profile.route) {
-        SellerProfileScreen()
+        SellerProfileScreen(
+            onNotificationSettingsClick = {
+                navController.navigate(NavRoutes.Sell.NotificationSettings.route)
+            }
+        )
     }
 
     composable(NavRoutes.Sell.PickDay.route) {
         PickDayScreen()
+    }
+
+    composable(NavRoutes.Sell.NotificationSettings.route) {
+        notificationSettingsContent()
+    }
+
+    composable(NavRoutes.Sell.Products.route) {
+        productsContent {
+            navController.navigate(NavRoutes.Sell.Create.route)
+        }
     }
 }

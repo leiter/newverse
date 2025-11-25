@@ -17,6 +17,8 @@ data class OrderDto(
     val message: String = "",
     val notFavourite: Boolean = true,
     val articles: List<OrderedProductDto> = emptyList(),
+    val hiddenBySeller: Boolean = false,
+    val hiddenByBuyer: Boolean = false
 ) {
     /**
      * Convert Firebase DTO to domain model
@@ -31,7 +33,9 @@ data class OrderDto(
             pickUpDate = pickUpDate,
             message = message,
             notFavourite = notFavourite,
-            articles = articles.map { it.toDomain() }
+            articles = articles.map { it.toDomain() },
+            hiddenBySeller = hiddenBySeller,
+            hiddenByBuyer = hiddenByBuyer
         )
     }
 
@@ -48,7 +52,9 @@ data class OrderDto(
                 pickUpDate = order.pickUpDate,
                 message = order.message,
                 notFavourite = order.notFavourite,
-                articles = order.articles.map { OrderedProductDto.fromDomain(it) }
+                articles = order.articles.map { OrderedProductDto.fromDomain(it) },
+                hiddenBySeller = order.hiddenBySeller,
+                hiddenByBuyer = order.hiddenByBuyer
             )
         }
     }

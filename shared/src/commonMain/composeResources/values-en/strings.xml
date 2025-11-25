@@ -30,6 +30,7 @@
     <string name="nav_create_product">Create Product</string>
     <string name="nav_seller_profile">Seller Profile</string>
     <string name="nav_pick_delivery_day">Pick Delivery Day</string>
+    <string name="nav_notification_settings">Notification Settings</string>
 
     <!-- Navigation Categories -->
     <string name="nav_category_common">Common</string>
@@ -92,6 +93,7 @@
     <string name="format_price_euro">%s€</string>
     <string name="format_price_per_unit">%s€/%s</string>
     <string name="format_item_count">%d items</string>
+    <string name="format_product_count">%d products</string>
     <string name="format_quantity">x %s</string>
     <string name="format_order_id">Order #%s</string>
     <string name="format_note">Note: %s</string>
@@ -219,6 +221,25 @@
     <string name="orders_order_prefix">Order #</string>
     <string name="orders_items_suffix"> items</string>
     <string name="orders_note_prefix">Note: </string>
+    <string name="no_orders_message">No orders available</string>
+    <string name="retry">Retry</string>
+
+    <!-- Order Detail Screen -->
+    <string name="order_detail_title">Order Details</string>
+    <string name="back">Back</string>
+    <string name="delete_order">Delete Order</string>
+    <string name="order_not_found">Order not found</string>
+    <string name="customer_information">Customer Information</string>
+    <string name="order_information">Order Information</string>
+    <string name="order_id">Order ID</string>
+    <string name="pickup_date">Pickup Date</string>
+    <string name="order_status">Status</string>
+    <string name="customer_message">Customer Message</string>
+    <string name="ordered_products">Ordered Products</string>
+    <string name="total_amount">Total Amount</string>
+    <string name="delete_order_title">Hide Order?</string>
+    <string name="delete_order_confirmation">Are you sure you want to hide the order from %s? It will no longer be shown in your orders list.</string>
+    <string name="delete">Hide</string>
 
     <!-- ========================================= -->
     <!-- CREATE PRODUCT SCREEN (SELL MODULE) -->

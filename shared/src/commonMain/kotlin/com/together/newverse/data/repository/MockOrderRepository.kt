@@ -120,4 +120,40 @@ class MockOrderRepository : OrderRepository {
             Result.failure(e)
         }
     }
+
+    override suspend fun hideOrderForSeller(sellerId: String, date: String, orderId: String): Result<Boolean> {
+        return try {
+            delay(300)
+            val currentOrders = _orders.value.toMutableList()
+            val index = currentOrders.indexOfFirst { it.id == orderId }
+            if (index >= 0) {
+                // Update order to set hiddenBySeller flag
+                currentOrders[index] = currentOrders[index].copy(hiddenBySeller = true)
+                _orders.value = currentOrders
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Order not found"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String): Result<Boolean> {
+        return try {
+            delay(300)
+            val currentOrders = _orders.value.toMutableList()
+            val index = currentOrders.indexOfFirst { it.id == orderId }
+            if (index >= 0) {
+                // Update order to set hiddenByBuyer flag
+                currentOrders[index] = currentOrders[index].copy(hiddenByBuyer = true)
+                _orders.value = currentOrders
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Order not found"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

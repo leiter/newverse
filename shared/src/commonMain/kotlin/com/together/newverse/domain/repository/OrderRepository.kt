@@ -46,6 +46,24 @@ interface OrderRepository {
     suspend fun cancelOrder(sellerId: String, date: String, orderId: String): Result<Boolean>
 
     /**
+     * Hide an order from seller's view
+     * @param sellerId The seller's ID
+     * @param date The order date
+     * @param orderId The order ID
+     * @return Success or failure result
+     */
+    suspend fun hideOrderForSeller(sellerId: String, date: String, orderId: String): Result<Boolean>
+
+    /**
+     * Hide an order from buyer's view
+     * @param sellerId The seller's ID
+     * @param date The order date
+     * @param orderId The order ID
+     * @return Success or failure result
+     */
+    suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String): Result<Boolean>
+
+    /**
      * Load a specific order
      * @param sellerId The seller's ID
      * @param orderId The order ID

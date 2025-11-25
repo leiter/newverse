@@ -30,6 +30,7 @@
     <string name="nav_create_product">Produkt erstellen</string>
     <string name="nav_seller_profile">Verkäuferprofil</string>
     <string name="nav_pick_delivery_day">Liefertag wählen</string>
+    <string name="nav_notification_settings">Benachrichtigungseinstellungen</string>
 
     <!-- Navigation Categories -->
     <string name="nav_category_common">Allgemein</string>
@@ -92,6 +93,7 @@
     <string name="format_price_euro">%s€</string>
     <string name="format_price_per_unit">%s€/%s</string>
     <string name="format_item_count">%d Artikel</string>
+    <string name="format_product_count">%d Produkte</string>
     <string name="format_quantity">x %s</string>
     <string name="format_order_id">Bestellung #%s</string>
     <string name="format_note">Hinweis: %s</string>
@@ -219,6 +221,25 @@
     <string name="orders_order_prefix">Bestellung #</string>
     <string name="orders_items_suffix"> Artikel</string>
     <string name="orders_note_prefix">Hinweis: </string>
+    <string name="no_orders_message">Keine Bestellungen vorhanden</string>
+    <string name="retry">Wiederholen</string>
+
+    <!-- Order Detail Screen -->
+    <string name="order_detail_title">Bestelldetails</string>
+    <string name="back">Zurück</string>
+    <string name="delete_order">Bestellung löschen</string>
+    <string name="order_not_found">Bestellung nicht gefunden</string>
+    <string name="customer_information">Kundeninformationen</string>
+    <string name="order_information">Bestellinformationen</string>
+    <string name="order_id">Bestell-ID</string>
+    <string name="pickup_date">Abholdatum</string>
+    <string name="order_status">Status</string>
+    <string name="customer_message">Kundennachricht</string>
+    <string name="ordered_products">Bestellte Produkte</string>
+    <string name="total_amount">Gesamtbetrag</string>
+    <string name="delete_order_title">Bestellung ausblenden?</string>
+    <string name="delete_order_confirmation">Möchten Sie die Bestellung von %s wirklich ausblenden? Sie wird nicht mehr in Ihrer Bestellliste angezeigt.</string>
+    <string name="delete">Ausblenden</string>
 
     <!-- ========================================= -->
     <!-- CREATE PRODUCT SCREEN (SELL MODULE) -->

@@ -44,8 +44,12 @@ class FirebaseOrderRepository : OrderRepository {
                             val dto = orderSnapshot.getValue(OrderDto::class.java)
                             if (dto != null) {
                                 val order = dto.toDomain(orderSnapshot.key ?: "")
-                                orders.add(order)
-                                println("✅ Added order: ${order.id}")
+                                if (!order.hiddenBySeller) {
+                                    orders.add(order)
+                                    println("✅ Added order: ${order.id}")
+                                } else {
+                                    println("🙈 Skipped hidden order: ${order.id}")
+                                }
                             } else {
                                 println("⚠️ Order DTO is null for key=${orderSnapshot.key}")
                             }
@@ -70,9 +74,21 @@ class FirebaseOrderRepository : OrderRepository {
                             if (dto != null) {
                                 val order = dto.toDomain(orderSnapshot.key ?: "")
                                 val index = orders.indexOfFirst { it.id == order.id }
-                                if (index >= 0) {
-                                    orders[index] = order
-                                    println("✅ Updated order: ${order.id}")
+                                if (order.hiddenBySeller) {
+                                    // Remove from list if now hidden
+                                    if (index >= 0) {
+                                        orders.removeAt(index)
+                                        println("🙈 Removed hidden order: ${order.id}")
+                                    }
+                                } else {
+                                    // Update or add if not hidden
+                                    if (index >= 0) {
+                                        orders[index] = order
+                                        println("✅ Updated order: ${order.id}")
+                                    } else {
+                                        orders.add(order)
+                                        println("✅ Added order: ${order.id}")
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
@@ -270,6 +286,44 @@ class FirebaseOrderRepository : OrderRepository {
             Result.success(true)
         } catch (e: Exception) {
             println("❌ FirebaseOrderRepository.cancelOrder: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Hide an order from seller's view
+     */
+    override suspend fun hideOrderForSeller(sellerId: String, date: String, orderId: String): Result<Boolean> {
+        return try {
+            Database.orderSeller(sellerId)
+                .child(date)
+                .child(orderId)
+                .child("hiddenBySeller")
+                .setValue(true)
+                .await()
+
+            Result.success(true)
+        } catch (e: Exception) {
+            println("❌ FirebaseOrderRepository.hideOrderForSeller: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Hide an order from buyer's view
+     */
+    override suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String): Result<Boolean> {
+        return try {
+            Database.orderSeller(sellerId)
+                .child(date)
+                .child(orderId)
+                .child("hiddenByBuyer")
+                .setValue(true)
+                .await()
+
+            Result.success(true)
+        } catch (e: Exception) {
+            println("❌ FirebaseOrderRepository.hideOrderForBuyer: Error - ${e.message}")
             Result.failure(e)
         }
     }
