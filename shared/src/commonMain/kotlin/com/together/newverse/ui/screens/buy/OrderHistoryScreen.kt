@@ -335,9 +335,14 @@ private fun formatDateKey(timestamp: Long): String {
 }
 
 /**
- * Helper function to get days until pickup
+ * Helper function to get days until pickup (calendar days, not hours)
  */
 private fun getDaysUntilPickup(pickupDate: Long): Long {
-    val diff = pickupDate - kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-    return diff / (24 * 60 * 60 * 1000)
+    val now = kotlinx.datetime.Clock.System.now()
+    val pickupInstant = Instant.fromEpochMilliseconds(pickupDate)
+
+    val todayDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val pickupLocalDate = pickupInstant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+    return (pickupLocalDate.toEpochDays() - todayDate.toEpochDays()).toLong()
 }
