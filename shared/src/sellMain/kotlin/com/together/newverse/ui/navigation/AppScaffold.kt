@@ -121,11 +121,17 @@ fun AppScaffold(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.Sell.Overview.route
 
+    // Selection mode states for product management
+    var isSelectionMode by remember { mutableStateOf(false) }
+    var isAvailabilityMode by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             SellerTopBar(
                 currentRoute = currentRoute,
                 pendingOrdersCount = 0, // TODO: Get from state when implemented
+                isSelectionMode = isSelectionMode,
+                isAvailabilityMode = isAvailabilityMode,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -137,6 +143,20 @@ fun AppScaffold(
                 },
                 onNavigateToNotifications = {
                     navController.navigate(NavRoutes.Sell.NotificationSettings.route)
+                },
+                onRefresh = {
+                    // Recreate the screen to trigger refresh
+                    navController.navigate(NavRoutes.Sell.Overview.route) {
+                        popUpTo(NavRoutes.Sell.Overview.route) { inclusive = true }
+                    }
+                },
+                onToggleSelectionMode = {
+                    isAvailabilityMode = false
+                    isSelectionMode = !isSelectionMode
+                },
+                onToggleAvailabilityMode = {
+                    isSelectionMode = false
+                    isAvailabilityMode = !isAvailabilityMode
                 }
             )
         },
@@ -178,7 +198,11 @@ fun AppScaffold(
                     navController.navigate(NavRoutes.Sell.Create.route)
                 },
                 notificationSettings = notificationSettings,
-                onNotificationAction = onNotificationAction
+                onNotificationAction = onNotificationAction,
+                getSelectionMode = { isSelectionMode },
+                onSelectionModeChange = { isSelectionMode = it },
+                getAvailabilityMode = { isAvailabilityMode },
+                onAvailabilityModeChange = { isAvailabilityMode = it }
             )
         }
 

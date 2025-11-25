@@ -1,12 +1,19 @@
 package com.together.newverse.ui.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.together.newverse.ui.navigation.NavRoutes
 
 /**
@@ -17,11 +24,18 @@ import com.together.newverse.ui.navigation.NavRoutes
 fun SellerTopBar(
     currentRoute: String,
     pendingOrdersCount: Int,
+    isSelectionMode: Boolean = false,
+    isAvailabilityMode: Boolean = false,
     onNavigateBack: () -> Unit,
     onNavigateToOrders: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToNotifications: () -> Unit
+    onNavigateToNotifications: () -> Unit,
+    onRefresh: () -> Unit = {},
+    onToggleSelectionMode: () -> Unit = {},
+    onToggleAvailabilityMode: () -> Unit = {}
 ) {
+    var showOverflowMenu by remember { mutableStateOf(false) }
+
     TopAppBar(
         title = {
             Text(getRouteTitle(currentRoute))
@@ -49,6 +63,45 @@ fun SellerTopBar(
                         Icon(
                             imageVector = Icons.Default.ShoppingCart,
                             contentDescription = "Bestellungen"
+                        )
+                    }
+                }
+            }
+
+            // Show refresh and overflow menu on Overview screen
+            if (currentRoute == NavRoutes.Sell.Overview.route) {
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Aktualisieren"
+                    )
+                }
+
+                Box {
+                    IconButton(onClick = { showOverflowMenu = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Mehr Optionen"
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showOverflowMenu,
+                        onDismissRequest = { showOverflowMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(if (isSelectionMode) "Auswahl abbrechen" else "Zum Löschen markieren") },
+                            onClick = {
+                                showOverflowMenu = false
+                                onToggleSelectionMode()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(if (isAvailabilityMode) "Auswahl abbrechen" else "Verfügbarkeit ändern") },
+                            onClick = {
+                                showOverflowMenu = false
+                                onToggleAvailabilityMode()
+                            }
                         )
                     }
                 }

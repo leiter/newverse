@@ -32,14 +32,18 @@ fun NavGraphBuilder.navGraph(
     onNavigateBack: () -> Unit = {},
     onNavigateToCreateProduct: () -> Unit = {},
     notificationSettings: NotificationSettings = NotificationSettings(),
-    onNotificationAction: (com.together.newverse.ui.state.NotificationAction) -> Unit = {}
+    onNotificationAction: (com.together.newverse.ui.state.NotificationAction) -> Unit = {},
+    getSelectionMode: () -> Boolean = { false },
+    onSelectionModeChange: (Boolean) -> Unit = {},
+    getAvailabilityMode: () -> Boolean = { false },
+    onAvailabilityModeChange: (Boolean) -> Unit = {}
 ) {
     composable(NavRoutes.Sell.Overview.route) {
         OverviewScreen(
-            isSelectionMode = false,
-            onSelectionModeChange = {},
-            isAvailabilityMode = false,
-            onAvailabilityModeChange = {}
+            isSelectionMode = getSelectionMode(),
+            onSelectionModeChange = onSelectionModeChange,
+            isAvailabilityMode = getAvailabilityMode(),
+            onAvailabilityModeChange = onAvailabilityModeChange
         )
     }
 

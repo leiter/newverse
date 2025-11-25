@@ -553,14 +553,21 @@ data class MainScreenState(
 ) : ScreenState {
 
     /**
-     * Returns articles filtered by the active filter
+     * Returns articles filtered by availability and the active filter.
+     * Only available articles are shown to buyers.
      */
     val filteredArticles: List<Article>
-        get() = when (activeFilter) {
-            ProductFilter.ALL -> articles
-            ProductFilter.FAVOURITES -> articles.filter { favouriteArticles.contains(it.id) }
-            ProductFilter.OBST -> articles.filter { it.searchTerms.contains("obst", ignoreCase = true) }
-            ProductFilter.GEMUESE -> articles.filter { it.searchTerms.contains("gemüse", ignoreCase = true) }
+        get() {
+            // First filter by availability - only show available products
+            val availableArticles = articles.filter { it.available }
+
+            // Then apply the active filter
+            return when (activeFilter) {
+                ProductFilter.ALL -> availableArticles
+                ProductFilter.FAVOURITES -> availableArticles.filter { favouriteArticles.contains(it.id) }
+                ProductFilter.OBST -> availableArticles.filter { it.searchTerms.contains("obst", ignoreCase = true) }
+                ProductFilter.GEMUESE -> availableArticles.filter { it.searchTerms.contains("gemüse", ignoreCase = true) }
+            }
         }
 }
 

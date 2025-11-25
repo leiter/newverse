@@ -1281,10 +1281,11 @@ class BuyAppViewModel(
                         val dateKey = formatDateKey(order.pickUpDate)
 
                         // Check if order is editable (more than 3 days before pickup)
+                        val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
                         val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
-                        val canEdit = System.currentTimeMillis() < threeDaysBeforePickup
+                        val canEdit = now < threeDaysBeforePickup
 
-                        println("📦 loadCurrentOrder: Order canEdit=$canEdit (pickup in ${(order.pickUpDate - System.currentTimeMillis()) / (24 * 60 * 60 * 1000)} days)")
+                        println("📦 loadCurrentOrder: Order canEdit=$canEdit (pickup in ${(order.pickUpDate - now) / (24 * 60 * 60 * 1000)} days)")
 
                         // Load order items into BasketRepository with order metadata
                         basketRepository.loadOrderItems(order.articles, order.id, dateKey)

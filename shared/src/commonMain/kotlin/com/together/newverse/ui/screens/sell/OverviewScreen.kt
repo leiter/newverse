@@ -37,6 +37,13 @@ fun OverviewScreen(
     var showAvailableDialog by remember { mutableStateOf(false) }
     var showUnavailableDialog by remember { mutableStateOf(false) }
 
+    // Clear selections when exiting selection modes
+    androidx.compose.runtime.LaunchedEffect(isSelectionMode, isAvailabilityMode) {
+        if (!isSelectionMode && !isAvailabilityMode) {
+            selectedArticleIds = setOf()
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
