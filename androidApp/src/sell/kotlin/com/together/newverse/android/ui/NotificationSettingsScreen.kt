@@ -21,11 +21,8 @@ import com.together.newverse.android.utils.stopListenerService
  * Settings screen for order notification system
  * Allows sellers to control when they receive order notifications
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationSettingsScreen(
-    onNavigateBack: () -> Unit = {}
-) {
+fun NotificationSettingsScreen() {
     val context = LocalContext.current
     val config = remember { SwitchWorker.NotificationConfig(context) }
 
@@ -41,62 +38,35 @@ fun NotificationSettingsScreen(
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showStopTimePicker by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Benachrichtigungseinstellungen") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Zurück"
-                        )
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Service Status Card
+        Card(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // Service Status Card
-            Card(
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Bestellbenachrichtigungen",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = if (isServiceRunning) "Aktiv" else "Inaktiv",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (isServiceRunning) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            )
-                        }
-
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = null,
-                            tint = if (isServiceRunning) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Bestellbenachrichtigungen",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = if (isServiceRunning) "Aktiv" else "Inaktiv",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isServiceRunning) {
                                 MaterialTheme.colorScheme.primary
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -104,146 +74,155 @@ fun NotificationSettingsScreen(
                         )
                     }
 
-                    HorizontalDivider()
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = null,
+                        tint = if (isServiceRunning) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                HorizontalDivider()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            context.startListenerService()
+                            isServiceRunning = true
+                        },
+                        enabled = !isServiceRunning,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Button(
-                            onClick = {
-                                context.startListenerService()
-                                isServiceRunning = true
-                            },
-                            enabled = !isServiceRunning,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Einschalten")
-                        }
+                        Text("Einschalten")
+                    }
 
-                        OutlinedButton(
-                            onClick = {
-                                context.stopListenerService()
-                                isServiceRunning = false
-                            },
-                            enabled = isServiceRunning,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Ausschalten")
-                        }
+                    OutlinedButton(
+                        onClick = {
+                            context.stopListenerService()
+                            isServiceRunning = false
+                        },
+                        enabled = isServiceRunning,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Ausschalten")
                     }
                 }
             }
+        }
 
-            // Auto Schedule Card
-            Card(
-                modifier = Modifier.fillMaxWidth()
+        // Auto Schedule Card
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Automatische Zeitplanung",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = "Benachrichtigungen automatisch aktivieren/deaktivieren",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-
-                        Switch(
-                            checked = isAutoScheduleEnabled,
-                            onCheckedChange = { enabled ->
-                                isAutoScheduleEnabled = enabled
-                                if (enabled) {
-                                    SwitchWorker.enable(context)
-                                } else {
-                                    SwitchWorker.disable(context)
-                                }
-                            }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Automatische Zeitplanung",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Benachrichtigungen automatisch aktivieren/deaktivieren",
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
 
-                    if (isAutoScheduleEnabled) {
-                        HorizontalDivider()
-
-                        // Start Time
-                        OutlinedButton(
-                            onClick = { showStartTimePicker = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.Start
-                            ) {
-                                Text(
-                                    text = "Startzeit",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                                Text(
-                                    text = startTime,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
+                    Switch(
+                        checked = isAutoScheduleEnabled,
+                        onCheckedChange = { enabled ->
+                            isAutoScheduleEnabled = enabled
+                            if (enabled) {
+                                SwitchWorker.enable(context)
+                            } else {
+                                SwitchWorker.disable(context)
                             }
                         }
+                    )
+                }
 
-                        // Stop Time
-                        OutlinedButton(
-                            onClick = { showStopTimePicker = true },
-                            modifier = Modifier.fillMaxWidth()
+                if (isAutoScheduleEnabled) {
+                    HorizontalDivider()
+
+                    // Start Time
+                    OutlinedButton(
+                        onClick = { showStartTimePicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.Start
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.Start
-                            ) {
-                                Text(
-                                    text = "Endzeit",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                                Text(
-                                    text = stopTime,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
+                            Text(
+                                text = "Startzeit",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            Text(
+                                text = startTime,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
+
+                    // Stop Time
+                    OutlinedButton(
+                        onClick = { showStopTimePicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = "Endzeit",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            Text(
+                                text = stopTime,
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         }
                     }
                 }
             }
+        }
 
-            // Information Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+        // Information Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "ℹ️ Information",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        text = "Der Benachrichtigungsdienst überwacht neue Bestellungen in Echtzeit. " +
-                                "Mit der automatischen Zeitplanung können Sie festlegen, wann Sie " +
-                                "Benachrichtigungen erhalten möchten.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+                Text(
+                    text = "Information",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = "Der Benachrichtigungsdienst überwacht neue Bestellungen in Echtzeit. " +
+                            "Mit der automatischen Zeitplanung können Sie festlegen, wann Sie " +
+                            "Benachrichtigungen erhalten möchten.",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }
 
-    // Time Pickers would require additional implementation
-    // For simplicity, you could use a simple text input dialog
+    // Time Pickers
     if (showStartTimePicker) {
         TimePickerDialog(
             initialTime = startTime,

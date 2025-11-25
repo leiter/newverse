@@ -32,12 +32,6 @@ fun NotificationsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Benachrichtigungseinstellungen",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
 
         Spacer(modifier = Modifier.height(8.dp))
 

@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -284,9 +286,27 @@ private fun ImageSection(
             contentAlignment = Alignment.Center
         ) {
             if (imageData != null) {
-                // TODO: Display image from ByteArray
-                // For now, show placeholder
-                Text("Bild ausgewählt (${imageData.size} bytes)")
+                // Display image from ByteArray using Coil3
+                AsyncImage(
+                    model = imageData,
+                    contentDescription = "Produktbild",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                // Overlay buttons to change image
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    IconButton(onClick = onPickImage) {
+                        Icon(Icons.Default.Edit, "Foto ändern")
+                    }
+                    IconButton(onClick = onTakePhoto) {
+                        Icon(Icons.Default.AddCircle, "Neues Foto")
+                    }
+                }
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,

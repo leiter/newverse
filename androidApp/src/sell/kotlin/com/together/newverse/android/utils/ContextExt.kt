@@ -20,23 +20,24 @@ fun Context.isThisServiceRunning(clazz: Class<*>): Boolean {
             }
         }
         return@let false
-    } ?: false
+    } == true
 }
 
 /**
  * Check if ListenerService is currently running
  */
 fun Context.isListenerServiceRunning(): Boolean {
-    val manager = getSystemService<ActivityManager>()
-    return manager?.let { activityManager ->
-        @Suppress("DEPRECATION")
-        activityManager.getRunningServices(Integer.MAX_VALUE).forEach {
-            if (ListenerService::class.java.name == it.service.className) {
-                return@let true
-            }
-        }
-        return@let false
-    } ?: false
+    return isThisServiceRunning(ListenerService::class.java)
+//    val manager = getSystemService<ActivityManager>()
+//    return manager?.let { activityManager ->
+//        @Suppress("DEPRECATION")
+//        activityManager.getRunningServices(Integer.MAX_VALUE).forEach {
+//            if (ListenerService::class.java.name == it.service.className) {
+//                return@let true
+//            }
+//        }
+//        return@let false
+//    } == true
 }
 
 /**
