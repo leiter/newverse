@@ -51,6 +51,13 @@ class PlatformOrderRepository(
         return actualRepository.getBuyerOrders(sellerId, placedOrderIds)
     }
 
+    override fun observeBuyerOrders(
+        sellerId: String,
+        placedOrderIds: Map<String, String>
+    ): Flow<List<Order>> {
+        return actualRepository.observeBuyerOrders(sellerId, placedOrderIds)
+    }
+
     override suspend fun placeOrder(order: Order): Result<Order> {
         return actualRepository.placeOrder(order)
     }

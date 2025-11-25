@@ -73,6 +73,77 @@ class GitLiveOrderRepository(
     }
 
     /**
+     * Observe buyer's placed orders with real-time updates.
+     */
+    override fun observeBuyerOrders(
+        sellerId: String,
+        placedOrderIds: Map<String, String>
+    ): Flow<List<Order>> = flow {
+        println("🔐 GitLiveOrderRepository.observeBuyerOrders: START - ${placedOrderIds.size} orders")
+
+        if (placedOrderIds.isEmpty()) {
+            emit(emptyList())
+            return@flow
+        }
+
+        try {
+            // Get the target seller ID
+            val targetSellerId = if (sellerId.isEmpty()) {
+                getFirstSellerId()
+            } else {
+                sellerId
+            }
+
+            // Collect orders by observing each order path
+            // We'll observe the seller's orders root and filter for buyer's orders
+            val ordersRef = ordersRootRef.child(targetSellerId)
+
+            ordersRef.valueEvents.collect { snapshot ->
+                val orders = mutableListOf<Order>()
+
+                // Process date snapshots and filter for buyer's orders
+                placedOrderIds.forEach { (date, orderId) ->
+                    try {
+                        val dateSnapshot = snapshot.child(date)
+                        if (dateSnapshot.exists) {
+                            val orderSnapshot = dateSnapshot.child(orderId)
+                            if (orderSnapshot.exists) {
+                                val order = mapSnapshotToOrder(orderSnapshot)
+                                if (order != null && !order.hiddenByBuyer) {
+                                    orders.add(order)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("⚠️ GitLiveOrderRepository.observeBuyerOrders: Error processing order $orderId: ${e.message}")
+                    }
+                }
+
+                println("🔐 GitLiveOrderRepository.observeBuyerOrders: Emitting ${orders.size} orders")
+                emit(orders)
+            }
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.observeBuyerOrders: Error - ${e.message}")
+            emit(emptyList())
+        }
+    }
+
+    /**
+     * Get first seller ID from database.
+     */
+    private suspend fun getFirstSellerId(): String {
+        return try {
+            val sellersRef = database.reference("seller_profiles")
+            val snapshot = sellersRef.valueEvents.first()
+            val firstSellerId = snapshot.children.firstOrNull()?.key
+            firstSellerId ?: "seller_001"
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.getFirstSellerId: Error - ${e.message}")
+            "seller_001"
+        }
+    }
+
+    /**
      * Get buyer's placed orders.
      */
     override suspend fun getBuyerOrders(

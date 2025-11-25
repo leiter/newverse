@@ -23,6 +23,14 @@ interface OrderRepository {
     suspend fun getBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>): Result<List<Order>>
 
     /**
+     * Observe buyer's placed orders with real-time updates
+     * @param sellerId The seller's ID
+     * @param placedOrderIds Map of date to order ID
+     * @return Flow of orders with real-time updates
+     */
+    fun observeBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>): Flow<List<Order>>
+
+    /**
      * Place a new order
      * @param order The order to place
      * @return Updated order with ID

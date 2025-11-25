@@ -33,6 +33,11 @@ class MockOrderRepository : OrderRepository {
         }
     }
 
+    override fun observeBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>): Flow<List<Order>> {
+        // Return orders flow filtered by placed order IDs
+        return _orders.asStateFlow()
+    }
+
     override suspend fun placeOrder(order: Order): Result<Order> {
         return try {
             delay(500)

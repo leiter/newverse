@@ -1401,7 +1401,7 @@ class BuyAppViewModel(
 
     private fun loadOrderHistory() {
         viewModelScope.launch {
-            println("📋 UnifiedAppViewModel.loadOrderHistory: START")
+            println("📋 UnifiedAppViewModel.loadOrderHistory: START (reactive)")
 
             // Set loading state
             _state.update { current ->
@@ -1418,39 +1418,39 @@ class BuyAppViewModel(
             try {
                 val profile = _state.value.screens.customerProfile.profile
                 if (profile != null && profile.placedOrderIds.isNotEmpty()) {
-                    // Load orders using the placedOrderIds from profile
-                    val result = orderRepository.getBuyerOrders("", profile.placedOrderIds)
-                    result.onSuccess { orders ->
-                        println("✅ UnifiedAppViewModel.loadOrderHistory: Loaded ${orders.size} orders")
-
-                        _state.update { current ->
-                            current.copy(
-                                screens = current.screens.copy(
-                                    orderHistory = current.screens.orderHistory.copy(
-                                        isLoading = false,
-                                        items = orders,
-                                        error = null
-                                    )
-                                )
-                            )
-                        }
-                    }.onFailure { error ->
-                        println("❌ UnifiedAppViewModel.loadOrderHistory: Error - ${error.message}")
-
-                        _state.update { current ->
-                            current.copy(
-                                screens = current.screens.copy(
-                                    orderHistory = current.screens.orderHistory.copy(
-                                        isLoading = false,
-                                        error = ErrorState(
-                                            message = error.message ?: "Failed to load order history",
-                                            type = ErrorType.GENERAL
+                    // Observe orders reactively using the placedOrderIds from profile
+                    orderRepository.observeBuyerOrders("", profile.placedOrderIds)
+                        .catch { e ->
+                            println("❌ UnifiedAppViewModel.loadOrderHistory: Error - ${e.message}")
+                            _state.update { current ->
+                                current.copy(
+                                    screens = current.screens.copy(
+                                        orderHistory = current.screens.orderHistory.copy(
+                                            isLoading = false,
+                                            error = ErrorState(
+                                                message = e.message ?: "Failed to load order history",
+                                                type = ErrorType.GENERAL
+                                            )
                                         )
                                     )
                                 )
-                            )
+                            }
                         }
-                    }
+                        .collect { orders ->
+                            println("✅ UnifiedAppViewModel.loadOrderHistory: Received ${orders.size} orders (reactive update)")
+
+                            _state.update { current ->
+                                current.copy(
+                                    screens = current.screens.copy(
+                                        orderHistory = current.screens.orderHistory.copy(
+                                            isLoading = false,
+                                            items = orders,
+                                            error = null
+                                        )
+                                    )
+                                )
+                            }
+                        }
                 } else {
                     println("⚠️ UnifiedAppViewModel.loadOrderHistory: No orders to load")
 

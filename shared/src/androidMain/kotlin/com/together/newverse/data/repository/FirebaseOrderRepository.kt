@@ -168,6 +168,96 @@ class FirebaseOrderRepository : OrderRepository {
     }
 
     /**
+     * Observe buyer's placed orders with real-time updates
+     */
+    override fun observeBuyerOrders(
+        sellerId: String,
+        placedOrderIds: Map<String, String>
+    ): Flow<List<Order>> = callbackFlow {
+        println("🔥 FirebaseOrderRepository.observeBuyerOrders: START - ${placedOrderIds.size} orders")
+
+        if (placedOrderIds.isEmpty()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        // Get target seller ID
+        val targetSellerId = if (sellerId.isEmpty()) {
+            Database.getFirstSellerIdRef().get().await().children.firstOrNull()?.key ?: "seller_001"
+        } else {
+            sellerId
+        }
+
+        val ordersRef = Database.orderSeller(targetSellerId)
+        val orders = mutableMapOf<String, Order>()
+
+        val listener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                processDateSnapshot(snapshot, orders, placedOrderIds)
+                trySend(orders.values.toList())
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                processDateSnapshot(snapshot, orders, placedOrderIds)
+                trySend(orders.values.toList())
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                // Remove orders from this date that belong to buyer
+                val date = snapshot.key ?: return
+                val orderId = placedOrderIds[date]
+                if (orderId != null) {
+                    orders.remove(orderId)
+                    trySend(orders.values.toList())
+                }
+            }
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+
+            override fun onCancelled(error: DatabaseError) {
+                println("❌ FirebaseOrderRepository.observeBuyerOrders: Error - ${error.message}")
+                close(error.toException())
+            }
+
+            private fun processDateSnapshot(
+                dateSnapshot: DataSnapshot,
+                orders: MutableMap<String, Order>,
+                placedOrderIds: Map<String, String>
+            ) {
+                val date = dateSnapshot.key ?: return
+                val orderId = placedOrderIds[date] ?: return
+
+                try {
+                    val orderSnapshot = dateSnapshot.child(orderId)
+                    if (orderSnapshot.exists()) {
+                        val dto = orderSnapshot.getValue(OrderDto::class.java)
+                        if (dto != null) {
+                            val order = dto.toDomain(orderId)
+                            if (!order.hiddenByBuyer) {
+                                orders[orderId] = order
+                                println("🔥 observeBuyerOrders: Updated order $orderId")
+                            } else {
+                                orders.remove(orderId)
+                                println("🔥 observeBuyerOrders: Removed hidden order $orderId")
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("❌ observeBuyerOrders: Error processing order $orderId: ${e.message}")
+                }
+            }
+        }
+
+        ordersRef.addChildEventListener(listener)
+
+        awaitClose {
+            println("🔥 FirebaseOrderRepository.observeBuyerOrders: Removing listener")
+            ordersRef.removeEventListener(listener)
+        }
+    }
+
+    /**
      * Place a new order
      * Based on universe's sendOrder implementation
      */
