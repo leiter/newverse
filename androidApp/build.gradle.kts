@@ -124,6 +124,9 @@ dependencies {
     // Material Components (for testing UI)
     implementation("com.google.android.material:material:1.12.0")
 
+    // ConstraintLayout (for test container layout)
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+
     // Testing dependencies
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
