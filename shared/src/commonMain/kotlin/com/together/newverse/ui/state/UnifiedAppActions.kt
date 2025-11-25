@@ -102,6 +102,7 @@ sealed interface UnifiedMainScreenAction : UnifiedAppAction {
     data object AddToCart : UnifiedMainScreenAction
     data object RemoveFromBasket : UnifiedMainScreenAction
     data class ToggleFavourite(val articleId: String) : UnifiedMainScreenAction
+    data class SetFilter(val filter: ProductFilter) : UnifiedMainScreenAction
     data object Refresh : UnifiedMainScreenAction
 }
 

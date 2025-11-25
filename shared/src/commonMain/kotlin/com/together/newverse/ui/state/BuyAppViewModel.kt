@@ -316,7 +316,20 @@ class BuyAppViewModel(
             UnifiedMainScreenAction.AddToCart -> addMainScreenToCart()
             UnifiedMainScreenAction.RemoveFromBasket -> removeMainScreenFromBasket()
             is UnifiedMainScreenAction.ToggleFavourite -> toggleMainScreenFavourite(action.articleId)
+            is UnifiedMainScreenAction.SetFilter -> setMainScreenFilter(action.filter)
             UnifiedMainScreenAction.Refresh -> refreshMainScreen()
+        }
+    }
+
+    private fun setMainScreenFilter(filter: ProductFilter) {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    mainScreen = current.screens.mainScreen.copy(
+                        activeFilter = filter
+                    )
+                )
+            )
         }
     }
 

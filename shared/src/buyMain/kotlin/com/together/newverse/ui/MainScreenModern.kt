@@ -69,7 +69,9 @@ import androidx.compose.animation.core.tween
 import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
 import com.together.newverse.ui.state.MainScreenState
+import com.together.newverse.ui.state.ProductFilter
 import com.together.newverse.ui.state.UnifiedAppAction
+import com.together.newverse.ui.state.UnifiedMainScreenAction
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.place_holder_landscape
@@ -98,7 +100,7 @@ private fun MainScreenModernContent(
     state: MainScreenState,
     onAction: (UnifiedAppAction) -> Unit,
 ) {
-    val products = state.articles
+    val products = state.filteredArticles
     val selectedProduct = state.selectedArticle
     val quantity = state.selectedQuantity
     val basketItems = state.basketItems
@@ -145,7 +147,12 @@ private fun MainScreenModernContent(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Category Filter Chips
-                    CategoryChips()
+                    CategoryChips(
+                        activeFilter = state.activeFilter,
+                        onFilterSelected = { filter ->
+                            onAction(UnifiedMainScreenAction.SetFilter(filter))
+                        }
+                    )
 
                 }
             }
@@ -531,22 +538,28 @@ private fun HeroProductCard(
 
 @Composable
 private fun CategoryChips(
+    activeFilter: ProductFilter,
+    onFilterSelected: (ProductFilter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val categories = listOf("Alle", "Favouriten", "Obst", "Gemüse")
-    var selectedCategory by remember { mutableStateOf("Alle") }
+    val filterOptions = listOf(
+        ProductFilter.ALL to "Alle",
+        ProductFilter.FAVOURITES to "Favoriten",
+        ProductFilter.OBST to "Obst",
+        ProductFilter.GEMUESE to "Gemüse"
+    )
 
     androidx.compose.foundation.lazy.LazyRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 4.dp)
     ) {
-        items(categories) { category ->
+        items(filterOptions) { (filter, label) ->
             FilterChip(
-                selected = selectedCategory == category,
-                onClick = { selectedCategory = category },
-                label = { Text(category) },
-                leadingIcon = if (selectedCategory == category) {
+                selected = activeFilter == filter,
+                onClick = { onFilterSelected(filter) },
+                label = { Text(label) },
+                leadingIcon = if (activeFilter == filter) {
                     { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(

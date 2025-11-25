@@ -47,7 +47,7 @@ fun OrderHistoryScreen(
     onBackClick: () -> Unit = {},
     onOrderClick: (orderId: String, orderDate: String) -> Unit = { _, _ -> }
 ) {
-    val orderHistory = appState.screens.orderHistory.items
+    val orderHistory = appState.screens.orderHistory.items.sortedByDescending { it.pickUpDate }
     val isLoading = appState.screens.orderHistory.isLoading
 
     // Load order history when screen opens

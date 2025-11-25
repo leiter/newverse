@@ -528,6 +528,16 @@ data class CustomerProfileScreenState(
     val photoUrl: String? = null
 ) : ScreenState
 
+/**
+ * Filter options for the product list on the main screen
+ */
+enum class ProductFilter {
+    ALL,
+    FAVOURITES,
+    OBST,
+    GEMUESE
+}
+
 data class MainScreenState(
     override val isLoading: Boolean = true,
     override val error: ErrorState? = null,
@@ -536,8 +546,21 @@ data class MainScreenState(
     val selectedQuantity: Double = 0.0,
     val cartItemCount: Int = 0,
     val basketItems: List<OrderedProduct> = emptyList(),
-    val favouriteArticles: List<String> = emptyList()
-) : ScreenState
+    val favouriteArticles: List<String> = emptyList(),
+    val activeFilter: ProductFilter = ProductFilter.ALL
+) : ScreenState {
+
+    /**
+     * Returns articles filtered by the active filter
+     */
+    val filteredArticles: List<Article>
+        get() = when (activeFilter) {
+            ProductFilter.ALL -> articles
+            ProductFilter.FAVOURITES -> articles.filter { favouriteArticles.contains(it.id) }
+            ProductFilter.OBST -> articles.filter { it.searchTerms.contains("obst", ignoreCase = true) }
+            ProductFilter.GEMUESE -> articles.filter { it.searchTerms.contains("gemüse", ignoreCase = true) }
+        }
+}
 
 // Feature states
 data class SearchFeatureState(
