@@ -5,9 +5,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +38,7 @@ fun OverviewScreen(
     var showUnavailableDialog by remember { mutableStateOf(false) }
 
     // Clear selections when exiting selection modes
-    androidx.compose.runtime.LaunchedEffect(isSelectionMode, isAvailabilityMode) {
+    LaunchedEffect(isSelectionMode, isAvailabilityMode) {
         if (!isSelectionMode && !isAvailabilityMode) {
             selectedArticleIds = setOf()
         }
