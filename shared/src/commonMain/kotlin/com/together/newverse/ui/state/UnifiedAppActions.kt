@@ -76,6 +76,11 @@ sealed interface UnifiedProfileAction : UnifiedAppAction {
     data object LoadCustomerProfile : UnifiedProfileAction
     data object LoadOrderHistory : UnifiedProfileAction
     data object RefreshCustomerProfile : UnifiedProfileAction
+    data class SaveBuyerProfile(
+        val displayName: String,
+        val email: String,
+        val phone: String
+    ) : UnifiedProfileAction
 }
 
 // ===== Search Actions =====

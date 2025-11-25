@@ -166,7 +166,12 @@ fun CustomerProfileScreenModern(
                         onPhoneChange = { phone = it },
                         onEditClick = { isEditingPersonalInfo = true },
                         onSaveClick = {
-                            // TODO: Save the changes
+                            // Save the changes to Firebase
+                            onAction(com.together.newverse.ui.state.UnifiedProfileAction.SaveBuyerProfile(
+                                displayName = displayName,
+                                email = email,
+                                phone = phone
+                            ))
                             isEditingPersonalInfo = false
                         },
                         onCancelClick = {

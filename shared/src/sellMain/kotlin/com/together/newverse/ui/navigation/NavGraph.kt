@@ -78,7 +78,8 @@ fun NavGraphBuilder.navGraph(
 
     composable(NavRoutes.Sell.Create.route) {
         CreateProductScreen(
-            onNavigateBack = onNavigateBack
+            onNavigateBack = onNavigateBack,
+            onAction = onAction
         )
     }
 

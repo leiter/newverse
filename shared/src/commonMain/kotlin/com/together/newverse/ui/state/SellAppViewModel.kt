@@ -287,6 +287,7 @@ class SellAppViewModel(
             is UnifiedProfileAction.LoadCustomerProfile -> loadCustomerProfile()
             is UnifiedProfileAction.LoadOrderHistory -> loadOrderHistory()
             is UnifiedProfileAction.RefreshCustomerProfile -> refreshCustomerProfile()
+            is UnifiedProfileAction.SaveBuyerProfile -> { /* Not used in seller app */ }
         }
     }
 

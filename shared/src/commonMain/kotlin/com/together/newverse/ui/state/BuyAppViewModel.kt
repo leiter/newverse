@@ -287,6 +287,7 @@ class BuyAppViewModel(
             is UnifiedProfileAction.LoadCustomerProfile -> loadCustomerProfile()
             is UnifiedProfileAction.LoadOrderHistory -> loadOrderHistory()
             is UnifiedProfileAction.RefreshCustomerProfile -> refreshCustomerProfile()
+            is UnifiedProfileAction.SaveBuyerProfile -> saveBuyerProfile(action.displayName, action.email, action.phone)
         }
     }
 
@@ -1497,7 +1498,57 @@ class BuyAppViewModel(
     }
 
     private fun saveProfile() {
-        // TODO: Implement save profile
+        // Legacy method - use saveBuyerProfile instead
+    }
+
+    private fun saveBuyerProfile(displayName: String, email: String, phone: String) {
+        viewModelScope.launch {
+            println("💾 BuyAppViewModel.saveBuyerProfile: START - displayName=$displayName, email=$email, phone=$phone")
+
+            try {
+                val currentProfile = _state.value.screens.customerProfile.profile
+                if (currentProfile == null) {
+                    println("❌ BuyAppViewModel.saveBuyerProfile: No current profile to update")
+                    dispatch(UnifiedUiAction.ShowSnackbar("Fehler: Kein Profil vorhanden"))
+                    return@launch
+                }
+
+                // Create updated profile
+                val updatedProfile = currentProfile.copy(
+                    displayName = displayName,
+                    emailAddress = email,
+                    telephoneNumber = phone
+                )
+
+                // Save to repository
+                val result = profileRepository.saveBuyerProfile(updatedProfile)
+
+                result.onSuccess { savedProfile ->
+                    println("✅ BuyAppViewModel.saveBuyerProfile: Success")
+
+                    // Update state with saved profile
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                customerProfile = current.screens.customerProfile.copy(
+                                    profile = savedProfile
+                                )
+                            )
+                        )
+                    }
+
+                    dispatch(UnifiedUiAction.ShowSnackbar("Profil gespeichert"))
+                }.onFailure { error ->
+                    println("❌ BuyAppViewModel.saveBuyerProfile: Error - ${error.message}")
+                    dispatch(UnifiedUiAction.ShowSnackbar("Fehler beim Speichern: ${error.message}"))
+                }
+
+            } catch (e: Exception) {
+                println("❌ BuyAppViewModel.saveBuyerProfile: Exception - ${e.message}")
+                e.printStackTrace()
+                dispatch(UnifiedUiAction.ShowSnackbar("Fehler beim Speichern"))
+            }
+        }
     }
 
     private fun cancelProfileEdit() {
