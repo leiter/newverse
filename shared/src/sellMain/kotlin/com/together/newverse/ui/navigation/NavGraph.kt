@@ -1,73 +1,99 @@
 package com.together.newverse.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import com.together.newverse.shared.BuildKonfig
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavType
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.together.newverse.ui.screens.sell.*
+import com.together.newverse.ui.state.ListingState
+import com.together.newverse.ui.state.NotificationSettings
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedAppState
 
 /**
- * Navigation Graph for Newverse App
+ * Sell (Merchant) Navigation Routes Module
  *
- * Composes modular navigation graphs based on build flavor:
- * - Buy flavor (IS_BUY_APP=true): Common + Buy routes
- * - Sell flavor (IS_SELL_APP=true): Common + Sell routes
- * - Combined (both flags false): Common + Buy + Sell routes
+ * Contains routes specific to the Sell/Merchant flavor:
+ * - Overview
+ * - Orders
+ * - Products
+ * - Create Product
+ * - Seller Profile
+ * - Pick Delivery Day
+ * - Notification Settings
  *
- * This design allows for:
- * - Clean separation of flavor-specific navigation
- * - Support for buy-only, sell-only, or combined builds
- * - Easy addition of new routes to specific flavors
- *
- * Note: ImagePicker for seller features is provided via LocalImagePicker CompositionLocal
+ * This file is in sellMain source set, so it's ONLY compiled for Sell flavor.
  */
-@Composable
-fun NavGraph(
-    navController: NavHostController,
+fun NavGraphBuilder.navGraph(
     appState: UnifiedAppState,
     onAction: (UnifiedAppAction) -> Unit,
-    startDestination: String = NavRoutes.Home.route,
-    isSelectionMode: Boolean = false,
-    onSelectionModeChange: (Boolean) -> Unit = {},
-    isAvailabilityMode: Boolean = false,
-    onAvailabilityModeChange: (Boolean) -> Unit = {},
-    notificationSettingsContent: @Composable () -> Unit = {},
-    productsContent: @Composable (() -> Unit) -> Unit = { onCreateProduct -> }
+    onNavigateToOrderDetail: (String) -> Unit = {},
+    onNavigateBack: () -> Unit = {},
+    onNavigateToCreateProduct: () -> Unit = {},
+    notificationSettings: NotificationSettings = NotificationSettings(),
+    onNotificationAction: (com.together.newverse.ui.state.NotificationAction) -> Unit = {}
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = startDestination
-    ) {
-        // Always include common routes (Home, Login, Register, About)
-        commonNavGraph(navController, appState, onAction)
-
-        // Include Buy routes based on flavor configuration
-        // Include if: IS_BUY_APP is true OR it's a combined build (both flags false)
-        if (BuildKonfig.IS_BUY_APP || isCombinedBuild()) {
-            buyNavGraph(navController, appState, onAction)
-        }
-
-        // Include Sell routes based on flavor configuration
-        // Include if: IS_SELL_APP is true OR it's a combined build (both flags false)
-        if (BuildKonfig.IS_SELL_APP || isCombinedBuild()) {
-            sellNavGraph(
-                navController = navController,
-                isSelectionMode = isSelectionMode,
-                onSelectionModeChange = onSelectionModeChange,
-                isAvailabilityMode = isAvailabilityMode,
-                onAvailabilityModeChange = onAvailabilityModeChange,
-                notificationSettingsContent = notificationSettingsContent,
-                productsContent = productsContent
-            )
-        }
+    composable(NavRoutes.Sell.Overview.route) {
+        OverviewScreen(
+            isSelectionMode = false,
+            onSelectionModeChange = {},
+            isAvailabilityMode = false,
+            onAvailabilityModeChange = {}
+        )
     }
-}
 
-/**
- * Check if this is a combined build (both Buy and Sell features enabled)
- * This happens when neither IS_BUY_APP nor IS_SELL_APP is set to true
- */
-private fun isCombinedBuild(): Boolean {
-    return !BuildKonfig.IS_BUY_APP && !BuildKonfig.IS_SELL_APP
+    composable(NavRoutes.Sell.Orders.route) {
+        OrdersScreen(
+            onOrderClick = { orderId ->
+                onNavigateToOrderDetail(orderId)
+            }
+        )
+    }
+
+    composable(
+        route = NavRoutes.Sell.OrderDetail.route,
+        arguments = listOf(
+            navArgument("orderId") { type = NavType.StringType }
+        )
+    ) { backStackEntry ->
+        val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
+        OrderDetailScreen(
+            orderId = orderId,
+            onNavigateBack = onNavigateBack
+        )
+    }
+
+    composable(NavRoutes.Sell.Products.route) {
+        ProductsScreen(
+            productsState = appState.screens.products,
+            onCreateProduct = onNavigateToCreateProduct,
+            onProductClick = { /* TODO: Navigate to product detail */ }
+        )
+    }
+
+    composable(NavRoutes.Sell.Create.route) {
+        CreateProductScreen(
+            onNavigateBack = onNavigateBack
+        )
+    }
+
+    composable(NavRoutes.Sell.Profile.route) {
+        SellerProfileScreen(
+            onNotificationSettingsClick = {
+                // Navigation handled by navController in AppScaffold
+            }
+        )
+    }
+
+    composable(NavRoutes.Sell.PickDay.route) {
+        PickDayScreen()
+    }
+
+    composable(NavRoutes.Sell.NotificationSettings.route) {
+        NotificationsScreen(
+            notificationSettings = notificationSettings,
+            onAction = onNotificationAction
+        )
+    }
 }

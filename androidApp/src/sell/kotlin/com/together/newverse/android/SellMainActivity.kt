@@ -20,7 +20,6 @@ import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.UnifiedNavigationAction
 import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.ui.theme.NewverseTheme
-import com.together.newverse.android.ui.NotificationSettingsScreen
 import com.together.newverse.util.GoogleSignInHelper
 import com.together.newverse.util.ImagePicker
 import com.together.newverse.util.LocalImagePicker
@@ -158,9 +157,6 @@ class SellMainActivity : ComponentActivity() {
                         // TODO: Implement Twitter sign-in
                     }
                 }
-            },
-            notificationSettingsContent = {
-                NotificationSettingsScreen()
             }
         )
     }
