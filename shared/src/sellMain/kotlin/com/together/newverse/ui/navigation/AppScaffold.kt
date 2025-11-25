@@ -19,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import com.together.newverse.ui.components.AppDialog
 import com.together.newverse.ui.components.SellerBottomNavigationBar
 import com.together.newverse.ui.components.SellerTopBar
+import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.state.NotificationAction
 import com.together.newverse.ui.state.NotificationSettings
 import com.together.newverse.ui.state.SellAppViewModel
@@ -114,7 +115,7 @@ fun AppScaffold(
 
     // Check if app is still initializing
     if (state.meta.isInitializing) {
-        com.together.newverse.ui.screens.SplashScreen(
+        SplashScreen(
             initializationStep = state.meta.initializationStep
         )
         return
