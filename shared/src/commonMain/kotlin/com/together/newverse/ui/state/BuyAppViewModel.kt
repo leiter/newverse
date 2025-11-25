@@ -311,13 +311,97 @@ class BuyAppViewModel(
     private fun handleMainScreenAction(action: UnifiedMainScreenAction) {
         when (action) {
             is UnifiedMainScreenAction.SelectArticle -> selectMainScreenArticle(action.article)
-            is UnifiedMainScreenAction.UpdateQuantity -> updateMainScreenQuantity(action.quantity)
-            is UnifiedMainScreenAction.UpdateQuantityText -> updateMainScreenQuantityFromText(action.text)
-            UnifiedMainScreenAction.AddToCart -> addMainScreenToCart()
-            UnifiedMainScreenAction.RemoveFromBasket -> removeMainScreenFromBasket()
+            is UnifiedMainScreenAction.UpdateQuantity -> handleUpdateQuantity(action.quantity)
+            is UnifiedMainScreenAction.UpdateQuantityText -> handleUpdateQuantityFromText(action.text)
+            UnifiedMainScreenAction.AddToCart -> handleAddToCart()
+            UnifiedMainScreenAction.RemoveFromBasket -> handleRemoveFromBasket()
             is UnifiedMainScreenAction.ToggleFavourite -> toggleMainScreenFavourite(action.articleId)
             is UnifiedMainScreenAction.SetFilter -> setMainScreenFilter(action.filter)
             UnifiedMainScreenAction.Refresh -> refreshMainScreen()
+            UnifiedMainScreenAction.DismissNewOrderSnackbar -> dismissNewOrderSnackbar()
+            UnifiedMainScreenAction.StartNewOrder -> startNewOrder()
+        }
+    }
+
+    private fun handleUpdateQuantity(quantity: Double) {
+        if (!_state.value.screens.mainScreen.canEditOrder) {
+            showNewOrderSnackbar()
+            return
+        }
+        updateMainScreenQuantity(quantity)
+    }
+
+    private fun handleUpdateQuantityFromText(text: String) {
+        if (!_state.value.screens.mainScreen.canEditOrder) {
+            showNewOrderSnackbar()
+            return
+        }
+        updateMainScreenQuantityFromText(text)
+    }
+
+    private fun handleAddToCart() {
+        if (!_state.value.screens.mainScreen.canEditOrder) {
+            showNewOrderSnackbar()
+            return
+        }
+        addMainScreenToCart()
+    }
+
+    private fun handleRemoveFromBasket() {
+        if (!_state.value.screens.mainScreen.canEditOrder) {
+            showNewOrderSnackbar()
+            return
+        }
+        removeMainScreenFromBasket()
+    }
+
+    private fun showNewOrderSnackbar() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    mainScreen = current.screens.mainScreen.copy(
+                        showNewOrderSnackbar = true
+                    )
+                )
+            )
+        }
+    }
+
+    private fun dismissNewOrderSnackbar() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    mainScreen = current.screens.mainScreen.copy(
+                        showNewOrderSnackbar = false
+                    )
+                )
+            )
+        }
+    }
+
+    private fun startNewOrder() {
+        viewModelScope.launch {
+            // Clear the basket to start fresh
+            basketRepository.clearBasket()
+
+            // Reset canEditOrder to true and hide snackbar
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        mainScreen = current.screens.mainScreen.copy(
+                            canEditOrder = true,
+                            showNewOrderSnackbar = false
+                        )
+                    ),
+                    common = current.common.copy(
+                        basket = current.common.basket.copy(
+                            currentOrderId = null,
+                            currentOrderDate = null
+                        )
+                    )
+                )
+            }
+            println("🛒 Started new order - basket cleared")
         }
     }
 
@@ -1196,10 +1280,16 @@ class BuyAppViewModel(
                         // Calculate date key
                         val dateKey = formatDateKey(order.pickUpDate)
 
+                        // Check if order is editable (more than 3 days before pickup)
+                        val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
+                        val canEdit = System.currentTimeMillis() < threeDaysBeforePickup
+
+                        println("📦 loadCurrentOrder: Order canEdit=$canEdit (pickup in ${(order.pickUpDate - System.currentTimeMillis()) / (24 * 60 * 60 * 1000)} days)")
+
                         // Load order items into BasketRepository with order metadata
                         basketRepository.loadOrderItems(order.articles, order.id, dateKey)
 
-                        // Update state to store order info
+                        // Update state to store order info and editability
                         _state.update { current ->
                             current.copy(
                                 common = current.common.copy(
@@ -1207,13 +1297,18 @@ class BuyAppViewModel(
                                         currentOrderId = order.id,
                                         currentOrderDate = dateKey
                                     )
+                                ),
+                                screens = current.screens.copy(
+                                    mainScreen = current.screens.mainScreen.copy(
+                                        canEditOrder = canEdit
+                                    )
                                 )
                             )
                         }
 
                         println("✅ loadCurrentOrder: Loaded ${order.articles.size} items into basket")
                     } else {
-                        println("ℹ️ loadCurrentOrder: No editable orders found")
+                        println("ℹ️ loadCurrentOrder: No upcoming orders found")
                     }
                 }.onFailure { error ->
                     println("❌ loadCurrentOrder: Failed to load order - ${error.message}")

@@ -104,6 +104,8 @@ sealed interface UnifiedMainScreenAction : UnifiedAppAction {
     data class ToggleFavourite(val articleId: String) : UnifiedMainScreenAction
     data class SetFilter(val filter: ProductFilter) : UnifiedMainScreenAction
     data object Refresh : UnifiedMainScreenAction
+    data object DismissNewOrderSnackbar : UnifiedMainScreenAction
+    data object StartNewOrder : UnifiedMainScreenAction
 }
 
 /**

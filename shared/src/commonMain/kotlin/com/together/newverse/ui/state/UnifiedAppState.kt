@@ -547,7 +547,9 @@ data class MainScreenState(
     val cartItemCount: Int = 0,
     val basketItems: List<OrderedProduct> = emptyList(),
     val favouriteArticles: List<String> = emptyList(),
-    val activeFilter: ProductFilter = ProductFilter.ALL
+    val activeFilter: ProductFilter = ProductFilter.ALL,
+    val canEditOrder: Boolean = true,
+    val showNewOrderSnackbar: Boolean = false
 ) : ScreenState {
 
     /**

@@ -185,6 +185,7 @@ fun BasketContent(
                         price = item.price,
                         unit = item.unit,
                         quantity = item.amountCount,
+                        canEdit = state.canEdit,
                         onRemove = { onAction(BasketAction.RemoveItem(item.productId)) },
                         onQuantityChange = { newQty ->
                             onAction(BasketAction.UpdateQuantity(item.productId, newQty))
@@ -291,6 +292,7 @@ private fun BasketItemCard(
     price: Double,
     unit: String,
     quantity: Double,
+    canEdit: Boolean = true,
     onRemove: () -> Unit = {},
     onQuantityChange: (Double) -> Unit = {}
 ) {
@@ -334,14 +336,17 @@ private fun BasketItemCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // Only show remove button if order is editable
+            if (canEdit) {
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(onClick = onRemove) {
-                    Text(stringResource(Res.string.button_remove))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onRemove) {
+                        Text(stringResource(Res.string.button_remove))
+                    }
                 }
             }
         }

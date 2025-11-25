@@ -318,6 +318,8 @@ class SellAppViewModel(
             is UnifiedMainScreenAction.ToggleFavourite -> toggleMainScreenFavourite(action.articleId)
             is UnifiedMainScreenAction.SetFilter -> setMainScreenFilter(action.filter)
             UnifiedMainScreenAction.Refresh -> refreshMainScreen()
+            UnifiedMainScreenAction.DismissNewOrderSnackbar -> { /* Not applicable for seller */ }
+            UnifiedMainScreenAction.StartNewOrder -> { /* Not applicable for seller */ }
         }
     }
 
