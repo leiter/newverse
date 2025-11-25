@@ -82,6 +82,13 @@ class PlatformOrderRepository(
         return actualRepository.getOpenEditableOrder(sellerId, placedOrderIds)
     }
 
+    override suspend fun getUpcomingOrder(
+        sellerId: String,
+        placedOrderIds: Map<String, String>
+    ): Result<Order?> {
+        return actualRepository.getUpcomingOrder(sellerId, placedOrderIds)
+    }
+
     override suspend fun hideOrderForSeller(
         sellerId: String,
         date: String,

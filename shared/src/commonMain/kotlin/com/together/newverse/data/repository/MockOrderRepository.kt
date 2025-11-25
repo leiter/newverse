@@ -121,6 +121,28 @@ class MockOrderRepository : OrderRepository {
         }
     }
 
+    override suspend fun getUpcomingOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?> {
+        return try {
+            delay(300)
+            // Get all orders
+            val orders = _orders.value.filter { order ->
+                placedOrderIds.values.contains(order.id)
+            }
+
+            // Filter for upcoming orders (pickup date in the future)
+            val now = Clock.System.now().toEpochMilliseconds()
+            val upcomingOrders = orders.filter { order ->
+                order.pickUpDate > now
+            }
+
+            // Return the most recent upcoming order
+            val mostRecent = upcomingOrders.maxByOrNull { it.pickUpDate }
+            Result.success(mostRecent)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun hideOrderForSeller(sellerId: String, date: String, orderId: String): Result<Boolean> {
         return try {
             delay(300)

@@ -364,36 +364,24 @@ class BuyAppViewModel(
 
                 println("🚀 App Init: Authentication complete, user ID: $userId")
 
-                // Step 3: Sequential loading based on user state
-                val userState = _state.value.common.user
+                // Step 3: Load user-specific data (we have a valid userId)
+                println("🚀 App Init: User logged in, loading user-specific data...")
 
-                when (userState) {
-                    is UserState.LoggedIn -> {
-                        println("🚀 App Init: User logged in, loading user-specific data...")
+                // Step 3a: Load Profile
+                _state.update { it.copy(
+                    meta = it.meta.copy(
+                        initializationStep = InitializationStep.LoadingProfile
+                    )
+                )}
+                loadUserProfile()
 
-                        // Step 3a: Load Profile
-                        _state.update { it.copy(
-                            meta = it.meta.copy(
-                                initializationStep = InitializationStep.LoadingProfile
-                            )
-                        )}
-                        loadUserProfile()
-
-                        // Step 3b: Load current order
-                        _state.update { it.copy(
-                            meta = it.meta.copy(
-                                initializationStep = InitializationStep.LoadingOrder
-                            )
-                        )}
-                        loadCurrentOrder()
-                    }
-                    is UserState.Guest -> {
-                        println("🚀 App Init: Guest user, skipping user-specific data")
-                    }
-                    is UserState.Loading -> {
-                        println("🚀 App Init: User state still loading, skipping user-specific data")
-                    }
-                }
+                // Step 3b: Load current order
+                _state.update { it.copy(
+                    meta = it.meta.copy(
+                        initializationStep = InitializationStep.LoadingOrder
+                    )
+                )}
+                loadCurrentOrder()
 
                 // Step 4: Load articles (for all users)
                 _state.update { it.copy(
@@ -1182,29 +1170,59 @@ class BuyAppViewModel(
      */
     private suspend fun loadCurrentOrder() {
         try {
-            val userId = (_state.value.common.user as? UserState.LoggedIn)?.id ?: return
-
-            println("📦 Loading current order for userId: $userId")
+            println("📦 loadCurrentOrder: Loading current order...")
 
             // Get profile to access placedOrderIds
             val profileResult = profileRepository.getBuyerProfile()
 
             profileResult.onSuccess { profile ->
-                // Load orders using profile's placedOrderIds
-                // Note: We'll need to know the sellerId - for now, use a default or skip
-                // This is simplified - in production, you'd need to handle multiple sellers
-                if (profile.placedOrderIds.isNotEmpty()) {
-                    println("📦 Found ${profile.placedOrderIds.size} placed orders")
-                    // TODO: Implement proper order loading with sellerId
-                    // For now, just log that we found orders
-                } else {
-                    println("ℹ️ No placed orders found in profile")
+                val placedOrderIds = profile.placedOrderIds
+
+                if (placedOrderIds.isEmpty()) {
+                    println("ℹ️ loadCurrentOrder: No placed orders found in profile")
+                    return@onSuccess
+                }
+
+                println("📦 loadCurrentOrder: Found ${placedOrderIds.size} placed orders, looking for upcoming order...")
+
+                // Get the most recent upcoming order (not just editable)
+                val sellerId = "" // Using empty seller ID for now
+                val orderResult = orderRepository.getUpcomingOrder(sellerId, placedOrderIds)
+
+                orderResult.onSuccess { order ->
+                    if (order != null) {
+                        println("✅ loadCurrentOrder: Found upcoming order - orderId=${order.id}, ${order.articles.size} items")
+
+                        // Calculate date key
+                        val dateKey = formatDateKey(order.pickUpDate)
+
+                        // Load order items into BasketRepository with order metadata
+                        basketRepository.loadOrderItems(order.articles, order.id, dateKey)
+
+                        // Update state to store order info
+                        _state.update { current ->
+                            current.copy(
+                                common = current.common.copy(
+                                    basket = current.common.basket.copy(
+                                        currentOrderId = order.id,
+                                        currentOrderDate = dateKey
+                                    )
+                                )
+                            )
+                        }
+
+                        println("✅ loadCurrentOrder: Loaded ${order.articles.size} items into basket")
+                    } else {
+                        println("ℹ️ loadCurrentOrder: No editable orders found")
+                    }
+                }.onFailure { error ->
+                    println("❌ loadCurrentOrder: Failed to load order - ${error.message}")
                 }
             }.onFailure { error ->
-                println("❌ Failed to load profile for order check: ${error.message}")
+                println("❌ loadCurrentOrder: Failed to load profile - ${error.message}")
             }
         } catch (e: Exception) {
-            println("❌ Exception loading current order: ${e.message}")
+            println("❌ loadCurrentOrder: Exception - ${e.message}")
         }
     }
 

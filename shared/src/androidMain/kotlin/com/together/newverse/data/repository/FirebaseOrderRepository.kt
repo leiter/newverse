@@ -394,6 +394,47 @@ class FirebaseOrderRepository : OrderRepository {
     }
 
     /**
+     * Get the most recent upcoming order (regardless of editability)
+     * Returns any order with pickup date in the future
+     */
+    override suspend fun getUpcomingOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?> {
+        return try {
+            println("🔥 FirebaseOrderRepository.getUpcomingOrder: START with ${placedOrderIds.size} orders")
+
+            // Load all orders
+            val orders = mutableListOf<Order>()
+            placedOrderIds.forEach { (date, orderId) ->
+                val orderResult = loadOrder(sellerId, date, orderId)
+                orderResult.onSuccess { order ->
+                    // Check if order pickup is in the future
+                    val isUpcoming = order.pickUpDate > System.currentTimeMillis()
+
+                    if (isUpcoming) {
+                        println("🔥 FirebaseOrderRepository.getUpcomingOrder: Found upcoming order - orderId=$orderId, pickupDate=${order.pickUpDate}")
+                        orders.add(order)
+                    } else {
+                        println("🔥 FirebaseOrderRepository.getUpcomingOrder: Order already passed - orderId=$orderId")
+                    }
+                }
+            }
+
+            // Return the most recent upcoming order (highest pickup date)
+            val mostRecentOrder = orders.maxByOrNull { it.pickUpDate }
+
+            if (mostRecentOrder != null) {
+                println("✅ FirebaseOrderRepository.getUpcomingOrder: Returning most recent order - orderId=${mostRecentOrder.id}")
+            } else {
+                println("✅ FirebaseOrderRepository.getUpcomingOrder: No upcoming orders found")
+            }
+
+            Result.success(mostRecentOrder)
+        } catch (e: Exception) {
+            println("❌ FirebaseOrderRepository.getUpcomingOrder: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Format timestamp to date key (yyyyMMdd)
      * Matches universe project's toOrderId() extension
      */

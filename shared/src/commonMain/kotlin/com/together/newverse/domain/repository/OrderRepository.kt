@@ -80,4 +80,13 @@ interface OrderRepository {
      * @return The most recent editable order, or null if none found
      */
     suspend fun getOpenEditableOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?>
+
+    /**
+     * Get the most recent upcoming order for the current buyer (regardless of editability)
+     * An order is considered upcoming if pickup date is in the future
+     * @param sellerId The seller's ID
+     * @param placedOrderIds Map of date to order ID
+     * @return The most recent upcoming order, or null if none found
+     */
+    suspend fun getUpcomingOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?>
 }

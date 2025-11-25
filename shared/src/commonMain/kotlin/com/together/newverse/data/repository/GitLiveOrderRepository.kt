@@ -331,6 +331,49 @@ class GitLiveOrderRepository(
         }
     }
 
+    /**
+     * Get the most recent upcoming order (regardless of editability).
+     */
+    override suspend fun getUpcomingOrder(
+        sellerId: String,
+        placedOrderIds: Map<String, String>
+    ): Result<Order?> {
+        return try {
+            println("🔐 GitLiveOrderRepository.getUpcomingOrder: START")
+
+            if (placedOrderIds.isEmpty()) {
+                println("✅ GitLiveOrderRepository.getUpcomingOrder: No placed orders")
+                return Result.success(null)
+            }
+
+            // Get all buyer orders
+            val ordersResult = getBuyerOrders(sellerId, placedOrderIds)
+            if (ordersResult.isFailure) {
+                return Result.failure(ordersResult.exceptionOrNull()!!)
+            }
+
+            val orders = ordersResult.getOrThrow()
+            val now = Clock.System.now().toEpochMilliseconds()
+
+            // Find most recent upcoming order (pickup date in the future)
+            val upcomingOrder = orders
+                .filter { it.pickUpDate > now }
+                .maxByOrNull { it.pickUpDate }
+
+            if (upcomingOrder != null) {
+                println("✅ GitLiveOrderRepository.getUpcomingOrder: Found upcoming order ${upcomingOrder.id}")
+            } else {
+                println("✅ GitLiveOrderRepository.getUpcomingOrder: No upcoming orders found")
+            }
+
+            Result.success(upcomingOrder)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.getUpcomingOrder: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     // Helper functions
 
     /**
