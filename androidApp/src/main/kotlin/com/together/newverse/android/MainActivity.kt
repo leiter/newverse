@@ -9,9 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import com.together.newverse.util.initializeImageLoader
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.ui.navigation.AppScaffold
 import com.together.newverse.ui.navigation.NavRoutes
@@ -24,6 +22,7 @@ import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.GoogleSignInHelper
 import com.together.newverse.util.ImagePicker
 import com.together.newverse.util.LocalImagePicker
+import com.together.newverse.util.initializeImageLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

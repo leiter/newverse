@@ -5,7 +5,6 @@ import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.UnifiedMainScreenAction
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 
 /**
  * BUYER USER STORY 2: Modify Quantities and Manage Favorites
@@ -178,7 +177,7 @@ suspend fun runBuyerStory2_ModifyQuantitiesAndFavorites(
         delay(500)
         val profileResult = profileRepository.getBuyerProfile()
         val profile = profileResult.getOrNull()
-        val profileHasFavorite = profile?.favouriteArticles?.contains(article.id) ?: false
+        val profileHasFavorite = profile?.favouriteArticles?.contains(article.id) == true
 
         println("\n[REPOSITORY VERIFICATION]")
         println("   Profile Favorite Count: ${profile?.favouriteArticles?.size ?: 0}")

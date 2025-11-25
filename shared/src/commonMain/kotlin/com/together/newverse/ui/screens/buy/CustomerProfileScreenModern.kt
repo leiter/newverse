@@ -76,9 +76,37 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.state.UnifiedAppAction
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.*
+import newverse.shared.generated.resources.action_favorites
+import newverse.shared.generated.resources.action_help
+import newverse.shared.generated.resources.action_orders
+import newverse.shared.generated.resources.action_payment
+import newverse.shared.generated.resources.button_cancel
+import newverse.shared.generated.resources.button_confirm
+import newverse.shared.generated.resources.button_save
+import newverse.shared.generated.resources.default_market
+import newverse.shared.generated.resources.dialog_save_message
+import newverse.shared.generated.resources.dialog_save_title
+import newverse.shared.generated.resources.label_display_name
+import newverse.shared.generated.resources.label_email
+import newverse.shared.generated.resources.label_marketplace
+import newverse.shared.generated.resources.label_phone
+import newverse.shared.generated.resources.label_pickup_time
+import newverse.shared.generated.resources.membership_discount
+import newverse.shared.generated.resources.membership_regular
+import newverse.shared.generated.resources.notification_newsletter
+import newverse.shared.generated.resources.notification_newsletter_desc
+import newverse.shared.generated.resources.notification_order_updates
+import newverse.shared.generated.resources.notification_push_desc
+import newverse.shared.generated.resources.pickup_time_format
+import newverse.shared.generated.resources.profile_member_since
+import newverse.shared.generated.resources.profile_new_customer
+import newverse.shared.generated.resources.profile_no_email
+import newverse.shared.generated.resources.profile_verified
+import newverse.shared.generated.resources.quick_actions_title
+import newverse.shared.generated.resources.section_delivery_preferences
+import newverse.shared.generated.resources.section_notifications
+import newverse.shared.generated.resources.section_personal_info
 import org.jetbrains.compose.resources.stringResource
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -849,7 +877,7 @@ private fun QuickActionsCard(
 
 @Composable
 private fun ActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String,
     color: Color,
     modifier: Modifier = Modifier,

@@ -5,11 +5,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.*
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,7 +23,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.together.newverse.ui.navigation.NavRoutes
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.*
+import newverse.shared.generated.resources.topbar_change_availability
+import newverse.shared.generated.resources.topbar_new_product
+import newverse.shared.generated.resources.topbar_notifications
+import newverse.shared.generated.resources.topbar_orders
+import newverse.shared.generated.resources.topbar_products
+import newverse.shared.generated.resources.topbar_profile
+import newverse.shared.generated.resources.topbar_select_delete
+import newverse.shared.generated.resources.topbar_seller
+import newverse.shared.generated.resources.topbar_sortiment
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -32,8 +46,6 @@ fun SellerTopBar(
     isAvailabilityMode: Boolean = false,
     onNavigateBack: () -> Unit,
     onNavigateToOrders: () -> Unit,
-    onNavigateToProfile: () -> Unit,
-    onNavigateToNotifications: () -> Unit,
     onRefresh: () -> Unit = {},
     onToggleSelectionMode: () -> Unit = {},
     onToggleAvailabilityMode: () -> Unit = {}

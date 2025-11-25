@@ -150,12 +150,6 @@ fun AppScaffold(
                 onNavigateToOrders = {
                     navController.navigate(NavRoutes.Sell.Orders.route)
                 },
-                onNavigateToProfile = {
-                    navController.navigate(NavRoutes.Sell.Profile.route)
-                },
-                onNavigateToNotifications = {
-                    navController.navigate(NavRoutes.Sell.NotificationSettings.route)
-                },
                 onRefresh = {
                     // Recreate the screen to trigger refresh
                     navController.navigate(NavRoutes.Sell.Overview.route) {
