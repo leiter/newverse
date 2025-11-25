@@ -16,6 +16,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
@@ -116,4 +117,18 @@ dependencies {
 
     // WorkManager for background task scheduling
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+
+    // Material Components (for testing UI)
+    implementation("com.google.android.material:material:1.12.0")
+
+    // Testing dependencies
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test.espresso:espresso-idling-resource:3.6.1")
+    androidTestImplementation("junit:junit:4.13.2")
 }
