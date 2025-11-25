@@ -151,6 +151,15 @@ class MainActivity : ComponentActivity() {
                             Log.e("MainActivity", "❌ Exception launching Google Sign-In: ${e.message}", e)
                         }
                     }
+                    is PlatformAction.GoogleSignOut -> {
+                        try {
+                            Log.d("MainActivity", "🔐 MainActivity: Handling GoogleSignOut action")
+                            googleSignInHelper.signOut()
+                            Log.d("MainActivity", "🔐 Google Sign-Out completed")
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "❌ Exception during Google Sign-Out: ${e.message}", e)
+                        }
+                    }
                     is PlatformAction.TwitterSignIn -> {
                         Log.d("MainActivity", "🔐 MainActivity: Handling TwitterSignIn action")
                         // TODO: Implement Twitter sign-in

@@ -18,12 +18,14 @@ import com.together.newverse.ui.state.NotificationSettings
 
 /**
  * Notifications settings screen for sellers
+ * @param platformContent Optional platform-specific content (e.g., Android service controls)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
     notificationSettings: NotificationSettings,
-    onAction: (NotificationAction) -> Unit
+    onAction: (NotificationAction) -> Unit,
+    platformContent: @Composable (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -32,6 +34,8 @@ fun NotificationsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Platform-specific content (e.g., Android notification service controls)
+        platformContent?.invoke()
 
         Spacer(modifier = Modifier.height(8.dp))
 

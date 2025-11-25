@@ -36,8 +36,11 @@ fun NavGraphBuilder.navGraph(
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateBack: () -> Unit = {},
     onNavigateToCreateProduct: () -> Unit = {},
+    onNavigateToNotificationSettings: () -> Unit = {},
+    onLogout: () -> Unit = {},
     notificationSettings: NotificationSettings = NotificationSettings(),
     onNotificationAction: (com.together.newverse.ui.state.NotificationAction) -> Unit = {},
+    notificationPlatformContent: @androidx.compose.runtime.Composable (() -> Unit)? = null,
     getSelectionMode: () -> Boolean = { false },
     onSelectionModeChange: (Boolean) -> Unit = {},
     getAvailabilityMode: () -> Boolean = { false },
@@ -90,9 +93,8 @@ fun NavGraphBuilder.navGraph(
 
     composable(NavRoutes.Sell.Profile.route) {
         SellerProfileScreen(
-            onNotificationSettingsClick = {
-                // Navigation handled by navController in AppScaffold
-            }
+            onNotificationSettingsClick = onNavigateToNotificationSettings,
+            onLogout = onLogout
         )
     }
 
@@ -103,7 +105,8 @@ fun NavGraphBuilder.navGraph(
     composable(NavRoutes.Sell.NotificationSettings.route) {
         NotificationsScreen(
             notificationSettings = notificationSettings,
-            onAction = onNotificationAction
+            onAction = onNotificationAction,
+            platformContent = notificationPlatformContent
         )
     }
 }

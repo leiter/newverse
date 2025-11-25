@@ -39,6 +39,7 @@ data class CommonState(
     // Triggers for platform-specific actions
     val triggerGoogleSignIn: Boolean = false,
     val triggerTwitterSignIn: Boolean = false,
+    val triggerGoogleSignOut: Boolean = false,
     // Force login flag for seller flavor
     val requiresLogin: Boolean = false
 )

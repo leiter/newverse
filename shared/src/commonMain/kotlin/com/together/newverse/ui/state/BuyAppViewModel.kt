@@ -1109,7 +1109,8 @@ class BuyAppViewModel(
                         current.copy(
                             common = current.common.copy(
                                 user = UserState.Guest,
-                                basket = BasketState()
+                                basket = BasketState(),
+                                triggerGoogleSignOut = true
                             )
                         )
                     }
@@ -1118,6 +1119,14 @@ class BuyAppViewModel(
                 .onFailure { error ->
                     showSnackbar(error.message ?: "Sign out failed", SnackbarType.ERROR)
                 }
+        }
+    }
+
+    override fun resetGoogleSignOutTrigger() {
+        _state.update { current ->
+            current.copy(
+                common = current.common.copy(triggerGoogleSignOut = false)
+            )
         }
     }
 

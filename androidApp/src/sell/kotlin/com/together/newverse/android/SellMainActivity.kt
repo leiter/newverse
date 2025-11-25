@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
 import com.together.newverse.util.initializeImageLoader
+import com.together.newverse.android.ui.NotificationServiceControl
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.ui.navigation.AppScaffold
 import com.together.newverse.ui.navigation.NavRoutes
@@ -152,11 +153,23 @@ class SellMainActivity : ComponentActivity() {
                             Log.e("SellMainActivity", "Exception launching Google Sign-In: ${e.message}", e)
                         }
                     }
+                    is PlatformAction.GoogleSignOut -> {
+                        try {
+                            Log.d("SellMainActivity", "Handling GoogleSignOut action")
+                            googleSignInHelper.signOut()
+                            Log.d("SellMainActivity", "Google Sign-Out completed")
+                        } catch (e: Exception) {
+                            Log.e("SellMainActivity", "Exception during Google Sign-Out: ${e.message}", e)
+                        }
+                    }
                     is PlatformAction.TwitterSignIn -> {
                         Log.d("SellMainActivity", "Handling TwitterSignIn action")
                         // TODO: Implement Twitter sign-in
                     }
                 }
+            },
+            notificationPlatformContent = {
+                NotificationServiceControl()
             }
         )
     }

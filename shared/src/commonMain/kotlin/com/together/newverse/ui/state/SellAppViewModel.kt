@@ -583,7 +583,8 @@ class SellAppViewModel(
                         current.copy(
                             common = current.common.copy(
                                 user = UserState.Guest,
-                                requiresLogin = true
+                                requiresLogin = true,
+                                triggerGoogleSignOut = true
                             )
                         )
                     }
@@ -592,6 +593,14 @@ class SellAppViewModel(
                 .onFailure { error ->
                     showSnackbar(error.message ?: "Abmeldung fehlgeschlagen", SnackbarType.ERROR)
                 }
+        }
+    }
+
+    override fun resetGoogleSignOutTrigger() {
+        _state.update { current ->
+            current.copy(
+                common = current.common.copy(triggerGoogleSignOut = false)
+            )
         }
     }
 

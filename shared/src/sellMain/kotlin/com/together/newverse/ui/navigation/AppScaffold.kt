@@ -24,6 +24,7 @@ import com.together.newverse.ui.state.NotificationSettings
 import com.together.newverse.ui.state.SellAppViewModel
 import com.together.newverse.ui.state.SnackbarDuration
 import com.together.newverse.ui.state.UnifiedUiAction
+import com.together.newverse.ui.state.UnifiedUserAction
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -39,12 +40,14 @@ import org.koin.compose.viewmodel.koinViewModel
 sealed interface PlatformAction {
     data object GoogleSignIn : PlatformAction
     data object TwitterSignIn : PlatformAction
+    data object GoogleSignOut : PlatformAction
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold(
-    onPlatformAction: (PlatformAction) -> Unit = {}
+    onPlatformAction: (PlatformAction) -> Unit = {},
+    notificationPlatformContent: @Composable (() -> Unit)? = null
 ) {
     // Get the Sell-specific ViewModel
     val viewModel = koinViewModel<SellAppViewModel>()
@@ -74,6 +77,14 @@ fun AppScaffold(
         if (state.common.triggerGoogleSignIn) {
             onPlatformAction(PlatformAction.GoogleSignIn)
             viewModel.resetGoogleSignInTrigger()
+        }
+    }
+
+    // Observe Google Sign-Out trigger
+    LaunchedEffect(state.common.triggerGoogleSignOut) {
+        if (state.common.triggerGoogleSignOut) {
+            onPlatformAction(PlatformAction.GoogleSignOut)
+            viewModel.resetGoogleSignOutTrigger()
         }
     }
 
@@ -197,8 +208,15 @@ fun AppScaffold(
                 onNavigateToCreateProduct = {
                     navController.navigate(NavRoutes.Sell.Create.route)
                 },
+                onNavigateToNotificationSettings = {
+                    navController.navigate(NavRoutes.Sell.NotificationSettings.route)
+                },
+                onLogout = {
+                    viewModel.dispatch(UnifiedUserAction.Logout)
+                },
                 notificationSettings = notificationSettings,
                 onNotificationAction = onNotificationAction,
+                notificationPlatformContent = notificationPlatformContent,
                 getSelectionMode = { isSelectionMode },
                 onSelectionModeChange = { isSelectionMode = it },
                 getAvailabilityMode = { isAvailabilityMode },

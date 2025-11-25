@@ -11,7 +11,8 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun SellerProfileScreen(
-    onNotificationSettingsClick: () -> Unit = {}
+    onNotificationSettingsClick: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -102,7 +103,7 @@ fun SellerProfileScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         OutlinedButton(
-            onClick = { /* TODO: Logout */ },
+            onClick = onLogout,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(Res.string.button_sign_out))
