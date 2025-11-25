@@ -435,23 +435,18 @@ private fun HeroProductCard(
                                             // Allow only valid input (numbers, comma, dot)
                                             var filtered = newText.filter { it.isDigit() || it == ',' || it == '.' }
 
-                                            // If current text is just "0" and a non-zero digit was added,
-                                            // replace the zero with the new digit
+                                            // If current text is "0" and user types a non-zero digit, replace the 0
+                                            // Handles both "50" (cursor at start) and "05" (cursor at end)
                                             if (quantityText == "0" && filtered.length == 2) {
                                                 val nonZeroDigit = filtered.firstOrNull { it.isDigit() && it != '0' }
-                                                if (nonZeroDigit != null && !filtered.contains('.') && !filtered.contains(',')) {
+                                                if (nonZeroDigit != null && filtered.count { it == '0' } == 1) {
                                                     filtered = nonZeroDigit.toString()
                                                 }
                                             }
 
                                             // Remove leading zeros except for decimal numbers like "0.5" or "0,5"
-                                            if (filtered.length > 1 && filtered.startsWith("0")) {
-                                                val secondChar = filtered[1]
-                                                if (secondChar.isDigit()) {
-                                                    // "05" -> "5", "007" -> "7"
-                                                    filtered = filtered.dropWhile { it == '0' }.ifEmpty { "0" }
-                                                }
-                                                // "0." or "0," stays as is
+                                            if (filtered.length > 1 && filtered.startsWith("0") && filtered.getOrNull(1)?.let { it.isDigit() } == true) {
+                                                filtered = filtered.dropWhile { it == '0' }.ifEmpty { "0" }
                                             }
 
                                             if (filtered.count { it == ',' || it == '.' } <= 1) {
