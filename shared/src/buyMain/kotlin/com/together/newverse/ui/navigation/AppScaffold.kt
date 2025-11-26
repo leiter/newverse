@@ -12,7 +12,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DrawerValue
@@ -313,16 +312,16 @@ fun AppScaffold(
                     },
                     actions = {
                         // Show search icon only on Home screen
-                        if (currentRoute == NavRoutes.Home.route) {
-                            IconButton(onClick = { /* TODO: Search action */ }) {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search",
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
+//                        if (currentRoute == NavRoutes.Home.route) {
+//                            IconButton(onClick = { /* TODO: Search action */ }) {
+//                                Icon(
+//                                    imageVector = Icons.Default.Search,
+//                                    contentDescription = "Search",
+//                                    tint = MaterialTheme.colorScheme.onPrimary,
+//                                    modifier = Modifier.size(24.dp)
+//                                )
+//                            }
+//                        }
 
                         // Show cart icon on Home and Basket screens
                         if (currentRoute == NavRoutes.Home.route ||

@@ -72,7 +72,7 @@ data class BuyerProfileDto(
     val defaultMarket: String = "",
     val defaultTime: String = "", // Note: using "defaultTime" to match universe project
     val placedOrderIds: Map<String, String> = emptyMap(),
-    val favouriteArticles: List<String> = emptyList(),
+    val favouriteProductIds: List<String> = emptyList(), // Firebase field name
 ) {
     fun toDomain(): BuyerProfile {
         return BuyerProfile(
@@ -84,7 +84,7 @@ data class BuyerProfileDto(
             defaultMarket = defaultMarket,
             defaultPickUpTime = defaultTime,
             placedOrderIds = placedOrderIds,
-            favouriteArticles = favouriteArticles
+            favouriteArticles = favouriteProductIds // Map to domain name
         )
     }
 
@@ -99,7 +99,7 @@ data class BuyerProfileDto(
                 defaultMarket = profile.defaultMarket,
                 defaultTime = profile.defaultPickUpTime,
                 placedOrderIds = profile.placedOrderIds,
-                favouriteArticles = profile.favouriteArticles
+                favouriteProductIds = profile.favouriteArticles // Map from domain name
             )
         }
     }

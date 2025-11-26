@@ -1,13 +1,31 @@
 package com.together.newverse.ui.screens.buy
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -17,14 +35,19 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
-import org.koin.compose.viewmodel.koinViewModel
-import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.*
-import org.jetbrains.compose.resources.stringResource
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.basket_checkout_proceed
+import newverse.shared.generated.resources.basket_checkout_processing
+import newverse.shared.generated.resources.basket_empty_description
+import newverse.shared.generated.resources.basket_empty_title
+import newverse.shared.generated.resources.button_remove
+import newverse.shared.generated.resources.label_total
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Basket Screen - Stateful composable with ViewModel
@@ -256,9 +279,9 @@ fun BasketContent(
                         quantity = item.amountCount,
                         canEdit = state.canEdit,
                         onRemove = { onAction(BasketAction.RemoveItem(item.productId)) },
-                        onQuantityChange = { newQty ->
-                            onAction(BasketAction.UpdateQuantity(item.productId, newQty))
-                        }
+//                        onQuantityChange = { newQty ->
+//                            onAction(BasketAction.UpdateQuantity(item.productId, newQty))
+//                        }
                     )
                 }
             }
@@ -362,7 +385,8 @@ fun BasketContent(
                 }
 
                 // Show reorder button only when pickup date is in the past
-                val isPickupDateInPast = state.pickupDate?.let { it < System.currentTimeMillis() } ?: false
+                val currentTime = Clock.System.now().toEpochMilliseconds()
+                val isPickupDateInPast = state.pickupDate?.let { it < currentTime } == true
                 if (isPickupDateInPast) {
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -400,7 +424,7 @@ private fun BasketItemCard(
     quantity: Double,
     canEdit: Boolean = true,
     onRemove: () -> Unit = {},
-    onQuantityChange: (Double) -> Unit = {}
+//    onQuantityChange: (Double) -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
