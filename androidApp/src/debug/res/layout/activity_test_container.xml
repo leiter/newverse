@@ -6,6 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    tools:ignore="HardcodedText"
     tools:context="com.together.newverse.android.TestContainerActivity">
 
     <com.google.android.material.button.MaterialButton
@@ -30,7 +31,8 @@
         android:layout_height="wrap_content"
         android:text="Delete"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/login" />
+        app:layout_constraintStart_toEndOf="@id/login"
+         />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/logout"

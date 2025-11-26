@@ -107,6 +107,28 @@ fun BasketContent(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
+        // Show cancel success message
+        if (state.cancelSuccess) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "✓ Bestellung erfolgreich storniert!",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         // Show error message
         state.orderError?.let { error ->
             Card(
@@ -238,7 +260,7 @@ fun BasketContent(
                 Button(
                     onClick = { onAction(BasketAction.UpdateOrder) },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = state.hasChanges && state.items.isNotEmpty() && !state.isCheckingOut
+                    enabled = state.hasChanges && state.items.isNotEmpty() && !state.isCheckingOut && !state.isCancelling
                 ) {
                     if (state.isCheckingOut) {
                         Text(stringResource(Res.string.basket_checkout_processing))
@@ -246,6 +268,24 @@ fun BasketContent(
                         Text("Bestellung aktualisieren")
                     } else {
                         Text("Keine Änderungen")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Show cancel button
+                OutlinedButton(
+                    onClick = { onAction(BasketAction.CancelOrder) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isCheckingOut && !state.isCancelling,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    if (state.isCancelling) {
+                        Text("Storniere...")
+                    } else {
+                        Text("Bestellung stornieren")
                     }
                 }
             } else {

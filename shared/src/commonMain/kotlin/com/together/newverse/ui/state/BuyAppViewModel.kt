@@ -2,7 +2,6 @@ package com.together.newverse.ui.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.config.BuildFlavor
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.repository.ArticleRepository
@@ -72,19 +71,13 @@ class BuyAppViewModel(
                                     id = userId,
                                     email = "", // Will be populated from profile
                                     name = "", // Will be populated from profile
-                                    role = UserRole.CUSTOMER // Default role
+                                    role = UserRole.CUSTOMER
                                 )
                             } else {
                                 UserState.Guest
                             },
-                            // Set requiresLogin based on auth state and flavor
-                            requiresLogin = if (BuildFlavor.isSeller) {
-                                // Seller flavor: require login only if no user
-                                userId == null
-                            } else {
-                                // Buy flavor: never require login (guest access allowed)
-                                false
-                            }
+                            // Buy flavor: never require login (guest access allowed)
+                            requiresLogin = false
                         )
                     )
                 }
@@ -240,9 +233,9 @@ class BuyAppViewModel(
             is UnifiedProductAction.RefreshProducts -> refreshProducts()
             is UnifiedProductAction.SelectProduct -> selectProduct(action.product)
             is UnifiedProductAction.ViewProductDetail -> viewProductDetail(action.productId)
-            is UnifiedProductAction.CreateProduct -> createProduct(action.productData)
-            is UnifiedProductAction.UpdateProduct -> updateProduct(action.productId, action.productData)
-            is UnifiedProductAction.DeleteProduct -> deleteProduct(action.productId)
+            is UnifiedProductAction.CreateProduct -> { /* Seller-only action */ }
+            is UnifiedProductAction.UpdateProduct -> { /* Seller-only action */ }
+            is UnifiedProductAction.DeleteProduct -> { /* Seller-only action */ }
         }
     }
 
@@ -508,9 +501,7 @@ class BuyAppViewModel(
      * Check if user has a persisted authentication session
      * This runs BEFORE any Firebase connections
      *
-     * Behavior depends on build flavor:
-     * - BUY flavor: If no session, automatically sign in as guest
-     * - SELL flavor: If no session, require login (no guest access)
+     * Buy flavor: If no session, automatically sign in as guest
      */
     private suspend fun checkAuthenticationStatus() {
         try {
@@ -522,14 +513,14 @@ class BuyAppViewModel(
                 )
             }
 
-            println("🔍 App Startup: Checking authentication (flavor: ${BuildFlavor.current})")
+            println("🔍 Buy App Startup: Checking authentication")
 
             // Check for persisted authentication session
             authRepository.checkPersistedAuth().fold(
                 onSuccess = { userId ->
                     if (userId != null) {
                         // User has valid persisted session
-                        println("✅ App Startup: Restored auth session for user: $userId")
+                        println("✅ Buy App Startup: Restored auth session for user: $userId")
                         _state.update { current ->
                             current.copy(
                                 meta = current.meta.copy(
@@ -538,76 +529,21 @@ class BuyAppViewModel(
                             )
                         }
                     } else {
-                        // No persisted session - behavior depends on flavor
-                        if (BuildFlavor.allowsGuestAccess) {
-                            // BUY flavor: Auto sign-in as guest
-                            println("🛒 App Startup: No auth (BUY flavor) - signing in as guest...")
-                            signInAsGuest()
-                        } else {
-                            // SELL flavor: Require login
-                            println("🏪 App Startup: No auth (SELL flavor) - login required")
-                            _state.update { current ->
-                                current.copy(
-                                    common = current.common.copy(
-                                        user = UserState.Guest, // Not authenticated
-                                        requiresLogin = true  // Flag that login is required
-                                    ),
-                                    meta = current.meta.copy(
-                                        isInitializing = false,
-                                        isInitialized = true,
-                                        initializationStep = InitializationStep.Complete
-                                    )
-                                )
-                            }
-                        }
+                        // No persisted session - sign in as guest
+                        println("🛒 Buy App Startup: No auth - signing in as guest...")
+                        signInAsGuest()
                     }
                 },
                 onFailure = { error ->
-                    // Failed to check auth - behavior depends on flavor
-                    println("⚠️ App Startup: Failed to check auth - ${error.message}")
-                    if (BuildFlavor.allowsGuestAccess) {
-                        println("🛒 App Startup: BUY flavor - signing in as guest...")
-                        signInAsGuest()
-                    } else {
-                        println("🏪 App Startup: SELL flavor - login required")
-                        _state.update { current ->
-                            current.copy(
-                                common = current.common.copy(
-                                    user = UserState.Guest,
-                                    requiresLogin = true
-                                ),
-                                meta = current.meta.copy(
-                                    isInitializing = false,
-                                    isInitialized = true,
-                                    initializationStep = InitializationStep.Complete
-                                )
-                            )
-                        }
-                    }
+                    // Failed to check auth - sign in as guest
+                    println("⚠️ Buy App Startup: Failed to check auth - ${error.message}, signing in as guest...")
+                    signInAsGuest()
                 }
             )
         } catch (e: Exception) {
-            // Error checking auth - behavior depends on flavor
-            println("❌ App Startup: Exception checking auth - ${e.message}")
-            if (BuildFlavor.allowsGuestAccess) {
-                println("🛒 App Startup: BUY flavor - signing in as guest...")
-                signInAsGuest()
-            } else {
-                println("🏪 App Startup: SELL flavor - login required")
-                _state.update { current ->
-                    current.copy(
-                        common = current.common.copy(
-                            user = UserState.Guest,
-                            requiresLogin = true
-                        ),
-                        meta = current.meta.copy(
-                            isInitializing = false,
-                            isInitialized = true,
-                            initializationStep = InitializationStep.Complete
-                        )
-                    )
-                }
-            }
+            // Error checking auth - sign in as guest
+            println("❌ Buy App Startup: Exception checking auth - ${e.message}, signing in as guest...")
+            signInAsGuest()
         }
     }
 
@@ -986,7 +922,7 @@ class BuyAppViewModel(
             // Attempt sign in
             authRepository.signInWithEmail(email, password)
                 .onSuccess { userId ->
-                    println("✅ Login Success: userId=$userId, flavor=${BuildFlavor.current}")
+                    println("✅ Buy App Login Success: userId=$userId")
 
                     // Success - just clear the forced login flag and let the app naturally navigate
                     // Don't try to navigate manually - let AppScaffold handle it
@@ -1566,18 +1502,6 @@ class BuyAppViewModel(
 
     private fun viewProductDetail(productId: String) {
         // TODO: Implement view product detail
-    }
-
-    private fun createProduct(productData: ProductFormData) {
-        // TODO: Implement create product
-    }
-
-    private fun updateProduct(productId: String, productData: ProductFormData) {
-        // TODO: Implement update product
-    }
-
-    private fun deleteProduct(productId: String) {
-        // TODO: Implement delete product
     }
 
     private fun applyPromoCode(code: String) {

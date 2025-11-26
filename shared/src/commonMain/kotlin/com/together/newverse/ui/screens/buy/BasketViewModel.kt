@@ -37,6 +37,9 @@ sealed interface BasketAction {
     data object HideDatePicker : BasketAction
     data class SelectPickupDate(val date: Long) : BasketAction
     data object LoadAvailableDates : BasketAction
+
+    // Cancel order
+    data object CancelOrder : BasketAction
 }
 
 /**
@@ -62,7 +65,10 @@ data class BasketScreenState(
     // Pickup date selection for draft orders
     val selectedPickupDate: Long? = null,
     val availablePickupDates: List<Long> = emptyList(),
-    val showDatePicker: Boolean = false
+    val showDatePicker: Boolean = false,
+    // Cancel order
+    val isCancelling: Boolean = false,
+    val cancelSuccess: Boolean = false
 )
 
 /**
@@ -230,6 +236,8 @@ class BasketViewModel(
             BasketAction.HideDatePicker -> hideDatePicker()
             is BasketAction.SelectPickupDate -> selectPickupDate(action.date)
             BasketAction.LoadAvailableDates -> loadAvailableDates()
+            // Cancel order
+            BasketAction.CancelOrder -> cancelOrder()
         }
     }
 
@@ -625,6 +633,77 @@ class BasketViewModel(
                 println("❌ BasketViewModel.updateOrder: Exception - ${e.message}")
                 _state.value = _state.value.copy(
                     isCheckingOut = false,
+                    orderError = e.message ?: "Ein Fehler ist aufgetreten"
+                )
+            }
+        }
+    }
+
+    /**
+     * Cancel an existing order
+     */
+    private fun cancelOrder() {
+        viewModelScope.launch {
+            println("🛒 BasketViewModel.cancelOrder: START")
+            _state.value = _state.value.copy(
+                isCancelling = true,
+                orderError = null,
+                cancelSuccess = false
+            )
+
+            try {
+                val orderId = _state.value.orderId
+                val orderDate = _state.value.orderDate
+                val pickupDate = _state.value.pickupDate
+
+                if (orderId == null || orderDate == null || pickupDate == null) {
+                    println("❌ BasketViewModel.cancelOrder: Missing order information")
+                    _state.value = _state.value.copy(
+                        isCancelling = false,
+                        orderError = "Bestellinformationen fehlen"
+                    )
+                    return@launch
+                }
+
+                // Check if still within edit deadline
+                val threeDaysBeforePickup = pickupDate - (3 * 24 * 60 * 60 * 1000)
+                if (Clock.System.now().toEpochMilliseconds() >= threeDaysBeforePickup) {
+                    println("❌ BasketViewModel.cancelOrder: Edit deadline passed")
+                    _state.value = _state.value.copy(
+                        isCancelling = false,
+                        orderError = "Stornierung nicht mehr möglich (weniger als 3 Tage bis Abholung)"
+                    )
+                    return@launch
+                }
+
+                println("🛒 BasketViewModel.cancelOrder: Cancelling order - orderId=$orderId, date=$orderDate")
+
+                // Cancel order via repository
+                val result = orderRepository.cancelOrder(SELLER_ID, orderDate, orderId)
+
+                result.onSuccess {
+                    println("✅ BasketViewModel.cancelOrder: Order cancelled successfully")
+
+                    // Clear the basket
+                    basketRepository.clearBasket()
+
+                    // Reset state to show empty basket (new order mode)
+                    _state.value = BasketScreenState(
+                        cancelSuccess = true,
+                        availablePickupDates = _state.value.availablePickupDates
+                    )
+                }.onFailure { error ->
+                    println("❌ BasketViewModel.cancelOrder: Cancel failed - ${error.message}")
+                    _state.value = _state.value.copy(
+                        isCancelling = false,
+                        orderError = error.message ?: "Stornierung fehlgeschlagen"
+                    )
+                }
+
+            } catch (e: Exception) {
+                println("❌ BasketViewModel.cancelOrder: Exception - ${e.message}")
+                _state.value = _state.value.copy(
+                    isCancelling = false,
                     orderError = e.message ?: "Ein Fehler ist aufgetreten"
                 )
             }
