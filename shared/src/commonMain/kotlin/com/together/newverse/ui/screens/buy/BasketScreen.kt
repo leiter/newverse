@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.Order
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
 import kotlinx.datetime.Clock
@@ -239,6 +240,20 @@ fun BasketContent(
                 onDismiss = {
                     onAction(BasketAction.HideReorderDatePicker)
                 }
+            )
+        }
+
+        // Show merge dialog
+        if (state.showMergeDialog && state.existingOrderForMerge != null) {
+            OrderMergeDialog(
+                existingOrder = state.existingOrderForMerge,
+                conflicts = state.mergeConflicts,
+                isMerging = state.isMerging,
+                onResolveConflict = { productId, resolution ->
+                    onAction(BasketAction.ResolveMergeConflict(productId, resolution))
+                },
+                onConfirm = { onAction(BasketAction.ConfirmMerge) },
+                onDismiss = { onAction(BasketAction.HideMergeDialog) }
             )
         }
 
@@ -1006,6 +1021,226 @@ private fun ReorderDateOption(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
+        }
+    }
+}
+
+// ===== Merge Dialog Components =====
+
+/**
+ * Dialog for merging basket items with an existing order
+ */
+@Composable
+fun OrderMergeDialog(
+    existingOrder: Order,
+    conflicts: List<MergeConflict>,
+    isMerging: Boolean,
+    onResolveConflict: (productId: String, resolution: MergeResolution) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isMerging) onDismiss() },
+        title = {
+            Text(
+                text = "Bestellung zusammenführen",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Existing order summary
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "Für dieses Datum existiert bereits eine Bestellung:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "${existingOrder.articles.size} Artikel, ${existingOrder.articles.sumOf { it.price * it.amountCount }.formatPrice()} €",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+
+                if (isMerging) {
+                    // Show loading state
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Bestellungen werden zusammengeführt...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                } else if (conflicts.isEmpty()) {
+                    // No conflicts - auto-merge message
+                    Text(
+                        text = "Keine Konflikte gefunden. Neue Artikel werden zur bestehenden Bestellung hinzugefügt.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                } else {
+                    // Show conflicts
+                    Text(
+                        text = "Folgende Artikel haben unterschiedliche Mengen:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(conflicts) { conflict ->
+                            MergeConflictItem(
+                                conflict = conflict,
+                                onResolve = { resolution ->
+                                    onResolveConflict(conflict.productId, resolution)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled = !isMerging && conflicts.all { it.resolution != MergeResolution.UNDECIDED }
+            ) {
+                Text("Zusammenführen")
+            }
+        },
+        dismissButton = {
+            if (!isMerging) {
+                TextButton(onClick = onDismiss) {
+                    Text("Abbrechen")
+                }
+            }
+        }
+    )
+}
+
+/**
+ * Individual conflict item with resolution options
+ */
+@Composable
+private fun MergeConflictItem(
+    conflict: MergeConflict,
+    onResolve: (MergeResolution) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Product name
+            Text(
+                text = conflict.productName,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Resolution options
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Keep existing option
+                ResolutionOption(
+                    label = "Behalten: ${conflict.existingQuantity.formatPrice()} ${conflict.unit}",
+                    selected = conflict.resolution == MergeResolution.KEEP_EXISTING,
+                    onClick = { onResolve(MergeResolution.KEEP_EXISTING) }
+                )
+
+                // Use new option
+                ResolutionOption(
+                    label = "Neu: ${conflict.newQuantity.formatPrice()} ${conflict.unit}",
+                    selected = conflict.resolution == MergeResolution.USE_NEW,
+                    onClick = { onResolve(MergeResolution.USE_NEW) }
+                )
+
+                // Add option
+                ResolutionOption(
+                    label = "Addieren: ${(conflict.existingQuantity + conflict.newQuantity).formatPrice()} ${conflict.unit}",
+                    selected = conflict.resolution == MergeResolution.ADD,
+                    onClick = { onResolve(MergeResolution.ADD) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Single resolution option button
+ */
+@Composable
+private fun ResolutionOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        border = if (selected) {
+            androidx.compose.foundation.BorderStroke(
+                2.dp,
+                MaterialTheme.colorScheme.primary
+            )
+        } else null,
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+            )
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Ausgewählt",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

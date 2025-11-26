@@ -21,6 +21,30 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 /**
+ * Resolution options for merge conflicts
+ */
+enum class MergeResolution {
+    UNDECIDED,      // User hasn't decided yet
+    ADD,            // Combine quantities (existing + new)
+    KEEP_EXISTING,  // Keep existing order quantity
+    USE_NEW         // Use new basket quantity
+}
+
+/**
+ * Represents a conflict between existing order item and new basket item
+ */
+data class MergeConflict(
+    val productId: String,
+    val productName: String,
+    val unit: String,
+    val existingQuantity: Double,
+    val newQuantity: Double,
+    val existingPrice: Double,
+    val newPrice: Double,
+    val resolution: MergeResolution = MergeResolution.UNDECIDED
+)
+
+/**
  * Actions that can be performed on the Basket screen
  */
 sealed interface BasketAction {
@@ -46,6 +70,11 @@ sealed interface BasketAction {
     data object ShowReorderDatePicker : BasketAction
     data object HideReorderDatePicker : BasketAction
     data class ReorderWithNewDate(val newPickupDate: Long, val currentArticles: List<Article>) : BasketAction
+
+    // Merge dialog actions
+    data object HideMergeDialog : BasketAction
+    data class ResolveMergeConflict(val productId: String, val resolution: MergeResolution) : BasketAction
+    data object ConfirmMerge : BasketAction
 }
 
 /**
@@ -78,7 +107,12 @@ data class BasketScreenState(
     // Reorder with new date
     val showReorderDatePicker: Boolean = false,
     val isReordering: Boolean = false,
-    val reorderSuccess: Boolean = false
+    val reorderSuccess: Boolean = false,
+    // Merge dialog state
+    val showMergeDialog: Boolean = false,
+    val existingOrderForMerge: Order? = null,
+    val mergeConflicts: List<MergeConflict> = emptyList(),
+    val isMerging: Boolean = false
 )
 
 /**
@@ -252,6 +286,10 @@ class BasketViewModel(
             BasketAction.ShowReorderDatePicker -> showReorderDatePicker()
             BasketAction.HideReorderDatePicker -> hideReorderDatePicker()
             is BasketAction.ReorderWithNewDate -> reorderWithNewDate(action.newPickupDate, action.currentArticles)
+            // Merge dialog actions
+            BasketAction.HideMergeDialog -> hideMergeDialog()
+            is BasketAction.ResolveMergeConflict -> resolveMergeConflict(action.productId, action.resolution)
+            BasketAction.ConfirmMerge -> confirmMerge()
         }
     }
 
@@ -372,13 +410,27 @@ class BasketViewModel(
                 if (existingOrderId != null) {
                     println("⚠️ BasketViewModel.checkout: Order already exists for date $dateKey - orderId=$existingOrderId")
 
-                    // Load the existing order instead of creating a new one
-                    loadOrder(existingOrderId, dateKey)
+                    // Load the existing order to show merge dialog
+                    val existingOrderResult = orderRepository.loadOrder(SELLER_ID, dateKey, existingOrderId)
+                    existingOrderResult.onSuccess { existingOrder ->
+                        // Calculate conflicts between new basket items and existing order
+                        val conflicts = calculateMergeConflicts(items, existingOrder.articles)
 
-                    _state.value = _state.value.copy(
-                        isCheckingOut = false,
-                        orderError = "Für dieses Datum existiert bereits eine Bestellung. Sie können diese bearbeiten."
-                    )
+                        println("🔀 BasketViewModel.checkout: Found ${conflicts.size} conflicts for merge")
+
+                        _state.value = _state.value.copy(
+                            isCheckingOut = false,
+                            showMergeDialog = true,
+                            existingOrderForMerge = existingOrder,
+                            mergeConflicts = conflicts
+                        )
+                    }.onFailure { error ->
+                        println("❌ BasketViewModel.checkout: Could not load existing order - ${error.message}")
+                        _state.value = _state.value.copy(
+                            isCheckingOut = false,
+                            orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
+                        )
+                    }
                     return@launch
                 }
 
@@ -974,5 +1026,213 @@ class BasketViewModel(
     fun getDaysUntilPickup(pickupDate: Long): Long {
         val diff = pickupDate - Clock.System.now().toEpochMilliseconds()
         return diff / (24 * 60 * 60 * 1000)
+    }
+
+    // ===== Merge Dialog Functions =====
+
+    /**
+     * Calculate merge conflicts between new basket items and existing order items
+     * Only items with different quantities are considered conflicts
+     */
+    private fun calculateMergeConflicts(
+        newItems: List<OrderedProduct>,
+        existingItems: List<OrderedProduct>
+    ): List<MergeConflict> {
+        val conflicts = mutableListOf<MergeConflict>()
+
+        // Find items in both lists with different quantities
+        for (newItem in newItems) {
+            val existingItem = existingItems.find { it.productId == newItem.productId }
+            if (existingItem != null && existingItem.amountCount != newItem.amountCount) {
+                conflicts.add(
+                    MergeConflict(
+                        productId = newItem.productId,
+                        productName = newItem.productName,
+                        unit = newItem.unit,
+                        existingQuantity = existingItem.amountCount,
+                        newQuantity = newItem.amountCount,
+                        existingPrice = existingItem.price,
+                        newPrice = newItem.price,
+                        resolution = MergeResolution.UNDECIDED
+                    )
+                )
+            }
+        }
+
+        return conflicts
+    }
+
+    /**
+     * Hide the merge dialog and clear merge state
+     */
+    private fun hideMergeDialog() {
+        println("🔀 BasketViewModel.hideMergeDialog")
+        _state.value = _state.value.copy(
+            showMergeDialog = false,
+            existingOrderForMerge = null,
+            mergeConflicts = emptyList()
+        )
+    }
+
+    /**
+     * Resolve a specific merge conflict
+     */
+    private fun resolveMergeConflict(productId: String, resolution: MergeResolution) {
+        println("🔀 BasketViewModel.resolveMergeConflict: productId=$productId, resolution=$resolution")
+        val updatedConflicts = _state.value.mergeConflicts.map { conflict ->
+            if (conflict.productId == productId) {
+                conflict.copy(resolution = resolution)
+            } else {
+                conflict
+            }
+        }
+        _state.value = _state.value.copy(mergeConflicts = updatedConflicts)
+    }
+
+    /**
+     * Confirm and execute the merge operation
+     */
+    private fun confirmMerge() {
+        viewModelScope.launch {
+            println("🔀 BasketViewModel.confirmMerge: START")
+            _state.value = _state.value.copy(isMerging = true)
+
+            try {
+                val existingOrder = _state.value.existingOrderForMerge
+                if (existingOrder == null) {
+                    println("❌ BasketViewModel.confirmMerge: No existing order to merge with")
+                    _state.value = _state.value.copy(
+                        isMerging = false,
+                        orderError = "Keine bestehende Bestellung zum Zusammenführen"
+                    )
+                    return@launch
+                }
+
+                val conflicts = _state.value.mergeConflicts
+                val newItems = _state.value.items
+
+                // Build merged items list
+                val mergedItems = mutableListOf<OrderedProduct>()
+                val processedProductIds = mutableSetOf<String>()
+
+                // Process existing order items
+                for (existingItem in existingOrder.articles) {
+                    val conflict = conflicts.find { it.productId == existingItem.productId }
+                    val newItem = newItems.find { it.productId == existingItem.productId }
+
+                    val finalItem = when {
+                        conflict != null -> {
+                            // There's a conflict - use resolution
+                            when (conflict.resolution) {
+                                MergeResolution.ADD -> existingItem.copy(
+                                    amountCount = existingItem.amountCount + (newItem?.amountCount ?: 0.0),
+                                    price = newItem?.price ?: existingItem.price // Use new price
+                                )
+                                MergeResolution.KEEP_EXISTING -> existingItem
+                                MergeResolution.USE_NEW -> newItem ?: existingItem
+                                MergeResolution.UNDECIDED -> existingItem // Default to existing
+                            }
+                        }
+                        newItem != null -> {
+                            // Same quantity, use new item (has current price)
+                            newItem
+                        }
+                        else -> {
+                            // Only in existing order
+                            existingItem
+                        }
+                    }
+                    mergedItems.add(finalItem)
+                    processedProductIds.add(existingItem.productId)
+                    println("🔀 Merged item: ${finalItem.productName} - qty=${finalItem.amountCount}")
+                }
+
+                // Add items only in new basket (not in existing order)
+                for (newItem in newItems) {
+                    if (newItem.productId !in processedProductIds) {
+                        mergedItems.add(newItem)
+                        println("🔀 New item: ${newItem.productName} - qty=${newItem.amountCount}")
+                    }
+                }
+
+                println("🔀 BasketViewModel.confirmMerge: Merged ${mergedItems.size} items")
+
+                // Get current user
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId == null) {
+                    _state.value = _state.value.copy(
+                        isMerging = false,
+                        orderError = "Benutzer nicht angemeldet"
+                    )
+                    return@launch
+                }
+
+                // Get buyer profile
+                val buyerProfile = try {
+                    val profileResult = profileRepository.getBuyerProfile()
+                    profileResult.getOrNull() ?: BuyerProfile(
+                        id = currentUserId,
+                        displayName = "Kunde",
+                        emailAddress = "",
+                        anonymous = false
+                    )
+                } catch (e: Exception) {
+                    BuyerProfile(
+                        id = currentUserId,
+                        displayName = "Kunde",
+                        emailAddress = "",
+                        anonymous = false
+                    )
+                }
+
+                // Create updated order with merged items
+                val mergedOrder = existingOrder.copy(
+                    buyerProfile = buyerProfile,
+                    articles = mergedItems
+                )
+
+                // Update the order in Firebase
+                val result = orderRepository.updateOrder(mergedOrder)
+
+                result.onSuccess {
+                    println("✅ BasketViewModel.confirmMerge: Order merged successfully")
+
+                    // Calculate date key from existing order
+                    val dateKey = formatDateKey(existingOrder.pickUpDate)
+
+                    // Load the merged order so basket shows the result
+                    basketRepository.loadOrderItems(mergedItems, existingOrder.id, dateKey)
+
+                    _state.value = _state.value.copy(
+                        showMergeDialog = false,
+                        existingOrderForMerge = null,
+                        mergeConflicts = emptyList(),
+                        isMerging = false,
+                        orderSuccess = true,
+                        orderId = existingOrder.id,
+                        orderDate = dateKey,
+                        pickupDate = existingOrder.pickUpDate,
+                        createdDate = existingOrder.createdDate,
+                        items = mergedItems,
+                        total = mergedItems.sumOf { it.price * it.amountCount },
+                        originalOrderItems = mergedItems,
+                        hasChanges = false
+                    )
+                }.onFailure { error ->
+                    println("❌ BasketViewModel.confirmMerge: Merge failed - ${error.message}")
+                    _state.value = _state.value.copy(
+                        isMerging = false,
+                        orderError = "Zusammenführung fehlgeschlagen: ${error.message}"
+                    )
+                }
+
+            } catch (e: Exception) {
+                println("❌ BasketViewModel.confirmMerge: Exception - ${e.message}")
+                _state.value = _state.value.copy(
+                    isMerging = false,
+                    orderError = "Ein Fehler ist aufgetreten: ${e.message}"
+                )
+            }
+        }
     }
 }
