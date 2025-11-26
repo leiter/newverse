@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.Article
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
 import org.koin.compose.viewmodel.koinViewModel
@@ -32,7 +33,8 @@ import kotlinx.datetime.toLocalDateTime
 fun BasketScreen(
     viewModel: BasketViewModel = koinViewModel(),
     orderId: String? = null,
-    orderDate: String? = null
+    orderDate: String? = null,
+    currentArticles: List<Article> = emptyList()
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -46,6 +48,7 @@ fun BasketScreen(
 
     BasketContent(
         state = state,
+        currentArticles = currentArticles,
         onAction = viewModel::onAction
     )
 }
@@ -54,11 +57,13 @@ fun BasketScreen(
  * Basket Content - Stateless composable
  *
  * @param state The screen state
+ * @param currentArticles The list of currently loaded articles with current prices
  * @param onAction Callback for user actions
  */
 @Composable
 fun BasketContent(
     state: BasketScreenState,
+    currentArticles: List<Article>,
     onAction: (BasketAction) -> Unit
 ) {
     Column(
@@ -129,6 +134,34 @@ fun BasketContent(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
+        // Show reorder success message
+        if (state.reorderSuccess) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "✓ Bestellung kopiert mit aktualisierten Preisen!",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Bitte überprüfen und bestätigen Sie die Bestellung.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         // Show error message
         state.orderError?.let { error ->
             Card(
@@ -169,6 +202,20 @@ fun BasketContent(
                     onAction(BasketAction.SelectPickupDate(date))
                 },
                 onDismiss = { onAction(BasketAction.HideDatePicker) }
+            )
+        }
+
+        // Show reorder date picker dialog
+        if (state.showReorderDatePicker) {
+            ReorderDatePickerDialog(
+                availableDates = state.availablePickupDates,
+                isReordering = state.isReordering,
+                onDateSelected = { date ->
+                    onAction(BasketAction.ReorderWithNewDate(date, currentArticles))
+                },
+                onDismiss = {
+                    onAction(BasketAction.HideReorderDatePicker)
+                }
             )
         }
 
@@ -277,7 +324,7 @@ fun BasketContent(
                 OutlinedButton(
                     onClick = { onAction(BasketAction.CancelOrder) },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.isCheckingOut && !state.isCancelling,
+                    enabled = !state.isCheckingOut && !state.isCancelling && !state.isReordering,
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     )
@@ -286,6 +333,21 @@ fun BasketContent(
                         Text("Storniere...")
                     } else {
                         Text("Bestellung stornieren")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Show reorder button
+                OutlinedButton(
+                    onClick = { onAction(BasketAction.ShowReorderDatePicker) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isCheckingOut && !state.isCancelling && !state.isReordering && state.items.isNotEmpty()
+                ) {
+                    if (state.isReordering) {
+                        Text("Erstelle neue Bestellung...")
+                    } else {
+                        Text("Neu bestellen mit anderem Datum")
                     }
                 }
             } else {
@@ -310,6 +372,21 @@ fun BasketContent(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Show reorder button even for non-editable orders
+                OutlinedButton(
+                    onClick = { onAction(BasketAction.ShowReorderDatePicker) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isReordering && state.items.isNotEmpty()
+                ) {
+                    if (state.isReordering) {
+                        Text("Erstelle neue Bestellung...")
+                    } else {
+                        Text("Neu bestellen mit anderem Datum")
                     }
                 }
             }
@@ -795,4 +872,127 @@ private fun DateOption(
     }
 }
 
+/**
+ * Reorder Date Picker Dialog
+ * Shows available pickup dates for creating a new order from an existing one
+ */
+@Composable
+fun ReorderDatePickerDialog(
+    availableDates: List<Long>,
+    isReordering: Boolean,
+    onDateSelected: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isReordering) onDismiss() },
+        title = {
+            Text(
+                text = "Neues Abholdatum wählen",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Wählen Sie ein neues Datum für Ihre Bestellung. Die Preise werden automatisch aktualisiert.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (isReordering) {
+                    // Show loading state
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Preise werden aktualisiert...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                } else if (availableDates.isEmpty()) {
+                    // No dates available
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Derzeit sind keine Abholtermine verfügbar.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                } else {
+                    // Show available dates
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(availableDates) { date ->
+                            ReorderDateOption(
+                                date = date,
+                                onSelected = { onDateSelected(date) }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            // Empty - selection happens via clicking date cards
+        },
+        dismissButton = {
+            if (!isReordering) {
+                TextButton(onClick = onDismiss) {
+                    Text("Abbrechen")
+                }
+            }
+        }
+    )
+}
+
+/**
+ * Individual date option card for reorder picker
+ */
+@Composable
+private fun ReorderDateOption(
+    date: Long,
+    onSelected: () -> Unit
+) {
+    val instant = Instant.fromEpochMilliseconds(date)
+    val formatted = OrderDateUtils.formatDisplayDate(instant)
+    val deadline = OrderDateUtils.calculateEditDeadline(instant)
+    val deadlineFormatted = OrderDateUtils.formatDisplayDateTime(deadline)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        onClick = onSelected
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Donnerstag, $formatted",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Bestellbar bis: $deadlineFormatted",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+    }
+}

@@ -60,7 +60,8 @@ fun NavGraph(
 
             BasketScreen(
                 orderId = orderIdArg ?: appState.common.basket.currentOrderId,
-                orderDate = orderDateArg ?: appState.common.basket.currentOrderDate
+                orderDate = orderDateArg ?: appState.common.basket.currentOrderDate,
+                currentArticles = appState.screens.mainScreen.articles
             )
         }
 

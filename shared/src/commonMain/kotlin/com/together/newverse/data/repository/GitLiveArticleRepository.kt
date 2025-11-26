@@ -95,30 +95,39 @@ class GitLiveArticleRepository(
         return try {
             println("🔐 GitLiveArticleRepository.getArticle: START - sellerId=$sellerId, articleId=$articleId")
 
+            // Determine seller ID (same logic as observeArticles)
+            val targetSellerId = if (sellerId.isEmpty()) {
+                val firstSellerId = getFirstSellerId()
+                println("🔐 GitLiveArticleRepository.getArticle: Using first seller: $firstSellerId")
+                firstSellerId
+            } else {
+                sellerId
+            }
+
             // Check cache first
-            val cachedArticle = articlesCache[sellerId]?.get(articleId)
+            val cachedArticle = articlesCache[targetSellerId]?.get(articleId)
             if (cachedArticle != null) {
                 println("✅ GitLiveArticleRepository.getArticle: Found in cache")
                 return Result.success(cachedArticle)
             }
 
             // Fetch from GitLive Firebase
-            val articleRef = articlesRootRef.child(sellerId).child(articleId)
+            val articleRef = articlesRootRef.child(targetSellerId).child(articleId)
             val snapshot = articleRef.valueEvents.first()
 
             if (snapshot.exists) {
                 val article = mapSnapshotToArticle(snapshot)
                 if (article != null) {
                     // Update cache
-                    articlesCache.getOrPut(sellerId) { mutableMapOf() }[articleId] = article
+                    articlesCache.getOrPut(targetSellerId) { mutableMapOf() }[articleId] = article
 
-                    println("✅ GitLiveArticleRepository.getArticle: Fetched from Firebase")
+                    println("✅ GitLiveArticleRepository.getArticle: Fetched from Firebase - price=${article.price}")
                     Result.success(article)
                 } else {
                     Result.failure(Exception("Failed to parse article data"))
                 }
             } else {
-                println("❌ GitLiveArticleRepository.getArticle: Article not found")
+                println("❌ GitLiveArticleRepository.getArticle: Article not found for id=$articleId")
                 Result.failure(Exception("Article not found"))
             }
 

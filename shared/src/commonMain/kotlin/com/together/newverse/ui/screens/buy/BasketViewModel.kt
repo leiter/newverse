@@ -2,6 +2,7 @@ package com.together.newverse.ui.screens.buy
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
@@ -40,6 +41,11 @@ sealed interface BasketAction {
 
     // Cancel order
     data object CancelOrder : BasketAction
+
+    // Reorder with new date
+    data object ShowReorderDatePicker : BasketAction
+    data object HideReorderDatePicker : BasketAction
+    data class ReorderWithNewDate(val newPickupDate: Long, val currentArticles: List<Article>) : BasketAction
 }
 
 /**
@@ -68,7 +74,11 @@ data class BasketScreenState(
     val showDatePicker: Boolean = false,
     // Cancel order
     val isCancelling: Boolean = false,
-    val cancelSuccess: Boolean = false
+    val cancelSuccess: Boolean = false,
+    // Reorder with new date
+    val showReorderDatePicker: Boolean = false,
+    val isReordering: Boolean = false,
+    val reorderSuccess: Boolean = false
 )
 
 /**
@@ -228,7 +238,7 @@ class BasketViewModel(
             is BasketAction.UpdateQuantity -> updateQuantity(action.productId, action.newQuantity)
             BasketAction.ClearBasket -> clearBasket()
             BasketAction.Checkout -> checkout()
-            is BasketAction.LoadOrder -> loadOrder(action.orderId, action.date)
+            is BasketAction.LoadOrder -> loadOrder(action.orderId, action.date, forceLoad = true)
             BasketAction.UpdateOrder -> updateOrder()
             BasketAction.EnableEditing -> enableEditing()
             // Pickup date selection actions
@@ -238,6 +248,10 @@ class BasketViewModel(
             BasketAction.LoadAvailableDates -> loadAvailableDates()
             // Cancel order
             BasketAction.CancelOrder -> cancelOrder()
+            // Reorder with new date
+            BasketAction.ShowReorderDatePicker -> showReorderDatePicker()
+            BasketAction.HideReorderDatePicker -> hideReorderDatePicker()
+            is BasketAction.ReorderWithNewDate -> reorderWithNewDate(action.newPickupDate, action.currentArticles)
         }
     }
 
@@ -427,10 +441,11 @@ class BasketViewModel(
 
     /**
      * Load an existing order for viewing/editing
+     * @param forceLoad If true, always load the order's items (used when user explicitly selects an order)
      */
-    private fun loadOrder(orderId: String, date: String) {
+    private fun loadOrder(orderId: String, date: String, forceLoad: Boolean = false) {
         viewModelScope.launch {
-            println("🛒 BasketViewModel.loadOrder: START - orderId=$orderId, date=$date")
+            println("🛒 BasketViewModel.loadOrder: START - orderId=$orderId, date=$date, forceLoad=$forceLoad")
             _state.value = _state.value.copy(
                 isLoadingOrder = true,
                 orderError = null
@@ -449,13 +464,16 @@ class BasketViewModel(
                     // Get current basket items BEFORE loading order
                     val currentBasketItems = basketRepository.observeBasket().value
 
-                    // Only load order items into basket if it's empty or different order
-                    // This prevents overwriting user's MainScreen modifications
-                    val shouldLoadOrderItems = currentBasketItems.isEmpty() ||
+                    // Load order items if:
+                    // - forceLoad is true (user explicitly selected this order), OR
+                    // - basket is empty, OR
+                    // - basket has a different order loaded
+                    val shouldLoadOrderItems = forceLoad ||
+                        currentBasketItems.isEmpty() ||
                         basketRepository.getLoadedOrderInfo()?.first != orderId
 
                     if (shouldLoadOrderItems) {
-                        println("🛒 BasketViewModel.loadOrder: Loading order items into basket")
+                        println("🛒 BasketViewModel.loadOrder: Loading order items into basket (forceLoad=$forceLoad)")
                         basketRepository.loadOrderItems(order.articles, orderId, date)
                     } else {
                         println("🛒 BasketViewModel.loadOrder: Basket already has items, preserving user modifications")
@@ -704,6 +722,149 @@ class BasketViewModel(
                 println("❌ BasketViewModel.cancelOrder: Exception - ${e.message}")
                 _state.value = _state.value.copy(
                     isCancelling = false,
+                    orderError = e.message ?: "Ein Fehler ist aufgetreten"
+                )
+            }
+        }
+    }
+
+    // ===== Reorder Functions =====
+
+    /**
+     * Show the date picker for reordering
+     */
+    private fun showReorderDatePicker() {
+        println("📅 BasketViewModel.showReorderDatePicker")
+        // Ensure dates are loaded
+        if (_state.value.availablePickupDates.isEmpty()) {
+            loadAvailableDates()
+        }
+        _state.value = _state.value.copy(showReorderDatePicker = true)
+    }
+
+    /**
+     * Hide the reorder date picker
+     */
+    private fun hideReorderDatePicker() {
+        println("📅 BasketViewModel.hideReorderDatePicker")
+        _state.value = _state.value.copy(showReorderDatePicker = false)
+    }
+
+    /**
+     * Create a new order from the current order with a new pickup date and updated prices
+     * @param newPickupDate The new pickup date timestamp
+     * @param currentArticles The list of currently loaded articles with current prices
+     */
+    private fun reorderWithNewDate(newPickupDate: Long, currentArticles: List<Article>) {
+        viewModelScope.launch {
+            println("🛒 BasketViewModel.reorderWithNewDate: START - newPickupDate=${formatDate(newPickupDate)}, articles=${currentArticles.size}")
+            _state.value = _state.value.copy(
+                isReordering = true,
+                showReorderDatePicker = false,
+                orderError = null,
+                reorderSuccess = false
+            )
+
+            try {
+                // Validate the selected date is still valid
+                val isDateValid = OrderDateUtils.isPickupDateValid(Instant.fromEpochMilliseconds(newPickupDate))
+                if (!isDateValid) {
+                    println("❌ BasketViewModel.reorderWithNewDate: Selected date is no longer valid")
+                    _state.value = _state.value.copy(
+                        isReordering = false,
+                        orderError = "Gewähltes Datum ist nicht mehr verfügbar. Bitte wählen Sie ein neues Datum.",
+                        showReorderDatePicker = true
+                    )
+                    loadAvailableDates()
+                    return@launch
+                }
+
+                // Get current items from the order
+                val currentItems = _state.value.items
+                if (currentItems.isEmpty()) {
+                    println("❌ BasketViewModel.reorderWithNewDate: No items to reorder")
+                    _state.value = _state.value.copy(
+                        isReordering = false,
+                        orderError = "Keine Artikel zum Nachbestellen vorhanden"
+                    )
+                    return@launch
+                }
+
+                println("🛒 BasketViewModel.reorderWithNewDate: Updating prices for ${currentItems.size} items from ${currentArticles.size} loaded articles")
+
+                // Debug: Log available article IDs
+                if (currentArticles.isEmpty()) {
+                    println("   ⚠️ WARNING: currentArticles is EMPTY! Prices cannot be updated.")
+                } else {
+                    println("   📋 Available articles (id/productId/name): ${currentArticles.take(5).map { "${it.id}/${it.productId}/${it.productName}" }}")
+                }
+
+                // Update prices from the already-loaded articles list
+                val updatedItems = mutableListOf<OrderedProduct>()
+                var pricesUpdated = 0
+
+                for (item in currentItems) {
+                    println("   🔍 OrderedProduct: $item")
+                    // Find the article in the already-loaded list
+                    // Match Firebase ID: OrderedProduct.id with Article.id
+                    val article = currentArticles.find { it.id == item.id }
+                    println("   🔍 Found article: $article")
+
+                    if (article != null && article.available) {
+                        val updatedItem = item.copy(
+                            price = article.price,
+                            productName = article.productName,
+                            unit = article.unit
+                        )
+                        updatedItems.add(updatedItem)
+                        if (item.price != article.price) {
+                            println("   💰 Price updated: ${item.productName} ${item.price} → ${article.price}")
+                            pricesUpdated++
+                        }
+                    } else if (article != null && !article.available) {
+                        println("   ⚠️ Article no longer available: ${item.productName}")
+                        // Still add it but with old price - user can remove it manually
+                        updatedItems.add(item)
+                    } else {
+                        println("   ⚠️ Article not found in loaded list: ${item.productName} - using old price")
+                        // Keep old price if article is not in the loaded list
+                        updatedItems.add(item)
+                    }
+                }
+
+                println("🛒 BasketViewModel.reorderWithNewDate: Updated $pricesUpdated prices")
+
+                // Clear basket and load updated items
+                basketRepository.clearBasket()
+                for (item in updatedItems) {
+                    basketRepository.addItem(item)
+                }
+
+                // Calculate new total with updated prices
+                val newTotal = updatedItems.sumOf { it.price * it.amountCount }
+
+                // Reset state to new order mode with selected pickup date and updated items
+                _state.value = _state.value.copy(
+                    items = updatedItems,
+                    total = newTotal,
+                    orderId = null,
+                    orderDate = null,
+                    pickupDate = null,
+                    createdDate = null,
+                    isEditMode = false,
+                    canEdit = true,
+                    originalOrderItems = emptyList(),
+                    hasChanges = false,
+                    selectedPickupDate = newPickupDate,
+                    isReordering = false,
+                    reorderSuccess = true
+                )
+
+                println("✅ BasketViewModel.reorderWithNewDate: Reorder prepared successfully - newTotal=$newTotal")
+            } catch (e: Exception) {
+                println("❌ BasketViewModel.reorderWithNewDate: Exception - ${e.message}")
+                _state.value = _state.value.copy(
+                    isReordering = false,
                     orderError = e.message ?: "Ein Fehler ist aufgetreten"
                 )
             }

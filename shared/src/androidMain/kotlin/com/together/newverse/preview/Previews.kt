@@ -78,6 +78,7 @@ fun BasketScreenEmptyPreview() {
                     items = emptyList(),
                     total = 0.0
                 ),
+                currentArticles = emptyList(),
                 onAction = {}
             )
         }
@@ -94,6 +95,7 @@ fun BasketScreenWithItemsPreview() {
                     items = PreviewData.sampleOrderedProducts.take(3),
                     total = 12.50
                 ),
+                currentArticles = emptyList(),
                 onAction = {}
             )
         }
@@ -111,6 +113,7 @@ fun BasketScreenCheckingOutPreview() {
                     total = 8.75,
                     isCheckingOut = true
                 ),
+                currentArticles = emptyList(),
                 onAction = {}
             )
         }
