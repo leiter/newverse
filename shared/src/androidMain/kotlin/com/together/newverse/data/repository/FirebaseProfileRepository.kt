@@ -51,9 +51,10 @@ class FirebaseProfileRepository : ProfileRepository {
                         displayName = dto.displayName.ifEmpty { authDisplayName },
                         emailAddress = dto.emailAddress.ifEmpty { authEmail }
                     )
-                    println("🔥 FirebaseProfileRepository: Profile updated via listener - ${profile.placedOrderIds.size} orders")
+                    println("🔥 FirebaseProfileRepository: Profile updated via listener - ${profile.placedOrderIds.size} orders, ${profile.favouriteArticles.size} favourites")
                     _buyerProfile.value = profile
                 } else {
+                    println("⚠️ FirebaseProfileRepository: Profile DTO is null from listener!")
                     _buyerProfile.value = null
                 }
             }

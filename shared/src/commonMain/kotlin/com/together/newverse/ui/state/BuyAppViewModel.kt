@@ -1859,12 +1859,26 @@ class BuyAppViewModel(
             var previousPlacedOrderIds: Map<String, String>? = null
 
             profileRepository.observeBuyerProfile().collect { profile ->
+                val newFavourites = profile?.favouriteArticles ?: emptyList()
+                val currentFavourites = _state.value.screens.mainScreen.favouriteArticles
+
+                println("⭐ observeMainScreenBuyerProfile: profile=${profile != null}, newFavourites=${newFavourites.size}, currentFavourites=${currentFavourites.size}")
+
+                // Don't clear favourites if profile comes back with empty favourites but we had some before
+                // This prevents transient Firebase updates from clearing favourites
+                val favouritesToUse = if (newFavourites.isEmpty() && currentFavourites.isNotEmpty()) {
+                    println("⭐ observeMainScreenBuyerProfile: Keeping existing favourites (new was empty)")
+                    currentFavourites
+                } else {
+                    newFavourites
+                }
+
                 // Update favourite articles
                 _state.update { current ->
                     current.copy(
                         screens = current.screens.copy(
                             mainScreen = current.screens.mainScreen.copy(
-                                favouriteArticles = profile?.favouriteArticles ?: emptyList()
+                                favouriteArticles = favouritesToUse
                             ),
                             // Also update customer profile so loadOrderHistory has access to it
                             customerProfile = current.screens.customerProfile.copy(
