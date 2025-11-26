@@ -336,20 +336,6 @@ fun BasketContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Show reorder button
-                OutlinedButton(
-                    onClick = { onAction(BasketAction.ShowReorderDatePicker) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.isCheckingOut && !state.isCancelling && !state.isReordering && state.items.isNotEmpty()
-                ) {
-                    if (state.isReordering) {
-                        Text("Erstelle neue Bestellung...")
-                    } else {
-                        Text("Neu bestellen mit anderem Datum")
-                    }
-                }
             } else {
                 // Cannot edit anymore
                 Card(
@@ -375,18 +361,21 @@ fun BasketContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // Show reorder button only when pickup date is in the past
+                val isPickupDateInPast = state.pickupDate?.let { it < System.currentTimeMillis() } ?: false
+                if (isPickupDateInPast) {
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                // Show reorder button even for non-editable orders
-                OutlinedButton(
-                    onClick = { onAction(BasketAction.ShowReorderDatePicker) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.isReordering && state.items.isNotEmpty()
-                ) {
-                    if (state.isReordering) {
-                        Text("Erstelle neue Bestellung...")
-                    } else {
-                        Text("Neu bestellen mit anderem Datum")
+                    OutlinedButton(
+                        onClick = { onAction(BasketAction.ShowReorderDatePicker) },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !state.isReordering && state.items.isNotEmpty()
+                    ) {
+                        if (state.isReordering) {
+                            Text("Erstelle neue Bestellung...")
+                        } else {
+                            Text("Neu bestellen mit anderem Datum")
+                        }
                     }
                 }
             }
