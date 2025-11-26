@@ -1,6 +1,9 @@
 package com.together.newverse.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 import com.together.newverse.data.firebase.Database
 import com.together.newverse.data.firebase.getSingleValue
 import com.together.newverse.data.firebase.model.BuyerProfileDto
@@ -18,9 +21,49 @@ import kotlinx.coroutines.tasks.await
 class FirebaseProfileRepository : ProfileRepository {
 
     private val _buyerProfile = MutableStateFlow<BuyerProfile?>(null)
+    private var profileListener: ValueEventListener? = null
 
     init {
         Database.initialize()
+        // Start observing buyer profile changes in real-time
+        startObservingBuyerProfile()
+    }
+
+    /**
+     * Start real-time observation of buyer profile changes
+     */
+    private fun startObservingBuyerProfile() {
+        profileListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val dto = snapshot.getValue(BuyerProfileDto::class.java)
+
+                // Get current user from Firebase Auth
+                val currentUser = FirebaseAuth.getInstance().currentUser
+                val userId = currentUser?.uid ?: ""
+                val authPhotoUrl = currentUser?.photoUrl?.toString() ?: ""
+                val authDisplayName = currentUser?.displayName ?: ""
+                val authEmail = currentUser?.email ?: ""
+
+                if (dto != null) {
+                    val profile = dto.toDomain().copy(
+                        id = userId,
+                        photoUrl = dto.photoUrl.ifEmpty { authPhotoUrl },
+                        displayName = dto.displayName.ifEmpty { authDisplayName },
+                        emailAddress = dto.emailAddress.ifEmpty { authEmail }
+                    )
+                    println("🔥 FirebaseProfileRepository: Profile updated via listener - ${profile.placedOrderIds.size} orders")
+                    _buyerProfile.value = profile
+                } else {
+                    _buyerProfile.value = null
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                println("❌ FirebaseProfileRepository: Listener cancelled - ${error.message}")
+            }
+        }
+
+        Database.buyer().addValueEventListener(profileListener!!)
     }
 
     override fun observeBuyerProfile(): Flow<BuyerProfile?> {

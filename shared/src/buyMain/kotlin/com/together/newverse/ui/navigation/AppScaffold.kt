@@ -52,6 +52,9 @@ import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_name
 import org.jetbrains.compose.resources.stringResource
+import com.together.newverse.util.OrderDateUtils
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -344,11 +347,32 @@ fun AppScaffold(
                                             }
                                     )
                                 }
-                                // Cart item count badge
+                                // Cart item count badge with color based on order date status
                                 if (basketItems.isNotEmpty()) {
+                                    // Determine badge color based on pickup date status
+                                    val currentOrderDate = appState.common.basket.currentOrderDate
+                                    val now = Clock.System.now()
+                                    val timeZone = TimeZone.currentSystemDefault()
+                                    val todayKey = OrderDateUtils.formatDateKey(now, timeZone)
+                                    val nextPickupDate = OrderDateUtils.calculateNextPickupDate(now, timeZone)
+                                    val nextPickupKey = OrderDateUtils.formatDateKey(nextPickupDate, timeZone)
+
+                                    val badgeColor = when {
+                                        currentOrderDate == null -> MaterialTheme.colorScheme.tertiary // New order
+                                        currentOrderDate < todayKey -> MaterialTheme.colorScheme.surfaceVariant // Past - greyish
+                                        currentOrderDate == nextPickupKey -> MaterialTheme.colorScheme.tertiary // Current upcoming
+                                        else -> MaterialTheme.colorScheme.primaryContainer // Future upcoming - softer color
+                                    }
+                                    val badgeContentColor = when {
+                                        currentOrderDate == null -> MaterialTheme.colorScheme.onTertiary
+                                        currentOrderDate < todayKey -> MaterialTheme.colorScheme.onSurfaceVariant // Past
+                                        currentOrderDate == nextPickupKey -> MaterialTheme.colorScheme.onTertiary
+                                        else -> MaterialTheme.colorScheme.onPrimaryContainer // Future
+                                    }
+
                                     Badge(
-                                        containerColor = MaterialTheme.colorScheme.tertiary,
-                                        contentColor = MaterialTheme.colorScheme.onTertiary,
+                                        containerColor = badgeColor,
+                                        contentColor = badgeContentColor,
                                         modifier = Modifier.align(Alignment.TopEnd)
                                     ) {
                                         Text(

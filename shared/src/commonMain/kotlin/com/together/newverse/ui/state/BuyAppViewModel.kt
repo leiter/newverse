@@ -1362,7 +1362,14 @@ class BuyAppViewModel(
             }
 
             try {
-                val profile = _state.value.screens.customerProfile.profile
+                // Get profile from state, or fetch it if not available
+                var profile = _state.value.screens.customerProfile.profile
+                if (profile == null) {
+                    println("📋 UnifiedAppViewModel.loadOrderHistory: Profile not in state, fetching from repository")
+                    val profileResult = profileRepository.getBuyerProfile()
+                    profile = profileResult.getOrNull()
+                }
+
                 if (profile != null && profile.placedOrderIds.isNotEmpty()) {
                     // Observe orders reactively using the placedOrderIds from profile
                     orderRepository.observeBuyerOrders("", profile.placedOrderIds)
@@ -1828,19 +1835,35 @@ class BuyAppViewModel(
 
     /**
      * Observe buyer profile to update MainScreen favourite articles
+     * and reload order history when placedOrderIds changes
      */
     private fun observeMainScreenBuyerProfile() {
         viewModelScope.launch {
+            var previousPlacedOrderIds: Map<String, String>? = null
+
             profileRepository.observeBuyerProfile().collect { profile ->
+                // Update favourite articles
                 _state.update { current ->
                     current.copy(
                         screens = current.screens.copy(
                             mainScreen = current.screens.mainScreen.copy(
                                 favouriteArticles = profile?.favouriteArticles ?: emptyList()
+                            ),
+                            // Also update customer profile so loadOrderHistory has access to it
+                            customerProfile = current.screens.customerProfile.copy(
+                                profile = profile
                             )
                         )
                     )
                 }
+
+                // Check if placedOrderIds changed - if so, reload order history
+                val currentPlacedOrderIds = profile?.placedOrderIds
+                if (previousPlacedOrderIds != null && currentPlacedOrderIds != previousPlacedOrderIds) {
+                    println("📋 observeMainScreenBuyerProfile: placedOrderIds changed, reloading order history")
+                    loadOrderHistory()
+                }
+                previousPlacedOrderIds = currentPlacedOrderIds
             }
         }
     }
