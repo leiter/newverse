@@ -152,7 +152,8 @@ private fun MainScreenModernContent(
                         HeroProductCardSkeleton()
                     } else {
                         selectedProduct?.let { product ->
-                            val basketItem = basketItems.find { it.productId == product.id }
+                            // Match by id (Firebase key when loaded from order) or productId (Firebase key when freshly added)
+                            val basketItem = basketItems.find { it.id == product.id || it.productId == product.id }
                             val isInBasket = basketItem != null
                             val originalQuantity = basketItem?.amountCount ?: 0.0
                             val isFavourite = state.favouriteArticles.contains(product.id)

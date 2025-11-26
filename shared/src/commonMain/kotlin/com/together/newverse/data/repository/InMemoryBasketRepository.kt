@@ -22,7 +22,10 @@ class InMemoryBasketRepository : BasketRepository {
 
     override suspend fun addItem(item: OrderedProduct) {
         val currentItems = _basket.value.toMutableList()
-        val existingIndex = currentItems.indexOfFirst { it.productId == item.productId }
+        // Match by id (Firebase key when loaded from order) or productId (when freshly added)
+        val existingIndex = currentItems.indexOfFirst {
+            (item.id.isNotEmpty() && it.id == item.id) || it.productId == item.productId
+        }
 
         if (existingIndex >= 0) {
             // Update quantity if item already exists
@@ -40,13 +43,13 @@ class InMemoryBasketRepository : BasketRepository {
     }
 
     override suspend fun removeItem(productId: String) {
-        _basket.value = _basket.value.filter { it.productId != productId }
+        _basket.value = _basket.value.filter { it.id != productId && it.productId != productId }
         println("🛒 BasketRepository.removeItem: Removed product $productId, basket now has ${_basket.value.size} items")
     }
 
     override suspend fun updateQuantity(productId: String, newQuantity: Double) {
         val currentItems = _basket.value.toMutableList()
-        val index = currentItems.indexOfFirst { it.productId == productId }
+        val index = currentItems.indexOfFirst { it.id == productId || it.productId == productId }
 
         if (index >= 0) {
             val item = currentItems[index]

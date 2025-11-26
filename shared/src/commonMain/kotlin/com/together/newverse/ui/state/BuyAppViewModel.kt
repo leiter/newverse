@@ -742,7 +742,7 @@ class BuyAppViewModel(
     private fun addToBasket(product: Article, quantity: Double) {
         _state.update { current ->
             val currentItems = current.common.basket.items.toMutableList()
-            val existingIndex = currentItems.indexOfFirst { it.productId == product.id }
+            val existingIndex = currentItems.indexOfFirst { it.id == product.id || it.productId == product.id }
 
             if (existingIndex >= 0) {
                 // Update quantity if product already in basket
@@ -783,7 +783,7 @@ class BuyAppViewModel(
 
     private fun removeFromBasket(productId: String) {
         _state.update { current ->
-            val newItems = current.common.basket.items.filter { it.productId != productId }
+            val newItems = current.common.basket.items.filter { it.id != productId && it.productId != productId }
             val newTotal = newItems.sumOf { it.price * it.amountCount }
             val newCount = newItems.sumOf { it.piecesCount }
 
@@ -802,7 +802,7 @@ class BuyAppViewModel(
     private fun updateBasketQuantity(productId: String, quantity: Double) {
         _state.update { current ->
             val newItems = current.common.basket.items.map { item ->
-                if (item.productId == productId) {
+                if (item.id == productId || item.productId == productId) {
                     item.copy(amountCount = quantity, piecesCount = quantity.toInt())
                 } else item
             }
@@ -1572,7 +1572,13 @@ class BuyAppViewModel(
     private fun selectMainScreenArticle(article: Article) {
         // Check if this product is already in the basket
         val basketItems = basketRepository.observeBasket().value
-        val existingItem = basketItems.find { it.productId == article.id }
+
+        println("🎯 selectMainScreenArticle: Looking for article.id=${article.id} in ${basketItems.size} basket items")
+        basketItems.forEach { item ->
+            println("🎯   Basket item: id='${item.id}', productId='${item.productId}', name='${item.productName}', qty=${item.amountCount}")
+        }
+
+        val existingItem = basketItems.find { it.id == article.id || it.productId == article.id }
 
         // If it exists, pre-populate the quantity with the existing amount
         val initialQuantity = existingItem?.amountCount ?: 0.0
@@ -1588,7 +1594,7 @@ class BuyAppViewModel(
             )
         }
 
-        println("🎯 UnifiedAppViewModel.selectMainScreenArticle: Selected ${article.productName}, existing quantity: $initialQuantity")
+        println("🎯 UnifiedAppViewModel.selectMainScreenArticle: Selected ${article.productName}, existingItem=${existingItem != null}, quantity: $initialQuantity")
     }
 
     private fun updateMainScreenQuantity(quantity: Double) {
@@ -1622,7 +1628,7 @@ class BuyAppViewModel(
 
         // Check if item already exists in basket
         val basketItems = basketRepository.observeBasket().value
-        val existingItem = basketItems.find { it.productId == selectedArticle.id }
+        val existingItem = basketItems.find { it.id == selectedArticle.id || it.productId == selectedArticle.id }
 
         if (existingItem != null) {
             // Update existing item quantity
@@ -1814,17 +1820,28 @@ class BuyAppViewModel(
     }
 
     /**
-     * Observe basket to update MainScreen cart item count
+     * Observe basket to update MainScreen cart item count and selected quantity
      */
     private fun observeMainScreenBasket() {
         viewModelScope.launch {
             basketRepository.observeBasket().collect { basketItems ->
                 _state.update { current ->
+                    // Check if currently selected article is in the basket
+                    val selectedArticle = current.screens.mainScreen.selectedArticle
+                    val existingItem = if (selectedArticle != null) {
+                        basketItems.find { it.id == selectedArticle.id || it.productId == selectedArticle.id }
+                    } else null
+
+                    // Update quantity if the selected article is in basket
+                    val updatedQuantity = existingItem?.amountCount
+                        ?: current.screens.mainScreen.selectedQuantity
+
                     current.copy(
                         screens = current.screens.copy(
                             mainScreen = current.screens.mainScreen.copy(
                                 cartItemCount = basketItems.size,
-                                basketItems = basketItems
+                                basketItems = basketItems,
+                                selectedQuantity = updatedQuantity
                             )
                         )
                     )

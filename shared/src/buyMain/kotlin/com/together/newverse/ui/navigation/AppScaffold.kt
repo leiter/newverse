@@ -48,13 +48,13 @@ import androidx.navigation.compose.rememberNavController
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.state.BuyAppViewModel
+import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_name
 import org.jetbrains.compose.resources.stringResource
-import com.together.newverse.util.OrderDateUtils
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -277,7 +277,21 @@ fun AppScaffold(
             },
             topBar = {
                 TopAppBar(
-                    title = { Text(displayTitle) },
+                    title = {
+                        androidx.compose.foundation.layout.Column {
+                            Text(displayTitle)
+                            // Show order date subtitle when there's an active order
+//                            val currentOrderDate = appState.common.basket.currentOrderDate
+//                            if (currentOrderDate != null && basketItems.isNotEmpty()) {
+//                                val formattedDate = formatOrderDateForSubtitle(currentOrderDate)
+//                                Text(
+//                                    text = "Bestellung für $formattedDate",
+//                                    style = MaterialTheme.typography.bodySmall,
+//                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+//                                )
+//                            }
+                        }
+                    },
                     navigationIcon = {
                         // Show back arrow for Basket and other detail screens, hamburger menu for main screens
                         // Use startsWith to match routes with query parameters
@@ -456,5 +470,36 @@ fun AppScaffold(
                 )
             }
         }
+    }
+}
+
+/**
+ * Format order date key (yyyyMMdd) into a readable format for subtitle
+ * e.g., "20251127" -> "Do. 27.11."
+ */
+private fun formatOrderDateForSubtitle(dateKey: String): String {
+    return try {
+        if (dateKey.length != 8) return dateKey
+
+        val year = dateKey.substring(0, 4).toInt()
+        val month = dateKey.substring(4, 6).toInt()
+        val day = dateKey.substring(6, 8).toInt()
+
+        // Create LocalDate to get day of week
+        val localDate = kotlinx.datetime.LocalDate(year, month, day)
+        val dayOfWeek = when (localDate.dayOfWeek) {
+            kotlinx.datetime.DayOfWeek.MONDAY -> "Mo"
+            kotlinx.datetime.DayOfWeek.TUESDAY -> "Di"
+            kotlinx.datetime.DayOfWeek.WEDNESDAY -> "Mi"
+            kotlinx.datetime.DayOfWeek.THURSDAY -> "Do"
+            kotlinx.datetime.DayOfWeek.FRIDAY -> "Fr"
+            kotlinx.datetime.DayOfWeek.SATURDAY -> "Sa"
+            kotlinx.datetime.DayOfWeek.SUNDAY -> "So"
+            else -> ""
+        }
+
+        "$dayOfWeek. $day.$month."
+    } catch (e: Exception) {
+        dateKey
     }
 }
