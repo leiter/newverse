@@ -1,5 +1,7 @@
 package com.together.newverse.ui.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -477,6 +479,7 @@ fun AppScaffold(
  * Format order date key (yyyyMMdd) into a readable format for subtitle
  * e.g., "20251127" -> "Do. 27.11."
  */
+@RequiresApi(Build.VERSION_CODES.O)
 private fun formatOrderDateForSubtitle(dateKey: String): String {
     return try {
         if (dateKey.length != 8) return dateKey
