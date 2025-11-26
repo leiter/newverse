@@ -307,12 +307,13 @@ private fun HeroProductCard(
                     .fillMaxSize()
                     .padding(20.dp)
             ) {
-                // Product Info
+                // Top section: Product Info (left) + Image (right)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
+                    // Left: Badge, Name, Price
                     Column(modifier = Modifier.weight(1f)) {
                         Badge(
                             containerColor = MaterialTheme.colorScheme.primary,
@@ -331,7 +332,9 @@ private fun HeroProductCard(
                             text = product.productName,
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
 
                         Row(
@@ -361,17 +364,102 @@ private fun HeroProductCard(
                         }
                     }
 
-                    // Favourite Button
-                    IconButton(
-                        onClick = onToggleFavourite,
-                        modifier = Modifier.size(48.dp)
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Right: Product Image with Favourite button overlay
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(RoundedCornerShape(16.dp))
                     ) {
-                        Icon(
-                            imageVector = if (isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
-                            tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(28.dp)
-                        )
+                        if (product.imageUrl.isNotEmpty()) {
+                            SubcomposeAsyncImage(
+                                model = product.imageUrl,
+                                contentDescription = product.productName,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                loading = {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        androidx.compose.material3.CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                },
+                                error = {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        androidx.compose.foundation.Image(
+                                            painter = painterResource(Res.drawable.place_holder_landscape),
+                                            contentDescription = "Placeholder",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                }
+                            )
+                        } else {
+                            // Placeholder when no image URL
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = when (product.category) {
+                                    "Obst" -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                                    "Gemüse" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                    "Eier" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                                    else -> MaterialTheme.colorScheme.surfaceVariant
+                                }
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Icon(
+                                        imageVector = when (product.category) {
+                                            "Obst" -> Icons.Default.Star
+                                            "Gemüse" -> Icons.Default.Favorite
+                                            "Eier" -> Icons.Default.Settings
+                                            else -> Icons.Default.ShoppingCart
+                                        },
+                                        contentDescription = null,
+                                        tint = when (product.category) {
+                                            "Obst" -> MaterialTheme.colorScheme.secondary
+                                            "Gemüse" -> MaterialTheme.colorScheme.primary
+                                            "Eier" -> MaterialTheme.colorScheme.tertiary
+                                            else -> MaterialTheme.colorScheme.outline
+                                        },
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Favourite button overlay on image
+                        IconButton(
+                            onClick = onToggleFavourite,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(36.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                    shape = RoundedCornerShape(bottomStart = 12.dp)
+                                )
+                        ) {
+                            Icon(
+                                imageVector = if (isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
+                                tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
 
@@ -579,7 +667,7 @@ private fun HeroProductCard(
                         }
                     }
                 }
-            }
+            } // End of main Column
         }
     }
 }

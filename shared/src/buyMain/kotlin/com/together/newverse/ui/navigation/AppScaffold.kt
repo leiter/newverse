@@ -1,5 +1,9 @@
 package com.together.newverse.ui.navigation
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,22 +31,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.app_name
-import org.jetbrains.compose.resources.stringResource
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import com.together.newverse.domain.repository.BasketRepository
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -50,9 +46,13 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.state.BuyAppViewModel
 import kotlinx.coroutines.launch
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.app_name
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -113,7 +113,7 @@ fun AppScaffold(
     // Get BasketRepository to observe cart count (actual basket items)
     val basketRepository = koinInject<BasketRepository>()
     val basketItems by basketRepository.observeBasket().collectAsState()
-    val basketItemCount = basketItems.size
+    basketItems.size
 
     // Animation state for cart shake
     val shakeOffset = remember { Animatable(0f) }
@@ -430,10 +430,6 @@ fun AppScaffold(
                     navController = navController,
                     appState = appState,
                     onAction = { action -> viewModel.dispatch(action) },
-                    isSelectionMode = isSelectionMode,
-                    onSelectionModeChange = { isSelectionMode = it },
-                    isAvailabilityMode = isAvailabilityMode,
-                    onAvailabilityModeChange = { isAvailabilityMode = it }
                 )
             }
         }

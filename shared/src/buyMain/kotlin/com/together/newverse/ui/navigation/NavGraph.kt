@@ -6,7 +6,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.together.newverse.ui.screens.buy.*
+import com.together.newverse.ui.screens.buy.BasketScreen
+import com.together.newverse.ui.screens.buy.CustomerProfileScreenModern
+import com.together.newverse.ui.screens.buy.OrderHistoryScreen
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedAppState
 
@@ -25,10 +27,6 @@ fun NavGraph(
     appState: UnifiedAppState,
     onAction: (UnifiedAppAction) -> Unit,
     startDestination: String = NavRoutes.Home.route,
-    isSelectionMode: Boolean = false,
-    onSelectionModeChange: (Boolean) -> Unit = {},
-    isAvailabilityMode: Boolean = false,
-    onAvailabilityModeChange: (Boolean) -> Unit = {}
 ) {
     NavHost(
         navController = navController,
