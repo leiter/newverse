@@ -14,8 +14,11 @@ import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.together.newverse.android.R
 import com.together.newverse.android.utils.ACTION_START_SERVICE
@@ -243,6 +246,38 @@ class ListenerService : Service() {
 
     companion object {
         private const val TAG = "ListenerService"
+    }
+}
+
+/**
+ * Firebase Database helper for ListenerService.
+ * Provides access to Firebase Realtime Database for order management.
+ */
+private object Database {
+    private const val ORDERS = "orders"
+    private var isPersistenceEnabled = false
+
+    private fun fire(): FirebaseDatabase = FirebaseDatabase.getInstance()
+
+    fun initialize() {
+        if (!isPersistenceEnabled) {
+            try {
+                fire().setPersistenceEnabled(true)
+                isPersistenceEnabled = true
+            } catch (e: Exception) {
+                // Already enabled or error
+            }
+        }
+    }
+
+    private fun requireUserId(): String {
+        return FirebaseAuth.getInstance().currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+    }
+
+    fun orderSeller(): DatabaseReference {
+        val uid = requireUserId()
+        return fire().reference.child(ORDERS).child(uid)
     }
 }
 
