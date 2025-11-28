@@ -1,7 +1,5 @@
 package com.together.newverse.data.repository
 
-import com.together.newverse.data.config.FeatureFlags
-import com.together.newverse.data.config.AuthProvider
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.AuthRepository
@@ -9,8 +7,8 @@ import com.together.newverse.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Android-specific implementation of OrderRepository that properly handles
- * switching between Firebase and GitLive implementations.
+ * Android-specific implementation of OrderRepository.
+ * Uses GitLive for cross-platform Firebase support.
  */
 class PlatformOrderRepository(
     private val authRepository: AuthRepository,
@@ -18,26 +16,8 @@ class PlatformOrderRepository(
 ) : OrderRepository {
 
     private val actualRepository: OrderRepository by lazy {
-        when (FeatureFlags.authProvider) {
-            AuthProvider.FIREBASE -> {
-                println("🏭 PlatformOrderRepository: Using Firebase (Android native)")
-                FirebaseOrderRepository()
-            }
-            AuthProvider.GITLIVE -> {
-                println("🏭 PlatformOrderRepository: Using GitLive (cross-platform)")
-                GitLiveOrderRepository(authRepository, profileRepository)
-            }
-            AuthProvider.AUTO -> {
-                // Match auth provider for consistency
-                if (FeatureFlags.gitLiveRolloutPercentage >= 100) {
-                    println("🏭 PlatformOrderRepository: Using GitLive (100% rollout)")
-                    GitLiveOrderRepository(authRepository, profileRepository)
-                } else {
-                    println("🏭 PlatformOrderRepository: Using Firebase (Android default)")
-                    FirebaseOrderRepository()
-                }
-            }
-        }
+        println("🏭 PlatformOrderRepository: Using GitLive (cross-platform)")
+        GitLiveOrderRepository(authRepository, profileRepository)
     }
 
     override fun observeSellerOrders(sellerId: String): Flow<List<Order>> {

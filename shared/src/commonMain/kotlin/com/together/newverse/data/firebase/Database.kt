@@ -1,13 +1,15 @@
 package com.together.newverse.data.firebase
 
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageReference
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.auth.auth
+import dev.gitlive.firebase.database.DatabaseReference
+import dev.gitlive.firebase.database.database
+import dev.gitlive.firebase.storage.storage
+import dev.gitlive.firebase.storage.StorageReference
+import kotlinx.datetime.Clock
 
 /**
- * Firebase Database helper object
+ * Firebase Database helper object (GitLive cross-platform)
  * Provides centralized access to Firebase Realtime Database paths
  */
 object Database {
@@ -20,7 +22,7 @@ object Database {
 
     private var isPersistenceEnabled = false
 
-    private fun fire(): FirebaseDatabase = FirebaseDatabase.getInstance()
+    private fun fire() = Firebase.database
 
     /**
      * Initialize Firebase Database with persistence
@@ -36,32 +38,35 @@ object Database {
         }
     }
 
+    private fun requireUserId(): String {
+        return Firebase.auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+    }
+
     /**
      * Get articles reference for the current authenticated user
      */
     fun articles(): DatabaseReference {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-            ?: throw IllegalStateException("User not authenticated")
-        return fire().reference.child(ARTICLES).child(uid)
+        val uid = requireUserId()
+        return fire().reference(ARTICLES).child(uid)
     }
 
     /**
      * Get articles reference for a specific provider/seller
      */
     fun providerArticles(providerId: String): DatabaseReference =
-        fire().reference.child(ARTICLES).child(providerId)
+        fire().reference(ARTICLES).child(providerId)
 
     /**
      * Get seller profile reference
      */
     fun sellerProfile(sellerId: String = "", seller: Boolean = false): DatabaseReference {
-        val result = fire().reference.child(SELLER_PROFILE)
+        val result = fire().reference(SELLER_PROFILE)
         if (sellerId.isNotEmpty()) {
             return result.child(sellerId)
         }
         return if (seller) {
-            val uid = FirebaseAuth.getInstance().currentUser?.uid
-                ?: throw IllegalStateException("User not authenticated")
+            val uid = requireUserId()
             result.child(uid)
         } else {
             result
@@ -72,40 +77,36 @@ object Database {
      * Get connection status reference
      */
     fun connectedStatus(): DatabaseReference =
-        fire().getReference(".info/connected")
+        fire().reference(".info/connected")
 
     /**
      * Get orders reference for seller
      */
     fun orderSeller(sellerId: String = ""): DatabaseReference {
         return if (sellerId.isEmpty()) {
-            val uid = FirebaseAuth.getInstance().currentUser?.uid
-                ?: throw IllegalStateException("User not authenticated")
-            fire().reference.child(ORDERS).child(uid)
+            val uid = requireUserId()
+            fire().reference(ORDERS).child(uid)
         } else {
-            fire().reference.child(ORDERS).child(sellerId)
+            fire().reference(ORDERS).child(sellerId)
         }
     }
 
     /**
      * Get next orders for a specific date
      */
-    fun nextOrders(date: String): com.google.firebase.database.Query {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-            ?: throw IllegalStateException("User not authenticated")
-        return fire().reference.child(ORDERS)
+    fun nextOrders(date: String): DatabaseReference {
+        val uid = requireUserId()
+        return fire().reference(ORDERS)
             .child(uid)
             .child(date)
-            .orderByChild("pickUpDate")
     }
 
     /**
      * Get buyer profile reference
      */
     fun buyer(): DatabaseReference {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-            ?: throw IllegalStateException("User not authenticated")
-        return fire().reference.child(CLIENTS).child(uid)
+        val uid = requireUserId()
+        return fire().reference(CLIENTS).child(uid)
     }
 
     /**
@@ -113,18 +114,16 @@ object Database {
      */
     fun storage(filename: String = ""): StorageReference {
         val path = if (filename.isEmpty()) {
-            "$STORAGE_PREFIX${System.currentTimeMillis()}_ttt.jpeg"
+            "$STORAGE_PREFIX${Clock.System.now().toEpochMilliseconds()}_ttt.jpeg"
         } else {
             filename
         }
-        return FirebaseStorage.getInstance().reference.child(path)
+        return Firebase.storage.reference(path)
     }
 
     /**
-     * Get the first seller ID from the seller_profile list
-     * This is used by buyers to connect to their default seller
+     * Get seller profile reference for listing
      */
-    fun getFirstSellerIdRef(): com.google.firebase.database.Query {
-        return fire().reference.child(SELLER_PROFILE).limitToFirst(1)
-    }
+    fun sellerProfileList(): DatabaseReference =
+        fire().reference(SELLER_PROFILE)
 }

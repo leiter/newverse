@@ -1,19 +1,16 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.BuyerProfile
-import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.SellerProfile
-import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.ProfileRepository
 import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.database.database
-import dev.gitlive.firebase.database.DatabaseReference
 import dev.gitlive.firebase.database.DataSnapshot
+import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 
 /**
  * GitLive implementation of ProfileRepository for cross-platform profile management.
@@ -26,7 +23,7 @@ class GitLiveProfileRepository(
     // GitLive Firebase Database references
     private val database = Firebase.database
     private val buyersRef = database.reference("buyer_profile")
-    private val sellersRef = database.reference("seller_profiles")
+    private val sellersRef = database.reference("seller_profile")
 
     // Local cache for performance
     private val _buyerProfile = MutableStateFlow<BuyerProfile?>(null)
@@ -204,7 +201,7 @@ class GitLiveProfileRepository(
                     emailAddress = value["emailAddress"] as? String ?: "",
                     telephoneNumber = value["telephoneNumber"] as? String ?: "",
                     photoUrl = value["photoUrl"] as? String ?: "",
-                    anonymous = value["anonymous"] as? Boolean ?: false,
+                    anonymous = value["anonymous"] as? Boolean == true,
                     defaultMarket = value["defaultMarket"] as? String ?: "",
                     defaultPickUpTime = value["defaultPickUpTime"] as? String ?: "",
                     placedOrderIds = (value["placedOrderIds"] as? Map<String, String>) ?: emptyMap(),

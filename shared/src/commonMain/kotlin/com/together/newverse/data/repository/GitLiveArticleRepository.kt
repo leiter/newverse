@@ -26,7 +26,7 @@ class GitLiveArticleRepository(
     // GitLive Firebase Database references
     private val database = Firebase.database
     private val articlesRootRef = database.reference("articles")
-    private val sellersRef = database.reference("seller_profiles")
+    private val sellersRef = database.reference("seller_profile")
 
     // Cache for articles
     private val articlesCache = mutableMapOf<String, MutableMap<String, Article>>()
@@ -201,27 +201,16 @@ class GitLiveArticleRepository(
     // Helper functions
 
     /**
-     * Get the first available seller ID.
-     * Used when buyer doesn't specify a seller.
+     * Get the default seller ID.
+     * TODO: In production, this should come from app configuration or user's connected seller.
      */
-    private suspend fun getFirstSellerId(): String {
-        return try {
-            val snapshot = sellersRef.valueEvents.first()
+    private fun getFirstSellerId(): String {
+        return DEFAULT_SELLER_ID
+    }
 
-            // Get the first child key
-            val firstSellerKey = snapshot.children.firstOrNull()?.key
-
-            if (firstSellerKey != null) {
-                println("🔐 GitLiveArticleRepository.getFirstSellerId: Found seller: $firstSellerKey")
-                firstSellerKey
-            } else {
-                println("⚠️ GitLiveArticleRepository.getFirstSellerId: No sellers found, using default")
-                "seller_001" // Default fallback
-            }
-        } catch (e: Exception) {
-            println("❌ GitLiveArticleRepository.getFirstSellerId: Error - ${e.message}, using default")
-            "seller_001" // Default fallback
-        }
+    companion object {
+        // Hardcoded seller ID for now
+        const val DEFAULT_SELLER_ID = "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
     }
 
     /**

@@ -12,7 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
-import java.util.*
+import java.util.Random
 
 class TestContainerActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
 

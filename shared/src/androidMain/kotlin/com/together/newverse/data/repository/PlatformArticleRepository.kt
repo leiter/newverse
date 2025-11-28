@@ -1,41 +1,21 @@
 package com.together.newverse.data.repository
 
-import com.together.newverse.data.config.FeatureFlags
-import com.together.newverse.data.config.AuthProvider
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Android-specific implementation of ArticleRepository that properly handles
- * switching between Firebase and GitLive implementations.
+ * Android-specific implementation of ArticleRepository.
+ * Uses GitLive for cross-platform Firebase support.
  */
 class PlatformArticleRepository(
     private val authRepository: AuthRepository
 ) : ArticleRepository {
 
     private val actualRepository: ArticleRepository by lazy {
-        when (FeatureFlags.authProvider) {
-            AuthProvider.FIREBASE -> {
-                println("🏭 PlatformArticleRepository: Using Firebase (Android native)")
-                FirebaseArticleRepository()
-            }
-            AuthProvider.GITLIVE -> {
-                println("🏭 PlatformArticleRepository: Using GitLive (cross-platform)")
-                GitLiveArticleRepository(authRepository)
-            }
-            AuthProvider.AUTO -> {
-                // Match auth provider for consistency
-                if (FeatureFlags.gitLiveRolloutPercentage >= 100) {
-                    println("🏭 PlatformArticleRepository: Using GitLive (100% rollout)")
-                    GitLiveArticleRepository(authRepository)
-                } else {
-                    println("🏭 PlatformArticleRepository: Using Firebase (Android default)")
-                    FirebaseArticleRepository()
-                }
-            }
-        }
+        println("🏭 PlatformArticleRepository: Using GitLive (cross-platform)")
+        GitLiveArticleRepository(authRepository)
     }
 
     override fun observeArticles(sellerId: String): Flow<Article> {

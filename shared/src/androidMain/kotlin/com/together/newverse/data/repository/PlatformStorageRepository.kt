@@ -1,22 +1,16 @@
 package com.together.newverse.data.repository
 
-import com.together.newverse.data.config.FeatureFlags
 import com.together.newverse.domain.repository.StorageRepository
 
 /**
- * Platform-specific Storage Repository that switches between
- * Firebase and GitLive implementations based on feature flags
+ * Android-specific implementation of StorageRepository.
+ * Uses GitLive for cross-platform Firebase support.
  */
 class PlatformStorageRepository : StorageRepository {
 
     private val implementation: StorageRepository by lazy {
-        if (FeatureFlags.useGitLiveStorage) {
-            println("🔐 PlatformStorageRepository: Using GitLive Storage implementation")
-            GitLiveStorageRepository()
-        } else {
-            println("🔥 PlatformStorageRepository: Using Firebase Storage implementation")
-            FirebaseStorageRepository()
-        }
+        println("🏭 PlatformStorageRepository: Using GitLive (cross-platform)")
+        GitLiveStorageRepository()
     }
 
     override suspend fun uploadImage(

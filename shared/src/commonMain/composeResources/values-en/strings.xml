@@ -22,7 +22,7 @@
     <!-- Buy/Customer Routes -->
     <string name="nav_browse_products">Browse Products</string>
     <string name="nav_shopping_basket">Shopping Basket</string>
-    <string name="nav_customer_profile">Customer Profile</string>
+    <string name="nav_customer_profile">Profile</string>
 
     <!-- Sell/Merchant Routes -->
     <string name="nav_product_overview">Product Overview</string>

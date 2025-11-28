@@ -131,16 +131,8 @@ class GitLiveOrderRepository(
     /**
      * Get first seller ID from database.
      */
-    private suspend fun getFirstSellerId(): String {
-        return try {
-            val sellersRef = database.reference("seller_profiles")
-            val snapshot = sellersRef.valueEvents.first()
-            val firstSellerId = snapshot.children.firstOrNull()?.key
-            firstSellerId ?: "seller_001"
-        } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.getFirstSellerId: Error - ${e.message}")
-            "seller_001"
-        }
+    private fun getFirstSellerId(): String {
+        return GitLiveArticleRepository.DEFAULT_SELLER_ID
     }
 
     /**

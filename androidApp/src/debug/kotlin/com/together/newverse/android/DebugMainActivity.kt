@@ -1,25 +1,58 @@
 package com.together.newverse.android
 
+import android.graphics.Bitmap
 import android.os.Bundle
+import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.PixelCopy
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.together.newverse.domain.repository.*
+import androidx.core.graphics.createBitmap
+import com.together.newverse.domain.repository.ArticleRepository
+import com.together.newverse.domain.repository.BasketRepository
+import com.together.newverse.domain.repository.OrderRepository
+import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.stories.BuyerStoriesRunner
 import com.together.newverse.stories.BuyerStory
 import com.together.newverse.ui.screens.buy.BasketViewModel
-import com.together.newverse.ui.state.UnifiedAppViewModel
+import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.theme.NewverseTheme
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.koin.android.ext.android.inject
 import org.koin.compose.KoinContext
+import java.io.File
+import java.io.FileOutputStream
+import kotlin.coroutines.resume
 
 /**
  * Debug MainActivity for running buyer stories
@@ -27,7 +60,7 @@ import org.koin.compose.KoinContext
  */
 class DebugMainActivity : ComponentActivity() {
 
-    private val unifiedViewModel: UnifiedAppViewModel by inject()
+    private val unifiedViewModel: BuyAppViewModel by inject()
     private val basketViewModel: BasketViewModel by inject()
     private val articleRepository: ArticleRepository by inject()
     private val basketRepository: BasketRepository by inject()
@@ -49,6 +82,79 @@ class DebugMainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Takes a screenshot of the current window and saves it to Download/testScreen/ directory.
+     *
+     * @param filename The name of the screenshot file (without extension)
+     * @return The file path where the screenshot was saved, or null if failed
+     */
+    suspend fun takeScreenshot(filename: String = "screenshot_${System.currentTimeMillis()}"): String? {
+        return suspendCancellableCoroutine { continuation ->
+            try {
+                val window = this.window
+                val view = window.decorView.rootView
+
+                // Create bitmap with window dimensions
+                val bitmap = createBitmap(view.width, view.height)
+
+                // Use PixelCopy for hardware-accelerated windows
+                PixelCopy.request(
+                    window,
+                    bitmap,
+                    { copyResult ->
+                        if (copyResult == PixelCopy.SUCCESS) {
+                            // Save to Download/testScreen/ directory
+                            val result = saveBitmapToFile(bitmap, filename)
+                            continuation.resume(result)
+                        } else {
+                            Log.e(TAG, "PixelCopy failed with result: $copyResult")
+                            continuation.resume(null)
+                        }
+                    },
+                    Handler(Looper.getMainLooper())
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error taking screenshot", e)
+                continuation.resume(null)
+            }
+        }
+    }
+
+    /**
+     * Saves a bitmap to the Download/testScreen/ directory.
+     */
+    private fun saveBitmapToFile(bitmap: Bitmap, filename: String): String? {
+        return try {
+            // Get Download directory
+            val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val testScreenDir = File(downloadDir, "testScreen")
+
+            // Create directory if it doesn't exist
+            if (!testScreenDir.exists()) {
+                testScreenDir.mkdirs()
+            }
+
+            // Create file
+            val file = File(testScreenDir, "$filename.png")
+
+            // Write bitmap to file
+            FileOutputStream(file).use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                outputStream.flush()
+            }
+
+            Log.d(TAG, "Screenshot saved to: ${file.absolutePath}")
+            file.absolutePath
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving screenshot", e)
+            null
+        }
+    }
+
+    companion object {
+        private const val TAG = "DebugMainActivity"
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun DebugStoriesScreen() {
@@ -58,7 +164,7 @@ class DebugMainActivity : ComponentActivity() {
 
         val runner = remember {
             BuyerStoriesRunner(
-                unifiedViewModel = unifiedViewModel,
+                buyAppViewModel = unifiedViewModel,
                 basketViewModel = basketViewModel,
                 articleRepository = articleRepository,
                 basketRepository = basketRepository,
@@ -260,7 +366,7 @@ class DebugMainActivity : ComponentActivity() {
     private fun StoryButton(
         story: BuyerStory,
         isRunning: Boolean,
-        onRunStory: (BuyerStory) -> Unit
+        onRunStory: (BuyerStory) -> Unit,
     ) {
         OutlinedButton(
             onClick = { onRunStory(story) },
