@@ -7,7 +7,6 @@ import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_MUTABLE
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.os.Build
@@ -15,6 +14,9 @@ import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 import com.together.newverse.android.R
 import com.together.newverse.android.utils.ACTION_START_SERVICE
 import com.together.newverse.android.utils.ACTION_STOP_SERVICE
@@ -22,12 +24,8 @@ import com.together.newverse.android.utils.NOTIFICATION_CHANNEL_ID
 import com.together.newverse.android.utils.NOTIFICATION_CHANNEL_NAME
 import com.together.newverse.android.utils.NOTIFICATION_ID
 import com.together.newverse.android.utils.provideBaseNotificationBuilder
-import com.together.newverse.data.firebase.Database
 import com.together.newverse.data.firebase.model.OrderDto
 import com.together.newverse.domain.model.Order
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
 import java.text.SimpleDateFormat
 import java.util.*
 

@@ -1,12 +1,4 @@
-package com.together.newverse.data.firebase
-
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
-import dev.gitlive.firebase.database.DatabaseReference
-import dev.gitlive.firebase.database.database
-import dev.gitlive.firebase.storage.storage
-import dev.gitlive.firebase.storage.StorageReference
-import kotlinx.datetime.Clock
+package com.together.newverse.android.notification
 
 /**
  * Firebase Database helper object (GitLive cross-platform)
