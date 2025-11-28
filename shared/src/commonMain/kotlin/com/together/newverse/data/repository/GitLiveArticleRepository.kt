@@ -2,18 +2,14 @@ package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
-import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
-import com.together.newverse.domain.model.Article.Companion.MODE_MOVED
-import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.database.database
-import dev.gitlive.firebase.database.DatabaseReference
 import dev.gitlive.firebase.database.DataSnapshot
+import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 
 /**
  * GitLive implementation of ArticleRepository for cross-platform article management.
@@ -26,7 +22,6 @@ class GitLiveArticleRepository(
     // GitLive Firebase Database references
     private val database = Firebase.database
     private val articlesRootRef = database.reference("articles")
-    private val sellersRef = database.reference("seller_profile")
 
     // Cache for articles
     private val articlesCache = mutableMapOf<String, MutableMap<String, Article>>()
@@ -226,7 +221,7 @@ class GitLiveArticleRepository(
                     id = articleId,
                     productId = value["productId"] as? String ?: "",
                     productName = value["productName"] as? String ?: "",
-                    available = value["available"] as? Boolean ?: false,
+                    available = value["available"] as? Boolean == true,
                     unit = value["unit"] as? String ?: "",
                     price = (value["price"] as? Number)?.toDouble() ?: 0.0,
                     weightPerPiece = (value["weightPerPiece"] as? Number)?.toDouble() ?: 0.0,

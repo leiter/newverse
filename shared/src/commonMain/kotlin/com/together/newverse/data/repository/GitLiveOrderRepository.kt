@@ -29,7 +29,6 @@ class GitLiveOrderRepository(
     // GitLive Firebase Database references
     private val database = Firebase.database
     private val ordersRootRef = database.reference("orders")
-    private val buyerProfilesRef = database.reference("buyer_profile")
 
     // Cache for orders
     private val ordersCache = mutableMapOf<String, Order>()
@@ -490,15 +489,15 @@ class GitLiveOrderRepository(
                         marketId = value["marketId"] as? String ?: "",
                         pickUpDate = (value["pickUpDate"] as? Number)?.toLong() ?: 0L,
                         message = value["message"] as? String ?: "",
-                        notFavourite = value["notFavourite"] as? Boolean ?: true,
+                        notFavourite = value["notFavourite"] as? Boolean != false,
                         articles = articles,
                         status = try {
                             OrderStatus.valueOf(value["status"] as? String ?: "DRAFT")
                         } catch (e: Exception) {
                             OrderStatus.DRAFT
                         },
-                        hiddenBySeller = value["hiddenBySeller"] as? Boolean ?: false,
-                        hiddenByBuyer = value["hiddenByBuyer"] as? Boolean ?: false
+                        hiddenBySeller = value["hiddenBySeller"] as? Boolean == true,
+                        hiddenByBuyer = value["hiddenByBuyer"] as? Boolean == true
                     )
                 } catch (e: Exception) {
                     println("❌ Error mapping order snapshot: ${e.message}")

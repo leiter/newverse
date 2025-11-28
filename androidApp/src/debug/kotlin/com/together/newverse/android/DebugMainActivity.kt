@@ -1,6 +1,7 @@
 package com.together.newverse.android
 
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
@@ -10,6 +11,7 @@ import android.view.PixelCopy
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -88,6 +90,7 @@ class DebugMainActivity : ComponentActivity() {
      * @param filename The name of the screenshot file (without extension)
      * @return The file path where the screenshot was saved, or null if failed
      */
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun takeScreenshot(filename: String = "screenshot_${System.currentTimeMillis()}"): String? {
         return suspendCancellableCoroutine { continuation ->
             try {
