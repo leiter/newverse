@@ -2,11 +2,14 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.data.parser.BnnParser
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
 import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.Product
+import com.together.newverse.domain.model.toArticle
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
@@ -28,8 +31,12 @@ class OverviewViewModel(
     private val _uiState = MutableStateFlow<OverviewUiState>(OverviewUiState.Loading)
     val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
 
+    private val _importState = MutableStateFlow<ImportState>(ImportState.Idle)
+    val importState: StateFlow<ImportState> = _importState.asStateFlow()
+
     private val articles = mutableListOf<Article>()
     private var activeOrdersCount = 0
+    private val bnnParser = BnnParser()
 
     init {
         loadOverview()
@@ -183,6 +190,106 @@ class OverviewViewModel(
             updateUiState()
         }
     }
+
+    /**
+     * Parse products from BNN file content and prepare for preview
+     */
+    fun parseProducts(fileContent: String) {
+        viewModelScope.launch {
+            _importState.value = ImportState.Parsing
+
+            try {
+                // Parse BNN file
+                val products = bnnParser.parse(fileContent)
+                println("📦 Parsed ${products.size} products from BNN file")
+
+                if (products.isEmpty()) {
+                    _importState.value = ImportState.Error("Keine Produkte in der Datei gefunden")
+                    return@launch
+                }
+
+                // Show preview with parsed products
+                _importState.value = ImportState.Preview(products)
+
+            } catch (e: Exception) {
+                println("❌ Parse failed: ${e.message}")
+                _importState.value = ImportState.Error("Datei konnte nicht gelesen werden: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Import selected products from preview
+     */
+    fun importSelectedProducts(products: List<Product>) {
+        viewModelScope.launch {
+            _importState.value = ImportState.Importing
+
+            // Get current seller ID
+            val sellerId = authRepository.getCurrentUserId()
+            if (sellerId == null) {
+                println("❌ Cannot import products: User not authenticated")
+                _importState.value = ImportState.Error("Authentifizierung erforderlich")
+                return@launch
+            }
+
+            try {
+                var successCount = 0
+                var errorCount = 0
+
+                // Save each product
+                products.forEach { product ->
+                    try {
+                        val article = product.toArticle()
+                        val result = articleRepository.saveArticle(sellerId, article)
+                        result.onSuccess {
+                            successCount++
+                            println("✅ Imported: ${product.productName}")
+                        }.onFailure { error ->
+                            errorCount++
+                            println("❌ Failed to import ${product.productName}: ${error.message}")
+                        }
+                    } catch (e: Exception) {
+                        errorCount++
+                        println("❌ Exception importing ${product.productName}: ${e.message}")
+                    }
+                }
+
+                _importState.value = ImportState.Success(
+                    importedCount = successCount,
+                    errorCount = errorCount
+                )
+
+                // Refresh the list to show new products
+                if (successCount > 0) {
+                    refresh()
+                }
+
+            } catch (e: Exception) {
+                println("❌ Import failed: ${e.message}")
+                _importState.value = ImportState.Error("Import fehlgeschlagen: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Reset import state to idle
+     */
+    fun resetImportState() {
+        _importState.value = ImportState.Idle
+    }
+}
+
+/**
+ * State for product import operation
+ */
+sealed interface ImportState {
+    data object Idle : ImportState
+    data object Parsing : ImportState
+    data class Preview(val products: List<Product>) : ImportState
+    data object Importing : ImportState
+    data class Success(val importedCount: Int, val errorCount: Int) : ImportState
+    data class Error(val message: String) : ImportState
 }
 
 sealed interface OverviewUiState {

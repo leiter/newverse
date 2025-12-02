@@ -20,7 +20,9 @@ import com.together.newverse.ui.state.UnifiedNavigationAction
 import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.GoogleSignInHelper
+import com.together.newverse.util.DocumentPicker
 import com.together.newverse.util.ImagePicker
+import com.together.newverse.util.LocalDocumentPicker
 import com.together.newverse.util.LocalImagePicker
 import com.together.newverse.util.initializeImageLoader
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +43,9 @@ class MainActivity : ComponentActivity() {
     // ImagePicker must be initialized before activity is started
     private lateinit var imagePicker: ImagePicker
 
+    // DocumentPicker for importing BNN files
+    private lateinit var documentPicker: DocumentPicker
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -52,12 +57,18 @@ class MainActivity : ComponentActivity() {
         // Create ImagePicker BEFORE setContent (required by Activity Result API)
         imagePicker = ImagePicker(this)
 
+        // Create DocumentPicker BEFORE setContent (required by Activity Result API)
+        documentPicker = DocumentPicker(this)
+
         enableEdgeToEdge()
         setContent {
             KoinContext {
                 NewverseTheme {
-                    // Provide ImagePicker to entire app via CompositionLocal
-                    CompositionLocalProvider(LocalImagePicker provides imagePicker) {
+                    // Provide ImagePicker and DocumentPicker to entire app via CompositionLocal
+                    CompositionLocalProvider(
+                        LocalImagePicker provides imagePicker,
+                        LocalDocumentPicker provides documentPicker
+                    ) {
                         AppScaffoldWithGoogleSignIn()
                     }
                 }

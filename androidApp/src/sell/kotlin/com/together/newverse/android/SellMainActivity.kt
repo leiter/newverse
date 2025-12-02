@@ -21,8 +21,10 @@ import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.UnifiedNavigationAction
 import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.ui.theme.NewverseTheme
+import com.together.newverse.util.DocumentPicker
 import com.together.newverse.util.GoogleSignInHelper
 import com.together.newverse.util.ImagePicker
+import com.together.newverse.util.LocalDocumentPicker
 import com.together.newverse.util.LocalImagePicker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +32,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.compose.KoinContext
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Sell flavor MainActivity
@@ -48,6 +50,9 @@ class SellMainActivity : ComponentActivity() {
     // ImagePicker must be initialized before activity is started
     private lateinit var imagePicker: ImagePicker
 
+    // DocumentPicker for importing BNN files
+    private lateinit var documentPicker: DocumentPicker
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -59,12 +64,18 @@ class SellMainActivity : ComponentActivity() {
         // Create ImagePicker BEFORE setContent (required by Activity Result API)
         imagePicker = ImagePicker(this)
 
+        // Create DocumentPicker BEFORE setContent (required by Activity Result API)
+        documentPicker = DocumentPicker(this)
+
         enableEdgeToEdge()
         setContent {
             KoinContext {
                 NewverseTheme {
-                    // Provide ImagePicker to entire app via CompositionLocal
-                    CompositionLocalProvider(LocalImagePicker provides imagePicker) {
+                    // Provide ImagePicker and DocumentPicker to entire app via CompositionLocal
+                    CompositionLocalProvider(
+                        LocalImagePicker provides imagePicker,
+                        LocalDocumentPicker provides documentPicker
+                    ) {
                         AppScaffoldWithGoogleSignIn()
                     }
                 }
@@ -84,7 +95,7 @@ class SellMainActivity : ComponentActivity() {
     private fun AppScaffoldWithGoogleSignIn() {
         val context = LocalContext.current
         val googleSignInHelper = GoogleSignInHelper(context, webClientId)
-        val viewModel: SellAppViewModel = koinInject()
+        val viewModel: SellAppViewModel = koinViewModel()
 
         // Register for Google Sign-In activity result
         val googleSignInLauncher = rememberLauncherForActivityResult(
@@ -136,6 +147,21 @@ class SellMainActivity : ComponentActivity() {
                     }
             } else {
                 Log.d("SellMainActivity", "Google Sign-In cancelled or failed: ${result.resultCode}")
+
+                // Show error message to user
+                val errorMessage = when (result.resultCode) {
+                    RESULT_CANCELED -> "Anmeldung abgebrochen"
+                    else -> "Google-Anmeldung fehlgeschlagen. Bitte prüfe deine Internetverbindung."
+                }
+
+                Log.d("SellMainActivity", "Setting auth error: $errorMessage")
+                // Set auth error state so ForcedLoginScreen can display it
+                // Use Handler to ensure it runs after compose is ready
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    Log.d("SellMainActivity", "Posting auth error to main thread")
+                    viewModel.setAuthError(errorMessage)
+                    Log.d("SellMainActivity", "Auth error set on main thread")
+                }
             }
         }
 

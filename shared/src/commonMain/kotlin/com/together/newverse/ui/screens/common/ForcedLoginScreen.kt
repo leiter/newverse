@@ -60,6 +60,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.state.AuthScreenState
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedUserAction
 import newverse.shared.generated.resources.Res
@@ -95,14 +96,21 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 fun ForcedLoginScreen(
+    authState: AuthScreenState = AuthScreenState(),
     onAction: (UnifiedAppAction) -> Unit = {}
 ) {
+    // Debug logging
+    println("🟢 ForcedLoginScreen: authState.error = ${authState.error}")
+    println("🟢 ForcedLoginScreen: authState.isLoading = ${authState.isLoading}")
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
+
+    // Use authState.isLoading from the ViewModel
+    val isLoading = authState.isLoading
 
     // Animated scale for logo
     val logoScale by animateFloatAsState(
@@ -145,7 +153,6 @@ fun ForcedLoginScreen(
         val passwordValid = validatePassword()
 
         if (emailValid && passwordValid) {
-            isLoading = true
             onAction(UnifiedUserAction.Login(email, password))
         }
     }
@@ -377,6 +384,26 @@ fun ForcedLoginScreen(
                             Text(
                                 text = stringResource(Res.string.login_sign_in_google),
                                 style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
+
+                    // Error Message Display
+                    if (authState.error != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = authState.error ?: "",
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(16.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }

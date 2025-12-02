@@ -1,17 +1,24 @@
 package com.together.newverse.ui.navigation
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.together.newverse.ui.screens.sell.CreateProductScreen
+import com.together.newverse.ui.screens.sell.ImportPreviewScreen
+import com.together.newverse.ui.screens.sell.ImportState
 import com.together.newverse.ui.screens.sell.NotificationsScreen
 import com.together.newverse.ui.screens.sell.OrderDetailScreen
 import com.together.newverse.ui.screens.sell.OrdersScreen
 import com.together.newverse.ui.screens.sell.OverviewScreen
+import com.together.newverse.ui.screens.sell.OverviewViewModel
 import com.together.newverse.ui.screens.sell.PickDayScreen
 import com.together.newverse.ui.screens.sell.ProductsScreen
 import com.together.newverse.ui.screens.sell.SellerProfileScreen
+import org.koin.compose.viewmodel.koinViewModel
 import com.together.newverse.ui.state.NotificationSettings
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedAppState
@@ -31,8 +38,10 @@ import com.together.newverse.ui.state.UnifiedAppState
  * This file is in sellMain source set, so it's ONLY compiled for Sell flavor.
  */
 fun NavGraphBuilder.navGraph(
+    navController: NavController,
     appState: UnifiedAppState,
     onAction: (UnifiedAppAction) -> Unit,
+    sellAppViewModel: com.together.newverse.ui.state.SellAppViewModel,
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateBack: () -> Unit = {},
     onNavigateToCreateProduct: () -> Unit = {},
@@ -44,14 +53,50 @@ fun NavGraphBuilder.navGraph(
     getSelectionMode: () -> Boolean = { false },
     onSelectionModeChange: (Boolean) -> Unit = {},
     getAvailabilityMode: () -> Boolean = { false },
-    onAvailabilityModeChange: (Boolean) -> Unit = {}
+    onAvailabilityModeChange: (Boolean) -> Unit = {},
+    onNavigateToImportPreview: () -> Unit = {},
+    onNavigateBackFromImport: () -> Unit = {}
 ) {
     composable(NavRoutes.Sell.Overview.route) {
+        val overviewViewModel: OverviewViewModel = koinViewModel()
         OverviewScreen(
+            viewModel = overviewViewModel,
+            sellAppViewModel = sellAppViewModel,
             isSelectionMode = getSelectionMode(),
             onSelectionModeChange = onSelectionModeChange,
             isAvailabilityMode = getAvailabilityMode(),
-            onAvailabilityModeChange = onAvailabilityModeChange
+            onAvailabilityModeChange = onAvailabilityModeChange,
+            onNavigateToImportPreview = onNavigateToImportPreview
+        )
+    }
+
+    composable(NavRoutes.Sell.ImportPreview.route) {
+        // Get the ViewModel from the Overview screen's backStackEntry to share state
+        val parentEntry = remember(it) {
+            navController.getBackStackEntry(NavRoutes.Sell.Overview.route)
+        }
+        val overviewViewModel: OverviewViewModel = koinViewModel(viewModelStoreOwner = parentEntry)
+        val importState = overviewViewModel.importState.collectAsState()
+        val products = (importState.value as? ImportState.Preview)?.products ?: emptyList()
+        val isImporting = importState.value is ImportState.Importing
+
+        // Navigate back on success
+        androidx.compose.runtime.LaunchedEffect(importState.value) {
+            if (importState.value is ImportState.Success) {
+                onNavigateBackFromImport()
+            }
+        }
+
+        ImportPreviewScreen(
+            products = products,
+            isImporting = isImporting,
+            onImportSelected = { selectedProducts ->
+                overviewViewModel.importSelectedProducts(selectedProducts)
+            },
+            onCancel = {
+                overviewViewModel.resetImportState()
+                onNavigateBackFromImport()
+            }
         )
     }
 

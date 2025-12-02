@@ -33,6 +33,14 @@ class SellAppViewModel(
     private val _state = MutableStateFlow(UnifiedAppState())
     override val state: StateFlow<UnifiedAppState> = _state.asStateFlow()
 
+    // Pending import content - stored in ViewModel to survive configuration changes
+    private val _pendingImportContent = MutableStateFlow<String?>(null)
+    val pendingImportContent: StateFlow<String?> = _pendingImportContent.asStateFlow()
+
+    fun setPendingImportContent(content: String?) {
+        _pendingImportContent.value = content
+    }
+
     init {
         // Initialize app on startup
         initializeApp()
@@ -521,6 +529,15 @@ class SellAppViewModel(
                             "Falsches Passwort"
                         error.message?.contains("Invalid email", true) == true ->
                             "Ungültige E-Mail-Adresse"
+                        error.message?.contains("network", true) == true ||
+                        error.message?.contains("Unable to resolve host", true) == true ||
+                        error.message?.contains("No address associated", true) == true ||
+                        error.message?.contains("failed to connect", true) == true ||
+                        error.message?.contains("timeout", true) == true ||
+                        error.message?.contains("UnknownHostException", true) == true ->
+                            "Keine Internetverbindung. Bitte prüfe deine Netzwerkverbindung."
+                        error.message?.contains("Too many", true) == true ->
+                            "Zu viele Anmeldeversuche. Bitte versuche es später erneut."
                         else -> error.message ?: "Anmeldung fehlgeschlagen"
                     }
 
@@ -565,6 +582,25 @@ class SellAppViewModel(
                 common = current.common.copy(triggerGoogleSignIn = false)
             )
         }
+    }
+
+    /**
+     * Set auth error message (called when Google Sign-In fails)
+     */
+    fun setAuthError(errorMessage: String?) {
+        println("🔴 SellAppViewModel.setAuthError: Setting error to: $errorMessage")
+        _state.update { current ->
+            println("🔴 SellAppViewModel.setAuthError: Current auth error was: ${current.screens.auth.error}")
+            current.copy(
+                screens = current.screens.copy(
+                    auth = current.screens.auth.copy(
+                        isLoading = false,
+                        error = errorMessage
+                    )
+                )
+            )
+        }
+        println("🔴 SellAppViewModel.setAuthError: New auth error is: ${_state.value.screens.auth.error}")
     }
 
     override fun resetTwitterSignInTrigger() {

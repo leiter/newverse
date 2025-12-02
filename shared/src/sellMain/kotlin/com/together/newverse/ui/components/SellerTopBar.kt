@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import com.together.newverse.ui.navigation.NavRoutes
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.topbar_change_availability
+import newverse.shared.generated.resources.topbar_import_products
 import newverse.shared.generated.resources.topbar_new_product
 import newverse.shared.generated.resources.topbar_notifications
 import newverse.shared.generated.resources.topbar_orders
@@ -48,7 +49,8 @@ fun SellerTopBar(
     onNavigateToOrders: () -> Unit,
     onRefresh: () -> Unit = {},
     onToggleSelectionMode: () -> Unit = {},
-    onToggleAvailabilityMode: () -> Unit = {}
+    onToggleAvailabilityMode: () -> Unit = {},
+    onImportProducts: () -> Unit = {}
 ) {
     var showOverflowMenu by remember { mutableStateOf(false) }
 
@@ -64,6 +66,7 @@ fun SellerTopBar(
     val sellerTitle = stringResource(Res.string.topbar_seller)
     val selectDeleteTitle = stringResource(Res.string.topbar_select_delete)
     val changeAvailabilityTitle = stringResource(Res.string.topbar_change_availability)
+    val importProductsTitle = stringResource(Res.string.topbar_import_products)
 
     TopAppBar(
         title = {
@@ -160,6 +163,13 @@ fun SellerTopBar(
                                 onClick = {
                                     showOverflowMenu = false
                                     onToggleAvailabilityMode()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(importProductsTitle) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onImportProducts()
                                 }
                             )
                         }

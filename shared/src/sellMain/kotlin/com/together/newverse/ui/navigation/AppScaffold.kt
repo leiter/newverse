@@ -11,6 +11,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
@@ -26,6 +27,9 @@ import com.together.newverse.ui.state.SellAppViewModel
 import com.together.newverse.ui.state.SnackbarDuration
 import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.ui.state.UnifiedUserAction
+import com.together.newverse.util.DocumentPickerResult
+import com.together.newverse.util.LocalDocumentPicker
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -124,6 +128,7 @@ fun AppScaffold(
     // Check if login is required (seller flavor without authentication)
     if (state.common.requiresLogin) {
         com.together.newverse.ui.screens.common.ForcedLoginScreen(
+            authState = state.screens.auth,
             onAction = { action -> viewModel.dispatch(action) }
         )
         return
@@ -136,6 +141,10 @@ fun AppScaffold(
     // Selection mode states for product management
     var isSelectionMode by remember { mutableStateOf(false) }
     var isAvailabilityMode by remember { mutableStateOf(false) }
+
+    // Document picker for import
+    val documentPicker = LocalDocumentPicker.current
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -163,6 +172,23 @@ fun AppScaffold(
                 onToggleAvailabilityMode = {
                     isSelectionMode = false
                     isAvailabilityMode = !isAvailabilityMode
+                },
+                onImportProducts = {
+                    documentPicker?.let { picker ->
+                        coroutineScope.launch {
+                            when (val result = picker.pickDocument()) {
+                                is DocumentPickerResult.Success -> {
+                                    viewModel.setPendingImportContent(result.content)
+                                }
+                                is DocumentPickerResult.Error -> {
+                                    // Could show snackbar here if needed
+                                }
+                                is DocumentPickerResult.Cancelled -> {
+                                    // User cancelled - no action needed
+                                }
+                            }
+                        }
+                    }
                 }
             )
         },
@@ -192,8 +218,10 @@ fun AppScaffold(
             modifier = Modifier.padding(innerPadding)
         ) {
             navGraph(
+                navController = navController,
                 appState = state,
                 onAction = viewModel::dispatch,
+                sellAppViewModel = viewModel,
                 onNavigateToOrderDetail = { orderId ->
                     navController.navigate(NavRoutes.Sell.OrderDetail.createRoute(orderId))
                 },
@@ -215,7 +243,13 @@ fun AppScaffold(
                 getSelectionMode = { isSelectionMode },
                 onSelectionModeChange = { isSelectionMode = it },
                 getAvailabilityMode = { isAvailabilityMode },
-                onAvailabilityModeChange = { isAvailabilityMode = it }
+                onAvailabilityModeChange = { isAvailabilityMode = it },
+                onNavigateToImportPreview = {
+                    navController.navigate(NavRoutes.Sell.ImportPreview.route)
+                },
+                onNavigateBackFromImport = {
+                    navController.popBackStack()
+                }
             )
         }
 

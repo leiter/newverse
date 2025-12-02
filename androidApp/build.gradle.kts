@@ -104,6 +104,7 @@ dependencies {
     // Koin
     implementation("io.insert-koin:koin-android:4.0.0")
     implementation("io.insert-koin:koin-androidx-compose:4.0.0")
+    implementation("io.insert-koin:koin-compose-viewmodel:4.0.0")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))

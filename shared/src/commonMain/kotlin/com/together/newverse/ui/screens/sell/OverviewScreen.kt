@@ -22,19 +22,50 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.together.newverse.ui.state.SellAppViewModel
 
 @Composable
 fun OverviewScreen(
     viewModel: OverviewViewModel = koinViewModel(),
+    sellAppViewModel: SellAppViewModel = koinViewModel(),
     isSelectionMode: Boolean = false,
     onSelectionModeChange: (Boolean) -> Unit = {},
     isAvailabilityMode: Boolean = false,
-    onAvailabilityModeChange: (Boolean) -> Unit = {}
+    onAvailabilityModeChange: (Boolean) -> Unit = {},
+    onNavigateToImportPreview: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val importState by viewModel.importState.collectAsState()
+
+    // Observe pending import content directly from SellAppViewModel (survives config changes)
+    val pendingImportContent by sellAppViewModel.pendingImportContent.collectAsState()
+
     var selectedArticleIds by remember { mutableStateOf(setOf<String>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAvailableDialog by remember { mutableStateOf(false) }
+    var showImportResultDialog by remember { mutableStateOf(false) }
+
+    // Handle pending import content - parse and navigate to preview
+    LaunchedEffect(pendingImportContent) {
+        val content = pendingImportContent
+        if (content != null) {
+            viewModel.parseProducts(content)
+            sellAppViewModel.setPendingImportContent(null) // Consume
+        }
+    }
+
+    // Navigate to preview when products are parsed, or show result dialog
+    LaunchedEffect(importState) {
+        when (importState) {
+            is ImportState.Preview -> {
+                onNavigateToImportPreview()
+            }
+            is ImportState.Success, is ImportState.Error -> {
+                showImportResultDialog = true
+            }
+            else -> {}
+        }
+    }
     var showUnavailableDialog by remember { mutableStateOf(false) }
 
     // Clear selections when exiting selection modes
@@ -216,6 +247,82 @@ fun OverviewScreen(
                     }
                 }
             )
+        }
+
+        // Import result dialog
+        if (showImportResultDialog) {
+            when (val state = importState) {
+                is ImportState.Success -> {
+                    AlertDialog(
+                        onDismissRequest = {
+                            showImportResultDialog = false
+                            viewModel.resetImportState()
+                        },
+                        title = { Text("Import erfolgreich") },
+                        text = {
+                            Text(
+                                if (state.errorCount > 0) {
+                                    "${state.importedCount} Produkte importiert, ${state.errorCount} Fehler"
+                                } else {
+                                    "${state.importedCount} Produkte erfolgreich importiert"
+                                }
+                            )
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    showImportResultDialog = false
+                                    viewModel.resetImportState()
+                                }
+                            ) {
+                                Text("OK")
+                            }
+                        }
+                    )
+                }
+                is ImportState.Error -> {
+                    AlertDialog(
+                        onDismissRequest = {
+                            showImportResultDialog = false
+                            viewModel.resetImportState()
+                        },
+                        title = { Text("Import fehlgeschlagen") },
+                        text = { Text(state.message) },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    showImportResultDialog = false
+                                    viewModel.resetImportState()
+                                }
+                            ) {
+                                Text("OK")
+                            }
+                        }
+                    )
+                }
+                else -> {}
+            }
+        }
+
+        // Parsing progress indicator overlay
+        if (importState is ImportState.Parsing) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text("Datei wird gelesen...")
+                    }
+                }
+            }
         }
     }
 }

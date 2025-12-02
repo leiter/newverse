@@ -292,6 +292,7 @@
     <string name="topbar_seller">Verkäufer</string>
     <string name="topbar_select_delete">Zum Löschen auswählen</string>
     <string name="topbar_change_availability">Verfügbarkeit ändern</string>
+    <string name="topbar_import_products">Produkte importieren</string>
 
     <!-- ========================================= -->
     <!-- SELLER BOTTOM NAV LABELS -->

@@ -47,6 +47,7 @@ sealed class NavRoutes(val route: String) {
         data object Profile : Sell("sell/profile")
         data object PickDay : Sell("sell/pick_day")
         data object NotificationSettings : Sell("sell/notification_settings")
+        data object ImportPreview : Sell("sell/import_preview")
     }
 
     companion object {
@@ -128,6 +129,7 @@ sealed class NavRoutes(val route: String) {
             Sell.Profile -> Res.string.nav_seller_profile
             Sell.PickDay -> Res.string.nav_pick_delivery_day
             Sell.NotificationSettings -> Res.string.nav_notification_settings
+            Sell.ImportPreview -> Res.string.topbar_import_products
         }
 
         // Get category for grouping in drawer (returns StringResource)
