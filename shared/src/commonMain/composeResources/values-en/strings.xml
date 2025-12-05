@@ -277,6 +277,8 @@
     <!-- ========================================= -->
     <string name="overview_title">Product Overview</string>
     <string name="overview_total_products">Total Products</string>
+    <string name="overview_available_products">Available Products</string>
+    <string name="overview_unavailable_products">Unavailable</string>
     <string name="overview_active_orders">Active Orders</string>
     <string name="overview_your_products">Your Products</string>
 

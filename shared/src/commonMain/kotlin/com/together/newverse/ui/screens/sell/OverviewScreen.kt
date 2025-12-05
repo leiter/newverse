@@ -13,10 +13,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.width
 import com.together.newverse.ui.components.ProductListItem
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -93,8 +95,11 @@ fun OverviewScreen(
                     )
                 }
                 is OverviewUiState.Success -> {
+                    val currentFilter by viewModel.currentFilter.collectAsState()
                     SuccessContent(
                         state = state,
+                        currentFilter = currentFilter,
+                        onFilterChange = { viewModel.setFilter(it) },
                         isSelectionMode = isSelectionMode || isAvailabilityMode,
                         selectedArticleIds = selectedArticleIds,
                         onArticleSelectionToggle = { articleId ->
@@ -383,13 +388,18 @@ private fun ErrorContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SuccessContent(
     state: OverviewUiState.Success,
+    currentFilter: ProductFilter = ProductFilter.ALL,
+    onFilterChange: (ProductFilter) -> Unit = {},
     isSelectionMode: Boolean = false,
     selectedArticleIds: Set<String> = emptySet(),
     onArticleSelectionToggle: (String) -> Unit = {}
 ) {
+    var filterExpanded by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -399,8 +409,12 @@ private fun SuccessContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatCard(
-                title = stringResource(Res.string.overview_total_products),
-                value = state.totalProducts.toString(),
+                title = when (currentFilter) {
+                    ProductFilter.ALL -> stringResource(Res.string.overview_total_products)
+                    ProductFilter.AVAILABLE -> stringResource(Res.string.overview_available_products)
+                    ProductFilter.NOT_AVAILABLE -> stringResource(Res.string.overview_unavailable_products)
+                },
+                value = state.recentArticles.size.toString(),
                 modifier = Modifier.weight(1f)
             )
             StatCard(
@@ -412,11 +426,63 @@ private fun SuccessContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Products Section
-        Text(
-            text = stringResource(Res.string.overview_your_products),
-            style = MaterialTheme.typography.titleMedium
-        )
+        // Products Section Header with Filter Dropdown
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(Res.string.overview_your_products),
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            // Filter Dropdown
+            Box {
+                OutlinedButton(
+                    onClick = { filterExpanded = true }
+                ) {
+                    Text(
+                        text = when (currentFilter) {
+                            ProductFilter.ALL -> "alle"
+                            ProductFilter.AVAILABLE -> "verfügbar"
+                            ProductFilter.NOT_AVAILABLE -> "nicht verfügbar"
+                        }
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = null
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = filterExpanded,
+                    onDismissRequest = { filterExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("alle") },
+                        onClick = {
+                            onFilterChange(ProductFilter.ALL)
+                            filterExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("verfügbar") },
+                        onClick = {
+                            onFilterChange(ProductFilter.AVAILABLE)
+                            filterExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("nicht verfügbar") },
+                        onClick = {
+                            onFilterChange(ProductFilter.NOT_AVAILABLE)
+                            filterExpanded = false
+                        }
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 

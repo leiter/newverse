@@ -34,6 +34,9 @@ class OverviewViewModel(
     private val _importState = MutableStateFlow<ImportState>(ImportState.Idle)
     val importState: StateFlow<ImportState> = _importState.asStateFlow()
 
+    private val _currentFilter = MutableStateFlow(ProductFilter.ALL)
+    val currentFilter: StateFlow<ProductFilter> = _currentFilter.asStateFlow()
+
     private val articles = mutableListOf<Article>()
     private var activeOrdersCount = 0
     private val bnnParser = BnnParser()
@@ -106,13 +109,24 @@ class OverviewViewModel(
     }
 
     private fun updateUiState() {
+        val filteredArticles = when (_currentFilter.value) {
+            ProductFilter.ALL -> articles.toList()
+            ProductFilter.AVAILABLE -> articles.filter { it.available }
+            ProductFilter.NOT_AVAILABLE -> articles.filter { !it.available }
+        }
+
         _uiState.value = OverviewUiState.Success(
             totalProducts = articles.size,
             activeOrders = activeOrdersCount,
             totalRevenue = 0.0, // TODO: Calculate from orders
-            recentArticles = articles.toList(),
+            recentArticles = filteredArticles,
             recentOrders = emptyList() // TODO: Get from order repository
         )
+    }
+
+    fun setFilter(filter: ProductFilter) {
+        _currentFilter.value = filter
+        updateUiState()
     }
 
     fun refresh() {
@@ -312,4 +326,13 @@ sealed interface OverviewUiState {
         val recentOrders: List<Order>
     ) : OverviewUiState
     data class Error(val message: String) : OverviewUiState
+}
+
+/**
+ * Filter options for product list
+ */
+enum class ProductFilter {
+    ALL,
+    AVAILABLE,
+    NOT_AVAILABLE
 }
