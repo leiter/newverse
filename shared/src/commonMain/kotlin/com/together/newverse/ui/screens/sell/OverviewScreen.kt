@@ -125,7 +125,7 @@ fun OverviewScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete selected",
+                    contentDescription = stringResource(Res.string.overview_delete_selected),
                     tint = MaterialTheme.colorScheme.onError
                 )
             }
@@ -146,7 +146,7 @@ fun OverviewScreen(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("Verfügbar")
+                    Text(stringResource(Res.string.overview_available))
                 }
 
                 // "Nicht vorhanden" button
@@ -156,7 +156,7 @@ fun OverviewScreen(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Nicht vorhanden")
+                    Text(stringResource(Res.string.overview_not_available))
                 }
             }
         }
@@ -165,9 +165,9 @@ fun OverviewScreen(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Delete Products") },
+                title = { Text(stringResource(Res.string.overview_delete_products_title)) },
                 text = {
-                    Text("Are you sure you want to delete ${selectedArticleIds.size} selected product(s)? This action cannot be undone.")
+                    Text(stringResource(Res.string.overview_delete_products_confirm, selectedArticleIds.size))
                 },
                 confirmButton = {
                     Button(
@@ -181,12 +181,12 @@ fun OverviewScreen(
                             containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("Delete")
+                        Text(stringResource(Res.string.button_delete))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancel")
+                        Text(stringResource(Res.string.button_cancel))
                     }
                 }
             )
@@ -196,9 +196,9 @@ fun OverviewScreen(
         if (showAvailableDialog) {
             AlertDialog(
                 onDismissRequest = { showAvailableDialog = false },
-                title = { Text("Set Products as Available") },
+                title = { Text(stringResource(Res.string.overview_set_available_title)) },
                 text = {
-                    Text("Are you sure you want to mark ${selectedArticleIds.size} selected product(s) as available?")
+                    Text(stringResource(Res.string.overview_set_available_confirm, selectedArticleIds.size))
                 },
                 confirmButton = {
                     Button(
@@ -212,12 +212,12 @@ fun OverviewScreen(
                             containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Text("OK")
+                        Text(stringResource(Res.string.button_ok))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showAvailableDialog = false }) {
-                        Text("Cancel")
+                        Text(stringResource(Res.string.button_cancel))
                     }
                 }
             )
@@ -227,9 +227,9 @@ fun OverviewScreen(
         if (showUnavailableDialog) {
             AlertDialog(
                 onDismissRequest = { showUnavailableDialog = false },
-                title = { Text("Set Products as Unavailable") },
+                title = { Text(stringResource(Res.string.overview_set_unavailable_title)) },
                 text = {
-                    Text("Are you sure you want to mark ${selectedArticleIds.size} selected product(s) as unavailable?")
+                    Text(stringResource(Res.string.overview_set_unavailable_confirm, selectedArticleIds.size))
                 },
                 confirmButton = {
                     Button(
@@ -243,12 +243,12 @@ fun OverviewScreen(
                             containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("OK")
+                        Text(stringResource(Res.string.button_ok))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showUnavailableDialog = false }) {
-                        Text("Cancel")
+                        Text(stringResource(Res.string.button_cancel))
                     }
                 }
             )
@@ -263,13 +263,13 @@ fun OverviewScreen(
                             showImportResultDialog = false
                             viewModel.resetImportState()
                         },
-                        title = { Text("Import erfolgreich") },
+                        title = { Text(stringResource(Res.string.overview_import_success)) },
                         text = {
                             Text(
                                 if (state.errorCount > 0) {
-                                    "${state.importedCount} Produkte importiert, ${state.errorCount} Fehler"
+                                    stringResource(Res.string.overview_import_result, state.importedCount, state.errorCount)
                                 } else {
-                                    "${state.importedCount} Produkte erfolgreich importiert"
+                                    stringResource(Res.string.overview_import_result_success, state.importedCount)
                                 }
                             )
                         },
@@ -280,7 +280,7 @@ fun OverviewScreen(
                                     viewModel.resetImportState()
                                 }
                             ) {
-                                Text("OK")
+                                Text(stringResource(Res.string.button_ok))
                             }
                         }
                     )
@@ -291,7 +291,7 @@ fun OverviewScreen(
                             showImportResultDialog = false
                             viewModel.resetImportState()
                         },
-                        title = { Text("Import fehlgeschlagen") },
+                        title = { Text(stringResource(Res.string.overview_import_failed)) },
                         text = { Text(state.message) },
                         confirmButton = {
                             Button(
@@ -300,7 +300,7 @@ fun OverviewScreen(
                                     viewModel.resetImportState()
                                 }
                             ) {
-                                Text("OK")
+                                Text(stringResource(Res.string.button_ok))
                             }
                         }
                     )
@@ -324,7 +324,7 @@ fun OverviewScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         CircularProgressIndicator()
-                        Text("Datei wird gelesen...")
+                        Text(stringResource(Res.string.overview_parsing))
                     }
                 }
             }
@@ -344,7 +344,7 @@ private fun LoadingContent() {
         ) {
             CircularProgressIndicator()
             Text(
-                text = "Loading overview...",
+                text = stringResource(Res.string.overview_loading),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -371,7 +371,7 @@ private fun ErrorContent(
                 style = MaterialTheme.typography.displayLarge
             )
             Text(
-                text = "Error loading overview",
+                text = stringResource(Res.string.overview_error),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.error
             )
@@ -382,7 +382,7 @@ private fun ErrorContent(
                 textAlign = TextAlign.Center
             )
             Button(onClick = onRetry) {
-                Text("Retry")
+                Text(stringResource(Res.string.button_retry))
             }
         }
     }
@@ -444,9 +444,9 @@ private fun SuccessContent(
                 ) {
                     Text(
                         text = when (currentFilter) {
-                            ProductFilter.ALL -> "alle"
-                            ProductFilter.AVAILABLE -> "verfügbar"
-                            ProductFilter.NOT_AVAILABLE -> "nicht verfügbar"
+                            ProductFilter.ALL -> stringResource(Res.string.overview_filter_all)
+                            ProductFilter.AVAILABLE -> stringResource(Res.string.overview_filter_available)
+                            ProductFilter.NOT_AVAILABLE -> stringResource(Res.string.overview_filter_not_available)
                         }
                     )
                     Icon(
@@ -460,21 +460,21 @@ private fun SuccessContent(
                     onDismissRequest = { filterExpanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("alle") },
+                        text = { Text(stringResource(Res.string.overview_filter_all)) },
                         onClick = {
                             onFilterChange(ProductFilter.ALL)
                             filterExpanded = false
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("verfügbar") },
+                        text = { Text(stringResource(Res.string.overview_filter_available)) },
                         onClick = {
                             onFilterChange(ProductFilter.AVAILABLE)
                             filterExpanded = false
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("nicht verfügbar") },
+                        text = { Text(stringResource(Res.string.overview_filter_not_available)) },
                         onClick = {
                             onFilterChange(ProductFilter.NOT_AVAILABLE)
                             filterExpanded = false
@@ -506,12 +506,12 @@ private fun SuccessContent(
                         style = MaterialTheme.typography.displayMedium
                     )
                     Text(
-                        text = "No products yet",
+                        text = stringResource(Res.string.overview_no_products),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Create your first product to get started",
+                        text = stringResource(Res.string.overview_create_first),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center

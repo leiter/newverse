@@ -22,6 +22,9 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.getString
 
 /**
  * Buy flavor ViewModel managing all app state for buyer/customer app
@@ -692,7 +695,11 @@ class BuyAppViewModel(
                                 val index = currentProducts.indexOfFirst { it.id == article.id }
                                 if (index >= 0) {
                                     currentProducts[index] = article
-                                    println("📦 UnifiedAppViewModel.loadProducts: CHANGED article '${article.productName}' at index $index")
+                                    println("📦 UnifiedAppViewModel.loadProducts: CHANGED article '${article.productName}' at index $index, available=${article.available}")
+                                } else {
+                                    // Article wasn't in list, add it now
+                                    currentProducts.add(article)
+                                    println("📦 UnifiedAppViewModel.loadProducts: CHANGED but not found, ADDED article '${article.productName}' (id=${article.id}), available=${article.available}")
                                 }
                             }
                             Article.MODE_REMOVED -> {
@@ -785,7 +792,9 @@ class BuyAppViewModel(
         }
 
         // Show success snackbar
-        showSnackbar("Added to basket", SnackbarType.SUCCESS)
+        viewModelScope.launch {
+            showSnackbar(getString(Res.string.snackbar_added_to_basket), SnackbarType.SUCCESS)
+        }
     }
 
     private fun removeFromBasket(productId: String) {
@@ -954,7 +963,7 @@ class BuyAppViewModel(
                     }
 
                     // Show success message
-                    showSnackbar("Signed in successfully", SnackbarType.SUCCESS)
+                    showSnackbar(getString(Res.string.snackbar_login_success), SnackbarType.SUCCESS)
 
                     println("🎯 Login complete - requiresLogin cleared, app will show main UI")
                 }
@@ -962,16 +971,16 @@ class BuyAppViewModel(
                     // Parse error message for user-friendly display
                     val errorMessage = when {
                         error.message?.contains("No account found", true) == true ->
-                            "No account found with this email address"
+                            getString(Res.string.error_no_account)
                         error.message?.contains("Incorrect password", true) == true ->
-                            "Incorrect password. Please try again"
+                            getString(Res.string.error_wrong_password)
                         error.message?.contains("Invalid email", true) == true ->
-                            "Please enter a valid email address"
+                            getString(Res.string.error_email_invalid)
                         error.message?.contains("Network", true) == true ->
-                            "Network error. Please check your connection"
+                            getString(Res.string.error_no_internet)
                         error.message?.contains("too many", true) == true ->
-                            "Too many failed attempts. Please try again later"
-                        else -> error.message ?: "Sign in failed. Please try again"
+                            getString(Res.string.error_too_many_attempts)
+                        else -> error.message ?: getString(Res.string.error_login_failed)
                     }
 
                     // Show error snackbar
@@ -1057,10 +1066,10 @@ class BuyAppViewModel(
                             )
                         )
                     }
-                    showSnackbar("Signed out successfully", SnackbarType.SUCCESS)
+                    showSnackbar(getString(Res.string.snackbar_logout_success), SnackbarType.SUCCESS)
                 }
                 .onFailure { error ->
-                    showSnackbar(error.message ?: "Sign out failed", SnackbarType.ERROR)
+                    showSnackbar(error.message ?: getString(Res.string.snackbar_logout_failed), SnackbarType.ERROR)
                 }
         }
     }
@@ -1113,7 +1122,7 @@ class BuyAppViewModel(
                     }
 
                     // Show success message
-                    showSnackbar("Account created successfully! Please check your email for verification.", SnackbarType.SUCCESS)
+                    showSnackbar(getString(Res.string.snackbar_account_created), SnackbarType.SUCCESS)
 
                     // Navigate to login after a short delay
                     delay(1500)
@@ -1123,15 +1132,15 @@ class BuyAppViewModel(
                     // Provide user-friendly error messages
                     val errorMessage = when {
                         error.message?.contains("email-already-in-use") == true ->
-                            "An account with this email already exists. Please sign in instead."
+                            getString(Res.string.error_email_in_use)
                         error.message?.contains("weak-password") == true ->
-                            "Password is too weak. Please use at least 6 characters."
+                            getString(Res.string.error_weak_password)
                         error.message?.contains("invalid-email") == true ->
-                            "Invalid email address. Please check and try again."
+                            getString(Res.string.error_email_invalid)
                         error.message?.contains("network") == true ->
-                            "Network error. Please check your connection and try again."
+                            getString(Res.string.error_no_internet)
                         else ->
-                            "Registration failed. Please try again."
+                            getString(Res.string.error_registration_failed)
                     }
 
                     _state.update { current ->
@@ -1775,42 +1784,46 @@ class BuyAppViewModel(
                     }
                 }
                 .collect { article ->
-                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Received article event - mode=${article.mode}, id=${article.id}, name=${article.productName}")
+                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Received article event - mode=${article.mode}, id=${article.id}, name=${article.productName}, available=${article.available}")
 
-                    val currentArticles = _state.value.screens.mainScreen.articles.toMutableList()
-                    val beforeCount = currentArticles.size
-
-                    when (article.mode) {
-                        Article.MODE_ADDED -> {
-                            // Check if article already exists to avoid duplicates
-                            val existingIndex = currentArticles.indexOfFirst { it.id == article.id }
-                            if (existingIndex >= 0) {
-                                currentArticles[existingIndex] = article
-                                println("🎬 UnifiedAppViewModel.loadMainScreenArticles: UPDATED existing article '${article.productName}' at index $existingIndex")
-                            } else {
-                                currentArticles.add(article)
-                                println("🎬 UnifiedAppViewModel.loadMainScreenArticles: ADDED article '${article.productName}' (id=${article.id})")
-                            }
-                        }
-                        Article.MODE_CHANGED -> {
-                            val index = currentArticles.indexOfFirst { it.id == article.id }
-                            if (index >= 0) {
-                                currentArticles[index] = article
-                                println("🎬 UnifiedAppViewModel.loadMainScreenArticles: CHANGED article '${article.productName}' at index $index")
-                            }
-                        }
-                        Article.MODE_REMOVED -> {
-                            currentArticles.removeAll { it.id == article.id }
-                            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: REMOVED article '${article.productName}' (id=${article.id})")
-                        }
-                        // MODE_MOVED typically doesn't need special handling
-                    }
-
-                    val afterCount = currentArticles.size
-                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Article count: $beforeCount → $afterCount")
-
-                    // Update articles list first
+                    // Update state atomically to avoid race conditions
                     _state.update { current ->
+                        val currentArticles = current.screens.mainScreen.articles.toMutableList()
+                        val beforeCount = currentArticles.size
+
+                        when (article.mode) {
+                            Article.MODE_ADDED -> {
+                                // Check if article already exists to avoid duplicates
+                                val existingIndex = currentArticles.indexOfFirst { it.id == article.id }
+                                if (existingIndex >= 0) {
+                                    currentArticles[existingIndex] = article
+                                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: UPDATED existing article '${article.productName}' at index $existingIndex")
+                                } else {
+                                    currentArticles.add(article)
+                                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: ADDED article '${article.productName}' (id=${article.id})")
+                                }
+                            }
+                            Article.MODE_CHANGED -> {
+                                val index = currentArticles.indexOfFirst { it.id == article.id }
+                                if (index >= 0) {
+                                    currentArticles[index] = article
+                                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: CHANGED article '${article.productName}' at index $index, available=${article.available}")
+                                } else {
+                                    // Article wasn't in list (maybe was filtered before), add it now
+                                    currentArticles.add(article)
+                                    println("🎬 UnifiedAppViewModel.loadMainScreenArticles: CHANGED but not found, ADDED article '${article.productName}' (id=${article.id}), available=${article.available}")
+                                }
+                            }
+                            Article.MODE_REMOVED -> {
+                                currentArticles.removeAll { it.id == article.id }
+                                println("🎬 UnifiedAppViewModel.loadMainScreenArticles: REMOVED article '${article.productName}' (id=${article.id})")
+                            }
+                            // MODE_MOVED typically doesn't need special handling
+                        }
+
+                        val afterCount = currentArticles.size
+                        println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Article count: $beforeCount → $afterCount")
+
                         current.copy(
                             screens = current.screens.copy(
                                 mainScreen = current.screens.mainScreen.copy(
@@ -1824,6 +1837,7 @@ class BuyAppViewModel(
 
                     // Auto-select first article if none selected (using proper selection logic)
                     val currentSelectedArticle = _state.value.screens.mainScreen.selectedArticle
+                    val currentArticles = _state.value.screens.mainScreen.articles
                     if (currentSelectedArticle == null && currentArticles.isNotEmpty()) {
                         val firstArticle = currentArticles.first()
                         println("🎬 UnifiedAppViewModel.loadMainScreenArticles: Auto-selecting first article: ${firstArticle.productName}")

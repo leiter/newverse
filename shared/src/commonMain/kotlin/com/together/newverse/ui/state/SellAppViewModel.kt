@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.getString
 
 /**
  * Sell flavor ViewModel managing all app state for seller/vendor app
@@ -527,26 +530,26 @@ class SellAppViewModel(
                         )
                     }
 
-                    showSnackbar("Anmeldung erfolgreich", SnackbarType.SUCCESS)
+                    showSnackbar(getString(Res.string.snackbar_login_success), SnackbarType.SUCCESS)
                 }
                 .onFailure { error ->
                     val errorMessage = when {
                         error.message?.contains("No account found", true) == true ->
-                            "Kein Konto mit dieser E-Mail gefunden"
+                            getString(Res.string.error_no_account)
                         error.message?.contains("Incorrect password", true) == true ->
-                            "Falsches Passwort"
+                            getString(Res.string.error_wrong_password)
                         error.message?.contains("Invalid email", true) == true ->
-                            "Ungültige E-Mail-Adresse"
+                            getString(Res.string.error_email_invalid)
                         error.message?.contains("network", true) == true ||
                         error.message?.contains("Unable to resolve host", true) == true ||
                         error.message?.contains("No address associated", true) == true ||
                         error.message?.contains("failed to connect", true) == true ||
                         error.message?.contains("timeout", true) == true ||
                         error.message?.contains("UnknownHostException", true) == true ->
-                            "Keine Internetverbindung. Bitte prüfe deine Netzwerkverbindung."
+                            getString(Res.string.error_no_internet)
                         error.message?.contains("Too many", true) == true ->
-                            "Zu viele Anmeldeversuche. Bitte versuche es später erneut."
-                        else -> error.message ?: "Anmeldung fehlgeschlagen"
+                            getString(Res.string.error_too_many_attempts)
+                        else -> error.message ?: getString(Res.string.error_login_failed)
                     }
 
                     showSnackbar(errorMessage, SnackbarType.ERROR)
@@ -632,10 +635,10 @@ class SellAppViewModel(
                             )
                         )
                     }
-                    showSnackbar("Abgemeldet", SnackbarType.SUCCESS)
+                    showSnackbar(getString(Res.string.snackbar_logout_success), SnackbarType.SUCCESS)
                 }
                 .onFailure { error ->
-                    showSnackbar(error.message ?: "Abmeldung fehlgeschlagen", SnackbarType.ERROR)
+                    showSnackbar(error.message ?: getString(Res.string.snackbar_logout_failed), SnackbarType.ERROR)
                 }
         }
     }
@@ -684,17 +687,17 @@ class SellAppViewModel(
                         )
                     }
 
-                    showSnackbar("Konto erstellt!", SnackbarType.SUCCESS)
+                    showSnackbar(getString(Res.string.snackbar_account_created), SnackbarType.SUCCESS)
                     delay(1500)
                     navigateTo(NavRoutes.Login)
                 }
                 .onFailure { error ->
                     val errorMessage = when {
                         error.message?.contains("email-already-in-use") == true ->
-                            "E-Mail bereits registriert"
+                            getString(Res.string.error_email_in_use)
                         error.message?.contains("weak-password") == true ->
-                            "Passwort zu schwach"
-                        else -> "Registrierung fehlgeschlagen"
+                            getString(Res.string.error_weak_password)
+                        else -> getString(Res.string.error_registration_failed)
                     }
 
                     _state.update { current ->

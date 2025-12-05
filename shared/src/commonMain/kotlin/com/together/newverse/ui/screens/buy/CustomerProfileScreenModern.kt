@@ -82,6 +82,7 @@ import newverse.shared.generated.resources.action_orders
 import newverse.shared.generated.resources.action_payment
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_confirm
+import newverse.shared.generated.resources.button_edit
 import newverse.shared.generated.resources.button_save
 import newverse.shared.generated.resources.default_market
 import newverse.shared.generated.resources.dialog_save_message
@@ -101,6 +102,7 @@ import newverse.shared.generated.resources.pickup_time_format
 import newverse.shared.generated.resources.profile_member_since
 import newverse.shared.generated.resources.profile_new_customer
 import newverse.shared.generated.resources.profile_no_email
+import newverse.shared.generated.resources.profile_picture
 import newverse.shared.generated.resources.profile_verified
 import newverse.shared.generated.resources.quick_actions_title
 import newverse.shared.generated.resources.section_delivery_preferences
@@ -323,7 +325,7 @@ private fun ProfileHeaderCard(
                         // Use Coil AsyncImage to load profile picture
                         coil3.compose.AsyncImage(
                             model = photoUrl,
-                            contentDescription = "Profile Picture",
+                            contentDescription = stringResource(Res.string.profile_picture),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
@@ -432,7 +434,7 @@ private fun PersonalInfoCard(
                     ) {
                         Icon(
                             Icons.Default.Edit,
-                            contentDescription = "Bearbeiten",
+                            contentDescription = stringResource(Res.string.button_edit),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }

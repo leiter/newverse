@@ -51,6 +51,9 @@ import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.util.ImagePickerResult
 import com.together.newverse.util.LocalImagePicker
 import kotlinx.coroutines.launch
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,11 +86,13 @@ fun CreateProductScreen(
         onAction(UnifiedUiAction.ShowSnackbar(message))
     }
 
+    val successMessage = stringResource(Res.string.create_product_success)
+
     // Handle UI state changes
     LaunchedEffect(uiState) {
         when (uiState) {
             is CreateProductUiState.Success -> {
-                showSnackbar("Produkt erfolgreich gespeichert!")
+                showSnackbar(successMessage)
                 viewModel.resetState()
                 onNavigateBack()
             }
@@ -141,7 +146,7 @@ fun CreateProductScreen(
             OutlinedTextField(
                 value = productName,
                 onValueChange = viewModel::onProductNameChange,
-                label = { Text("Produktname *") },
+                label = { Text(stringResource(Res.string.create_product_name_required)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -150,8 +155,8 @@ fun CreateProductScreen(
             OutlinedTextField(
                 value = searchTerms,
                 onValueChange = viewModel::onSearchTermsChange,
-                label = { Text("Suchbegriffe *") },
-                supportingText = { Text("Durch Komma getrennt") },
+                label = { Text(stringResource(Res.string.create_product_search_terms)) },
+                supportingText = { Text(stringResource(Res.string.create_product_search_terms_hint)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -160,7 +165,7 @@ fun CreateProductScreen(
             OutlinedTextField(
                 value = productId,
                 onValueChange = viewModel::onProductIdChange,
-                label = { Text("Artikelnummer") },
+                label = { Text(stringResource(Res.string.create_product_article_number)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -173,8 +178,8 @@ fun CreateProductScreen(
                 OutlinedTextField(
                     value = price,
                     onValueChange = viewModel::onPriceChange,
-                    label = { Text("Preis *") },
-                    prefix = { Text("€") },
+                    label = { Text(stringResource(Res.string.create_product_price_required)) },
+                    prefix = { Text(stringResource(Res.string.create_product_price_prefix)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -193,7 +198,7 @@ fun CreateProductScreen(
                 OutlinedTextField(
                     value = weightPerPiece,
                     onValueChange = viewModel::onWeightPerPieceChange,
-                    label = { Text("Gewicht pro Stück (kg) *") },
+                    label = { Text(stringResource(Res.string.create_product_weight_required)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -210,8 +215,8 @@ fun CreateProductScreen(
             OutlinedTextField(
                 value = detailInfo,
                 onValueChange = viewModel::onDetailInfoChange,
-                label = { Text("Zusatzinformationen") },
-                supportingText = { Text("Herkunft, Qualität, Bio-Siegel, etc.") },
+                label = { Text(stringResource(Res.string.create_product_additional_info)) },
+                supportingText = { Text(stringResource(Res.string.create_product_additional_info_hint)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5
@@ -223,7 +228,7 @@ fun CreateProductScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Verfügbar")
+                Text(stringResource(Res.string.create_product_available))
                 Switch(
                     checked = available,
                     onCheckedChange = viewModel::onAvailableChange
@@ -237,7 +242,7 @@ fun CreateProductScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    text = "Uploading: ${(uploadProgress * 100).toInt()}%",
+                    text = stringResource(Res.string.create_product_uploading, (uploadProgress * 100).toInt()),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -255,7 +260,7 @@ fun CreateProductScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                 }
-                Text("Speichern")
+                Text(stringResource(Res.string.button_save))
             }
 
             OutlinedButton(
@@ -263,7 +268,7 @@ fun CreateProductScreen(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = uiState !is CreateProductUiState.Saving
             ) {
-                Text("Abbrechen")
+                Text(stringResource(Res.string.button_cancel))
             }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -289,7 +294,7 @@ private fun ImageSection(
                 // Display image from ByteArray using Coil3
                 AsyncImage(
                     model = imageData,
-                    contentDescription = "Produktbild",
+                    contentDescription = stringResource(Res.string.create_product_image),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
@@ -301,10 +306,10 @@ private fun ImageSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     IconButton(onClick = onPickImage) {
-                        Icon(Icons.Default.Edit, "Foto ändern")
+                        Icon(Icons.Default.Edit, stringResource(Res.string.create_product_change_photo))
                     }
                     IconButton(onClick = onTakePhoto) {
-                        Icon(Icons.Default.AddCircle, "Neues Foto")
+                        Icon(Icons.Default.AddCircle, stringResource(Res.string.create_product_new_photo))
                     }
                 }
             } else {
@@ -313,17 +318,17 @@ private fun ImageSection(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "Produktfoto hinzufügen *",
+                        stringResource(Res.string.create_product_add_photo),
                         style = MaterialTheme.typography.titleMedium
                     )
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         IconButton(onClick = onPickImage) {
-                            Icon(Icons.Default.Edit, "Foto auswählen")
+                            Icon(Icons.Default.Edit, stringResource(Res.string.create_product_pick_photo))
                         }
                         IconButton(onClick = onTakePhoto) {
-                            Icon(Icons.Default.AddCircle, "Foto aufnehmen")
+                            Icon(Icons.Default.AddCircle, stringResource(Res.string.create_product_take_photo))
                         }
                     }
                 }
@@ -351,9 +356,9 @@ private fun CategorySelector(
             value = selectedCategory,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Kategorie *") },
+            label = { Text(stringResource(Res.string.create_product_category_required)) },
             trailingIcon = {
-                Icon(Icons.Default.ArrowDropDown, "Kategorie auswählen")
+                Icon(Icons.Default.ArrowDropDown, stringResource(Res.string.create_product_category_select))
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -396,9 +401,9 @@ private fun UnitSelector(
             value = selectedUnit,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Einheit *") },
+            label = { Text(stringResource(Res.string.create_product_unit_required)) },
             trailingIcon = {
-                Icon(Icons.Default.ArrowDropDown, "Einheit auswählen")
+                Icon(Icons.Default.ArrowDropDown, stringResource(Res.string.create_product_unit_select))
             },
             modifier = Modifier
                 .fillMaxWidth()

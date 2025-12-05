@@ -51,6 +51,8 @@
     <string name="button_continue_guest">Als Gast fortfahren</string>
     <string name="button_create">Erstellen</string>
     <string name="button_edit">Bearbeiten</string>
+    <string name="button_ok">OK</string>
+    <string name="button_delete">Löschen</string>
 
     <!-- ========================================= -->
     <!-- COMMON LABELS -->
@@ -122,6 +124,13 @@
     <string name="login_sign_up_link">Registrieren</string>
     <string name="login_success">Anmeldung erfolgreich! Weiterleitung...</string>
 
+    <!-- Login/Logout Snackbar Messages -->
+    <string name="snackbar_login_success">Anmeldung erfolgreich</string>
+    <string name="snackbar_logout_success">Abgemeldet</string>
+    <string name="snackbar_logout_failed">Abmeldung fehlgeschlagen</string>
+    <string name="snackbar_account_created">Konto erstellt!</string>
+    <string name="snackbar_added_to_basket">Zum Warenkorb hinzugefügt</string>
+
     <!-- Login Validation Errors -->
     <string name="error_email_required">E-Mail-Adresse ist erforderlich</string>
     <string name="error_email_invalid">Ungültiges E-Mail-Format</string>
@@ -129,6 +138,13 @@
     <string name="error_password_length">Passwort muss mindestens 6 Zeichen lang sein</string>
     <string name="error_login_failed">Anmeldung fehlgeschlagen</string>
     <string name="error_credentials_required">E-Mail und Passwort sind erforderlich</string>
+    <string name="error_no_account">Kein Konto mit dieser E-Mail gefunden</string>
+    <string name="error_wrong_password">Falsches Passwort</string>
+    <string name="error_no_internet">Keine Internetverbindung. Bitte prüfe deine Netzwerkverbindung.</string>
+    <string name="error_too_many_attempts">Zu viele Anmeldeversuche. Bitte versuche es später erneut.</string>
+    <string name="error_email_in_use">E-Mail bereits registriert</string>
+    <string name="error_weak_password">Passwort zu schwach</string>
+    <string name="error_registration_failed">Registrierung fehlgeschlagen</string>
 
     <!-- ========================================= -->
     <!-- REGISTER SCREEN -->
@@ -173,6 +189,51 @@
     <string name="basket_empty_description">Fügen Sie Artikel vom Produktbildschirm hinzu</string>
     <string name="basket_checkout_processing">Wird bearbeitet...</string>
     <string name="basket_checkout_proceed">Bestellen</string>
+    <string name="basket_order_updated">✓ Bestellung erfolgreich aktualisiert!</string>
+    <string name="basket_order_placed">✓ Bestellung erfolgreich aufgegeben!</string>
+    <string name="basket_order_cancelled">✓ Bestellung erfolgreich storniert!</string>
+    <string name="basket_order_copied">✓ Bestellung kopiert mit aktualisierten Preisen!</string>
+    <string name="basket_review_order">Bitte überprüfen und bestätigen Sie die Bestellung.</string>
+    <string name="basket_update_order">Bestellung aktualisieren</string>
+    <string name="basket_no_changes">Keine Änderungen</string>
+    <string name="basket_cancelling">Storniere...</string>
+    <string name="basket_cancel_order">Bestellung stornieren</string>
+    <string name="basket_edit_disabled">Bearbeitung nicht mehr möglich</string>
+    <string name="basket_edit_deadline_reason">(weniger als 3 Tage bis Abholung)</string>
+    <string name="basket_creating_order">Erstelle neue Bestellung...</string>
+    <string name="basket_reorder">Neu bestellen mit anderem Datum</string>
+    <string name="basket_order_modified">Bestellung (geändert)</string>
+    <string name="basket_order_details">Bestelldetails</string>
+    <string name="basket_pickup">Abholung:</string>
+    <string name="basket_today">Heute</string>
+    <string name="basket_tomorrow">Morgen</string>
+    <string name="basket_in_days">in %d Tagen</string>
+    <string name="basket_past">Vergangen</string>
+    <string name="basket_order_number">Bestellnr:</string>
+    <string name="basket_created">Erstellt:</string>
+    <string name="basket_editable_until">Bearbeitbar bis: %s</string>
+    <string name="basket_unsaved_changes">⚠ Sie haben ungespeicherte Änderungen</string>
+    <string name="basket_pickup_date">Abholdatum</string>
+    <string name="basket_orderable_until">Bestellbar bis: %s</string>
+    <string name="basket_select_date">Datum auswählen</string>
+    <string name="basket_select_date_hint">Tippen Sie hier um ein Abholdatum zu wählen</string>
+    <string name="basket_choose_date">Datum wählen</string>
+    <string name="basket_choose_pickup_date">Abholdatum wählen</string>
+    <string name="basket_no_dates_available">Derzeit sind keine Abholtermine verfügbar.</string>
+    <string name="basket_selected">Ausgewählt</string>
+    <string name="basket_time_remaining">Verbleibende Zeit: %s</string>
+    <string name="basket_choose_new_date">Neues Abholdatum wählen</string>
+    <string name="basket_reorder_info">Wählen Sie ein neues Datum für Ihre Bestellung. Die Preise werden automatisch aktualisiert.</string>
+    <string name="basket_updating_prices">Preise werden aktualisiert...</string>
+    <string name="basket_merge_title">Bestellung zusammenführen</string>
+    <string name="basket_merge_existing">Für dieses Datum existiert bereits eine Bestellung:</string>
+    <string name="basket_merging">Bestellungen werden zusammengeführt...</string>
+    <string name="basket_merge_no_conflicts">Keine Konflikte gefunden. Neue Artikel werden zur bestehenden Bestellung hinzugefügt.</string>
+    <string name="basket_merge_conflicts">Folgende Artikel haben unterschiedliche Mengen:</string>
+    <string name="basket_merge_confirm">Zusammenführen</string>
+    <string name="basket_conflict_keep">Behalten: %s %s</string>
+    <string name="basket_conflict_new">Neu: %s %s</string>
+    <string name="basket_conflict_add">Addieren: %s %s</string>
 
     <!-- ========================================= -->
     <!-- CUSTOMER PROFILE SCREEN (BUY MODULE) -->
@@ -181,6 +242,7 @@
     <string name="profile_no_email">Keine E-Mail</string>
     <string name="profile_verified">Verifiziert</string>
     <string name="profile_member_since">Kunde seit %s</string>
+    <string name="profile_picture">Profilbild</string>
 
     <!-- Personal Information Section -->
     <string name="section_personal_info">Persönliche Daten</string>
@@ -246,9 +308,31 @@
     <!-- ========================================= -->
     <string name="create_product_title">Produkt erstellen</string>
     <string name="create_product_name">Produktname</string>
-    <string name="create_product_price_prefix">$</string>
+    <string name="create_product_price_prefix">€</string>
     <string name="create_product_description">Beschreibung</string>
     <string name="create_product_button">Produkt erstellen</string>
+    <string name="create_product_success">Produkt erfolgreich gespeichert!</string>
+    <string name="create_product_error">Fehler: %s</string>
+    <string name="create_product_name_required">Produktname *</string>
+    <string name="create_product_search_terms">Suchbegriffe *</string>
+    <string name="create_product_search_terms_hint">Durch Komma getrennt</string>
+    <string name="create_product_article_number">Artikelnummer</string>
+    <string name="create_product_price_required">Preis *</string>
+    <string name="create_product_weight_required">Gewicht pro Stück (kg) *</string>
+    <string name="create_product_additional_info">Zusatzinformationen</string>
+    <string name="create_product_additional_info_hint">Herkunft, Qualität, Bio-Siegel, etc.</string>
+    <string name="create_product_available">Verfügbar</string>
+    <string name="create_product_uploading">Hochladen: %d%%</string>
+    <string name="create_product_image">Produktbild</string>
+    <string name="create_product_change_photo">Foto ändern</string>
+    <string name="create_product_new_photo">Neues Foto</string>
+    <string name="create_product_add_photo">Produktfoto hinzufügen *</string>
+    <string name="create_product_pick_photo">Foto auswählen</string>
+    <string name="create_product_take_photo">Foto aufnehmen</string>
+    <string name="create_product_category_required">Kategorie *</string>
+    <string name="create_product_category_select">Kategorie auswählen</string>
+    <string name="create_product_unit_required">Einheit *</string>
+    <string name="create_product_unit_select">Einheit auswählen</string>
 
     <!-- ========================================= -->
     <!-- SELLER PROFILE SCREEN (SELL MODULE) -->
@@ -298,6 +382,36 @@
     <string name="overview_unavailable_products">Nicht verfügbar</string>
     <string name="overview_active_orders">Aktive Bestellungen</string>
     <string name="overview_your_products">Ihre Produkte</string>
+    <string name="overview_delete_selected">Ausgewählte löschen</string>
+    <string name="overview_available">Verfügbar</string>
+    <string name="overview_not_available">Nicht vorhanden</string>
+    <string name="overview_delete_products_title">Produkte löschen</string>
+    <string name="overview_delete_products_confirm">Möchten Sie wirklich %d ausgewählte(s) Produkt(e) löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
+    <string name="overview_set_available_title">Produkte als verfügbar markieren</string>
+    <string name="overview_set_available_confirm">Möchten Sie wirklich %d ausgewählte(s) Produkt(e) als verfügbar markieren?</string>
+    <string name="overview_set_unavailable_title">Produkte als nicht verfügbar markieren</string>
+    <string name="overview_set_unavailable_confirm">Möchten Sie wirklich %d ausgewählte(s) Produkt(e) als nicht verfügbar markieren?</string>
+    <string name="overview_import_success">Import erfolgreich</string>
+    <string name="overview_import_result">%d Produkte importiert, %d Fehler</string>
+    <string name="overview_import_result_success">%d Produkte erfolgreich importiert</string>
+    <string name="overview_import_failed">Import fehlgeschlagen</string>
+    <string name="overview_parsing">Datei wird gelesen...</string>
+    <string name="overview_loading">Übersicht wird geladen...</string>
+    <string name="overview_error">Fehler beim Laden der Übersicht</string>
+    <string name="overview_filter_all">alle</string>
+    <string name="overview_filter_available">verfügbar</string>
+    <string name="overview_filter_not_available">nicht verfügbar</string>
+    <string name="overview_no_products">Keine Produkte vorhanden</string>
+    <string name="overview_create_first">Erstellen Sie Ihr erstes Produkt</string>
+
+    <!-- ========================================= -->
+    <!-- SELL PRODUCTS SCREEN -->
+    <!-- ========================================= -->
+    <string name="sell_products_add">Produkt hinzufügen</string>
+    <string name="sell_products_empty">Keine Produkte vorhanden</string>
+    <string name="sell_products_empty_hint">Erstellen Sie Ihr erstes Produkt</string>
+    <string name="sell_products_count_singular">%d Produkt</string>
+    <string name="sell_products_count_plural">%d Produkte</string>
 
     <!-- ========================================= -->
     <!-- SELLER TOP BAR TITLES -->

@@ -41,12 +41,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.basket_checkout_proceed
-import newverse.shared.generated.resources.basket_checkout_processing
-import newverse.shared.generated.resources.basket_empty_description
-import newverse.shared.generated.resources.basket_empty_title
-import newverse.shared.generated.resources.button_remove
-import newverse.shared.generated.resources.label_total
+import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -127,7 +122,7 @@ fun BasketContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = if (state.orderId != null) "✓ Bestellung erfolgreich aktualisiert!" else "✓ Bestellung erfolgreich aufgegeben!",
+                        text = if (state.orderId != null) stringResource(Res.string.basket_order_updated) else stringResource(Res.string.basket_order_placed),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
@@ -149,7 +144,7 @@ fun BasketContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "✓ Bestellung erfolgreich storniert!",
+                        text = stringResource(Res.string.basket_order_cancelled),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
@@ -171,13 +166,13 @@ fun BasketContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "✓ Bestellung kopiert mit aktualisierten Preisen!",
+                        text = stringResource(Res.string.basket_order_copied),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Bitte überprüfen und bestätigen Sie die Bestellung.",
+                        text = stringResource(Res.string.basket_review_order),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
@@ -350,9 +345,9 @@ fun BasketContent(
                     if (state.isCheckingOut) {
                         Text(stringResource(Res.string.basket_checkout_processing))
                     } else if (state.hasChanges) {
-                        Text("Bestellung aktualisieren")
+                        Text(stringResource(Res.string.basket_update_order))
                     } else {
-                        Text("Keine Änderungen")
+                        Text(stringResource(Res.string.basket_no_changes))
                     }
                 }
 
@@ -368,9 +363,9 @@ fun BasketContent(
                     )
                 ) {
                     if (state.isCancelling) {
-                        Text("Storniere...")
+                        Text(stringResource(Res.string.basket_cancelling))
                     } else {
-                        Text("Bestellung stornieren")
+                        Text(stringResource(Res.string.basket_cancel_order))
                     }
                 }
 
@@ -387,12 +382,12 @@ fun BasketContent(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Bearbeitung nicht mehr möglich",
+                            text = stringResource(Res.string.basket_edit_disabled),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
-                            text = "(weniger als 3 Tage bis Abholung)",
+                            text = stringResource(Res.string.basket_edit_deadline_reason),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -411,9 +406,9 @@ fun BasketContent(
                         enabled = !state.isReordering && state.items.isNotEmpty()
                     ) {
                         if (state.isReordering) {
-                            Text("Erstelle neue Bestellung...")
+                            Text(stringResource(Res.string.basket_creating_order))
                         } else {
-                            Text("Neu bestellen mit anderem Datum")
+                            Text(stringResource(Res.string.basket_reorder))
                         }
                     }
                 }
@@ -533,7 +528,7 @@ private fun OrderInfoCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (hasChanges) "Bestellung (geändert)" else "Bestelldetails",
+                    text = if (hasChanges) stringResource(Res.string.basket_order_modified) else stringResource(Res.string.basket_order_details),
                     style = MaterialTheme.typography.titleLarge,
                     color = if (hasChanges) {
                         MaterialTheme.colorScheme.onPrimaryContainer
@@ -555,7 +550,7 @@ private fun OrderInfoCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Abholung:",
+                    text = stringResource(Res.string.basket_pickup),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -567,10 +562,10 @@ private fun OrderInfoCard(
                     )
                     Text(
                         text = when {
-                            daysUntilPickup == 0L -> "Heute"
-                            daysUntilPickup == 1L -> "Morgen"
-                            daysUntilPickup > 0 -> "in $daysUntilPickup Tagen"
-                            else -> "Vergangen"
+                            daysUntilPickup == 0L -> stringResource(Res.string.basket_today)
+                            daysUntilPickup == 1L -> stringResource(Res.string.basket_tomorrow)
+                            daysUntilPickup > 0 -> stringResource(Res.string.basket_in_days, daysUntilPickup.toInt())
+                            else -> stringResource(Res.string.basket_past)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
@@ -586,7 +581,7 @@ private fun OrderInfoCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Bestellnr:",
+                    text = stringResource(Res.string.basket_order_number),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
@@ -602,7 +597,7 @@ private fun OrderInfoCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Erstellt:",
+                    text = stringResource(Res.string.basket_created),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
@@ -617,7 +612,7 @@ private fun OrderInfoCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 val editDeadlineDate = formatDate(pickupDate - (3 * 24 * 60 * 60 * 1000))
                 Text(
-                    text = "Bearbeitbar bis: $editDeadlineDate",
+                    text = stringResource(Res.string.basket_editable_until, editDeadlineDate),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -632,7 +627,7 @@ private fun OrderInfoCard(
                     )
                 ) {
                     Text(
-                        text = "⚠ Sie haben ungespeicherte Änderungen",
+                        text = stringResource(Res.string.basket_unsaved_changes),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                         modifier = Modifier.padding(8.dp)
@@ -701,7 +696,7 @@ fun PickupDateSelector(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "Abholdatum",
+                    text = stringResource(Res.string.basket_pickup_date),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (selectedDate != null) {
                         MaterialTheme.colorScheme.onPrimaryContainer
@@ -718,25 +713,25 @@ fun PickupDateSelector(
                     val deadlineFormatted = OrderDateUtils.formatDisplayDateTime(deadline)
 
                     Text(
-                        text = "Donnerstag, $formatted",
+                        text = "${stringResource(Res.string.day_thursday)}, $formatted",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Bestellbar bis: $deadlineFormatted",
+                        text = stringResource(Res.string.basket_orderable_until, deadlineFormatted),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                 } else {
                     Text(
-                        text = "Datum auswählen",
+                        text = stringResource(Res.string.basket_select_date),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Tippen Sie hier um ein Abholdatum zu wählen",
+                        text = stringResource(Res.string.basket_select_date_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                     )
@@ -745,7 +740,7 @@ fun PickupDateSelector(
 
             Icon(
                 imageVector = if (selectedDate != null) Icons.Default.Edit else Icons.Default.DateRange,
-                contentDescription = "Datum wählen",
+                contentDescription = stringResource(Res.string.basket_choose_date),
                 tint = if (selectedDate != null) {
                     MaterialTheme.colorScheme.onPrimaryContainer
                 } else {
@@ -771,7 +766,7 @@ fun DatePickerDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Abholdatum wählen",
+                text = stringResource(Res.string.basket_choose_pickup_date),
                 style = MaterialTheme.typography.headlineSmall
             )
         },
@@ -783,7 +778,7 @@ fun DatePickerDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Derzeit sind keine Abholtermine verfügbar.",
+                        text = stringResource(Res.string.basket_no_dates_available),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -809,7 +804,7 @@ fun DatePickerDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
+                Text(stringResource(Res.string.button_cancel))
             }
         }
     )
@@ -858,7 +853,7 @@ private fun DateOption(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Donnerstag, $formatted",
+                    text = "${stringResource(Res.string.day_thursday)}, $formatted",
                     style = MaterialTheme.typography.titleMedium,
                     color = if (isSelected) {
                         MaterialTheme.colorScheme.onPrimaryContainer
@@ -869,7 +864,7 @@ private fun DateOption(
                 if (isSelected) {
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = "Ausgewählt",
+                        contentDescription = stringResource(Res.string.basket_selected),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -878,7 +873,7 @@ private fun DateOption(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Bestellbar bis: $deadlineFormatted",
+                text = stringResource(Res.string.basket_orderable_until, deadlineFormatted),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isSelected) {
                     MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -888,7 +883,7 @@ private fun DateOption(
             )
 
             Text(
-                text = "Verbleibende Zeit: $timeRemaining",
+                text = stringResource(Res.string.basket_time_remaining, timeRemaining),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isSelected) {
                     MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -915,14 +910,14 @@ fun ReorderDatePickerDialog(
         onDismissRequest = { if (!isReordering) onDismiss() },
         title = {
             Text(
-                text = "Neues Abholdatum wählen",
+                text = stringResource(Res.string.basket_choose_new_date),
                 style = MaterialTheme.typography.headlineSmall
             )
         },
         text = {
             Column {
                 Text(
-                    text = "Wählen Sie ein neues Datum für Ihre Bestellung. Die Preise werden automatisch aktualisiert.",
+                    text = stringResource(Res.string.basket_reorder_info),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -938,7 +933,7 @@ fun ReorderDatePickerDialog(
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Preise werden aktualisiert...",
+                            text = stringResource(Res.string.basket_updating_prices),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -949,7 +944,7 @@ fun ReorderDatePickerDialog(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Derzeit sind keine Abholtermine verfügbar.",
+                            text = stringResource(Res.string.basket_no_dates_available),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -976,7 +971,7 @@ fun ReorderDatePickerDialog(
         dismissButton = {
             if (!isReordering) {
                 TextButton(onClick = onDismiss) {
-                    Text("Abbrechen")
+                    Text(stringResource(Res.string.button_cancel))
                 }
             }
         }
@@ -1009,7 +1004,7 @@ private fun ReorderDateOption(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Donnerstag, $formatted",
+                text = "${stringResource(Res.string.day_thursday)}, $formatted",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -1017,7 +1012,7 @@ private fun ReorderDateOption(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Bestellbar bis: $deadlineFormatted",
+                text = stringResource(Res.string.basket_orderable_until, deadlineFormatted),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
@@ -1043,7 +1038,7 @@ fun OrderMergeDialog(
         onDismissRequest = { if (!isMerging) onDismiss() },
         title = {
             Text(
-                text = "Bestellung zusammenführen",
+                text = stringResource(Res.string.basket_merge_title),
                 style = MaterialTheme.typography.headlineSmall
             )
         },
@@ -1061,7 +1056,7 @@ fun OrderMergeDialog(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "Für dieses Datum existiert bereits eine Bestellung:",
+                            text = stringResource(Res.string.basket_merge_existing),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -1083,21 +1078,21 @@ fun OrderMergeDialog(
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Bestellungen werden zusammengeführt...",
+                            text = stringResource(Res.string.basket_merging),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 } else if (conflicts.isEmpty()) {
                     // No conflicts - auto-merge message
                     Text(
-                        text = "Keine Konflikte gefunden. Neue Artikel werden zur bestehenden Bestellung hinzugefügt.",
+                        text = stringResource(Res.string.basket_merge_no_conflicts),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 } else {
                     // Show conflicts
                     Text(
-                        text = "Folgende Artikel haben unterschiedliche Mengen:",
+                        text = stringResource(Res.string.basket_merge_conflicts),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -1123,13 +1118,13 @@ fun OrderMergeDialog(
                 onClick = onConfirm,
                 enabled = !isMerging && conflicts.all { it.resolution != MergeResolution.UNDECIDED }
             ) {
-                Text("Zusammenführen")
+                Text(stringResource(Res.string.basket_merge_confirm))
             }
         },
         dismissButton = {
             if (!isMerging) {
                 TextButton(onClick = onDismiss) {
-                    Text("Abbrechen")
+                    Text(stringResource(Res.string.button_cancel))
                 }
             }
         }
@@ -1169,21 +1164,21 @@ private fun MergeConflictItem(
             ) {
                 // Keep existing option
                 ResolutionOption(
-                    label = "Behalten: ${conflict.existingQuantity.formatPrice()} ${conflict.unit}",
+                    label = stringResource(Res.string.basket_conflict_keep, conflict.existingQuantity.formatPrice(), conflict.unit),
                     selected = conflict.resolution == MergeResolution.KEEP_EXISTING,
                     onClick = { onResolve(MergeResolution.KEEP_EXISTING) }
                 )
 
                 // Use new option
                 ResolutionOption(
-                    label = "Neu: ${conflict.newQuantity.formatPrice()} ${conflict.unit}",
+                    label = stringResource(Res.string.basket_conflict_new, conflict.newQuantity.formatPrice(), conflict.unit),
                     selected = conflict.resolution == MergeResolution.USE_NEW,
                     onClick = { onResolve(MergeResolution.USE_NEW) }
                 )
 
                 // Add option
                 ResolutionOption(
-                    label = "Addieren: ${(conflict.existingQuantity + conflict.newQuantity).formatPrice()} ${conflict.unit}",
+                    label = stringResource(Res.string.basket_conflict_add, (conflict.existingQuantity + conflict.newQuantity).formatPrice(), conflict.unit),
                     selected = conflict.resolution == MergeResolution.ADD,
                     onClick = { onResolve(MergeResolution.ADD) }
                 )
@@ -1237,7 +1232,7 @@ private fun ResolutionOption(
             if (selected) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = "Ausgewählt",
+                    contentDescription = stringResource(Res.string.basket_selected),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }

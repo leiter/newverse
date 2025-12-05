@@ -14,6 +14,9 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 import com.together.newverse.ui.components.ProductListItem
 import com.together.newverse.ui.state.ListingState
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Products screen for sellers to view and manage their product catalog
@@ -33,7 +36,7 @@ fun ProductsScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add Product"
+                    contentDescription = stringResource(Res.string.sell_products_add)
                 )
             }
         }
@@ -70,7 +73,7 @@ fun ProductsScreen(
                                 color = MaterialTheme.colorScheme.error
                             )
                             Button(onClick = { /* Retry logic */ }) {
-                                Text("Wiederholen")
+                                Text(stringResource(Res.string.button_retry))
                             }
                         }
                     }
@@ -86,12 +89,12 @@ fun ProductsScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Text(
-                                text = "Keine Produkte vorhanden",
+                                text = stringResource(Res.string.sell_products_empty),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Erstellen Sie Ihr erstes Produkt",
+                                text = stringResource(Res.string.sell_products_empty_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -105,7 +108,10 @@ fun ProductsScreen(
                     ) {
                         item {
                             Text(
-                                text = "${productsState.items.size} ${if (productsState.items.size == 1) "Produkt" else "Produkte"}",
+                                text = if (productsState.items.size == 1)
+                                    stringResource(Res.string.sell_products_count_singular, productsState.items.size)
+                                else
+                                    stringResource(Res.string.sell_products_count_plural, productsState.items.size),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 8.dp)

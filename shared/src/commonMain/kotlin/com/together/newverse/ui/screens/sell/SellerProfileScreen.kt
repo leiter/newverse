@@ -209,7 +209,7 @@ fun SellerProfileScreen(
             text = { Text(stringResource(Res.string.seller_profile_payment_cash_only)) },
             confirmButton = {
                 TextButton(onClick = onHidePaymentInfo) {
-                    Text("OK")
+                    Text(stringResource(Res.string.button_ok))
                 }
             }
         )
