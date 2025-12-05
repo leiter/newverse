@@ -55,8 +55,8 @@ class OverviewViewModel(
 
             // Observe both articles and orders
             launch {
-                // Observe articles for current seller (empty string = current user)
-                articleRepository.getArticles("")
+                // Observe articles for current seller
+                articleRepository.getArticles(sellerId)
                     .catch { e ->
                         _uiState.value = OverviewUiState.Error("Failed to load articles: ${e.message}")
                     }

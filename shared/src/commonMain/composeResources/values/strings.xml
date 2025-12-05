@@ -264,6 +264,23 @@
     <string name="seller_profile_settings_title">Kontoeinstellungen</string>
     <string name="seller_profile_edit">Profil bearbeiten</string>
     <string name="seller_profile_payment">Zahlungseinstellungen</string>
+    <string name="seller_profile_payment_cash_only">Derzeit wird nur Barzahlung unterstützt</string>
+    <string name="seller_profile_markets">Märkte verwalten</string>
+    <string name="seller_profile_no_markets">Keine Märkte eingerichtet</string>
+    <string name="seller_profile_add_market">Markt hinzufügen</string>
+    <string name="market_name">Marktname</string>
+    <string name="market_street">Straße</string>
+    <string name="market_house_number">Hausnummer</string>
+    <string name="market_zip_code">PLZ</string>
+    <string name="market_city">Stadt</string>
+    <string name="market_day">Wochentag</string>
+    <string name="market_begin">Beginn</string>
+    <string name="market_end">Ende</string>
+    <string name="market_save">Markt speichern</string>
+    <string name="market_delete">Markt löschen</string>
+    <string name="market_edit">Markt bearbeiten</string>
+    <string name="market_validation_fill_all">Alle Felder müssen ausgefüllt werden</string>
+    <string name="market_validation_time">Der Beginn muss vor dem Ende liegen</string>
 
     <!-- ========================================= -->
     <!-- PICK DAY SCREEN (SELL MODULE) -->

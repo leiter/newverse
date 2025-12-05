@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.ProfileRepository
@@ -217,6 +218,29 @@ class GitLiveProfileRepository(
 
         return when (value) {
             is Map<*, *> -> {
+                // Deserialize markets
+                val marketsData = value["markets"]
+                val markets = when (marketsData) {
+                    is List<*> -> marketsData.mapNotNull { marketData ->
+                        when (marketData) {
+                            is Map<*, *> -> Market(
+                                id = marketData["id"] as? String ?: "",
+                                name = marketData["name"] as? String ?: "",
+                                street = marketData["street"] as? String ?: "",
+                                houseNumber = marketData["houseNumber"] as? String ?: "",
+                                city = marketData["city"] as? String ?: "",
+                                zipCode = marketData["zipCode"] as? String ?: "",
+                                dayOfWeek = marketData["dayOfWeek"] as? String ?: "",
+                                begin = marketData["begin"] as? String ?: "",
+                                end = marketData["end"] as? String ?: "",
+                                dayIndex = (marketData["dayIndex"] as? Number)?.toInt() ?: -1
+                            )
+                            else -> null
+                        }
+                    }
+                    else -> emptyList()
+                }
+
                 SellerProfile(
                     id = sellerId,
                     displayName = value["displayName"] as? String ?: "",
@@ -230,7 +254,7 @@ class GitLiveProfileRepository(
                     lat = value["lat"] as? String ?: "",
                     lng = value["lng"] as? String ?: "",
                     sellerId = value["sellerId"] as? String ?: sellerId,
-                    markets = emptyList(), // Markets would need custom deserialization
+                    markets = markets,
                     urls = (value["urls"] as? List<String>) ?: emptyList(),
                     knownClientIds = (value["knownClientIds"] as? List<String>) ?: emptyList()
                 )
@@ -255,6 +279,22 @@ class GitLiveProfileRepository(
     }
 
     private fun sellerProfileToMap(profile: SellerProfile): Map<String, Any?> {
+        // Serialize markets
+        val marketsData = profile.markets.map { market ->
+            mapOf(
+                "id" to market.id,
+                "name" to market.name,
+                "street" to market.street,
+                "houseNumber" to market.houseNumber,
+                "city" to market.city,
+                "zipCode" to market.zipCode,
+                "dayOfWeek" to market.dayOfWeek,
+                "begin" to market.begin,
+                "end" to market.end,
+                "dayIndex" to market.dayIndex
+            )
+        }
+
         return mapOf(
             "id" to profile.id,
             "displayName" to profile.displayName,
@@ -268,6 +308,7 @@ class GitLiveProfileRepository(
             "lat" to profile.lat,
             "lng" to profile.lng,
             "sellerId" to profile.sellerId,
+            "markets" to marketsData,
             "urls" to profile.urls,
             "knownClientIds" to profile.knownClientIds
         )

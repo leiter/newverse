@@ -18,6 +18,7 @@ import com.together.newverse.ui.screens.sell.OverviewViewModel
 import com.together.newverse.ui.screens.sell.PickDayScreen
 import com.together.newverse.ui.screens.sell.ProductsScreen
 import com.together.newverse.ui.screens.sell.SellerProfileScreen
+import com.together.newverse.ui.screens.sell.SellerProfileViewModel
 import org.koin.compose.viewmodel.koinViewModel
 import com.together.newverse.ui.state.NotificationSettings
 import com.together.newverse.ui.state.UnifiedAppAction
@@ -137,9 +138,25 @@ fun NavGraphBuilder.navGraph(
     }
 
     composable(NavRoutes.Sell.Profile.route) {
+        val profileViewModel: SellerProfileViewModel = koinViewModel()
+        val uiState = profileViewModel.uiState.collectAsState()
+
         SellerProfileScreen(
+            uiState = uiState.value,
             onNotificationSettingsClick = onNavigateToNotificationSettings,
-            onLogout = onLogout
+            onLogout = onLogout,
+            onShowPaymentInfo = { profileViewModel.showPaymentInfo() },
+            onHidePaymentInfo = { profileViewModel.hidePaymentInfo() },
+            onShowMarketDialog = { market -> profileViewModel.showMarketDialog(market) },
+            onHideMarketDialog = { profileViewModel.hideMarketDialog() },
+            onSaveMarket = { market ->
+                if (uiState.value.editingMarket != null) {
+                    profileViewModel.updateMarket(market)
+                } else {
+                    profileViewModel.addMarket(market)
+                }
+            },
+            onDeleteMarket = { marketId -> profileViewModel.removeMarket(marketId) }
         )
     }
 

@@ -2,6 +2,8 @@ package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
+import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
+import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import dev.gitlive.firebase.Firebase
@@ -28,10 +30,10 @@ class GitLiveArticleRepository(
 
     /**
      * Observe articles for a specific seller with real-time updates.
-     * Emits individual Article events with mode flags.
+     * Emits individual Article events with mode flags (MODE_ADDED, MODE_CHANGED, MODE_REMOVED).
      *
      * Note: Using valueEvents instead of childEvents due to GitLive SDK limitations.
-     * This means all articles are emitted as ADDED events when the data changes.
+     * We track previous state to detect additions, changes, and deletions.
      */
     override fun observeArticles(sellerId: String): Flow<Article> = flow {
         println("🔐 GitLiveArticleRepository.observeArticles: START with sellerId='$sellerId'")
@@ -51,23 +53,66 @@ class GitLiveArticleRepository(
             // Create reference to seller's articles
             val articlesRef = articlesRootRef.child(targetSellerId)
 
-            // Listen for value changes (simplified approach for GitLive)
-            articlesRef.valueEvents.collect { snapshot ->
-                // Clear and rebuild cache
-                articlesCache[targetSellerId]?.clear()
+            // Track previous article IDs to detect deletions
+            var previousArticleIds = setOf<String>()
 
-                // Process all children as articles
+            // Listen for value changes
+            articlesRef.valueEvents.collect { snapshot ->
+                // Get current articles from snapshot
+                val currentArticles = mutableMapOf<String, Article>()
                 snapshot.children.forEach { childSnapshot ->
                     val article = mapSnapshotToArticle(childSnapshot)
                     if (article != null) {
-                        // Store in cache
-                        articlesCache.getOrPut(targetSellerId) { mutableMapOf() }[article.id] = article
+                        currentArticles[article.id] = article
+                    }
+                }
 
-                        // Emit as ADDED event
-                        println("🔐 GitLiveArticleRepository: Emitting article '${article.productName}'")
+                val currentArticleIds = currentArticles.keys
+
+                // Find deleted articles (were in previous, not in current)
+                val deletedIds = previousArticleIds - currentArticleIds
+                deletedIds.forEach { deletedId ->
+                    // Get from cache to have article data for the removal event
+                    val deletedArticle = articlesCache[targetSellerId]?.get(deletedId)
+                    if (deletedArticle != null) {
+                        println("🗑️ GitLiveArticleRepository: Article REMOVED '${deletedArticle.productName}'")
+                        emit(deletedArticle.copy(mode = MODE_REMOVED))
+                    } else {
+                        // Create a minimal article for removal if not in cache
+                        println("🗑️ GitLiveArticleRepository: Article REMOVED (id=$deletedId)")
+                        emit(Article(id = deletedId, mode = MODE_REMOVED))
+                    }
+                }
+
+                // Find new articles (in current, not in previous)
+                val addedIds = currentArticleIds - previousArticleIds
+                addedIds.forEach { addedId ->
+                    val article = currentArticles[addedId]!!
+                    println("➕ GitLiveArticleRepository: Article ADDED '${article.productName}'")
+                    emit(article.copy(mode = MODE_ADDED))
+                }
+
+                // Find changed articles (in both, but might have different data)
+                val existingIds = currentArticleIds.intersect(previousArticleIds)
+                existingIds.forEach { existingId ->
+                    val article = currentArticles[existingId]!!
+                    val cachedArticle = articlesCache[targetSellerId]?.get(existingId)
+                    // Emit as changed if data differs, or as added on first load
+                    if (cachedArticle != null && cachedArticle != article) {
+                        println("✏️ GitLiveArticleRepository: Article CHANGED '${article.productName}'")
+                        emit(article.copy(mode = MODE_CHANGED))
+                    } else if (cachedArticle == null) {
+                        // First load - emit as added
+                        println("➕ GitLiveArticleRepository: Article ADDED '${article.productName}'")
                         emit(article.copy(mode = MODE_ADDED))
                     }
                 }
+
+                // Update cache with current articles
+                articlesCache[targetSellerId] = currentArticles.toMutableMap()
+
+                // Update previous IDs for next comparison
+                previousArticleIds = currentArticleIds
             }
         } catch (e: Exception) {
             println("❌ GitLiveArticleRepository.observeArticles: Error - ${e.message}")

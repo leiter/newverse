@@ -55,3 +55,4 @@ Pods/
 # Screenshots and temporary files
 Screenshot_*.png
 *.tmp
+tmp/
