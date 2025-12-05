@@ -23,7 +23,7 @@ object FeatureFlags {
      * 3. Use AUTO for platform-specific optimization
      * 4. Eventually switch to GITLIVE as default once stable
      */
-    var authProvider: AuthProvider = AuthProvider.FIREBASE
+    var authProvider: AuthProvider = AuthProvider.GITLIVE  // Testing GitLive
 
     /**
      * Enable detailed authentication logging.
@@ -142,14 +142,15 @@ internal expect fun getPlatform(): Platform
 object FeatureFlagConfig {
 
     /**
-     * Configure for production use (safe defaults).
+     * Configure for production use.
+     * Uses GitLive for all Firebase interactions (cross-platform).
      */
     fun configureForProduction() {
-        FeatureFlags.authProvider = AuthProvider.FIREBASE
+        FeatureFlags.authProvider = AuthProvider.GITLIVE
         FeatureFlags.enableAuthDebugLogging = false
         FeatureFlags.enableAuthParallelTesting = false
-        FeatureFlags.gitLiveRolloutPercentage = 0
-        FeatureFlags.useGitLiveStorage = false
+        FeatureFlags.gitLiveRolloutPercentage = 100
+        FeatureFlags.useGitLiveStorage = true
     }
 
     /**

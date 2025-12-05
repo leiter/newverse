@@ -104,6 +104,7 @@ dependencies {
     // Koin
     implementation("io.insert-koin:koin-android:4.0.0")
     implementation("io.insert-koin:koin-androidx-compose:4.0.0")
+    implementation("io.insert-koin:koin-compose-viewmodel:4.0.0")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
@@ -115,11 +116,17 @@ dependencies {
     // Coroutines Play Services
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
+    // WorkManager for background task scheduling
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     // Material Components (for testing UI)
     implementation("com.google.android.material:material:1.12.0")
+
+    // ConstraintLayout (for test container layout)
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
     // Testing dependencies
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

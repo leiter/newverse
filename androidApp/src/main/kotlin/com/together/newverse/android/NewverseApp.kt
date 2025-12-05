@@ -6,11 +6,17 @@ import com.together.newverse.data.config.FeatureFlags
 import com.together.newverse.data.config.AuthProvider
 import com.together.newverse.data.firebase.GitLiveFirebaseInit
 import com.together.newverse.di.androidDomainModule
-import com.together.newverse.di.appModule
+import com.together.newverse.di.flavorAppModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 
+/**
+ * Application class
+ *
+ * Loads the flavor-specific appModule via expect/actual pattern.
+ * buyMain provides BuyAppViewModel, sellMain provides SellAppViewModel.
+ */
 class NewverseApp : Application() {
     override fun onCreate() {
         super.onCreate()
@@ -33,8 +39,8 @@ class NewverseApp : Application() {
         startKoin {
             androidLogger()
             androidContext(this@NewverseApp)
-            // Use Android-specific domain module for Firebase implementations
-            modules(appModule, androidDomainModule)
+            // Load flavor-specific module (from buyMain or sellMain) and Android domain module
+            modules(flavorAppModule, androidDomainModule)
         }
     }
 }

@@ -22,7 +22,7 @@
     <!-- Buy/Customer Routes -->
     <string name="nav_browse_products">Produkte durchsuchen</string>
     <string name="nav_shopping_basket">Warenkorb</string>
-    <string name="nav_customer_profile">Kundenprofil</string>
+    <string name="nav_customer_profile">Profil</string>
 
     <!-- Sell/Merchant Routes -->
     <string name="nav_product_overview">Produktübersicht</string>
@@ -30,6 +30,7 @@
     <string name="nav_create_product">Produkt erstellen</string>
     <string name="nav_seller_profile">Verkäuferprofil</string>
     <string name="nav_pick_delivery_day">Liefertag wählen</string>
+    <string name="nav_notification_settings">Benachrichtigungseinstellungen</string>
 
     <!-- Navigation Categories -->
     <string name="nav_category_common">Allgemein</string>
@@ -92,6 +93,7 @@
     <string name="format_price_euro">%s€</string>
     <string name="format_price_per_unit">%s€/%s</string>
     <string name="format_item_count">%d Artikel</string>
+    <string name="format_product_count">%d Produkte</string>
     <string name="format_quantity">x %s</string>
     <string name="format_order_id">Bestellung #%s</string>
     <string name="format_note">Hinweis: %s</string>
@@ -219,6 +221,25 @@
     <string name="orders_order_prefix">Bestellung #</string>
     <string name="orders_items_suffix"> Artikel</string>
     <string name="orders_note_prefix">Hinweis: </string>
+    <string name="no_orders_message">Keine Bestellungen vorhanden</string>
+    <string name="retry">Wiederholen</string>
+
+    <!-- Order Detail Screen -->
+    <string name="order_detail_title">Bestelldetails</string>
+    <string name="back">Zurück</string>
+    <string name="delete_order">Bestellung löschen</string>
+    <string name="order_not_found">Bestellung nicht gefunden</string>
+    <string name="customer_information">Kundeninformationen</string>
+    <string name="order_information">Bestellinformationen</string>
+    <string name="order_id">Bestell-ID</string>
+    <string name="pickup_date">Abholdatum</string>
+    <string name="order_status">Status</string>
+    <string name="customer_message">Kundennachricht</string>
+    <string name="ordered_products">Bestellte Produkte</string>
+    <string name="total_amount">Gesamtbetrag</string>
+    <string name="delete_order_title">Bestellung ausblenden?</string>
+    <string name="delete_order_confirmation">Möchten Sie die Bestellung von %s wirklich ausblenden? Sie wird nicht mehr in Ihrer Bestellliste angezeigt.</string>
+    <string name="delete">Ausblenden</string>
 
     <!-- ========================================= -->
     <!-- CREATE PRODUCT SCREEN (SELL MODULE) -->
@@ -243,6 +264,23 @@
     <string name="seller_profile_settings_title">Kontoeinstellungen</string>
     <string name="seller_profile_edit">Profil bearbeiten</string>
     <string name="seller_profile_payment">Zahlungseinstellungen</string>
+    <string name="seller_profile_payment_cash_only">Derzeit wird nur Barzahlung unterstützt</string>
+    <string name="seller_profile_markets">Märkte verwalten</string>
+    <string name="seller_profile_no_markets">Keine Märkte eingerichtet</string>
+    <string name="seller_profile_add_market">Markt hinzufügen</string>
+    <string name="market_name">Marktname</string>
+    <string name="market_street">Straße</string>
+    <string name="market_house_number">Hausnummer</string>
+    <string name="market_zip_code">PLZ</string>
+    <string name="market_city">Stadt</string>
+    <string name="market_day">Wochentag</string>
+    <string name="market_begin">Beginn</string>
+    <string name="market_end">Ende</string>
+    <string name="market_save">Markt speichern</string>
+    <string name="market_delete">Markt löschen</string>
+    <string name="market_edit">Markt bearbeiten</string>
+    <string name="market_validation_fill_all">Alle Felder müssen ausgefüllt werden</string>
+    <string name="market_validation_time">Der Beginn muss vor dem Ende liegen</string>
 
     <!-- ========================================= -->
     <!-- PICK DAY SCREEN (SELL MODULE) -->
@@ -256,8 +294,33 @@
     <!-- ========================================= -->
     <string name="overview_title">Produktübersicht</string>
     <string name="overview_total_products">Gesamtprodukte</string>
+    <string name="overview_available_products">Verfügbare Produkte</string>
+    <string name="overview_unavailable_products">Nicht verfügbar</string>
     <string name="overview_active_orders">Aktive Bestellungen</string>
     <string name="overview_your_products">Ihre Produkte</string>
+
+    <!-- ========================================= -->
+    <!-- SELLER TOP BAR TITLES -->
+    <!-- ========================================= -->
+    <string name="topbar_sortiment">Sortiment</string>
+    <string name="topbar_orders">Bestellungen</string>
+    <string name="topbar_products">Produkte</string>
+    <string name="topbar_new_product">Neues Produkt</string>
+    <string name="topbar_profile">Profil</string>
+    <string name="topbar_notifications">Benachrichtigungen</string>
+    <string name="topbar_seller">Verkäufer</string>
+    <string name="topbar_select_delete">Zum Löschen auswählen</string>
+    <string name="topbar_change_availability">Verfügbarkeit ändern</string>
+    <string name="topbar_import_products">Produkte importieren</string>
+
+    <!-- ========================================= -->
+    <!-- SELLER BOTTOM NAV LABELS -->
+    <!-- ========================================= -->
+    <string name="bottomnav_dashboard">Sortiment</string>
+    <string name="bottomnav_demand">Nachfrage</string>
+    <string name="bottomnav_products">Produkte</string>
+    <string name="bottomnav_new">Neu</string>
+    <string name="bottomnav_profile">Profil</string>
 
     <!-- ========================================= -->
     <!-- ABOUT SCREEN -->

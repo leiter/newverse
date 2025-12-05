@@ -33,6 +33,11 @@ class MockOrderRepository : OrderRepository {
         }
     }
 
+    override fun observeBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>): Flow<List<Order>> {
+        // Return orders flow filtered by placed order IDs
+        return _orders.asStateFlow()
+    }
+
     override suspend fun placeOrder(order: Order): Result<Order> {
         return try {
             delay(500)
@@ -116,6 +121,64 @@ class MockOrderRepository : OrderRepository {
             // Return the most recent editable order
             val mostRecent = editableOrders.maxByOrNull { it.pickUpDate }
             Result.success(mostRecent)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getUpcomingOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?> {
+        return try {
+            delay(300)
+            // Get all orders
+            val orders = _orders.value.filter { order ->
+                placedOrderIds.values.contains(order.id)
+            }
+
+            // Filter for upcoming orders (pickup date in the future)
+            val now = Clock.System.now().toEpochMilliseconds()
+            val upcomingOrders = orders.filter { order ->
+                order.pickUpDate > now
+            }
+
+            // Return the most recent upcoming order
+            val mostRecent = upcomingOrders.maxByOrNull { it.pickUpDate }
+            Result.success(mostRecent)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun hideOrderForSeller(sellerId: String, date: String, orderId: String): Result<Boolean> {
+        return try {
+            delay(300)
+            val currentOrders = _orders.value.toMutableList()
+            val index = currentOrders.indexOfFirst { it.id == orderId }
+            if (index >= 0) {
+                // Update order to set hiddenBySeller flag
+                currentOrders[index] = currentOrders[index].copy(hiddenBySeller = true)
+                _orders.value = currentOrders
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Order not found"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String): Result<Boolean> {
+        return try {
+            delay(300)
+            val currentOrders = _orders.value.toMutableList()
+            val index = currentOrders.indexOfFirst { it.id == orderId }
+            if (index >= 0) {
+                // Update order to set hiddenByBuyer flag
+                currentOrders[index] = currentOrders[index].copy(hiddenByBuyer = true)
+                _orders.value = currentOrders
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Order not found"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

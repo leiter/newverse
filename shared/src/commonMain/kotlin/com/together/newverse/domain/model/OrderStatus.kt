@@ -54,7 +54,8 @@ fun OrderStatus.isFinalized(): Boolean {
 }
 
 /**
- * Check if order is active (not completed or cancelled)
+ * Check if order status is active (not completed or cancelled)
+ * Note: This only checks the status enum. Use Order.isActiveOrder() to also check pickup date.
  */
 fun OrderStatus.isActive(): Boolean {
     return this != OrderStatus.COMPLETED && this != OrderStatus.CANCELLED

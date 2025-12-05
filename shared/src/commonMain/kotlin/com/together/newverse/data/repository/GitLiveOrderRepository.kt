@@ -5,19 +5,16 @@ import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.isEditable
-import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.database.database
-import dev.gitlive.firebase.database.DatabaseReference
 import dev.gitlive.firebase.database.DataSnapshot
+import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 /**
@@ -32,7 +29,6 @@ class GitLiveOrderRepository(
     // GitLive Firebase Database references
     private val database = Firebase.database
     private val ordersRootRef = database.reference("orders")
-    private val buyerProfilesRef = database.reference("buyer_profile")
 
     // Cache for orders
     private val ordersCache = mutableMapOf<String, Order>()
@@ -57,7 +53,7 @@ class GitLiveOrderRepository(
                     // Process order snapshots within each date
                     dateSnapshot.children.forEach { orderSnapshot ->
                         val order = mapSnapshotToOrder(orderSnapshot)
-                        if (order != null) {
+                        if (order != null && !order.hiddenBySeller) {
                             orders.add(order)
                         }
                     }
@@ -73,6 +69,69 @@ class GitLiveOrderRepository(
             // Emit empty list on error
             emit(emptyList())
         }
+    }
+
+    /**
+     * Observe buyer's placed orders with real-time updates.
+     */
+    override fun observeBuyerOrders(
+        sellerId: String,
+        placedOrderIds: Map<String, String>
+    ): Flow<List<Order>> = flow {
+        println("🔐 GitLiveOrderRepository.observeBuyerOrders: START - ${placedOrderIds.size} orders")
+
+        if (placedOrderIds.isEmpty()) {
+            emit(emptyList())
+            return@flow
+        }
+
+        try {
+            // Get the target seller ID
+            val targetSellerId = if (sellerId.isEmpty()) {
+                getFirstSellerId()
+            } else {
+                sellerId
+            }
+
+            // Collect orders by observing each order path
+            // We'll observe the seller's orders root and filter for buyer's orders
+            val ordersRef = ordersRootRef.child(targetSellerId)
+
+            ordersRef.valueEvents.collect { snapshot ->
+                val orders = mutableListOf<Order>()
+
+                // Process date snapshots and filter for buyer's orders
+                placedOrderIds.forEach { (date, orderId) ->
+                    try {
+                        val dateSnapshot = snapshot.child(date)
+                        if (dateSnapshot.exists) {
+                            val orderSnapshot = dateSnapshot.child(orderId)
+                            if (orderSnapshot.exists) {
+                                val order = mapSnapshotToOrder(orderSnapshot)
+                                if (order != null && !order.hiddenByBuyer) {
+                                    orders.add(order)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("⚠️ GitLiveOrderRepository.observeBuyerOrders: Error processing order $orderId: ${e.message}")
+                    }
+                }
+
+                println("🔐 GitLiveOrderRepository.observeBuyerOrders: Emitting ${orders.size} orders")
+                emit(orders)
+            }
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.observeBuyerOrders: Error - ${e.message}")
+            emit(emptyList())
+        }
+    }
+
+    /**
+     * Get first seller ID from database.
+     */
+    private fun getFirstSellerId(): String {
+        return GitLiveArticleRepository.DEFAULT_SELLER_ID
     }
 
     /**
@@ -334,6 +393,49 @@ class GitLiveOrderRepository(
         }
     }
 
+    /**
+     * Get the most recent upcoming order (regardless of editability).
+     */
+    override suspend fun getUpcomingOrder(
+        sellerId: String,
+        placedOrderIds: Map<String, String>
+    ): Result<Order?> {
+        return try {
+            println("🔐 GitLiveOrderRepository.getUpcomingOrder: START")
+
+            if (placedOrderIds.isEmpty()) {
+                println("✅ GitLiveOrderRepository.getUpcomingOrder: No placed orders")
+                return Result.success(null)
+            }
+
+            // Get all buyer orders
+            val ordersResult = getBuyerOrders(sellerId, placedOrderIds)
+            if (ordersResult.isFailure) {
+                return Result.failure(ordersResult.exceptionOrNull()!!)
+            }
+
+            val orders = ordersResult.getOrThrow()
+            val now = Clock.System.now().toEpochMilliseconds()
+
+            // Find most recent upcoming order (pickup date in the future)
+            val upcomingOrder = orders
+                .filter { it.pickUpDate > now }
+                .maxByOrNull { it.pickUpDate }
+
+            if (upcomingOrder != null) {
+                println("✅ GitLiveOrderRepository.getUpcomingOrder: Found upcoming order ${upcomingOrder.id}")
+            } else {
+                println("✅ GitLiveOrderRepository.getUpcomingOrder: No upcoming orders found")
+            }
+
+            Result.success(upcomingOrder)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.getUpcomingOrder: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     // Helper functions
 
     /**
@@ -387,13 +489,15 @@ class GitLiveOrderRepository(
                         marketId = value["marketId"] as? String ?: "",
                         pickUpDate = (value["pickUpDate"] as? Number)?.toLong() ?: 0L,
                         message = value["message"] as? String ?: "",
-                        notFavourite = value["notFavourite"] as? Boolean ?: true,
+                        notFavourite = value["notFavourite"] as? Boolean != false,
                         articles = articles,
                         status = try {
                             OrderStatus.valueOf(value["status"] as? String ?: "DRAFT")
                         } catch (e: Exception) {
                             OrderStatus.DRAFT
-                        }
+                        },
+                        hiddenBySeller = value["hiddenBySeller"] as? Boolean == true,
+                        hiddenByBuyer = value["hiddenByBuyer"] as? Boolean == true
                     )
                 } catch (e: Exception) {
                     println("❌ Error mapping order snapshot: ${e.message}")
@@ -431,8 +535,42 @@ class GitLiveOrderRepository(
                     "piecesCount" to article.piecesCount
                 )
             },
-            "status" to order.status.name
+            "status" to order.status.name,
+            "hiddenBySeller" to order.hiddenBySeller,
+            "hiddenByBuyer" to order.hiddenByBuyer
         )
+    }
+
+    override suspend fun hideOrderForSeller(sellerId: String, date: String, orderId: String): Result<Boolean> {
+        return try {
+            println("🔐 GitLiveOrderRepository.hideOrderForSeller: START - orderId=$orderId")
+
+            val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId).child("hiddenBySeller")
+            orderRef.setValue(true)
+
+            println("✅ GitLiveOrderRepository.hideOrderForSeller: Success")
+            Result.success(true)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.hideOrderForSeller: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String): Result<Boolean> {
+        return try {
+            println("🔐 GitLiveOrderRepository.hideOrderForBuyer: START - orderId=$orderId")
+
+            val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId).child("hiddenByBuyer")
+            orderRef.setValue(true)
+
+            println("✅ GitLiveOrderRepository.hideOrderForBuyer: Success")
+            Result.success(true)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.hideOrderForBuyer: Error - ${e.message}")
+            Result.failure(e)
+        }
     }
 
     /**

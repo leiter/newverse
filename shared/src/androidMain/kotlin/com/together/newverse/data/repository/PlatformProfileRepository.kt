@@ -1,7 +1,5 @@
 package com.together.newverse.data.repository
 
-import com.together.newverse.data.config.FeatureFlags
-import com.together.newverse.data.config.AuthProvider
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ProfileRepository
@@ -9,34 +7,16 @@ import com.together.newverse.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Android-specific implementation of ProfileRepository that properly handles
- * switching between Firebase and GitLive implementations.
+ * Android-specific implementation of ProfileRepository.
+ * Uses GitLive for cross-platform Firebase support.
  */
 class PlatformProfileRepository(
     private val authRepository: AuthRepository
 ) : ProfileRepository {
 
     private val actualRepository: ProfileRepository by lazy {
-        when (FeatureFlags.authProvider) {
-            AuthProvider.FIREBASE -> {
-                println("🏭 PlatformProfileRepository: Using Firebase (Android native)")
-                FirebaseProfileRepository()
-            }
-            AuthProvider.GITLIVE -> {
-                println("🏭 PlatformProfileRepository: Using GitLive (cross-platform)")
-                GitLiveProfileRepository(authRepository)
-            }
-            AuthProvider.AUTO -> {
-                // For Android, match auth provider selection
-                if (FeatureFlags.gitLiveRolloutPercentage >= 100) {
-                    println("🏭 PlatformProfileRepository: Using GitLive (100% rollout)")
-                    GitLiveProfileRepository(authRepository)
-                } else {
-                    println("🏭 PlatformProfileRepository: Using Firebase (Android default)")
-                    FirebaseProfileRepository()
-                }
-            }
-        }
+        println("🏭 PlatformProfileRepository: Using GitLive (cross-platform)")
+        GitLiveProfileRepository(authRepository)
     }
 
     override fun observeBuyerProfile(): Flow<BuyerProfile?> {

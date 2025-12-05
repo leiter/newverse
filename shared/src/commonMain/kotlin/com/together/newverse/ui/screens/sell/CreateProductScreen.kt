@@ -1,36 +1,63 @@
 package com.together.newverse.ui.screens.sell
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.ProductCategory
 import com.together.newverse.domain.model.ProductUnit
+import com.together.newverse.ui.state.UnifiedAppAction
+import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.util.ImagePickerResult
 import com.together.newverse.util.LocalImagePicker
 import kotlinx.coroutines.launch
-import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.*
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateProductScreen(
     onNavigateBack: () -> Unit,
+    onAction: (UnifiedAppAction) -> Unit = {},
     viewModel: CreateProductViewModel = koinViewModel()
 ) {
     // Get ImagePicker from CompositionLocal
@@ -49,74 +76,66 @@ fun CreateProductScreen(
     val imageData by viewModel.imageData.collectAsState()
     val uploadProgress by viewModel.uploadProgress.collectAsState()
 
-    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // Helper function to show snackbar via app-level dispatch
+    fun showSnackbar(message: String) {
+        onAction(UnifiedUiAction.ShowSnackbar(message))
+    }
 
     // Handle UI state changes
     LaunchedEffect(uiState) {
         when (uiState) {
             is CreateProductUiState.Success -> {
-                snackbarHostState.showSnackbar("Produkt erfolgreich gespeichert!")
+                showSnackbar("Produkt erfolgreich gespeichert!")
                 viewModel.resetState()
                 onNavigateBack()
             }
             is CreateProductUiState.Error -> {
                 val error = (uiState as CreateProductUiState.Error).message
-                snackbarHostState.showSnackbar(error)
+                showSnackbar(error)
             }
             else -> {}
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Neues Produkt anlegen") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Image Section
-            ImageSection(
-                imageData = imageData,
-                onPickImage = {
-                    scope.launch {
-                        when (val result = imagePicker.pickImage()) {
-                            is ImagePickerResult.Success -> {
-                                viewModel.onImageSelected(result.imageData)
-                            }
-                            is ImagePickerResult.Error -> {
-                                snackbarHostState.showSnackbar("Fehler: ${result.message}")
-                            }
-                            ImagePickerResult.Cancelled -> {}
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Image Section
+        ImageSection(
+            imageData = imageData,
+            onPickImage = {
+                scope.launch {
+                    when (val result = imagePicker.pickImage()) {
+                        is ImagePickerResult.Success -> {
+                            viewModel.onImageSelected(result.imageData)
                         }
-                    }
-                },
-                onTakePhoto = {
-                    scope.launch {
-                        when (val result = imagePicker.takePhoto()) {
-                            is ImagePickerResult.Success -> {
-                                viewModel.onImageSelected(result.imageData)
-                            }
-                            is ImagePickerResult.Error -> {
-                                snackbarHostState.showSnackbar("Fehler: ${result.message}")
-                            }
-                            ImagePickerResult.Cancelled -> {}
+                        is ImagePickerResult.Error -> {
+                            showSnackbar("Fehler: ${result.message}")
                         }
+                        ImagePickerResult.Cancelled -> {}
                     }
                 }
-            )
+            },
+            onTakePhoto = {
+                scope.launch {
+                    when (val result = imagePicker.takePhoto()) {
+                        is ImagePickerResult.Success -> {
+                            viewModel.onImageSelected(result.imageData)
+                        }
+                        is ImagePickerResult.Error -> {
+                            showSnackbar("Fehler: ${result.message}")
+                        }
+                        ImagePickerResult.Cancelled -> {}
+                    }
+                }
+            }
+        )
 
             // Product Name (required)
             OutlinedTextField(
@@ -247,8 +266,7 @@ fun CreateProductScreen(
                 Text("Abbrechen")
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -268,9 +286,27 @@ private fun ImageSection(
             contentAlignment = Alignment.Center
         ) {
             if (imageData != null) {
-                // TODO: Display image from ByteArray
-                // For now, show placeholder
-                Text("Bild ausgewählt (${imageData.size} bytes)")
+                // Display image from ByteArray using Coil3
+                AsyncImage(
+                    model = imageData,
+                    contentDescription = "Produktbild",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                // Overlay buttons to change image
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    IconButton(onClick = onPickImage) {
+                        Icon(Icons.Default.Edit, "Foto ändern")
+                    }
+                    IconButton(onClick = onTakePhoto) {
+                        Icon(Icons.Default.AddCircle, "Neues Foto")
+                    }
+                }
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,

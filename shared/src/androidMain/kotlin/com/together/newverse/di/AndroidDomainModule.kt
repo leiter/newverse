@@ -1,19 +1,11 @@
 package com.together.newverse.di
 
-import com.together.newverse.data.config.FeatureFlags
-import com.together.newverse.data.config.FeatureFlagConfig
-import com.together.newverse.data.repository.AuthRepositoryFactory
-import com.together.newverse.data.repository.FirebaseArticleRepository
-import com.together.newverse.data.repository.FirebaseAuthRepository
-import com.together.newverse.data.repository.FirebaseOrderRepository
-import com.together.newverse.data.repository.FirebaseProfileRepository
 import com.together.newverse.data.repository.InMemoryBasketRepository
 import com.together.newverse.data.repository.PlatformArticleRepository
 import com.together.newverse.data.repository.PlatformAuthRepository
 import com.together.newverse.data.repository.PlatformOrderRepository
 import com.together.newverse.data.repository.PlatformProfileRepository
 import com.together.newverse.data.repository.PlatformStorageRepository
-import com.together.newverse.data.repository.ProfileRepositoryFactory
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
@@ -23,11 +15,8 @@ import com.together.newverse.domain.repository.StorageRepository
 import org.koin.dsl.module
 
 /**
- * Android-specific domain module that provides Firebase implementations
- * of repositories for production use.
- *
- * Now supports switching between Firebase and GitLive auth implementations
- * based on feature flags for gradual migration.
+ * Android-specific domain module that provides GitLive implementations
+ * of repositories for production use (cross-platform Firebase support).
  */
 val androidDomainModule = module {
     // Feature flags are now initialized in NewverseApp.onCreate() before Koin starts

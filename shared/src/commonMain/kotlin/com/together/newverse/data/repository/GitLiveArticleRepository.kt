@@ -3,17 +3,15 @@ package com.together.newverse.data.repository
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
-import com.together.newverse.domain.model.Article.Companion.MODE_MOVED
 import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.database.database
-import dev.gitlive.firebase.database.DatabaseReference
 import dev.gitlive.firebase.database.DataSnapshot
+import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 
 /**
  * GitLive implementation of ArticleRepository for cross-platform article management.
@@ -26,17 +24,16 @@ class GitLiveArticleRepository(
     // GitLive Firebase Database references
     private val database = Firebase.database
     private val articlesRootRef = database.reference("articles")
-    private val sellersRef = database.reference("seller_profiles")
 
     // Cache for articles
     private val articlesCache = mutableMapOf<String, MutableMap<String, Article>>()
 
     /**
      * Observe articles for a specific seller with real-time updates.
-     * Emits individual Article events with mode flags.
+     * Emits individual Article events with mode flags (MODE_ADDED, MODE_CHANGED, MODE_REMOVED).
      *
      * Note: Using valueEvents instead of childEvents due to GitLive SDK limitations.
-     * This means all articles are emitted as ADDED events when the data changes.
+     * We track previous state to detect additions, changes, and deletions.
      */
     override fun observeArticles(sellerId: String): Flow<Article> = flow {
         println("🔐 GitLiveArticleRepository.observeArticles: START with sellerId='$sellerId'")
@@ -56,23 +53,66 @@ class GitLiveArticleRepository(
             // Create reference to seller's articles
             val articlesRef = articlesRootRef.child(targetSellerId)
 
-            // Listen for value changes (simplified approach for GitLive)
-            articlesRef.valueEvents.collect { snapshot ->
-                // Clear and rebuild cache
-                articlesCache[targetSellerId]?.clear()
+            // Track previous article IDs to detect deletions
+            var previousArticleIds = setOf<String>()
 
-                // Process all children as articles
+            // Listen for value changes
+            articlesRef.valueEvents.collect { snapshot ->
+                // Get current articles from snapshot
+                val currentArticles = mutableMapOf<String, Article>()
                 snapshot.children.forEach { childSnapshot ->
                     val article = mapSnapshotToArticle(childSnapshot)
                     if (article != null) {
-                        // Store in cache
-                        articlesCache.getOrPut(targetSellerId) { mutableMapOf() }[article.id] = article
+                        currentArticles[article.id] = article
+                    }
+                }
 
-                        // Emit as ADDED event
-                        println("🔐 GitLiveArticleRepository: Emitting article '${article.productName}'")
+                val currentArticleIds = currentArticles.keys
+
+                // Find deleted articles (were in previous, not in current)
+                val deletedIds = previousArticleIds - currentArticleIds
+                deletedIds.forEach { deletedId ->
+                    // Get from cache to have article data for the removal event
+                    val deletedArticle = articlesCache[targetSellerId]?.get(deletedId)
+                    if (deletedArticle != null) {
+                        println("🗑️ GitLiveArticleRepository: Article REMOVED '${deletedArticle.productName}'")
+                        emit(deletedArticle.copy(mode = MODE_REMOVED))
+                    } else {
+                        // Create a minimal article for removal if not in cache
+                        println("🗑️ GitLiveArticleRepository: Article REMOVED (id=$deletedId)")
+                        emit(Article(id = deletedId, mode = MODE_REMOVED))
+                    }
+                }
+
+                // Find new articles (in current, not in previous)
+                val addedIds = currentArticleIds - previousArticleIds
+                addedIds.forEach { addedId ->
+                    val article = currentArticles[addedId]!!
+                    println("➕ GitLiveArticleRepository: Article ADDED '${article.productName}'")
+                    emit(article.copy(mode = MODE_ADDED))
+                }
+
+                // Find changed articles (in both, but might have different data)
+                val existingIds = currentArticleIds.intersect(previousArticleIds)
+                existingIds.forEach { existingId ->
+                    val article = currentArticles[existingId]!!
+                    val cachedArticle = articlesCache[targetSellerId]?.get(existingId)
+                    // Emit as changed if data differs, or as added on first load
+                    if (cachedArticle != null && cachedArticle != article) {
+                        println("✏️ GitLiveArticleRepository: Article CHANGED '${article.productName}'")
+                        emit(article.copy(mode = MODE_CHANGED))
+                    } else if (cachedArticle == null) {
+                        // First load - emit as added
+                        println("➕ GitLiveArticleRepository: Article ADDED '${article.productName}'")
                         emit(article.copy(mode = MODE_ADDED))
                     }
                 }
+
+                // Update cache with current articles
+                articlesCache[targetSellerId] = currentArticles.toMutableMap()
+
+                // Update previous IDs for next comparison
+                previousArticleIds = currentArticleIds
             }
         } catch (e: Exception) {
             println("❌ GitLiveArticleRepository.observeArticles: Error - ${e.message}")
@@ -95,30 +135,39 @@ class GitLiveArticleRepository(
         return try {
             println("🔐 GitLiveArticleRepository.getArticle: START - sellerId=$sellerId, articleId=$articleId")
 
+            // Determine seller ID (same logic as observeArticles)
+            val targetSellerId = if (sellerId.isEmpty()) {
+                val firstSellerId = getFirstSellerId()
+                println("🔐 GitLiveArticleRepository.getArticle: Using first seller: $firstSellerId")
+                firstSellerId
+            } else {
+                sellerId
+            }
+
             // Check cache first
-            val cachedArticle = articlesCache[sellerId]?.get(articleId)
+            val cachedArticle = articlesCache[targetSellerId]?.get(articleId)
             if (cachedArticle != null) {
                 println("✅ GitLiveArticleRepository.getArticle: Found in cache")
                 return Result.success(cachedArticle)
             }
 
             // Fetch from GitLive Firebase
-            val articleRef = articlesRootRef.child(sellerId).child(articleId)
+            val articleRef = articlesRootRef.child(targetSellerId).child(articleId)
             val snapshot = articleRef.valueEvents.first()
 
             if (snapshot.exists) {
                 val article = mapSnapshotToArticle(snapshot)
                 if (article != null) {
                     // Update cache
-                    articlesCache.getOrPut(sellerId) { mutableMapOf() }[articleId] = article
+                    articlesCache.getOrPut(targetSellerId) { mutableMapOf() }[articleId] = article
 
-                    println("✅ GitLiveArticleRepository.getArticle: Fetched from Firebase")
+                    println("✅ GitLiveArticleRepository.getArticle: Fetched from Firebase - price=${article.price}")
                     Result.success(article)
                 } else {
                     Result.failure(Exception("Failed to parse article data"))
                 }
             } else {
-                println("❌ GitLiveArticleRepository.getArticle: Article not found")
+                println("❌ GitLiveArticleRepository.getArticle: Article not found for id=$articleId")
                 Result.failure(Exception("Article not found"))
             }
 
@@ -141,17 +190,30 @@ class GitLiveArticleRepository(
                 return Result.failure(Exception("User not authenticated"))
             }
 
+            // Generate new ID if article.id is empty (new article)
+            val sellerArticlesRef = articlesRootRef.child(sellerId)
+            val articleId = if (article.id.isEmpty()) {
+                // Use push() to generate a unique Firebase ID
+                val newRef = sellerArticlesRef.push()
+                newRef.key ?: return Result.failure(Exception("Failed to generate article ID"))
+            } else {
+                article.id
+            }
+
+            // Create article with the ID
+            val articleWithId = article.copy(id = articleId)
+
             // Convert to map for Firebase
-            val articleMap = articleToMap(article)
+            val articleMap = articleToMap(articleWithId)
 
             // Save to GitLive Firebase
-            val articleRef = articlesRootRef.child(sellerId).child(article.id)
+            val articleRef = sellerArticlesRef.child(articleId)
             articleRef.setValue(articleMap)
 
             // Update cache
-            articlesCache.getOrPut(sellerId) { mutableMapOf() }[article.id] = article
+            articlesCache.getOrPut(sellerId) { mutableMapOf() }[articleId] = articleWithId
 
-            println("✅ GitLiveArticleRepository.saveArticle: Success")
+            println("✅ GitLiveArticleRepository.saveArticle: Success with ID=$articleId")
             Result.success(Unit)
 
         } catch (e: Exception) {
@@ -192,27 +254,16 @@ class GitLiveArticleRepository(
     // Helper functions
 
     /**
-     * Get the first available seller ID.
-     * Used when buyer doesn't specify a seller.
+     * Get the default seller ID.
+     * TODO: In production, this should come from app configuration or user's connected seller.
      */
-    private suspend fun getFirstSellerId(): String {
-        return try {
-            val snapshot = sellersRef.valueEvents.first()
+    private fun getFirstSellerId(): String {
+        return DEFAULT_SELLER_ID
+    }
 
-            // Get the first child key
-            val firstSellerKey = snapshot.children.firstOrNull()?.key
-
-            if (firstSellerKey != null) {
-                println("🔐 GitLiveArticleRepository.getFirstSellerId: Found seller: $firstSellerKey")
-                firstSellerKey
-            } else {
-                println("⚠️ GitLiveArticleRepository.getFirstSellerId: No sellers found, using default")
-                "seller_001" // Default fallback
-            }
-        } catch (e: Exception) {
-            println("❌ GitLiveArticleRepository.getFirstSellerId: Error - ${e.message}, using default")
-            "seller_001" // Default fallback
-        }
+    companion object {
+        // Hardcoded seller ID for now
+        const val DEFAULT_SELLER_ID = "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
     }
 
     /**
@@ -228,7 +279,7 @@ class GitLiveArticleRepository(
                     id = articleId,
                     productId = value["productId"] as? String ?: "",
                     productName = value["productName"] as? String ?: "",
-                    available = value["available"] as? Boolean ?: false,
+                    available = value["available"] as? Boolean == true,
                     unit = value["unit"] as? String ?: "",
                     price = (value["price"] as? Number)?.toDouble() ?: 0.0,
                     weightPerPiece = (value["weightPerPiece"] as? Number)?.toDouble() ?: 0.0,

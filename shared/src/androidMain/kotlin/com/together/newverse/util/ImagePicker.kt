@@ -12,6 +12,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.ByteArrayOutputStream
 import java.io.File
 import kotlin.coroutines.resume
+import androidx.core.graphics.scale
 
 /**
  * Android implementation of ImagePicker
@@ -169,7 +170,7 @@ actual class ImagePicker(private val activity: ComponentActivity) {
         val newWidth = (width * ratio).toInt()
         val newHeight = (height * ratio).toInt()
 
-        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+        return bitmap.scale(newWidth, newHeight)
     }
 
     /**

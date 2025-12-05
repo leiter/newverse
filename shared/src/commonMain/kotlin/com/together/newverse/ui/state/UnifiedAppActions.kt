@@ -76,6 +76,11 @@ sealed interface UnifiedProfileAction : UnifiedAppAction {
     data object LoadCustomerProfile : UnifiedProfileAction
     data object LoadOrderHistory : UnifiedProfileAction
     data object RefreshCustomerProfile : UnifiedProfileAction
+    data class SaveBuyerProfile(
+        val displayName: String,
+        val email: String,
+        val phone: String
+    ) : UnifiedProfileAction
 }
 
 // ===== Search Actions =====
@@ -102,7 +107,10 @@ sealed interface UnifiedMainScreenAction : UnifiedAppAction {
     data object AddToCart : UnifiedMainScreenAction
     data object RemoveFromBasket : UnifiedMainScreenAction
     data class ToggleFavourite(val articleId: String) : UnifiedMainScreenAction
+    data class SetFilter(val filter: ProductFilter) : UnifiedMainScreenAction
     data object Refresh : UnifiedMainScreenAction
+    data object DismissNewOrderSnackbar : UnifiedMainScreenAction
+    data object StartNewOrder : UnifiedMainScreenAction
 }
 
 /**

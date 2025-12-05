@@ -39,6 +39,7 @@ data class CommonState(
     // Triggers for platform-specific actions
     val triggerGoogleSignIn: Boolean = false,
     val triggerTwitterSignIn: Boolean = false,
+    val triggerGoogleSignOut: Boolean = false,
     // Force login flag for seller flavor
     val requiresLogin: Boolean = false
 )
@@ -528,6 +529,16 @@ data class CustomerProfileScreenState(
     val photoUrl: String? = null
 ) : ScreenState
 
+/**
+ * Filter options for the product list on the main screen
+ */
+enum class ProductFilter {
+    ALL,
+    FAVOURITES,
+    OBST,
+    GEMUESE
+}
+
 data class MainScreenState(
     override val isLoading: Boolean = true,
     override val error: ErrorState? = null,
@@ -536,8 +547,30 @@ data class MainScreenState(
     val selectedQuantity: Double = 0.0,
     val cartItemCount: Int = 0,
     val basketItems: List<OrderedProduct> = emptyList(),
-    val favouriteArticles: List<String> = emptyList()
-) : ScreenState
+    val favouriteArticles: List<String> = emptyList(),
+    val activeFilter: ProductFilter = ProductFilter.ALL,
+    val canEditOrder: Boolean = true,
+    val showNewOrderSnackbar: Boolean = false
+) : ScreenState {
+
+    /**
+     * Returns articles filtered by availability and the active filter.
+     * Only available articles are shown to buyers.
+     */
+    val filteredArticles: List<Article>
+        get() {
+            // First filter by availability - only show available products
+            val availableArticles = articles.filter { it.available }
+
+            // Then apply the active filter
+            return when (activeFilter) {
+                ProductFilter.ALL -> availableArticles
+                ProductFilter.FAVOURITES -> availableArticles.filter { favouriteArticles.contains(it.id) }
+                ProductFilter.OBST -> availableArticles.filter { it.searchTerms.contains("obst", ignoreCase = true) }
+                ProductFilter.GEMUESE -> availableArticles.filter { it.searchTerms.contains("gemüse", ignoreCase = true) }
+            }
+        }
+}
 
 // Feature states
 data class SearchFeatureState(

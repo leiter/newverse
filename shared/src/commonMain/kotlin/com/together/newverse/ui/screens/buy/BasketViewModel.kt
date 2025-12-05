@@ -2,6 +2,7 @@ package com.together.newverse.ui.screens.buy
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
@@ -18,6 +19,30 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+
+/**
+ * Resolution options for merge conflicts
+ */
+enum class MergeResolution {
+    UNDECIDED,      // User hasn't decided yet
+    ADD,            // Combine quantities (existing + new)
+    KEEP_EXISTING,  // Keep existing order quantity
+    USE_NEW         // Use new basket quantity
+}
+
+/**
+ * Represents a conflict between existing order item and new basket item
+ */
+data class MergeConflict(
+    val productId: String,
+    val productName: String,
+    val unit: String,
+    val existingQuantity: Double,
+    val newQuantity: Double,
+    val existingPrice: Double,
+    val newPrice: Double,
+    val resolution: MergeResolution = MergeResolution.UNDECIDED
+)
 
 /**
  * Actions that can be performed on the Basket screen
@@ -37,6 +62,19 @@ sealed interface BasketAction {
     data object HideDatePicker : BasketAction
     data class SelectPickupDate(val date: Long) : BasketAction
     data object LoadAvailableDates : BasketAction
+
+    // Cancel order
+    data object CancelOrder : BasketAction
+
+    // Reorder with new date
+    data object ShowReorderDatePicker : BasketAction
+    data object HideReorderDatePicker : BasketAction
+    data class ReorderWithNewDate(val newPickupDate: Long, val currentArticles: List<Article>) : BasketAction
+
+    // Merge dialog actions
+    data object HideMergeDialog : BasketAction
+    data class ResolveMergeConflict(val productId: String, val resolution: MergeResolution) : BasketAction
+    data object ConfirmMerge : BasketAction
 }
 
 /**
@@ -62,7 +100,19 @@ data class BasketScreenState(
     // Pickup date selection for draft orders
     val selectedPickupDate: Long? = null,
     val availablePickupDates: List<Long> = emptyList(),
-    val showDatePicker: Boolean = false
+    val showDatePicker: Boolean = false,
+    // Cancel order
+    val isCancelling: Boolean = false,
+    val cancelSuccess: Boolean = false,
+    // Reorder with new date
+    val showReorderDatePicker: Boolean = false,
+    val isReordering: Boolean = false,
+    val reorderSuccess: Boolean = false,
+    // Merge dialog state
+    val showMergeDialog: Boolean = false,
+    val existingOrderForMerge: Order? = null,
+    val mergeConflicts: List<MergeConflict> = emptyList(),
+    val isMerging: Boolean = false
 )
 
 /**
@@ -222,7 +272,7 @@ class BasketViewModel(
             is BasketAction.UpdateQuantity -> updateQuantity(action.productId, action.newQuantity)
             BasketAction.ClearBasket -> clearBasket()
             BasketAction.Checkout -> checkout()
-            is BasketAction.LoadOrder -> loadOrder(action.orderId, action.date)
+            is BasketAction.LoadOrder -> loadOrder(action.orderId, action.date, forceLoad = true)
             BasketAction.UpdateOrder -> updateOrder()
             BasketAction.EnableEditing -> enableEditing()
             // Pickup date selection actions
@@ -230,6 +280,16 @@ class BasketViewModel(
             BasketAction.HideDatePicker -> hideDatePicker()
             is BasketAction.SelectPickupDate -> selectPickupDate(action.date)
             BasketAction.LoadAvailableDates -> loadAvailableDates()
+            // Cancel order
+            BasketAction.CancelOrder -> cancelOrder()
+            // Reorder with new date
+            BasketAction.ShowReorderDatePicker -> showReorderDatePicker()
+            BasketAction.HideReorderDatePicker -> hideReorderDatePicker()
+            is BasketAction.ReorderWithNewDate -> reorderWithNewDate(action.newPickupDate, action.currentArticles)
+            // Merge dialog actions
+            BasketAction.HideMergeDialog -> hideMergeDialog()
+            is BasketAction.ResolveMergeConflict -> resolveMergeConflict(action.productId, action.resolution)
+            BasketAction.ConfirmMerge -> confirmMerge()
         }
     }
 
@@ -350,13 +410,27 @@ class BasketViewModel(
                 if (existingOrderId != null) {
                     println("⚠️ BasketViewModel.checkout: Order already exists for date $dateKey - orderId=$existingOrderId")
 
-                    // Load the existing order instead of creating a new one
-                    loadOrder(existingOrderId, dateKey)
+                    // Load the existing order to show merge dialog
+                    val existingOrderResult = orderRepository.loadOrder(SELLER_ID, dateKey, existingOrderId)
+                    existingOrderResult.onSuccess { existingOrder ->
+                        // Calculate conflicts between new basket items and existing order
+                        val conflicts = calculateMergeConflicts(items, existingOrder.articles)
 
-                    _state.value = _state.value.copy(
-                        isCheckingOut = false,
-                        orderError = "Für dieses Datum existiert bereits eine Bestellung. Sie können diese bearbeiten."
-                    )
+                        println("🔀 BasketViewModel.checkout: Found ${conflicts.size} conflicts for merge")
+
+                        _state.value = _state.value.copy(
+                            isCheckingOut = false,
+                            showMergeDialog = true,
+                            existingOrderForMerge = existingOrder,
+                            mergeConflicts = conflicts
+                        )
+                    }.onFailure { error ->
+                        println("❌ BasketViewModel.checkout: Could not load existing order - ${error.message}")
+                        _state.value = _state.value.copy(
+                            isCheckingOut = false,
+                            orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
+                        )
+                    }
                     return@launch
                 }
 
@@ -419,10 +493,11 @@ class BasketViewModel(
 
     /**
      * Load an existing order for viewing/editing
+     * @param forceLoad If true, always load the order's items (used when user explicitly selects an order)
      */
-    private fun loadOrder(orderId: String, date: String) {
+    private fun loadOrder(orderId: String, date: String, forceLoad: Boolean = false) {
         viewModelScope.launch {
-            println("🛒 BasketViewModel.loadOrder: START - orderId=$orderId, date=$date")
+            println("🛒 BasketViewModel.loadOrder: START - orderId=$orderId, date=$date, forceLoad=$forceLoad")
             _state.value = _state.value.copy(
                 isLoadingOrder = true,
                 orderError = null
@@ -441,13 +516,16 @@ class BasketViewModel(
                     // Get current basket items BEFORE loading order
                     val currentBasketItems = basketRepository.observeBasket().value
 
-                    // Only load order items into basket if it's empty or different order
-                    // This prevents overwriting user's MainScreen modifications
-                    val shouldLoadOrderItems = currentBasketItems.isEmpty() ||
+                    // Load order items if:
+                    // - forceLoad is true (user explicitly selected this order), OR
+                    // - basket is empty, OR
+                    // - basket has a different order loaded
+                    val shouldLoadOrderItems = forceLoad ||
+                        currentBasketItems.isEmpty() ||
                         basketRepository.getLoadedOrderInfo()?.first != orderId
 
                     if (shouldLoadOrderItems) {
-                        println("🛒 BasketViewModel.loadOrder: Loading order items into basket")
+                        println("🛒 BasketViewModel.loadOrder: Loading order items into basket (forceLoad=$forceLoad)")
                         basketRepository.loadOrderItems(order.articles, orderId, date)
                     } else {
                         println("🛒 BasketViewModel.loadOrder: Basket already has items, preserving user modifications")
@@ -631,6 +709,220 @@ class BasketViewModel(
         }
     }
 
+    /**
+     * Cancel an existing order
+     */
+    private fun cancelOrder() {
+        viewModelScope.launch {
+            println("🛒 BasketViewModel.cancelOrder: START")
+            _state.value = _state.value.copy(
+                isCancelling = true,
+                orderError = null,
+                cancelSuccess = false
+            )
+
+            try {
+                val orderId = _state.value.orderId
+                val orderDate = _state.value.orderDate
+                val pickupDate = _state.value.pickupDate
+
+                if (orderId == null || orderDate == null || pickupDate == null) {
+                    println("❌ BasketViewModel.cancelOrder: Missing order information")
+                    _state.value = _state.value.copy(
+                        isCancelling = false,
+                        orderError = "Bestellinformationen fehlen"
+                    )
+                    return@launch
+                }
+
+                // Check if still within edit deadline
+                val threeDaysBeforePickup = pickupDate - (3 * 24 * 60 * 60 * 1000)
+                if (Clock.System.now().toEpochMilliseconds() >= threeDaysBeforePickup) {
+                    println("❌ BasketViewModel.cancelOrder: Edit deadline passed")
+                    _state.value = _state.value.copy(
+                        isCancelling = false,
+                        orderError = "Stornierung nicht mehr möglich (weniger als 3 Tage bis Abholung)"
+                    )
+                    return@launch
+                }
+
+                println("🛒 BasketViewModel.cancelOrder: Cancelling order - orderId=$orderId, date=$orderDate")
+
+                // Cancel order via repository
+                val result = orderRepository.cancelOrder(SELLER_ID, orderDate, orderId)
+
+                result.onSuccess {
+                    println("✅ BasketViewModel.cancelOrder: Order cancelled successfully")
+
+                    // Clear the basket
+                    basketRepository.clearBasket()
+
+                    // Reset state to show empty basket (new order mode)
+                    _state.value = BasketScreenState(
+                        cancelSuccess = true,
+                        availablePickupDates = _state.value.availablePickupDates
+                    )
+                }.onFailure { error ->
+                    println("❌ BasketViewModel.cancelOrder: Cancel failed - ${error.message}")
+                    _state.value = _state.value.copy(
+                        isCancelling = false,
+                        orderError = error.message ?: "Stornierung fehlgeschlagen"
+                    )
+                }
+
+            } catch (e: Exception) {
+                println("❌ BasketViewModel.cancelOrder: Exception - ${e.message}")
+                _state.value = _state.value.copy(
+                    isCancelling = false,
+                    orderError = e.message ?: "Ein Fehler ist aufgetreten"
+                )
+            }
+        }
+    }
+
+    // ===== Reorder Functions =====
+
+    /**
+     * Show the date picker for reordering
+     */
+    private fun showReorderDatePicker() {
+        println("📅 BasketViewModel.showReorderDatePicker")
+        // Ensure dates are loaded
+        if (_state.value.availablePickupDates.isEmpty()) {
+            loadAvailableDates()
+        }
+        _state.value = _state.value.copy(showReorderDatePicker = true)
+    }
+
+    /**
+     * Hide the reorder date picker
+     */
+    private fun hideReorderDatePicker() {
+        println("📅 BasketViewModel.hideReorderDatePicker")
+        _state.value = _state.value.copy(showReorderDatePicker = false)
+    }
+
+    /**
+     * Create a new order from the current order with a new pickup date and updated prices
+     * @param newPickupDate The new pickup date timestamp
+     * @param currentArticles The list of currently loaded articles with current prices
+     */
+    private fun reorderWithNewDate(newPickupDate: Long, currentArticles: List<Article>) {
+        viewModelScope.launch {
+            println("🛒 BasketViewModel.reorderWithNewDate: START - newPickupDate=${formatDate(newPickupDate)}, articles=${currentArticles.size}")
+            _state.value = _state.value.copy(
+                isReordering = true,
+                showReorderDatePicker = false,
+                orderError = null,
+                reorderSuccess = false
+            )
+
+            try {
+                // Validate the selected date is still valid
+                val isDateValid = OrderDateUtils.isPickupDateValid(Instant.fromEpochMilliseconds(newPickupDate))
+                if (!isDateValid) {
+                    println("❌ BasketViewModel.reorderWithNewDate: Selected date is no longer valid")
+                    _state.value = _state.value.copy(
+                        isReordering = false,
+                        orderError = "Gewähltes Datum ist nicht mehr verfügbar. Bitte wählen Sie ein neues Datum.",
+                        showReorderDatePicker = true
+                    )
+                    loadAvailableDates()
+                    return@launch
+                }
+
+                // Get current items from the order
+                val currentItems = _state.value.items
+                if (currentItems.isEmpty()) {
+                    println("❌ BasketViewModel.reorderWithNewDate: No items to reorder")
+                    _state.value = _state.value.copy(
+                        isReordering = false,
+                        orderError = "Keine Artikel zum Nachbestellen vorhanden"
+                    )
+                    return@launch
+                }
+
+                println("🛒 BasketViewModel.reorderWithNewDate: Updating prices for ${currentItems.size} items from ${currentArticles.size} loaded articles")
+
+                // Debug: Log available article IDs
+                if (currentArticles.isEmpty()) {
+                    println("   ⚠️ WARNING: currentArticles is EMPTY! Prices cannot be updated.")
+                } else {
+                    println("   📋 Available articles (id/productId/name): ${currentArticles.take(5).map { "${it.id}/${it.productId}/${it.productName}" }}")
+                }
+
+                // Update prices from the already-loaded articles list
+                val updatedItems = mutableListOf<OrderedProduct>()
+                var pricesUpdated = 0
+
+                for (item in currentItems) {
+                    println("   🔍 OrderedProduct: $item")
+                    // Find the article in the already-loaded list
+                    // Match Firebase ID: OrderedProduct.id with Article.id
+                    val article = currentArticles.find { it.id == item.id }
+                    println("   🔍 Found article: $article")
+
+                    if (article != null && article.available) {
+                        val updatedItem = item.copy(
+                            price = article.price,
+                            productName = article.productName,
+                            unit = article.unit
+                        )
+                        updatedItems.add(updatedItem)
+                        if (item.price != article.price) {
+                            println("   💰 Price updated: ${item.productName} ${item.price} → ${article.price}")
+                            pricesUpdated++
+                        }
+                    } else if (article != null && !article.available) {
+                        println("   ⚠️ Article no longer available: ${item.productName}")
+                        // Still add it but with old price - user can remove it manually
+                        updatedItems.add(item)
+                    } else {
+                        println("   ⚠️ Article not found in loaded list: ${item.productName} - using old price")
+                        // Keep old price if article is not in the loaded list
+                        updatedItems.add(item)
+                    }
+                }
+
+                println("🛒 BasketViewModel.reorderWithNewDate: Updated $pricesUpdated prices")
+
+                // Clear basket and load updated items
+                basketRepository.clearBasket()
+                for (item in updatedItems) {
+                    basketRepository.addItem(item)
+                }
+
+                // Calculate new total with updated prices
+                val newTotal = updatedItems.sumOf { it.price * it.amountCount }
+
+                // Reset state to new order mode with selected pickup date and updated items
+                _state.value = _state.value.copy(
+                    items = updatedItems,
+                    total = newTotal,
+                    orderId = null,
+                    orderDate = null,
+                    pickupDate = null,
+                    createdDate = null,
+                    isEditMode = false,
+                    canEdit = true,
+                    originalOrderItems = emptyList(),
+                    hasChanges = false,
+                    selectedPickupDate = newPickupDate,
+                    isReordering = false,
+                    reorderSuccess = true
+                )
+
+                println("✅ BasketViewModel.reorderWithNewDate: Reorder prepared successfully - newTotal=$newTotal")
+            } catch (e: Exception) {
+                println("❌ BasketViewModel.reorderWithNewDate: Exception - ${e.message}")
+                _state.value = _state.value.copy(
+                    isReordering = false,
+                    orderError = e.message ?: "Ein Fehler ist aufgetreten"
+                )
+            }
+        }
+    }
+
     // ===== Pickup Date Selection Functions =====
 
     /**
@@ -734,5 +1026,213 @@ class BasketViewModel(
     fun getDaysUntilPickup(pickupDate: Long): Long {
         val diff = pickupDate - Clock.System.now().toEpochMilliseconds()
         return diff / (24 * 60 * 60 * 1000)
+    }
+
+    // ===== Merge Dialog Functions =====
+
+    /**
+     * Calculate merge conflicts between new basket items and existing order items
+     * Only items with different quantities are considered conflicts
+     */
+    private fun calculateMergeConflicts(
+        newItems: List<OrderedProduct>,
+        existingItems: List<OrderedProduct>
+    ): List<MergeConflict> {
+        val conflicts = mutableListOf<MergeConflict>()
+
+        // Find items in both lists with different quantities
+        for (newItem in newItems) {
+            val existingItem = existingItems.find { it.productId == newItem.productId }
+            if (existingItem != null && existingItem.amountCount != newItem.amountCount) {
+                conflicts.add(
+                    MergeConflict(
+                        productId = newItem.productId,
+                        productName = newItem.productName,
+                        unit = newItem.unit,
+                        existingQuantity = existingItem.amountCount,
+                        newQuantity = newItem.amountCount,
+                        existingPrice = existingItem.price,
+                        newPrice = newItem.price,
+                        resolution = MergeResolution.UNDECIDED
+                    )
+                )
+            }
+        }
+
+        return conflicts
+    }
+
+    /**
+     * Hide the merge dialog and clear merge state
+     */
+    private fun hideMergeDialog() {
+        println("🔀 BasketViewModel.hideMergeDialog")
+        _state.value = _state.value.copy(
+            showMergeDialog = false,
+            existingOrderForMerge = null,
+            mergeConflicts = emptyList()
+        )
+    }
+
+    /**
+     * Resolve a specific merge conflict
+     */
+    private fun resolveMergeConflict(productId: String, resolution: MergeResolution) {
+        println("🔀 BasketViewModel.resolveMergeConflict: productId=$productId, resolution=$resolution")
+        val updatedConflicts = _state.value.mergeConflicts.map { conflict ->
+            if (conflict.productId == productId) {
+                conflict.copy(resolution = resolution)
+            } else {
+                conflict
+            }
+        }
+        _state.value = _state.value.copy(mergeConflicts = updatedConflicts)
+    }
+
+    /**
+     * Confirm and execute the merge operation
+     */
+    private fun confirmMerge() {
+        viewModelScope.launch {
+            println("🔀 BasketViewModel.confirmMerge: START")
+            _state.value = _state.value.copy(isMerging = true)
+
+            try {
+                val existingOrder = _state.value.existingOrderForMerge
+                if (existingOrder == null) {
+                    println("❌ BasketViewModel.confirmMerge: No existing order to merge with")
+                    _state.value = _state.value.copy(
+                        isMerging = false,
+                        orderError = "Keine bestehende Bestellung zum Zusammenführen"
+                    )
+                    return@launch
+                }
+
+                val conflicts = _state.value.mergeConflicts
+                val newItems = _state.value.items
+
+                // Build merged items list
+                val mergedItems = mutableListOf<OrderedProduct>()
+                val processedProductIds = mutableSetOf<String>()
+
+                // Process existing order items
+                for (existingItem in existingOrder.articles) {
+                    val conflict = conflicts.find { it.productId == existingItem.productId }
+                    val newItem = newItems.find { it.productId == existingItem.productId }
+
+                    val finalItem = when {
+                        conflict != null -> {
+                            // There's a conflict - use resolution
+                            when (conflict.resolution) {
+                                MergeResolution.ADD -> existingItem.copy(
+                                    amountCount = existingItem.amountCount + (newItem?.amountCount ?: 0.0),
+                                    price = newItem?.price ?: existingItem.price // Use new price
+                                )
+                                MergeResolution.KEEP_EXISTING -> existingItem
+                                MergeResolution.USE_NEW -> newItem ?: existingItem
+                                MergeResolution.UNDECIDED -> existingItem // Default to existing
+                            }
+                        }
+                        newItem != null -> {
+                            // Same quantity, use new item (has current price)
+                            newItem
+                        }
+                        else -> {
+                            // Only in existing order
+                            existingItem
+                        }
+                    }
+                    mergedItems.add(finalItem)
+                    processedProductIds.add(existingItem.productId)
+                    println("🔀 Merged item: ${finalItem.productName} - qty=${finalItem.amountCount}")
+                }
+
+                // Add items only in new basket (not in existing order)
+                for (newItem in newItems) {
+                    if (newItem.productId !in processedProductIds) {
+                        mergedItems.add(newItem)
+                        println("🔀 New item: ${newItem.productName} - qty=${newItem.amountCount}")
+                    }
+                }
+
+                println("🔀 BasketViewModel.confirmMerge: Merged ${mergedItems.size} items")
+
+                // Get current user
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId == null) {
+                    _state.value = _state.value.copy(
+                        isMerging = false,
+                        orderError = "Benutzer nicht angemeldet"
+                    )
+                    return@launch
+                }
+
+                // Get buyer profile
+                val buyerProfile = try {
+                    val profileResult = profileRepository.getBuyerProfile()
+                    profileResult.getOrNull() ?: BuyerProfile(
+                        id = currentUserId,
+                        displayName = "Kunde",
+                        emailAddress = "",
+                        anonymous = false
+                    )
+                } catch (e: Exception) {
+                    BuyerProfile(
+                        id = currentUserId,
+                        displayName = "Kunde",
+                        emailAddress = "",
+                        anonymous = false
+                    )
+                }
+
+                // Create updated order with merged items
+                val mergedOrder = existingOrder.copy(
+                    buyerProfile = buyerProfile,
+                    articles = mergedItems
+                )
+
+                // Update the order in Firebase
+                val result = orderRepository.updateOrder(mergedOrder)
+
+                result.onSuccess {
+                    println("✅ BasketViewModel.confirmMerge: Order merged successfully")
+
+                    // Calculate date key from existing order
+                    val dateKey = formatDateKey(existingOrder.pickUpDate)
+
+                    // Load the merged order so basket shows the result
+                    basketRepository.loadOrderItems(mergedItems, existingOrder.id, dateKey)
+
+                    _state.value = _state.value.copy(
+                        showMergeDialog = false,
+                        existingOrderForMerge = null,
+                        mergeConflicts = emptyList(),
+                        isMerging = false,
+                        orderSuccess = true,
+                        orderId = existingOrder.id,
+                        orderDate = dateKey,
+                        pickupDate = existingOrder.pickUpDate,
+                        createdDate = existingOrder.createdDate,
+                        items = mergedItems,
+                        total = mergedItems.sumOf { it.price * it.amountCount },
+                        originalOrderItems = mergedItems,
+                        hasChanges = false
+                    )
+                }.onFailure { error ->
+                    println("❌ BasketViewModel.confirmMerge: Merge failed - ${error.message}")
+                    _state.value = _state.value.copy(
+                        isMerging = false,
+                        orderError = "Zusammenführung fehlgeschlagen: ${error.message}"
+                    )
+                }
+
+            } catch (e: Exception) {
+                println("❌ BasketViewModel.confirmMerge: Exception - ${e.message}")
+                _state.value = _state.value.copy(
+                    isMerging = false,
+                    orderError = "Ein Fehler ist aufgetreten: ${e.message}"
+                )
+            }
+        }
     }
 }

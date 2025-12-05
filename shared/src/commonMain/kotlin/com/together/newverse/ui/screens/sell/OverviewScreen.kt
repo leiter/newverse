@@ -5,37 +5,77 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.width
 import com.together.newverse.ui.components.ProductListItem
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.together.newverse.ui.state.SellAppViewModel
 
 @Composable
 fun OverviewScreen(
     viewModel: OverviewViewModel = koinViewModel(),
+    sellAppViewModel: SellAppViewModel = koinViewModel(),
     isSelectionMode: Boolean = false,
     onSelectionModeChange: (Boolean) -> Unit = {},
     isAvailabilityMode: Boolean = false,
-    onAvailabilityModeChange: (Boolean) -> Unit = {}
+    onAvailabilityModeChange: (Boolean) -> Unit = {},
+    onNavigateToImportPreview: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val importState by viewModel.importState.collectAsState()
+
+    // Observe pending import content directly from SellAppViewModel (survives config changes)
+    val pendingImportContent by sellAppViewModel.pendingImportContent.collectAsState()
+
     var selectedArticleIds by remember { mutableStateOf(setOf<String>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAvailableDialog by remember { mutableStateOf(false) }
+    var showImportResultDialog by remember { mutableStateOf(false) }
+
+    // Handle pending import content - parse and navigate to preview
+    LaunchedEffect(pendingImportContent) {
+        val content = pendingImportContent
+        if (content != null) {
+            viewModel.parseProducts(content)
+            sellAppViewModel.setPendingImportContent(null) // Consume
+        }
+    }
+
+    // Navigate to preview when products are parsed, or show result dialog
+    LaunchedEffect(importState) {
+        when (importState) {
+            is ImportState.Preview -> {
+                onNavigateToImportPreview()
+            }
+            is ImportState.Success, is ImportState.Error -> {
+                showImportResultDialog = true
+            }
+            else -> {}
+        }
+    }
     var showUnavailableDialog by remember { mutableStateOf(false) }
+
+    // Clear selections when exiting selection modes
+    LaunchedEffect(isSelectionMode, isAvailabilityMode) {
+        if (!isSelectionMode && !isAvailabilityMode) {
+            selectedArticleIds = setOf()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -55,8 +95,11 @@ fun OverviewScreen(
                     )
                 }
                 is OverviewUiState.Success -> {
+                    val currentFilter by viewModel.currentFilter.collectAsState()
                     SuccessContent(
                         state = state,
+                        currentFilter = currentFilter,
+                        onFilterChange = { viewModel.setFilter(it) },
                         isSelectionMode = isSelectionMode || isAvailabilityMode,
                         selectedArticleIds = selectedArticleIds,
                         onArticleSelectionToggle = { articleId ->
@@ -210,6 +253,82 @@ fun OverviewScreen(
                 }
             )
         }
+
+        // Import result dialog
+        if (showImportResultDialog) {
+            when (val state = importState) {
+                is ImportState.Success -> {
+                    AlertDialog(
+                        onDismissRequest = {
+                            showImportResultDialog = false
+                            viewModel.resetImportState()
+                        },
+                        title = { Text("Import erfolgreich") },
+                        text = {
+                            Text(
+                                if (state.errorCount > 0) {
+                                    "${state.importedCount} Produkte importiert, ${state.errorCount} Fehler"
+                                } else {
+                                    "${state.importedCount} Produkte erfolgreich importiert"
+                                }
+                            )
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    showImportResultDialog = false
+                                    viewModel.resetImportState()
+                                }
+                            ) {
+                                Text("OK")
+                            }
+                        }
+                    )
+                }
+                is ImportState.Error -> {
+                    AlertDialog(
+                        onDismissRequest = {
+                            showImportResultDialog = false
+                            viewModel.resetImportState()
+                        },
+                        title = { Text("Import fehlgeschlagen") },
+                        text = { Text(state.message) },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    showImportResultDialog = false
+                                    viewModel.resetImportState()
+                                }
+                            ) {
+                                Text("OK")
+                            }
+                        }
+                    )
+                }
+                else -> {}
+            }
+        }
+
+        // Parsing progress indicator overlay
+        if (importState is ImportState.Parsing) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text("Datei wird gelesen...")
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -269,13 +388,18 @@ private fun ErrorContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SuccessContent(
     state: OverviewUiState.Success,
+    currentFilter: ProductFilter = ProductFilter.ALL,
+    onFilterChange: (ProductFilter) -> Unit = {},
     isSelectionMode: Boolean = false,
     selectedArticleIds: Set<String> = emptySet(),
     onArticleSelectionToggle: (String) -> Unit = {}
 ) {
+    var filterExpanded by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -285,8 +409,12 @@ private fun SuccessContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatCard(
-                title = stringResource(Res.string.overview_total_products),
-                value = state.totalProducts.toString(),
+                title = when (currentFilter) {
+                    ProductFilter.ALL -> stringResource(Res.string.overview_total_products)
+                    ProductFilter.AVAILABLE -> stringResource(Res.string.overview_available_products)
+                    ProductFilter.NOT_AVAILABLE -> stringResource(Res.string.overview_unavailable_products)
+                },
+                value = state.recentArticles.size.toString(),
                 modifier = Modifier.weight(1f)
             )
             StatCard(
@@ -298,11 +426,63 @@ private fun SuccessContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Products Section
-        Text(
-            text = stringResource(Res.string.overview_your_products),
-            style = MaterialTheme.typography.titleMedium
-        )
+        // Products Section Header with Filter Dropdown
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(Res.string.overview_your_products),
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            // Filter Dropdown
+            Box {
+                OutlinedButton(
+                    onClick = { filterExpanded = true }
+                ) {
+                    Text(
+                        text = when (currentFilter) {
+                            ProductFilter.ALL -> "alle"
+                            ProductFilter.AVAILABLE -> "verfügbar"
+                            ProductFilter.NOT_AVAILABLE -> "nicht verfügbar"
+                        }
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = null
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = filterExpanded,
+                    onDismissRequest = { filterExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("alle") },
+                        onClick = {
+                            onFilterChange(ProductFilter.ALL)
+                            filterExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("verfügbar") },
+                        onClick = {
+                            onFilterChange(ProductFilter.AVAILABLE)
+                            filterExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("nicht verfügbar") },
+                        onClick = {
+                            onFilterChange(ProductFilter.NOT_AVAILABLE)
+                            filterExpanded = false
+                        }
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 

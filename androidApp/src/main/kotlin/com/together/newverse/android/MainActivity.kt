@@ -9,21 +9,22 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import com.together.newverse.util.initializeImageLoader
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.ui.navigation.AppScaffold
 import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.navigation.PlatformAction
+import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.SnackbarType
-import com.together.newverse.ui.state.UnifiedAppViewModel
 import com.together.newverse.ui.state.UnifiedNavigationAction
 import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.GoogleSignInHelper
+import com.together.newverse.util.DocumentPicker
 import com.together.newverse.util.ImagePicker
+import com.together.newverse.util.LocalDocumentPicker
 import com.together.newverse.util.LocalImagePicker
+import com.together.newverse.util.initializeImageLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -42,6 +43,9 @@ class MainActivity : ComponentActivity() {
     // ImagePicker must be initialized before activity is started
     private lateinit var imagePicker: ImagePicker
 
+    // DocumentPicker for importing BNN files
+    private lateinit var documentPicker: DocumentPicker
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -53,12 +57,18 @@ class MainActivity : ComponentActivity() {
         // Create ImagePicker BEFORE setContent (required by Activity Result API)
         imagePicker = ImagePicker(this)
 
+        // Create DocumentPicker BEFORE setContent (required by Activity Result API)
+        documentPicker = DocumentPicker(this)
+
         enableEdgeToEdge()
         setContent {
             KoinContext {
                 NewverseTheme {
-                    // Provide ImagePicker to entire app via CompositionLocal
-                    CompositionLocalProvider(LocalImagePicker provides imagePicker) {
+                    // Provide ImagePicker and DocumentPicker to entire app via CompositionLocal
+                    CompositionLocalProvider(
+                        LocalImagePicker provides imagePicker,
+                        LocalDocumentPicker provides documentPicker
+                    ) {
                         AppScaffoldWithGoogleSignIn()
                     }
                 }
@@ -78,7 +88,7 @@ class MainActivity : ComponentActivity() {
     private fun AppScaffoldWithGoogleSignIn() {
         val context = LocalContext.current
         val googleSignInHelper = GoogleSignInHelper(context, webClientId)
-        val viewModel: UnifiedAppViewModel = koinInject()
+        val viewModel: BuyAppViewModel = koinInject()
 
         // Register for Google Sign-In activity result
         val googleSignInLauncher = rememberLauncherForActivityResult(
@@ -149,6 +159,15 @@ class MainActivity : ComponentActivity() {
                             Log.d("MainActivity", "🔐 Launcher.launch() called")
                         } catch (e: Exception) {
                             Log.e("MainActivity", "❌ Exception launching Google Sign-In: ${e.message}", e)
+                        }
+                    }
+                    is PlatformAction.GoogleSignOut -> {
+                        try {
+                            Log.d("MainActivity", "🔐 MainActivity: Handling GoogleSignOut action")
+                            googleSignInHelper.signOut()
+                            Log.d("MainActivity", "🔐 Google Sign-Out completed")
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "❌ Exception during Google Sign-Out: ${e.message}", e)
                         }
                     }
                     is PlatformAction.TwitterSignIn -> {

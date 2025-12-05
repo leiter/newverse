@@ -23,6 +23,14 @@ interface OrderRepository {
     suspend fun getBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>): Result<List<Order>>
 
     /**
+     * Observe buyer's placed orders with real-time updates
+     * @param sellerId The seller's ID
+     * @param placedOrderIds Map of date to order ID
+     * @return Flow of orders with real-time updates
+     */
+    fun observeBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>): Flow<List<Order>>
+
+    /**
      * Place a new order
      * @param order The order to place
      * @return Updated order with ID
@@ -46,6 +54,24 @@ interface OrderRepository {
     suspend fun cancelOrder(sellerId: String, date: String, orderId: String): Result<Boolean>
 
     /**
+     * Hide an order from seller's view
+     * @param sellerId The seller's ID
+     * @param date The order date
+     * @param orderId The order ID
+     * @return Success or failure result
+     */
+    suspend fun hideOrderForSeller(sellerId: String, date: String, orderId: String): Result<Boolean>
+
+    /**
+     * Hide an order from buyer's view
+     * @param sellerId The seller's ID
+     * @param date The order date
+     * @param orderId The order ID
+     * @return Success or failure result
+     */
+    suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String): Result<Boolean>
+
+    /**
      * Load a specific order
      * @param sellerId The seller's ID
      * @param orderId The order ID
@@ -62,4 +88,13 @@ interface OrderRepository {
      * @return The most recent editable order, or null if none found
      */
     suspend fun getOpenEditableOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?>
+
+    /**
+     * Get the most recent upcoming order for the current buyer (regardless of editability)
+     * An order is considered upcoming if pickup date is in the future
+     * @param sellerId The seller's ID
+     * @param placedOrderIds Map of date to order ID
+     * @return The most recent upcoming order, or null if none found
+     */
+    suspend fun getUpcomingOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?>
 }
