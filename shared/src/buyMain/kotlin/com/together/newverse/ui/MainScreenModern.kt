@@ -27,9 +27,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -410,37 +408,12 @@ private fun HeroProductCard(
                             )
                         } else {
                             // Placeholder when no image URL
-                            Surface(
+                            androidx.compose.foundation.Image(
+                                painter = painterResource(Res.drawable.place_holder_landscape),
+                                contentDescription = "Placeholder",
                                 modifier = Modifier.fillMaxSize(),
-                                color = when (product.category) {
-                                    "Obst" -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                                    "Gemüse" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                    "Eier" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-                                    else -> MaterialTheme.colorScheme.surfaceVariant
-                                }
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    Icon(
-                                        imageVector = when (product.category) {
-                                            "Obst" -> Icons.Default.Star
-                                            "Gemüse" -> Icons.Default.Favorite
-                                            "Eier" -> Icons.Default.Settings
-                                            else -> Icons.Default.ShoppingCart
-                                        },
-                                        contentDescription = null,
-                                        tint = when (product.category) {
-                                            "Obst" -> MaterialTheme.colorScheme.secondary
-                                            "Gemüse" -> MaterialTheme.colorScheme.primary
-                                            "Eier" -> MaterialTheme.colorScheme.tertiary
-                                            else -> MaterialTheme.colorScheme.outline
-                                        },
-                                        modifier = Modifier.size(40.dp)
-                                    )
-                                }
-                            }
+                                contentScale = ContentScale.Crop
+                            )
                         }
 
                         // Favourite button overlay on image
@@ -799,41 +772,16 @@ private fun ModernProductCard(
                 )
             } else {
                 println("🖼️ ModernProductCard: No image URL for '${product.productName}', showing placeholder")
-                // Placeholder with Category Icon when no image
-                Surface(
+                // Placeholder image when no image URL
+                androidx.compose.foundation.Image(
+                    painter = painterResource(Res.drawable.place_holder_landscape),
+                    contentDescription = "Placeholder",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(100.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = when (product.category) {
-                        "Obst" -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                        "Gemüse" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        "Eier" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-                        else -> MaterialTheme.colorScheme.surfaceVariant
-                    }
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Icon(
-                            imageVector = when (product.category) {
-                                "Obst" -> Icons.Default.Star
-                                "Gemüse" -> Icons.Default.Favorite
-                                "Eier" -> Icons.Default.Settings
-                                else -> Icons.Default.ShoppingCart
-                            },
-                            contentDescription = null,
-                            tint = when (product.category) {
-                                "Obst" -> MaterialTheme.colorScheme.secondary
-                                "Gemüse" -> MaterialTheme.colorScheme.primary
-                                "Eier" -> MaterialTheme.colorScheme.tertiary
-                                else -> MaterialTheme.colorScheme.outline
-                            },
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                }
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))

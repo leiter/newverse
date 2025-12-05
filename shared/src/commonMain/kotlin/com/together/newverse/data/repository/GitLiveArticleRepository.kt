@@ -145,17 +145,30 @@ class GitLiveArticleRepository(
                 return Result.failure(Exception("User not authenticated"))
             }
 
+            // Generate new ID if article.id is empty (new article)
+            val sellerArticlesRef = articlesRootRef.child(sellerId)
+            val articleId = if (article.id.isEmpty()) {
+                // Use push() to generate a unique Firebase ID
+                val newRef = sellerArticlesRef.push()
+                newRef.key ?: return Result.failure(Exception("Failed to generate article ID"))
+            } else {
+                article.id
+            }
+
+            // Create article with the ID
+            val articleWithId = article.copy(id = articleId)
+
             // Convert to map for Firebase
-            val articleMap = articleToMap(article)
+            val articleMap = articleToMap(articleWithId)
 
             // Save to GitLive Firebase
-            val articleRef = articlesRootRef.child(sellerId).child(article.id)
+            val articleRef = sellerArticlesRef.child(articleId)
             articleRef.setValue(articleMap)
 
             // Update cache
-            articlesCache.getOrPut(sellerId) { mutableMapOf() }[article.id] = article
+            articlesCache.getOrPut(sellerId) { mutableMapOf() }[articleId] = articleWithId
 
-            println("✅ GitLiveArticleRepository.saveArticle: Success")
+            println("✅ GitLiveArticleRepository.saveArticle: Success with ID=$articleId")
             Result.success(Unit)
 
         } catch (e: Exception) {

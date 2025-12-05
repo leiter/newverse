@@ -375,7 +375,15 @@ class SellAppViewModel(
                         val currentProducts = current.screens.products.items.toMutableList()
 
                         when (article.mode) {
-                            Article.MODE_ADDED -> currentProducts.add(article)
+                            Article.MODE_ADDED -> {
+                                // Check if article already exists to avoid duplicates
+                                val existingIndex = currentProducts.indexOfFirst { it.id == article.id }
+                                if (existingIndex >= 0) {
+                                    currentProducts[existingIndex] = article
+                                } else {
+                                    currentProducts.add(article)
+                                }
+                            }
                             Article.MODE_CHANGED -> {
                                 val index = currentProducts.indexOfFirst { it.id == article.id }
                                 if (index >= 0) currentProducts[index] = article

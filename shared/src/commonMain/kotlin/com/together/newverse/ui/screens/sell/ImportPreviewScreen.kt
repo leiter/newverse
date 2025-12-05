@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Product
+import com.together.newverse.util.formatPrice
 
 /**
  * Screen for previewing and selecting products to import from BNN file
@@ -219,7 +220,7 @@ private fun ImportProductItem(
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "%.2f€".format(product.price),
+                    text = "${product.price.formatPrice()}€",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(

@@ -678,8 +678,15 @@ class BuyAppViewModel(
 
                         when (article.mode) {
                             Article.MODE_ADDED -> {
-                                currentProducts.add(article)
-                                println("📦 UnifiedAppViewModel.loadProducts: ADDED article '${article.productName}' (id=${article.id})")
+                                // Check if article already exists to avoid duplicates
+                                val existingIndex = currentProducts.indexOfFirst { it.id == article.id }
+                                if (existingIndex >= 0) {
+                                    currentProducts[existingIndex] = article
+                                    println("📦 UnifiedAppViewModel.loadProducts: UPDATED existing article '${article.productName}' at index $existingIndex")
+                                } else {
+                                    currentProducts.add(article)
+                                    println("📦 UnifiedAppViewModel.loadProducts: ADDED article '${article.productName}' (id=${article.id})")
+                                }
                             }
                             Article.MODE_CHANGED -> {
                                 val index = currentProducts.indexOfFirst { it.id == article.id }
@@ -1775,8 +1782,15 @@ class BuyAppViewModel(
 
                     when (article.mode) {
                         Article.MODE_ADDED -> {
-                            currentArticles.add(article)
-                            println("🎬 UnifiedAppViewModel.loadMainScreenArticles: ADDED article '${article.productName}' (id=${article.id})")
+                            // Check if article already exists to avoid duplicates
+                            val existingIndex = currentArticles.indexOfFirst { it.id == article.id }
+                            if (existingIndex >= 0) {
+                                currentArticles[existingIndex] = article
+                                println("🎬 UnifiedAppViewModel.loadMainScreenArticles: UPDATED existing article '${article.productName}' at index $existingIndex")
+                            } else {
+                                currentArticles.add(article)
+                                println("🎬 UnifiedAppViewModel.loadMainScreenArticles: ADDED article '${article.productName}' (id=${article.id})")
+                            }
                         }
                         Article.MODE_CHANGED -> {
                             val index = currentArticles.indexOfFirst { it.id == article.id }

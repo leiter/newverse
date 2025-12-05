@@ -63,7 +63,17 @@ class OverviewViewModel(
                     .collect { article ->
                         // Update articles list based on mode
                         when (article.mode) {
-                            MODE_ADDED -> articles.add(article)
+                            MODE_ADDED -> {
+                                // Check if article already exists to avoid duplicates
+                                val existingIndex = articles.indexOfFirst { it.id == article.id }
+                                if (existingIndex >= 0) {
+                                    // Update existing article
+                                    articles[existingIndex] = article
+                                } else {
+                                    // Add new article
+                                    articles.add(article)
+                                }
+                            }
                             MODE_CHANGED -> {
                                 val index = articles.indexOfFirst { it.id == article.id }
                                 if (index >= 0) articles[index] = article
