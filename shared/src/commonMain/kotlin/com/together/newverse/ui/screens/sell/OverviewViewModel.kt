@@ -3,6 +3,7 @@ package com.together.newverse.ui.screens.sell
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.data.parser.BnnParser
+import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
@@ -49,12 +50,15 @@ class OverviewViewModel(
         viewModelScope.launch {
             _uiState.value = OverviewUiState.Loading
 
-            // Get current user ID (seller ID)
-            val sellerId = authRepository.getCurrentUserId()
-            if (sellerId == null) {
+            // Verify user is authenticated
+            val currentUserId = authRepository.getCurrentUserId()
+            if (currentUserId == null) {
                 _uiState.value = OverviewUiState.Error("Not authenticated")
                 return@launch
             }
+
+            // Use DEFAULT_SELLER_ID for consistent article storage
+            val sellerId = GitLiveArticleRepository.DEFAULT_SELLER_ID
 
             // Observe both articles and orders
             launch {
@@ -249,13 +253,16 @@ class OverviewViewModel(
         viewModelScope.launch {
             _importState.value = ImportState.Importing
 
-            // Get current seller ID
-            val sellerId = authRepository.getCurrentUserId()
-            if (sellerId == null) {
+            // Verify user is authenticated
+            val currentUserId = authRepository.getCurrentUserId()
+            if (currentUserId == null) {
                 println("❌ Cannot import products: User not authenticated")
                 _importState.value = ImportState.Error("Authentifizierung erforderlich")
                 return@launch
             }
+
+            // Use DEFAULT_SELLER_ID for consistent article storage
+            val sellerId = GitLiveArticleRepository.DEFAULT_SELLER_ID
 
             try {
                 var successCount = 0

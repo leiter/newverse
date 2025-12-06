@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.ProductCategory
 import com.together.newverse.domain.model.ProductUnit
+import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.StorageRepository
@@ -127,12 +128,16 @@ class CreateProductViewModel(
             _uiState.value = CreateProductUiState.Saving
 
             try {
-                // Get current user ID
-                val sellerId = authRepository.getCurrentUserId()
-                if (sellerId == null) {
+                // Verify user is authenticated
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId == null) {
                     _uiState.value = CreateProductUiState.Error("User not authenticated")
                     return@launch
                 }
+
+                // Use DEFAULT_SELLER_ID for consistent article storage
+                // This ensures buyer app can see seller's articles via live updates
+                val sellerId = GitLiveArticleRepository.DEFAULT_SELLER_ID
 
                 // Upload image if new image data exists
                 var finalImageUrl = _imageUrl.value
