@@ -34,6 +34,9 @@ class GitLiveArticleRepository(
      *
      * Note: Using valueEvents instead of childEvents due to GitLive SDK limitations.
      * We track previous state to detect additions, changes, and deletions.
+     *
+     * IMPORTANT: Uses a flow-local cache for change detection to avoid race conditions
+     * when multiple flow collectors are active (e.g., loadProducts and loadMainScreenArticles).
      */
     override fun observeArticles(sellerId: String): Flow<Article> = flow {
         println("🔐 GitLiveArticleRepository.observeArticles: START with sellerId='$sellerId'")
@@ -53,8 +56,9 @@ class GitLiveArticleRepository(
             // Create reference to seller's articles
             val articlesRef = articlesRootRef.child(targetSellerId)
 
-            // Track previous article IDs to detect deletions
-            var previousArticleIds = setOf<String>()
+            // Flow-local cache for change detection - avoids race conditions with shared cache
+            // Each flow collector gets its own previousArticles for accurate change detection
+            var previousArticles = mapOf<String, Article>()
 
             // Listen for value changes
             articlesRef.valueEvents.collect { snapshot ->
@@ -68,17 +72,18 @@ class GitLiveArticleRepository(
                 }
 
                 val currentArticleIds = currentArticles.keys
+                val previousArticleIds = previousArticles.keys
 
                 // Find deleted articles (were in previous, not in current)
                 val deletedIds = previousArticleIds - currentArticleIds
                 deletedIds.forEach { deletedId ->
-                    // Get from cache to have article data for the removal event
-                    val deletedArticle = articlesCache[targetSellerId]?.get(deletedId)
+                    // Get from local previous state for accurate data
+                    val deletedArticle = previousArticles[deletedId]
                     if (deletedArticle != null) {
                         println("🗑️ GitLiveArticleRepository: Article REMOVED '${deletedArticle.productName}'")
                         emit(deletedArticle.copy(mode = MODE_REMOVED))
                     } else {
-                        // Create a minimal article for removal if not in cache
+                        // Create a minimal article for removal if not found
                         println("🗑️ GitLiveArticleRepository: Article REMOVED (id=$deletedId)")
                         emit(Article(id = deletedId, mode = MODE_REMOVED))
                     }
@@ -96,23 +101,23 @@ class GitLiveArticleRepository(
                 val existingIds = currentArticleIds.intersect(previousArticleIds)
                 existingIds.forEach { existingId ->
                     val article = currentArticles[existingId]!!
-                    val cachedArticle = articlesCache[targetSellerId]?.get(existingId)
-                    // Emit as changed if data differs, or as added on first load
-                    if (cachedArticle != null && cachedArticle != article) {
-                        println("✏️ GitLiveArticleRepository: Article CHANGED '${article.productName}'")
+                    val previousArticle = previousArticles[existingId]
+                    // Compare with local previous state, not shared cache
+                    if (previousArticle != null && previousArticle != article) {
+                        println("✏️ GitLiveArticleRepository: Article CHANGED '${article.productName}' (available: ${previousArticle.available} -> ${article.available})")
                         emit(article.copy(mode = MODE_CHANGED))
-                    } else if (cachedArticle == null) {
+                    } else if (previousArticle == null) {
                         // First load - emit as added
                         println("➕ GitLiveArticleRepository: Article ADDED '${article.productName}'")
                         emit(article.copy(mode = MODE_ADDED))
                     }
                 }
 
-                // Update cache with current articles
-                articlesCache[targetSellerId] = currentArticles.toMutableMap()
+                // Update flow-local cache for next comparison
+                previousArticles = currentArticles.toMap()
 
-                // Update previous IDs for next comparison
-                previousArticleIds = currentArticleIds
+                // Also update shared cache for getArticle() optimization
+                articlesCache[targetSellerId] = currentArticles.toMutableMap()
             }
         } catch (e: Exception) {
             println("❌ GitLiveArticleRepository.observeArticles: Error - ${e.message}")
