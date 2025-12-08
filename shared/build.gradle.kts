@@ -53,6 +53,18 @@ kotlin {
             dependsOn(sellMain)
         }
 
+        // Create and configure shared iOS source set
+        // iOS builds include buyMain for navigation and buy-specific features
+        val iosMain by creating {
+            dependsOn(commonMain.get())
+            dependsOn(buyMain)
+        }
+
+        // Link iOS target source sets to iosMain
+        iosX64Main.get().dependsOn(iosMain)
+        iosArm64Main.get().dependsOn(iosMain)
+        iosSimulatorArm64Main.get().dependsOn(iosMain)
+
         commonMain.dependencies {
             // Compose Multiplatform
             implementation(compose.runtime)

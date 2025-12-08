@@ -1,6 +1,15 @@
 package com.together.newverse.util
 
 /**
+ * Platform-specific string formatting.
+ * Replaces %s and %d placeholders with provided arguments.
+ *
+ * On Android: Uses String.format()
+ * On iOS: Uses NSString stringWithFormat with converted placeholders
+ */
+expect fun formatString(format: String, vararg args: Any): String
+
+/**
  * Format a double value to a string with 2 decimal places
  * Platform-agnostic implementation for Kotlin Multiplatform
  *

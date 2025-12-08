@@ -2,7 +2,6 @@ package com.together.newverse
 
 import androidx.compose.ui.window.ComposeUIViewController
 import com.together.newverse.ui.navigation.AppScaffold
-import com.together.newverse.ui.navigation.PlatformAction
 import com.together.newverse.ui.theme.NewverseTheme
 import platform.UIKit.UIViewController
 
@@ -13,19 +12,12 @@ import platform.UIKit.UIViewController
 fun MainViewController(): UIViewController {
     return ComposeUIViewController {
         NewverseTheme {
+            // Use the same AppScaffold as Android for full navigation support
             AppScaffold(
                 onPlatformAction = { action ->
-                    // Handle platform-specific actions on iOS
-                    when (action) {
-                        is PlatformAction.GoogleSignIn -> {
-                            // TODO: Implement iOS Google Sign-In
-                            println("🔐 iOS: Google Sign-In requested")
-                        }
-                        is PlatformAction.TwitterSignIn -> {
-                            // TODO: Implement iOS Twitter Sign-In
-                            println("🔐 iOS: Twitter Sign-In requested")
-                        }
-                    }
+                    // Handle platform-specific actions (Google Sign-In, etc.)
+                    // TODO: Implement iOS-specific platform actions
+                    println("iOS Platform Action: $action")
                 }
             )
         }

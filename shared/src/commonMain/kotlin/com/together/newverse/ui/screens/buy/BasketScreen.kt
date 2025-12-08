@@ -43,6 +43,7 @@ import kotlinx.datetime.toLocalDateTime
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import com.together.newverse.util.formatString
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -564,7 +565,7 @@ private fun OrderInfoCard(
                         text = when {
                             daysUntilPickup == 0L -> stringResource(Res.string.basket_today)
                             daysUntilPickup == 1L -> stringResource(Res.string.basket_tomorrow)
-                            daysUntilPickup > 0 -> stringResource(Res.string.basket_in_days, daysUntilPickup.toInt())
+                            daysUntilPickup > 0 -> formatString(stringResource(Res.string.basket_in_days), daysUntilPickup.toInt())
                             else -> stringResource(Res.string.basket_past)
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -612,7 +613,7 @@ private fun OrderInfoCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 val editDeadlineDate = formatDate(pickupDate - (3 * 24 * 60 * 60 * 1000))
                 Text(
-                    text = stringResource(Res.string.basket_editable_until, editDeadlineDate),
+                    text = formatString(stringResource(Res.string.basket_editable_until), editDeadlineDate),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -719,7 +720,7 @@ fun PickupDateSelector(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = stringResource(Res.string.basket_orderable_until, deadlineFormatted),
+                        text = formatString(stringResource(Res.string.basket_orderable_until), deadlineFormatted),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
@@ -873,7 +874,7 @@ private fun DateOption(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = stringResource(Res.string.basket_orderable_until, deadlineFormatted),
+                text = formatString(stringResource(Res.string.basket_orderable_until), deadlineFormatted),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isSelected) {
                     MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -883,7 +884,7 @@ private fun DateOption(
             )
 
             Text(
-                text = stringResource(Res.string.basket_time_remaining, timeRemaining),
+                text = formatString(stringResource(Res.string.basket_time_remaining), timeRemaining),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isSelected) {
                     MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -1012,7 +1013,7 @@ private fun ReorderDateOption(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = stringResource(Res.string.basket_orderable_until, deadlineFormatted),
+                text = formatString(stringResource(Res.string.basket_orderable_until), deadlineFormatted),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
@@ -1164,21 +1165,21 @@ private fun MergeConflictItem(
             ) {
                 // Keep existing option
                 ResolutionOption(
-                    label = stringResource(Res.string.basket_conflict_keep, conflict.existingQuantity.formatPrice(), conflict.unit),
+                    label = formatString(stringResource(Res.string.basket_conflict_keep), conflict.existingQuantity.formatPrice(), conflict.unit),
                     selected = conflict.resolution == MergeResolution.KEEP_EXISTING,
                     onClick = { onResolve(MergeResolution.KEEP_EXISTING) }
                 )
 
                 // Use new option
                 ResolutionOption(
-                    label = stringResource(Res.string.basket_conflict_new, conflict.newQuantity.formatPrice(), conflict.unit),
+                    label = formatString(stringResource(Res.string.basket_conflict_new), conflict.newQuantity.formatPrice(), conflict.unit),
                     selected = conflict.resolution == MergeResolution.USE_NEW,
                     onClick = { onResolve(MergeResolution.USE_NEW) }
                 )
 
                 // Add option
                 ResolutionOption(
-                    label = stringResource(Res.string.basket_conflict_add, (conflict.existingQuantity + conflict.newQuantity).formatPrice(), conflict.unit),
+                    label = formatString(stringResource(Res.string.basket_conflict_add), (conflict.existingQuantity + conflict.newQuantity).formatPrice(), conflict.unit),
                     selected = conflict.resolution == MergeResolution.ADD,
                     onClick = { onResolve(MergeResolution.ADD) }
                 )

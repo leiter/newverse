@@ -41,8 +41,15 @@ class GitLiveOrderRepository(
         println("🔐 GitLiveOrderRepository.observeSellerOrders: START for sellerId=$sellerId")
 
         try {
+            // Get the target seller ID - use default if empty
+            val targetSellerId = if (sellerId.isEmpty()) {
+                getFirstSellerId()
+            } else {
+                sellerId
+            }
+
             // Create reference to seller's orders
-            val ordersRef = ordersRootRef.child(sellerId)
+            val ordersRef = ordersRootRef.child(targetSellerId)
 
             // Listen for value changes
             ordersRef.valueEvents.collect { snapshot ->
@@ -148,12 +155,19 @@ class GitLiveOrderRepository(
                 return Result.success(emptyList())
             }
 
+            // Get the target seller ID - use default if empty
+            val targetSellerId = if (sellerId.isEmpty()) {
+                getFirstSellerId()
+            } else {
+                sellerId
+            }
+
             val orders = mutableListOf<Order>()
 
             // Fetch each order from GitLive Firebase
             placedOrderIds.forEach { (date, orderId) ->
                 try {
-                    val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId)
+                    val orderRef = ordersRootRef.child(targetSellerId).child(date).child(orderId)
                     val snapshot = orderRef.valueEvents.first()
 
                     if (snapshot.exists) {
@@ -179,6 +193,8 @@ class GitLiveOrderRepository(
 
     /**
      * Place a new order.
+     * - New orders (empty id): Uses Firebase push() to generate auto-ID
+     * - Existing orders: Uses setValue() with the existing Firebase order ID
      */
     override suspend fun placeOrder(order: Order): Result<Order> {
         return try {
@@ -189,35 +205,53 @@ class GitLiveOrderRepository(
                 return Result.failure(Exception("User not authenticated"))
             }
 
-            // Generate order ID if not present
-            val orderId = if (order.id.isEmpty()) {
-                "order_${Clock.System.now().toEpochMilliseconds()}"
+            // Format date for Firebase path
+            val dateString = formatDate(order.pickUpDate)
+
+            // Get the target seller ID - use default if empty
+            val targetSellerId = if (order.sellerId.isEmpty()) {
+                getFirstSellerId()
             } else {
-                order.id
+                order.sellerId
+            }
+
+            // Get reference to the date node
+            val dateRef = ordersRootRef.child(targetSellerId).child(dateString)
+
+            // Determine order ID and reference based on whether this is a new order
+            val (orderId, orderRef) = if (order.id.isEmpty()) {
+                // New order: use push() to get Firebase auto-generated ID
+                val newOrderRef = dateRef.push()
+                val newOrderId = newOrderRef.key ?: "order_${Clock.System.now().toEpochMilliseconds()}"
+                println("🔐 GitLiveOrderRepository.placeOrder: Using push() - generated ID: $newOrderId")
+                Pair(newOrderId, newOrderRef)
+            } else {
+                // Existing order: use the existing Firebase order ID
+                println("🔐 GitLiveOrderRepository.placeOrder: Using existing ID: ${order.id}")
+                Pair(order.id, dateRef.child(order.id))
             }
 
             val finalOrder = order.copy(
                 id = orderId,
-                createdDate = Clock.System.now().toEpochMilliseconds(),
-                status = OrderStatus.PLACED
+                sellerId = targetSellerId,
+                createdDate = if (order.createdDate == 0L) Clock.System.now().toEpochMilliseconds() else order.createdDate,
+                status = if (order.status == OrderStatus.DRAFT) OrderStatus.PLACED else order.status
             )
-
-            // Format date for Firebase path
-            val dateString = formatDate(finalOrder.pickUpDate)
 
             // Convert to map for Firebase
             val orderMap = orderToMap(finalOrder)
 
-            // Save to GitLive Firebase
-            val orderRef = ordersRootRef.child(order.sellerId).child(dateString).child(orderId)
+            // Save to GitLive Firebase using setValue
             orderRef.setValue(orderMap)
 
-            // Update buyer profile with order ID
+            // Update buyer profile with order ID (only if not already present)
             val buyerProfile = profileRepository.getBuyerProfile().getOrThrow()
-            val updatedProfile = buyerProfile.copy(
-                placedOrderIds = buyerProfile.placedOrderIds + (dateString to orderId)
-            )
-            profileRepository.saveBuyerProfile(updatedProfile)
+            if (!buyerProfile.placedOrderIds.containsValue(orderId)) {
+                val updatedProfile = buyerProfile.copy(
+                    placedOrderIds = buyerProfile.placedOrderIds + (dateString to orderId)
+                )
+                profileRepository.saveBuyerProfile(updatedProfile)
+            }
 
             // Cache the order
             ordersCache[orderId] = finalOrder
@@ -233,6 +267,7 @@ class GitLiveOrderRepository(
 
     /**
      * Update an existing order.
+     * Uses setValue() with the existing Firebase order ID.
      */
     override suspend fun updateOrder(order: Order): Result<Unit> {
         return try {
@@ -242,14 +277,21 @@ class GitLiveOrderRepository(
                 return Result.failure(Exception("Order is not editable (status: ${order.status})"))
             }
 
+            // Get the target seller ID - use default if empty
+            val targetSellerId = if (order.sellerId.isEmpty()) {
+                getFirstSellerId()
+            } else {
+                order.sellerId
+            }
+
             // Format date for Firebase path
             val dateString = formatDate(order.pickUpDate)
 
             // Convert to map for Firebase
             val orderMap = orderToMap(order)
 
-            // Save to GitLive Firebase
-            val orderRef = ordersRootRef.child(order.sellerId).child(dateString).child(order.id)
+            // Save to GitLive Firebase using the existing order ID
+            val orderRef = ordersRootRef.child(targetSellerId).child(dateString).child(order.id)
             orderRef.setValue(orderMap)
 
             // Update cache

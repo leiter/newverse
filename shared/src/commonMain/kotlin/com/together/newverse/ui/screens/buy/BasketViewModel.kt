@@ -19,6 +19,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import com.together.newverse.data.repository.GitLiveArticleRepository
 
 /**
  * Resolution options for merge conflicts
@@ -130,7 +131,7 @@ class BasketViewModel(
 
     // Hardcoded seller ID - in production this should come from app configuration or first seller lookup
     // This matches the universe project where there's typically a single seller
-    private val SELLER_ID = "" // Will be looked up from Firebase
+    private val SELLER_ID = GitLiveArticleRepository.DEFAULT_SELLER_ID
 
     init {
         // Observe basket changes from repository
@@ -171,7 +172,8 @@ class BasketViewModel(
                 println("🛒 BasketViewModel.loadMostRecentEditableOrder: Order already loaded in basket - orderId=$orderId, date=$orderDate")
 
                 // Sync the loaded order info to our state
-                val result = orderRepository.loadOrder(SELLER_ID, orderDate, orderId)
+                val orderPath = "orders/$SELLER_ID/$orderDate/$orderId"
+                val result = orderRepository.loadOrder(SELLER_ID, orderId, orderPath)
                 result.onSuccess { order ->
                     val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
                     val canEdit = Clock.System.now().toEpochMilliseconds() < threeDaysBeforePickup
@@ -411,7 +413,8 @@ class BasketViewModel(
                     println("⚠️ BasketViewModel.checkout: Order already exists for date $dateKey - orderId=$existingOrderId")
 
                     // Load the existing order to show merge dialog
-                    val existingOrderResult = orderRepository.loadOrder(SELLER_ID, dateKey, existingOrderId)
+                    val existingOrderPath = "orders/$SELLER_ID/$dateKey/$existingOrderId"
+                    val existingOrderResult = orderRepository.loadOrder(SELLER_ID, existingOrderId, existingOrderPath)
                     existingOrderResult.onSuccess { existingOrder ->
                         // Calculate conflicts between new basket items and existing order
                         val conflicts = calculateMergeConflicts(items, existingOrder.articles)
@@ -504,7 +507,9 @@ class BasketViewModel(
             )
 
             try {
-                val result = orderRepository.loadOrder(SELLER_ID, date, orderId)
+                // Construct the full Firebase path: orders/{sellerId}/{date}/{orderId}
+                val orderPath = "orders/$SELLER_ID/$date/$orderId"
+                val result = orderRepository.loadOrder(SELLER_ID, orderId, orderPath)
 
                 result.onSuccess { order ->
                     println("✅ BasketViewModel.loadOrder: Order loaded successfully")

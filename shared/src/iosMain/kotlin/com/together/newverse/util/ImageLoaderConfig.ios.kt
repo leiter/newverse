@@ -7,6 +7,7 @@ import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.request.crossfade
 import kotlinx.cinterop.ExperimentalForeignApi
+import okio.Path.Companion.toPath
 import platform.Foundation.NSCachesDirectory
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUserDomainMask
@@ -34,7 +35,7 @@ actual fun createImageLoader(context: PlatformContext): ImageLoader {
         // Disk Cache - 100MB for product images
         .diskCache {
             DiskCache.Builder()
-                .directory("$cacheDir/image_cache")
+                .directory("$cacheDir/image_cache".toPath())
                 .maxSizeBytes(100 * 1024 * 1024) // 100 MB
                 .build()
         }

@@ -78,4 +78,34 @@ class PlatformOrderRepository(
     ): Result<Order?> {
         return actualRepository.getOpenEditableOrder(sellerId, placedOrderIds)
     }
+
+    override fun observeBuyerOrders(
+        sellerId: String,
+        placedOrderIds: Map<String, String>
+    ): Flow<List<Order>> {
+        return actualRepository.observeBuyerOrders(sellerId, placedOrderIds)
+    }
+
+    override suspend fun hideOrderForSeller(
+        sellerId: String,
+        date: String,
+        orderId: String
+    ): Result<Boolean> {
+        return actualRepository.hideOrderForSeller(sellerId, date, orderId)
+    }
+
+    override suspend fun hideOrderForBuyer(
+        sellerId: String,
+        date: String,
+        orderId: String
+    ): Result<Boolean> {
+        return actualRepository.hideOrderForBuyer(sellerId, date, orderId)
+    }
+
+    override suspend fun getUpcomingOrder(
+        sellerId: String,
+        placedOrderIds: Map<String, String>
+    ): Result<Order?> {
+        return actualRepository.getUpcomingOrder(sellerId, placedOrderIds)
+    }
 }
