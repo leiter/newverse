@@ -135,7 +135,7 @@ The project uses a comprehensive Material3 theme system migrated from the Univer
 - ✅ Consistent rounded corners (4dp to 28dp)
 - ✅ Semantic color roles for accessibility
 
-For detailed theme documentation, see [docs/THEME_MIGRATION.md](docs/THEME_MIGRATION.md)
+For detailed theme documentation, see [doc/theme.md](doc/theme.md)
 
 ## Navigation System
 
@@ -153,7 +153,7 @@ The app features a complete navigation system with a modal drawer:
 - ✅ State preservation
 - ✅ Dynamic screen titles
 
-For detailed navigation documentation, see [docs/NAVIGATION.md](docs/NAVIGATION.md)
+For detailed navigation documentation, see [doc/navigation.md](doc/navigation.md)
 
 ## Product Flavors
 
@@ -170,14 +170,20 @@ Build commands:
 ```
 
 ### iOS
-iOS flavor setup requires macOS with Xcode. See [docs/IOS_SETUP.md](docs/IOS_SETUP.md) for complete instructions.
+iOS flavor setup requires macOS with Xcode. See [doc/iOS-Setup-Guide.md](doc/iOS-Setup-Guide.md) for complete instructions.
 
 ## Documentation
 
-- **[THEME_MIGRATION.md](docs/THEME_MIGRATION.md)** - Material3 theme system documentation
-- **[NAVIGATION.md](docs/NAVIGATION.md)** - Navigation architecture and screen structure
-- **[VIEWMODEL_ARCHITECTURE.md](docs/VIEWMODEL_ARCHITECTURE.md)** - Cross-platform ViewModel architecture and patterns
-- **[IOS_SETUP.md](docs/IOS_SETUP.md)** - Complete guide for setting up iOS app with Buy/Sell flavors
+All documentation is in the `doc/` directory:
+
+- **[architecture.md](doc/architecture.md)** - MVVM, state hoisting, ViewModel patterns
+- **[navigation.md](doc/navigation.md)** - Navigation architecture and screen structure
+- **[theme.md](doc/theme.md)** - Material3 theme system
+- **[iOS-Setup-Guide.md](doc/iOS-Setup-Guide.md)** - iOS app setup with Buy/Sell flavors
+- **[BuildKonfig_Setup.md](doc/BuildKonfig_Setup.md)** - Build flavor configuration
+- **[Localization_Guide.md](doc/Localization_Guide.md)** - String localization
+- **[testing.md](doc/testing.md)** - Testing setup and buyer stories
+- **[ordering-business-rules.md](doc/ordering-business-rules.md)** - Order business logic
 
 ## Development Notes
 
