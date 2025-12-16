@@ -2,9 +2,8 @@ package com.together.newverse.stories
 
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
-import com.together.newverse.ui.screens.buy.BasketAction
-import com.together.newverse.ui.screens.buy.BasketViewModel
 import com.together.newverse.ui.state.BuyAppViewModel
+import com.together.newverse.ui.state.UnifiedBasketScreenAction
 import com.together.newverse.ui.state.UnifiedMainScreenAction
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -35,7 +34,6 @@ import java.util.*
  */
 suspend fun runBuyerStory4_EditExistingOrder(
     buyAppViewModel: BuyAppViewModel,
-    basketViewModel: BasketViewModel,
     basketRepository: BasketRepository,
     orderRepository: OrderRepository
 ) {
@@ -79,10 +77,10 @@ suspend fun runBuyerStory4_EditExistingOrder(
 
     // Select pickup date and checkout
     println("\n[ACTION] Selecting pickup date and checking out")
-    basketViewModel.onAction(BasketAction.LoadAvailableDates)
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.LoadAvailableDates)
     delay(1500)
 
-    val availableDates = basketViewModel.state.value.availablePickupDates
+    val availableDates = buyAppViewModel.state.value.screens.basketScreen.availablePickupDates
     if (availableDates.isEmpty()) {
         println("   ⚠️  No available dates. Cannot create order.")
         return
@@ -93,11 +91,11 @@ suspend fun runBuyerStory4_EditExistingOrder(
     val pickupDateKey = dateKeyFormat.format(Date(pickupDate))
 
     println("   Pickup Date: $pickupDateStr")
-    basketViewModel.onAction(BasketAction.SelectPickupDate(pickupDate))
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.SelectPickupDate(pickupDate))
     delay(800)
 
     println("\n[ACTION] Submitting initial order")
-    basketViewModel.onAction(BasketAction.Checkout)
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.Checkout)
     delay(4000)
 
     // Get the created order ID
@@ -123,12 +121,12 @@ suspend fun runBuyerStory4_EditExistingOrder(
 
     // Simulate navigation with order parameters
     println("\n[ACTION] Loading order into basket for editing")
-    basketViewModel.onAction(BasketAction.LoadOrder(createdOrderId, pickupDateKey))
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.LoadOrder(createdOrderId, pickupDateKey))
 
     println("\n[WAITING] Loading order data (generous 3s delay)")
     delay(3000)
 
-    val afterLoadState = basketViewModel.state.value
+    val afterLoadState = buyAppViewModel.state.value.screens.basketScreen
 
     println("\n[STATE AFTER LOAD]")
     println("   Items in Basket: ${afterLoadState.items.size}")
@@ -199,10 +197,10 @@ suspend fun runBuyerStory4_EditExistingOrder(
     println("   Original: $originalQuantity ${firstItem.unit}")
     println("   New: $newQuantity ${firstItem.unit}")
 
-    basketViewModel.onAction(BasketAction.UpdateQuantity(firstItem.productId, newQuantity))
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.UpdateItemQuantity(firstItem.productId, newQuantity))
     delay(1000)
 
-    val afterQuantityChangeState = basketViewModel.state.value
+    val afterQuantityChangeState = buyAppViewModel.state.value.screens.basketScreen
     val updatedItem = afterQuantityChangeState.items.find { it.productId == firstItem.productId }
 
     println("\n[STATE UPDATE] Quantity changed")
@@ -233,7 +231,7 @@ suspend fun runBuyerStory4_EditExistingOrder(
     buyAppViewModel.dispatch(UnifiedMainScreenAction.AddToCart)
     delay(1500)
 
-    val afterAddState = basketViewModel.state.value
+    val afterAddState = buyAppViewModel.state.value.screens.basketScreen
 
     println("\n[STATE UPDATE] New item added")
     println("   Item Count: ${afterLoadState.items.size} -> ${afterAddState.items.size}")
@@ -260,10 +258,10 @@ suspend fun runBuyerStory4_EditExistingOrder(
 
     println("\n[ACTION] User: Removes item '${itemToRemove.productName}' from order")
 
-    basketViewModel.onAction(BasketAction.RemoveItem(itemToRemove.productId))
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.RemoveItem(itemToRemove.productId))
     delay(1000)
 
-    val afterRemoveState = basketViewModel.state.value
+    val afterRemoveState = buyAppViewModel.state.value.screens.basketScreen
 
     println("\n[STATE UPDATE] Item removed")
     println("   Item Count: ${afterAddState.items.size} -> ${afterRemoveState.items.size}")
@@ -283,7 +281,7 @@ suspend fun runBuyerStory4_EditExistingOrder(
     println("\n\n[PHASE 7] Save Modified Order")
     println("-".repeat(80))
 
-    val beforeUpdateState = basketViewModel.state.value
+    val beforeUpdateState = buyAppViewModel.state.value.screens.basketScreen
 
     println("\n[ORDER CHANGES SUMMARY]")
     println("   Original Items: 2")
@@ -299,12 +297,12 @@ suspend fun runBuyerStory4_EditExistingOrder(
     println("   New Total: ${String.format("%.2f", newTotal)}€")
 
     println("\n[ACTION] User: Clicks 'Bestellung aktualisieren' (Update Order) button")
-    basketViewModel.onAction(BasketAction.UpdateOrder)
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.UpdateOrder)
 
     println("\n[WAITING] Saving order changes (generous 3s delay)")
     delay(3000)
 
-    val afterUpdateState = basketViewModel.state.value
+    val afterUpdateState = buyAppViewModel.state.value.screens.basketScreen
 
     println("\n[STATE AFTER UPDATE]")
     println("   Is Checking Out: ${afterUpdateState.isCheckingOut}")
@@ -336,10 +334,10 @@ suspend fun runBuyerStory4_EditExistingOrder(
         delay(500)
 
         // Reload the order
-        basketViewModel.onAction(BasketAction.LoadOrder(createdOrderId, pickupDateKey))
+        buyAppViewModel.dispatch(UnifiedBasketScreenAction.LoadOrder(createdOrderId, pickupDateKey))
         delay(3000)
 
-        val reloadedState = basketViewModel.state.value
+        val reloadedState = buyAppViewModel.state.value.screens.basketScreen
 
         println("\n[RELOADED ORDER]")
         println("   Items: ${reloadedState.items.size}")

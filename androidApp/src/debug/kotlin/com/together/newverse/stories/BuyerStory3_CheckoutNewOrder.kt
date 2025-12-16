@@ -2,9 +2,8 @@ package com.together.newverse.stories
 
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
-import com.together.newverse.ui.screens.buy.BasketAction
-import com.together.newverse.ui.screens.buy.BasketViewModel
 import com.together.newverse.ui.state.BuyAppViewModel
+import com.together.newverse.ui.state.UnifiedBasketScreenAction
 import com.together.newverse.ui.state.UnifiedMainScreenAction
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -34,7 +33,6 @@ import java.util.*
  */
 suspend fun runBuyerStory3_CheckoutNewOrder(
     buyAppViewModel: BuyAppViewModel,
-    basketViewModel: BasketViewModel,
     basketRepository: BasketRepository,
     orderRepository: OrderRepository
 ) {
@@ -102,8 +100,8 @@ suspend fun runBuyerStory3_CheckoutNewOrder(
 
     delay(800)
 
-    // BasketViewModel observes the basket repository automatically
-    val basketState = basketViewModel.state.value
+    // BuyAppViewModel includes basket screen state
+    val basketState = buyAppViewModel.state.value.screens.basketScreen
     println("\n[BASKET SCREEN STATE]")
     println("   Items: ${basketState.items.size}")
     println("   Total: ${String.format("%.2f", basketState.total)}€")
@@ -120,10 +118,10 @@ suspend fun runBuyerStory3_CheckoutNewOrder(
     println("-".repeat(80))
 
     println("\n[ACTION] Loading available pickup dates (should be Thursdays only)")
-    basketViewModel.onAction(BasketAction.LoadAvailableDates)
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.LoadAvailableDates)
     delay(1500)
 
-    val afterDatesState = basketViewModel.state.value
+    val afterDatesState = buyAppViewModel.state.value.screens.basketScreen
     val availableDates = afterDatesState.availablePickupDates
 
     println("\n[AVAILABLE PICKUP DATES]")
@@ -168,10 +166,10 @@ suspend fun runBuyerStory3_CheckoutNewOrder(
     println("   Date: $selectedDateStr")
     println("   Timestamp: $selectedPickupDate")
 
-    basketViewModel.onAction(BasketAction.SelectPickupDate(selectedPickupDate))
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.SelectPickupDate(selectedPickupDate))
     delay(800)
 
-    val afterSelectDateState = basketViewModel.state.value
+    val afterSelectDateState = buyAppViewModel.state.value.screens.basketScreen
 
     println("\n[STATE UPDATE] Pickup date selected")
     println("   Selected Date: ${afterSelectDateState.selectedPickupDate}")
@@ -186,7 +184,7 @@ suspend fun runBuyerStory3_CheckoutNewOrder(
     println("\n\n[PHASE 5] Review Order Before Checkout")
     println("-".repeat(80))
 
-    val preCheckoutState = basketViewModel.state.value
+    val preCheckoutState = buyAppViewModel.state.value.screens.basketScreen
 
     println("\n[ORDER REVIEW]")
     println("   Items: ${preCheckoutState.items.size}")
@@ -210,12 +208,12 @@ suspend fun runBuyerStory3_CheckoutNewOrder(
     println("   Expected: New order created with unique ID")
     println("   Expected: Basket cleared after successful checkout")
 
-    basketViewModel.onAction(BasketAction.Checkout)
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.Checkout)
 
     println("\n[WAITING] Processing order submission (generous 4s delay)")
     delay(4000)
 
-    val afterCheckoutState = basketViewModel.state.value
+    val afterCheckoutState = buyAppViewModel.state.value.screens.basketScreen
 
     println("\n[STATE AFTER CHECKOUT]")
     println("   Items in Basket: ${afterCheckoutState.items.size}")

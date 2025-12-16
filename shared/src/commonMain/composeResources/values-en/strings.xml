@@ -116,6 +116,11 @@
     <string name="login_email_placeholder">your@email.com</string>
     <string name="login_password_placeholder">Enter your password</string>
     <string name="login_forgot_password">Forgot Password?</string>
+    <string name="password_reset_title">Reset Password</string>
+    <string name="password_reset_description">Enter your email address. We\'ll send you a link to reset your password.</string>
+    <string name="password_reset_send">Send Link</string>
+    <string name="password_reset_sent">Password reset email has been sent</string>
+    <string name="password_reset_failed">Failed to send reset email</string>
     <string name="login_sign_in_google">Sign in with Google</string>
     <string name="login_sign_in_twitter">Sign in with Twitter</string>
     <string name="login_google_icon">G</string>

@@ -7,6 +7,7 @@ import com.together.newverse.ui.MainScreenModern
 import com.together.newverse.ui.screens.common.*
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedAppState
+import com.together.newverse.ui.state.UnifiedUiAction
 
 /**
  * Common Navigation Routes Module
@@ -40,7 +41,9 @@ fun NavGraphBuilder.commonNavGraph(
     composable(NavRoutes.Login.route) {
         LoginScreen(
             authState = appState.screens.auth,
-            onAction = onAction
+            onAction = onAction,
+            onShowPasswordResetDialog = { onAction(UnifiedUiAction.ShowPasswordResetDialog) },
+            onHidePasswordResetDialog = { onAction(UnifiedUiAction.HidePasswordResetDialog) }
         )
     }
 

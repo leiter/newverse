@@ -119,7 +119,8 @@ data class ScreenStates(
     val auth: AuthScreenState = AuthScreenState(),
     val dashboard: DashboardScreenState = DashboardScreenState(),
     val customerProfile: CustomerProfileScreenState = CustomerProfileScreenState(),
-    val mainScreen: MainScreenState = MainScreenState()
+    val mainScreen: MainScreenState = MainScreenState(),
+    val basketScreen: BasketScreenState = BasketScreenState()
 )
 
 // Type aliases for specific screen states using generic states
@@ -462,6 +463,73 @@ enum class Environment {
     PRODUCTION
 }
 
+// ===== Basket Screen State (for checkout flow) =====
+
+/**
+ * Resolution options for merge conflicts when combining orders
+ */
+enum class MergeResolution {
+    UNDECIDED,      // User hasn't decided yet
+    ADD,            // Combine quantities (existing + new)
+    KEEP_EXISTING,  // Keep existing order quantity
+    USE_NEW         // Use new basket quantity
+}
+
+/**
+ * Represents a conflict between existing order item and new basket item
+ */
+data class MergeConflict(
+    val productId: String,
+    val productName: String,
+    val unit: String,
+    val existingQuantity: Double,
+    val newQuantity: Double,
+    val existingPrice: Double,
+    val newPrice: Double,
+    val resolution: MergeResolution = MergeResolution.UNDECIDED
+)
+
+/**
+ * State for the Basket/Checkout screen
+ */
+data class BasketScreenState(
+    override val isLoading: Boolean = false,
+    override val error: ErrorState? = null,
+    // Basket items and totals
+    val items: List<OrderedProduct> = emptyList(),
+    val total: Double = 0.0,
+    val isCheckingOut: Boolean = false,
+    val orderSuccess: Boolean = false,
+    val orderError: String? = null,
+    // Order viewing/editing
+    val orderId: String? = null,
+    val orderDate: String? = null,
+    val pickupDate: Long? = null,
+    val createdDate: Long? = null,
+    val isEditMode: Boolean = false,
+    val canEdit: Boolean = false,
+    val isLoadingOrder: Boolean = false,
+    // Track if order has been modified
+    val originalOrderItems: List<OrderedProduct> = emptyList(),
+    val hasChanges: Boolean = false,
+    // Pickup date selection for draft orders
+    val selectedPickupDate: Long? = null,
+    val availablePickupDates: List<Long> = emptyList(),
+    val showDatePicker: Boolean = false,
+    // Cancel order state
+    val isCancelling: Boolean = false,
+    val cancelSuccess: Boolean = false,
+    // Reorder with new date state
+    val showReorderDatePicker: Boolean = false,
+    val isReordering: Boolean = false,
+    val reorderSuccess: Boolean = false,
+    // Merge dialog state
+    val showMergeDialog: Boolean = false,
+    val existingOrderForMerge: Order? = null,
+    val mergeConflicts: List<MergeConflict> = emptyList(),
+    val isMerging: Boolean = false
+) : ScreenState
+
 // Custom screen states that don't fit generic patterns
 data class AuthScreenState(
     val isLoading: Boolean = false,
@@ -472,7 +540,9 @@ data class AuthScreenState(
     val password: String = "",
     val confirmPassword: String = "",
     val name: String = "",
-    val validationErrors: Map<String, String> = emptyMap()
+    val validationErrors: Map<String, String> = emptyMap(),
+    val passwordResetSent: Boolean = false,
+    val showPasswordResetDialog: Boolean = false
 )
 
 enum class AuthMode {

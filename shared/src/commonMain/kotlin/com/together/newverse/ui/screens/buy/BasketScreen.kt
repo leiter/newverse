@@ -27,13 +27,16 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Order
+import com.together.newverse.ui.state.BasketScreenState
+import com.together.newverse.ui.state.MergeConflict
+import com.together.newverse.ui.state.MergeResolution
+import com.together.newverse.ui.state.UnifiedBasketScreenAction
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
 import kotlinx.datetime.Clock
@@ -44,32 +47,30 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import com.together.newverse.util.formatString
-import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Basket Screen - Stateful composable with ViewModel
+ * Basket Screen - Now receives state and callbacks from parent
  */
 @Composable
 fun BasketScreen(
-    viewModel: BasketViewModel = koinViewModel(),
+    state: BasketScreenState,
+    currentArticles: List<Article>,
+    onAction: (UnifiedBasketScreenAction) -> Unit,
     orderId: String? = null,
-    orderDate: String? = null,
-    currentArticles: List<Article> = emptyList()
+    orderDate: String? = null
 ) {
-    val state by viewModel.state.collectAsState()
-
     // Load order if provided and not already loaded
-    androidx.compose.runtime.LaunchedEffect(orderId, orderDate) {
+    LaunchedEffect(orderId, orderDate) {
         if (orderId != null && orderDate != null && state.orderId != orderId) {
             println("🛒 BasketScreen: Loading order - orderId=$orderId, date=$orderDate")
-            viewModel.onAction(BasketAction.LoadOrder(orderId, orderDate))
+            onAction(UnifiedBasketScreenAction.LoadOrder(orderId, orderDate))
         }
     }
 
     BasketContent(
         state = state,
         currentArticles = currentArticles,
-        onAction = viewModel::onAction
+        onAction = onAction
     )
 }
 
@@ -84,7 +85,7 @@ fun BasketScreen(
 fun BasketContent(
     state: BasketScreenState,
     currentArticles: List<Article>,
-    onAction: (BasketAction) -> Unit
+    onAction: (UnifiedBasketScreenAction) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -208,7 +209,7 @@ fun BasketContent(
         if (state.orderId == null && state.items.isNotEmpty()) {
             PickupDateSelector(
                 selectedDate = state.selectedPickupDate,
-                onShowPicker = { onAction(BasketAction.ShowDatePicker) }
+                onShowPicker = { onAction(UnifiedBasketScreenAction.ShowDatePicker) }
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -219,9 +220,9 @@ fun BasketContent(
                 availableDates = state.availablePickupDates,
                 selectedDate = state.selectedPickupDate,
                 onDateSelected = { date ->
-                    onAction(BasketAction.SelectPickupDate(date))
+                    onAction(UnifiedBasketScreenAction.SelectPickupDate(date))
                 },
-                onDismiss = { onAction(BasketAction.HideDatePicker) }
+                onDismiss = { onAction(UnifiedBasketScreenAction.HideDatePicker) }
             )
         }
 
@@ -231,10 +232,10 @@ fun BasketContent(
                 availableDates = state.availablePickupDates,
                 isReordering = state.isReordering,
                 onDateSelected = { date ->
-                    onAction(BasketAction.ReorderWithNewDate(date, currentArticles))
+                    onAction(UnifiedBasketScreenAction.ReorderWithNewDate(date, currentArticles))
                 },
                 onDismiss = {
-                    onAction(BasketAction.HideReorderDatePicker)
+                    onAction(UnifiedBasketScreenAction.HideReorderDatePicker)
                 }
             )
         }
@@ -246,10 +247,10 @@ fun BasketContent(
                 conflicts = state.mergeConflicts,
                 isMerging = state.isMerging,
                 onResolveConflict = { productId, resolution ->
-                    onAction(BasketAction.ResolveMergeConflict(productId, resolution))
+                    onAction(UnifiedBasketScreenAction.ResolveMergeConflict(productId, resolution))
                 },
-                onConfirm = { onAction(BasketAction.ConfirmMerge) },
-                onDismiss = { onAction(BasketAction.HideMergeDialog) }
+                onConfirm = { onAction(UnifiedBasketScreenAction.ConfirmMerge) },
+                onDismiss = { onAction(UnifiedBasketScreenAction.HideMergeDialog) }
             )
         }
 
@@ -289,9 +290,9 @@ fun BasketContent(
                         unit = item.unit,
                         quantity = item.amountCount,
                         canEdit = state.canEdit,
-                        onRemove = { onAction(BasketAction.RemoveItem(item.productId)) },
+                        onRemove = { onAction(UnifiedBasketScreenAction.RemoveItem(item.productId)) },
 //                        onQuantityChange = { newQty ->
-//                            onAction(BasketAction.UpdateQuantity(item.productId, newQty))
+//                            onAction(UnifiedBasketScreenAction.UpdateItemQuantity(item.productId, newQty))
 //                        }
                     )
                 }
@@ -339,7 +340,7 @@ fun BasketContent(
             if (state.canEdit) {
                 // Show update button - disabled if no changes
                 Button(
-                    onClick = { onAction(BasketAction.UpdateOrder) },
+                    onClick = { onAction(UnifiedBasketScreenAction.UpdateOrder) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = state.hasChanges && state.items.isNotEmpty() && !state.isCheckingOut && !state.isCancelling
                 ) {
@@ -356,7 +357,7 @@ fun BasketContent(
 
                 // Show cancel button
                 OutlinedButton(
-                    onClick = { onAction(BasketAction.CancelOrder) },
+                    onClick = { onAction(UnifiedBasketScreenAction.CancelOrder) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isCheckingOut && !state.isCancelling && !state.isReordering,
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -402,7 +403,7 @@ fun BasketContent(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedButton(
-                        onClick = { onAction(BasketAction.ShowReorderDatePicker) },
+                        onClick = { onAction(UnifiedBasketScreenAction.ShowReorderDatePicker) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.isReordering && state.items.isNotEmpty()
                     ) {
@@ -417,7 +418,7 @@ fun BasketContent(
         } else {
             // New order - show checkout button
             Button(
-                onClick = { onAction(BasketAction.Checkout) },
+                onClick = { onAction(UnifiedBasketScreenAction.Checkout) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = state.items.isNotEmpty() && !state.isCheckingOut
             ) {
@@ -611,7 +612,8 @@ private fun OrderInfoCard(
             // Edit deadline warning
             if (canEdit) {
                 Spacer(modifier = Modifier.height(8.dp))
-                val editDeadlineDate = formatDate(pickupDate - (3 * 24 * 60 * 60 * 1000))
+                val editDeadline = OrderDateUtils.calculateEditDeadline(Instant.fromEpochMilliseconds(pickupDate))
+                val editDeadlineDate = formatDate(editDeadline.toEpochMilliseconds())
                 Text(
                     text = formatString(stringResource(Res.string.basket_editable_until), editDeadlineDate),
                     style = MaterialTheme.typography.bodySmall,

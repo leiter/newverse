@@ -57,9 +57,11 @@ fun NavGraph(
             val orderDateArg = backStackEntry.arguments?.getString("orderDate")
 
             BasketScreen(
+                state = appState.screens.basketScreen,
+                currentArticles = appState.screens.mainScreen.articles,
+                onAction = { action -> onAction(action) },
                 orderId = orderIdArg ?: appState.common.basket.currentOrderId,
-                orderDate = orderDateArg ?: appState.common.basket.currentOrderDate,
-                currentArticles = appState.screens.mainScreen.articles
+                orderDate = orderDateArg ?: appState.common.basket.currentOrderDate
             )
         }
 

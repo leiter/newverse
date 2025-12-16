@@ -1,6 +1,5 @@
 package com.together.newverse.di
 
-import com.together.newverse.ui.screens.buy.BasketViewModel
 import com.together.newverse.ui.state.BuyAppViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -23,8 +22,6 @@ val appModule = module {
         )
     }
 
-    // Buy-specific ViewModels
-    viewModel { BasketViewModel(get(), get(), get(), get()) }
 }
 
 /**

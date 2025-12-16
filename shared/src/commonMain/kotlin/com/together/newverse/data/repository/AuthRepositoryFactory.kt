@@ -186,6 +186,9 @@ class ParallelTestingAuthRepository(
     override suspend fun signInWithTwitter(token: String, secret: String) =
         primary.signInWithTwitter(token, secret)
 
+    override suspend fun sendPasswordResetEmail(email: String) =
+        primary.sendPasswordResetEmail(email)
+
     private fun logComparison(method: String, primary: Any?, secondary: Any?) {
         println("🔄 ParallelTesting[$method]: Primary=$primary, Secondary=$secondary, Match=${primary == secondary}")
     }

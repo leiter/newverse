@@ -45,7 +45,6 @@ import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.stories.BuyerStoriesRunner
 import com.together.newverse.stories.BuyerStory
-import com.together.newverse.ui.screens.buy.BasketViewModel
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.theme.NewverseTheme
 import kotlinx.coroutines.launch
@@ -63,7 +62,6 @@ import kotlin.coroutines.resume
 class DebugMainActivity : ComponentActivity() {
 
     private val unifiedViewModel: BuyAppViewModel by inject()
-    private val basketViewModel: BasketViewModel by inject()
     private val articleRepository: ArticleRepository by inject()
     private val basketRepository: BasketRepository by inject()
     private val orderRepository: OrderRepository by inject()
@@ -168,7 +166,6 @@ class DebugMainActivity : ComponentActivity() {
         val runner = remember {
             BuyerStoriesRunner(
                 buyAppViewModel = unifiedViewModel,
-                basketViewModel = basketViewModel,
                 articleRepository = articleRepository,
                 basketRepository = basketRepository,
                 orderRepository = orderRepository,

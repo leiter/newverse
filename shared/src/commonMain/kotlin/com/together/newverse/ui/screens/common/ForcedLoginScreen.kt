@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,6 +44,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,11 +73,16 @@ import newverse.shared.generated.resources.error_email_invalid
 import newverse.shared.generated.resources.error_email_required
 import newverse.shared.generated.resources.error_password_length
 import newverse.shared.generated.resources.error_password_required
+import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.label_email
 import newverse.shared.generated.resources.label_password
 import newverse.shared.generated.resources.login_email_placeholder
+import newverse.shared.generated.resources.login_forgot_password
 import newverse.shared.generated.resources.login_password_placeholder
 import newverse.shared.generated.resources.login_sign_in_google
+import newverse.shared.generated.resources.password_reset_description
+import newverse.shared.generated.resources.password_reset_send
+import newverse.shared.generated.resources.password_reset_title
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -97,7 +104,9 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ForcedLoginScreen(
     authState: AuthScreenState = AuthScreenState(),
-    onAction: (UnifiedAppAction) -> Unit = {}
+    onAction: (UnifiedAppAction) -> Unit = {},
+    onShowPasswordResetDialog: () -> Unit = {},
+    onHidePasswordResetDialog: () -> Unit = {}
 ) {
     // Debug logging
     println("🟢 ForcedLoginScreen: authState.error = ${authState.error}")
@@ -108,6 +117,8 @@ fun ForcedLoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+    var resetEmail by remember { mutableStateOf("") }
+    var resetEmailError by remember { mutableStateOf<String?>(null) }
 
     // Use authState.isLoading from the ViewModel
     val isLoading = authState.isLoading
@@ -306,7 +317,20 @@ fun ForcedLoginScreen(
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    // Forgot Password Link
+                    TextButton(
+                        onClick = {
+                            resetEmail = email // Pre-fill with entered email
+                            resetEmailError = null
+                            onShowPasswordResetDialog()
+                        },
+                        modifier = Modifier.align(Alignment.End),
+                        enabled = !isLoading
+                    ) {
+                        Text(stringResource(Res.string.login_forgot_password))
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Sign In Button
                     Button(
@@ -439,5 +463,76 @@ fun ForcedLoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+
+    // Password Reset Dialog
+    if (authState.showPasswordResetDialog) {
+        AlertDialog(
+            onDismissRequest = { onHidePasswordResetDialog() },
+            title = {
+                Text(
+                    text = stringResource(Res.string.password_reset_title),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(Res.string.password_reset_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    OutlinedTextField(
+                        value = resetEmail,
+                        onValueChange = {
+                            resetEmail = it
+                            resetEmailError = null
+                        },
+                        label = { Text(stringResource(Res.string.label_email)) },
+                        placeholder = { Text(stringResource(Res.string.login_email_placeholder)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !authState.isLoading,
+                        isError = resetEmailError != null,
+                        supportingText = resetEmailError?.let { { Text(it) } },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // Validate email
+                        resetEmailError = when {
+                            resetEmail.isBlank() -> errorEmailRequired
+                            !resetEmail.contains("@") -> errorEmailInvalid
+                            else -> null
+                        }
+                        if (resetEmailError == null) {
+                            onAction(UnifiedUserAction.RequestPasswordReset(resetEmail))
+                        }
+                    },
+                    enabled = !authState.isLoading
+                ) {
+                    if (authState.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(stringResource(Res.string.password_reset_send))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { onHidePasswordResetDialog() },
+                    enabled = !authState.isLoading
+                ) {
+                    Text(stringResource(Res.string.button_cancel))
+                }
+            }
+        )
     }
 }

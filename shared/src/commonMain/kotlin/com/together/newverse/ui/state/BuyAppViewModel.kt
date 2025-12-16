@@ -2,8 +2,13 @@ package com.together.newverse.ui.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.util.OrderDateUtils
+import kotlinx.datetime.Clock
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
@@ -53,6 +58,9 @@ class BuyAppViewModel(
         // Initialize MainScreen observers
         observeMainScreenBasket()
         observeMainScreenBuyerProfile()
+
+        // Initialize BasketScreen observers
+        initializeBasketScreen()
 
         // Load MainScreen articles after auth is ready
         viewModelScope.launch {
@@ -205,6 +213,9 @@ class BuyAppViewModel(
 
             // Main Screen actions
             is UnifiedMainScreenAction -> handleMainScreenAction(action)
+
+            // Basket Screen actions (checkout/order workflow)
+            is UnifiedBasketScreenAction -> handleBasketScreenAction(action)
         }
     }
 
@@ -227,6 +238,7 @@ class BuyAppViewModel(
             is UnifiedUserAction.Logout -> logout()
             is UnifiedUserAction.Register -> register(action.email, action.password, action.name)
             is UnifiedUserAction.UpdateProfile -> updateProfile(action.profile)
+            is UnifiedUserAction.RequestPasswordReset -> sendPasswordResetEmail(action.email)
         }
     }
 
@@ -271,6 +283,8 @@ class BuyAppViewModel(
             is UnifiedUiAction.ShowBottomSheet -> showBottomSheet(action.sheet)
             is UnifiedUiAction.HideBottomSheet -> hideBottomSheet()
             is UnifiedUiAction.SetRefreshing -> setRefreshing(action.isRefreshing)
+            is UnifiedUiAction.ShowPasswordResetDialog -> showPasswordResetDialog()
+            is UnifiedUiAction.HidePasswordResetDialog -> hidePasswordResetDialog()
         }
     }
 
@@ -1025,6 +1039,99 @@ class BuyAppViewModel(
     }
 
     /**
+     * Send password reset email to the specified email address.
+     */
+    private fun sendPasswordResetEmail(email: String) {
+        viewModelScope.launch {
+            // Set loading state
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        auth = current.screens.auth.copy(
+                            isLoading = true,
+                            error = null,
+                            passwordResetSent = false
+                        )
+                    )
+                )
+            }
+
+            authRepository.sendPasswordResetEmail(email)
+                .onSuccess {
+                    println("✅ Password reset email sent to $email")
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                auth = current.screens.auth.copy(
+                                    isLoading = false,
+                                    passwordResetSent = true,
+                                    showPasswordResetDialog = false,
+                                    error = null
+                                )
+                            )
+                        )
+                    }
+                    showSnackbar(getString(Res.string.password_reset_sent), SnackbarType.SUCCESS)
+                }
+                .onFailure { error ->
+                    println("❌ Password reset failed: ${error.message}")
+                    val errorMessage = when {
+                        error.message?.contains("No account found", true) == true ->
+                            getString(Res.string.error_no_account)
+                        error.message?.contains("Invalid email", true) == true ->
+                            getString(Res.string.error_email_invalid)
+                        else -> error.message ?: getString(Res.string.password_reset_failed)
+                    }
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                auth = current.screens.auth.copy(
+                                    isLoading = false,
+                                    error = errorMessage,
+                                    passwordResetSent = false
+                                )
+                            )
+                        )
+                    }
+                    showSnackbar(errorMessage, SnackbarType.ERROR)
+                }
+        }
+    }
+
+    /**
+     * Show password reset dialog
+     */
+    fun showPasswordResetDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    auth = current.screens.auth.copy(
+                        showPasswordResetDialog = true,
+                        passwordResetSent = false,
+                        error = null
+                    )
+                )
+            )
+        }
+    }
+
+    /**
+     * Hide password reset dialog
+     */
+    fun hidePasswordResetDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    auth = current.screens.auth.copy(
+                        showPasswordResetDialog = false,
+                        error = null
+                    )
+                )
+            )
+        }
+    }
+
+    /**
      * Reset Google Sign-In trigger after it's been handled
      */
     override fun resetGoogleSignInTrigger() {
@@ -1242,11 +1349,12 @@ class BuyAppViewModel(
                         // Calculate date key
                         val dateKey = formatDateKey(order.pickUpDate)
 
-                        // Check if order is editable (more than 3 days before pickup)
-                        val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-                        val threeDaysBeforePickup = order.pickUpDate - (3 * 24 * 60 * 60 * 1000)
-                        val canEdit = now < threeDaysBeforePickup
+                        // Check if order is editable (before Tuesday 23:59:59 deadline)
+                        val canEdit = OrderDateUtils.canEditOrder(
+                            Instant.fromEpochMilliseconds(order.pickUpDate)
+                        )
 
+                        val now = Clock.System.now().toEpochMilliseconds()
                         println("📦 loadCurrentOrder: Order canEdit=$canEdit (pickup in ${(order.pickUpDate - now) / (24 * 60 * 60 * 1000)} days)")
 
                         // Load order items into BasketRepository with order metadata
@@ -1727,6 +1835,16 @@ class BuyAppViewModel(
 
                 saveResult.onSuccess {
                     println("✅ UnifiedAppViewModel.toggleMainScreenFavourite: Successfully updated favourites")
+                    // Update local state immediately for instant UI feedback
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                mainScreen = current.screens.mainScreen.copy(
+                                    favouriteArticles = updatedFavourites
+                                )
+                            )
+                        )
+                    }
                 }.onFailure { error ->
                     println("❌ UnifiedAppViewModel.toggleMainScreenFavourite: Failed to save - ${error.message}")
                 }
@@ -1925,5 +2043,1116 @@ class BuyAppViewModel(
                 previousPlacedOrderIds = currentPlacedOrderIds
             }
         }
+    }
+
+    // ===== Basket Screen Handler and Methods =====
+
+    // Seller ID constant
+    private val BASKET_SELLER_ID = GitLiveArticleRepository.DEFAULT_SELLER_ID
+
+    private fun handleBasketScreenAction(action: UnifiedBasketScreenAction) {
+        when (action) {
+            is UnifiedBasketScreenAction.AddItem -> basketScreenAddItem(action.item)
+            is UnifiedBasketScreenAction.RemoveItem -> basketScreenRemoveItem(action.productId)
+            is UnifiedBasketScreenAction.UpdateItemQuantity -> basketScreenUpdateQuantity(action.productId, action.newQuantity)
+            UnifiedBasketScreenAction.ClearBasket -> basketScreenClearBasket()
+            UnifiedBasketScreenAction.Checkout -> basketScreenCheckout()
+            is UnifiedBasketScreenAction.LoadOrder -> basketScreenLoadOrder(action.orderId, action.date, forceLoad = true)
+            UnifiedBasketScreenAction.UpdateOrder -> basketScreenUpdateOrder()
+            UnifiedBasketScreenAction.EnableEditing -> basketScreenEnableEditing()
+            UnifiedBasketScreenAction.ResetOrderState -> basketScreenResetOrderState()
+            UnifiedBasketScreenAction.ShowDatePicker -> basketScreenShowDatePicker()
+            UnifiedBasketScreenAction.HideDatePicker -> basketScreenHideDatePicker()
+            is UnifiedBasketScreenAction.SelectPickupDate -> basketScreenSelectPickupDate(action.date)
+            UnifiedBasketScreenAction.LoadAvailableDates -> basketScreenLoadAvailableDates()
+            UnifiedBasketScreenAction.CancelOrder -> basketScreenCancelOrder()
+            UnifiedBasketScreenAction.ShowReorderDatePicker -> basketScreenShowReorderDatePicker()
+            UnifiedBasketScreenAction.HideReorderDatePicker -> basketScreenHideReorderDatePicker()
+            is UnifiedBasketScreenAction.ReorderWithNewDate -> basketScreenReorderWithNewDate(action.newPickupDate, action.currentArticles)
+            UnifiedBasketScreenAction.HideMergeDialog -> basketScreenHideMergeDialog()
+            is UnifiedBasketScreenAction.ResolveMergeConflict -> basketScreenResolveMergeConflict(action.productId, action.resolution)
+            UnifiedBasketScreenAction.ConfirmMerge -> basketScreenConfirmMerge()
+        }
+    }
+
+    /**
+     * Initialize basket screen observers
+     * Called from init block
+     */
+    fun initializeBasketScreen() {
+        observeBasketScreenItems()
+        basketScreenLoadAvailableDates()
+        basketScreenLoadMostRecentEditableOrder()
+    }
+
+    private fun observeBasketScreenItems() {
+        viewModelScope.launch {
+            basketRepository.observeBasket().collect { items ->
+                val hasChanges = basketScreenCheckIfHasChanges(items, _state.value.screens.basketScreen.originalOrderItems)
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            basketScreen = current.screens.basketScreen.copy(
+                                items = items,
+                                total = basketRepository.getTotal(),
+                                hasChanges = hasChanges
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun basketScreenCheckIfHasChanges(currentItems: List<OrderedProduct>, originalItems: List<OrderedProduct>): Boolean {
+        if (originalItems.isEmpty() && currentItems.isEmpty()) return false
+        if (originalItems.isEmpty()) return true
+        if (currentItems.size != originalItems.size) return true
+
+        currentItems.forEach { currentItem ->
+            val originalItem = originalItems.find { it.productId == currentItem.productId }
+            if (originalItem == null) return true
+            if (originalItem.amountCount != currentItem.amountCount) return true
+        }
+
+        originalItems.forEach { originalItem ->
+            val currentItem = currentItems.find { it.productId == originalItem.productId }
+            if (currentItem == null) return true
+        }
+
+        return false
+    }
+
+    private fun basketScreenLoadMostRecentEditableOrder() {
+        viewModelScope.launch {
+            try {
+                println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: START")
+
+                val loadedOrderInfo = basketRepository.getLoadedOrderInfo()
+                if (loadedOrderInfo != null) {
+                    val (orderId, orderDate) = loadedOrderInfo
+                    println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order already loaded - orderId=$orderId, date=$orderDate")
+
+                    val orderPath = "orders/$BASKET_SELLER_ID/$orderDate/$orderId"
+                    val result = orderRepository.loadOrder(BASKET_SELLER_ID, orderId, orderPath)
+                    result.onSuccess { order ->
+                        val canEdit = OrderDateUtils.canEditOrder(
+                            Instant.fromEpochMilliseconds(order.pickUpDate)
+                        )
+                        val currentBasketItems = basketRepository.observeBasket().value
+                        val hasChanges = basketScreenCheckIfHasChanges(currentBasketItems, order.articles)
+
+                        _state.update { current ->
+                            current.copy(
+                                screens = current.screens.copy(
+                                    basketScreen = current.screens.basketScreen.copy(
+                                        orderId = orderId,
+                                        orderDate = orderDate,
+                                        pickupDate = order.pickUpDate,
+                                        createdDate = order.createdDate,
+                                        isEditMode = false,
+                                        canEdit = canEdit,
+                                        originalOrderItems = order.articles,
+                                        hasChanges = hasChanges
+                                    )
+                                )
+                            )
+                        }
+                    }
+                    return@launch
+                }
+
+                val profileResult = profileRepository.getBuyerProfile()
+                val buyerProfile = profileResult.getOrNull()
+
+                if (buyerProfile == null || buyerProfile.placedOrderIds.isEmpty()) {
+                    println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: No buyer profile or orders")
+                    return@launch
+                }
+
+                val orderResult = orderRepository.getOpenEditableOrder(BASKET_SELLER_ID, buyerProfile.placedOrderIds)
+                val order = orderResult.getOrNull()
+
+                if (order != null) {
+                    val dateKey = basketScreenFormatDateKey(order.pickUpDate)
+                    basketScreenLoadOrder(order.id, dateKey)
+                }
+            } catch (e: Exception) {
+                println("❌ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Error - ${e.message}")
+            }
+        }
+    }
+
+    private fun basketScreenAddItem(item: OrderedProduct) {
+        viewModelScope.launch {
+            basketRepository.addItem(item)
+        }
+    }
+
+    private fun basketScreenRemoveItem(productId: String) {
+        viewModelScope.launch {
+            basketRepository.removeItem(productId)
+        }
+    }
+
+    private fun basketScreenUpdateQuantity(productId: String, newQuantity: Double) {
+        viewModelScope.launch {
+            basketRepository.updateQuantity(productId, newQuantity)
+        }
+    }
+
+    private fun basketScreenClearBasket() {
+        viewModelScope.launch {
+            basketRepository.clearBasket()
+        }
+    }
+
+    private fun basketScreenCheckout() {
+        viewModelScope.launch {
+            println("🛒 BuyAppViewModel.basketScreenCheckout: START")
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        basketScreen = current.screens.basketScreen.copy(
+                            isCheckingOut = true,
+                            orderSuccess = false,
+                            orderError = null
+                        )
+                    )
+                )
+            }
+
+            try {
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId == null) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = "Bitte melden Sie sich an, um eine Bestellung aufzugeben"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val items = _state.value.screens.basketScreen.items
+                if (items.isEmpty()) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = "Warenkorb ist leer"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val buyerProfile = try {
+                    profileRepository.getBuyerProfile().getOrNull() ?: BuyerProfile(
+                        id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false
+                    )
+                } catch (e: Exception) {
+                    BuyerProfile(id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false)
+                }
+
+                val selectedDate = _state.value.screens.basketScreen.selectedPickupDate
+                if (selectedDate == null) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = "Bitte wählen Sie ein Abholdatum",
+                                    showDatePicker = true
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val isDateValid = OrderDateUtils.isPickupDateValid(Instant.fromEpochMilliseconds(selectedDate))
+                if (!isDateValid) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = "Gewähltes Datum ist nicht mehr verfügbar.",
+                                    selectedPickupDate = null,
+                                    showDatePicker = true
+                                )
+                            )
+                        )
+                    }
+                    basketScreenLoadAvailableDates()
+                    return@launch
+                }
+
+                val dateKey = basketScreenFormatDateKey(selectedDate)
+                val existingOrderId = buyerProfile.placedOrderIds[dateKey]
+
+                if (existingOrderId != null) {
+                    val existingOrderPath = "orders/$BASKET_SELLER_ID/$dateKey/$existingOrderId"
+                    val existingOrderResult = orderRepository.loadOrder(BASKET_SELLER_ID, existingOrderId, existingOrderPath)
+                    existingOrderResult.onSuccess { existingOrder ->
+                        val conflicts = basketScreenCalculateMergeConflicts(items, existingOrder.articles)
+                        _state.update { current ->
+                            current.copy(
+                                screens = current.screens.copy(
+                                    basketScreen = current.screens.basketScreen.copy(
+                                        isCheckingOut = false,
+                                        showMergeDialog = true,
+                                        existingOrderForMerge = existingOrder,
+                                        mergeConflicts = conflicts
+                                    )
+                                )
+                            )
+                        }
+                    }.onFailure { error ->
+                        _state.update { current ->
+                            current.copy(
+                                screens = current.screens.copy(
+                                    basketScreen = current.screens.basketScreen.copy(
+                                        isCheckingOut = false,
+                                        orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
+                                    )
+                                )
+                            )
+                        }
+                    }
+                    return@launch
+                }
+
+                val order = Order(
+                    buyerProfile = buyerProfile,
+                    createdDate = Clock.System.now().toEpochMilliseconds(),
+                    sellerId = BASKET_SELLER_ID,
+                    marketId = "",
+                    pickUpDate = selectedDate,
+                    message = "",
+                    articles = items
+                )
+
+                val result = orderRepository.placeOrder(order)
+                result.onSuccess { placedOrder ->
+                    val placedDateKey = basketScreenFormatDateKey(placedOrder.pickUpDate)
+                    basketScreenLoadOrder(placedOrder.id, placedDateKey)
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderSuccess = true
+                                )
+                            )
+                        )
+                    }
+                }.onFailure { error ->
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = error.message ?: "Bestellung fehlgeschlagen"
+                                )
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            basketScreen = current.screens.basketScreen.copy(
+                                isCheckingOut = false,
+                                orderError = e.message ?: "Ein Fehler ist aufgetreten"
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun basketScreenResetOrderState() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    basketScreen = current.screens.basketScreen.copy(
+                        orderSuccess = false,
+                        orderError = null
+                    )
+                )
+            )
+        }
+    }
+
+    private fun basketScreenLoadOrder(orderId: String, date: String, forceLoad: Boolean = false) {
+        viewModelScope.launch {
+            println("🛒 BuyAppViewModel.basketScreenLoadOrder: START - orderId=$orderId, date=$date")
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        basketScreen = current.screens.basketScreen.copy(
+                            isLoadingOrder = true,
+                            orderError = null
+                        )
+                    )
+                )
+            }
+
+            try {
+                val orderPath = "orders/$BASKET_SELLER_ID/$date/$orderId"
+                val result = orderRepository.loadOrder(BASKET_SELLER_ID, orderId, orderPath)
+
+                result.onSuccess { order ->
+                    val canEdit = OrderDateUtils.canEditOrder(
+                        Instant.fromEpochMilliseconds(order.pickUpDate)
+                    )
+                    val currentBasketItems = basketRepository.observeBasket().value
+
+                    val shouldLoadOrderItems = forceLoad ||
+                        currentBasketItems.isEmpty() ||
+                        basketRepository.getLoadedOrderInfo()?.first != orderId
+
+                    if (shouldLoadOrderItems) {
+                        basketRepository.loadOrderItems(order.articles, orderId, date)
+                    }
+
+                    val finalBasketItems = basketRepository.observeBasket().value
+                    val hasChanges = basketScreenCheckIfHasChanges(finalBasketItems, order.articles)
+
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    orderId = orderId,
+                                    orderDate = date,
+                                    pickupDate = order.pickUpDate,
+                                    createdDate = order.createdDate,
+                                    isEditMode = false,
+                                    canEdit = canEdit,
+                                    isLoadingOrder = false,
+                                    items = finalBasketItems,
+                                    total = finalBasketItems.sumOf { it.price * it.amountCount },
+                                    originalOrderItems = order.articles,
+                                    hasChanges = hasChanges
+                                )
+                            )
+                        )
+                    }
+                }.onFailure { error ->
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isLoadingOrder = false,
+                                    orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
+                                )
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            basketScreen = current.screens.basketScreen.copy(
+                                isLoadingOrder = false,
+                                orderError = "Fehler beim Laden der Bestellung: ${e.message}"
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun basketScreenEnableEditing() {
+        val canEdit = _state.value.screens.basketScreen.canEdit
+        if (canEdit) {
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        basketScreen = current.screens.basketScreen.copy(isEditMode = true)
+                    )
+                )
+            }
+        } else {
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        basketScreen = current.screens.basketScreen.copy(
+                            orderError = "Bestellung kann nicht mehr bearbeitet werden (Frist: Dienstag 23:59)"
+                        )
+                    )
+                )
+            }
+        }
+    }
+
+    private fun basketScreenUpdateOrder() {
+        viewModelScope.launch {
+            println("🛒 BuyAppViewModel.basketScreenUpdateOrder: START")
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        basketScreen = current.screens.basketScreen.copy(
+                            isCheckingOut = true,
+                            orderError = null
+                        )
+                    )
+                )
+            }
+
+            try {
+                val basketState = _state.value.screens.basketScreen
+                val orderId = basketState.orderId
+                val pickupDate = basketState.pickupDate
+                val createdDate = basketState.createdDate
+
+                if (orderId == null || pickupDate == null || createdDate == null) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = "Bestellinformationen fehlen"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val canEdit = OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
+                if (!canEdit) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = "Bearbeitungsfrist abgelaufen (Dienstag 23:59)"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId == null) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = "Benutzer nicht angemeldet"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val items = basketState.items
+                if (items.isEmpty()) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = "Warenkorb ist leer"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val buyerProfile = try {
+                    profileRepository.getBuyerProfile().getOrNull() ?: BuyerProfile(
+                        id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false
+                    )
+                } catch (e: Exception) {
+                    BuyerProfile(id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false)
+                }
+
+                val updatedOrder = Order(
+                    id = orderId,
+                    buyerProfile = buyerProfile,
+                    createdDate = createdDate,
+                    sellerId = BASKET_SELLER_ID,
+                    marketId = "",
+                    pickUpDate = pickupDate,
+                    message = "",
+                    articles = items
+                )
+
+                val result = orderRepository.updateOrder(updatedOrder)
+                result.onSuccess {
+                    val currentItems = _state.value.screens.basketScreen.items
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderSuccess = true,
+                                    isEditMode = false,
+                                    originalOrderItems = currentItems,
+                                    hasChanges = false
+                                )
+                            )
+                        )
+                    }
+                }.onFailure { error ->
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = error.message ?: "Aktualisierung fehlgeschlagen"
+                                )
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            basketScreen = current.screens.basketScreen.copy(
+                                isCheckingOut = false,
+                                orderError = e.message ?: "Ein Fehler ist aufgetreten"
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun basketScreenCancelOrder() {
+        viewModelScope.launch {
+            println("🛒 BuyAppViewModel.basketScreenCancelOrder: START")
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        basketScreen = current.screens.basketScreen.copy(
+                            isCancelling = true,
+                            orderError = null,
+                            cancelSuccess = false
+                        )
+                    )
+                )
+            }
+
+            try {
+                val basketState = _state.value.screens.basketScreen
+                val orderId = basketState.orderId
+                val orderDate = basketState.orderDate
+                val pickupDate = basketState.pickupDate
+
+                if (orderId == null || orderDate == null || pickupDate == null) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCancelling = false,
+                                    orderError = "Bestellinformationen fehlen"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val canEdit = OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
+                if (!canEdit) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCancelling = false,
+                                    orderError = "Stornierung nicht mehr möglich (Frist: Dienstag 23:59)"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val result = orderRepository.cancelOrder(BASKET_SELLER_ID, orderDate, orderId)
+                result.onSuccess {
+                    basketRepository.clearBasket()
+                    val availableDates = _state.value.screens.basketScreen.availablePickupDates
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = BasketScreenState(
+                                    cancelSuccess = true,
+                                    availablePickupDates = availableDates
+                                )
+                            )
+                        )
+                    }
+                }.onFailure { error ->
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCancelling = false,
+                                    orderError = error.message ?: "Stornierung fehlgeschlagen"
+                                )
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            basketScreen = current.screens.basketScreen.copy(
+                                isCancelling = false,
+                                orderError = e.message ?: "Ein Fehler ist aufgetreten"
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun basketScreenLoadAvailableDates() {
+        println("📅 BuyAppViewModel.basketScreenLoadAvailableDates: START")
+        val dates = OrderDateUtils.getAvailablePickupDates(count = 5)
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    basketScreen = current.screens.basketScreen.copy(
+                        availablePickupDates = dates.map { it.toEpochMilliseconds() }
+                    )
+                )
+            )
+        }
+    }
+
+    private fun basketScreenShowDatePicker() {
+        if (_state.value.screens.basketScreen.availablePickupDates.isEmpty()) {
+            basketScreenLoadAvailableDates()
+        }
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    basketScreen = current.screens.basketScreen.copy(showDatePicker = true)
+                )
+            )
+        }
+    }
+
+    private fun basketScreenHideDatePicker() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    basketScreen = current.screens.basketScreen.copy(showDatePicker = false)
+                )
+            )
+        }
+    }
+
+    private fun basketScreenSelectPickupDate(date: Long) {
+        val isValid = OrderDateUtils.isPickupDateValid(Instant.fromEpochMilliseconds(date))
+        if (!isValid) {
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        basketScreen = current.screens.basketScreen.copy(
+                            orderError = "Gewähltes Datum ist nicht mehr verfügbar.",
+                            selectedPickupDate = null,
+                            showDatePicker = true
+                        )
+                    )
+                )
+            }
+            basketScreenLoadAvailableDates()
+            return
+        }
+
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    basketScreen = current.screens.basketScreen.copy(
+                        selectedPickupDate = date,
+                        showDatePicker = false,
+                        orderError = null
+                    )
+                )
+            )
+        }
+    }
+
+    private fun basketScreenShowReorderDatePicker() {
+        if (_state.value.screens.basketScreen.availablePickupDates.isEmpty()) {
+            basketScreenLoadAvailableDates()
+        }
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    basketScreen = current.screens.basketScreen.copy(showReorderDatePicker = true)
+                )
+            )
+        }
+    }
+
+    private fun basketScreenHideReorderDatePicker() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    basketScreen = current.screens.basketScreen.copy(showReorderDatePicker = false)
+                )
+            )
+        }
+    }
+
+    private fun basketScreenReorderWithNewDate(newPickupDate: Long, currentArticles: List<Article>) {
+        viewModelScope.launch {
+            println("🛒 BuyAppViewModel.basketScreenReorderWithNewDate: START")
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        basketScreen = current.screens.basketScreen.copy(
+                            isReordering = true,
+                            showReorderDatePicker = false,
+                            orderError = null,
+                            reorderSuccess = false
+                        )
+                    )
+                )
+            }
+
+            try {
+                val isDateValid = OrderDateUtils.isPickupDateValid(Instant.fromEpochMilliseconds(newPickupDate))
+                if (!isDateValid) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isReordering = false,
+                                    orderError = "Gewähltes Datum ist nicht mehr verfügbar.",
+                                    showReorderDatePicker = true
+                                )
+                            )
+                        )
+                    }
+                    basketScreenLoadAvailableDates()
+                    return@launch
+                }
+
+                val currentItems = _state.value.screens.basketScreen.items
+                if (currentItems.isEmpty()) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isReordering = false,
+                                    orderError = "Keine Artikel zum Nachbestellen"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val updatedItems = mutableListOf<OrderedProduct>()
+                for (item in currentItems) {
+                    val article = currentArticles.find { it.id == item.id }
+                    if (article != null && article.available) {
+                        updatedItems.add(item.copy(
+                            price = article.price,
+                            productName = article.productName,
+                            unit = article.unit
+                        ))
+                    } else {
+                        updatedItems.add(item)
+                    }
+                }
+
+                basketRepository.clearBasket()
+                for (item in updatedItems) {
+                    basketRepository.addItem(item)
+                }
+
+                val newTotal = updatedItems.sumOf { it.price * it.amountCount }
+
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            basketScreen = current.screens.basketScreen.copy(
+                                items = updatedItems,
+                                total = newTotal,
+                                orderId = null,
+                                orderDate = null,
+                                pickupDate = null,
+                                createdDate = null,
+                                isEditMode = false,
+                                canEdit = true,
+                                originalOrderItems = emptyList(),
+                                hasChanges = false,
+                                selectedPickupDate = newPickupDate,
+                                isReordering = false,
+                                reorderSuccess = true
+                            )
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            basketScreen = current.screens.basketScreen.copy(
+                                isReordering = false,
+                                orderError = e.message ?: "Ein Fehler ist aufgetreten"
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun basketScreenCalculateMergeConflicts(
+        newItems: List<OrderedProduct>,
+        existingItems: List<OrderedProduct>
+    ): List<MergeConflict> {
+        val conflicts = mutableListOf<MergeConflict>()
+        for (newItem in newItems) {
+            val existingItem = existingItems.find { it.productId == newItem.productId }
+            if (existingItem != null && existingItem.amountCount != newItem.amountCount) {
+                conflicts.add(MergeConflict(
+                    productId = newItem.productId,
+                    productName = newItem.productName,
+                    unit = newItem.unit,
+                    existingQuantity = existingItem.amountCount,
+                    newQuantity = newItem.amountCount,
+                    existingPrice = existingItem.price,
+                    newPrice = newItem.price,
+                    resolution = MergeResolution.UNDECIDED
+                ))
+            }
+        }
+        return conflicts
+    }
+
+    private fun basketScreenHideMergeDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    basketScreen = current.screens.basketScreen.copy(
+                        showMergeDialog = false,
+                        existingOrderForMerge = null,
+                        mergeConflicts = emptyList()
+                    )
+                )
+            )
+        }
+    }
+
+    private fun basketScreenResolveMergeConflict(productId: String, resolution: MergeResolution) {
+        val updatedConflicts = _state.value.screens.basketScreen.mergeConflicts.map { conflict ->
+            if (conflict.productId == productId) conflict.copy(resolution = resolution) else conflict
+        }
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    basketScreen = current.screens.basketScreen.copy(mergeConflicts = updatedConflicts)
+                )
+            )
+        }
+    }
+
+    private fun basketScreenConfirmMerge() {
+        viewModelScope.launch {
+            println("🔀 BuyAppViewModel.basketScreenConfirmMerge: START")
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        basketScreen = current.screens.basketScreen.copy(isMerging = true)
+                    )
+                )
+            }
+
+            try {
+                val basketState = _state.value.screens.basketScreen
+                val existingOrder = basketState.existingOrderForMerge
+
+                if (existingOrder == null) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isMerging = false,
+                                    orderError = "Keine bestehende Bestellung zum Zusammenführen"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val conflicts = basketState.mergeConflicts
+                val newItems = basketState.items
+
+                val mergedItems = mutableListOf<OrderedProduct>()
+                val processedProductIds = mutableSetOf<String>()
+
+                for (existingItem in existingOrder.articles) {
+                    val conflict = conflicts.find { it.productId == existingItem.productId }
+                    val newItem = newItems.find { it.productId == existingItem.productId }
+
+                    val finalItem = when {
+                        conflict != null -> when (conflict.resolution) {
+                            MergeResolution.ADD -> existingItem.copy(
+                                amountCount = existingItem.amountCount + (newItem?.amountCount ?: 0.0),
+                                price = newItem?.price ?: existingItem.price
+                            )
+                            MergeResolution.KEEP_EXISTING -> existingItem
+                            MergeResolution.USE_NEW -> newItem ?: existingItem
+                            MergeResolution.UNDECIDED -> existingItem
+                        }
+                        newItem != null -> newItem
+                        else -> existingItem
+                    }
+                    mergedItems.add(finalItem)
+                    processedProductIds.add(existingItem.productId)
+                }
+
+                for (newItem in newItems) {
+                    if (newItem.productId !in processedProductIds) {
+                        mergedItems.add(newItem)
+                    }
+                }
+
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId == null) {
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isMerging = false,
+                                    orderError = "Benutzer nicht angemeldet"
+                                )
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                val buyerProfile = try {
+                    profileRepository.getBuyerProfile().getOrNull() ?: BuyerProfile(
+                        id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false
+                    )
+                } catch (e: Exception) {
+                    BuyerProfile(id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false)
+                }
+
+                val mergedOrder = existingOrder.copy(
+                    buyerProfile = buyerProfile,
+                    articles = mergedItems
+                )
+
+                val result = orderRepository.updateOrder(mergedOrder)
+                result.onSuccess {
+                    val dateKey = basketScreenFormatDateKey(existingOrder.pickUpDate)
+                    basketRepository.loadOrderItems(mergedItems, existingOrder.id, dateKey)
+
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    showMergeDialog = false,
+                                    existingOrderForMerge = null,
+                                    mergeConflicts = emptyList(),
+                                    isMerging = false,
+                                    orderSuccess = true,
+                                    orderId = existingOrder.id,
+                                    orderDate = dateKey,
+                                    pickupDate = existingOrder.pickUpDate,
+                                    createdDate = existingOrder.createdDate,
+                                    items = mergedItems,
+                                    total = mergedItems.sumOf { it.price * it.amountCount },
+                                    originalOrderItems = mergedItems,
+                                    hasChanges = false
+                                )
+                            )
+                        )
+                    }
+                }.onFailure { error ->
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isMerging = false,
+                                    orderError = "Zusammenführung fehlgeschlagen: ${error.message}"
+                                )
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            basketScreen = current.screens.basketScreen.copy(
+                                isMerging = false,
+                                orderError = "Ein Fehler ist aufgetreten: ${e.message}"
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun basketScreenFormatDateKey(timestamp: Long): String {
+        val instant = Instant.fromEpochMilliseconds(timestamp)
+        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val year = dateTime.year
+        val month = dateTime.monthNumber.toString().padStart(2, '0')
+        val day = dateTime.dayOfMonth.toString().padStart(2, '0')
+        return "$year$month$day"
+    }
+
+    /**
+     * Format timestamp to readable date string for BasketScreen
+     */
+    fun basketScreenFormatDate(timestamp: Long): String {
+        val instant = Instant.fromEpochMilliseconds(timestamp)
+        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val day = dateTime.dayOfMonth.toString().padStart(2, '0')
+        val month = dateTime.monthNumber.toString().padStart(2, '0')
+        val year = dateTime.year
+        return "$day.$month.$year"
+    }
+
+    /**
+     * Check if order can be edited based on pickup date
+     */
+    fun basketScreenCanEditOrder(pickupDate: Long): Boolean {
+        return OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
+    }
+
+    /**
+     * Get days until pickup for BasketScreen
+     */
+    fun basketScreenGetDaysUntilPickup(pickupDate: Long): Long {
+        val diff = pickupDate - Clock.System.now().toEpochMilliseconds()
+        return diff / (24 * 60 * 60 * 1000)
     }
 }

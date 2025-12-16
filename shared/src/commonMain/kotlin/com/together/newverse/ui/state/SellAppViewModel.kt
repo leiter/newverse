@@ -99,6 +99,7 @@ class SellAppViewModel(
             is UnifiedSearchAction -> { /* Not used in seller app */ }
             is UnifiedFilterAction -> { /* Not used in seller app */ }
             is UnifiedMainScreenAction -> { /* Not used in seller app - seller uses OverviewScreen */ }
+            is UnifiedBasketScreenAction -> { /* Not used in seller app */ }
         }
     }
 
@@ -121,6 +122,7 @@ class SellAppViewModel(
             is UnifiedUserAction.Logout -> logout()
             is UnifiedUserAction.Register -> register(action.email, action.password, action.name)
             is UnifiedUserAction.UpdateProfile -> { /* TODO */ }
+            is UnifiedUserAction.RequestPasswordReset -> sendPasswordResetEmail(action.email)
         }
     }
 
@@ -154,6 +156,8 @@ class SellAppViewModel(
             is UnifiedUiAction.ShowBottomSheet -> { /* TODO */ }
             is UnifiedUiAction.HideBottomSheet -> { /* TODO */ }
             is UnifiedUiAction.SetRefreshing -> setRefreshing(action.isRefreshing)
+            is UnifiedUiAction.ShowPasswordResetDialog -> showPasswordResetDialog()
+            is UnifiedUiAction.HidePasswordResetDialog -> hidePasswordResetDialog()
         }
     }
 
@@ -583,6 +587,98 @@ class SellAppViewModel(
         _state.update { current ->
             current.copy(
                 common = current.common.copy(triggerTwitterSignIn = true)
+            )
+        }
+    }
+
+    /**
+     * Send password reset email to the specified email address.
+     */
+    private fun sendPasswordResetEmail(email: String) {
+        viewModelScope.launch {
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        auth = current.screens.auth.copy(
+                            isLoading = true,
+                            error = null,
+                            passwordResetSent = false
+                        )
+                    )
+                )
+            }
+
+            authRepository.sendPasswordResetEmail(email)
+                .onSuccess {
+                    println("✅ Password reset email sent to $email")
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                auth = current.screens.auth.copy(
+                                    isLoading = false,
+                                    passwordResetSent = true,
+                                    showPasswordResetDialog = false,
+                                    error = null
+                                )
+                            )
+                        )
+                    }
+                    showSnackbar(getString(Res.string.password_reset_sent), SnackbarType.SUCCESS)
+                }
+                .onFailure { error ->
+                    println("❌ Password reset failed: ${error.message}")
+                    val errorMessage = when {
+                        error.message?.contains("No account found", true) == true ->
+                            getString(Res.string.error_no_account)
+                        error.message?.contains("Invalid email", true) == true ->
+                            getString(Res.string.error_email_invalid)
+                        else -> error.message ?: getString(Res.string.password_reset_failed)
+                    }
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                auth = current.screens.auth.copy(
+                                    isLoading = false,
+                                    error = errorMessage,
+                                    passwordResetSent = false
+                                )
+                            )
+                        )
+                    }
+                    showSnackbar(errorMessage, SnackbarType.ERROR)
+                }
+        }
+    }
+
+    /**
+     * Show password reset dialog
+     */
+    private fun showPasswordResetDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    auth = current.screens.auth.copy(
+                        showPasswordResetDialog = true,
+                        passwordResetSent = false,
+                        error = null
+                    )
+                )
+            )
+        }
+    }
+
+    /**
+     * Hide password reset dialog
+     */
+    private fun hidePasswordResetDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    auth = current.screens.auth.copy(
+                        showPasswordResetDialog = false,
+                        error = null
+                    )
+                )
             )
         }
     }

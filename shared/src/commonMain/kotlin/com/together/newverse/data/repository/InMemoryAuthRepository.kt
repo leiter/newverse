@@ -224,6 +224,28 @@ class InMemoryAuthRepository : AuthRepository {
         return Result.failure(Exception("Twitter Sign-In is only available with Firebase authentication"))
     }
 
+    override suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
+        return try {
+            // Simulate network delay
+            delay(500)
+
+            if (email.isBlank()) {
+                return Result.failure(Exception("Email cannot be empty"))
+            }
+
+            // Check if user exists
+            if (!users.containsKey(email)) {
+                return Result.failure(Exception("No account found with this email"))
+            }
+
+            // In mock implementation, just simulate success
+            println("📧 InMemoryAuthRepository: Password reset email sent to $email (simulated)")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(Exception("Failed to send reset email: ${e.message}"))
+        }
+    }
+
     /**
      * Internal data class for storing user credentials
      */

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -43,6 +44,7 @@ import com.together.newverse.ui.state.UnifiedNavigationAction
 import com.together.newverse.ui.state.UnifiedUserAction
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_leaf_icon
+import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_continue_guest
 import newverse.shared.generated.resources.button_sign_in
 import newverse.shared.generated.resources.divider_or
@@ -64,6 +66,9 @@ import newverse.shared.generated.resources.login_subtitle
 import newverse.shared.generated.resources.login_success
 import newverse.shared.generated.resources.login_title
 import newverse.shared.generated.resources.login_twitter_icon
+import newverse.shared.generated.resources.password_reset_description
+import newverse.shared.generated.resources.password_reset_send
+import newverse.shared.generated.resources.password_reset_title
 import newverse.shared.generated.resources.toggle_hide
 import newverse.shared.generated.resources.toggle_show
 import org.jetbrains.compose.resources.stringResource
@@ -72,13 +77,17 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun LoginScreen(
     authState: AuthScreenState = AuthScreenState(),
-    onAction: (UnifiedAppAction) -> Unit = {}
+    onAction: (UnifiedAppAction) -> Unit = {},
+    onShowPasswordResetDialog: () -> Unit = {},
+    onHidePasswordResetDialog: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+    var resetEmail by remember { mutableStateOf("") }
+    var resetEmailError by remember { mutableStateOf<String?>(null) }
 
     val errorEmailRequired = stringResource(Res.string.error_email_required)
     val errorEmailInvalid = stringResource(Res.string.error_email_invalid)
@@ -187,7 +196,9 @@ fun LoginScreen(
         // Forgot Password Link
         TextButton(
             onClick = {
-                // TODO: Navigate to password reset
+                resetEmail = email // Pre-fill with entered email
+                resetEmailError = null
+                onShowPasswordResetDialog()
             },
             modifier = Modifier
                 .align(Alignment.End)
@@ -363,6 +374,77 @@ fun LoginScreen(
                 )
             }
         }
+    }
+
+    // Password Reset Dialog
+    if (authState.showPasswordResetDialog) {
+        AlertDialog(
+            onDismissRequest = { onHidePasswordResetDialog() },
+            title = {
+                Text(
+                    text = stringResource(Res.string.password_reset_title),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(Res.string.password_reset_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    OutlinedTextField(
+                        value = resetEmail,
+                        onValueChange = {
+                            resetEmail = it
+                            resetEmailError = null
+                        },
+                        label = { Text(stringResource(Res.string.label_email)) },
+                        placeholder = { Text(stringResource(Res.string.login_email_placeholder)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !authState.isLoading,
+                        isError = resetEmailError != null,
+                        supportingText = resetEmailError?.let { { Text(it) } },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // Validate email
+                        resetEmailError = when {
+                            resetEmail.isBlank() -> errorEmailRequired
+                            !resetEmail.contains("@") -> errorEmailInvalid
+                            else -> null
+                        }
+                        if (resetEmailError == null) {
+                            onAction(UnifiedUserAction.RequestPasswordReset(resetEmail))
+                        }
+                    },
+                    enabled = !authState.isLoading
+                ) {
+                    if (authState.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(stringResource(Res.string.password_reset_send))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { onHidePasswordResetDialog() },
+                    enabled = !authState.isLoading
+                ) {
+                    Text(stringResource(Res.string.button_cancel))
+                }
+            }
+        )
     }
 }
 

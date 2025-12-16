@@ -76,4 +76,11 @@ interface AuthRepository {
      * @return User ID or error
      */
     suspend fun signInWithTwitter(token: String, secret: String): Result<String>
+
+    /**
+     * Send password reset email
+     * @param email User's email address
+     * @return Success or error
+     */
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit>
 }

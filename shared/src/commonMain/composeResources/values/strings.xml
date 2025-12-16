@@ -116,6 +116,11 @@
     <string name="login_email_placeholder">ihre@email.de</string>
     <string name="login_password_placeholder">Geben Sie Ihr Passwort ein</string>
     <string name="login_forgot_password">Passwort vergessen?</string>
+    <string name="password_reset_title">Passwort zurücksetzen</string>
+    <string name="password_reset_description">Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.</string>
+    <string name="password_reset_send">Link senden</string>
+    <string name="password_reset_sent">E-Mail zum Zurücksetzen des Passworts wurde gesendet</string>
+    <string name="password_reset_failed">Fehler beim Senden der E-Mail</string>
     <string name="login_sign_in_google">Mit Google anmelden</string>
     <string name="login_sign_in_twitter">Mit Twitter anmelden</string>
     <string name="login_google_icon">G</string>

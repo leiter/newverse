@@ -4,7 +4,6 @@ import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
-import com.together.newverse.ui.screens.buy.BasketViewModel
 import com.together.newverse.ui.state.BuyAppViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -75,7 +74,6 @@ import kotlinx.coroutines.launch
  */
 class BuyerStoriesRunner(
     private val buyAppViewModel: BuyAppViewModel,
-    private val basketViewModel: BasketViewModel,
     private val articleRepository: ArticleRepository,
     private val basketRepository: BasketRepository,
     private val orderRepository: OrderRepository,
@@ -108,7 +106,6 @@ class BuyerStoriesRunner(
             BuyerStory.STORY_3_CHECKOUT -> {
                 runBuyerStory3_CheckoutNewOrder(
                     buyAppViewModel,
-                    basketViewModel,
                     basketRepository,
                     orderRepository
                 )
@@ -117,7 +114,6 @@ class BuyerStoriesRunner(
             BuyerStory.STORY_4_EDIT_ORDER -> {
                 runBuyerStory4_EditExistingOrder(
                     buyAppViewModel,
-                    basketViewModel,
                     basketRepository,
                     orderRepository
                 )
@@ -126,7 +122,6 @@ class BuyerStoriesRunner(
             BuyerStory.STORY_5_COMPLETE_JOURNEY -> {
                 runBuyerStory5_CompleteBuyerJourney(
                     buyAppViewModel,
-                    basketViewModel,
                     articleRepository,
                     basketRepository,
                     orderRepository,
@@ -243,7 +238,6 @@ enum class BuyerStory(val displayName: String, val description: String) {
  */
 suspend fun BuyAppViewModel.runBuyerStory(
     story: BuyerStory,
-    basketViewModel: BasketViewModel,
     articleRepository: ArticleRepository,
     basketRepository: BasketRepository,
     orderRepository: OrderRepository,
@@ -251,7 +245,6 @@ suspend fun BuyAppViewModel.runBuyerStory(
 ) {
     val runner = BuyerStoriesRunner(
         buyAppViewModel = this,
-        basketViewModel = basketViewModel,
         articleRepository = articleRepository,
         basketRepository = basketRepository,
         orderRepository = orderRepository,

@@ -4,9 +4,8 @@ import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
-import com.together.newverse.ui.screens.buy.BasketAction
-import com.together.newverse.ui.screens.buy.BasketViewModel
 import com.together.newverse.ui.state.BuyAppViewModel
+import com.together.newverse.ui.state.UnifiedBasketScreenAction
 import com.together.newverse.ui.state.UnifiedMainScreenAction
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -45,7 +44,6 @@ import java.util.*
  */
 suspend fun runBuyerStory5_CompleteBuyerJourney(
     buyAppViewModel: BuyAppViewModel,
-    basketViewModel: BasketViewModel,
     articleRepository: ArticleRepository,
     basketRepository: BasketRepository,
     orderRepository: OrderRepository,
@@ -223,7 +221,7 @@ suspend fun runBuyerStory5_CompleteBuyerJourney(
 
     delay(1000)
 
-    val basketState = basketViewModel.state.value
+    val basketState = buyAppViewModel.state.value.screens.basketScreen
     println("\n[${formatElapsedTime(startTime)}] Basket screen loaded")
     println("   Items: ${basketState.items.size}")
     println("   Total: ${String.format("%.2f", basketState.total)}€")
@@ -233,10 +231,10 @@ suspend fun runBuyerStory5_CompleteBuyerJourney(
     println("-".repeat(80))
 
     println("\n[${formatElapsedTime(startTime)}] User: Views available pickup dates")
-    basketViewModel.onAction(BasketAction.LoadAvailableDates)
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.LoadAvailableDates)
     delay(1500)
 
-    val datesState = basketViewModel.state.value
+    val datesState = buyAppViewModel.state.value.screens.basketScreen
     println("   Available Dates: ${datesState.availablePickupDates.size}")
 
     if (datesState.availablePickupDates.isEmpty()) {
@@ -250,14 +248,14 @@ suspend fun runBuyerStory5_CompleteBuyerJourney(
     println("\n[${formatElapsedTime(startTime)}] User: Selects pickup date")
     println("   Date: $dateStr")
 
-    basketViewModel.onAction(BasketAction.SelectPickupDate(selectedDate))
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.SelectPickupDate(selectedDate))
     delay(1000)
 
     // ===== PHASE 10: Complete Checkout =====
     println("\n\n[PHASE 10] Complete Checkout")
     println("-".repeat(80))
 
-    val preCheckoutState = basketViewModel.state.value
+    val preCheckoutState = buyAppViewModel.state.value.screens.basketScreen
 
     println("\n[${formatElapsedTime(startTime)}] User: Reviews final order")
     println("   Items: ${preCheckoutState.items.size}")
@@ -267,11 +265,11 @@ suspend fun runBuyerStory5_CompleteBuyerJourney(
     delay(1500) // User takes a moment
 
     println("\n[${formatElapsedTime(startTime)}] User: Taps 'Bestellung aufgeben' (Place Order)")
-    basketViewModel.onAction(BasketAction.Checkout)
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.Checkout)
 
     delay(4000) // Wait for order to process
 
-    val afterCheckoutState = basketViewModel.state.value
+    val afterCheckoutState = buyAppViewModel.state.value.screens.basketScreen
     println("\n[${formatElapsedTime(startTime)}] Order submitted!")
     println("   Success: ${afterCheckoutState.orderError == null}")
     println("   Basket Cleared: ${afterCheckoutState.items.isEmpty()}")
@@ -355,10 +353,10 @@ suspend fun runBuyerStory5_CompleteBuyerJourney(
     basketRepository.clearBasket()
     delay(500)
 
-    basketViewModel.onAction(com.together.newverse.ui.screens.buy.BasketAction.LoadOrder(orderId, dateKey))
+    buyAppViewModel.dispatch(UnifiedBasketScreenAction.LoadOrder(orderId, dateKey))
     delay(3000)
 
-    val loadedOrderState = basketViewModel.state.value
+    val loadedOrderState = buyAppViewModel.state.value.screens.basketScreen
     println("\n[${formatElapsedTime(startTime)}] Order loaded for editing")
     println("   Items: ${loadedOrderState.items.size}")
     println("   Has Changes: ${loadedOrderState.hasChanges}")
@@ -374,14 +372,14 @@ suspend fun runBuyerStory5_CompleteBuyerJourney(
         buyAppViewModel.dispatch(UnifiedMainScreenAction.AddToCart)
         delay(1500)
 
-        val modifiedState = basketViewModel.state.value
+        val modifiedState = buyAppViewModel.state.value.screens.basketScreen
         println("   ✓ Item added. Has Changes: ${modifiedState.hasChanges}")
 
         println("\n[${formatElapsedTime(startTime)}] User: Saves updated order")
-        basketViewModel.onAction(BasketAction.UpdateOrder)
+        buyAppViewModel.dispatch(UnifiedBasketScreenAction.UpdateOrder)
         delay(3000)
 
-        val afterUpdateState = basketViewModel.state.value
+        val afterUpdateState = buyAppViewModel.state.value.screens.basketScreen
         println("   Update Success: ${afterUpdateState.orderError == null}")
     }
 

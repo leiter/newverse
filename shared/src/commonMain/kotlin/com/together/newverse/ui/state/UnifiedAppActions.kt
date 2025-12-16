@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.navigation.NavRoutes
 
 /**
@@ -25,6 +26,7 @@ sealed interface UnifiedUserAction : UnifiedAppAction {
     data object Logout : UnifiedUserAction
     data class Register(val email: String, val password: String, val name: String) : UnifiedUserAction
     data class UpdateProfile(val profile: UserProfile) : UnifiedUserAction
+    data class RequestPasswordReset(val email: String) : UnifiedUserAction
 }
 
 // ===== Product Actions =====
@@ -65,6 +67,8 @@ sealed interface UnifiedUiAction : UnifiedAppAction {
     data class ShowBottomSheet(val sheet: BottomSheetState) : UnifiedUiAction
     data object HideBottomSheet : UnifiedUiAction
     data class SetRefreshing(val isRefreshing: Boolean) : UnifiedUiAction
+    data object ShowPasswordResetDialog : UnifiedUiAction
+    data object HidePasswordResetDialog : UnifiedUiAction
 }
 
 // ===== Profile Actions =====
@@ -111,6 +115,41 @@ sealed interface UnifiedMainScreenAction : UnifiedAppAction {
     data object Refresh : UnifiedMainScreenAction
     data object DismissNewOrderSnackbar : UnifiedMainScreenAction
     data object StartNewOrder : UnifiedMainScreenAction
+}
+
+// ===== Basket Screen Actions (full checkout/order workflow) =====
+sealed interface UnifiedBasketScreenAction : UnifiedAppAction {
+    // Item management
+    data class AddItem(val item: OrderedProduct) : UnifiedBasketScreenAction
+    data class RemoveItem(val productId: String) : UnifiedBasketScreenAction
+    data class UpdateItemQuantity(val productId: String, val newQuantity: Double) : UnifiedBasketScreenAction
+    data object ClearBasket : UnifiedBasketScreenAction
+
+    // Checkout flow
+    data object Checkout : UnifiedBasketScreenAction
+    data class LoadOrder(val orderId: String, val date: String) : UnifiedBasketScreenAction
+    data object UpdateOrder : UnifiedBasketScreenAction
+    data object EnableEditing : UnifiedBasketScreenAction
+    data object ResetOrderState : UnifiedBasketScreenAction
+
+    // Pickup date selection
+    data object ShowDatePicker : UnifiedBasketScreenAction
+    data object HideDatePicker : UnifiedBasketScreenAction
+    data class SelectPickupDate(val date: Long) : UnifiedBasketScreenAction
+    data object LoadAvailableDates : UnifiedBasketScreenAction
+
+    // Cancel order
+    data object CancelOrder : UnifiedBasketScreenAction
+
+    // Reorder with new date
+    data object ShowReorderDatePicker : UnifiedBasketScreenAction
+    data object HideReorderDatePicker : UnifiedBasketScreenAction
+    data class ReorderWithNewDate(val newPickupDate: Long, val currentArticles: List<Article>) : UnifiedBasketScreenAction
+
+    // Merge dialog actions
+    data object HideMergeDialog : UnifiedBasketScreenAction
+    data class ResolveMergeConflict(val productId: String, val resolution: MergeResolution) : UnifiedBasketScreenAction
+    data object ConfirmMerge : UnifiedBasketScreenAction
 }
 
 /**

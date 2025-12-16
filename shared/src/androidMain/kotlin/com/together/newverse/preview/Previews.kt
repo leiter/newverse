@@ -74,7 +74,7 @@ fun BasketScreenEmptyPreview() {
     NewverseTheme {
         Surface {
             com.together.newverse.ui.screens.buy.BasketContent(
-                state = com.together.newverse.ui.screens.buy.BasketScreenState(
+                state = com.together.newverse.ui.state.BasketScreenState(
                     items = emptyList(),
                     total = 0.0
                 ),
@@ -91,7 +91,7 @@ fun BasketScreenWithItemsPreview() {
     NewverseTheme {
         Surface {
             com.together.newverse.ui.screens.buy.BasketContent(
-                state = com.together.newverse.ui.screens.buy.BasketScreenState(
+                state = com.together.newverse.ui.state.BasketScreenState(
                     items = PreviewData.sampleOrderedProducts.take(3),
                     total = 12.50
                 ),
@@ -108,7 +108,7 @@ fun BasketScreenCheckingOutPreview() {
     NewverseTheme {
         Surface {
             com.together.newverse.ui.screens.buy.BasketContent(
-                state = com.together.newverse.ui.screens.buy.BasketScreenState(
+                state = com.together.newverse.ui.state.BasketScreenState(
                     items = PreviewData.sampleOrderedProducts.take(2),
                     total = 8.75,
                     isCheckingOut = true

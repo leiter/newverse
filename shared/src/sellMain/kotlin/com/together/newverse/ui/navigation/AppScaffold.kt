@@ -129,7 +129,9 @@ fun AppScaffold(
     if (state.common.requiresLogin) {
         com.together.newverse.ui.screens.common.ForcedLoginScreen(
             authState = state.screens.auth,
-            onAction = { action -> viewModel.dispatch(action) }
+            onAction = { action -> viewModel.dispatch(action) },
+            onShowPasswordResetDialog = { viewModel.dispatch(UnifiedUiAction.ShowPasswordResetDialog) },
+            onHidePasswordResetDialog = { viewModel.dispatch(UnifiedUiAction.HidePasswordResetDialog) }
         )
         return
     }

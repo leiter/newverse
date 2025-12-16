@@ -232,6 +232,32 @@ class GitLiveAuthRepository : AuthRepository {
         }
     }
 
+    /**
+     * Send password reset email.
+     */
+    override suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
+        return try {
+            if (email.isBlank()) {
+                return Result.failure(Exception("Email cannot be empty"))
+            }
+
+            println("🔐 GitLiveAuthRepository.sendPasswordResetEmail: Sending reset email to $email")
+
+            auth.sendPasswordResetEmail(email)
+
+            println("✅ GitLiveAuthRepository.sendPasswordResetEmail: Success")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val errorMessage = when {
+                e.message?.contains("USER_NOT_FOUND") == true -> "No account found with this email"
+                e.message?.contains("INVALID_EMAIL") == true -> "Invalid email format"
+                else -> e.message ?: "Failed to send reset email"
+            }
+            println("❌ GitLiveAuthRepository.sendPasswordResetEmail: Error - $errorMessage")
+            Result.failure(Exception(errorMessage))
+        }
+    }
+
     // Helper functions
 
     /**

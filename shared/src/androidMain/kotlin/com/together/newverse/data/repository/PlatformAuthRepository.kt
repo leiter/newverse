@@ -57,4 +57,8 @@ class PlatformAuthRepository : AuthRepository {
     override suspend fun signInWithTwitter(token: String, secret: String): Result<String> {
         return actualRepository.signInWithTwitter(token, secret)
     }
+
+    override suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
+        return actualRepository.sendPasswordResetEmail(email)
+    }
 }
