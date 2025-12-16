@@ -282,6 +282,44 @@
     <string name="dialog_save_title">Änderungen speichern?</string>
     <string name="dialog_save_message">Ihre Profiländerungen werden gespeichert.</string>
 
+    <!-- Account Status -->
+    <string name="account_status_title">Kontostatus</string>
+    <string name="account_status_guest">Angemeldet als Gast</string>
+    <string name="account_status_guest_warning">Daten werden nicht dauerhaft gespeichert</string>
+    <string name="account_status_authenticated">Angemeldet mit %s</string>
+
+    <!-- Account Actions -->
+    <string name="action_link_google">Mit Google verknüpfen</string>
+    <string name="action_link_email">Mit E-Mail verknüpfen</string>
+    <string name="action_logout">Abmelden</string>
+    <string name="action_delete_account">Konto löschen</string>
+
+    <!-- Logout Warning Dialog -->
+    <string name="logout_warning_title">Daten gehen verloren!</string>
+    <string name="logout_warning_message">Als Gast werden bei der Abmeldung folgende Daten gelöscht:</string>
+    <string name="logout_warning_item_favorites">Favoriten</string>
+    <string name="logout_warning_item_profile">Profilangaben</string>
+    <string name="logout_warning_item_basket">Warenkorb</string>
+    <string name="logout_warning_orders_preserved">Bestellungen bleiben erhalten.</string>
+    <string name="logout_warning_prompt">Möchten Sie stattdessen ein Konto erstellen, um Ihre Daten zu behalten?</string>
+    <string name="logout_warning_confirm">Trotzdem abmelden</string>
+    <string name="logout_warning_link">Konto verknüpfen</string>
+
+    <!-- Link Account Dialog -->
+    <string name="link_account_title">Konto verknüpfen</string>
+    <string name="link_account_message">Verknüpfen Sie Ihr Gastkonto mit einem permanenten Konto:</string>
+    <string name="link_account_google">Mit Google fortfahren</string>
+    <string name="link_account_email">Mit E-Mail registrieren</string>
+
+    <!-- Delete Account Dialog -->
+    <string name="delete_account_title">Konto löschen?</string>
+    <string name="delete_account_message">Ihr Konto und alle zugehörigen Daten werden unwiderruflich gelöscht. Bestellungen bleiben für den Verkäufer erhalten.</string>
+    <string name="delete_account_confirm">Konto löschen</string>
+
+    <!-- Guest Logout Success -->
+    <string name="logout_guest_success">Abgemeldet. Alle Gastdaten wurden gelöscht.</string>
+    <string name="logout_error">Fehler beim Abmelden: %s</string>
+
     <!-- ========================================= -->
     <!-- ORDERS SCREEN (SELL MODULE) -->
     <!-- ========================================= -->

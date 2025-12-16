@@ -48,4 +48,12 @@ interface ProfileRepository {
      * @return Cleanup result with details
      */
     suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<Boolean>
+
+    /**
+     * Delete buyer profile for a specific user
+     * Used when guest user logs out to clean up their data
+     * @param userId The user ID whose profile should be deleted
+     * @return Success or failure result
+     */
+    suspend fun deleteBuyerProfile(userId: String): Result<Unit>
 }

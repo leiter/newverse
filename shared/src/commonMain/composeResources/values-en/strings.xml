@@ -282,6 +282,44 @@
     <string name="dialog_save_title">Save changes?</string>
     <string name="dialog_save_message">Your profile changes will be saved.</string>
 
+    <!-- Account Status -->
+    <string name="account_status_title">Account Status</string>
+    <string name="account_status_guest">Signed in as Guest</string>
+    <string name="account_status_guest_warning">Data is not permanently saved</string>
+    <string name="account_status_authenticated">Signed in with %s</string>
+
+    <!-- Account Actions -->
+    <string name="action_link_google">Link with Google</string>
+    <string name="action_link_email">Link with Email</string>
+    <string name="action_logout">Sign Out</string>
+    <string name="action_delete_account">Delete Account</string>
+
+    <!-- Logout Warning Dialog -->
+    <string name="logout_warning_title">Data will be lost!</string>
+    <string name="logout_warning_message">As a guest, the following data will be deleted when you sign out:</string>
+    <string name="logout_warning_item_favorites">Favorites</string>
+    <string name="logout_warning_item_profile">Profile information</string>
+    <string name="logout_warning_item_basket">Shopping basket</string>
+    <string name="logout_warning_orders_preserved">Orders will be preserved.</string>
+    <string name="logout_warning_prompt">Would you like to create an account instead to keep your data?</string>
+    <string name="logout_warning_confirm">Sign out anyway</string>
+    <string name="logout_warning_link">Link Account</string>
+
+    <!-- Link Account Dialog -->
+    <string name="link_account_title">Link Account</string>
+    <string name="link_account_message">Link your guest account with a permanent account:</string>
+    <string name="link_account_google">Continue with Google</string>
+    <string name="link_account_email">Register with Email</string>
+
+    <!-- Delete Account Dialog -->
+    <string name="delete_account_title">Delete Account?</string>
+    <string name="delete_account_message">Your account and all associated data will be permanently deleted. Orders will be preserved for the seller.</string>
+    <string name="delete_account_confirm">Delete Account</string>
+
+    <!-- Guest Logout Success -->
+    <string name="logout_guest_success">Signed out. All guest data has been deleted.</string>
+    <string name="logout_error">Error signing out: %s</string>
+
     <!-- ========================================= -->
     <!-- ORDERS SCREEN (SELL MODULE) -->
     <!-- ========================================= -->

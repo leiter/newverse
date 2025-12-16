@@ -100,6 +100,7 @@ class SellAppViewModel(
             is UnifiedFilterAction -> { /* Not used in seller app */ }
             is UnifiedMainScreenAction -> { /* Not used in seller app - seller uses OverviewScreen */ }
             is UnifiedBasketScreenAction -> { /* Not used in seller app */ }
+            is UnifiedAccountAction -> { /* Not used in seller app - seller uses email/password auth */ }
         }
     }
 

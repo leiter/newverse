@@ -42,4 +42,8 @@ class PlatformProfileRepository(
     override suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<Boolean> {
         return actualRepository.clearUserData(sellerId, buyerProfile)
     }
+
+    override suspend fun deleteBuyerProfile(userId: String): Result<Unit> {
+        return actualRepository.deleteBuyerProfile(userId)
+    }
 }

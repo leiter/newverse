@@ -337,6 +337,7 @@ fun AppScaffold(
 /**
  * Format order date key (yyyyMMdd) into a readable format for subtitle
  * e.g., "20251127" -> "Do. 27.11."
+ * Uses kotlinx.datetime which works on all Android API levels.
  */
 private fun formatOrderDateForSubtitle(dateKey: String): String {
     return try {
@@ -346,16 +347,24 @@ private fun formatOrderDateForSubtitle(dateKey: String): String {
         val month = dateKey.substring(4, 6).toInt()
         val day = dateKey.substring(6, 8).toInt()
 
-        // Create LocalDate to get day of week
-        val localDate = kotlinx.datetime.LocalDate(year, month, day)
-        val dayOfWeek = when (localDate.dayOfWeek) {
-            kotlinx.datetime.DayOfWeek.MONDAY -> "Mo"
-            kotlinx.datetime.DayOfWeek.TUESDAY -> "Di"
-            kotlinx.datetime.DayOfWeek.WEDNESDAY -> "Mi"
-            kotlinx.datetime.DayOfWeek.THURSDAY -> "Do"
-            kotlinx.datetime.DayOfWeek.FRIDAY -> "Fr"
-            kotlinx.datetime.DayOfWeek.SATURDAY -> "Sa"
-            kotlinx.datetime.DayOfWeek.SUNDAY -> "So"
+        // Calculate day of week manually (no external library needed)
+        // Using Zeller's congruence algorithm
+        val adjustedMonth = if (month < 3) month + 12 else month
+        val adjustedYear = if (month < 3) year - 1 else year
+        val q = day
+        val k = adjustedYear % 100
+        val j = adjustedYear / 100
+        val h = (q + (13 * (adjustedMonth + 1)) / 5 + k + k / 4 + j / 4 - 2 * j) % 7
+        val dayOfWeekIndex = ((h + 5) % 7) // 0 = Monday, 6 = Sunday
+
+        val dayOfWeek = when (dayOfWeekIndex) {
+            0 -> "Mo"
+            1 -> "Di"
+            2 -> "Mi"
+            3 -> "Do"
+            4 -> "Fr"
+            5 -> "Sa"
+            6 -> "So"
             else -> ""
         }
 

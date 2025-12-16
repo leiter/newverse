@@ -188,6 +188,25 @@ class GitLiveProfileRepository(
         }
     }
 
+    override suspend fun deleteBuyerProfile(userId: String): Result<Unit> {
+        return try {
+            println("🔐 GitLiveProfileRepository.deleteBuyerProfile: START - userId=$userId")
+
+            // Delete from Firebase
+            buyersRef.child(userId).removeValue()
+
+            // Clear local cache
+            _buyerProfile.value = null
+
+            println("✅ GitLiveProfileRepository.deleteBuyerProfile: Success")
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.deleteBuyerProfile: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     // Helper functions to map Firebase data
 
     private fun mapSnapshotToBuyerProfile(userId: String, snapshot: DataSnapshot): BuyerProfile {

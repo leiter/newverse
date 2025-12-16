@@ -74,6 +74,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.screens.buy.components.LinkAccountDialog
+import com.together.newverse.ui.screens.buy.components.LoginStatusCard
+import com.together.newverse.ui.screens.buy.components.LogoutWarningDialog
+import com.together.newverse.ui.state.AuthProvider
+import com.together.newverse.ui.state.UnifiedAccountAction
 import com.together.newverse.ui.state.UnifiedAppAction
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.action_favorites
@@ -116,7 +121,10 @@ import org.jetbrains.compose.resources.stringResource
 fun CustomerProfileScreenModern(
     state: com.together.newverse.ui.state.CustomerProfileScreenState,
     onAction: (UnifiedAppAction) -> Unit,
-    onNavigateToAbout: () -> Unit = {}
+    onNavigateToAbout: () -> Unit = {},
+    isAnonymous: Boolean = true,
+    authProvider: AuthProvider = AuthProvider.ANONYMOUS,
+    userEmail: String? = null
 ) {
     val defaultMarket = stringResource(Res.string.default_market)
     val profile = state.profile
@@ -134,6 +142,28 @@ fun CustomerProfileScreenModern(
     var showSaveDialog by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
+
+    // Logout Warning Dialog
+    if (state.showLogoutWarningDialog) {
+        LogoutWarningDialog(
+            onDismiss = { onAction(UnifiedAccountAction.DismissLogoutWarning) },
+            onLinkAccount = {
+                onAction(UnifiedAccountAction.DismissLogoutWarning)
+                onAction(UnifiedAccountAction.ShowLinkAccountDialog)
+            },
+            onConfirmLogout = { onAction(UnifiedAccountAction.ConfirmGuestLogout) }
+        )
+    }
+
+    // Link Account Dialog
+    if (state.showLinkAccountDialog) {
+        LinkAccountDialog(
+            onDismiss = { onAction(UnifiedAccountAction.DismissLinkAccountDialog) },
+            onLinkWithGoogle = { onAction(UnifiedAccountAction.LinkWithGoogle) },
+            onLinkWithEmail = { /* Navigate to email registration */ },
+            isLinking = state.isLinkingAccount
+        )
+    }
 
     // Load profile when screen is first displayed
     LaunchedEffect(Unit) {
@@ -235,6 +265,24 @@ fun CustomerProfileScreenModern(
 
                     // Membership Card - temporarily hidden
                     // MembershipCard()
+
+                    // Login Status Card - shows guest warning or authenticated status
+                    LoginStatusCard(
+                        isAnonymous = isAnonymous,
+                        userEmail = userEmail ?: email.ifEmpty { null },
+                        authProvider = authProvider,
+                        isLinkingAccount = state.isLinkingAccount,
+                        onLinkWithGoogle = { onAction(UnifiedAccountAction.ShowLinkAccountDialog) },
+                        onLinkWithEmail = { onAction(UnifiedAccountAction.ShowLinkAccountDialog) },
+                        onLogout = {
+                            if (isAnonymous) {
+                                onAction(UnifiedAccountAction.ShowLogoutWarning)
+                            } else {
+                                onAction(com.together.newverse.ui.state.UnifiedUserAction.Logout)
+                            }
+                        },
+                        onDeleteAccount = { onAction(UnifiedAccountAction.ShowDeleteAccountDialog) }
+                    )
 
                     // Quick Actions
                     if (!isEditing) {

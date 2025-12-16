@@ -345,6 +345,9 @@ class BuyAppViewModel(
 
             // Basket Screen actions (checkout/order workflow)
             is UnifiedBasketScreenAction -> handleBasketScreenAction(action)
+
+            // Account management actions (guest linking, logout warning, etc.)
+            is UnifiedAccountAction -> handleAccountAction(action)
         }
     }
 
@@ -1315,6 +1318,296 @@ class BuyAppViewModel(
             current.copy(
                 common = current.common.copy(triggerGoogleSignOut = false)
             )
+        }
+    }
+
+    // ===== Account Management Handlers =====
+
+    private fun handleAccountAction(action: UnifiedAccountAction) {
+        when (action) {
+            is UnifiedAccountAction.ShowLogoutWarning -> showLogoutWarningDialog()
+            is UnifiedAccountAction.DismissLogoutWarning -> dismissLogoutWarningDialog()
+            is UnifiedAccountAction.ShowLinkAccountDialog -> showLinkAccountDialog()
+            is UnifiedAccountAction.DismissLinkAccountDialog -> dismissLinkAccountDialog()
+            is UnifiedAccountAction.ShowDeleteAccountDialog -> showDeleteAccountDialog()
+            is UnifiedAccountAction.DismissDeleteAccountDialog -> dismissDeleteAccountDialog()
+            is UnifiedAccountAction.ConfirmGuestLogout -> confirmGuestLogout()
+            is UnifiedAccountAction.LinkWithGoogle -> linkWithGoogle()
+            is UnifiedAccountAction.LinkWithEmail -> linkWithEmail(action.email, action.password)
+            is UnifiedAccountAction.ConfirmDeleteAccount -> confirmDeleteAccount()
+        }
+    }
+
+    private fun showLogoutWarningDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    customerProfile = current.screens.customerProfile.copy(
+                        showLogoutWarningDialog = true
+                    )
+                )
+            )
+        }
+    }
+
+    private fun dismissLogoutWarningDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    customerProfile = current.screens.customerProfile.copy(
+                        showLogoutWarningDialog = false
+                    )
+                )
+            )
+        }
+    }
+
+    private fun showLinkAccountDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    customerProfile = current.screens.customerProfile.copy(
+                        showLinkAccountDialog = true
+                    )
+                )
+            )
+        }
+    }
+
+    private fun dismissLinkAccountDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    customerProfile = current.screens.customerProfile.copy(
+                        showLinkAccountDialog = false
+                    )
+                )
+            )
+        }
+    }
+
+    private fun showDeleteAccountDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    customerProfile = current.screens.customerProfile.copy(
+                        showDeleteAccountDialog = true
+                    )
+                )
+            )
+        }
+    }
+
+    private fun dismissDeleteAccountDialog() {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    customerProfile = current.screens.customerProfile.copy(
+                        showDeleteAccountDialog = false
+                    )
+                )
+            )
+        }
+    }
+
+    /**
+     * Confirm guest logout with immediate data deletion.
+     * Deletes buyer profile from Firebase, clears local basket, signs out.
+     */
+    private fun confirmGuestLogout() {
+        viewModelScope.launch {
+            try {
+                // Close dialogs first
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            customerProfile = current.screens.customerProfile.copy(
+                                showLogoutWarningDialog = false,
+                                isLinkingAccount = true // Use as loading state
+                            )
+                        )
+                    )
+                }
+
+                val userId = getCurrentUserId()
+
+                // Step 1: Delete buyer profile from Firebase
+                if (userId != null) {
+                    profileRepository.deleteBuyerProfile(userId)
+                    println("🗑️ Deleted buyer profile for: $userId")
+                }
+
+                // Step 2: Clear local basket
+                basketRepository.clearBasket()
+                println("🗑️ Cleared local basket")
+
+                // Step 3: Delete Firebase Auth account (this also signs out)
+                authRepository.deleteAccount()
+                    .onSuccess { println("🔐 Deleted Firebase Auth account") }
+                    .onFailure { e -> println("⚠️ Failed to delete auth account: ${e.message}") }
+
+                // Step 4: Clear all local state
+                _state.update { current ->
+                    current.copy(
+                        common = current.common.copy(
+                            user = UserState.Guest,
+                            basket = BasketState(),
+                            triggerGoogleSignOut = true,
+                            requiresLogin = true // Show login screen
+                        ),
+                        screens = current.screens.copy(
+                            customerProfile = CustomerProfileScreenState(),
+                            mainScreen = current.screens.mainScreen.copy(
+                                favouriteArticles = emptyList()
+                            )
+                        )
+                    )
+                }
+
+                showSnackbar(getString(Res.string.logout_guest_success), SnackbarType.INFO)
+
+            } catch (e: Exception) {
+                println("❌ Error during guest logout: ${e.message}")
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            customerProfile = current.screens.customerProfile.copy(
+                                isLinkingAccount = false
+                            )
+                        )
+                    )
+                }
+                showSnackbar(getString(Res.string.logout_error, e.message ?: "Unknown error"), SnackbarType.ERROR)
+            }
+        }
+    }
+
+    /**
+     * Link anonymous account with Google credentials.
+     * Triggers platform-specific Google Sign-In for linking.
+     */
+    private fun linkWithGoogle() {
+        viewModelScope.launch {
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        customerProfile = current.screens.customerProfile.copy(
+                            isLinkingAccount = true,
+                            linkAccountError = null
+                        )
+                    )
+                )
+            }
+
+            // Trigger Google Sign-In for linking
+            // The platform layer will handle this and call back with the ID token
+            _state.update { current ->
+                current.copy(
+                    common = current.common.copy(triggerGoogleSignIn = true),
+                    screens = current.screens.copy(
+                        customerProfile = current.screens.customerProfile.copy(
+                            showLinkAccountDialog = false
+                        )
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * Link anonymous account with email/password credentials.
+     */
+    private fun linkWithEmail(email: String, password: String) {
+        viewModelScope.launch {
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        customerProfile = current.screens.customerProfile.copy(
+                            isLinkingAccount = true,
+                            linkAccountError = null
+                        )
+                    )
+                )
+            }
+
+            // TODO: Implement email/password linking via AuthRepository
+            // authRepository.linkWithEmail(email, password)
+            //     .onSuccess { ... }
+            //     .onFailure { ... }
+
+            // For now, just navigate to register screen
+            _state.update { current ->
+                current.copy(
+                    screens = current.screens.copy(
+                        customerProfile = current.screens.customerProfile.copy(
+                            isLinkingAccount = false,
+                            showLinkAccountDialog = false
+                        )
+                    )
+                )
+            }
+            navigateTo(NavRoutes.Register)
+        }
+    }
+
+    /**
+     * Confirm account deletion for authenticated users.
+     */
+    private fun confirmDeleteAccount() {
+        viewModelScope.launch {
+            try {
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            customerProfile = current.screens.customerProfile.copy(
+                                showDeleteAccountDialog = false
+                            )
+                        )
+                    )
+                }
+
+                val userId = getCurrentUserId()
+
+                // Delete profile data (orders are preserved for seller records)
+                if (userId != null) {
+                    profileRepository.deleteBuyerProfile(userId)
+                }
+
+                // Clear basket
+                basketRepository.clearBasket()
+
+                // Delete Firebase Auth account (this also signs out)
+                authRepository.deleteAccount()
+                    .onSuccess { println("🔐 Deleted Firebase Auth account for authenticated user") }
+                    .onFailure { e -> println("⚠️ Failed to delete auth account: ${e.message}") }
+
+                // Reset state
+                _state.update { current ->
+                    current.copy(
+                        common = current.common.copy(
+                            user = UserState.Guest,
+                            basket = BasketState(),
+                            triggerGoogleSignOut = true,
+                            requiresLogin = true
+                        ),
+                        screens = current.screens.copy(
+                            customerProfile = CustomerProfileScreenState()
+                        )
+                    )
+                }
+
+                showSnackbar("Konto gelöscht", SnackbarType.INFO)
+
+            } catch (e: Exception) {
+                showSnackbar("Fehler beim Löschen: ${e.message}", SnackbarType.ERROR)
+            }
+        }
+    }
+
+    private fun getCurrentUserId(): String? {
+        return when (val user = _state.value.common.user) {
+            is UserState.LoggedIn -> user.id
+            else -> null
         }
     }
 

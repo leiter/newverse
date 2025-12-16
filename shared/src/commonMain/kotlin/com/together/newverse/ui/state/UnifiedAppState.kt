@@ -596,8 +596,32 @@ data class CustomerProfileScreenState(
     override val isLoading: Boolean = false,
     override val error: ErrorState? = null,
     val profile: com.together.newverse.domain.model.BuyerProfile? = null,
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    // Auth management UI state
+    val showLogoutWarningDialog: Boolean = false,
+    val showLinkAccountDialog: Boolean = false,
+    val showDeleteAccountDialog: Boolean = false,
+    val isLinkingAccount: Boolean = false,
+    val linkAccountError: String? = null
 ) : ScreenState
+
+/**
+ * Authentication provider types
+ */
+enum class AuthProvider {
+    ANONYMOUS,
+    GOOGLE,
+    EMAIL,
+    TWITTER;
+
+    val displayName: String
+        get() = when (this) {
+            ANONYMOUS -> "Gast"
+            GOOGLE -> "Google"
+            EMAIL -> "E-Mail"
+            TWITTER -> "Twitter"
+        }
+}
 
 /**
  * Filter options for the product list on the main screen

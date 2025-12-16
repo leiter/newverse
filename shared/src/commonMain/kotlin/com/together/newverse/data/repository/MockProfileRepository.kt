@@ -80,4 +80,14 @@ class MockProfileRepository : ProfileRepository {
             Result.failure(e)
         }
     }
+
+    override suspend fun deleteBuyerProfile(userId: String): Result<Unit> {
+        return try {
+            delay(300)
+            _buyerProfile.value = null
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

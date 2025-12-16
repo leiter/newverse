@@ -29,6 +29,27 @@ sealed interface UnifiedUserAction : UnifiedAppAction {
     data class RequestPasswordReset(val email: String) : UnifiedUserAction
 }
 
+// ===== Account Management Actions (guest linking, logout warning, etc.) =====
+sealed interface UnifiedAccountAction : UnifiedAppAction {
+    // Dialog visibility
+    data object ShowLogoutWarning : UnifiedAccountAction
+    data object DismissLogoutWarning : UnifiedAccountAction
+    data object ShowLinkAccountDialog : UnifiedAccountAction
+    data object DismissLinkAccountDialog : UnifiedAccountAction
+    data object ShowDeleteAccountDialog : UnifiedAccountAction
+    data object DismissDeleteAccountDialog : UnifiedAccountAction
+
+    // Guest logout with data deletion
+    data object ConfirmGuestLogout : UnifiedAccountAction
+
+    // Account linking (converts anonymous to permanent account)
+    data object LinkWithGoogle : UnifiedAccountAction
+    data class LinkWithEmail(val email: String, val password: String) : UnifiedAccountAction
+
+    // Account deletion
+    data object ConfirmDeleteAccount : UnifiedAccountAction
+}
+
 // ===== Product Actions =====
 sealed interface UnifiedProductAction : UnifiedAppAction {
     data object LoadProducts : UnifiedProductAction
@@ -187,6 +208,16 @@ object UnifiedActions {
     fun logout() = UnifiedUserAction.Logout
     fun register(email: String, password: String, name: String) =
         UnifiedUserAction.Register(email, password, name)
+
+    // Account management
+    fun showLogoutWarning() = UnifiedAccountAction.ShowLogoutWarning
+    fun dismissLogoutWarning() = UnifiedAccountAction.DismissLogoutWarning
+    fun showLinkAccountDialog() = UnifiedAccountAction.ShowLinkAccountDialog
+    fun dismissLinkAccountDialog() = UnifiedAccountAction.DismissLinkAccountDialog
+    fun confirmGuestLogout() = UnifiedAccountAction.ConfirmGuestLogout
+    fun linkWithGoogle() = UnifiedAccountAction.LinkWithGoogle
+    fun linkWithEmail(email: String, password: String) =
+        UnifiedAccountAction.LinkWithEmail(email, password)
 
     // Search
     fun search(query: String) = UnifiedSearchAction.Search(query)
