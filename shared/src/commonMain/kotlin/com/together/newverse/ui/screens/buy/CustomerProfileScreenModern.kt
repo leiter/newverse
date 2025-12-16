@@ -80,6 +80,7 @@ import newverse.shared.generated.resources.action_favorites
 import newverse.shared.generated.resources.action_help
 import newverse.shared.generated.resources.action_orders
 import newverse.shared.generated.resources.action_payment
+import newverse.shared.generated.resources.payment_cash_only_info
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_confirm
 import newverse.shared.generated.resources.button_edit
@@ -223,17 +224,17 @@ fun CustomerProfileScreenModern(
                         isEditing = isEditing,
                     )
 
-                    // Notification Settings Card
-                    NotificationSettingsCard(
-                        notificationsEnabled = notificationsEnabled,
-                        newsletterEnabled = newsletterEnabled,
-                        isEditing = isEditing,
-                        onNotificationToggle = { notificationsEnabled = it },
-                        onNewsletterToggle = { newsletterEnabled = it }
-                    )
+                    // Notification Settings Card - temporarily hidden
+                    // NotificationSettingsCard(
+                    //     notificationsEnabled = notificationsEnabled,
+                    //     newsletterEnabled = newsletterEnabled,
+                    //     isEditing = isEditing,
+                    //     onNotificationToggle = { notificationsEnabled = it },
+                    //     onNewsletterToggle = { newsletterEnabled = it }
+                    // )
 
-                    // Membership Card
-                    MembershipCard()
+                    // Membership Card - temporarily hidden
+                    // MembershipCard()
 
                     // Quick Actions
                     if (!isEditing) {
@@ -830,6 +831,28 @@ private fun QuickActionsCard(
     onNavigateToOrders: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {}
 ) {
+    var showPaymentDialog by remember { mutableStateOf(false) }
+
+    // Payment info dialog
+    if (showPaymentDialog) {
+        AlertDialog(
+            onDismissRequest = { showPaymentDialog = false },
+            title = {
+                Text(
+                    text = stringResource(Res.string.action_payment),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(stringResource(Res.string.payment_cash_only_info))
+            },
+            confirmButton = {
+                TextButton(onClick = { showPaymentDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -868,7 +891,7 @@ private fun QuickActionsCard(
                 text = stringResource(Res.string.action_payment),
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.weight(1f)
-            ) { /* Navigate to payment */ }
+            ) { showPaymentDialog = true }
 
             ActionButton(
                 icon = Icons.Default.Info,

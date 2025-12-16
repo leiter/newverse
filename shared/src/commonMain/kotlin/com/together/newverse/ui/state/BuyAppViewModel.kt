@@ -17,11 +17,14 @@ import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.navigation.NavRoutes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -47,6 +50,132 @@ class BuyAppViewModel(
 
     private val _state = MutableStateFlow(UnifiedAppState())
     override val state: StateFlow<UnifiedAppState> = _state.asStateFlow()
+
+    /**
+     * New simplified state for buyer app screens.
+     * Maps from UnifiedAppState to BuyerAppState for gradual migration.
+     * Screens can use this instead of the full UnifiedAppState.
+     */
+    val buyerState: StateFlow<BuyerAppState> = _state.map { old ->
+        mapToBuyerAppState(old)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = BuyerAppState()
+    )
+
+    /**
+     * Maps UnifiedAppState to the new simplified BuyerAppState
+     */
+    private fun mapToBuyerAppState(old: UnifiedAppState): BuyerAppState {
+        return BuyerAppState(
+            data = BuyerDataState(
+                articles = old.screens.mainScreen.articles,
+                isLoadingArticles = old.screens.mainScreen.isLoading,
+                buyerProfile = old.screens.customerProfile.profile,
+                isLoadingProfile = old.screens.customerProfile.isLoading,
+                currentOrder = old.screens.basketScreen.orderId?.let { orderId ->
+                    Order(
+                        id = orderId,
+                        pickUpDate = old.screens.basketScreen.pickupDate ?: 0L,
+                        articles = old.screens.basketScreen.items,
+                        createdDate = old.screens.basketScreen.createdDate ?: 0L
+                    )
+                },
+                isLoadingOrder = old.screens.basketScreen.isLoadingOrder,
+                orderHistory = old.screens.orderHistory.items,
+                isLoadingOrderHistory = old.screens.orderHistory.isLoading,
+                basketItems = old.common.basket.items,
+                error = old.screens.mainScreen.error?.message
+            ),
+            ui = BuyerUiStates(
+                mainScreen = MainScreenUiState(
+                    selectedArticle = old.screens.mainScreen.selectedArticle,
+                    selectedQuantity = old.screens.mainScreen.selectedQuantity,
+                    activeFilter = old.screens.mainScreen.activeFilter,
+                    showNewOrderSnackbar = old.screens.mainScreen.showNewOrderSnackbar
+                ),
+                basketScreen = BasketScreenUiState(
+                    showDatePicker = old.screens.basketScreen.showDatePicker,
+                    selectedPickupDate = old.screens.basketScreen.selectedPickupDate,
+                    availablePickupDates = old.screens.basketScreen.availablePickupDates,
+                    isSubmitting = old.screens.basketScreen.isCheckingOut,
+                    submitSuccess = old.screens.basketScreen.orderSuccess,
+                    submitError = old.screens.basketScreen.orderError,
+                    isCancelling = old.screens.basketScreen.isCancelling,
+                    cancelSuccess = old.screens.basketScreen.cancelSuccess,
+                    showReorderDatePicker = old.screens.basketScreen.showReorderDatePicker,
+                    isReordering = old.screens.basketScreen.isReordering,
+                    reorderSuccess = old.screens.basketScreen.reorderSuccess,
+                    showMergeDialog = old.screens.basketScreen.showMergeDialog,
+                    existingOrderForMerge = old.screens.basketScreen.existingOrderForMerge,
+                    mergeConflicts = old.screens.basketScreen.mergeConflicts.map { conflict ->
+                        BuyerMergeConflict(
+                            productId = conflict.productId,
+                            productName = conflict.productName,
+                            unit = conflict.unit,
+                            existingQuantity = conflict.existingQuantity,
+                            newQuantity = conflict.newQuantity,
+                            existingPrice = conflict.existingPrice,
+                            newPrice = conflict.newPrice,
+                            resolution = when (conflict.resolution) {
+                                MergeResolution.UNDECIDED -> BuyerMergeResolution.UNDECIDED
+                                MergeResolution.ADD -> BuyerMergeResolution.ADD
+                                MergeResolution.KEEP_EXISTING -> BuyerMergeResolution.KEEP_EXISTING
+                                MergeResolution.USE_NEW -> BuyerMergeResolution.USE_NEW
+                            }
+                        )
+                    },
+                    isMerging = old.screens.basketScreen.isMerging
+                ),
+                profileScreen = ProfileScreenUiState(),
+                global = GlobalBuyerUiState(
+                    isRefreshing = old.common.ui.isRefreshing,
+                    snackbar = old.common.ui.snackbar?.let { snack ->
+                        BuyerSnackbar(
+                            message = snack.message,
+                            type = when (snack.type) {
+                                SnackbarType.SUCCESS -> BuyerSnackbarType.SUCCESS
+                                SnackbarType.ERROR -> BuyerSnackbarType.ERROR
+                                SnackbarType.WARNING -> BuyerSnackbarType.WARNING
+                                SnackbarType.INFO -> BuyerSnackbarType.INFO
+                            },
+                            actionLabel = snack.actionLabel
+                        )
+                    },
+                    currentRoute = old.common.navigation.currentRoute,
+                    isDrawerOpen = old.common.navigation.isDrawerOpen
+                )
+            ),
+            auth = BuyerAuthState(
+                user = when (val user = old.common.user) {
+                    is UserState.Guest -> BuyerUserState.Guest
+                    is UserState.Loading -> BuyerUserState.Loading
+                    is UserState.LoggedIn -> BuyerUserState.LoggedIn(
+                        id = user.id,
+                        name = user.name,
+                        email = user.email,
+                        photoUrl = user.profileImageUrl
+                    )
+                },
+                triggerGoogleSignIn = old.common.triggerGoogleSignIn,
+                triggerGoogleSignOut = old.common.triggerGoogleSignOut
+            ),
+            meta = BuyerMetaState(
+                isInitialized = old.meta.isInitialized,
+                initializationStep = when (val step = old.meta.initializationStep) {
+                    is InitializationStep.NotStarted -> BuyerInitStep.NotStarted
+                    is InitializationStep.CheckingAuth -> BuyerInitStep.CheckingAuth
+                    is InitializationStep.LoadingProfile -> BuyerInitStep.LoadingProfile
+                    is InitializationStep.LoadingOrder -> BuyerInitStep.LoadingOrder
+                    is InitializationStep.LoadingArticles -> BuyerInitStep.LoadingArticles
+                    is InitializationStep.Complete -> BuyerInitStep.Complete
+                    is InitializationStep.Failed -> BuyerInitStep.Failed(step.step, step.message)
+                },
+                devOrderDateOffsetDays = old.meta.devOrderDateOffsetDays
+            )
+        )
+    }
 
     init {
         // Initialize app on startup

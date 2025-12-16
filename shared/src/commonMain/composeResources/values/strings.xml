@@ -275,7 +275,8 @@
     <string name="action_orders">Bestellungen</string>
     <string name="action_favorites">Favoriten</string>
     <string name="action_payment">Zahlung</string>
-    <string name="action_help">Hilfe</string>
+    <string name="action_help">Über</string>
+    <string name="payment_cash_only_info">Derzeit wird nur Barzahlung unterstützt. Die Bezahlung erfolgt bei der Abholung.</string>
 
     <!-- Dialog -->
     <string name="dialog_save_title">Änderungen speichern?</string>

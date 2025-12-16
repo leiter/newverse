@@ -275,7 +275,8 @@
     <string name="action_orders">Orders</string>
     <string name="action_favorites">Favorites</string>
     <string name="action_payment">Payment</string>
-    <string name="action_help">Help</string>
+    <string name="action_help">About</string>
+    <string name="payment_cash_only_info">Currently only cash payment is supported. Payment is made at pickup.</string>
 
     <!-- Dialog -->
     <string name="dialog_save_title">Save changes?</string>
