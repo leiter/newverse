@@ -315,11 +315,17 @@ class GitLiveOrderRepository(
         orderId: String
     ): Result<Boolean> {
         return try {
-            println("🔐 GitLiveOrderRepository.cancelOrder: START - orderId=$orderId")
+            val path = "orders/$sellerId/$date/$orderId"
+            println("🔐 GitLiveOrderRepository.cancelOrder: START")
+            println("🔐 GitLiveOrderRepository.cancelOrder: sellerId=$sellerId")
+            println("🔐 GitLiveOrderRepository.cancelOrder: date=$date")
+            println("🔐 GitLiveOrderRepository.cancelOrder: orderId=$orderId")
+            println("🔐 GitLiveOrderRepository.cancelOrder: Full path=$path")
 
             // Fetch the order from GitLive Firebase
             val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId)
             val snapshot = orderRef.valueEvents.first()
+            println("🔐 GitLiveOrderRepository.cancelOrder: snapshot.exists=${snapshot.exists}")
 
             if (snapshot.exists) {
                 val order = mapSnapshotToOrder(snapshot)
@@ -340,7 +346,10 @@ class GitLiveOrderRepository(
                     Result.failure(Exception("Failed to parse order data"))
                 }
             } else {
-                println("❌ GitLiveOrderRepository.cancelOrder: Order not found")
+                println("❌ GitLiveOrderRepository.cancelOrder: Order not found in Firebase")
+                // Clear from cache since it doesn't exist in Firebase
+                ordersCache.remove(orderId)
+                println("🔐 GitLiveOrderRepository.cancelOrder: Removed from cache")
                 Result.failure(Exception("Order not found"))
             }
 

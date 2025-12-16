@@ -9,19 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -29,14 +22,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +39,6 @@ import androidx.navigation.compose.rememberNavController
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.state.BuyAppViewModel
-import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_name
 import org.jetbrains.compose.resources.stringResource
@@ -172,12 +162,7 @@ fun AppScaffold(
     }
 
     val navController = rememberNavController()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showOverflowMenu by remember { mutableStateOf(false) }
-    var isSelectionMode by remember { mutableStateOf(false) }
-    var isAvailabilityMode by remember { mutableStateOf(false) }
 
     // Observe snackbar state changes from ViewModel
     LaunchedEffect(appState.common.ui.snackbar) {
@@ -241,210 +226,110 @@ fun AppScaffold(
         null
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            AppDrawer(
-                currentRoute = currentRoute,
-                onNavigate = { route ->
-                    // Use unified navigation action
-                    viewModel.dispatch(
-                        com.together.newverse.ui.state.UnifiedNavigationAction.NavigateTo(route)
-                    )
-                    scope.launch {
-                        drawerState.close()
+    // Determine if bottom bar should be shown (main screens only)
+    val showBottomBar = currentRoute == NavRoutes.Home.route ||
+        currentRoute.startsWith(NavRoutes.Buy.Basket.route) ||
+        currentRoute.startsWith(NavRoutes.Buy.Profile.route)
+
+    Scaffold(
+        bottomBar = {
+            if (showBottomBar) {
+                BuyerBottomNavigationBar(
+                    currentRoute = currentRoute,
+                    basketItemCount = basketItems.size,
+                    onNavigate = { route ->
+                        navController.navigate(route) {
+                            popUpTo(NavRoutes.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+        },
+        modifier = if (scrollBehavior != null) {
+            Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+        } else {
+            Modifier
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
+        topBar = {
+            TopAppBar(
+                title = { Text(displayTitle) },
+                navigationIcon = {
+                    // Show back arrow for detail screens that aren't main bottom nav tabs
+                    val isDetailScreen = currentRoute == NavRoutes.Buy.OrderHistory.route ||
+                        currentRoute == NavRoutes.About.route ||
+                        currentRoute == NavRoutes.Register.route ||
+                        currentRoute == NavRoutes.Login.route
+
+                    if (isDetailScreen) {
+                        IconButton(
+                            onClick = {
+                                viewModel.dispatch(com.together.newverse.ui.state.UnifiedNavigationAction.NavigateBack)
+                                navController.navigateUp()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
                     }
                 },
-                onClose = {
-                    scope.launch {
-                        drawerState.close()
-                    }
-                }
-            )
-        }
-    ) {
-        Scaffold(
-            modifier = if (scrollBehavior != null) {
-                Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-            } else {
-                Modifier
-            },
-            snackbarHost = {
-                SnackbarHost(hostState = snackbarHostState)
-            },
-            topBar = {
-                TopAppBar(
-                    title = {
-                        androidx.compose.foundation.layout.Column {
-                            Text(displayTitle)
-                            // Show order date subtitle when there's an active order
-//                            val currentOrderDate = appState.common.basket.currentOrderDate
-//                            if (currentOrderDate != null && basketItems.isNotEmpty()) {
-//                                val formattedDate = formatOrderDateForSubtitle(currentOrderDate)
-//                                Text(
-//                                    text = "Bestellung für $formattedDate",
-//                                    style = MaterialTheme.typography.bodySmall,
-//                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-//                                )
-//                            }
-                        }
-                    },
-                    navigationIcon = {
-                        // Show back arrow for Basket and other detail screens, hamburger menu for main screens
-                        // Use startsWith to match routes with query parameters
-                        if (currentRoute.startsWith(NavRoutes.Buy.Basket.route) ||
-                            currentRoute.startsWith(NavRoutes.Buy.Profile.route) ||
-                            currentRoute == NavRoutes.Buy.OrderHistory.route ||
-                            currentRoute == NavRoutes.About.route ||
-                            currentRoute == NavRoutes.Register.route) {
-                            IconButton(
-                                onClick = {
-                                    // Update ViewModel state to stay in sync
-                                    viewModel.dispatch(com.together.newverse.ui.state.UnifiedNavigationAction.NavigateBack)
-                                    navController.navigateUp()
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back"
-                                )
-                            }
-                        } else {
-                            IconButton(
-                                onClick = {
-                                    scope.launch {
-                                        drawerState.open()
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = "Menu"
-                                )
-                            }
-                        }
-                    },
-                    actions = {
-                        // Show search icon only on Home screen
-//                        if (currentRoute == NavRoutes.Home.route) {
-//                            IconButton(onClick = { /* TODO: Search action */ }) {
-//                                Icon(
-//                                    imageVector = Icons.Default.Search,
-//                                    contentDescription = "Search",
-//                                    tint = MaterialTheme.colorScheme.onPrimary,
-//                                    modifier = Modifier.size(24.dp)
-//                                )
-//                            }
-//                        }
-
-                        // Show cart icon on Home and Basket screens
-                        if (currentRoute == NavRoutes.Home.route ||
-                            currentRoute.startsWith(NavRoutes.Buy.Basket.route)) {
-                            Box(modifier = Modifier.padding(end = 8.dp)) {
-                                IconButton(onClick = {
-                                    // Only navigate if not already on basket screen
-                                    if (!currentRoute.startsWith(NavRoutes.Buy.Basket.route)) {
-                                        navController.navigate(NavRoutes.Buy.Basket.route)
-                                    }
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.ShoppingCart,
-                                        contentDescription = "Shopping Cart",
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .graphicsLayer {
-                                                rotationZ = shakeOffset.value
-                                            }
-                                    )
-                                }
-                                // Cart item count badge
-                                if (basketItems.isNotEmpty()) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.tertiary,
-                                        contentColor = MaterialTheme.colorScheme.onTertiary,
-                                        modifier = Modifier.align(Alignment.TopEnd)
-                                    ) {
-                                        Text(
-                                            text = basketItems.size.toString(),
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Show refresh and overflow menu on Seller Overview screen
-                        if (currentRoute == NavRoutes.Sell.Overview.route) {
-                            // Refresh button
+                actions = {
+                    // Show cart icon on Home screen (for quick access)
+                    if (currentRoute == NavRoutes.Home.route) {
+                        Box(modifier = Modifier.padding(end = 8.dp)) {
                             IconButton(onClick = {
-                                // Recreate the screen to trigger refresh
-                                navController.navigate(NavRoutes.Sell.Overview.route) {
-                                    popUpTo(NavRoutes.Sell.Overview.route) { inclusive = true }
-                                }
+                                navController.navigate(NavRoutes.Buy.Basket.route)
                             }) {
                                 Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Refresh",
+                                    imageVector = Icons.Default.ShoppingCart,
+                                    contentDescription = "Shopping Cart",
                                     tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .graphicsLayer {
+                                            rotationZ = shakeOffset.value
+                                        }
                                 )
                             }
-
-                            // Overflow menu button
-                            Box {
-                                IconButton(onClick = { showOverflowMenu = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.MoreVert,
-                                        contentDescription = "More options",
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-
-                                DropdownMenu(
-                                    expanded = showOverflowMenu,
-                                    onDismissRequest = { showOverflowMenu = false }
+                            if (basketItems.isNotEmpty()) {
+                                Badge(
+                                    containerColor = MaterialTheme.colorScheme.tertiary,
+                                    contentColor = MaterialTheme.colorScheme.onTertiary,
+                                    modifier = Modifier.align(Alignment.TopEnd)
                                 ) {
-                                    DropdownMenuItem(
-                                        text = { Text(if (isSelectionMode) "Cancel selection" else "Mark for deletion") },
-                                        onClick = {
-                                            showOverflowMenu = false
-                                            isAvailabilityMode = false
-                                            isSelectionMode = !isSelectionMode
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text(if (isAvailabilityMode) "Cancel selection" else "Verfügbarkeit") },
-                                        onClick = {
-                                            showOverflowMenu = false
-                                            isSelectionMode = false
-                                            isAvailabilityMode = !isAvailabilityMode
-                                        }
+                                    Text(
+                                        text = basketItems.size.toString(),
+                                        style = MaterialTheme.typography.labelSmall
                                     )
                                 }
                             }
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        titleContentColor = MaterialTheme.colorScheme.onSecondary,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onSecondary
-                    ),
-                    scrollBehavior = scrollBehavior
-                )
-            }
-        ) { paddingValues ->
-            Surface(
-                modifier = Modifier.padding(paddingValues),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                NavGraph(
-                    navController = navController,
-                    appState = appState,
-                    onAction = { action -> viewModel.dispatch(action) },
-                )
-            }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    titleContentColor = MaterialTheme.colorScheme.onSecondary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSecondary
+                ),
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { paddingValues ->
+        Surface(
+            modifier = Modifier.padding(paddingValues),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            NavGraph(
+                navController = navController,
+                appState = appState,
+                onAction = { action -> viewModel.dispatch(action) },
+            )
         }
     }
 }

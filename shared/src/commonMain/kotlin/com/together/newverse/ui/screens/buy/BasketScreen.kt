@@ -56,6 +56,7 @@ fun BasketScreen(
     state: BasketScreenState,
     currentArticles: List<Article>,
     onAction: (UnifiedBasketScreenAction) -> Unit,
+    onNavigateToOrders: () -> Unit = {},
     orderId: String? = null,
     orderDate: String? = null
 ) {
@@ -70,7 +71,8 @@ fun BasketScreen(
     BasketContent(
         state = state,
         currentArticles = currentArticles,
-        onAction = onAction
+        onAction = onAction,
+        onNavigateToOrders = onNavigateToOrders
     )
 }
 
@@ -80,261 +82,282 @@ fun BasketScreen(
  * @param state The screen state
  * @param currentArticles The list of currently loaded articles with current prices
  * @param onAction Callback for user actions
+ * @param onNavigateToOrders Callback to navigate to order history
  */
 @Composable
 fun BasketContent(
     state: BasketScreenState,
     currentArticles: List<Article>,
-    onAction: (UnifiedBasketScreenAction) -> Unit
+    onAction: (UnifiedBasketScreenAction) -> Unit,
+    onNavigateToOrders: () -> Unit = {}
 ) {
-    Column(
+    // Show dialogs outside the LazyColumn
+    if (state.showDatePicker) {
+        DatePickerDialog(
+            availableDates = state.availablePickupDates,
+            selectedDate = state.selectedPickupDate,
+            onDateSelected = { date ->
+                onAction(UnifiedBasketScreenAction.SelectPickupDate(date))
+            },
+            onDismiss = { onAction(UnifiedBasketScreenAction.HideDatePicker) }
+        )
+    }
+
+    if (state.showReorderDatePicker) {
+        ReorderDatePickerDialog(
+            availableDates = state.availablePickupDates,
+            isReordering = state.isReordering,
+            onDateSelected = { date ->
+                onAction(UnifiedBasketScreenAction.ReorderWithNewDate(date, currentArticles))
+            },
+            onDismiss = {
+                onAction(UnifiedBasketScreenAction.HideReorderDatePicker)
+            }
+        )
+    }
+
+    if (state.showMergeDialog && state.existingOrderForMerge != null) {
+        OrderMergeDialog(
+            existingOrder = state.existingOrderForMerge,
+            conflicts = state.mergeConflicts,
+            isMerging = state.isMerging,
+            onResolveConflict = { productId, resolution ->
+                onAction(UnifiedBasketScreenAction.ResolveMergeConflict(productId, resolution))
+            },
+            onConfirm = { onAction(UnifiedBasketScreenAction.ConfirmMerge) },
+            onDismiss = { onAction(UnifiedBasketScreenAction.HideMergeDialog) }
+        )
+    }
+
+    // Single scrollable LazyColumn for all content
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp)
     ) {
-//        Text(
-//            text = stringResource(Res.string.basket_title),
-//            style = MaterialTheme.typography.headlineMedium,
-//            color = MaterialTheme.colorScheme.primary
-//        )
-//        Spacer(modifier = Modifier.height(16.dp))
-
-        // Show order information if viewing an order
+        // Order information card (for existing orders)
         if (state.orderId != null && state.pickupDate != null) {
-            OrderInfoCard(
-                orderId = state.orderId,
-                pickupDate = state.pickupDate,
-                createdDate = state.createdDate ?: 0L,
-                canEdit = state.canEdit,
-                hasChanges = state.hasChanges
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                OrderInfoCard(
+                    orderId = state.orderId,
+                    pickupDate = state.pickupDate,
+                    createdDate = state.createdDate ?: 0L,
+                    canEdit = state.canEdit,
+                    hasChanges = state.hasChanges
+                )
+            }
         }
 
-        // Show success message
+        // Success message
         if (state.orderSuccess) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = if (state.orderId != null) stringResource(Res.string.basket_order_updated) else stringResource(Res.string.basket_order_placed),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
                     )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = if (state.orderId != null) stringResource(Res.string.basket_order_updated) else stringResource(Res.string.basket_order_placed),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Show cancel success message
+        // Cancel success message
         if (state.cancelSuccess) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = stringResource(Res.string.basket_order_cancelled),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
                     )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.basket_order_cancelled),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Show reorder success message
+        // Reorder success message
         if (state.reorderSuccess) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
                 ) {
-                    Text(
-                        text = stringResource(Res.string.basket_order_copied),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(Res.string.basket_review_order),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.basket_order_copied),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(Res.string.basket_review_order),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Show error message
+        // Error message
         state.orderError?.let { error ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "✗ $error",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
                     )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "✗ $error",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Show pickup date selector for draft orders (no orderId = new order)
+        // Pickup date selector (for new orders)
         if (state.orderId == null && state.items.isNotEmpty()) {
-            PickupDateSelector(
-                selectedDate = state.selectedPickupDate,
-                onShowPicker = { onAction(UnifiedBasketScreenAction.ShowDatePicker) }
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        // Show date picker dialog
-        if (state.showDatePicker) {
-            DatePickerDialog(
-                availableDates = state.availablePickupDates,
-                selectedDate = state.selectedPickupDate,
-                onDateSelected = { date ->
-                    onAction(UnifiedBasketScreenAction.SelectPickupDate(date))
-                },
-                onDismiss = { onAction(UnifiedBasketScreenAction.HideDatePicker) }
-            )
-        }
-
-        // Show reorder date picker dialog
-        if (state.showReorderDatePicker) {
-            ReorderDatePickerDialog(
-                availableDates = state.availablePickupDates,
-                isReordering = state.isReordering,
-                onDateSelected = { date ->
-                    onAction(UnifiedBasketScreenAction.ReorderWithNewDate(date, currentArticles))
-                },
-                onDismiss = {
-                    onAction(UnifiedBasketScreenAction.HideReorderDatePicker)
-                }
-            )
-        }
-
-        // Show merge dialog
-        if (state.showMergeDialog && state.existingOrderForMerge != null) {
-            OrderMergeDialog(
-                existingOrder = state.existingOrderForMerge,
-                conflicts = state.mergeConflicts,
-                isMerging = state.isMerging,
-                onResolveConflict = { productId, resolution ->
-                    onAction(UnifiedBasketScreenAction.ResolveMergeConflict(productId, resolution))
-                },
-                onConfirm = { onAction(UnifiedBasketScreenAction.ConfirmMerge) },
-                onDismiss = { onAction(UnifiedBasketScreenAction.HideMergeDialog) }
-            )
-        }
-
-        if (state.items.isEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+            item {
+                PickupDateSelector(
+                    selectedDate = state.selectedPickupDate,
+                    onShowPicker = { onAction(UnifiedBasketScreenAction.ShowDatePicker) }
                 )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            }
+        }
+
+        // Empty basket or items list
+        if (state.items.isEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 ) {
-                    Text(
-                        text = stringResource(Res.string.basket_empty_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(Res.string.basket_empty_description),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.basket_empty_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(Res.string.basket_empty_description),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedButton(
+                            onClick = onNavigateToOrders
+                        ) {
+                            Text(stringResource(Res.string.action_orders))
+                        }
+                    }
                 }
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(state.items) { item ->
-                    BasketItemCard(
-                        productName = item.productName,
-                        price = item.price,
-                        unit = item.unit,
-                        quantity = item.amountCount,
-                        canEdit = state.canEdit,
-                        onRemove = { onAction(UnifiedBasketScreenAction.RemoveItem(item.productId)) },
-//                        onQuantityChange = { newQty ->
-//                            onAction(UnifiedBasketScreenAction.UpdateItemQuantity(item.productId, newQty))
-//                        }
+            // Basket items
+            items(state.items) { item ->
+                BasketItemCard(
+                    productName = item.productName,
+                    price = item.price,
+                    unit = item.unit,
+                    quantity = item.amountCount,
+                    canEdit = state.canEdit,
+                    onRemove = { onAction(UnifiedBasketScreenAction.RemoveItem(item.productId)) }
+                )
+            }
+
+            // Divider
+            item {
+                HorizontalDivider()
+            }
+
+            // Total section
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.label_total),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "${state.total.formatPrice()} €",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        HorizontalDivider()
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Total price section with improved formatting
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(Res.string.label_total),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "${state.total.formatPrice()} €",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary
+            // Action buttons
+            item {
+                BasketActionButtons(
+                    state = state,
+                    onAction = onAction
                 )
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Show appropriate button based on mode
+@Composable
+private fun BasketActionButtons(
+    state: BasketScreenState,
+    onAction: (UnifiedBasketScreenAction) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         if (state.orderId != null) {
             // Viewing an existing order
             if (state.canEdit) {
@@ -353,8 +376,6 @@ fun BasketContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
                 // Show cancel button
                 OutlinedButton(
                     onClick = { onAction(UnifiedBasketScreenAction.CancelOrder) },
@@ -370,7 +391,6 @@ fun BasketContent(
                         Text(stringResource(Res.string.basket_cancel_order))
                     }
                 }
-
             } else {
                 // Cannot edit anymore
                 Card(
@@ -400,8 +420,6 @@ fun BasketContent(
                 val currentTime = Clock.System.now().toEpochMilliseconds()
                 val isPickupDateInPast = state.pickupDate?.let { it < currentTime } == true
                 if (isPickupDateInPast) {
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     OutlinedButton(
                         onClick = { onAction(UnifiedBasketScreenAction.ShowReorderDatePicker) },
                         modifier = Modifier.fillMaxWidth(),

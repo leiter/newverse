@@ -114,7 +114,8 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun CustomerProfileScreenModern(
     state: com.together.newverse.ui.state.CustomerProfileScreenState,
-    onAction: (UnifiedAppAction) -> Unit
+    onAction: (UnifiedAppAction) -> Unit,
+    onNavigateToAbout: () -> Unit = {}
 ) {
     val defaultMarket = stringResource(Res.string.default_market)
     val profile = state.profile
@@ -241,7 +242,8 @@ fun CustomerProfileScreenModern(
                                 onAction(com.together.newverse.ui.state.UnifiedNavigationAction.NavigateTo(
                                     com.together.newverse.ui.navigation.NavRoutes.Buy.OrderHistory
                                 ))
-                            }
+                            },
+                            onNavigateToAbout = onNavigateToAbout
                         )
                     }
                 }
@@ -825,7 +827,8 @@ private fun MembershipCard() {
 
 @Composable
 private fun QuickActionsCard(
-    onNavigateToOrders: () -> Unit = {}
+    onNavigateToOrders: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {}
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -872,7 +875,7 @@ private fun QuickActionsCard(
                 text = stringResource(Res.string.action_help),
                 color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
                 modifier = Modifier.weight(1f)
-            ) { /* Navigate to help */ }
+            ) { onNavigateToAbout() }
         }
     }
 }

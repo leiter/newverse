@@ -60,6 +60,7 @@ fun NavGraph(
                 state = appState.screens.basketScreen,
                 currentArticles = appState.screens.mainScreen.articles,
                 onAction = { action -> onAction(action) },
+                onNavigateToOrders = { navController.navigate(NavRoutes.Buy.OrderHistory.route) },
                 orderId = orderIdArg ?: appState.common.basket.currentOrderId,
                 orderDate = orderDateArg ?: appState.common.basket.currentOrderDate
             )
@@ -68,7 +69,8 @@ fun NavGraph(
         composable(NavRoutes.Buy.Profile.route) {
             CustomerProfileScreenModern(
                 state = appState.screens.customerProfile,
-                onAction = onAction
+                onAction = onAction,
+                onNavigateToAbout = { navController.navigate(NavRoutes.About.route) }
             )
         }
 

@@ -2136,6 +2136,14 @@ class BuyAppViewModel(
                     val orderPath = "orders/$BASKET_SELLER_ID/$orderDate/$orderId"
                     val result = orderRepository.loadOrder(BASKET_SELLER_ID, orderId, orderPath)
                     result.onSuccess { order ->
+                        // Check if order is still editable (not cancelled/completed)
+                        if (order.status == com.together.newverse.domain.model.OrderStatus.CANCELLED ||
+                            order.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
+                            println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order is finalized, clearing basket")
+                            basketRepository.clearBasket()
+                            return@onSuccess
+                        }
+
                         val canEdit = OrderDateUtils.canEditOrder(
                             Instant.fromEpochMilliseconds(order.pickUpDate)
                         )
@@ -2158,6 +2166,10 @@ class BuyAppViewModel(
                                 )
                             )
                         }
+                    }.onFailure { error ->
+                        println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Failed to load order - ${error.message}")
+                        // Clear loaded order info since loading failed
+                        basketRepository.clearBasket()
                     }
                     return@launch
                 }
@@ -2449,24 +2461,29 @@ class BuyAppViewModel(
                         )
                     }
                 }.onFailure { error ->
+                    // Clear loaded order info since loading failed
+                    basketRepository.clearBasket()
                     _state.update { current ->
                         current.copy(
                             screens = current.screens.copy(
-                                basketScreen = current.screens.basketScreen.copy(
+                                basketScreen = BasketScreenState(
                                     isLoadingOrder = false,
-                                    orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
+                                    orderError = "Bestellung konnte nicht geladen werden: ${error.message}",
+                                    availablePickupDates = current.screens.basketScreen.availablePickupDates
                                 )
                             )
                         )
                     }
                 }
             } catch (e: Exception) {
+                basketRepository.clearBasket()
                 _state.update { current ->
                     current.copy(
                         screens = current.screens.copy(
-                            basketScreen = current.screens.basketScreen.copy(
+                            basketScreen = BasketScreenState(
                                 isLoadingOrder = false,
-                                orderError = "Fehler beim Laden der Bestellung: ${e.message}"
+                                orderError = "Fehler beim Laden der Bestellung: ${e.message}",
+                                availablePickupDates = current.screens.basketScreen.availablePickupDates
                             )
                         )
                     )
@@ -2689,12 +2706,27 @@ class BuyAppViewModel(
                     return@launch
                 }
 
+                println("🛒 BuyAppViewModel.basketScreenCancelOrder: Calling orderRepository.cancelOrder")
+                println("🛒 BuyAppViewModel.basketScreenCancelOrder: sellerId=$BASKET_SELLER_ID")
+                println("🛒 BuyAppViewModel.basketScreenCancelOrder: orderDate=$orderDate")
+                println("🛒 BuyAppViewModel.basketScreenCancelOrder: orderId=$orderId")
                 val result = orderRepository.cancelOrder(BASKET_SELLER_ID, orderDate, orderId)
-                result.onSuccess {
+
+                if (result.isSuccess) {
+                    println("🛒 BuyAppViewModel.basketScreenCancelOrder: Cancel SUCCESS, clearing basket")
+                    // Clear basket in proper suspend context
                     basketRepository.clearBasket()
+                    println("🛒 BuyAppViewModel.basketScreenCancelOrder: Basket cleared, updating state")
+
                     val availableDates = _state.value.screens.basketScreen.availablePickupDates
                     _state.update { current ->
                         current.copy(
+                            common = current.common.copy(
+                                basket = current.common.basket.copy(
+                                    currentOrderId = null,
+                                    currentOrderDate = null
+                                )
+                            ),
                             screens = current.screens.copy(
                                 basketScreen = BasketScreenState(
                                     cancelSuccess = true,
@@ -2703,16 +2735,57 @@ class BuyAppViewModel(
                             )
                         )
                     }
-                }.onFailure { error ->
-                    _state.update { current ->
-                        current.copy(
-                            screens = current.screens.copy(
-                                basketScreen = current.screens.basketScreen.copy(
-                                    isCancelling = false,
-                                    orderError = error.message ?: "Stornierung fehlgeschlagen"
+                    println("🛒 BuyAppViewModel.basketScreenCancelOrder: State updated to empty basket with cancelSuccess=true")
+                } else {
+                    val error = result.exceptionOrNull()
+                    val errorMessage = error?.message ?: "Stornierung fehlgeschlagen"
+                    println("🛒 BuyAppViewModel.basketScreenCancelOrder: Cancel FAILED - $errorMessage")
+
+                    // If order not found, the order was already cancelled/deleted - clear basket and show empty state
+                    if (errorMessage.contains("not found", ignoreCase = true)) {
+                        println("🛒 BuyAppViewModel.basketScreenCancelOrder: Order not found, clearing basket")
+                        basketRepository.clearBasket()
+
+                        // Also remove from buyer profile's placedOrderIds
+                        try {
+                            val profile = profileRepository.getBuyerProfile().getOrNull()
+                            if (profile != null && profile.placedOrderIds.containsValue(orderId)) {
+                                val updatedOrderIds = profile.placedOrderIds.filterValues { it != orderId }
+                                val updatedProfile = profile.copy(placedOrderIds = updatedOrderIds)
+                                profileRepository.saveBuyerProfile(updatedProfile)
+                                println("🛒 BuyAppViewModel.basketScreenCancelOrder: Removed order from buyer profile")
+                            }
+                        } catch (e: Exception) {
+                            println("🛒 BuyAppViewModel.basketScreenCancelOrder: Failed to update profile - ${e.message}")
+                        }
+
+                        val availableDates = _state.value.screens.basketScreen.availablePickupDates
+                        _state.update { current ->
+                            current.copy(
+                                common = current.common.copy(
+                                    basket = current.common.basket.copy(
+                                        currentOrderId = null,
+                                        currentOrderDate = null
+                                    )
+                                ),
+                                screens = current.screens.copy(
+                                    basketScreen = BasketScreenState(
+                                        availablePickupDates = availableDates
+                                    )
                                 )
                             )
-                        )
+                        }
+                    } else {
+                        _state.update { current ->
+                            current.copy(
+                                screens = current.screens.copy(
+                                    basketScreen = current.screens.basketScreen.copy(
+                                        isCancelling = false,
+                                        orderError = errorMessage
+                                    )
+                                )
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {
