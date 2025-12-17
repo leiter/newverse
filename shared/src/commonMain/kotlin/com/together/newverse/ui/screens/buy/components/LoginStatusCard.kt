@@ -60,6 +60,7 @@ fun LoginStatusCard(
     onLinkWithEmail: () -> Unit,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit,
+    onTestDeleteAuth: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -97,7 +98,8 @@ fun LoginStatusCard(
                     isLinkingAccount = isLinkingAccount,
                     onLinkWithGoogle = onLinkWithGoogle,
                     onLinkWithEmail = onLinkWithEmail,
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    onTestDeleteAuth = onTestDeleteAuth
                 )
             } else {
                 // Authenticated user status
@@ -117,7 +119,8 @@ private fun GuestStatus(
     isLinkingAccount: Boolean,
     onLinkWithGoogle: () -> Unit,
     onLinkWithEmail: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onTestDeleteAuth: () -> Unit
 ) {
     // Warning status
     Row(
@@ -181,6 +184,17 @@ private fun GuestStatus(
         Text(
             text = stringResource(Res.string.action_logout),
             color = MaterialTheme.colorScheme.error
+        )
+    }
+
+    // Test button - deletes Firebase Auth only
+    TextButton(
+        onClick = onTestDeleteAuth,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "Test",
+            color = MaterialTheme.colorScheme.tertiary
         )
     }
 }

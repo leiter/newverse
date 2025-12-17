@@ -1335,6 +1335,34 @@ class BuyAppViewModel(
             is UnifiedAccountAction.LinkWithGoogle -> linkWithGoogle()
             is UnifiedAccountAction.LinkWithEmail -> linkWithEmail(action.email, action.password)
             is UnifiedAccountAction.ConfirmDeleteAccount -> confirmDeleteAccount()
+            is UnifiedAccountAction.TestDeleteAuth -> testDeleteAuth()
+        }
+    }
+
+    /**
+     * Test: Delete only the Firebase Auth account (no profile/basket deletion)
+     * Re-authenticates anonymously first to satisfy Firebase's recent auth requirement.
+     */
+    private fun testDeleteAuth() {
+        viewModelScope.launch {
+            // Step 1: Check if there's a current user
+            val currentUserId = authRepository.getCurrentUserId()
+            println("🧪 TestDeleteAuth: Current userId = $currentUserId")
+
+            if (currentUserId == null) {
+                println("🧪 TestDeleteAuth: No current user - aborting (nothing to delete)")
+                return@launch
+            }
+
+            // Step 2: Try to delete directly first (might work if auth is recent)
+            println("🧪 TestDeleteAuth: Attempting to delete Firebase Auth account...")
+            authRepository.deleteAccount()
+                .onSuccess {
+                    println("🧪 TestDeleteAuth: Firebase Auth account deleted successfully")
+                }
+                .onFailure { e ->
+                    println("🧪 TestDeleteAuth: Failed - ${e.message}")
+                }
         }
     }
 

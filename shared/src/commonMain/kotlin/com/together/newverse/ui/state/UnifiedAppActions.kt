@@ -48,6 +48,9 @@ sealed interface UnifiedAccountAction : UnifiedAppAction {
 
     // Account deletion
     data object ConfirmDeleteAccount : UnifiedAccountAction
+
+    // Test: Delete Firebase Auth only
+    data object TestDeleteAuth : UnifiedAccountAction
 }
 
 // ===== Product Actions =====

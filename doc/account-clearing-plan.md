@@ -1,0 +1,288 @@
+# Account Clearing Implementation Plan
+
+## Overview
+
+This document outlines the plan to implement proper account clearing/deletion in the newverse project, based on the approach used in the sibling project "universe".
+
+## Comparison: Universe vs Newverse
+
+| Aspect | Universe | Newverse (Current) |
+|--------|----------|-------------------|
+| Async Pattern | RxJava (Single/Observable) | Coroutines (StateFlow) |
+| Deletion Strategy | Conditional: orders first, then profile | Profile only, no order cleanup |
+| Progress Tracking | `CleanUpResult` data class | None |
+| Dialog UI | Menu popup | Dialog state exists, but **UI not rendered** |
+| Auth Deletion | Chained after data cleanup | Attempted but may fail (credential too old) |
+| Connection Check | Wrapped in connection verification | None |
+
+## Current Issues in Newverse
+
+### Issue 1: Missing Delete Account Dialog
+- State field exists: `showDeleteAccountDialog: Boolean`
+- Actions defined: `ShowDeleteAccountDialog`, `DismissDeleteAccountDialog`, `ConfirmDeleteAccount`
+- **Problem:** No dialog Composable is rendered in `CustomerProfileScreenModern.kt`
+
+### Issue 2: No Order Cleanup
+- Universe checks `buyerProfile.placedOrderIds` and deletes orders before profile
+- Newverse deletes profile only, leaving orphaned order references
+
+### Issue 3: Firebase Auth Requires Recent Authentication
+- Firebase requires recent login (within ~5 minutes) to delete account
+- Error: `CREDENTIAL_TOO_OLD_LOGIN_REQUIRED`
+- Needs re-authentication flow before deletion
+
+### Issue 4: No Progress Tracking
+- Universe uses `CleanUpResult` to track what was deleted
+- Newverse has no visibility into deletion progress
+
+## Implementation Plan
+
+### Step 1: Create CleanUpResult Model
+
+**File:** `shared/src/commonMain/kotlin/com/together/newverse/domain/model/CleanUpResult.kt`
+
+```kotlin
+data class CleanUpResult(
+    val started: Boolean = false,
+    val placedOrderIds: Map<String, String> = emptyMap(),
+    val deletedOrders: List<String> = emptyList(),
+    val profileDeleted: Boolean = false,
+    val authDeleted: Boolean = false,
+    val errors: List<String> = emptyList()
+)
+```
+
+### Step 2: Add Order Deletion to Repository
+
+**File:** `shared/src/commonMain/kotlin/com/together/newverse/domain/repository/ProfileRepository.kt`
+
+Add interface method:
+```kotlin
+suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<CleanUpResult>
+```
+
+**File:** `shared/src/commonMain/kotlin/com/together/newverse/data/repository/GitLiveProfileRepository.kt`
+
+Implement with this logic:
+1. If `buyerProfile.placedOrderIds.isEmpty()` → delete profile directly
+2. Else → iterate and delete each order, then delete profile
+3. Return `CleanUpResult` with status of each step
+
+### Step 3: Add Re-authentication Support
+
+**File:** `shared/src/commonMain/kotlin/com/together/newverse/domain/repository/AuthRepository.kt`
+
+Add methods:
+```kotlin
+suspend fun reauthenticateWithGoogle(idToken: String): Result<Unit>
+suspend fun reauthenticateWithEmail(email: String, password: String): Result<Unit>
+suspend fun requiresReauthentication(): Boolean
+```
+
+**File:** `shared/src/commonMain/kotlin/com/together/newverse/data/repository/GitLiveAuthRepository.kt`
+
+Implement re-authentication using Firebase's `reauthenticate()` method.
+
+### Step 4: Create Delete Account Dialog
+
+**File:** `shared/src/commonMain/kotlin/com/together/newverse/ui/screens/buy/components/DeleteAccountDialog.kt`
+
+```kotlin
+@Composable
+fun DeleteAccountDialog(
+    isLoading: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.delete_account_title)) },
+        text = {
+            Column {
+                Text(stringResource(Res.string.delete_account_warning))
+                if (isLoading) {
+                    CircularProgressIndicator()
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = !isLoading
+            ) {
+                Text(
+                    stringResource(Res.string.action_delete),
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text(stringResource(Res.string.action_cancel))
+            }
+        }
+    )
+}
+```
+
+### Step 5: Add Dialog to CustomerProfileScreenModern
+
+**File:** `shared/src/commonMain/kotlin/com/together/newverse/ui/screens/buy/CustomerProfileScreenModern.kt`
+
+Add after existing dialogs (around line 166):
+```kotlin
+// Delete Account Dialog
+if (state.showDeleteAccountDialog) {
+    DeleteAccountDialog(
+        isLoading = state.isLoading,
+        onConfirm = { onAction(UnifiedAccountAction.ConfirmDeleteAccount) },
+        onDismiss = { onAction(UnifiedAccountAction.DismissDeleteAccountDialog) }
+    )
+}
+```
+
+### Step 6: Refactor ViewModel Delete Flow
+
+**File:** `shared/src/commonMain/kotlin/com/together/newverse/ui/state/BuyAppViewModel.kt`
+
+Refactor `confirmDeleteAccount()`:
+
+```kotlin
+private fun confirmDeleteAccount() {
+    viewModelScope.launch {
+        try {
+            setLoading(true)
+
+            val userId = getCurrentUserId() ?: return@launch
+            val profile = profileRepository.getBuyerProfile(userId).getOrNull()
+
+            if (profile == null) {
+                // No profile, just delete auth
+                deleteAuthAccount()
+                return@launch
+            }
+
+            // Step 1: Clear user data (orders + profile)
+            val sellerId = _state.value.common.currentSellerId
+            val cleanUpResult = profileRepository.clearUserData(sellerId, profile)
+
+            cleanUpResult.onSuccess { result ->
+                println("Cleanup: orders=${result.deletedOrders.size}, profile=${result.profileDeleted}")
+            }
+
+            // Step 2: Clear local basket
+            basketRepository.clearBasket()
+
+            // Step 3: Delete Firebase Auth (may require re-auth)
+            deleteAuthAccount()
+
+            // Step 4: Reset state
+            resetToGuestState()
+
+            showSnackbar("Konto und alle Daten gelöscht", SnackbarType.INFO)
+
+        } catch (e: Exception) {
+            handleDeleteError(e)
+        } finally {
+            setLoading(false)
+        }
+    }
+}
+
+private suspend fun deleteAuthAccount() {
+    val result = authRepository.deleteAccount()
+    result.onFailure { e ->
+        if (e.message?.contains("CREDENTIAL_TOO_OLD") == true) {
+            // Need re-authentication - show re-auth dialog
+            _state.update { it.copy(requiresReauthForDeletion = true) }
+        } else {
+            throw e
+        }
+    }
+}
+```
+
+### Step 7: Add Re-authentication UI Flow
+
+Add state for re-authentication:
+```kotlin
+data class CustomerProfileScreenState(
+    // ... existing fields
+    val requiresReauthForDeletion: Boolean = false
+)
+```
+
+Add dialog for re-authentication prompting user to sign in again.
+
+### Step 8: Add String Resources
+
+**File:** `shared/src/commonMain/composeResources/values/strings.xml`
+
+```xml
+<string name="delete_account_title">Konto löschen</string>
+<string name="delete_account_warning">Alle Ihre Daten werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.</string>
+<string name="delete_account_reauth_required">Bitte melden Sie sich erneut an, um Ihr Konto zu löschen.</string>
+<string name="account_deleted_success">Konto und alle Daten wurden gelöscht</string>
+```
+
+**File:** `shared/src/commonMain/composeResources/values-en/strings.xml`
+
+```xml
+<string name="delete_account_title">Delete Account</string>
+<string name="delete_account_warning">All your data will be permanently deleted. This action cannot be undone.</string>
+<string name="delete_account_reauth_required">Please sign in again to delete your account.</string>
+<string name="account_deleted_success">Account and all data have been deleted</string>
+```
+
+### Step 9: Remove Debug Code
+
+Remove from `LoginStatusCard.kt`:
+- `onTestDeleteAuth` parameter
+- "Test" button in GuestStatus
+
+Remove from `UnifiedAppActions.kt`:
+- `TestDeleteAuth` action
+
+Remove from `BuyAppViewModel.kt`:
+- `testDeleteAuth()` function
+
+## Implementation Order
+
+1. **Create CleanUpResult model** - Foundation for tracking progress
+2. **Add clearUserData to repository** - Core deletion logic
+3. **Create DeleteAccountDialog** - UI component
+4. **Add dialog to CustomerProfileScreen** - Wire up UI
+5. **Refactor ViewModel deletion flow** - Proper cascade deletion
+6. **Add re-authentication support** - Handle Firebase credential requirement
+7. **Add string resources** - Localization
+8. **Remove debug code** - Clean up test artifacts
+
+## Testing Checklist
+
+- [ ] Guest user can delete account (anonymous auth + profile)
+- [ ] Authenticated user can delete account (requires re-auth if session old)
+- [ ] Orders are deleted before profile
+- [ ] Local basket is cleared
+- [ ] State resets to guest after deletion
+- [ ] Google sign-out is triggered
+- [ ] Error handling shows appropriate messages
+- [ ] Loading state is shown during deletion
+- [ ] Cancel button dismisses dialog without action
+
+## Firebase Paths Affected
+
+```
+/buyer_profile/{userId}              ← Profile deleted
+/orders/{sellerId}/{date}/{orderId}  ← Individual orders deleted
+Firebase Auth user record            ← Auth account deleted
+```
+
+## Risk Considerations
+
+1. **Orphaned Data:** If deletion fails mid-process, some data may remain. Consider transaction-like approach or cleanup job.
+
+2. **Re-authentication UX:** Users may not understand why they need to sign in again. Clear messaging required.
+
+3. **Network Failures:** Wrap operations in connection check like universe does.
+
+4. **Order History for Sellers:** Decide if seller should still see order history after buyer deletes account.

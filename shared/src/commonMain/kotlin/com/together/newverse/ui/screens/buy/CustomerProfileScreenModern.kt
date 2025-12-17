@@ -281,7 +281,8 @@ fun CustomerProfileScreenModern(
                                 onAction(com.together.newverse.ui.state.UnifiedUserAction.Logout)
                             }
                         },
-                        onDeleteAccount = { onAction(UnifiedAccountAction.ShowDeleteAccountDialog) }
+                        onDeleteAccount = { onAction(UnifiedAccountAction.ShowDeleteAccountDialog) },
+                        onTestDeleteAuth = { onAction(UnifiedAccountAction.TestDeleteAuth) }
                     )
 
                     // Quick Actions
