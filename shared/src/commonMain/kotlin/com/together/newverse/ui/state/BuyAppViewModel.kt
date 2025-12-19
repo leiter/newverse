@@ -952,77 +952,14 @@ class BuyAppViewModel(
         }
     }
 
-    private fun showSnackbar(message: String, type: SnackbarType) {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    ui = current.common.ui.copy(
-                        snackbar = SnackbarState(message = message, type = type)
-                    )
-                )
-            )
-        }
-    }
-
-    private fun hideSnackbar() {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    ui = current.common.ui.copy(snackbar = null)
-                )
-            )
-        }
-    }
-
-    private fun showDialog(dialog: DialogState) {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    ui = current.common.ui.copy(dialog = dialog)
-                )
-            )
-        }
-    }
-
-    private fun hideDialog() {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    ui = current.common.ui.copy(dialog = null)
-                )
-            )
-        }
-    }
-
-    private fun showBottomSheet(sheet: BottomSheetState) {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    ui = current.common.ui.copy(bottomSheet = sheet)
-                )
-            )
-        }
-    }
-
-    private fun hideBottomSheet() {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    ui = current.common.ui.copy(bottomSheet = null)
-                )
-            )
-        }
-    }
-
-    private fun setRefreshing(isRefreshing: Boolean) {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    ui = current.common.ui.copy(isRefreshing = isRefreshing)
-                )
-            )
-        }
-    }
+    // UI Management functions moved to BuyAppViewModelUi.kt
+    // - showSnackbar(message, type)
+    // - hideSnackbar()
+    // - showDialog(dialog)
+    // - hideDialog()
+    // - showBottomSheet(sheet)
+    // - hideBottomSheet()
+    // - setRefreshing(isRefreshing)
 
     // Placeholder implementations for other methods
     private fun login(email: String, password: String) {
@@ -1189,38 +1126,9 @@ class BuyAppViewModel(
         }
     }
 
-    /**
-     * Show password reset dialog
-     */
-    fun showPasswordResetDialog() {
-        _state.update { current ->
-            current.copy(
-                screens = current.screens.copy(
-                    auth = current.screens.auth.copy(
-                        showPasswordResetDialog = true,
-                        passwordResetSent = false,
-                        error = null
-                    )
-                )
-            )
-        }
-    }
-
-    /**
-     * Hide password reset dialog
-     */
-    fun hidePasswordResetDialog() {
-        _state.update { current ->
-            current.copy(
-                screens = current.screens.copy(
-                    auth = current.screens.auth.copy(
-                        showPasswordResetDialog = false,
-                        error = null
-                    )
-                )
-            )
-        }
-    }
+    // Password reset dialog functions moved to BuyAppViewModelUi.kt
+    // - showPasswordResetDialog()
+    // - hidePasswordResetDialog()
 
     /**
      * Reset Google Sign-In trigger after it's been handled
