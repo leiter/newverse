@@ -15,6 +15,7 @@ import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.navigation.NavRoutes
+import com.together.newverse.ui.state.buy.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,14 +42,18 @@ import org.jetbrains.compose.resources.getString
  * a Redux-like pattern with actions and reducers.
  */
 class BuyAppViewModel(
-    private val articleRepository: ArticleRepository,
-    private val orderRepository: OrderRepository,
-    private val profileRepository: ProfileRepository,
-    private val authRepository: AuthRepository,
-    private val basketRepository: BasketRepository
+    internal val articleRepository: ArticleRepository,
+    internal val orderRepository: OrderRepository,
+    internal val profileRepository: ProfileRepository,
+    internal val authRepository: AuthRepository,
+    internal val basketRepository: BasketRepository
 ) : ViewModel(), AppViewModel {
 
-    private val _state = MutableStateFlow(UnifiedAppState())
+    /**
+     * Internal state exposed for extension functions.
+     * Extension functions are organized in the buy/ package by domain.
+     */
+    internal val _state = MutableStateFlow(UnifiedAppState())
     override val state: StateFlow<UnifiedAppState> = _state.asStateFlow()
 
     /**
@@ -727,57 +732,11 @@ class BuyAppViewModel(
         )
     }
 
-    private fun navigateTo(route: NavRoutes) {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    navigation = current.common.navigation.copy(
-                        previousRoute = current.common.navigation.currentRoute,
-                        currentRoute = route,
-                        backStack = current.common.navigation.backStack + route
-                    )
-                )
-            )
-        }
-    }
-
-    private fun navigateBack() {
-        _state.update { current ->
-            val backStack = current.common.navigation.backStack
-            if (backStack.size > 1) {
-                val newBackStack = backStack.dropLast(1)
-                current.copy(
-                    common = current.common.copy(
-                        navigation = current.common.navigation.copy(
-                            currentRoute = newBackStack.last(),
-                            previousRoute = current.common.navigation.currentRoute,
-                            backStack = newBackStack
-                        )
-                    )
-                )
-            } else current
-        }
-    }
-
-    private fun openDrawer() {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    navigation = current.common.navigation.copy(isDrawerOpen = true)
-                )
-            )
-        }
-    }
-
-    private fun closeDrawer() {
-        _state.update { current ->
-            current.copy(
-                common = current.common.copy(
-                    navigation = current.common.navigation.copy(isDrawerOpen = false)
-                )
-            )
-        }
-    }
+    // Navigation functions moved to BuyAppViewModelNavigation.kt
+    // - navigateTo(route)
+    // - navigateBack()
+    // - openDrawer()
+    // - closeDrawer()
 
     private fun loadProducts() {
         viewModelScope.launch {
