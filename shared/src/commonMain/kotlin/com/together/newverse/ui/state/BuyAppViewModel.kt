@@ -36,10 +36,126 @@ import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
 
 /**
- * Buy flavor ViewModel managing all app state for buyer/customer app
+ * Buy flavor ViewModel - Extension-Based Architecture
  *
- * This is the single ViewModel for the buy flavor, implementing
- * a Redux-like pattern with actions and reducers.
+ * Core ViewModel for the buyer/customer app implementing a Redux-like pattern
+ * with actions and reducers. Domain logic is organized using Kotlin extension
+ * functions in separate files for maintainability and team collaboration.
+ *
+ * ## Architecture Overview
+ *
+ * This ViewModel has been refactored from a monolithic 3,697-line file into a
+ * modular architecture:
+ * - **Core ViewModel** (~728 lines): State management, action dispatching, interface implementations
+ * - **Extension Functions** (~2,900 lines): Domain-specific logic organized by feature area
+ *
+ * ## Extension Function Organization
+ *
+ * Domain logic is extracted to extension functions in the `ui/state/buy/` package:
+ *
+ * | File | Domain | Functions | Lines |
+ * |------|--------|-----------|-------|
+ * | **BuyAppViewModelBasket.kt** | Basket/Checkout | 30 functions | ~1200 |
+ * | **BuyAppViewModelAuth.kt** | Authentication & Account | 18 functions | ~600 |
+ * | **BuyAppViewModelMainScreen.kt** | Product Browsing | 14 functions | ~400 |
+ * | **BuyAppViewModelInitialization.kt** | App Startup | 8 functions | ~345 |
+ * | **BuyAppViewModelProfile.kt** | User Profile | 9 functions | ~200 |
+ * | **BuyAppViewModelUi.kt** | UI Management | 9 functions | ~100 |
+ * | **BuyAppViewModelNavigation.kt** | Navigation & Drawer | 4 functions | ~50 |
+ *
+ * ### Extension Function Domains
+ *
+ * **Basket/Checkout** (`BuyAppViewModelBasket.kt`):
+ * - Basket initialization and observers
+ * - Item management (add, remove, update, clear)
+ * - Checkout workflow
+ * - Order loading and editing
+ * - Pickup date selection
+ * - Reorder functionality
+ * - Merge conflict resolution
+ *
+ * **Authentication & Account** (`BuyAppViewModelAuth.kt`):
+ * - Email/password login
+ * - Social login (Google, Twitter)
+ * - User registration
+ * - Password reset
+ * - Guest account linking
+ * - Account deletion
+ *
+ * **Product Browsing** (`BuyAppViewModelMainScreen.kt`):
+ * - Article selection and quantity management
+ * - Add to cart functionality
+ * - Favorites management
+ * - Product filtering
+ * - Edit lock guards (prevent editing locked orders)
+ *
+ * **App Startup** (`BuyAppViewModelInitialization.kt`):
+ * - App initialization flow
+ * - Authentication checking
+ * - Guest sign-in fallback
+ * - Profile and order loading
+ * - Auth state observation
+ *
+ * **User Profile** (`BuyAppViewModelProfile.kt`):
+ * - Profile loading and saving
+ * - Order history
+ * - Profile observation
+ * - Favorite articles sync
+ *
+ * **UI Management** (`BuyAppViewModelUi.kt`):
+ * - Snackbar display
+ * - Dialog management
+ * - Bottom sheet control
+ * - Refresh state
+ *
+ * **Navigation** (`BuyAppViewModelNavigation.kt`):
+ * - Screen navigation
+ * - Back stack management
+ * - Drawer control
+ *
+ * ## Extension Function Access Pattern
+ *
+ * Extension functions have `internal` visibility and can access:
+ * - `_state: MutableStateFlow<UnifiedAppState>` - State updates
+ * - All repository dependencies (article, order, profile, auth, basket)
+ * - `viewModelScope` - Coroutine launching
+ *
+ * Example:
+ * ```kotlin
+ * // In BuyAppViewModelAuth.kt
+ * internal fun BuyAppViewModel.login(email: String, password: String) {
+ *     viewModelScope.launch {
+ *         _state.update { current -> /* ... */ }
+ *         authRepository.signInWithEmail(email, password)
+ *     }
+ * }
+ * ```
+ *
+ * ## Core ViewModel Responsibilities
+ *
+ * This core file handles:
+ * 1. **Dependency injection** - Repository dependencies via constructor
+ * 2. **State management** - UnifiedAppState and BuyerAppState flows
+ * 3. **Action dispatching** - Main `dispatch()` method routing actions
+ * 4. **Interface implementations** - AppViewModel interface overrides
+ * 5. **State mapping** - UnifiedAppState → BuyerAppState transformation
+ * 6. **Initialization** - init block calling extension functions
+ *
+ * ## Benefits
+ *
+ * - **Maintainability**: Find functions by domain, not line number
+ * - **Team Collaboration**: Multiple developers can work on different domains
+ * - **Code Organization**: Clear separation of concerns
+ * - **Testing**: Domain logic isolated for easier testing
+ * - **Migration Path**: Easy transition to use case classes in Phase 2
+ *
+ * ## State Flow Architecture
+ *
+ * - `state`: Public StateFlow<UnifiedAppState> (legacy, comprehensive state)
+ * - `buyerState`: Public StateFlow<BuyerAppState> (new, simplified buyer-specific state)
+ * - Screens can choose which state to observe based on their needs
+ *
+ * @see com.together.newverse.ui.state.buy Extension function packages
  */
 class BuyAppViewModel(
     internal val articleRepository: ArticleRepository,
