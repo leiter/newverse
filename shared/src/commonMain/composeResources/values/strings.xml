@@ -313,8 +313,10 @@
 
     <!-- Delete Account Dialog -->
     <string name="delete_account_title">Konto löschen?</string>
-    <string name="delete_account_message">Ihr Konto und alle zugehörigen Daten werden unwiderruflich gelöscht. Bestellungen bleiben für den Verkäufer erhalten.</string>
+    <string name="delete_account_message">Ihr Profil wird gelöscht. Offene Bestellungen werden storniert. Vergangene Bestellungen bleiben für den Verkäufer sichtbar.</string>
     <string name="delete_account_confirm">Konto löschen</string>
+    <string name="account_deleted_success">Konto gelöscht</string>
+    <string name="account_deleted_with_cancellations">Konto gelöscht. %d Bestellung(en) storniert.</string>
 
     <!-- Guest Logout Success -->
     <string name="logout_guest_success">Abgemeldet. Alle Gastdaten wurden gelöscht.</string>

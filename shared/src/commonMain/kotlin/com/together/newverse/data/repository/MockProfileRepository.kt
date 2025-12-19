@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.preview.PreviewData
@@ -68,14 +69,18 @@ class MockProfileRepository : ProfileRepository {
         }
     }
 
-    override suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<Boolean> {
+    override suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<CleanUpResult> {
         return try {
             delay(300)
             // Clear buyer profile
             _buyerProfile.value = null
             // Reset seller profile to default
             _sellerProfile.value = PreviewData.sampleSellerProfile
-            Result.success(true)
+            // Return mock cleanup result
+            Result.success(CleanUpResult(
+                started = true,
+                profileDeleted = true
+            ))
         } catch (e: Exception) {
             Result.failure(e)
         }

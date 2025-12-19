@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.AuthRepository
@@ -39,7 +40,7 @@ class PlatformProfileRepository(
         return actualRepository.saveSellerProfile(profile)
     }
 
-    override suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<Boolean> {
+    override suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<CleanUpResult> {
         return actualRepository.clearUserData(sellerId, buyerProfile)
     }
 

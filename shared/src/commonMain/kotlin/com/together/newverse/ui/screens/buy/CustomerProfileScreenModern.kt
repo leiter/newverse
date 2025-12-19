@@ -74,6 +74,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.screens.buy.components.DeleteAccountDialog
 import com.together.newverse.ui.screens.buy.components.LinkAccountDialog
 import com.together.newverse.ui.screens.buy.components.LoginStatusCard
 import com.together.newverse.ui.screens.buy.components.LogoutWarningDialog
@@ -162,6 +163,15 @@ fun CustomerProfileScreenModern(
             onLinkWithGoogle = { onAction(UnifiedAccountAction.LinkWithGoogle) },
             onLinkWithEmail = { /* Navigate to email registration */ },
             isLinking = state.isLinkingAccount
+        )
+    }
+
+    // Delete Account Dialog
+    if (state.showDeleteAccountDialog) {
+        DeleteAccountDialog(
+            isLoading = state.isLoading,
+            onConfirm = { onAction(UnifiedAccountAction.ConfirmDeleteAccount) },
+            onDismiss = { onAction(UnifiedAccountAction.DismissDeleteAccountDialog) }
         )
     }
 
@@ -281,8 +291,7 @@ fun CustomerProfileScreenModern(
                                 onAction(com.together.newverse.ui.state.UnifiedUserAction.Logout)
                             }
                         },
-                        onDeleteAccount = { onAction(UnifiedAccountAction.ShowDeleteAccountDialog) },
-                        onTestDeleteAuth = { onAction(UnifiedAccountAction.TestDeleteAuth) }
+                        onDeleteAccount = { onAction(UnifiedAccountAction.ShowDeleteAccountDialog) }
                     )
 
                     // Quick Actions

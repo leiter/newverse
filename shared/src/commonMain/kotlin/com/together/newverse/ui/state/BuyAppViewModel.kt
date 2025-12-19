@@ -1335,34 +1335,6 @@ class BuyAppViewModel(
             is UnifiedAccountAction.LinkWithGoogle -> linkWithGoogle()
             is UnifiedAccountAction.LinkWithEmail -> linkWithEmail(action.email, action.password)
             is UnifiedAccountAction.ConfirmDeleteAccount -> confirmDeleteAccount()
-            is UnifiedAccountAction.TestDeleteAuth -> testDeleteAuth()
-        }
-    }
-
-    /**
-     * Test: Delete only the Firebase Auth account (no profile/basket deletion)
-     * Re-authenticates anonymously first to satisfy Firebase's recent auth requirement.
-     */
-    private fun testDeleteAuth() {
-        viewModelScope.launch {
-            // Step 1: Check if there's a current user
-            val currentUserId = authRepository.getCurrentUserId()
-            println("🧪 TestDeleteAuth: Current userId = $currentUserId")
-
-            if (currentUserId == null) {
-                println("🧪 TestDeleteAuth: No current user - aborting (nothing to delete)")
-                return@launch
-            }
-
-            // Step 2: Try to delete directly first (might work if auth is recent)
-            println("🧪 TestDeleteAuth: Attempting to delete Firebase Auth account...")
-            authRepository.deleteAccount()
-                .onSuccess {
-                    println("🧪 TestDeleteAuth: Firebase Auth account deleted successfully")
-                }
-                .onFailure { e ->
-                    println("🧪 TestDeleteAuth: Failed - ${e.message}")
-                }
         }
     }
 
@@ -1580,28 +1552,56 @@ class BuyAppViewModel(
 
     /**
      * Confirm account deletion for authenticated users.
+     * - Future orders (pickup date > now) are CANCELLED
+     * - Past orders are kept for seller records
+     * - Buyer profile is deleted
+     * - Firebase Auth account is deleted
      */
     private fun confirmDeleteAccount() {
         viewModelScope.launch {
             try {
+                // Set loading state (keep dialog visible to show progress)
                 _state.update { current ->
                     current.copy(
                         screens = current.screens.copy(
                             customerProfile = current.screens.customerProfile.copy(
-                                showDeleteAccountDialog = false
+                                isLoading = true
                             )
                         )
                     )
                 }
 
                 val userId = getCurrentUserId()
+                var cancelledOrderCount = 0
 
-                // Delete profile data (orders are preserved for seller records)
                 if (userId != null) {
-                    profileRepository.deleteBuyerProfile(userId)
+                    // Get buyer profile to access placedOrderIds
+                    val profileResult = profileRepository.getBuyerProfile()
+                    val buyerProfile = profileResult.getOrNull()
+
+                    if (buyerProfile != null) {
+                        // Clear user data: cancel future orders, keep past orders, delete profile
+                        val cleanUpResult = profileRepository.clearUserData(
+                            sellerId = BASKET_SELLER_ID,
+                            buyerProfile = buyerProfile
+                        )
+
+                        cleanUpResult.onSuccess { result ->
+                            cancelledOrderCount = result.cancelledOrders.size
+                            println("🔐 confirmDeleteAccount: Cleanup complete - cancelled=${result.cancelledOrders.size}, skipped=${result.skippedOrders.size}, profileDeleted=${result.profileDeleted}")
+                            if (result.errors.isNotEmpty()) {
+                                println("⚠️ confirmDeleteAccount: Cleanup had errors: ${result.errors}")
+                            }
+                        }.onFailure { e ->
+                            println("⚠️ confirmDeleteAccount: Cleanup failed - ${e.message}")
+                        }
+                    } else {
+                        // No profile found, just delete auth
+                        println("🔐 confirmDeleteAccount: No buyer profile found, proceeding with auth deletion only")
+                    }
                 }
 
-                // Clear basket
+                // Clear local basket
                 basketRepository.clearBasket()
 
                 // Delete Firebase Auth account (this also signs out)
@@ -1609,7 +1609,7 @@ class BuyAppViewModel(
                     .onSuccess { println("🔐 Deleted Firebase Auth account for authenticated user") }
                     .onFailure { e -> println("⚠️ Failed to delete auth account: ${e.message}") }
 
-                // Reset state
+                // Reset state and hide dialog
                 _state.update { current ->
                     current.copy(
                         common = current.common.copy(
@@ -1624,9 +1624,26 @@ class BuyAppViewModel(
                     )
                 }
 
-                showSnackbar("Konto gelöscht", SnackbarType.INFO)
+                // Show success message with cancelled order count
+                val message = if (cancelledOrderCount > 0) {
+                    getString(Res.string.account_deleted_with_cancellations, cancelledOrderCount)
+                } else {
+                    getString(Res.string.account_deleted_success)
+                }
+                showSnackbar(message, SnackbarType.INFO)
 
             } catch (e: Exception) {
+                // Hide loading and dialog on error
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            customerProfile = current.screens.customerProfile.copy(
+                                isLoading = false,
+                                showDeleteAccountDialog = false
+                            )
+                        )
+                    )
+                }
                 showSnackbar("Fehler beim Löschen: ${e.message}", SnackbarType.ERROR)
             }
         }

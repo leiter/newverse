@@ -1,7 +1,9 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.Market
+import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.ProfileRepository
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.datetime.Clock
 
 /**
  * GitLive implementation of ProfileRepository for cross-platform profile management.
@@ -171,16 +174,89 @@ class GitLiveProfileRepository(
         }
     }
 
-    override suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<Boolean> {
+    override suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<CleanUpResult> {
         return try {
-            println("🔐 GitLiveProfileRepository.clearUserData: START")
+            println("🔐 GitLiveProfileRepository.clearUserData: START - sellerId=$sellerId, placedOrders=${buyerProfile.placedOrderIds.size}")
+
+            val now = Clock.System.now().toEpochMilliseconds()
+            val futureOrderIds = mutableListOf<String>()
+            val cancelledOrders = mutableListOf<String>()
+            val skippedOrders = mutableListOf<String>()
+            val errors = mutableListOf<String>()
+
+            // Process each order from buyer's placedOrderIds
+            // placedOrderIds is Map<String, String> where key=date, value=orderId
+            for ((date, orderId) in buyerProfile.placedOrderIds) {
+                try {
+                    println("🔐 GitLiveProfileRepository.clearUserData: Processing order date=$date, orderId=$orderId")
+
+                    // Load the order from Firebase
+                    // Path: seller_profile/{sellerId}/orders/{date}/{orderId}
+                    val orderRef = sellersRef.child(sellerId).child("orders").child(date).child(orderId)
+                    val snapshot = orderRef.valueEvents.first()
+
+                    if (snapshot.exists) {
+                        val orderData = snapshot.value as? Map<*, *>
+                        if (orderData != null) {
+                            val pickUpDate = (orderData["pickUpDate"] as? Number)?.toLong() ?: 0L
+                            val currentStatus = (orderData["status"] as? String) ?: "PLACED"
+
+                            println("🔐 GitLiveProfileRepository.clearUserData: Order pickUpDate=$pickUpDate, now=$now, status=$currentStatus")
+
+                            if (pickUpDate > now) {
+                                // Future order - cancel it
+                                futureOrderIds.add(orderId)
+
+                                // Only cancel if not already cancelled or completed
+                                if (currentStatus != "CANCELLED" && currentStatus != "COMPLETED") {
+                                    // Update status to CANCELLED
+                                    orderRef.child("status").setValue(OrderStatus.CANCELLED.name)
+                                    cancelledOrders.add(orderId)
+                                    println("✅ GitLiveProfileRepository.clearUserData: Cancelled order $orderId")
+                                } else {
+                                    println("⏭️ GitLiveProfileRepository.clearUserData: Order $orderId already $currentStatus")
+                                    skippedOrders.add(orderId)
+                                }
+                            } else {
+                                // Past order - keep it for seller records
+                                skippedOrders.add(orderId)
+                                println("⏭️ GitLiveProfileRepository.clearUserData: Skipping past order $orderId (pickup was ${pickUpDate})")
+                            }
+                        }
+                    } else {
+                        println("⚠️ GitLiveProfileRepository.clearUserData: Order $orderId not found")
+                        errors.add("Order $orderId not found")
+                    }
+                } catch (e: Exception) {
+                    println("❌ GitLiveProfileRepository.clearUserData: Error processing order $orderId - ${e.message}")
+                    errors.add("Failed to process order $orderId: ${e.message}")
+                }
+            }
+
+            // Delete buyer profile
+            val profileDeleted = try {
+                deleteBuyerProfile(buyerProfile.id)
+                true
+            } catch (e: Exception) {
+                errors.add("Failed to delete profile: ${e.message}")
+                false
+            }
 
             // Clear local state
             _buyerProfile.value = null
             sellerProfileCache.remove(sellerId)
 
-            println("✅ GitLiveProfileRepository.clearUserData: Success")
-            Result.success(true)
+            val result = CleanUpResult(
+                started = true,
+                futureOrderIds = futureOrderIds,
+                cancelledOrders = cancelledOrders,
+                skippedOrders = skippedOrders,
+                profileDeleted = profileDeleted,
+                errors = errors
+            )
+
+            println("✅ GitLiveProfileRepository.clearUserData: Complete - cancelled=${cancelledOrders.size}, skipped=${skippedOrders.size}, profileDeleted=$profileDeleted")
+            Result.success(result)
 
         } catch (e: Exception) {
             println("❌ GitLiveProfileRepository.clearUserData: Error - ${e.message}")

@@ -1,6 +1,7 @@
 package com.together.newverse.domain.repository
 
 import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.SellerProfile
 import kotlinx.coroutines.flow.Flow
 
@@ -42,12 +43,16 @@ interface ProfileRepository {
     suspend fun saveSellerProfile(profile: SellerProfile): Result<Unit>
 
     /**
-     * Clear user data
+     * Clear user data when account is deleted.
+     * - Future orders (pickup date > now) are CANCELLED
+     * - Past orders are kept for seller records
+     * - Buyer profile is deleted
+     *
      * @param sellerId The seller's ID
      * @param buyerProfile The buyer profile to clear
-     * @return Cleanup result with details
+     * @return CleanUpResult with details about what was cancelled/kept
      */
-    suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<Boolean>
+    suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<CleanUpResult>
 
     /**
      * Delete buyer profile for a specific user
