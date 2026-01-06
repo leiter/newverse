@@ -29,8 +29,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 
     lint {
@@ -98,13 +100,14 @@ dependencies {
     // Compose
     implementation(compose.ui)
     implementation(compose.material3)
+    implementation(compose.materialIconsExtended)
     implementation(compose.uiTooling)
     implementation(compose.preview)
 
     // Koin
-    implementation("io.insert-koin:koin-android:4.0.0")
-    implementation("io.insert-koin:koin-androidx-compose:4.0.0")
-    implementation("io.insert-koin:koin-compose-viewmodel:4.0.0")
+    implementation("io.insert-koin:koin-android:4.1.0")
+    implementation("io.insert-koin:koin-androidx-compose:4.1.0")
+    implementation("io.insert-koin:koin-compose-viewmodel:4.1.0")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
@@ -114,7 +117,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
 
     // Coroutines Play Services
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
 
     // WorkManager for background task scheduling
     implementation("androidx.work:work-runtime-ktx:2.9.0")

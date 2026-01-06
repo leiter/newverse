@@ -36,8 +36,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Order
 import com.together.newverse.util.formatPrice
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
@@ -315,8 +317,8 @@ private fun OrderHistoryCard(
 private fun formatDate(timestamp: Long): String {
     val instant = Instant.fromEpochMilliseconds(timestamp)
     val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val day = dateTime.dayOfMonth.toString().padStart(2, '0')
-    val month = dateTime.monthNumber.toString().padStart(2, '0')
+    val day = dateTime.day.toString().padStart(2, '0')
+    val month = dateTime.month.number.toString().padStart(2, '0')
     val year = dateTime.year
     return "$day.$month.$year"
 }
@@ -328,8 +330,8 @@ private fun formatDate(timestamp: Long): String {
 private fun formatDateKey(timestamp: Long): String {
     val instant = Instant.fromEpochMilliseconds(timestamp)
     val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val day = dateTime.dayOfMonth.toString().padStart(2, '0')
-    val month = dateTime.monthNumber.toString().padStart(2, '0')
+    val day = dateTime.day.toString().padStart(2, '0')
+    val month = dateTime.month.number.toString().padStart(2, '0')
     val year = dateTime.year
     return "$year$month$day"
 }
@@ -338,7 +340,7 @@ private fun formatDateKey(timestamp: Long): String {
  * Helper function to get days until pickup (calendar days, not hours)
  */
 private fun getDaysUntilPickup(pickupDate: Long): Long {
-    val now = kotlinx.datetime.Clock.System.now()
+    val now = Clock.System.now()
     val pickupInstant = Instant.fromEpochMilliseconds(pickupDate)
 
     val todayDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date

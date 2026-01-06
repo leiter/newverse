@@ -31,7 +31,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
-import org.koin.compose.KoinContext
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -69,15 +68,13 @@ class SellMainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            KoinContext {
-                NewverseTheme {
-                    // Provide ImagePicker and DocumentPicker to entire app via CompositionLocal
-                    CompositionLocalProvider(
-                        LocalImagePicker provides imagePicker,
-                        LocalDocumentPicker provides documentPicker
-                    ) {
-                        AppScaffoldWithGoogleSignIn()
-                    }
+            NewverseTheme {
+                // Provide ImagePicker and DocumentPicker to entire app via CompositionLocal
+                CompositionLocalProvider(
+                    LocalImagePicker provides imagePicker,
+                    LocalDocumentPicker provides documentPicker
+                ) {
+                    AppScaffoldWithGoogleSignIn()
                 }
             }
         }

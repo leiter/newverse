@@ -2,9 +2,10 @@ package com.together.newverse.domain.model
 
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.OrderWindowStatus
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 /**
@@ -107,8 +108,8 @@ data class Order(
         val instant = Instant.fromEpochMilliseconds(pickUpDate)
         val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
 
-        val day = localDateTime.dayOfMonth.toString().padStart(2, '0')
-        val month = localDateTime.monthNumber.toString().padStart(2, '0')
+        val day = localDateTime.day.toString().padStart(2, '0')
+        val month = localDateTime.month.number.toString().padStart(2, '0')
         val year = localDateTime.year
         val hour = localDateTime.hour.toString().padStart(2, '0')
         val minute = localDateTime.minute.toString().padStart(2, '0')

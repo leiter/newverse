@@ -14,7 +14,10 @@ import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
+import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 /**
@@ -494,10 +497,10 @@ class GitLiveOrderRepository(
      */
     private fun formatDate(timestamp: Long): String {
         // Convert timestamp to YYYY-MM-DD format
-        val date = kotlinx.datetime.Instant.fromEpochMilliseconds(timestamp)
-        val timezone = kotlinx.datetime.TimeZone.currentSystemDefault()
+        val date = Instant.fromEpochMilliseconds(timestamp)
+        val timezone = TimeZone.currentSystemDefault()
         val localDateTime = date.toLocalDateTime(timezone)
-        return "${localDateTime.year}-${localDateTime.monthNumber.toString().padStart(2, '0')}-${localDateTime.dayOfMonth.toString().padStart(2, '0')}"
+        return "${localDateTime.year}-${localDateTime.month.number.toString().padStart(2, '0')}-${localDateTime.day.toString().padStart(2, '0')}"
     }
 
     /**

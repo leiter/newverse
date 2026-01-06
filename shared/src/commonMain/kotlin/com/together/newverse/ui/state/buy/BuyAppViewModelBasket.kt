@@ -14,9 +14,10 @@ import com.together.newverse.ui.state.UnifiedBasketScreenAction
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 /**
@@ -1188,8 +1189,8 @@ internal fun BuyAppViewModel.basketScreenFormatDateKey(timestamp: Long): String 
     val instant = Instant.fromEpochMilliseconds(timestamp)
     val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
     val year = dateTime.year
-    val month = dateTime.monthNumber.toString().padStart(2, '0')
-    val day = dateTime.dayOfMonth.toString().padStart(2, '0')
+    val month = dateTime.month.number.toString().padStart(2, '0')
+    val day = dateTime.day.toString().padStart(2, '0')
     return "$year$month$day"
 }
 
@@ -1199,8 +1200,8 @@ internal fun BuyAppViewModel.basketScreenFormatDateKey(timestamp: Long): String 
 internal fun BuyAppViewModel.basketScreenFormatDate(timestamp: Long): String {
     val instant = Instant.fromEpochMilliseconds(timestamp)
     val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val day = dateTime.dayOfMonth.toString().padStart(2, '0')
-    val month = dateTime.monthNumber.toString().padStart(2, '0')
+    val day = dateTime.day.toString().padStart(2, '0')
+    val month = dateTime.month.number.toString().padStart(2, '0')
     val year = dateTime.year
     return "$day.$month.$year"
 }

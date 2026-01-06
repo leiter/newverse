@@ -1,5 +1,7 @@
 package com.together.newverse.util
 
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.*
 
 /**
@@ -39,7 +41,6 @@ object OrderDateUtils {
             DayOfWeek.FRIDAY -> 6      // Fri → Thu (next week)
             DayOfWeek.SATURDAY -> 5    // Sat → Thu (next week)
             DayOfWeek.SUNDAY -> 4      // Sun → Thu (next week)
-            else -> 7 // Fallback
         }
 
         val pickupDate = localDate.plus(daysUntilNextThursday, DateTimeUnit.DAY)
@@ -209,8 +210,8 @@ object OrderDateUtils {
     fun formatDateKey(instant: Instant, timeZone: TimeZone = TimeZone.currentSystemDefault()): String {
         val dateTime = instant.toLocalDateTime(timeZone)
         val year = dateTime.year
-        val month = dateTime.monthNumber.toString().padStart(2, '0')
-        val day = dateTime.dayOfMonth.toString().padStart(2, '0')
+        val month = dateTime.month.number.toString().padStart(2, '0')
+        val day = dateTime.day.toString().padStart(2, '0')
         return "$year$month$day"
     }
 
@@ -274,8 +275,8 @@ object OrderDateUtils {
      */
     fun formatDisplayDate(instant: Instant, timeZone: TimeZone = TimeZone.currentSystemDefault()): String {
         val dateTime = instant.toLocalDateTime(timeZone)
-        val day = dateTime.dayOfMonth.toString().padStart(2, '0')
-        val month = dateTime.monthNumber.toString().padStart(2, '0')
+        val day = dateTime.day.toString().padStart(2, '0')
+        val month = dateTime.month.number.toString().padStart(2, '0')
         val year = dateTime.year
         return "$day.$month.$year"
     }
@@ -285,8 +286,8 @@ object OrderDateUtils {
      */
     fun formatDisplayDateTime(instant: Instant, timeZone: TimeZone = TimeZone.currentSystemDefault()): String {
         val dateTime = instant.toLocalDateTime(timeZone)
-        val day = dateTime.dayOfMonth.toString().padStart(2, '0')
-        val month = dateTime.monthNumber.toString().padStart(2, '0')
+        val day = dateTime.day.toString().padStart(2, '0')
+        val month = dateTime.month.number.toString().padStart(2, '0')
         val year = dateTime.year
         val hour = dateTime.hour.toString().padStart(2, '0')
         val minute = dateTime.minute.toString().padStart(2, '0')

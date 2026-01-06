@@ -111,7 +111,7 @@ private fun SellerOrderCard(
     // Determine if order is "open" for seller's view
     // Based on universe project: orders are "open" if pickup date hasn't passed yet
     // Simple rule: if pickup date is in the future, the order is still open/active
-    val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+    val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
     val isOpen = order.pickUpDate > now
 
     // Use different visual styling for open orders

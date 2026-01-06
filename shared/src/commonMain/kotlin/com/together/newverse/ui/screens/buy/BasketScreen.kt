@@ -39,9 +39,10 @@ import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.UnifiedBasketScreenAction
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -665,8 +666,8 @@ private fun OrderInfoCard(
 private fun formatDate(timestamp: Long): String {
     val instant = Instant.fromEpochMilliseconds(timestamp)
     val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val day = dateTime.dayOfMonth.toString().padStart(2, '0')
-    val month = dateTime.monthNumber.toString().padStart(2, '0')
+    val day = dateTime.day.toString().padStart(2, '0')
+    val month = dateTime.month.number.toString().padStart(2, '0')
     val year = dateTime.year
     return "$day.$month.$year"
 }

@@ -70,40 +70,41 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
 
             // Koin for Dependency Injection
-            implementation("io.insert-koin:koin-core:4.0.0")
-            implementation("io.insert-koin:koin-compose:4.0.0")
-            implementation("io.insert-koin:koin-compose-viewmodel:4.0.0")
+            implementation("io.insert-koin:koin-core:4.1.0")
+            implementation("io.insert-koin:koin-compose:4.1.0")
+            implementation("io.insert-koin:koin-compose-viewmodel:4.1.0")
 
             // Coroutines
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
             // DateTime
-            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
 
             // Serialization for DTOs
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
             // ViewModel
-            implementation("androidx.lifecycle:lifecycle-viewmodel:2.8.0")
+            implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:2.9.6")
 
             // Navigation
-            implementation("org.jetbrains.androidx.navigation:navigation-compose:2.8.0-alpha10")
+            implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.1")
 
             // Coil3 for image loading (supports Android, iOS, Desktop, Web)
-            implementation("io.coil-kt.coil3:coil-compose:3.0.4")
-            implementation("io.coil-kt.coil3:coil-network-ktor3:3.0.4")
+            implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+            implementation("io.coil-kt.coil3:coil-network-ktor3:3.3.0")
 
             // GitLive Firebase SDK for cross-platform support
             // Note: GitLive provides Kotlin Multiplatform support for Firebase
-            implementation("dev.gitlive:firebase-auth:2.1.0")
-            implementation("dev.gitlive:firebase-common:2.1.0")
-            implementation("dev.gitlive:firebase-database:2.1.0")
-            implementation("dev.gitlive:firebase-storage:2.1.0")
+            implementation("dev.gitlive:firebase-auth:2.4.0")
+            implementation("dev.gitlive:firebase-common:2.4.0")
+            implementation("dev.gitlive:firebase-database:2.4.0")
+            implementation("dev.gitlive:firebase-storage:2.4.0")
         }
 
         androidMain.dependencies {
@@ -117,7 +118,7 @@ kotlin {
             implementation(compose.uiTooling)
 
             // Koin Android
-            implementation("io.insert-koin:koin-android:4.0.0")
+            implementation("io.insert-koin:koin-android:4.1.0")
 
             // Firebase
             implementation("com.google.firebase:firebase-auth-ktx:23.0.0")
@@ -128,17 +129,17 @@ kotlin {
             implementation("com.google.android.gms:play-services-auth:21.2.0")
 
             // Coroutines Play Services
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
 
             // Ktor HTTP client engine for Coil image loading
-            implementation("io.ktor:ktor-client-okhttp:3.0.1")
+            implementation("io.ktor:ktor-client-okhttp:3.3.0")
         }
 
         iosMain.dependencies {
             // iOS specific dependencies
 
             // Ktor HTTP client engine for Coil image loading
-            implementation("io.ktor:ktor-client-darwin:3.0.1")
+            implementation("io.ktor:ktor-client-darwin:3.3.0")
         }
     }
 }

@@ -5,7 +5,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * In-memory implementation of AuthRepository for testing and development.

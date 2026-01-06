@@ -5,8 +5,9 @@ import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.navigation.NavRoutes
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 /**
@@ -78,7 +79,7 @@ data class BuyerDataState(
             // Convert to date string format YYYYMMDD
             val dt = Instant.fromEpochMilliseconds(timestamp)
                 .toLocalDateTime(TimeZone.currentSystemDefault())
-            "${dt.year}${dt.monthNumber.toString().padStart(2, '0')}${dt.dayOfMonth.toString().padStart(2, '0')}"
+            "${dt.year}${dt.month.number.toString().padStart(2, '0')}${dt.day.toString().padStart(2, '0')}"
         }
 
     val hasCurrentOrder: Boolean

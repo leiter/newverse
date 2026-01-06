@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -50,7 +50,6 @@ import com.together.newverse.ui.theme.NewverseTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.koin.android.ext.android.inject
-import org.koin.compose.KoinContext
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.coroutines.resume
@@ -74,10 +73,8 @@ class DebugMainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            KoinContext {
-                NewverseTheme {
-                    DebugStoriesScreen()
-                }
+            NewverseTheme {
+                DebugStoriesScreen()
             }
         }
     }
@@ -332,7 +329,7 @@ class DebugMainActivity : ComponentActivity() {
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Run all stories button

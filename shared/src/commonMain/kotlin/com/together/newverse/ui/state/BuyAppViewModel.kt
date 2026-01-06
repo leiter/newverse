@@ -8,7 +8,7 @@ import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.util.OrderDateUtils
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import newverse.shared.generated.resources.Res

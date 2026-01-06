@@ -108,7 +108,7 @@ class GitLiveStorageRepository : StorageRepository {
      * @return Generated path in format "images/{timestamp}_ttt.jpeg"
      */
     override fun generateImagePath(): String {
-        val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+        val timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds()
         return "$IMAGES_PATH${timestamp}_ttt.jpeg"
     }
 
