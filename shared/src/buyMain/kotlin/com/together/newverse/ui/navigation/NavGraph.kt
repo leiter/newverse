@@ -6,6 +6,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.savedstate.read
 import com.together.newverse.ui.screens.buy.BasketScreen
 import com.together.newverse.ui.screens.buy.CustomerProfileScreenModern
 import com.together.newverse.ui.screens.buy.OrderHistoryScreen
@@ -55,8 +56,8 @@ fun NavGraph(
                 }
             )
         ) { backStackEntry ->
-            val orderIdArg = backStackEntry.arguments?.getString("orderId")
-            val orderDateArg = backStackEntry.arguments?.getString("orderDate")
+            val orderIdArg = backStackEntry.arguments?.read { getStringOrNull("orderId") }
+            val orderDateArg = backStackEntry.arguments?.read { getStringOrNull("orderDate") }
 
             BasketScreen(
                 state = appState.screens.basketScreen,

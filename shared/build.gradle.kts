@@ -95,6 +95,9 @@ kotlin {
             // Navigation
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.1")
 
+            // SavedState (for navigation arguments)
+            implementation("org.jetbrains.androidx.savedstate:savedstate:1.3.6")
+
             // Coil3 for image loading (supports Android, iOS, Desktop, Web)
             implementation("io.coil-kt.coil3:coil-compose:3.3.0")
             implementation("io.coil-kt.coil3:coil-network-ktor3:3.3.0")
