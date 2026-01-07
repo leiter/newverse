@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -386,7 +387,7 @@ private fun HeroProductCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
-                                    modifier = Modifier.width(80.dp),
+                                    modifier = Modifier.widthIn(min = 48.dp, max = 80.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     BasicTextField(
@@ -422,15 +423,14 @@ private fun HeroProductCard(
 
                                 // Unit label - only show for weight-based products
                                 if (isWeightBased) {
-                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
 
                                     Text(
                                         text = product.unit,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        softWrap = false
+                                        maxLines = 1
                                     )
                                 }
                             }
