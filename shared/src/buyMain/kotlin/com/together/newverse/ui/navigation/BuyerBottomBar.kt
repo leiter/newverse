@@ -58,6 +58,7 @@ fun BuyerBottomNavigationBar(
     basketItemCount: Int,
     onNavigate: (String) -> Unit
 ) {
+    println("🔍 BottomBar: Composing, currentRoute=$currentRoute")
     NavigationBar {
         BuyerBottomNavItems.forEach { item ->
             val label = stringResource(item.labelRes)
