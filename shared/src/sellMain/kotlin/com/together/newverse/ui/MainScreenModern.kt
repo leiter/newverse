@@ -58,7 +58,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -75,6 +74,7 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.util.formatPrice
+import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.place_holder_landscape
 import org.jetbrains.compose.resources.painterResource
@@ -243,8 +243,8 @@ private fun HeroProductCard(
         mutableStateOf(formatQuantity(quantity, isWeightBased))
     }
 
-    // Keyboard controller for dismissing keyboard on Done
-    val keyboardController = LocalSoftwareKeyboardController.current
+    // Keyboard manager for dismissing keyboard on Done (platform-specific)
+    val keyboardManager = rememberKeyboardManager()
 
     Card(
         modifier = modifier
@@ -423,7 +423,7 @@ private fun HeroProductCard(
                                         ),
                                         keyboardActions = KeyboardActions(
                                             onDone = {
-                                                keyboardController?.hide()
+                                                keyboardManager.hide()
                                             }
                                         ),
                                         singleLine = true,

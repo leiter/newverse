@@ -32,6 +32,7 @@ import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.ui.state.UnifiedUserAction
 import com.together.newverse.util.DocumentPickerResult
 import com.together.newverse.util.LocalDocumentPicker
+import com.together.newverse.util.rememberKeyboardManager
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -143,6 +144,7 @@ fun AppScaffold(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.Sell.Overview.route
     val focusManager = LocalFocusManager.current
+    val keyboardManager = rememberKeyboardManager()
 
     // Selection mode states for product management
     var isSelectionMode by remember { mutableStateOf(false) }
@@ -157,6 +159,7 @@ fun AppScaffold(
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     focusManager.clearFocus()
+                    keyboardManager.hide()
                 })
             },
         topBar = {

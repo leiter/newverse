@@ -41,6 +41,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.ui.screens.SplashScreen
+import com.together.newverse.util.rememberKeyboardManager
 import com.together.newverse.ui.state.BuyAppViewModel
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_name
@@ -167,6 +168,7 @@ fun AppScaffold(
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
+    val keyboardManager = rememberKeyboardManager()
 
     // Observe snackbar state changes from ViewModel
     LaunchedEffect(appState.common.ui.snackbar) {
@@ -255,6 +257,7 @@ fun AppScaffold(
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     focusManager.clearFocus()
+                    keyboardManager.hide()
                 })
             }
             .then(

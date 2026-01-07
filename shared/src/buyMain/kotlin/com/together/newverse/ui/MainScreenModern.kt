@@ -66,7 +66,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -79,6 +78,7 @@ import com.together.newverse.ui.state.ProductFilter
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedMainScreenAction
 import com.together.newverse.util.formatPrice
+import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.place_holder_landscape
 import org.jetbrains.compose.resources.painterResource
@@ -163,10 +163,10 @@ private fun MainScreenModernContent(
                                 originalQuantity = originalQuantity,
                                 isInBasket = isInBasket,
                                 isFavourite = isFavourite,
-                                onQuantityChange = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.UpdateQuantity(it)) },
-                                onAddToCart = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.AddToCart) },
-                                onRemoveFromBasket = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.RemoveFromBasket) },
-                                onToggleFavourite = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.ToggleFavourite(product.id)) }
+                                onQuantityChange = { onAction(UnifiedMainScreenAction.UpdateQuantity(it)) },
+                                onAddToCart = { onAction(UnifiedMainScreenAction.AddToCart) },
+                                onRemoveFromBasket = { onAction(UnifiedMainScreenAction.RemoveFromBasket) },
+                                onToggleFavourite = { onAction(UnifiedMainScreenAction.ToggleFavourite(product.id)) }
                             )
                         }
                     }
@@ -235,7 +235,7 @@ private fun MainScreenModernContent(
                             product = product,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.SelectArticle(product))
+                                onAction(UnifiedMainScreenAction.SelectArticle(product))
                             }
                         )
                     }
@@ -280,8 +280,8 @@ private fun HeroProductCard(
         mutableStateOf(formatQuantity(quantity, isWeightBased))
     }
 
-    // Keyboard controller for dismissing keyboard on Done
-    val keyboardController = LocalSoftwareKeyboardController.current
+    // Keyboard manager for dismissing keyboard on Done (platform-specific)
+    val keyboardManager = rememberKeyboardManager()
 
     Card(
         modifier = modifier
@@ -513,7 +513,7 @@ private fun HeroProductCard(
                                             }
 
                                             // Remove leading zeros except for decimal numbers like "0.5" or "0,5"
-                                            if (filtered.length > 1 && filtered.startsWith("0") && filtered.getOrNull(1)?.let { it.isDigit() } == true) {
+                                            if (filtered.length > 1 && filtered.startsWith("0") && filtered.getOrNull(1)?.isDigit() == true) {
                                                 filtered = filtered.dropWhile { it == '0' }.ifEmpty { "0" }
                                             }
 
@@ -538,7 +538,7 @@ private fun HeroProductCard(
                                         ),
                                         keyboardActions = KeyboardActions(
                                             onDone = {
-                                                keyboardController?.hide()
+                                                keyboardManager.hide()
                                             }
                                         ),
                                         singleLine = true,
