@@ -1,5 +1,6 @@
 package com.together.newverse.ui.navigation
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -14,6 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -139,6 +142,7 @@ fun AppScaffold(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.Sell.Overview.route
+    val focusManager = LocalFocusManager.current
 
     // Selection mode states for product management
     var isSelectionMode by remember { mutableStateOf(false) }
@@ -149,6 +153,12 @@ fun AppScaffold(
     val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
+        modifier = Modifier
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            },
         topBar = {
             SellerTopBar(
                 currentRoute = currentRoute,

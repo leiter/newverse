@@ -29,10 +29,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -163,6 +166,7 @@ fun AppScaffold(
 
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
+    val focusManager = LocalFocusManager.current
 
     // Observe snackbar state changes from ViewModel
     LaunchedEffect(appState.common.ui.snackbar) {
@@ -247,11 +251,19 @@ fun AppScaffold(
                 )
             }
         },
-        modifier = if (scrollBehavior != null) {
-            Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-        } else {
-            Modifier
-        },
+        modifier = Modifier
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            }
+            .then(
+                if (scrollBehavior != null) {
+                    Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+                } else {
+                    Modifier
+                }
+            ),
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },

@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -57,6 +58,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -239,6 +242,10 @@ private fun HeroProductCard(
     var quantityText by remember(quantity, product.id) {
         mutableStateOf(formatQuantity(quantity, isWeightBased))
     }
+
+    // Keyboard controller for dismissing keyboard on Done
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -411,7 +418,13 @@ private fun HeroProductCard(
                                             textAlign = TextAlign.Center
                                         ),
                                         keyboardOptions = KeyboardOptions(
-                                            keyboardType = if (isWeightBased) KeyboardType.Decimal else KeyboardType.Number
+                                            keyboardType = if (isWeightBased) KeyboardType.Decimal else KeyboardType.Number,
+                                            imeAction = ImeAction.Done
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onDone = {
+                                                keyboardController?.hide()
+                                            }
                                         ),
                                         singleLine = true,
                                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
