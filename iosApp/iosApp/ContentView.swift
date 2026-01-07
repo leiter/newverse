@@ -15,15 +15,17 @@ struct ComposeView: UIViewControllerRepresentable {
         // Add tap gesture recognizer to dismiss keyboard
         let tapGesture = UITapGestureRecognizer(
             target: context.coordinator,
-            action: #selector(Coordinator.dismissKeyboard)
+            action: #selector(Coordinator.handleTap)
         )
         tapGesture.delegate = context.coordinator
         tapGesture.cancelsTouchesInView = false
         tapGesture.delaysTouchesBegan = false
         tapGesture.delaysTouchesEnded = false
-        tapGesture.requiresExclusiveTouchType = false
 
         controller.view.addGestureRecognizer(tapGesture)
+
+        // Subscribe to keyboard notifications
+        context.coordinator.setupKeyboardObservers()
 
         return controller
     }
@@ -35,28 +37,38 @@ struct ComposeView: UIViewControllerRepresentable {
     }
 
     class Coordinator: NSObject, UIGestureRecognizerDelegate {
-        @objc func dismissKeyboard() {
-            print("🔵 iOS: dismissKeyboard called")
+        private var isKeyboardVisible = false
 
-            // Method 1: Standard resignFirstResponder
-            UIApplication.shared.sendAction(
-                #selector(UIResponder.resignFirstResponder),
-                to: nil,
-                from: nil,
-                for: nil
+        func setupKeyboardObservers() {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(keyboardWillShow),
+                name: UIResponder.keyboardWillShowNotification,
+                object: nil
             )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(keyboardWillHide),
+                name: UIResponder.keyboardWillHideNotification,
+                object: nil
+            )
+        }
 
-            // Method 2: End editing on all windows
+        @objc func keyboardWillShow(_ notification: Notification) {
+            isKeyboardVisible = true
+        }
+
+        @objc func keyboardWillHide(_ notification: Notification) {
+            isKeyboardVisible = false
+        }
+
+        @objc func handleTap() {
+            // Only dismiss if keyboard is currently visible
+            guard isKeyboardVisible else { return }
+
+            // Dismiss keyboard
             for window in UIApplication.shared.windows {
                 window.endEditing(true)
-            }
-
-            // Method 3: Find and resign from key window
-            if let keyWindow = UIApplication.shared.connectedScenes
-                .compactMap({ $0 as? UIWindowScene })
-                .flatMap({ $0.windows })
-                .first(where: { $0.isKeyWindow }) {
-                keyWindow.endEditing(true)
             }
         }
 
@@ -67,17 +79,8 @@ struct ComposeView: UIViewControllerRepresentable {
             return true
         }
 
-        func gestureRecognizer(
-            _ gestureRecognizer: UIGestureRecognizer,
-            shouldReceive touch: UITouch
-        ) -> Bool {
-            print("🔵 iOS: shouldReceive touch")
-            return true
-        }
-
-        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-            print("🔵 iOS: gestureRecognizerShouldBegin")
-            return true
+        deinit {
+            NotificationCenter.default.removeObserver(self)
         }
     }
 }
