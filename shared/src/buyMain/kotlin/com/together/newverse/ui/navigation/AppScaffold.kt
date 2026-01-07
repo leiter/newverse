@@ -244,10 +244,19 @@ fun AppScaffold(
                     currentRoute = currentRoute,
                     basketItemCount = basketItems.size,
                     onNavigate = { route ->
-                        navController.navigate(route) {
-                            popUpTo(NavRoutes.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        if (route == NavRoutes.Home.route) {
+                            // For home (start destination), don't use saveState/restoreState
+                            // This avoids iOS state restoration issues with the start destination
+                            navController.navigate(route) {
+                                popUpTo(NavRoutes.Home.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        } else {
+                            navController.navigate(route) {
+                                popUpTo(NavRoutes.Home.route) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 )
