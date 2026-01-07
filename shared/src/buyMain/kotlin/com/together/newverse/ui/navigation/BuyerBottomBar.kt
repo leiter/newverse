@@ -89,8 +89,12 @@ fun BuyerBottomNavigationBar(
                 label = { Text(label) },
                 selected = isSelected,
                 onClick = {
+                    println("🔍 BottomBar: onClick ${item.route}, currentRoute=$currentRoute, isSelected=$isSelected")
                     if (!isSelected) {
+                        println("🔍 BottomBar: Calling onNavigate(${item.route})")
                         onNavigate(item.route)
+                    } else {
+                        println("🔍 BottomBar: Skipped - already selected")
                     }
                 }
             )
