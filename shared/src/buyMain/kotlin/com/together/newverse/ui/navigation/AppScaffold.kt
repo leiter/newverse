@@ -284,7 +284,11 @@ fun AppScaffold(
                     if (currentRoute == NavRoutes.Home.route) {
                         Box(modifier = Modifier.padding(end = 8.dp)) {
                             IconButton(onClick = {
-                                navController.navigate(NavRoutes.Buy.Basket.route)
+                                navController.navigate(NavRoutes.Buy.Basket.route) {
+                                    popUpTo(NavRoutes.Home.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.ShoppingCart,
