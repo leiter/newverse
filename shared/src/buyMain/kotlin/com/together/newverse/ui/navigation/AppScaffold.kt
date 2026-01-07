@@ -188,6 +188,10 @@ fun AppScaffold(
     }
 
     // Observe navigation state changes from ViewModel
+    // DISABLED: This was causing navigation conflicts on iOS when using bottom bar
+    // The ViewModel state wasn't syncing with direct navController navigation,
+    // causing this LaunchedEffect to re-navigate back to the previous screen
+    /*
     LaunchedEffect(appState.common.navigation.currentRoute) {
         val targetRoute = appState.common.navigation.currentRoute
         val currentDestination = navController.currentBackStackEntry?.destination?.route
@@ -206,6 +210,7 @@ fun AppScaffold(
             }
         }
     }
+    */
 
     // Get current route for highlighting in drawer
     val navBackStackEntry by navController.currentBackStackEntryAsState()
