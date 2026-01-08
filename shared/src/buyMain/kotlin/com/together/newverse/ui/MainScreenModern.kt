@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -283,52 +284,73 @@ private fun HeroProductCard(
     // Keyboard manager for dismissing keyboard on Done (platform-specific)
     val keyboardManager = rememberKeyboardManager()
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(200.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Background gradient
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                Color.Transparent
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        // Responsive sizing based on screen width
+        val isCompact = maxWidth < 400.dp
+        val imageSize = if (isCompact) 80.dp else 100.dp
+        val contentPadding = if (isCompact) 16.dp else 20.dp
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // Background gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    Color.Transparent
+                                )
                             )
                         )
-                    )
-            )
+                )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp)
-            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(contentPadding)
+                ) {
                 // Top section: Product Info (left) + Image (right)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    // Left: Badge, Name, Price
+                    // Left: Badge + Favorite, Name, Price
                     Column(modifier = Modifier.weight(1f)) {
-                        Badge(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                "Tagesfrisch",
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ) {
+                                Text(
+                                    "Tagesfrisch",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                )
+                            }
+
+                            IconButton(
+                                onClick = onToggleFavourite,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
+                                    tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -374,7 +396,7 @@ private fun HeroProductCard(
                     // Right: Product Image with Favourite button overlay
                     Box(
                         modifier = Modifier
-                            .size(100.dp)
+                            .size(imageSize)
                             .clip(RoundedCornerShape(16.dp))
                     ) {
                         if (product.imageUrl.isNotEmpty()) {
@@ -421,29 +443,10 @@ private fun HeroProductCard(
                                 contentScale = ContentScale.Crop
                             )
                         }
-
-                        // Favourite button overlay on image
-                        IconButton(
-                            onClick = onToggleFavourite,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .size(36.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                                    shape = RoundedCornerShape(bottomStart = 12.dp)
-                                )
-                        ) {
-                            Icon(
-                                imageVector = if (isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
-                                tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Quantity and Add to Cart
                 Row(
@@ -493,8 +496,9 @@ private fun HeroProductCard(
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                val textFieldMaxWidth = if (isCompact) 56.dp else 80.dp
                                 Box(
-                                    modifier = Modifier.widthIn(min = 48.dp, max = 80.dp),
+                                    modifier = Modifier.widthIn(min = 40.dp, max = textFieldMaxWidth),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     BasicTextField(
@@ -652,7 +656,8 @@ private fun HeroProductCard(
                         }
                     }
                 }
-            } // End of main Column
+                } // End of main Column
+            }
         }
     }
 }
