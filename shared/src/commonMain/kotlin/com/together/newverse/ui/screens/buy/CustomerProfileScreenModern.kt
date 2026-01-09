@@ -123,6 +123,8 @@ fun CustomerProfileScreenModern(
     state: com.together.newverse.ui.state.CustomerProfileScreenState,
     onAction: (UnifiedAppAction) -> Unit,
     onNavigateToAbout: () -> Unit = {},
+    onNavigateToOrders: () -> Unit = {},
+    onNavigateToFavorites: () -> Unit = {},
     isAnonymous: Boolean = true,
     authProvider: AuthProvider = AuthProvider.ANONYMOUS,
     userEmail: String? = null
@@ -297,11 +299,8 @@ fun CustomerProfileScreenModern(
                     // Quick Actions
                     if (!isEditing) {
                         QuickActionsCard(
-                            onNavigateToOrders = {
-                                onAction(com.together.newverse.ui.state.UnifiedNavigationAction.NavigateTo(
-                                    com.together.newverse.ui.navigation.NavRoutes.Buy.OrderHistory
-                                ))
-                            },
+                            onNavigateToOrders = onNavigateToOrders,
+                            onNavigateToFavorites = onNavigateToFavorites,
                             onNavigateToAbout = onNavigateToAbout
                         )
                     }
@@ -887,6 +886,7 @@ private fun MembershipCard() {
 @Composable
 private fun QuickActionsCard(
     onNavigateToOrders: () -> Unit = {},
+    onNavigateToFavorites: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {}
 ) {
     var showPaymentDialog by remember { mutableStateOf(false) }
@@ -937,7 +937,7 @@ private fun QuickActionsCard(
                 text = stringResource(Res.string.action_favorites),
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f)
-            ) { /* Navigate to favorites */ }
+            ) { onNavigateToFavorites() }
         }
 
         Row(
@@ -970,7 +970,8 @@ private fun ActionButton(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.clickable { onClick() },
+        onClick = onClick,
+        modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

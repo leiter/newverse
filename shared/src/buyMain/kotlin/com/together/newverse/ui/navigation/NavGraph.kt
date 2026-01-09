@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import androidx.savedstate.read
 import com.together.newverse.ui.screens.buy.BasketScreen
 import com.together.newverse.ui.screens.buy.CustomerProfileScreenModern
+import com.together.newverse.ui.screens.buy.FavoritesScreen
 import com.together.newverse.ui.screens.buy.OrderHistoryScreen
 import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.UnifiedAppAction
@@ -100,6 +101,8 @@ fun NavGraph(
                 state = appState.screens.customerProfile,
                 onAction = onAction,
                 onNavigateToAbout = { navController.navigate(NavRoutes.About.route) },
+                onNavigateToOrders = { navController.navigate(NavRoutes.Buy.OrderHistory.route) },
+                onNavigateToFavorites = { navController.navigate(NavRoutes.Buy.Favorites.route) },
                 isAnonymous = isAnonymous,
                 authProvider = authProvider,
                 userEmail = userEmail
@@ -115,6 +118,14 @@ fun NavGraph(
                     // Navigate to basket screen with order details
                     navController.navigate(NavRoutes.Buy.Basket.createRoute(orderId, orderDate))
                 }
+            )
+        }
+
+        composable(NavRoutes.Buy.Favorites.route) {
+            FavoritesScreen(
+                state = appState.screens.mainScreen,
+                onAction = onAction,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

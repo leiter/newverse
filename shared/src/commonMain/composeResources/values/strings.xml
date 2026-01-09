@@ -278,6 +278,12 @@
     <string name="action_help">Über</string>
     <string name="payment_cash_only_info">Derzeit wird nur Barzahlung unterstützt. Die Bezahlung erfolgt bei der Abholung.</string>
 
+    <!-- Favorites Screen -->
+    <string name="favorites_tab_favorites">Favoriten</string>
+    <string name="favorites_tab_discover">Entdecken</string>
+    <string name="favorites_empty">Keine Favoriten vorhanden</string>
+    <string name="favorites_discover_empty">Alle Produkte sind bereits Favoriten</string>
+
     <!-- Dialog -->
     <string name="dialog_save_title">Änderungen speichern?</string>
     <string name="dialog_save_message">Ihre Profiländerungen werden gespeichert.</string>

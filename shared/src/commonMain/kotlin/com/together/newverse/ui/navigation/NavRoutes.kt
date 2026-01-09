@@ -31,6 +31,7 @@ sealed class NavRoutes(val route: String) {
         }
         data object Profile : Buy("buy/profile")
         data object OrderHistory : Buy("buy/order_history")
+        data object Favorites : Buy("buy/favorites")
     }
 
     // Sell (Merchant) routes
@@ -62,6 +63,7 @@ sealed class NavRoutes(val route: String) {
             Buy.Basket,
             Buy.Profile,
             Buy.OrderHistory,
+            Buy.Favorites,
             // Sell routes
             Sell.Overview,
             Sell.Orders,
@@ -121,6 +123,7 @@ sealed class NavRoutes(val route: String) {
             Buy.Basket -> Res.string.nav_shopping_basket
             Buy.Profile -> Res.string.nav_customer_profile
             Buy.OrderHistory -> Res.string.action_orders
+            Buy.Favorites -> Res.string.action_favorites
             Sell.Overview -> Res.string.nav_product_overview
             Sell.Orders -> Res.string.nav_manage_orders
             Sell.OrderDetail -> Res.string.order_detail_title

@@ -24,7 +24,7 @@ Both apps share a common codebase using Kotlin Multiplatform with Compose UI, Fi
 |---------|--------|-------------|
 | **Product Browsing** | Complete | Browse seller products with images, prices, and details |
 | **Shopping Basket** | Complete | Add/remove items, adjust quantities, view totals |
-| **Favorites** | Partial | Mark products as favorites (UI exists, persistence partial) |
+| **Favorites** | Complete | Mark products as favorites, persisted to Firebase, filter chip works |
 | **Order Placement** | Complete | Place orders with pickup date selection |
 | **Order Editing** | Complete | Edit existing orders before Tuesday 23:59 deadline |
 | **Order History** | Complete | View past orders, reorder functionality |
@@ -174,13 +174,15 @@ val revenue = orders
 ### 4.2 Medium Priority
 
 #### 4.2.1 Favorites Persistence (Buy App)
-**Current State:** Favorites work in session but may not persist properly
-**Impact:** Medium - User convenience feature
+**Current State:** ✅ FULLY IMPLEMENTED
+**Impact:** Complete
 
-**Recommendation:**
-- Ensure favorites sync to `BuyerProfile.favoriteArticles`
-- Add favorites filter on browse screen
-- Show favorites count in profile
+**Implementation:**
+- Favorites stored in `BuyerProfile.favouriteArticles`
+- Synced to Firebase via `GitLiveProfileRepository.saveBuyerProfile()`
+- Real-time observer keeps UI in sync
+- "Favoriten" filter chip on browse screen works
+- Survives app restart
 
 #### 4.2.2 Order Notifications
 **Current State:** Notification settings UI exists, actual notifications not implemented
@@ -202,14 +204,14 @@ val revenue = orders
 - Validate business hours
 
 #### 4.2.4 Password Reset
-**Current State:** "Forgot Password" link exists but not functional
-**Impact:** Medium - Account recovery
-**File:** `LoginScreen.kt:190`
+**Current State:** ✅ FULLY IMPLEMENTED
+**Impact:** Complete
 
-**Recommendation:**
-- Implement `AuthRepository.sendPasswordResetEmail()`
-- Add confirmation UI
-- Handle deep links for reset flow
+**Implementation:**
+- `AuthRepository.sendPasswordResetEmail()` implemented in GitLiveAuthRepository
+- ViewModel handler in `BuyAppViewModelAuth.kt`
+- Action dispatch wired: `UnifiedUserAction.RequestPasswordReset`
+- Uses Firebase Auth password reset email
 
 ### 4.3 Low Priority
 
@@ -274,13 +276,13 @@ val revenue = orders
 
 | Feature | Buy | Sell | Priority to Complete |
 |---------|:---:|:----:|---------------------|
-| Product Search | Partial | N/A | High |
-| Product Detail View | No | No | High |
-| Favorites | Partial | N/A | Medium |
+| Product Search | No | N/A | High |
+| Product Detail View | Partial | No | High |
+| Favorites | ✅ Yes | N/A | Complete |
 | Push Notifications | No | No | Medium |
 | Revenue Dashboard | N/A | No | Medium |
 | Market Management | N/A | Partial | Medium |
-| Password Reset | No | No | Medium |
+| Password Reset | ✅ Yes | ✅ Yes | Complete |
 | iOS Image Picker | No | No | High (blocks iOS) |
 | iOS Document Picker | N/A | No | Medium |
 | Promo Codes | No | N/A | Low |

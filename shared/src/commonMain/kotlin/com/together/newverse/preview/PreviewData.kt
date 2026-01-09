@@ -26,7 +26,7 @@ object PreviewData {
             unit = "kg",
             category = "Bananen",
             detailInfo = "Demeter Biobananen. Die Bananen stammen aus Peru und sind nach Vorgaben der Demeter angebaut.",
-            searchTerms = "Banane,",
+            searchTerms = "Banane,obst",
             weightPerPiece = 0.130
         ),
         Article(
@@ -38,7 +38,7 @@ object PreviewData {
             unit = "kg",
             category = "Apfel",
             detailInfo = "Leicht säuerlicher Apfel. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
-            searchTerms = "Apfel,Äpfel",
+            searchTerms = "Apfel,Äpfel,obst",
             weightPerPiece = 0.092
         ),
         Article(
@@ -50,7 +50,7 @@ object PreviewData {
             unit = "kg",
             category = "Kartoffel",
             detailInfo = "Festkochende Kartoffel vom Hof Apfeltraum. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
-            searchTerms = "Kartoffel,Kartoffeln",
+            searchTerms = "Kartoffel,Kartoffeln,gemüse",
             weightPerPiece = 0.060
         ),
         Article(
@@ -62,6 +62,7 @@ object PreviewData {
             unit = "Stück",
             category = "Stangensellerie",
             detailInfo = "Aus der Umgebung. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
+            searchTerms = "Sellerie,gemüse",
             weightPerPiece = 1.0
         ),
         Article(
@@ -74,7 +75,7 @@ object PreviewData {
             category = "Karotten",
             detailInfo = "Vom Biohof Waldheide. Die Karotten wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
             weightPerPiece = 1.0,
-            searchTerms = "Möhren,Möhre,Karotte,Karotten,"
+            searchTerms = "Möhren,Möhre,Karotte,Karotten,gemüse"
         ),
         Article(
             id = "5",
@@ -86,7 +87,7 @@ object PreviewData {
             category = "Erdbeeren",
             detailInfo = "Vom Biohof Waldheide. Die Erdbeeren stammen aus Friedenau vom Hof Bio Müller. Bei der Aufzucht wurden keinerlei Insektiziede verwendet.",
             weightPerPiece = 1.0,
-            searchTerms = "Erdbeere"
+            searchTerms = "Erdbeere,obst"
         ),
         Article(
             id = "6",
@@ -97,6 +98,7 @@ object PreviewData {
             unit = "kg",
             category = "Knoblauch",
             detailInfo = "Vom Biohof Waldheide. Der Knoblauch wurde nach den Produktionsvorgaben von Demeter erzeugt.",
+            searchTerms = "gemüse",
             weightPerPiece = 0.030
         ),
         Article(
@@ -109,7 +111,7 @@ object PreviewData {
             category = "Kartoffeln",
             detailInfo = "Festkochende Kartoffel vom Hof Apfeltraum. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
             weightPerPiece = 0.090,
-            searchTerms = "Kartoffel,"
+            searchTerms = "Kartoffel,gemüse"
         ),
         Article(
             id = "8",
@@ -121,7 +123,7 @@ object PreviewData {
             category = "Apfel",
             detailInfo = "Saftig und sauer. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
             weightPerPiece = 0.115,
-            searchTerms = "Äpfel,"
+            searchTerms = "Äpfel,obst"
         ),
         Article(
             id = "9",
@@ -133,7 +135,7 @@ object PreviewData {
             category = "Apfel",
             detailInfo = "Süß-sauerer Apfel. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
             weightPerPiece = 0.098,
-            searchTerms = "Äpfel"
+            searchTerms = "Äpfel,obst"
         )
     )
 

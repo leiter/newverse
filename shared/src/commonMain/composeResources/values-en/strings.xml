@@ -278,6 +278,12 @@
     <string name="action_help">About</string>
     <string name="payment_cash_only_info">Currently only cash payment is supported. Payment is made at pickup.</string>
 
+    <!-- Favorites Screen -->
+    <string name="favorites_tab_favorites">Favorites</string>
+    <string name="favorites_tab_discover">Discover</string>
+    <string name="favorites_empty">No favorites yet</string>
+    <string name="favorites_discover_empty">All products are already favorites</string>
+
     <!-- Dialog -->
     <string name="dialog_save_title">Save changes?</string>
     <string name="dialog_save_message">Your profile changes will be saved.</string>
