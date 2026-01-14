@@ -1,5 +1,6 @@
 package com.together.newverse.domain.repository
 
+import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.OrderedProduct
 import kotlinx.coroutines.flow.StateFlow
 
@@ -63,4 +64,23 @@ interface BasketRepository {
      * @return Pair of orderId and orderDate, or null if no order is loaded
      */
     fun getLoadedOrderInfo(): Pair<String, String>?
+
+    /**
+     * Check if there are unsaved draft items in the basket
+     * @return True if basket has items that aren't part of a loaded order
+     */
+    fun hasDraftBasket(): Boolean
+
+    /**
+     * Load draft basket from profile
+     * @param draftBasket The draft basket to load
+     */
+    suspend fun loadFromProfile(draftBasket: DraftBasket)
+
+    /**
+     * Get current basket as a DraftBasket for persistence
+     * @param selectedPickupDate Optional pickup date to include
+     * @return DraftBasket representation of current basket
+     */
+    fun toDraftBasket(selectedPickupDate: String? = null): DraftBasket
 }

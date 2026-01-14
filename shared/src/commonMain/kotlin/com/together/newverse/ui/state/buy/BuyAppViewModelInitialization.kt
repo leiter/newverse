@@ -342,16 +342,28 @@ internal suspend fun BuyAppViewModel.loadUserProfile() {
 
 /**
  * Load current editable order during initialization
- * Finds the most recent order in EDITABLE state for the user
+ * Priority:
+ * 1. If profile has a draft basket with items, load that (user's unsaved work)
+ * 2. Otherwise, load the most recent upcoming order
  */
 internal suspend fun BuyAppViewModel.loadCurrentOrder() {
     try {
         println("📦 loadCurrentOrder: Loading current order...")
 
-        // Get profile to access placedOrderIds
+        // Get profile to access placedOrderIds and draftBasket
         val profileResult = profileRepository.getBuyerProfile()
 
         profileResult.onSuccess { profile ->
+            // Check for draft basket first (user's unsaved work takes priority)
+            val draftBasket = profile.draftBasket
+            if (draftBasket != null && draftBasket.items.isNotEmpty()) {
+                println("🛒 loadCurrentOrder: Found draft basket with ${draftBasket.items.size} items, loading...")
+                basketRepository.loadFromProfile(draftBasket)
+                println("✅ loadCurrentOrder: Loaded draft basket")
+                return@onSuccess
+            }
+
+            // No draft basket - check for placed orders
             val placedOrderIds = profile.placedOrderIds
 
             if (placedOrderIds.isEmpty()) {

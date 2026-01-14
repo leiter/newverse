@@ -35,6 +35,7 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Order
 import com.together.newverse.ui.state.BasketScreenState
 import com.together.newverse.ui.state.MergeConflict
+import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.UnifiedBasketScreenAction
 import com.together.newverse.util.OrderDateUtils
@@ -127,6 +128,16 @@ fun BasketContent(
             },
             onConfirm = { onAction(UnifiedBasketScreenAction.ConfirmMerge) },
             onDismiss = { onAction(UnifiedBasketScreenAction.HideMergeDialog) }
+        )
+    }
+
+    // Draft warning dialog (when loading order with unsaved draft)
+    if (state.showDraftWarningDialog) {
+        DraftWarningDialog(
+            draftItemCount = state.draftItemCount,
+            onSaveAndContinue = { onAction(UnifiedBasketScreenAction.SaveDraftAndLoadOrder) },
+            onDiscardAndContinue = { onAction(UnifiedBasketScreenAction.DiscardDraftAndLoadOrder) },
+            onCancel = { onAction(UnifiedBasketScreenAction.HideDraftWarningDialog) }
         )
     }
 
@@ -1173,37 +1184,82 @@ private fun MergeConflictItem(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Product name
-            Text(
-                text = conflict.productName,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Product name with conflict type indicator
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = conflict.productName,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = when (conflict.conflictType) {
+                        MergeConflictType.ITEM_ADDED -> stringResource(Res.string.basket_conflict_type_added)
+                        MergeConflictType.ITEM_REMOVED -> stringResource(Res.string.basket_conflict_type_removed)
+                        MergeConflictType.QUANTITY_CHANGED -> stringResource(Res.string.basket_conflict_type_changed)
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = when (conflict.conflictType) {
+                        MergeConflictType.ITEM_ADDED -> MaterialTheme.colorScheme.primary
+                        MergeConflictType.ITEM_REMOVED -> MaterialTheme.colorScheme.error
+                        MergeConflictType.QUANTITY_CHANGED -> MaterialTheme.colorScheme.tertiary
+                    }
+                )
+            }
 
-            // Resolution options
+            // Resolution options based on conflict type
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Keep existing option
-                ResolutionOption(
-                    label = formatString(stringResource(Res.string.basket_conflict_keep), conflict.existingQuantity.formatPrice(), conflict.unit),
-                    selected = conflict.resolution == MergeResolution.KEEP_EXISTING,
-                    onClick = { onResolve(MergeResolution.KEEP_EXISTING) }
-                )
-
-                // Use new option
-                ResolutionOption(
-                    label = formatString(stringResource(Res.string.basket_conflict_new), conflict.newQuantity.formatPrice(), conflict.unit),
-                    selected = conflict.resolution == MergeResolution.USE_NEW,
-                    onClick = { onResolve(MergeResolution.USE_NEW) }
-                )
-
-                // Add option
-                ResolutionOption(
-                    label = formatString(stringResource(Res.string.basket_conflict_add), (conflict.existingQuantity + conflict.newQuantity).formatPrice(), conflict.unit),
-                    selected = conflict.resolution == MergeResolution.ADD,
-                    onClick = { onResolve(MergeResolution.ADD) }
-                )
+                when (conflict.conflictType) {
+                    MergeConflictType.ITEM_ADDED -> {
+                        // Item added: Add to order or skip
+                        ResolutionOption(
+                            label = formatString(stringResource(Res.string.basket_conflict_add_item), conflict.newQuantity.formatPrice(), conflict.unit),
+                            selected = conflict.resolution == MergeResolution.USE_NEW,
+                            onClick = { onResolve(MergeResolution.USE_NEW) }
+                        )
+                        ResolutionOption(
+                            label = stringResource(Res.string.basket_conflict_skip_item),
+                            selected = conflict.resolution == MergeResolution.KEEP_EXISTING,
+                            onClick = { onResolve(MergeResolution.KEEP_EXISTING) }
+                        )
+                    }
+                    MergeConflictType.ITEM_REMOVED -> {
+                        // Item removed: Keep existing or remove
+                        ResolutionOption(
+                            label = formatString(stringResource(Res.string.basket_conflict_keep), conflict.existingQuantity.formatPrice(), conflict.unit),
+                            selected = conflict.resolution == MergeResolution.KEEP_EXISTING,
+                            onClick = { onResolve(MergeResolution.KEEP_EXISTING) }
+                        )
+                        ResolutionOption(
+                            label = stringResource(Res.string.basket_conflict_remove_item),
+                            selected = conflict.resolution == MergeResolution.USE_NEW,
+                            onClick = { onResolve(MergeResolution.USE_NEW) }
+                        )
+                    }
+                    MergeConflictType.QUANTITY_CHANGED -> {
+                        // Quantity changed: Keep, Use New, or Add
+                        ResolutionOption(
+                            label = formatString(stringResource(Res.string.basket_conflict_keep), conflict.existingQuantity.formatPrice(), conflict.unit),
+                            selected = conflict.resolution == MergeResolution.KEEP_EXISTING,
+                            onClick = { onResolve(MergeResolution.KEEP_EXISTING) }
+                        )
+                        ResolutionOption(
+                            label = formatString(stringResource(Res.string.basket_conflict_new), conflict.newQuantity.formatPrice(), conflict.unit),
+                            selected = conflict.resolution == MergeResolution.USE_NEW,
+                            onClick = { onResolve(MergeResolution.USE_NEW) }
+                        )
+                        ResolutionOption(
+                            label = formatString(stringResource(Res.string.basket_conflict_add), (conflict.existingQuantity + conflict.newQuantity).formatPrice(), conflict.unit),
+                            selected = conflict.resolution == MergeResolution.ADD,
+                            onClick = { onResolve(MergeResolution.ADD) }
+                        )
+                    }
+                }
             }
         }
     }
@@ -1260,4 +1316,56 @@ private fun ResolutionOption(
             }
         }
     }
+}
+
+// ===== Draft Warning Dialog =====
+
+/**
+ * Dialog warning about unsaved draft basket when loading an order
+ */
+@Composable
+fun DraftWarningDialog(
+    draftItemCount: Int,
+    onSaveAndContinue: () -> Unit,
+    onDiscardAndContinue: () -> Unit,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = {
+            Text(
+                text = stringResource(Res.string.basket_draft_warning_title),
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = formatString(
+                        stringResource(Res.string.basket_draft_warning_message),
+                        draftItemCount.toString()
+                    ),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onSaveAndContinue) {
+                Text(stringResource(Res.string.basket_draft_save_continue))
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onCancel) {
+                    Text(stringResource(Res.string.basket_draft_cancel))
+                }
+                OutlinedButton(onClick = onDiscardAndContinue) {
+                    Text(stringResource(Res.string.basket_draft_discard_continue))
+                }
+            }
+        }
+    )
 }

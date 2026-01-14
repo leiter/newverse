@@ -116,6 +116,7 @@ import newverse.shared.generated.resources.section_delivery_preferences
 import newverse.shared.generated.resources.section_notifications
 import newverse.shared.generated.resources.section_personal_info
 import org.jetbrains.compose.resources.stringResource
+import com.together.newverse.util.formatString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -440,7 +441,7 @@ private fun ProfileHeaderCard(
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
-                        text = stringResource(Res.string.profile_member_since, "2023"),
+                        text = formatString(stringResource(Res.string.profile_member_since), "2023"),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
@@ -689,7 +690,7 @@ private fun DeliveryPreferencesCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = stringResource(Res.string.pickup_time_format, pickupTime),
+                                text = formatString(stringResource(Res.string.pickup_time_format), pickupTime),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface

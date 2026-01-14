@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.OrderStatus
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -108,25 +109,30 @@ private fun SellerOrderCard(
     order: com.together.newverse.domain.model.Order,
     onClick: () -> Unit = {}
 ) {
+    // Check if order is cancelled
+    val isCancelled = order.status == OrderStatus.CANCELLED
+
     // Determine if order is "open" for seller's view
     // Based on universe project: orders are "open" if pickup date hasn't passed yet
     // Simple rule: if pickup date is in the future, the order is still open/active
     val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
-    val isOpen = order.pickUpDate > now
+    val isOpen = order.pickUpDate > now && !isCancelled
 
-    // Use different visual styling for open orders
-    val cardColors = if (isOpen) {
-        CardDefaults.cardColors(
+    // Use different visual styling based on order state
+    val cardColors = when {
+        isCancelled -> CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+        isOpen -> CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
-    } else {
-        CardDefaults.cardColors()
+        else -> CardDefaults.cardColors()
     }
 
-    val borderStroke = if (isOpen) {
-        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-    } else {
-        null
+    val borderStroke = when {
+        isCancelled -> BorderStroke(2.dp, MaterialTheme.colorScheme.error)
+        isOpen -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        else -> null
     }
 
     Card(
@@ -190,12 +196,25 @@ private fun SellerOrderCard(
                 }
             }
 
-            // Green divider at bottom
+            // Status indicator at bottom
             Spacer(modifier = Modifier.height(4.dp))
+
+            // Show "Storniert" label for cancelled orders
+            if (isCancelled) {
+                Text(
+                    text = "Storniert",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            // Divider color based on order state
             HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
                 thickness = 4.dp,
-                color = MaterialTheme.colorScheme.primary
+                color = if (isCancelled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
             )
         }
     }

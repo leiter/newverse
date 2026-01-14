@@ -29,6 +29,15 @@ class NewverseApp : Application() {
         // Initialize Firebase (required for both Firebase and GitLive SDKs)
         FirebaseApp.initializeApp(this)
 
+        // Enable Firebase persistence for offline support
+        // Must be called before any database reference is created
+        try {
+            com.google.firebase.database.FirebaseDatabase.getInstance().setPersistenceEnabled(true)
+            println("🔥 NewverseApp: Firebase persistence enabled")
+        } catch (e: Exception) {
+            println("⚠️ NewverseApp: Firebase persistence already enabled or failed: ${e.message}")
+        }
+
         // Initialize GitLive if configured
         if (FeatureFlags.authProvider == AuthProvider.GITLIVE ||
             FeatureFlags.authProvider == AuthProvider.AUTO) {

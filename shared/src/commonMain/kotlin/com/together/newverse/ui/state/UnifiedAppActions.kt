@@ -171,6 +171,11 @@ sealed interface UnifiedBasketScreenAction : UnifiedAppAction {
     data object HideMergeDialog : UnifiedBasketScreenAction
     data class ResolveMergeConflict(val productId: String, val resolution: MergeResolution) : UnifiedBasketScreenAction
     data object ConfirmMerge : UnifiedBasketScreenAction
+
+    // Draft warning dialog actions (when loading order with unsaved draft)
+    data object HideDraftWarningDialog : UnifiedBasketScreenAction
+    data object SaveDraftAndLoadOrder : UnifiedBasketScreenAction
+    data object DiscardDraftAndLoadOrder : UnifiedBasketScreenAction
 }
 
 /**

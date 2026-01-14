@@ -239,6 +239,19 @@
     <string name="basket_conflict_keep">Keep: %s %s</string>
     <string name="basket_conflict_new">New: %s %s</string>
     <string name="basket_conflict_add">Add: %s %s</string>
+    <string name="basket_conflict_type_added">New item</string>
+    <string name="basket_conflict_type_removed">Removed</string>
+    <string name="basket_conflict_type_changed">Qty changed</string>
+    <string name="basket_conflict_add_item">Add: %s %s</string>
+    <string name="basket_conflict_skip_item">Don\'t add</string>
+    <string name="basket_conflict_remove_item">Remove</string>
+
+    <!-- Draft Warning Dialog -->
+    <string name="basket_draft_warning_title">Unsaved Cart</string>
+    <string name="basket_draft_warning_message">You have %s items in your cart that have not been ordered yet. What would you like to do?</string>
+    <string name="basket_draft_save_continue">Save &amp; continue</string>
+    <string name="basket_draft_discard_continue">Discard</string>
+    <string name="basket_draft_cancel">Cancel</string>
 
     <!-- ========================================= -->
     <!-- CUSTOMER PROFILE SCREEN (BUY MODULE) -->

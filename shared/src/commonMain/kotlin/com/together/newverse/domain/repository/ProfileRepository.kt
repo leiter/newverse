@@ -2,6 +2,7 @@ package com.together.newverse.domain.repository
 
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
+import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.SellerProfile
 import kotlinx.coroutines.flow.Flow
 
@@ -61,4 +62,18 @@ interface ProfileRepository {
      * @return Success or failure result
      */
     suspend fun deleteBuyerProfile(userId: String): Result<Unit>
+
+    /**
+     * Save draft basket to buyer profile
+     * @param draftBasket The draft basket to save
+     * @return Success or failure result
+     */
+    suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit>
+
+    /**
+     * Clear draft basket from buyer profile
+     * Called when an order is placed
+     * @return Success or failure result
+     */
+    suspend fun clearDraftBasket(): Result<Unit>
 }

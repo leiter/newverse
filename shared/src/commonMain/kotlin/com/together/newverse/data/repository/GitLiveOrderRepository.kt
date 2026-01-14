@@ -496,11 +496,11 @@ class GitLiveOrderRepository(
      * Format a timestamp to a date string for Firebase paths.
      */
     private fun formatDate(timestamp: Long): String {
-        // Convert timestamp to YYYY-MM-DD format
+        // Convert timestamp to YYYYMMDD format (no dashes for Firebase path)
         val date = Instant.fromEpochMilliseconds(timestamp)
         val timezone = TimeZone.currentSystemDefault()
         val localDateTime = date.toLocalDateTime(timezone)
-        return "${localDateTime.year}-${localDateTime.month.number.toString().padStart(2, '0')}-${localDateTime.day.toString().padStart(2, '0')}"
+        return "${localDateTime.year}${localDateTime.month.number.toString().padStart(2, '0')}${localDateTime.day.toString().padStart(2, '0')}"
     }
 
     /**

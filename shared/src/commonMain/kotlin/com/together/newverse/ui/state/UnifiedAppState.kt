@@ -476,14 +476,24 @@ enum class MergeResolution {
 }
 
 /**
+ * Type of merge conflict
+ */
+enum class MergeConflictType {
+    QUANTITY_CHANGED,  // Same item, different quantity
+    ITEM_ADDED,        // New item not in existing order
+    ITEM_REMOVED       // Existing item not in new basket
+}
+
+/**
  * Represents a conflict between existing order item and new basket item
  */
 data class MergeConflict(
     val productId: String,
     val productName: String,
     val unit: String,
-    val existingQuantity: Double,
-    val newQuantity: Double,
+    val conflictType: MergeConflictType,
+    val existingQuantity: Double,  // 0 if item doesn't exist
+    val newQuantity: Double,       // 0 if item removed
     val existingPrice: Double,
     val newPrice: Double,
     val resolution: MergeResolution = MergeResolution.UNDECIDED
@@ -527,7 +537,12 @@ data class BasketScreenState(
     val showMergeDialog: Boolean = false,
     val existingOrderForMerge: Order? = null,
     val mergeConflicts: List<MergeConflict> = emptyList(),
-    val isMerging: Boolean = false
+    val isMerging: Boolean = false,
+    // Draft warning dialog state (when loading order with unsaved draft)
+    val showDraftWarningDialog: Boolean = false,
+    val draftItemCount: Int = 0,
+    val pendingOrderIdForLoad: String? = null,
+    val pendingOrderDateForLoad: String? = null
 ) : ScreenState
 
 // Custom screen states that don't fit generic patterns

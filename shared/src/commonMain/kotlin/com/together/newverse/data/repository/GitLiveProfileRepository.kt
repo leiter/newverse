@@ -2,7 +2,9 @@ package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
+import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.Market
+import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.AuthRepository
@@ -283,6 +285,57 @@ class GitLiveProfileRepository(
         }
     }
 
+    override suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit> {
+        return try {
+            println("🛒 GitLiveProfileRepository.saveDraftBasket: START - ${draftBasket.items.size} items")
+
+            val userId = authRepository.getCurrentUserId()
+            if (userId == null) {
+                println("❌ GitLiveProfileRepository.saveDraftBasket: No authenticated user")
+                return Result.failure(Exception("User not authenticated"))
+            }
+
+            // Save draft basket to Firebase
+            val draftBasketMap = draftBasketToMap(draftBasket)
+            buyersRef.child(userId).child("draftBasket").setValue(draftBasketMap)
+
+            // Update local cache
+            _buyerProfile.value = _buyerProfile.value?.copy(draftBasket = draftBasket)
+
+            println("✅ GitLiveProfileRepository.saveDraftBasket: Success")
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.saveDraftBasket: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun clearDraftBasket(): Result<Unit> {
+        return try {
+            println("🛒 GitLiveProfileRepository.clearDraftBasket: START")
+
+            val userId = authRepository.getCurrentUserId()
+            if (userId == null) {
+                println("❌ GitLiveProfileRepository.clearDraftBasket: No authenticated user")
+                return Result.failure(Exception("User not authenticated"))
+            }
+
+            // Remove draft basket from Firebase
+            buyersRef.child(userId).child("draftBasket").removeValue()
+
+            // Update local cache
+            _buyerProfile.value = _buyerProfile.value?.copy(draftBasket = null)
+
+            println("✅ GitLiveProfileRepository.clearDraftBasket: Success")
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.clearDraftBasket: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     // Helper functions to map Firebase data
 
     private fun mapSnapshotToBuyerProfile(userId: String, snapshot: DataSnapshot): BuyerProfile {
@@ -291,6 +344,10 @@ class GitLiveProfileRepository(
         // Handle different data types from Firebase
         return when (value) {
             is Map<*, *> -> {
+                // Parse draft basket if exists
+                val draftBasketData = value["draftBasket"] as? Map<*, *>
+                val draftBasket = draftBasketData?.let { parseDraftBasket(it) }
+
                 BuyerProfile(
                     id = userId,
                     displayName = value["displayName"] as? String ?: "",
@@ -301,11 +358,37 @@ class GitLiveProfileRepository(
                     defaultMarket = value["defaultMarket"] as? String ?: "",
                     defaultPickUpTime = value["defaultPickUpTime"] as? String ?: "",
                     placedOrderIds = (value["placedOrderIds"] as? Map<String, String>) ?: emptyMap(),
-                    favouriteArticles = (value["favouriteArticles"] as? List<String>) ?: emptyList()
+                    favouriteArticles = (value["favouriteArticles"] as? List<String>) ?: emptyList(),
+                    draftBasket = draftBasket
                 )
             }
             else -> createDefaultBuyerProfile(userId)
         }
+    }
+
+    private fun parseDraftBasket(data: Map<*, *>): DraftBasket {
+        val itemsData = data["items"] as? List<*> ?: emptyList<Any>()
+        val items = itemsData.mapNotNull { itemData ->
+            when (itemData) {
+                is Map<*, *> -> OrderedProduct(
+                    id = itemData["id"] as? String ?: "",
+                    productId = itemData["productId"] as? String ?: "-1",
+                    productName = itemData["productName"] as? String ?: "",
+                    unit = itemData["unit"] as? String ?: "",
+                    price = (itemData["price"] as? Number)?.toDouble() ?: 0.0,
+                    amount = itemData["amount"] as? String ?: "",
+                    amountCount = (itemData["amountCount"] as? Number)?.toDouble() ?: 0.0,
+                    piecesCount = (itemData["piecesCount"] as? Number)?.toInt() ?: -1
+                )
+                else -> null
+            }
+        }
+
+        return DraftBasket(
+            items = items,
+            selectedPickupDate = data["selectedPickupDate"] as? String,
+            lastModified = (data["lastModified"] as? Number)?.toLong() ?: 0L
+        )
     }
 
     private fun mapSnapshotToSellerProfile(sellerId: String, snapshot: DataSnapshot): SellerProfile {
@@ -369,7 +452,27 @@ class GitLiveProfileRepository(
             "defaultMarket" to profile.defaultMarket,
             "defaultPickUpTime" to profile.defaultPickUpTime,
             "placedOrderIds" to profile.placedOrderIds,
-            "favouriteArticles" to profile.favouriteArticles
+            "favouriteArticles" to profile.favouriteArticles,
+            "draftBasket" to profile.draftBasket?.let { draftBasketToMap(it) }
+        )
+    }
+
+    private fun draftBasketToMap(draftBasket: DraftBasket): Map<String, Any?> {
+        return mapOf(
+            "items" to draftBasket.items.map { item ->
+                mapOf(
+                    "id" to item.id,
+                    "productId" to item.productId,
+                    "productName" to item.productName,
+                    "unit" to item.unit,
+                    "price" to item.price,
+                    "amount" to item.amount,
+                    "amountCount" to item.amountCount,
+                    "piecesCount" to item.piecesCount
+                )
+            },
+            "selectedPickupDate" to draftBasket.selectedPickupDate,
+            "lastModified" to draftBasket.lastModified
         )
     }
 

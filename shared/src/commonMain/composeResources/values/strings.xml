@@ -239,6 +239,19 @@
     <string name="basket_conflict_keep">Behalten: %s %s</string>
     <string name="basket_conflict_new">Neu: %s %s</string>
     <string name="basket_conflict_add">Addieren: %s %s</string>
+    <string name="basket_conflict_type_added">Neu hinzugefügt</string>
+    <string name="basket_conflict_type_removed">Entfernt</string>
+    <string name="basket_conflict_type_changed">Menge geändert</string>
+    <string name="basket_conflict_add_item">Hinzufügen: %s %s</string>
+    <string name="basket_conflict_skip_item">Nicht hinzufügen</string>
+    <string name="basket_conflict_remove_item">Entfernen</string>
+
+    <!-- Draft Warning Dialog -->
+    <string name="basket_draft_warning_title">Ungespeicherter Warenkorb</string>
+    <string name="basket_draft_warning_message">Du hast %s Artikel im Warenkorb die noch nicht bestellt wurden. Was möchtest du tun?</string>
+    <string name="basket_draft_save_continue">Speichern &amp; fortfahren</string>
+    <string name="basket_draft_discard_continue">Verwerfen</string>
+    <string name="basket_draft_cancel">Abbrechen</string>
 
     <!-- ========================================= -->
     <!-- CUSTOMER PROFILE SCREEN (BUY MODULE) -->

@@ -75,8 +75,8 @@ object GitLiveFirebaseInit {
             val database = Firebase.database
             println("🔥 GitLiveFirebaseInit: Database initialized")
 
-            // Note: setPersistenceEnabled might need platform-specific implementation
-            // database.setPersistenceEnabled(true)
+            // Persistence is enabled at platform level (NewverseApp.kt / NewverseApp.swift)
+            // GitLive SDK uses the underlying Firebase persistence automatically
 
             // Set other database settings if needed
             // database.useEmulator("localhost", 9000) // For testing with emulator

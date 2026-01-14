@@ -9,9 +9,12 @@ import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.state.BasketScreenState
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.MergeConflict
+import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.UnifiedBasketScreenAction
 import com.together.newverse.util.OrderDateUtils
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -42,6 +45,12 @@ import kotlinx.datetime.toLocalDateTime
 // Seller ID constant
 private const val BASKET_SELLER_ID = GitLiveArticleRepository.DEFAULT_SELLER_ID
 
+// Debounce delay for saving draft basket (ms)
+private const val DRAFT_SAVE_DEBOUNCE_MS = 2000L
+
+// Job for debounced draft basket saving
+private var draftSaveJob: Job? = null
+
 internal fun BuyAppViewModel.handleBasketScreenAction(action: UnifiedBasketScreenAction) {
     when (action) {
         is UnifiedBasketScreenAction.AddItem -> basketScreenAddItem(action.item)
@@ -64,6 +73,9 @@ internal fun BuyAppViewModel.handleBasketScreenAction(action: UnifiedBasketScree
         UnifiedBasketScreenAction.HideMergeDialog -> basketScreenHideMergeDialog()
         is UnifiedBasketScreenAction.ResolveMergeConflict -> basketScreenResolveMergeConflict(action.productId, action.resolution)
         UnifiedBasketScreenAction.ConfirmMerge -> basketScreenConfirmMerge()
+        UnifiedBasketScreenAction.HideDraftWarningDialog -> basketScreenHideDraftWarningDialog()
+        UnifiedBasketScreenAction.SaveDraftAndLoadOrder -> basketScreenSaveDraftAndLoadOrder()
+        UnifiedBasketScreenAction.DiscardDraftAndLoadOrder -> basketScreenDiscardDraftAndLoadOrder()
     }
 }
 
@@ -92,8 +104,57 @@ internal fun BuyAppViewModel.observeBasketScreenItems() {
                     )
                 )
             }
+
+            // Auto-save draft basket with debouncing (only for new drafts, not loaded orders)
+            if (basketRepository.hasDraftBasket()) {
+                scheduleDraftBasketSave()
+            }
         }
     }
+}
+
+/**
+ * Schedule a debounced save of the draft basket to profile.
+ * Cancels any pending save and schedules a new one after the debounce delay.
+ */
+private fun BuyAppViewModel.scheduleDraftBasketSave() {
+    draftSaveJob?.cancel()
+    draftSaveJob = viewModelScope.launch {
+        delay(DRAFT_SAVE_DEBOUNCE_MS)
+        saveDraftBasketToProfile()
+    }
+}
+
+/**
+ * Save the current draft basket to the user's profile.
+ * Only saves if there are items and it's a draft (not loaded from an existing order).
+ */
+internal suspend fun BuyAppViewModel.saveDraftBasketToProfile() {
+    if (!basketRepository.hasDraftBasket()) {
+        println("🛒 saveDraftBasketToProfile: Skipping - not a draft basket")
+        return
+    }
+
+    val selectedDateTimestamp = _state.value.screens.basketScreen.selectedPickupDate
+    val selectedDateKey = selectedDateTimestamp?.let { basketScreenFormatDateKey(it) }
+    val draftBasket = basketRepository.toDraftBasket(selectedDateKey)
+
+    if (draftBasket.items.isEmpty()) {
+        // Clear draft basket if empty
+        println("🛒 saveDraftBasketToProfile: Basket empty, clearing draft")
+        profileRepository.clearDraftBasket()
+        return
+    }
+
+    println("🛒 saveDraftBasketToProfile: Saving ${draftBasket.items.size} items to profile")
+    profileRepository.saveDraftBasket(draftBasket).fold(
+        onSuccess = {
+            println("✅ saveDraftBasketToProfile: Draft basket saved")
+        },
+        onFailure = { error ->
+            println("❌ saveDraftBasketToProfile: Failed - ${error.message}")
+        }
+    )
 }
 
 internal fun BuyAppViewModel.basketScreenCheckIfHasChanges(currentItems: List<OrderedProduct>, originalItems: List<OrderedProduct>): Boolean {
@@ -299,40 +360,41 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 return@launch
             }
 
-            val dateKey = basketScreenFormatDateKey(selectedDate)
-            val existingOrderId = buyerProfile.placedOrderIds[dateKey]
-
-            if (existingOrderId != null) {
-                val existingOrderPath = "orders/$BASKET_SELLER_ID/$dateKey/$existingOrderId"
-                val existingOrderResult = orderRepository.loadOrder(BASKET_SELLER_ID, existingOrderId, existingOrderPath)
-                existingOrderResult.onSuccess { existingOrder ->
-                    val conflicts = basketScreenCalculateMergeConflicts(items, existingOrder.articles)
-                    _state.update { current ->
-                        current.copy(
-                            screens = current.screens.copy(
-                                basketScreen = current.screens.basketScreen.copy(
-                                    isCheckingOut = false,
-                                    showMergeDialog = true,
-                                    existingOrderForMerge = existingOrder,
-                                    mergeConflicts = conflicts
-                                )
-                            )
-                        )
-                    }
-                }.onFailure { error ->
-                    _state.update { current ->
-                        current.copy(
-                            screens = current.screens.copy(
-                                basketScreen = current.screens.basketScreen.copy(
-                                    isCheckingOut = false,
-                                    orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
-                                )
-                            )
-                        )
-                    }
-                }
-                return@launch
-            }
+            // DISABLED: Merge order logic - always create new order for now
+            // val dateKey = basketScreenFormatDateKey(selectedDate)
+            // val existingOrderId = buyerProfile.placedOrderIds[dateKey]
+            //
+            // if (existingOrderId != null) {
+            //     val existingOrderPath = "orders/$BASKET_SELLER_ID/$dateKey/$existingOrderId"
+            //     val existingOrderResult = orderRepository.loadOrder(BASKET_SELLER_ID, existingOrderId, existingOrderPath)
+            //     existingOrderResult.onSuccess { existingOrder ->
+            //         val conflicts = basketScreenCalculateMergeConflicts(items, existingOrder.articles)
+            //         _state.update { current ->
+            //             current.copy(
+            //                 screens = current.screens.copy(
+            //                     basketScreen = current.screens.basketScreen.copy(
+            //                         isCheckingOut = false,
+            //                         showMergeDialog = true,
+            //                         existingOrderForMerge = existingOrder,
+            //                         mergeConflicts = conflicts
+            //                     )
+            //                 )
+            //             )
+            //         }
+            //     }.onFailure { error ->
+            //         _state.update { current ->
+            //             current.copy(
+            //                 screens = current.screens.copy(
+            //                     basketScreen = current.screens.basketScreen.copy(
+            //                         isCheckingOut = false,
+            //                         orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
+            //                     )
+            //                 )
+            //             )
+            //         }
+            //     }
+            //     return@launch
+            // }
 
             val order = Order(
                 buyerProfile = buyerProfile,
@@ -346,8 +408,19 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
 
             val result = orderRepository.placeOrder(order)
             result.onSuccess { placedOrder ->
+                // Clear draft basket from profile BEFORE loading the placed order
+                // to avoid triggering the draft warning dialog
+                try {
+                    profileRepository.clearDraftBasket()
+                    basketRepository.clearBasket()
+                    println("🛒 basketScreenCheckout: Cleared draft basket after order placed")
+                } catch (e: Exception) {
+                    println("⚠️ basketScreenCheckout: Failed to clear draft basket: ${e.message}")
+                }
+
                 val placedDateKey = basketScreenFormatDateKey(placedOrder.pickUpDate)
-                basketScreenLoadOrder(placedOrder.id, placedDateKey)
+                basketScreenLoadOrder(placedOrder.id, placedDateKey, forceLoad = true)
+
                 _state.update { current ->
                     current.copy(
                         screens = current.screens.copy(
@@ -400,7 +473,14 @@ internal fun BuyAppViewModel.basketScreenResetOrderState() {
 
 internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String, forceLoad: Boolean = false) {
     viewModelScope.launch {
-        println("🛒 BuyAppViewModel.basketScreenLoadOrder: START - orderId=$orderId, date=$date")
+        println("🛒 BuyAppViewModel.basketScreenLoadOrder: START - orderId=$orderId, date=$date, forceLoad=$forceLoad")
+
+        // Check for unsaved draft basket (only if not force loading after dialog confirmation)
+        if (!forceLoad && basketScreenShowDraftWarningIfNeeded(orderId, date)) {
+            println("🛒 BuyAppViewModel.basketScreenLoadOrder: Draft warning dialog shown, waiting for user decision")
+            return@launch
+        }
+
         _state.update { current ->
             current.copy(
                 screens = current.screens.copy(
@@ -708,8 +788,22 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
                 println("🛒 BuyAppViewModel.basketScreenCancelOrder: Cancel SUCCESS, clearing basket")
                 // Clear basket in proper suspend context
                 basketRepository.clearBasket()
-                println("🛒 BuyAppViewModel.basketScreenCancelOrder: Basket cleared, updating state")
+                println("🛒 BuyAppViewModel.basketScreenCancelOrder: Basket cleared")
 
+                // Remove cancelled order from buyer profile's placedOrderIds
+                try {
+                    val profile = profileRepository.getBuyerProfile().getOrNull()
+                    if (profile != null && profile.placedOrderIds.containsValue(orderId)) {
+                        val updatedOrderIds = profile.placedOrderIds.filterValues { it != orderId }
+                        val updatedProfile = profile.copy(placedOrderIds = updatedOrderIds)
+                        profileRepository.saveBuyerProfile(updatedProfile)
+                        println("🛒 BuyAppViewModel.basketScreenCancelOrder: Removed cancelled order from buyer profile")
+                    }
+                } catch (e: Exception) {
+                    println("🛒 BuyAppViewModel.basketScreenCancelOrder: Failed to update profile - ${e.message}")
+                }
+
+                println("🛒 BuyAppViewModel.basketScreenCancelOrder: Updating state")
                 val availableDates = _state.value.screens.basketScreen.availablePickupDates
                 _state.update { current ->
                     current.copy(
@@ -997,13 +1091,30 @@ internal fun BuyAppViewModel.basketScreenCalculateMergeConflicts(
     existingItems: List<OrderedProduct>
 ): List<MergeConflict> {
     val conflicts = mutableListOf<MergeConflict>()
+
+    // 1. Check items in NEW basket
     for (newItem in newItems) {
         val existingItem = existingItems.find { it.productId == newItem.productId }
-        if (existingItem != null && existingItem.amountCount != newItem.amountCount) {
+        if (existingItem == null) {
+            // Item added (not in existing order)
             conflicts.add(MergeConflict(
                 productId = newItem.productId,
                 productName = newItem.productName,
                 unit = newItem.unit,
+                conflictType = MergeConflictType.ITEM_ADDED,
+                existingQuantity = 0.0,
+                newQuantity = newItem.amountCount,
+                existingPrice = 0.0,
+                newPrice = newItem.price,
+                resolution = MergeResolution.USE_NEW // Default: add the new item
+            ))
+        } else if (existingItem.amountCount != newItem.amountCount) {
+            // Quantity changed
+            conflicts.add(MergeConflict(
+                productId = newItem.productId,
+                productName = newItem.productName,
+                unit = newItem.unit,
+                conflictType = MergeConflictType.QUANTITY_CHANGED,
                 existingQuantity = existingItem.amountCount,
                 newQuantity = newItem.amountCount,
                 existingPrice = existingItem.price,
@@ -1012,6 +1123,25 @@ internal fun BuyAppViewModel.basketScreenCalculateMergeConflicts(
             ))
         }
     }
+
+    // 2. Check items REMOVED (in existing but not in new)
+    for (existingItem in existingItems) {
+        val newItem = newItems.find { it.productId == existingItem.productId }
+        if (newItem == null) {
+            conflicts.add(MergeConflict(
+                productId = existingItem.productId,
+                productName = existingItem.productName,
+                unit = existingItem.unit,
+                conflictType = MergeConflictType.ITEM_REMOVED,
+                existingQuantity = existingItem.amountCount,
+                newQuantity = 0.0,
+                existingPrice = existingItem.price,
+                newPrice = 0.0,
+                resolution = MergeResolution.KEEP_EXISTING // Default: keep the existing item
+            ))
+        }
+    }
+
     return conflicts
 }
 
@@ -1137,6 +1267,14 @@ internal fun BuyAppViewModel.basketScreenConfirmMerge() {
                 val dateKey = basketScreenFormatDateKey(existingOrder.pickUpDate)
                 basketRepository.loadOrderItems(mergedItems, existingOrder.id, dateKey)
 
+                // Clear draft basket from profile since order is now placed/merged
+                try {
+                    profileRepository.clearDraftBasket()
+                    println("🔀 basketScreenConfirmMerge: Cleared draft basket after merge")
+                } catch (e: Exception) {
+                    println("⚠️ basketScreenConfirmMerge: Failed to clear draft basket: ${e.message}")
+                }
+
                 _state.update { current ->
                     current.copy(
                         screens = current.screens.copy(
@@ -1219,4 +1357,106 @@ internal fun BuyAppViewModel.basketScreenCanEditOrder(pickupDate: Long): Boolean
 internal fun BuyAppViewModel.basketScreenGetDaysUntilPickup(pickupDate: Long): Long {
     val diff = pickupDate - Clock.System.now().toEpochMilliseconds()
     return diff / (24 * 60 * 60 * 1000)
+}
+
+// ===== Draft Warning Dialog Functions =====
+
+/**
+ * Hide the draft warning dialog without taking any action
+ */
+internal fun BuyAppViewModel.basketScreenHideDraftWarningDialog() {
+    _state.update { current ->
+        current.copy(
+            screens = current.screens.copy(
+                basketScreen = current.screens.basketScreen.copy(
+                    showDraftWarningDialog = false,
+                    draftItemCount = 0,
+                    pendingOrderIdForLoad = null,
+                    pendingOrderDateForLoad = null
+                )
+            )
+        )
+    }
+}
+
+/**
+ * Save the current draft to profile and then load the pending order
+ */
+internal fun BuyAppViewModel.basketScreenSaveDraftAndLoadOrder() {
+    viewModelScope.launch {
+        val pendingOrderId = _state.value.screens.basketScreen.pendingOrderIdForLoad
+        val pendingOrderDate = _state.value.screens.basketScreen.pendingOrderDateForLoad
+
+        if (pendingOrderId == null || pendingOrderDate == null) {
+            println("⚠️ basketScreenSaveDraftAndLoadOrder: No pending order info")
+            basketScreenHideDraftWarningDialog()
+            return@launch
+        }
+
+        // Save current draft to profile
+        try {
+            saveDraftBasketToProfile()
+            println("✅ basketScreenSaveDraftAndLoadOrder: Draft saved successfully")
+        } catch (e: Exception) {
+            println("⚠️ basketScreenSaveDraftAndLoadOrder: Failed to save draft: ${e.message}")
+        }
+
+        // Hide dialog and load the order
+        basketScreenHideDraftWarningDialog()
+        basketScreenLoadOrder(pendingOrderId, pendingOrderDate, forceLoad = true)
+    }
+}
+
+/**
+ * Discard the current draft and load the pending order
+ */
+internal fun BuyAppViewModel.basketScreenDiscardDraftAndLoadOrder() {
+    viewModelScope.launch {
+        val pendingOrderId = _state.value.screens.basketScreen.pendingOrderIdForLoad
+        val pendingOrderDate = _state.value.screens.basketScreen.pendingOrderDateForLoad
+
+        if (pendingOrderId == null || pendingOrderDate == null) {
+            println("⚠️ basketScreenDiscardDraftAndLoadOrder: No pending order info")
+            basketScreenHideDraftWarningDialog()
+            return@launch
+        }
+
+        // Clear the draft from profile
+        try {
+            profileRepository.clearDraftBasket()
+            println("✅ basketScreenDiscardDraftAndLoadOrder: Draft cleared")
+        } catch (e: Exception) {
+            println("⚠️ basketScreenDiscardDraftAndLoadOrder: Failed to clear draft: ${e.message}")
+        }
+
+        // Hide dialog and load the order
+        basketScreenHideDraftWarningDialog()
+        basketScreenLoadOrder(pendingOrderId, pendingOrderDate, forceLoad = true)
+    }
+}
+
+/**
+ * Show draft warning dialog before loading an order
+ * Returns true if dialog was shown, false if no draft exists
+ */
+internal fun BuyAppViewModel.basketScreenShowDraftWarningIfNeeded(orderId: String, date: String): Boolean {
+    val hasDraft = basketRepository.hasDraftBasket()
+    val draftItemCount = basketRepository.observeBasket().value.size
+
+    if (hasDraft && draftItemCount > 0) {
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    basketScreen = current.screens.basketScreen.copy(
+                        showDraftWarningDialog = true,
+                        draftItemCount = draftItemCount,
+                        pendingOrderIdForLoad = orderId,
+                        pendingOrderDateForLoad = date
+                    )
+                )
+            )
+        }
+        return true
+    }
+    return false
 }

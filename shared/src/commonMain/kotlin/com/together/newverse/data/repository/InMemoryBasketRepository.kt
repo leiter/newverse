@@ -1,10 +1,12 @@
 package com.together.newverse.data.repository
 
+import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.repository.BasketRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.time.Clock
 
 /**
  * In-memory implementation of BasketRepository
@@ -98,5 +100,26 @@ class InMemoryBasketRepository : BasketRepository {
         } else {
             null
         }
+    }
+
+    override fun hasDraftBasket(): Boolean {
+        // Has draft if basket has items AND it's not loaded from an existing order
+        return _basket.value.isNotEmpty() && _loadedOrderId == null
+    }
+
+    override suspend fun loadFromProfile(draftBasket: DraftBasket) {
+        _basket.value = draftBasket.items
+        // Draft baskets are not tied to any order
+        _loadedOrderId = null
+        _loadedOrderDate = null
+        println("🛒 BasketRepository.loadFromProfile: Loaded ${draftBasket.items.size} items from draft basket")
+    }
+
+    override fun toDraftBasket(selectedPickupDate: String?): DraftBasket {
+        return DraftBasket(
+            items = _basket.value,
+            selectedPickupDate = selectedPickupDate,
+            lastModified = Clock.System.now().toEpochMilliseconds()
+        )
     }
 }

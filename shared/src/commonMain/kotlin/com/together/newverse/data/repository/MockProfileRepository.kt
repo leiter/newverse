@@ -2,6 +2,7 @@ package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
+import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.preview.PreviewData
@@ -90,6 +91,32 @@ class MockProfileRepository : ProfileRepository {
         return try {
             delay(300)
             _buyerProfile.value = null
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit> {
+        return try {
+            delay(100)
+            val currentProfile = _buyerProfile.value
+            if (currentProfile != null) {
+                _buyerProfile.value = currentProfile.copy(draftBasket = draftBasket)
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun clearDraftBasket(): Result<Unit> {
+        return try {
+            delay(100)
+            val currentProfile = _buyerProfile.value
+            if (currentProfile != null) {
+                _buyerProfile.value = currentProfile.copy(draftBasket = null)
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
