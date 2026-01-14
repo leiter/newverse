@@ -19,10 +19,7 @@ import kotlinx.coroutines.launch
  * - loadCustomerProfile
  * - loadOrderHistory
  * - refreshCustomerProfile
- * - updateProfileField
- * - saveProfile
  * - saveBuyerProfile
- * - cancelProfileEdit
  * - observeMainScreenBuyerProfile
  */
 
@@ -203,14 +200,6 @@ internal fun BuyAppViewModel.refreshCustomerProfile() {
     loadOrderHistory()
 }
 
-internal fun BuyAppViewModel.updateProfileField(field: String, value: String) {
-    // TODO: Implement update profile field
-}
-
-internal fun BuyAppViewModel.saveProfile() {
-    // Legacy method - use saveBuyerProfile instead
-}
-
 internal fun BuyAppViewModel.saveBuyerProfile(displayName: String, email: String, phone: String) {
     viewModelScope.launch {
         println("💾 BuyAppViewModel.saveBuyerProfile: START - displayName=$displayName, email=$email, phone=$phone")
@@ -259,15 +248,6 @@ internal fun BuyAppViewModel.saveBuyerProfile(displayName: String, email: String
             dispatch(UnifiedUiAction.ShowSnackbar("Fehler beim Speichern"))
         }
     }
-}
-
-internal fun BuyAppViewModel.cancelProfileEdit() {
-    // TODO: Implement cancel profile edit
-}
-
-internal fun BuyAppViewModel.updateProfile(profile: Any) {
-    // TODO: Implement update profile
-    // Note: Using Any type as UserProfile might not exist, this is a placeholder
 }
 
 internal fun BuyAppViewModel.observeMainScreenBuyerProfile() {

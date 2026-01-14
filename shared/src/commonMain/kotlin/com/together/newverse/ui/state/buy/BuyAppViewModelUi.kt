@@ -99,7 +99,7 @@ internal fun BuyAppViewModel.setRefreshing(isRefreshing: Boolean) {
 /**
  * Show password reset dialog
  */
-fun BuyAppViewModel.showPasswordResetDialog() {
+internal fun BuyAppViewModel.showPasswordResetDialog() {
     _state.update { current ->
         current.copy(
             screens = current.screens.copy(
@@ -116,7 +116,7 @@ fun BuyAppViewModel.showPasswordResetDialog() {
 /**
  * Hide password reset dialog
  */
-fun BuyAppViewModel.hidePasswordResetDialog() {
+internal fun BuyAppViewModel.hidePasswordResetDialog() {
     _state.update { current ->
         current.copy(
             screens = current.screens.copy(

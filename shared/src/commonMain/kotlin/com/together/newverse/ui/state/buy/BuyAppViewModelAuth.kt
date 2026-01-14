@@ -47,7 +47,7 @@ import org.jetbrains.compose.resources.getString
  * - register, sendPasswordResetEmail
  * - handleAccountAction
  * - Dialog management: showLogoutWarningDialog, showLinkAccountDialog, showDeleteAccountDialog (and dismiss variants)
- * - Account operations: confirmGuestLogout, linkWithGoogle, linkWithEmail, confirmDeleteAccount
+ * - Account operations: confirmGuestLogout, linkWithGoogle, confirmDeleteAccount
  * - Helpers: getCurrentUserId
  *
  * Note: resetGoogleSignInTrigger, resetTwitterSignInTrigger, resetGoogleSignOutTrigger
@@ -252,7 +252,7 @@ internal fun BuyAppViewModel.handleAccountAction(action: UnifiedAccountAction) {
         is UnifiedAccountAction.DismissDeleteAccountDialog -> dismissDeleteAccountDialog()
         is UnifiedAccountAction.ConfirmGuestLogout -> confirmGuestLogout()
         is UnifiedAccountAction.LinkWithGoogle -> linkWithGoogle()
-        is UnifiedAccountAction.LinkWithEmail -> linkWithEmail(action.email, action.password)
+        is UnifiedAccountAction.LinkWithEmail -> navigateTo(NavRoutes.Register) // Email linking redirects to registration
         is UnifiedAccountAction.ConfirmDeleteAccount -> confirmDeleteAccount()
     }
 }
@@ -430,42 +430,6 @@ internal fun BuyAppViewModel.linkWithGoogle() {
                 )
             )
         }
-    }
-}
-
-/**
- * Link anonymous account with email/password credentials.
- */
-internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
-    viewModelScope.launch {
-        _state.update { current ->
-            current.copy(
-                screens = current.screens.copy(
-                    customerProfile = current.screens.customerProfile.copy(
-                        isLinkingAccount = true,
-                        linkAccountError = null
-                    )
-                )
-            )
-        }
-
-        // TODO: Implement email/password linking via AuthRepository
-        // authRepository.linkWithEmail(email, password)
-        //     .onSuccess { ... }
-        //     .onFailure { ... }
-
-        // For now, just navigate to register screen
-        _state.update { current ->
-            current.copy(
-                screens = current.screens.copy(
-                    customerProfile = current.screens.customerProfile.copy(
-                        isLinkingAccount = false,
-                        showLinkAccountDialog = false
-                    )
-                )
-            )
-        }
-        navigateTo(NavRoutes.Register)
     }
 }
 

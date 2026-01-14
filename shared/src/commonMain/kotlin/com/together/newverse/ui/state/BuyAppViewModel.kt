@@ -18,19 +18,14 @@ import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.buy.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
@@ -135,11 +130,10 @@ import org.jetbrains.compose.resources.getString
  *
  * This core file handles:
  * 1. **Dependency injection** - Repository dependencies via constructor
- * 2. **State management** - UnifiedAppState and BuyerAppState flows
+ * 2. **State management** - UnifiedAppState flow
  * 3. **Action dispatching** - Main `dispatch()` method routing actions
  * 4. **Interface implementations** - AppViewModel interface overrides
- * 5. **State mapping** - UnifiedAppState → BuyerAppState transformation
- * 6. **Initialization** - init block calling extension functions
+ * 5. **Initialization** - init block calling extension functions
  *
  * ## Benefits
  *
@@ -148,12 +142,6 @@ import org.jetbrains.compose.resources.getString
  * - **Code Organization**: Clear separation of concerns
  * - **Testing**: Domain logic isolated for easier testing
  * - **Migration Path**: Easy transition to use case classes in Phase 2
- *
- * ## State Flow Architecture
- *
- * - `state`: Public StateFlow<UnifiedAppState> (legacy, comprehensive state)
- * - `buyerState`: Public StateFlow<BuyerAppState> (new, simplified buyer-specific state)
- * - Screens can choose which state to observe based on their needs
  *
  * @see com.together.newverse.ui.state.buy Extension function packages
  */
@@ -171,132 +159,6 @@ class BuyAppViewModel(
      */
     internal val _state = MutableStateFlow(UnifiedAppState())
     override val state: StateFlow<UnifiedAppState> = _state.asStateFlow()
-
-    /**
-     * New simplified state for buyer app screens.
-     * Maps from UnifiedAppState to BuyerAppState for gradual migration.
-     * Screens can use this instead of the full UnifiedAppState.
-     */
-    val buyerState: StateFlow<BuyerAppState> = _state.map { old ->
-        mapToBuyerAppState(old)
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = BuyerAppState()
-    )
-
-    /**
-     * Maps UnifiedAppState to the new simplified BuyerAppState
-     */
-    private fun mapToBuyerAppState(old: UnifiedAppState): BuyerAppState {
-        return BuyerAppState(
-            data = BuyerDataState(
-                articles = old.screens.mainScreen.articles,
-                isLoadingArticles = old.screens.mainScreen.isLoading,
-                buyerProfile = old.screens.customerProfile.profile,
-                isLoadingProfile = old.screens.customerProfile.isLoading,
-                currentOrder = old.screens.basketScreen.orderId?.let { orderId ->
-                    Order(
-                        id = orderId,
-                        pickUpDate = old.screens.basketScreen.pickupDate ?: 0L,
-                        articles = old.screens.basketScreen.items,
-                        createdDate = old.screens.basketScreen.createdDate ?: 0L
-                    )
-                },
-                isLoadingOrder = old.screens.basketScreen.isLoadingOrder,
-                orderHistory = old.screens.orderHistory.items,
-                isLoadingOrderHistory = old.screens.orderHistory.isLoading,
-                basketItems = old.common.basket.items,
-                error = old.screens.mainScreen.error?.message
-            ),
-            ui = BuyerUiStates(
-                mainScreen = MainScreenUiState(
-                    selectedArticle = old.screens.mainScreen.selectedArticle,
-                    selectedQuantity = old.screens.mainScreen.selectedQuantity,
-                    activeFilter = old.screens.mainScreen.activeFilter,
-                    showNewOrderSnackbar = old.screens.mainScreen.showNewOrderSnackbar
-                ),
-                basketScreen = BasketScreenUiState(
-                    showDatePicker = old.screens.basketScreen.showDatePicker,
-                    selectedPickupDate = old.screens.basketScreen.selectedPickupDate,
-                    availablePickupDates = old.screens.basketScreen.availablePickupDates,
-                    isSubmitting = old.screens.basketScreen.isCheckingOut,
-                    submitSuccess = old.screens.basketScreen.orderSuccess,
-                    submitError = old.screens.basketScreen.orderError,
-                    isCancelling = old.screens.basketScreen.isCancelling,
-                    cancelSuccess = old.screens.basketScreen.cancelSuccess,
-                    showReorderDatePicker = old.screens.basketScreen.showReorderDatePicker,
-                    isReordering = old.screens.basketScreen.isReordering,
-                    reorderSuccess = old.screens.basketScreen.reorderSuccess,
-                    showMergeDialog = old.screens.basketScreen.showMergeDialog,
-                    existingOrderForMerge = old.screens.basketScreen.existingOrderForMerge,
-                    mergeConflicts = old.screens.basketScreen.mergeConflicts.map { conflict ->
-                        BuyerMergeConflict(
-                            productId = conflict.productId,
-                            productName = conflict.productName,
-                            unit = conflict.unit,
-                            existingQuantity = conflict.existingQuantity,
-                            newQuantity = conflict.newQuantity,
-                            existingPrice = conflict.existingPrice,
-                            newPrice = conflict.newPrice,
-                            resolution = when (conflict.resolution) {
-                                MergeResolution.UNDECIDED -> BuyerMergeResolution.UNDECIDED
-                                MergeResolution.ADD -> BuyerMergeResolution.ADD
-                                MergeResolution.KEEP_EXISTING -> BuyerMergeResolution.KEEP_EXISTING
-                                MergeResolution.USE_NEW -> BuyerMergeResolution.USE_NEW
-                            }
-                        )
-                    },
-                    isMerging = old.screens.basketScreen.isMerging
-                ),
-                profileScreen = ProfileScreenUiState(),
-                global = GlobalBuyerUiState(
-                    isRefreshing = old.common.ui.isRefreshing,
-                    snackbar = old.common.ui.snackbar?.let { snack ->
-                        BuyerSnackbar(
-                            message = snack.message,
-                            type = when (snack.type) {
-                                SnackbarType.SUCCESS -> BuyerSnackbarType.SUCCESS
-                                SnackbarType.ERROR -> BuyerSnackbarType.ERROR
-                                SnackbarType.WARNING -> BuyerSnackbarType.WARNING
-                                SnackbarType.INFO -> BuyerSnackbarType.INFO
-                            },
-                            actionLabel = snack.actionLabel
-                        )
-                    },
-                    currentRoute = old.common.navigation.currentRoute,
-                    isDrawerOpen = old.common.navigation.isDrawerOpen
-                )
-            ),
-            auth = BuyerAuthState(
-                user = when (val user = old.common.user) {
-                    is UserState.Guest -> BuyerUserState.Guest
-                    is UserState.Loading -> BuyerUserState.Loading
-                    is UserState.LoggedIn -> BuyerUserState.LoggedIn(
-                        id = user.id,
-                        name = user.name,
-                        email = user.email,
-                        photoUrl = user.profileImageUrl
-                    )
-                },
-                triggerGoogleSignIn = old.common.triggerGoogleSignIn,
-                triggerGoogleSignOut = old.common.triggerGoogleSignOut
-            ),
-            meta = BuyerMetaState(
-                isInitialized = old.meta.isInitialized,
-                initializationStep = when (val step = old.meta.initializationStep) {
-                    is InitializationStep.NotStarted -> BuyerInitStep.NotStarted
-                    is InitializationStep.CheckingAuth -> BuyerInitStep.CheckingAuth
-                    is InitializationStep.LoadingProfile -> BuyerInitStep.LoadingProfile
-                    is InitializationStep.LoadingOrder -> BuyerInitStep.LoadingOrder
-                    is InitializationStep.LoadingArticles -> BuyerInitStep.LoadingArticles
-                    is InitializationStep.Complete -> BuyerInitStep.Complete
-                    is InitializationStep.Failed -> BuyerInitStep.Failed(step.step, step.message)
-                },
-                devOrderDateOffsetDays = old.meta.devOrderDateOffsetDays
-            )
-        )
-    }
 
     init {
         // Initialize app on startup
@@ -387,7 +249,7 @@ class BuyAppViewModel(
             is UnifiedUserAction.LoginWithTwitter -> loginWithTwitter()
             is UnifiedUserAction.Logout -> logout()
             is UnifiedUserAction.Register -> register(action.email, action.password, action.name)
-            is UnifiedUserAction.UpdateProfile -> updateProfile(action.profile)
+            is UnifiedUserAction.UpdateProfile -> { /* Not implemented */ }
             is UnifiedUserAction.RequestPasswordReset -> sendPasswordResetEmail(action.email)
         }
     }
@@ -397,7 +259,7 @@ class BuyAppViewModel(
             is UnifiedProductAction.LoadProducts -> loadProducts()
             is UnifiedProductAction.RefreshProducts -> refreshProducts()
             is UnifiedProductAction.SelectProduct -> selectProduct(action.product)
-            is UnifiedProductAction.ViewProductDetail -> viewProductDetail(action.productId)
+            is UnifiedProductAction.ViewProductDetail -> { /* Not implemented */ }
             is UnifiedProductAction.CreateProduct -> { /* Seller-only action */ }
             is UnifiedProductAction.UpdateProduct -> { /* Seller-only action */ }
             is UnifiedProductAction.DeleteProduct -> { /* Seller-only action */ }
@@ -410,17 +272,17 @@ class BuyAppViewModel(
             is UnifiedBasketAction.RemoveFromBasket -> removeFromBasket(action.productId)
             is UnifiedBasketAction.UpdateQuantity -> updateBasketQuantity(action.productId, action.quantity)
             is UnifiedBasketAction.ClearBasket -> clearBasket()
-            is UnifiedBasketAction.ApplyPromoCode -> applyPromoCode(action.code)
-            is UnifiedBasketAction.StartCheckout -> startCheckout()
+            is UnifiedBasketAction.ApplyPromoCode -> { /* Not implemented */ }
+            is UnifiedBasketAction.StartCheckout -> { /* Use basketScreenCheckout() instead */ }
         }
     }
 
     private fun handleOrderAction(action: UnifiedOrderAction) {
         when (action) {
-            is UnifiedOrderAction.LoadOrders -> loadOrders()
-            is UnifiedOrderAction.ViewOrderDetail -> viewOrderDetail(action.orderId)
-            is UnifiedOrderAction.PlaceOrder -> placeOrder(action.checkoutData)
-            is UnifiedOrderAction.CancelOrder -> cancelOrder(action.orderId)
+            is UnifiedOrderAction.LoadOrders -> { /* Use loadOrderHistory() instead */ }
+            is UnifiedOrderAction.ViewOrderDetail -> { /* Not implemented */ }
+            is UnifiedOrderAction.PlaceOrder -> { /* Use basketScreenCheckout() instead */ }
+            is UnifiedOrderAction.CancelOrder -> { /* Use basketScreenCancelOrder() instead */ }
         }
     }
 
@@ -441,9 +303,9 @@ class BuyAppViewModel(
     private fun handleProfileAction(action: UnifiedProfileAction) {
         when (action) {
             is UnifiedProfileAction.LoadProfile -> loadProfile()
-            is UnifiedProfileAction.UpdateProfileField -> updateProfileField(action.field, action.value)
-            is UnifiedProfileAction.SaveProfile -> saveProfile()
-            is UnifiedProfileAction.CancelProfileEdit -> cancelProfileEdit()
+            is UnifiedProfileAction.UpdateProfileField -> { /* Not implemented */ }
+            is UnifiedProfileAction.SaveProfile -> { /* Use saveBuyerProfile() instead */ }
+            is UnifiedProfileAction.CancelProfileEdit -> { /* Not implemented */ }
             is UnifiedProfileAction.LoadCustomerProfile -> loadCustomerProfile()
             is UnifiedProfileAction.LoadOrderHistory -> loadOrderHistory()
             is UnifiedProfileAction.RefreshCustomerProfile -> refreshCustomerProfile()
@@ -453,19 +315,19 @@ class BuyAppViewModel(
 
     private fun handleSearchAction(action: UnifiedSearchAction) {
         when (action) {
-            is UnifiedSearchAction.Search -> search(action.query)
-            is UnifiedSearchAction.ClearSearch -> clearSearch()
-            is UnifiedSearchAction.AddToSearchHistory -> addToSearchHistory(action.query)
+            is UnifiedSearchAction.Search -> { /* Not implemented */ }
+            is UnifiedSearchAction.ClearSearch -> { /* Not implemented */ }
+            is UnifiedSearchAction.AddToSearchHistory -> { /* Not implemented */ }
         }
     }
 
     private fun handleFilterAction(action: UnifiedFilterAction) {
         when (action) {
-            is UnifiedFilterAction.ApplyFilter -> applyFilter(action.key, action.value)
-            is UnifiedFilterAction.RemoveFilter -> removeFilter(action.key)
-            is UnifiedFilterAction.ClearFilters -> clearFilters()
-            is UnifiedFilterAction.SaveFilter -> saveFilter(action.name)
-            is UnifiedFilterAction.LoadSavedFilter -> loadSavedFilter(action.filterId)
+            is UnifiedFilterAction.ApplyFilter -> { /* Not implemented */ }
+            is UnifiedFilterAction.RemoveFilter -> { /* Not implemented */ }
+            is UnifiedFilterAction.ClearFilters -> { /* Not implemented */ }
+            is UnifiedFilterAction.SaveFilter -> { /* Not implemented */ }
+            is UnifiedFilterAction.LoadSavedFilter -> { /* Not implemented */ }
         }
     }
 
@@ -755,58 +617,7 @@ class BuyAppViewModel(
     // - loadCustomerProfile()
     // - loadOrderHistory()
     // - refreshCustomerProfile()
-    // - updateProfileField(field, value)
-    // - saveProfile()
     // - saveBuyerProfile(displayName, email, phone)
-    // - cancelProfileEdit()
-
-    private fun loadOrders() {
-        // TODO: Implement load orders
-    }
-
-    private fun viewOrderDetail(orderId: String) {
-        // TODO: Implement view order detail
-    }
-
-    private fun placeOrder(checkoutData: CheckoutData) {
-        // TODO: Implement place order
-    }
-
-    private fun cancelOrder(orderId: String) {
-        // TODO: Implement cancel order
-    }
-
-    private fun search(query: String) {
-        // TODO: Implement search
-    }
-
-    private fun clearSearch() {
-        // TODO: Implement clear search
-    }
-
-    private fun addToSearchHistory(query: String) {
-        // TODO: Implement add to search history
-    }
-
-    private fun applyFilter(key: String, value: FilterValue) {
-        // TODO: Implement apply filter
-    }
-
-    private fun removeFilter(key: String) {
-        // TODO: Implement remove filter
-    }
-
-    private fun clearFilters() {
-        // TODO: Implement clear filters
-    }
-
-    private fun saveFilter(name: String) {
-        // TODO: Implement save filter
-    }
-
-    private fun loadSavedFilter(filterId: String) {
-        // TODO: Implement load saved filter
-    }
 
     // ===== Main Screen Implementation Methods moved to BuyAppViewModelMainScreen.kt =====
     // - selectMainScreenArticle(article)
@@ -815,20 +626,7 @@ class BuyAppViewModel(
     // - toggleMainScreenFavourite(articleId)
     // - refreshMainScreen(), loadMainScreenArticles()
     // - observeMainScreenBasket()
-
-    private fun viewProductDetail(productId: String) {
-        // TODO: Implement view product detail
-    }
-
-    private fun applyPromoCode(code: String) {
-        // TODO: Implement apply promo code
-    }
-
-    private fun startCheckout() {
-        // TODO: Implement start checkout
-    }
-
-    // observeMainScreenBuyerProfile moved to BuyAppViewModelProfile.kt
+    // - observeMainScreenBuyerProfile
 
     // ===== Basket Screen Handler and Methods moved to BuyAppViewModelBasket.kt =====
     // - BASKET_SELLER_ID constant
