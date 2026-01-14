@@ -3,7 +3,7 @@ package com.together.newverse.ui.navigation
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
-import com.together.newverse.ui.MainScreenModern
+import com.together.newverse.ui.mainscreen.MainScreenModern
 import com.together.newverse.ui.screens.common.*
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedAppState
