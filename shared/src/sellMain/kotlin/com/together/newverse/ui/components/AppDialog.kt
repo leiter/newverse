@@ -74,6 +74,9 @@ fun AppDialog(
                 }
             )
         }
+        is DialogState.DraftBasketWarning -> {
+            // Not used in seller app
+        }
         null -> {
             // No dialog to show
         }
