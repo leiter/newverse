@@ -1,5 +1,6 @@
 package com.together.newverse.ui.state.buy
 
+import com.together.newverse.ui.state.AuthMode
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.BottomSheetState
 import com.together.newverse.ui.state.DialogState
@@ -123,6 +124,24 @@ internal fun BuyAppViewModel.hidePasswordResetDialog() {
                 auth = current.screens.auth.copy(
                     showPasswordResetDialog = false,
                     error = null
+                )
+            )
+        )
+    }
+}
+
+/**
+ * Set auth screen mode (LOGIN, REGISTER, FORGOT_PASSWORD)
+ * Used to switch between login and register screens when shown from AppScaffold
+ */
+internal fun BuyAppViewModel.setAuthMode(mode: AuthMode) {
+    _state.update { current ->
+        current.copy(
+            screens = current.screens.copy(
+                auth = current.screens.auth.copy(
+                    mode = mode,
+                    error = null,
+                    isSuccess = false
                 )
             )
         )

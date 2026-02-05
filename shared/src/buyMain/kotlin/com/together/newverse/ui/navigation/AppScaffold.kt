@@ -156,15 +156,26 @@ fun AppScaffold(
         return // Exit early, don't show main UI yet
     }
 
-    // Check if user needs to authenticate (no session, show login screen)
+    // Check if user needs to authenticate (no session, show login/register screen)
     if (appState.common.user is com.together.newverse.ui.state.UserState.NotAuthenticated) {
-        // Show login screen for user to choose: login, register, or continue as guest
-        com.together.newverse.ui.screens.common.LoginScreen(
-            authState = appState.screens.auth,
-            onAction = { action -> viewModel.dispatch(action) },
-            onShowPasswordResetDialog = { viewModel.dispatch(com.together.newverse.ui.state.UnifiedUiAction.ShowPasswordResetDialog) },
-            onHidePasswordResetDialog = { viewModel.dispatch(com.together.newverse.ui.state.UnifiedUiAction.HidePasswordResetDialog) }
-        )
+        when (appState.screens.auth.mode) {
+            com.together.newverse.ui.state.AuthMode.REGISTER -> {
+                // Show register screen
+                com.together.newverse.ui.screens.common.RegisterScreen(
+                    authState = appState.screens.auth,
+                    onAction = { action -> viewModel.dispatch(action) }
+                )
+            }
+            else -> {
+                // Default to login screen (LOGIN, FORGOT_PASSWORD, etc.)
+                com.together.newverse.ui.screens.common.LoginScreen(
+                    authState = appState.screens.auth,
+                    onAction = { action -> viewModel.dispatch(action) },
+                    onShowPasswordResetDialog = { viewModel.dispatch(com.together.newverse.ui.state.UnifiedUiAction.ShowPasswordResetDialog) },
+                    onHidePasswordResetDialog = { viewModel.dispatch(com.together.newverse.ui.state.UnifiedUiAction.HidePasswordResetDialog) }
+                )
+            }
+        }
         return // Exit early, don't show main UI yet
     }
 

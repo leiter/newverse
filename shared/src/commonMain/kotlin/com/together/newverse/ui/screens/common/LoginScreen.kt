@@ -39,9 +39,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.navigation.NavRoutes
+import com.together.newverse.ui.state.AuthMode
 import com.together.newverse.ui.state.AuthScreenState
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedNavigationAction
+import com.together.newverse.ui.state.UnifiedUiAction
 import com.together.newverse.ui.state.UnifiedUserAction
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_leaf_icon
@@ -332,8 +334,8 @@ fun LoginScreen(
             )
             TextButton(
                 onClick = {
-                    // Navigate to register screen
-                    onAction(UnifiedNavigationAction.NavigateTo(NavRoutes.Register))
+                    // Switch to register screen
+                    onAction(UnifiedUiAction.SetAuthMode(AuthMode.REGISTER))
                 },
                 enabled = !authState.isLoading
             ) {
