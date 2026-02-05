@@ -144,6 +144,12 @@ kotlin {
             // Ktor HTTP client engine for Coil image loading
             implementation("io.ktor:ktor-client-darwin:3.3.0")
         }
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+            implementation("app.cash.turbine:turbine:1.2.0")
+        }
     }
 }
 
