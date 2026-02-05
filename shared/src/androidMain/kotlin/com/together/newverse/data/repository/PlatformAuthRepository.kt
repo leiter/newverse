@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.AuthUserInfo
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -64,5 +65,9 @@ class PlatformAuthRepository : AuthRepository {
 
     override suspend fun linkWithEmail(email: String, password: String): Result<String> {
         return actualRepository.linkWithEmail(email, password)
+    }
+
+    override suspend fun getCurrentUserInfo(): AuthUserInfo? {
+        return actualRepository.getCurrentUserInfo()
     }
 }

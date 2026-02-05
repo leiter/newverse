@@ -3,6 +3,7 @@ package com.together.newverse.ui.state.buy
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.repository.AuthUserInfo
 import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.BasketState
 import com.together.newverse.ui.state.BuyAppViewModel
@@ -753,11 +754,16 @@ internal fun BuyAppViewModel.continueAsGuest() {
  * Resume app initialization after successful authentication.
  * Loads user profile, current order, and products.
  * Called after login, registration, Google sign-in, or continue as guest.
+ *
+ * @param authUserInfo Optional user info from auth provider (e.g., Google) to populate profile
  */
-internal fun BuyAppViewModel.resumeInitializationAfterAuth() {
+internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUserInfo? = null) {
     viewModelScope.launch {
         try {
             println("🚀 Resuming initialization after auth...")
+            if (authUserInfo != null) {
+                println("📧 Auth user info: email=${authUserInfo.email}, name=${authUserInfo.displayName}")
+            }
 
             // Set initializing state
             _state.update { current ->
@@ -769,8 +775,8 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth() {
                 )
             }
 
-            // Load user profile
-            loadUserProfile()
+            // Load user profile and update with auth provider info if available
+            loadUserProfile(authUserInfo)
 
             // Load current order
             _state.update { current ->

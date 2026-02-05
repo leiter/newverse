@@ -3,6 +3,17 @@ package com.together.newverse.domain.repository
 import kotlinx.coroutines.flow.Flow
 
 /**
+ * Information about the authenticated user from the auth provider
+ */
+data class AuthUserInfo(
+    val id: String,
+    val email: String?,
+    val displayName: String?,
+    val photoUrl: String?,
+    val isAnonymous: Boolean
+)
+
+/**
  * Repository for managing authentication
  */
 interface AuthRepository {
@@ -93,4 +104,11 @@ interface AuthRepository {
      * @return User ID or error
      */
     suspend fun linkWithEmail(email: String, password: String): Result<String>
+
+    /**
+     * Get current authenticated user's info from the auth provider.
+     * Returns email, display name, and photo URL if available.
+     * @return User info or null if not authenticated
+     */
+    suspend fun getCurrentUserInfo(): AuthUserInfo?
 }

@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.repository.AuthUserInfo
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.ErrorState
 import com.together.newverse.ui.state.ErrorType
@@ -227,12 +228,15 @@ internal fun BuyAppViewModel.observeAuthState() {
         authRepository.observeAuthState().collect { userId ->
             val previousUserState = _state.value.common.user
 
+            // Get user info from Firebase Auth (email, displayName, etc.)
+            val userInfo = if (userId != null) authRepository.getCurrentUserInfo() else null
+
             _state.update { current ->
                 val newUserState = if (userId != null) {
                     UserState.LoggedIn(
                         id = userId,
-                        email = "", // Will be populated from profile
-                        name = "", // Will be populated from profile
+                        email = userInfo?.email ?: "",
+                        name = userInfo?.displayName ?: "",
                         role = UserRole.CUSTOMER
                     )
                 } else {
@@ -258,7 +262,7 @@ internal fun BuyAppViewModel.observeAuthState() {
                 // If coming from NotAuthenticated (first-time auth), run full initialization
                 if (previousUserState is UserState.NotAuthenticated) {
                     println("🔐 Auth state changed: NotAuthenticated -> LoggedIn, resuming initialization...")
-                    resumeInitializationAfterAuth()
+                    resumeInitializationAfterAuth(userInfo)
                 } else {
                     // Already initialized, just refresh the order
                     loadOpenOrderAfterAuth()
@@ -333,10 +337,15 @@ internal fun BuyAppViewModel.loadOpenOrderAfterAuth() {
 }
 
 /**
- * Load user profile during initialization
- * Loads the profile data for the currently logged-in user
+ * Load user profile during initialization.
+ * Loads the profile data for the currently logged-in user.
+ *
+ * If authUserInfo is provided (e.g., from Google sign-in), updates the profile
+ * with the auth provider's email and display name when the profile has empty fields.
+ *
+ * @param authUserInfo Optional user info from auth provider to populate profile
  */
-internal suspend fun BuyAppViewModel.loadUserProfile() {
+internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo? = null) {
     try {
         val userId = (_state.value.common.user as? UserState.LoggedIn)?.id ?: return
 
@@ -346,11 +355,45 @@ internal suspend fun BuyAppViewModel.loadUserProfile() {
 
         result.onSuccess { profile ->
             println("✅ Profile loaded successfully: ${profile.displayName}")
+
+            // Check if we need to update the profile with auth provider info
+            // This handles Google sign-in where profile is created with empty fields
+            var updatedProfile = profile
+            if (authUserInfo != null && !authUserInfo.isAnonymous) {
+                val needsUpdate = profile.emailAddress.isBlank() || profile.displayName == "New User"
+
+                if (needsUpdate) {
+                    println("📝 Updating profile with auth provider info...")
+                    updatedProfile = profile.copy(
+                        displayName = if (profile.displayName == "New User" && !authUserInfo.displayName.isNullOrBlank()) {
+                            authUserInfo.displayName
+                        } else {
+                            profile.displayName
+                        },
+                        emailAddress = if (profile.emailAddress.isBlank() && !authUserInfo.email.isNullOrBlank()) {
+                            authUserInfo.email
+                        } else {
+                            profile.emailAddress
+                        },
+                        photoUrl = if (profile.photoUrl.isBlank() && !authUserInfo.photoUrl.isNullOrBlank()) {
+                            authUserInfo.photoUrl
+                        } else {
+                            profile.photoUrl
+                        },
+                        anonymous = false
+                    )
+
+                    // Save the updated profile to Firebase
+                    profileRepository.saveBuyerProfile(updatedProfile)
+                    println("✅ Profile updated with auth provider info: ${updatedProfile.displayName}, ${updatedProfile.emailAddress}")
+                }
+            }
+
             _state.update { current ->
                 current.copy(
                     screens = current.screens.copy(
                         customerProfile = current.screens.customerProfile.copy(
-                            profile = profile,
+                            profile = updatedProfile,
                             isLoading = false,
                             error = null
                         )

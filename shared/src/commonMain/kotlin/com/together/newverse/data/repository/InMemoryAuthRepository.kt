@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.AuthUserInfo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -279,6 +280,20 @@ class InMemoryAuthRepository : AuthRepository {
         } catch (e: Exception) {
             Result.failure(Exception("Account linking failed: ${e.message}"))
         }
+    }
+
+    override suspend fun getCurrentUserInfo(): AuthUserInfo? {
+        val userId = _currentUserId.value ?: return null
+        val isAnon = isAnonymous()
+        val userEntry = users.values.find { it.userId == userId }
+
+        return AuthUserInfo(
+            id = userId,
+            email = userEntry?.email,
+            displayName = null,
+            photoUrl = null,
+            isAnonymous = isAnon
+        )
     }
 
     /**
