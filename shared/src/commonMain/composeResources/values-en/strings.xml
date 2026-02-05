@@ -340,6 +340,12 @@
     <string name="link_account_message">Link your guest account with a permanent account:</string>
     <string name="link_account_google">Continue with Google</string>
     <string name="link_account_email">Register with Email</string>
+    <string name="link_account_success">Account successfully linked!</string>
+
+    <!-- Email Linking Dialog -->
+    <string name="link_email_dialog_title">Link with Email</string>
+    <string name="link_email_dialog_message">Create an email and password to permanently secure your guest account.</string>
+    <string name="link_email_dialog_confirm">Link Account</string>
 
     <!-- Delete Account Dialog -->
     <string name="delete_account_title">Delete Account?</string>

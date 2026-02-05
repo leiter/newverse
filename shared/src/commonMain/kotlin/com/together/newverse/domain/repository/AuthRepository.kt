@@ -83,4 +83,14 @@ interface AuthRepository {
      * @return Success or error
      */
     suspend fun sendPasswordResetEmail(email: String): Result<Unit>
+
+    /**
+     * Link anonymous account with email and password credentials.
+     * Converts a guest account to a permanent email-authenticated account,
+     * preserving all existing user data.
+     * @param email User's email for the permanent account
+     * @param password User's password for the permanent account
+     * @return User ID or error
+     */
+    suspend fun linkWithEmail(email: String, password: String): Result<String>
 }

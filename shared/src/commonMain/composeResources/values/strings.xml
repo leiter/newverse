@@ -340,6 +340,12 @@
     <string name="link_account_message">Verknüpfen Sie Ihr Gastkonto mit einem permanenten Konto:</string>
     <string name="link_account_google">Mit Google fortfahren</string>
     <string name="link_account_email">Mit E-Mail registrieren</string>
+    <string name="link_account_success">Konto erfolgreich verknüpft!</string>
+
+    <!-- Email Linking Dialog -->
+    <string name="link_email_dialog_title">Mit E-Mail verknüpfen</string>
+    <string name="link_email_dialog_message">Erstellen Sie E-Mail und Passwort um Ihr Gastkonto dauerhaft zu sichern.</string>
+    <string name="link_email_dialog_confirm">Konto verknüpfen</string>
 
     <!-- Delete Account Dialog -->
     <string name="delete_account_title">Konto löschen?</string>

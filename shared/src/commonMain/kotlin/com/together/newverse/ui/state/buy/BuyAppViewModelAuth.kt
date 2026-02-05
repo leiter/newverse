@@ -35,6 +35,7 @@ import newverse.shared.generated.resources.snackbar_account_created
 import newverse.shared.generated.resources.snackbar_login_success
 import newverse.shared.generated.resources.snackbar_logout_failed
 import newverse.shared.generated.resources.snackbar_logout_success
+import newverse.shared.generated.resources.link_account_success
 import org.jetbrains.compose.resources.getString
 
 /**
@@ -252,7 +253,12 @@ internal fun BuyAppViewModel.handleAccountAction(action: UnifiedAccountAction) {
         is UnifiedAccountAction.DismissDeleteAccountDialog -> dismissDeleteAccountDialog()
         is UnifiedAccountAction.ConfirmGuestLogout -> confirmGuestLogout()
         is UnifiedAccountAction.LinkWithGoogle -> linkWithGoogle()
-        is UnifiedAccountAction.LinkWithEmail -> navigateTo(NavRoutes.Register) // Email linking redirects to registration
+        is UnifiedAccountAction.LinkWithEmail -> linkWithEmail(action.email, action.password)
+        is UnifiedAccountAction.ShowEmailLinkingDialog -> showEmailLinkingDialog()
+        is UnifiedAccountAction.DismissEmailLinkingDialog -> dismissEmailLinkingDialog()
+        is UnifiedAccountAction.UpdateEmailLinkingEmail -> updateEmailLinkingEmail(action.email)
+        is UnifiedAccountAction.UpdateEmailLinkingPassword -> updateEmailLinkingPassword(action.password)
+        is UnifiedAccountAction.UpdateEmailLinkingConfirmPassword -> updateEmailLinkingConfirmPassword(action.confirmPassword)
         is UnifiedAccountAction.ConfirmDeleteAccount -> confirmDeleteAccount()
     }
 }
@@ -430,6 +436,162 @@ internal fun BuyAppViewModel.linkWithGoogle() {
                 )
             )
         }
+    }
+}
+
+/**
+ * Link anonymous account with email and password credentials.
+ * This preserves all guest data (favorites, basket, profile) while upgrading to a permanent account.
+ */
+internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
+    viewModelScope.launch {
+        // Set loading state
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    customerProfile = current.screens.customerProfile.copy(
+                        isLinkingAccount = true,
+                        emailLinkingError = null
+                    )
+                )
+            )
+        }
+
+        // Attempt to link the account
+        authRepository.linkWithEmail(email, password)
+            .onSuccess { userId ->
+                println("✅ BuyAppViewModel.linkWithEmail: Success - userId=$userId")
+
+                // Get current profile to update email
+                val currentProfile = _state.value.screens.customerProfile.profile
+
+                // Update profile with the linked email if profile exists
+                if (currentProfile != null) {
+                    val updatedProfile = currentProfile.copy(emailAddress = email)
+                    profileRepository.saveBuyerProfile(updatedProfile)
+                }
+
+                // Update state: close dialog, update user state
+                _state.update { current ->
+                    val currentUser = current.common.user
+                    val newUserState = if (currentUser is UserState.LoggedIn) {
+                        currentUser.copy(email = email)
+                    } else {
+                        UserState.LoggedIn(
+                            id = userId,
+                            name = currentProfile?.displayName ?: "",
+                            email = email,
+                            role = UserRole.CUSTOMER
+                        )
+                    }
+
+                    current.copy(
+                        common = current.common.copy(user = newUserState),
+                        screens = current.screens.copy(
+                            customerProfile = current.screens.customerProfile.copy(
+                                isLinkingAccount = false,
+                                showEmailLinkingDialog = false,
+                                showLinkAccountDialog = false,
+                                emailLinkingEmail = "",
+                                emailLinkingPassword = "",
+                                emailLinkingConfirmPassword = "",
+                                emailLinkingError = null,
+                                profile = currentProfile?.copy(emailAddress = email)
+                            )
+                        )
+                    )
+                }
+
+                // Show success message
+                showSnackbar(getString(Res.string.link_account_success), SnackbarType.SUCCESS)
+            }
+            .onFailure { error ->
+                println("❌ BuyAppViewModel.linkWithEmail: Error - ${error.message}")
+
+                // Update state with error
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            customerProfile = current.screens.customerProfile.copy(
+                                isLinkingAccount = false,
+                                emailLinkingError = error.message
+                            )
+                        )
+                    )
+                }
+            }
+    }
+}
+
+internal fun BuyAppViewModel.showEmailLinkingDialog() {
+    _state.update { current ->
+        current.copy(
+            screens = current.screens.copy(
+                customerProfile = current.screens.customerProfile.copy(
+                    showEmailLinkingDialog = true,
+                    showLinkAccountDialog = false, // Close the provider selection dialog
+                    emailLinkingEmail = "",
+                    emailLinkingPassword = "",
+                    emailLinkingConfirmPassword = "",
+                    emailLinkingError = null
+                )
+            )
+        )
+    }
+}
+
+internal fun BuyAppViewModel.dismissEmailLinkingDialog() {
+    _state.update { current ->
+        current.copy(
+            screens = current.screens.copy(
+                customerProfile = current.screens.customerProfile.copy(
+                    showEmailLinkingDialog = false,
+                    emailLinkingEmail = "",
+                    emailLinkingPassword = "",
+                    emailLinkingConfirmPassword = "",
+                    emailLinkingError = null
+                )
+            )
+        )
+    }
+}
+
+internal fun BuyAppViewModel.updateEmailLinkingEmail(email: String) {
+    _state.update { current ->
+        current.copy(
+            screens = current.screens.copy(
+                customerProfile = current.screens.customerProfile.copy(
+                    emailLinkingEmail = email,
+                    emailLinkingError = null // Clear error when user types
+                )
+            )
+        )
+    }
+}
+
+internal fun BuyAppViewModel.updateEmailLinkingPassword(password: String) {
+    _state.update { current ->
+        current.copy(
+            screens = current.screens.copy(
+                customerProfile = current.screens.customerProfile.copy(
+                    emailLinkingPassword = password,
+                    emailLinkingError = null // Clear error when user types
+                )
+            )
+        )
+    }
+}
+
+internal fun BuyAppViewModel.updateEmailLinkingConfirmPassword(confirmPassword: String) {
+    _state.update { current ->
+        current.copy(
+            screens = current.screens.copy(
+                customerProfile = current.screens.customerProfile.copy(
+                    emailLinkingConfirmPassword = confirmPassword,
+                    emailLinkingError = null // Clear error when user types
+                )
+            )
+        )
     }
 }
 

@@ -75,6 +75,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.screens.buy.components.DeleteAccountDialog
+import com.together.newverse.ui.screens.buy.components.EmailLinkingDialog
 import com.together.newverse.ui.screens.buy.components.LinkAccountDialog
 import com.together.newverse.ui.screens.buy.components.LoginStatusCard
 import com.together.newverse.ui.screens.buy.components.LogoutWarningDialog
@@ -171,8 +172,31 @@ fun CustomerProfileScreenModern(
         LinkAccountDialog(
             onDismiss = { onAction(UnifiedAccountAction.DismissLinkAccountDialog) },
             onLinkWithGoogle = { onAction(UnifiedAccountAction.LinkWithGoogle) },
-            onLinkWithEmail = { /* Navigate to email registration */ },
+            onLinkWithEmail = { onAction(UnifiedAccountAction.ShowEmailLinkingDialog) },
             isLinking = state.isLinkingAccount
+        )
+    }
+
+    // Email Linking Dialog
+    if (state.showEmailLinkingDialog) {
+        EmailLinkingDialog(
+            email = state.emailLinkingEmail,
+            password = state.emailLinkingPassword,
+            confirmPassword = state.emailLinkingConfirmPassword,
+            error = state.emailLinkingError,
+            isLinking = state.isLinkingAccount,
+            onEmailChange = { onAction(UnifiedAccountAction.UpdateEmailLinkingEmail(it)) },
+            onPasswordChange = { onAction(UnifiedAccountAction.UpdateEmailLinkingPassword(it)) },
+            onConfirmPasswordChange = { onAction(UnifiedAccountAction.UpdateEmailLinkingConfirmPassword(it)) },
+            onConfirm = {
+                onAction(
+                    UnifiedAccountAction.LinkWithEmail(
+                        email = state.emailLinkingEmail,
+                        password = state.emailLinkingPassword
+                    )
+                )
+            },
+            onDismiss = { onAction(UnifiedAccountAction.DismissEmailLinkingDialog) }
         )
     }
 

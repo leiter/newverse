@@ -189,6 +189,15 @@ class ParallelTestingAuthRepository(
     override suspend fun sendPasswordResetEmail(email: String) =
         primary.sendPasswordResetEmail(email)
 
+    override suspend fun linkWithEmail(email: String, password: String): Result<String> {
+        val primaryResult = primary.linkWithEmail(email, password)
+        if (FeatureFlags.enableAuthParallelTesting) {
+            val secondaryResult = secondary.linkWithEmail(email, password)
+            logComparison("linkWithEmail", primaryResult, secondaryResult)
+        }
+        return primaryResult
+    }
+
     private fun logComparison(method: String, primary: Any?, secondary: Any?) {
         println("🔄 ParallelTesting[$method]: Primary=$primary, Secondary=$secondary, Match=${primary == secondary}")
     }
