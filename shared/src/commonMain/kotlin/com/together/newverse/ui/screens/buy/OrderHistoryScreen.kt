@@ -179,10 +179,11 @@ private fun OrderHistoryCard(
     val isUpcoming = daysUntilPickup >= 0
     val canEdit = daysUntilPickup > 3
 
+    // TODO: Re-enable click to navigate to order details screen
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .fillMaxWidth(),
+            // .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isUpcoming) {

@@ -86,6 +86,13 @@ import newverse.shared.generated.resources.action_favorites
 import newverse.shared.generated.resources.action_help
 import newverse.shared.generated.resources.action_orders
 import newverse.shared.generated.resources.action_payment
+import newverse.shared.generated.resources.auth_provider_anonymous
+import newverse.shared.generated.resources.auth_provider_email
+import newverse.shared.generated.resources.auth_provider_google
+import newverse.shared.generated.resources.auth_provider_twitter
+import newverse.shared.generated.resources.error_email_format
+import newverse.shared.generated.resources.error_phone_format
+import newverse.shared.generated.resources.error_phone_invalid_chars
 import newverse.shared.generated.resources.payment_cash_only_info
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_confirm
@@ -227,7 +234,8 @@ fun CustomerProfileScreenModern(
                         displayName = displayName.ifEmpty { stringResource(Res.string.profile_new_customer) },
                         email = email.ifEmpty { stringResource(Res.string.profile_no_email) },
                         photoUrl = photoUrl,
-                        isVerified = email.isNotEmpty()
+                        isVerified = email.isNotEmpty(),
+                        authProvider = authProvider
                     )
 
                     // Personal Information Card
@@ -342,7 +350,8 @@ private fun ProfileHeaderCard(
     displayName: String,
     email: String,
     photoUrl: String?,
-    isVerified: Boolean
+    isVerified: Boolean,
+    authProvider: AuthProvider = AuthProvider.ANONYMOUS
 ) {
     Card(
         modifier = Modifier
@@ -435,21 +444,55 @@ private fun ProfileHeaderCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Member since badge
+                // Auth status badge
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
+                    color = when (authProvider) {
+                        AuthProvider.ANONYMOUS -> MaterialTheme.colorScheme.errorContainer
+                        AuthProvider.GOOGLE -> MaterialTheme.colorScheme.primaryContainer
+                        AuthProvider.EMAIL -> MaterialTheme.colorScheme.secondaryContainer
+                        AuthProvider.TWITTER -> MaterialTheme.colorScheme.tertiaryContainer
+                    }
                 ) {
                     Text(
-                        text = formatString(stringResource(Res.string.profile_member_since), "2023"),
+                        text = when (authProvider) {
+                            AuthProvider.ANONYMOUS -> stringResource(Res.string.auth_provider_anonymous)
+                            AuthProvider.GOOGLE -> stringResource(Res.string.auth_provider_google)
+                            AuthProvider.EMAIL -> stringResource(Res.string.auth_provider_email)
+                            AuthProvider.TWITTER -> stringResource(Res.string.auth_provider_twitter)
+                        },
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = when (authProvider) {
+                            AuthProvider.ANONYMOUS -> MaterialTheme.colorScheme.onErrorContainer
+                            AuthProvider.GOOGLE -> MaterialTheme.colorScheme.onPrimaryContainer
+                            AuthProvider.EMAIL -> MaterialTheme.colorScheme.onSecondaryContainer
+                            AuthProvider.TWITTER -> MaterialTheme.colorScheme.onTertiaryContainer
+                        },
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                     )
                 }
             }
         }
     }
+}
+
+// Validation helper functions
+private fun isValidEmail(email: String): Boolean {
+    if (email.isEmpty()) return true // Empty is valid (optional field)
+    val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
+    return emailRegex.matches(email)
+}
+
+private fun isValidPhoneNumber(phone: String): Boolean {
+    if (phone.isEmpty()) return true // Empty is valid (optional field)
+    // Allow digits, spaces, +, -, (, )
+    val cleanedPhone = phone.replace(Regex("[\\s+\\-()]"), "")
+    return cleanedPhone.length >= 10 && cleanedPhone.all { it.isDigit() }
+}
+
+private fun hasValidPhoneChars(phone: String): Boolean {
+    if (phone.isEmpty()) return true
+    return phone.all { it.isDigit() || it.isWhitespace() || it == '+' || it == '-' || it == '(' || it == ')' }
 }
 
 @Composable
@@ -465,6 +508,17 @@ private fun PersonalInfoCard(
     onSaveClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
+    // Validation states
+    val isEmailValid = isValidEmail(email)
+    val hasValidPhoneCharacters = hasValidPhoneChars(phone)
+    val isPhoneValid = hasValidPhoneCharacters && isValidPhoneNumber(phone)
+    val canSave = isEmailValid && isPhoneValid
+
+    // Error messages
+    val emailErrorMessage = stringResource(Res.string.error_email_format)
+    val phoneFormatErrorMessage = stringResource(Res.string.error_phone_format)
+    val phoneCharsErrorMessage = stringResource(Res.string.error_phone_invalid_chars)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -522,7 +576,8 @@ private fun PersonalInfoCard(
                 leadingIcon = Icons.Default.Email,
                 enabled = isEditing,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                isValid = email.contains("@")
+                isValid = isEmailValid,
+                errorMessage = if (!isEmailValid) emailErrorMessage else null
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -534,7 +589,12 @@ private fun PersonalInfoCard(
                 leadingIcon = Icons.Default.Phone,
                 enabled = isEditing,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                isValid = phone.length >= 10
+                isValid = isPhoneValid,
+                errorMessage = when {
+                    !hasValidPhoneCharacters -> phoneCharsErrorMessage
+                    !isPhoneValid -> phoneFormatErrorMessage
+                    else -> null
+                }
             )
 
             // Save and Cancel Buttons (only show when editing)
@@ -558,8 +618,10 @@ private fun PersonalInfoCard(
                     Button(
                         onClick = onSaveClick,
                         modifier = Modifier.weight(1f),
+                        enabled = canSave,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiary
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            disabledContainerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.38f)
                         )
                     ) {
                         Icon(
@@ -1135,41 +1197,61 @@ private fun ModernTextField(
     leadingIcon: ImageVector,
     enabled: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    isValid: Boolean = true
+    isValid: Boolean = true,
+    errorMessage: String? = null
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        leadingIcon = {
-            Icon(
-                leadingIcon,
-                contentDescription = null,
-                tint = if (enabled && isValid) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
-        },
-        trailingIcon = {
-            if (enabled && value.isNotEmpty()) {
+    val showError = enabled && value.isNotEmpty() && !isValid && errorMessage != null
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            leadingIcon = {
                 Icon(
-                    if (isValid) Icons.Default.Check else Icons.Default.Close,
+                    leadingIcon,
                     contentDescription = null,
-                    tint = if (isValid) MaterialTheme.colorScheme.tertiary
-                    else MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(20.dp)
+                    tint = when {
+                        showError -> MaterialTheme.colorScheme.error
+                        enabled && isValid -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    }
                 )
-            }
-        },
-        enabled = enabled,
-        singleLine = true,
-        keyboardOptions = keyboardOptions,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-            focusedLabelColor = MaterialTheme.colorScheme.primary
-        ),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    )
+            },
+            trailingIcon = {
+                if (enabled && value.isNotEmpty()) {
+                    Icon(
+                        if (isValid) Icons.Default.Check else Icons.Default.Close,
+                        contentDescription = null,
+                        tint = if (isValid) MaterialTheme.colorScheme.tertiary
+                        else MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            },
+            enabled = enabled,
+            singleLine = true,
+            isError = showError,
+            keyboardOptions = keyboardOptions,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                errorBorderColor = MaterialTheme.colorScheme.error,
+                errorLabelColor = MaterialTheme.colorScheme.error
+            ),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        if (showError && errorMessage != null) {
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+    }
 }
