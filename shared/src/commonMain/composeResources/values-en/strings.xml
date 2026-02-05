@@ -307,6 +307,17 @@
     <string name="account_status_guest_warning">Data is not permanently saved</string>
     <string name="account_status_authenticated">Signed in with %s</string>
 
+    <!-- Auth Provider Labels -->
+    <string name="auth_provider_anonymous">Guest</string>
+    <string name="auth_provider_google">Google</string>
+    <string name="auth_provider_email">Email</string>
+    <string name="auth_provider_twitter">Twitter</string>
+
+    <!-- Profile Validation Errors -->
+    <string name="error_email_format">Please enter a valid email address</string>
+    <string name="error_phone_format">Please enter a valid phone number (at least 10 digits)</string>
+    <string name="error_phone_invalid_chars">Phone number can only contain digits, spaces, + and -</string>
+
     <!-- Account Actions -->
     <string name="action_link_google">Link with Google</string>
     <string name="action_link_email">Link with Email</string>

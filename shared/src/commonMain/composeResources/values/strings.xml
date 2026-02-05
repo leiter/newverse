@@ -307,6 +307,17 @@
     <string name="account_status_guest_warning">Daten werden nicht dauerhaft gespeichert</string>
     <string name="account_status_authenticated">Angemeldet mit %s</string>
 
+    <!-- Auth Provider Labels -->
+    <string name="auth_provider_anonymous">Gast</string>
+    <string name="auth_provider_google">Google</string>
+    <string name="auth_provider_email">E-Mail</string>
+    <string name="auth_provider_twitter">Twitter</string>
+
+    <!-- Profile Validation Errors -->
+    <string name="error_email_format">Bitte geben Sie eine gültige E-Mail-Adresse ein</string>
+    <string name="error_phone_format">Bitte geben Sie eine gültige Telefonnummer ein (mind. 10 Ziffern)</string>
+    <string name="error_phone_invalid_chars">Telefonnummer darf nur Ziffern, Leerzeichen, + und - enthalten</string>
+
     <!-- Account Actions -->
     <string name="action_link_google">Mit Google verknüpfen</string>
     <string name="action_link_email">Mit E-Mail verknüpfen</string>
