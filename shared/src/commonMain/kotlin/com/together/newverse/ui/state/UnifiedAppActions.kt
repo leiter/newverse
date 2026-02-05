@@ -98,6 +98,7 @@ sealed interface UnifiedUiAction : UnifiedAppAction {
     data class SetRefreshing(val isRefreshing: Boolean) : UnifiedUiAction
     data object ShowPasswordResetDialog : UnifiedUiAction
     data object HidePasswordResetDialog : UnifiedUiAction
+    data class SetAuthMode(val mode: AuthMode) : UnifiedUiAction  // Switch between login/register screens
 }
 
 // ===== Profile Actions =====

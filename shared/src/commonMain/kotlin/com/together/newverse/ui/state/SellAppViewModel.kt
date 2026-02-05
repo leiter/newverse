@@ -160,6 +160,7 @@ class SellAppViewModel(
             is UnifiedUiAction.SetRefreshing -> setRefreshing(action.isRefreshing)
             is UnifiedUiAction.ShowPasswordResetDialog -> showPasswordResetDialog()
             is UnifiedUiAction.HidePasswordResetDialog -> hidePasswordResetDialog()
+            is UnifiedUiAction.SetAuthMode -> { /* Not applicable to seller app - requires login */ }
         }
     }
 
