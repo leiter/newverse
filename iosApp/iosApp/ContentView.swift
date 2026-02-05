@@ -54,11 +54,11 @@ struct ComposeView: UIViewControllerRepresentable {
             )
         }
 
-        @objc func keyboardWillShow(_ notification: Notification) {
+        @objc func keyboardWillShow(_ notification: Foundation.Notification) {
             isKeyboardVisible = true
         }
 
-        @objc func keyboardWillHide(_ notification: Notification) {
+        @objc func keyboardWillHide(_ notification: Foundation.Notification) {
             isKeyboardVisible = false
         }
 
