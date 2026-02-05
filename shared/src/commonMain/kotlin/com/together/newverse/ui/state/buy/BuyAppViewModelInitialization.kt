@@ -56,7 +56,13 @@ internal fun BuyAppViewModel.initializeApp() {
             // Step 1: Check authentication status
             checkAuthenticationStatus()
 
-            // Step 2: Wait for auth state to stabilize
+            // Step 2: Check if user needs to authenticate (no persisted session)
+            if (_state.value.common.user is UserState.NotAuthenticated) {
+                println("🔐 App Init: No auth - waiting for user to login or continue as guest")
+                return@launch  // Stop - wait for user to authenticate via LoginScreen
+            }
+
+            // Step 3: Wait for auth state to stabilize
             println("🚀 App Init: Waiting for authentication to complete...")
             val userId = authRepository.observeAuthState()
                 .filterNotNull()
@@ -123,7 +129,7 @@ internal fun BuyAppViewModel.initializeApp() {
  * Check if user has a persisted authentication session
  * This runs BEFORE any Firebase connections
  *
- * Buy flavor: If no session, automatically sign in as guest
+ * Buy flavor: If no session, show login screen (NotAuthenticated state)
  */
 internal suspend fun BuyAppViewModel.checkAuthenticationStatus() {
     try {
@@ -151,21 +157,37 @@ internal suspend fun BuyAppViewModel.checkAuthenticationStatus() {
                         )
                     }
                 } else {
-                    // No persisted session - sign in as guest
-                    println("🛒 Buy App Startup: No auth - signing in as guest...")
-                    signInAsGuest()
+                    // No persisted session - show login screen
+                    println("🔐 Buy App Startup: No auth - showing login screen...")
+                    setNotAuthenticatedState()
                 }
             },
             onFailure = { error ->
-                // Failed to check auth - sign in as guest
-                println("⚠️ Buy App Startup: Failed to check auth - ${error.message}, signing in as guest...")
-                signInAsGuest()
+                // Failed to check auth - show login screen
+                println("⚠️ Buy App Startup: Failed to check auth - ${error.message}, showing login screen...")
+                setNotAuthenticatedState()
             }
         )
     } catch (e: Exception) {
-        // Error checking auth - sign in as guest
-        println("❌ Buy App Startup: Exception checking auth - ${e.message}, signing in as guest...")
-        signInAsGuest()
+        // Error checking auth - show login screen
+        println("❌ Buy App Startup: Exception checking auth - ${e.message}, showing login screen...")
+        setNotAuthenticatedState()
+    }
+}
+
+/**
+ * Set state to NotAuthenticated - user must choose to login or continue as guest
+ */
+internal fun BuyAppViewModel.setNotAuthenticatedState() {
+    _state.update { current ->
+        current.copy(
+            common = current.common.copy(user = UserState.NotAuthenticated),
+            meta = current.meta.copy(
+                isInitializing = false,
+                isInitialized = false,
+                initializationStep = InitializationStep.NotStarted
+            )
+        )
     }
 }
 
@@ -203,28 +225,44 @@ internal suspend fun BuyAppViewModel.signInAsGuest() {
 internal fun BuyAppViewModel.observeAuthState() {
     viewModelScope.launch {
         authRepository.observeAuthState().collect { userId ->
+            val previousUserState = _state.value.common.user
+
             _state.update { current ->
+                val newUserState = if (userId != null) {
+                    UserState.LoggedIn(
+                        id = userId,
+                        email = "", // Will be populated from profile
+                        name = "", // Will be populated from profile
+                        role = UserRole.CUSTOMER
+                    )
+                } else {
+                    // Keep NotAuthenticated if that's current state (user hasn't chosen yet)
+                    if (current.common.user is UserState.NotAuthenticated) {
+                        UserState.NotAuthenticated
+                    } else {
+                        UserState.Guest
+                    }
+                }
+
                 current.copy(
                     common = current.common.copy(
-                        user = if (userId != null) {
-                            UserState.LoggedIn(
-                                id = userId,
-                                email = "", // Will be populated from profile
-                                name = "", // Will be populated from profile
-                                role = UserRole.CUSTOMER
-                            )
-                        } else {
-                            UserState.Guest
-                        },
+                        user = newUserState,
                         // Buy flavor: never require login (guest access allowed)
                         requiresLogin = false
                     )
                 )
             }
 
-            // Load open order after successful authentication
+            // Handle transitions when user signs in
             if (userId != null) {
-                loadOpenOrderAfterAuth()
+                // If coming from NotAuthenticated (first-time auth), run full initialization
+                if (previousUserState is UserState.NotAuthenticated) {
+                    println("🔐 Auth state changed: NotAuthenticated -> LoggedIn, resuming initialization...")
+                    resumeInitializationAfterAuth()
+                } else {
+                    // Already initialized, just refresh the order
+                    loadOpenOrderAfterAuth()
+                }
             }
         }
     }

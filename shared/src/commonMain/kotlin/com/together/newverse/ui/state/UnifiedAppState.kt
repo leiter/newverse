@@ -256,7 +256,8 @@ enum class ActionType {
 
 // User-related states (kept from original)
 sealed interface UserState {
-    data object Guest : UserState
+    data object NotAuthenticated : UserState  // No auth yet, show login screen
+    data object Guest : UserState             // Has anonymous Firebase user
     data object Loading : UserState
     data class LoggedIn(
         val id: String,

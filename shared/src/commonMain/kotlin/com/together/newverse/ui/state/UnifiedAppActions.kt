@@ -24,6 +24,7 @@ sealed interface UnifiedUserAction : UnifiedAppAction {
     data object LoginWithGoogle : UnifiedUserAction
     data object LoginWithTwitter : UnifiedUserAction
     data object Logout : UnifiedUserAction
+    data object ContinueAsGuest : UnifiedUserAction  // Create anonymous user and proceed
     data class Register(val email: String, val password: String, val name: String) : UnifiedUserAction
     data class UpdateProfile(val profile: UserProfile) : UnifiedUserAction
     data class RequestPasswordReset(val email: String) : UnifiedUserAction

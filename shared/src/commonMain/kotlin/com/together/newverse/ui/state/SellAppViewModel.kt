@@ -121,6 +121,7 @@ class SellAppViewModel(
             is UnifiedUserAction.LoginWithGoogle -> loginWithGoogle()
             is UnifiedUserAction.LoginWithTwitter -> loginWithTwitter()
             is UnifiedUserAction.Logout -> logout()
+            is UnifiedUserAction.ContinueAsGuest -> { /* Seller app requires login, guest not supported */ }
             is UnifiedUserAction.Register -> register(action.email, action.password, action.name)
             is UnifiedUserAction.UpdateProfile -> { /* TODO */ }
             is UnifiedUserAction.RequestPasswordReset -> sendPasswordResetEmail(action.email)

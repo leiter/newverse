@@ -75,8 +75,7 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
             .onSuccess { userId ->
                 println("✅ Buy App Login Success: userId=$userId")
 
-                // Success - just clear the forced login flag and let the app naturally navigate
-                // Don't try to navigate manually - let AppScaffold handle it
+                // Clear auth screen loading state
                 _state.update { current ->
                     current.copy(
                         screens = current.screens.copy(
@@ -87,12 +86,7 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
                             )
                         ),
                         common = current.common.copy(
-                            requiresLogin = false // Clear forced login flag - this will hide ForcedLoginScreen
-                        ),
-                        meta = current.meta.copy(
-                            isInitializing = false,
-                            isInitialized = true,
-                            initializationStep = InitializationStep.Complete
+                            requiresLogin = false // Clear forced login flag
                         )
                     )
                 }
@@ -100,7 +94,10 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
                 // Show success message
                 showSnackbar(getString(Res.string.snackbar_login_success), SnackbarType.SUCCESS)
 
-                println("🎯 Login complete - requiresLogin cleared, app will show main UI")
+                // Resume app initialization (load profile, order, articles)
+                resumeInitializationAfterAuth()
+
+                println("🎯 Login complete - resuming initialization")
             }
             .onFailure { error ->
                 // Parse error message for user-friendly display
@@ -698,6 +695,131 @@ internal fun BuyAppViewModel.getCurrentUserId(): String? {
     return when (val user = _state.value.common.user) {
         is UserState.LoggedIn -> user.id
         else -> null
+    }
+}
+
+/**
+ * Continue as guest - creates an anonymous Firebase user and resumes app initialization.
+ * Called when user taps "Continue as Guest" on the login screen.
+ */
+internal fun BuyAppViewModel.continueAsGuest() {
+    viewModelScope.launch {
+        // Set loading state
+        _state.update { current ->
+            current.copy(
+                screens = current.screens.copy(
+                    auth = current.screens.auth.copy(
+                        isLoading = true,
+                        error = null
+                    )
+                )
+            )
+        }
+
+        authRepository.signInAnonymously().fold(
+            onSuccess = { userId ->
+                println("✅ Buy App: Guest sign-in successful, user ID: $userId")
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            auth = current.screens.auth.copy(
+                                isLoading = false,
+                                error = null
+                            )
+                        )
+                    )
+                }
+                // Resume app initialization (load profile, order, articles)
+                resumeInitializationAfterAuth()
+            },
+            onFailure = { error ->
+                println("❌ Buy App: Guest sign-in failed - ${error.message}")
+                _state.update { current ->
+                    current.copy(
+                        screens = current.screens.copy(
+                            auth = current.screens.auth.copy(
+                                isLoading = false,
+                                error = error.message ?: "Failed to continue as guest"
+                            )
+                        )
+                    )
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Resume app initialization after successful authentication.
+ * Loads user profile, current order, and products.
+ * Called after login, registration, Google sign-in, or continue as guest.
+ */
+internal fun BuyAppViewModel.resumeInitializationAfterAuth() {
+    viewModelScope.launch {
+        try {
+            println("🚀 Resuming initialization after auth...")
+
+            // Set initializing state
+            _state.update { current ->
+                current.copy(
+                    meta = current.meta.copy(
+                        isInitializing = true,
+                        initializationStep = InitializationStep.LoadingProfile
+                    )
+                )
+            }
+
+            // Load user profile
+            loadUserProfile()
+
+            // Load current order
+            _state.update { current ->
+                current.copy(
+                    meta = current.meta.copy(
+                        initializationStep = InitializationStep.LoadingOrder
+                    )
+                )
+            }
+            loadCurrentOrder()
+
+            // Load articles
+            _state.update { current ->
+                current.copy(
+                    meta = current.meta.copy(
+                        initializationStep = InitializationStep.LoadingArticles
+                    )
+                )
+            }
+            loadProducts()
+
+            // Mark initialization complete
+            _state.update { current ->
+                current.copy(
+                    meta = current.meta.copy(
+                        isInitializing = false,
+                        isInitialized = true,
+                        initializationStep = InitializationStep.Complete
+                    )
+                )
+            }
+
+            println("✅ Initialization resumed successfully!")
+
+        } catch (e: Exception) {
+            println("❌ Error resuming initialization: ${e.message}")
+            _state.update { current ->
+                current.copy(
+                    meta = current.meta.copy(
+                        isInitializing = false,
+                        isInitialized = false,
+                        initializationStep = InitializationStep.Failed(
+                            step = "resume",
+                            message = e.message ?: "Unknown error"
+                        )
+                    )
+                )
+            }
+        }
     }
 }
 

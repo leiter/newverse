@@ -23,6 +23,7 @@ import com.together.newverse.ui.state.buy.loadCustomerProfile
 import com.together.newverse.ui.state.buy.loadMainScreenArticles
 import com.together.newverse.ui.state.buy.loadOrderHistory
 import com.together.newverse.ui.state.buy.loadProfile
+import com.together.newverse.ui.state.buy.continueAsGuest
 import com.together.newverse.ui.state.buy.login
 import com.together.newverse.ui.state.buy.loginWithGoogle
 import com.together.newverse.ui.state.buy.loginWithTwitter
@@ -272,6 +273,7 @@ class BuyAppViewModel(
             is UnifiedUserAction.LoginWithGoogle -> loginWithGoogle()
             is UnifiedUserAction.LoginWithTwitter -> loginWithTwitter()
             is UnifiedUserAction.Logout -> logout()
+            is UnifiedUserAction.ContinueAsGuest -> continueAsGuest()
             is UnifiedUserAction.Register -> register(action.email, action.password, action.name)
             is UnifiedUserAction.UpdateProfile -> { /* Not implemented */ }
             is UnifiedUserAction.RequestPasswordReset -> sendPasswordResetEmail(action.email)
