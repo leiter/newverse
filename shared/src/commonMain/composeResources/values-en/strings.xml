@@ -123,8 +123,10 @@
     <string name="password_reset_failed">Failed to send reset email</string>
     <string name="login_sign_in_google">Sign in with Google</string>
     <string name="login_sign_in_twitter">Sign in with Twitter</string>
+    <string name="login_sign_in_apple">Sign in with Apple</string>
     <string name="login_google_icon">G</string>
     <string name="login_twitter_icon">𝕏</string>
+    <string name="login_apple_icon"></string>
     <string name="login_no_account">Don\'t have an account? </string>
     <string name="login_sign_up_link">Sign Up</string>
     <string name="login_success">Login successful! Redirecting...</string>
@@ -312,6 +314,7 @@
     <string name="auth_provider_google">Google</string>
     <string name="auth_provider_email">Email</string>
     <string name="auth_provider_twitter">Twitter</string>
+    <string name="auth_provider_apple">Apple</string>
 
     <!-- Profile Validation Errors -->
     <string name="error_email_format">Please enter a valid email address</string>

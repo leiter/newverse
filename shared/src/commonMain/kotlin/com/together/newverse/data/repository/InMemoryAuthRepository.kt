@@ -225,6 +225,11 @@ class InMemoryAuthRepository : AuthRepository {
         return Result.failure(Exception("Twitter Sign-In is only available with Firebase authentication"))
     }
 
+    override suspend fun signInWithApple(idToken: String, rawNonce: String): Result<String> {
+        // Mock implementation - not supported in InMemoryAuthRepository
+        return Result.failure(Exception("Apple Sign-In is only available with Firebase authentication"))
+    }
+
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
         return try {
             // Simulate network delay

@@ -23,6 +23,7 @@ sealed interface UnifiedUserAction : UnifiedAppAction {
     data class Login(val email: String, val password: String) : UnifiedUserAction
     data object LoginWithGoogle : UnifiedUserAction
     data object LoginWithTwitter : UnifiedUserAction
+    data object LoginWithApple : UnifiedUserAction
     data object Logout : UnifiedUserAction
     data object ContinueAsGuest : UnifiedUserAction  // Create anonymous user and proceed
     data class Register(val email: String, val password: String, val name: String) : UnifiedUserAction

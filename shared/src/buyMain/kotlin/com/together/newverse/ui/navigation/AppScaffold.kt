@@ -63,6 +63,7 @@ import org.koin.compose.viewmodel.koinViewModel
 sealed interface PlatformAction {
     data object GoogleSignIn : PlatformAction
     data object TwitterSignIn : PlatformAction
+    data object AppleSignIn : PlatformAction
     data object GoogleSignOut : PlatformAction
 }
 
@@ -91,6 +92,15 @@ fun AppScaffold(
             println("🔐 AppScaffold: Calling onPlatformAction(TwitterSignIn)")
             onPlatformAction(PlatformAction.TwitterSignIn)
             viewModel.resetTwitterSignInTrigger()
+        }
+    }
+
+    // Observe Apple Sign-In trigger
+    LaunchedEffect(appState.common.triggerAppleSignIn) {
+        if (appState.common.triggerAppleSignIn) {
+            println("🔐 AppScaffold: Calling onPlatformAction(AppleSignIn)")
+            onPlatformAction(PlatformAction.AppleSignIn)
+            viewModel.resetAppleSignInTrigger()
         }
     }
 

@@ -78,6 +78,10 @@ class PlatformAuthRepository : AuthRepository {
         return actualRepository.signInWithTwitter(token, secret)
     }
 
+    override suspend fun signInWithApple(idToken: String, rawNonce: String): Result<String> {
+        return actualRepository.signInWithApple(idToken, rawNonce)
+    }
+
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
         return actualRepository.sendPasswordResetEmail(email)
     }

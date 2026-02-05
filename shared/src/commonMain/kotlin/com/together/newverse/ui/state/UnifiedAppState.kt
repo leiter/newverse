@@ -39,6 +39,7 @@ data class CommonState(
     // Triggers for platform-specific actions
     val triggerGoogleSignIn: Boolean = false,
     val triggerTwitterSignIn: Boolean = false,
+    val triggerAppleSignIn: Boolean = false,
     val triggerGoogleSignOut: Boolean = false,
     // Force login flag for seller flavor
     val requiresLogin: Boolean = false
@@ -643,7 +644,8 @@ enum class AuthProvider {
     ANONYMOUS,
     GOOGLE,
     EMAIL,
-    TWITTER;
+    TWITTER,
+    APPLE;
 
     val displayName: String
         get() = when (this) {
@@ -651,6 +653,7 @@ enum class AuthProvider {
             GOOGLE -> "Google"
             EMAIL -> "E-Mail"
             TWITTER -> "Twitter"
+            APPLE -> "Apple"
         }
 }
 

@@ -171,6 +171,10 @@ class MainActivity : ComponentActivity() {
                         Log.d("MainActivity", "🔐 MainActivity: Handling TwitterSignIn action")
                         // TODO: Implement Twitter sign-in
                     }
+                    is PlatformAction.AppleSignIn -> {
+                        Log.d("MainActivity", "🔐 AppleSignIn action ignored on Android")
+                        // Apple Sign-In is only available on iOS
+                    }
                 }
             }
         )
