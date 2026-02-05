@@ -5,6 +5,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.FirebaseUser
+import dev.gitlive.firebase.auth.EmailAuthProvider
 import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.TwitterAuthProvider
 import kotlinx.coroutines.flow.Flow
@@ -258,6 +259,45 @@ class GitLiveAuthRepository : AuthRepository {
         }
     }
 
+    /**
+     * Link anonymous account with email and password credentials.
+     * Converts a guest account to a permanent email-authenticated account.
+     */
+    override suspend fun linkWithEmail(email: String, password: String): Result<String> {
+        return try {
+            // Input validation
+            if (email.isBlank() || password.isBlank()) {
+                return Result.failure(Exception("Email and password cannot be empty"))
+            }
+
+            val currentUser = auth.currentUser
+            if (currentUser == null) {
+                return Result.failure(Exception("No user is currently signed in"))
+            }
+
+            if (!currentUser.isAnonymous) {
+                return Result.failure(Exception("Current user is not anonymous"))
+            }
+
+            println("🔐 GitLiveAuthRepository.linkWithEmail: Linking anonymous account with email $email")
+
+            // Create email credential and link with current user
+            val credential = EmailAuthProvider.credential(email, password)
+            val authResult = currentUser.linkWithCredential(credential)
+            val linkedUser = authResult.user
+
+            if (linkedUser != null) {
+                println("✅ GitLiveAuthRepository.linkWithEmail: Success - userId=${linkedUser.uid}")
+                Result.success(linkedUser.uid)
+            } else {
+                Result.failure(Exception("Account linking failed: User is null"))
+            }
+
+        } catch (e: Exception) {
+            handleLinkingException(e)
+        }
+    }
+
     // Helper functions
 
     /**
@@ -278,6 +318,25 @@ class GitLiveAuthRepository : AuthRepository {
         }
 
         println("❌ GitLiveAuthRepository: $operation error - $errorMessage")
+        return Result.failure(Exception(errorMessage))
+    }
+
+    /**
+     * Handle account linking exceptions with user-friendly error messages.
+     */
+    private fun handleLinkingException(exception: Exception): Result<String> {
+        val errorMessage = when {
+            exception.message?.contains("CREDENTIAL_ALREADY_IN_USE") == true -> "This email is already linked to another account"
+            exception.message?.contains("EMAIL_ALREADY_IN_USE") == true -> "An account already exists with this email"
+            exception.message?.contains("INVALID_EMAIL") == true -> "Invalid email format"
+            exception.message?.contains("WEAK_PASSWORD") == true -> "Password is too weak (minimum 6 characters)"
+            exception.message?.contains("REQUIRES_RECENT_LOGIN") == true -> "Please sign out and sign in again before linking"
+            exception.message?.contains("PROVIDER_ALREADY_LINKED") == true -> "An email account is already linked"
+            exception.message?.contains("NETWORK_ERROR") == true -> "Network error. Please check your connection"
+            else -> exception.message ?: "Account linking failed"
+        }
+
+        println("❌ GitLiveAuthRepository.linkWithEmail: Error - $errorMessage")
         return Result.failure(Exception(errorMessage))
     }
 }

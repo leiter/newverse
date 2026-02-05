@@ -80,4 +80,8 @@ class PlatformAuthRepository : AuthRepository {
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
         return actualRepository.sendPasswordResetEmail(email)
     }
+
+    override suspend fun linkWithEmail(email: String, password: String): Result<String> {
+        return actualRepository.linkWithEmail(email, password)
+    }
 }

@@ -46,6 +46,13 @@ sealed interface UnifiedAccountAction : UnifiedAppAction {
     data object LinkWithGoogle : UnifiedAccountAction
     data class LinkWithEmail(val email: String, val password: String) : UnifiedAccountAction
 
+    // Email linking dialog actions
+    data object ShowEmailLinkingDialog : UnifiedAccountAction
+    data object DismissEmailLinkingDialog : UnifiedAccountAction
+    data class UpdateEmailLinkingEmail(val email: String) : UnifiedAccountAction
+    data class UpdateEmailLinkingPassword(val password: String) : UnifiedAccountAction
+    data class UpdateEmailLinkingConfirmPassword(val confirmPassword: String) : UnifiedAccountAction
+
     // Account deletion
     data object ConfirmDeleteAccount : UnifiedAccountAction
 }

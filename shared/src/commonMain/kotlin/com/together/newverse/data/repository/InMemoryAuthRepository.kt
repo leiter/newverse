@@ -246,6 +246,41 @@ class InMemoryAuthRepository : AuthRepository {
         }
     }
 
+    override suspend fun linkWithEmail(email: String, password: String): Result<String> {
+        return try {
+            // Simulate network delay
+            delay(500)
+
+            val currentUserId = _currentUserId.value
+                ?: return Result.failure(Exception("No user is currently signed in"))
+
+            // Check if current user is anonymous
+            if (!isAnonymous()) {
+                return Result.failure(Exception("Current user is not anonymous"))
+            }
+
+            // Check if email is already in use
+            if (users.containsKey(email)) {
+                return Result.failure(Exception("An account already exists with this email"))
+            }
+
+            // Create permanent account with the same user ID
+            users[email] = UserCredentials(
+                userId = currentUserId,
+                email = email,
+                password = password
+            )
+
+            // Persist the session
+            persistedUserId = currentUserId
+
+            println("🔗 InMemoryAuthRepository: Linked anonymous account with email $email")
+            Result.success(currentUserId)
+        } catch (e: Exception) {
+            Result.failure(Exception("Account linking failed: ${e.message}"))
+        }
+    }
+
     /**
      * Internal data class for storing user credentials
      */

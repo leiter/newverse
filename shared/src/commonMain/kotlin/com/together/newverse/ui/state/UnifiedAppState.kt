@@ -626,7 +626,13 @@ data class CustomerProfileScreenState(
     val showLinkAccountDialog: Boolean = false,
     val showDeleteAccountDialog: Boolean = false,
     val isLinkingAccount: Boolean = false,
-    val linkAccountError: String? = null
+    val linkAccountError: String? = null,
+    // Email linking dialog state
+    val showEmailLinkingDialog: Boolean = false,
+    val emailLinkingEmail: String = "",
+    val emailLinkingPassword: String = "",
+    val emailLinkingConfirmPassword: String = "",
+    val emailLinkingError: String? = null
 ) : ScreenState
 
 /**
