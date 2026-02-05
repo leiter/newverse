@@ -4,6 +4,7 @@ import com.together.newverse.data.config.FeatureFlags
 import com.together.newverse.data.config.AuthProvider
 import com.together.newverse.data.config.Platform
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.AuthUserInfo
 
 /**
  * Factory for creating AuthRepository instances based on feature flags.
@@ -197,6 +198,8 @@ class ParallelTestingAuthRepository(
         }
         return primaryResult
     }
+
+    override suspend fun getCurrentUserInfo(): AuthUserInfo? = primary.getCurrentUserInfo()
 
     private fun logComparison(method: String, primary: Any?, secondary: Any?) {
         println("🔄 ParallelTesting[$method]: Primary=$primary, Secondary=$secondary, Match=${primary == secondary}")

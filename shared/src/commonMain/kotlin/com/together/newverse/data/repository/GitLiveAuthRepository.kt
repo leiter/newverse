@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.AuthUserInfo
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.auth.FirebaseAuth
@@ -338,5 +339,20 @@ class GitLiveAuthRepository : AuthRepository {
 
         println("❌ GitLiveAuthRepository.linkWithEmail: Error - $errorMessage")
         return Result.failure(Exception(errorMessage))
+    }
+
+    /**
+     * Get current authenticated user's info from Firebase Auth.
+     */
+    override suspend fun getCurrentUserInfo(): AuthUserInfo? {
+        val user = auth.currentUser ?: return null
+
+        return AuthUserInfo(
+            id = user.uid,
+            email = user.email,
+            displayName = user.displayName,
+            photoUrl = user.photoURL?.toString(),
+            isAnonymous = user.isAnonymous
+        )
     }
 }
