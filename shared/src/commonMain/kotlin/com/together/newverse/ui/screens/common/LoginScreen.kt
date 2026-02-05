@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -117,6 +118,7 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
             .padding(24.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -306,8 +308,8 @@ fun LoginScreen(
         // Continue as Guest Button
         OutlinedButton(
             onClick = {
-                // Sign in anonymously or just navigate to home
-                onAction(UnifiedNavigationAction.NavigateTo(NavRoutes.Home))
+                // Create anonymous user and proceed with app initialization
+                onAction(UnifiedUserAction.ContinueAsGuest)
             },
             modifier = Modifier
                 .fillMaxWidth()
