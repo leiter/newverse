@@ -4,7 +4,6 @@ import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.OrderedProduct
-import com.together.newverse.domain.model.isEditable
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
@@ -14,11 +13,11 @@ import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
-import kotlin.time.Clock
-import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * GitLive implementation of OrderRepository for cross-platform order management.
@@ -276,15 +275,13 @@ class GitLiveOrderRepository(
         return try {
             println("🔐 GitLiveOrderRepository.updateOrder: START - orderId=${order.id}")
 
-            if (!order.status.isEditable()) {
-                return Result.failure(Exception("Order is not editable (status: ${order.status})"))
+            if (!order.canEdit()) {
+                return Result.failure(Exception("Order is not editable (deadline passed or status: ${order.status})"))
             }
 
             // Get the target seller ID - use default if empty
-            val targetSellerId = if (order.sellerId.isEmpty()) {
+            val targetSellerId = order.sellerId.ifEmpty {
                 getFirstSellerId()
-            } else {
-                order.sellerId
             }
 
             // Format date for Firebase path
@@ -333,6 +330,12 @@ class GitLiveOrderRepository(
             if (snapshot.exists) {
                 val order = mapSnapshotToOrder(snapshot)
                 if (order != null) {
+                    // Validate order can still be modified (deadline check)
+                    if (!order.canEdit()) {
+                        println("❌ GitLiveOrderRepository.cancelOrder: Order cannot be cancelled (deadline passed)")
+                        return Result.failure(Exception("Order cannot be cancelled (deadline passed)"))
+                    }
+
                     // Update status to cancelled
                     val cancelledOrder = order.copy(status = OrderStatus.CANCELLED)
                     val orderMap = orderToMap(cancelledOrder)
@@ -427,10 +430,11 @@ class GitLiveOrderRepository(
             }
 
             val orders = ordersResult.getOrThrow()
+            val now = Clock.System.now().toEpochMilliseconds()
 
-            // Find most recent editable order
+            // Find most recent editable order (must be editable AND pickup date in future)
             val editableOrder = orders
-                .filter { it.canEdit() }
+                .filter { it.pickUpDate > now && it.canEdit() }
                 .maxByOrNull { it.createdDate }
 
             if (editableOrder != null) {
@@ -623,6 +627,35 @@ class GitLiveOrderRepository(
 
         } catch (e: Exception) {
             println("❌ GitLiveOrderRepository.hideOrderForBuyer: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Update only the status of an order (lightweight update for status transitions).
+     */
+    override suspend fun updateOrderStatus(
+        sellerId: String,
+        date: String,
+        orderId: String,
+        status: OrderStatus
+    ): Result<Unit> {
+        return try {
+            println("🔐 GitLiveOrderRepository.updateOrderStatus: START - orderId=$orderId, newStatus=$status")
+
+            val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId).child("status")
+            orderRef.setValue(status.name)
+
+            // Update cache if order exists
+            ordersCache[orderId]?.let { cachedOrder ->
+                ordersCache[orderId] = cachedOrder.copy(status = status)
+            }
+
+            println("✅ GitLiveOrderRepository.updateOrderStatus: Success")
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.updateOrderStatus: Error - ${e.message}")
             Result.failure(e)
         }
     }

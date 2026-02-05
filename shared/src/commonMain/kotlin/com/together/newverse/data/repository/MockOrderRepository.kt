@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.preview.PreviewData
 import kotlinx.coroutines.delay
@@ -176,6 +177,28 @@ class MockOrderRepository : OrderRepository {
                 currentOrders[index] = currentOrders[index].copy(hiddenByBuyer = true)
                 _orders.value = currentOrders
                 Result.success(true)
+            } else {
+                Result.failure(Exception("Order not found"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateOrderStatus(
+        sellerId: String,
+        date: String,
+        orderId: String,
+        status: OrderStatus
+    ): Result<Unit> {
+        return try {
+            delay(100)
+            val currentOrders = _orders.value.toMutableList()
+            val index = currentOrders.indexOfFirst { it.id == orderId }
+            if (index >= 0) {
+                currentOrders[index] = currentOrders[index].copy(status = status)
+                _orders.value = currentOrders
+                Result.success(Unit)
             } else {
                 Result.failure(Exception("Order not found"))
             }

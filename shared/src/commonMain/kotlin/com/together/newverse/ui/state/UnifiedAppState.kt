@@ -375,6 +375,15 @@ sealed interface DialogState {
         val retryLabel: String = "Retry",
         val dismissLabel: String = "Dismiss"
     ) : DialogState
+
+    /**
+     * Dialog shown when user has draft basket items and tries to load an existing order
+     */
+    data class DraftBasketWarning(
+        val draftItemCount: Int,
+        val pendingOrderId: String,
+        val pendingOrderDate: String
+    ) : DialogState
 }
 
 sealed interface BottomSheetState {

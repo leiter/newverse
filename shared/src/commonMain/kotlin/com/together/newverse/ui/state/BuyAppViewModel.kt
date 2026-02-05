@@ -2,32 +2,56 @@ package com.together.newverse.ui.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.domain.model.Article
-import com.together.newverse.domain.model.BuyerProfile
-import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
-import com.together.newverse.util.OrderDateUtils
-import kotlin.time.Clock
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
-import com.together.newverse.ui.navigation.NavRoutes
-import com.together.newverse.ui.state.buy.*
-import kotlinx.coroutines.delay
+import com.together.newverse.ui.state.buy.closeDrawer
+import com.together.newverse.ui.state.buy.handleAccountAction
+import com.together.newverse.ui.state.buy.handleBasketScreenAction
+import com.together.newverse.ui.state.buy.handleMainScreenAction
+import com.together.newverse.ui.state.buy.hideBottomSheet
+import com.together.newverse.ui.state.buy.hideDialog
+import com.together.newverse.ui.state.buy.hidePasswordResetDialog
+import com.together.newverse.ui.state.buy.hideSnackbar
+import com.together.newverse.ui.state.buy.initializeApp
+import com.together.newverse.ui.state.buy.initializeBasketScreen
+import com.together.newverse.ui.state.buy.loadCustomerProfile
+import com.together.newverse.ui.state.buy.loadMainScreenArticles
+import com.together.newverse.ui.state.buy.loadOrderHistory
+import com.together.newverse.ui.state.buy.loadProfile
+import com.together.newverse.ui.state.buy.login
+import com.together.newverse.ui.state.buy.loginWithGoogle
+import com.together.newverse.ui.state.buy.loginWithTwitter
+import com.together.newverse.ui.state.buy.logout
+import com.together.newverse.ui.state.buy.navigateBack
+import com.together.newverse.ui.state.buy.navigateTo
+import com.together.newverse.ui.state.buy.observeAuthState
+import com.together.newverse.ui.state.buy.observeMainScreenBasket
+import com.together.newverse.ui.state.buy.observeMainScreenBuyerProfile
+import com.together.newverse.ui.state.buy.openDrawer
+import com.together.newverse.ui.state.buy.refreshCustomerProfile
+import com.together.newverse.ui.state.buy.register
+import com.together.newverse.ui.state.buy.saveBuyerProfile
+import com.together.newverse.ui.state.buy.sendPasswordResetEmail
+import com.together.newverse.ui.state.buy.setRefreshing
+import com.together.newverse.ui.state.buy.showBottomSheet
+import com.together.newverse.ui.state.buy.showDialog
+import com.together.newverse.ui.state.buy.showPasswordResetDialog
+import com.together.newverse.ui.state.buy.showSnackbar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.*
+import newverse.shared.generated.resources.snackbar_added_to_basket
 import org.jetbrains.compose.resources.getString
 
 /**
@@ -331,23 +355,6 @@ class BuyAppViewModel(
         }
     }
 
-    // Main Screen action handler and helpers moved to BuyAppViewModelMainScreen.kt
-    // - handleMainScreenAction(action)
-    // - handleUpdateQuantity(quantity), handleUpdateQuantityFromText(text)
-    // - handleAddToCart(), handleRemoveFromBasket()
-    // - showNewOrderSnackbar(), dismissNewOrderSnackbar(), startNewOrder()
-    // - setMainScreenFilter(filter)
-
-    // ===== Implementation Methods =====
-    // Initialization functions moved to BuyAppViewModelInitialization.kt
-    // - initializeApp(), checkAuthenticationStatus(), signInAsGuest()
-
-    // Navigation functions moved to BuyAppViewModelNavigation.kt
-    // - navigateTo(route)
-    // - navigateBack()
-    // - openDrawer()
-    // - closeDrawer()
-
     internal fun loadProducts() {
         viewModelScope.launch {
             println("📦 UnifiedAppViewModel.loadProducts: START")
@@ -562,23 +569,6 @@ class BuyAppViewModel(
         }
     }
 
-    // UI Management functions moved to BuyAppViewModelUi.kt
-    // - showSnackbar(message, type)
-    // - hideSnackbar()
-    // - showDialog(dialog)
-    // - hideDialog()
-    // - showBottomSheet(sheet)
-    // - hideBottomSheet()
-    // - setRefreshing(isRefreshing)
-
-    // ===== Authentication & Account Management moved to BuyAppViewModelAuth.kt =====
-    // - login(email, password), loginWithGoogle(), loginWithTwitter(), logout()
-    // - register(email, password, name), sendPasswordResetEmail(email)
-    // - handleAccountAction(action)
-    // - Dialog management: showLogoutWarningDialog(), showLinkAccountDialog(), showDeleteAccountDialog() (and dismiss variants)
-    // - Account operations: confirmGuestLogout(), linkWithGoogle(), linkWithEmail(), confirmDeleteAccount()
-    // - Helper: getCurrentUserId()
-
     // Override interface methods - kept in core ViewModel (not extracted)
     override fun resetGoogleSignInTrigger() {
         println("🔐 UnifiedAppViewModel.resetGoogleSignInTrigger: Resetting trigger")
@@ -610,34 +600,4 @@ class BuyAppViewModel(
         }
     }
 
-    // updateProfile, loadUserProfile, loadCurrentOrder moved to their respective extension files
-
-    // Profile functions moved to BuyAppViewModelProfile.kt
-    // - loadProfile()
-    // - loadCustomerProfile()
-    // - loadOrderHistory()
-    // - refreshCustomerProfile()
-    // - saveBuyerProfile(displayName, email, phone)
-
-    // ===== Main Screen Implementation Methods moved to BuyAppViewModelMainScreen.kt =====
-    // - selectMainScreenArticle(article)
-    // - updateMainScreenQuantity(quantity), updateMainScreenQuantityFromText(text)
-    // - addMainScreenToCart(), removeMainScreenFromBasket()
-    // - toggleMainScreenFavourite(articleId)
-    // - refreshMainScreen(), loadMainScreenArticles()
-    // - observeMainScreenBasket()
-    // - observeMainScreenBuyerProfile
-
-    // ===== Basket Screen Handler and Methods moved to BuyAppViewModelBasket.kt =====
-    // - BASKET_SELLER_ID constant
-    // - handleBasketScreenAction(action)
-    // - initializeBasketScreen(), observeBasketScreenItems(), basketScreenCheckIfHasChanges()
-    // - Item management: basketScreenAddItem(), basketScreenRemoveItem(), basketScreenUpdateQuantity(), basketScreenClearBasket()
-    // - Checkout: basketScreenCheckout()
-    // - Order loading: basketScreenLoadMostRecentEditableOrder(), basketScreenLoadOrder()
-    // - Order editing: basketScreenEnableEditing(), basketScreenUpdateOrder(), basketScreenCancelOrder(), basketScreenResetOrderState()
-    // - Date handling: basketScreenLoadAvailableDates(), basketScreenShowDatePicker(), basketScreenHideDatePicker(), basketScreenSelectPickupDate()
-    // - Reorder: basketScreenShowReorderDatePicker(), basketScreenHideReorderDatePicker(), basketScreenReorderWithNewDate()
-    // - Merge: basketScreenCalculateMergeConflicts(), basketScreenHideMergeDialog(), basketScreenResolveMergeConflict(), basketScreenConfirmMerge()
-    // - Helpers: basketScreenFormatDateKey(), basketScreenFormatDate(), basketScreenCanEditOrder(), basketScreenGetDaysUntilPickup()
 }

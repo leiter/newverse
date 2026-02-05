@@ -17,11 +17,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
-import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * Basket Screen extension functions for BuyAppViewModel
@@ -188,18 +188,75 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
 
                 val orderPath = "orders/$BASKET_SELLER_ID/$orderDate/$orderId"
                 val result = orderRepository.loadOrder(BASKET_SELLER_ID, orderId, orderPath)
-                result.onSuccess { order ->
-                    // Check if order is still editable (not cancelled/completed)
-                    if (order.status == com.together.newverse.domain.model.OrderStatus.CANCELLED ||
-                        order.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
+                result.onSuccess { loadedOrder ->
+                    // Check if order is finalized
+                    if (loadedOrder.status == com.together.newverse.domain.model.OrderStatus.CANCELLED ||
+                        loadedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
                         println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order is finalized, clearing basket")
                         basketRepository.clearBasket()
+                        // Clear common basket state
+                        _state.update { current ->
+                            current.copy(
+                                common = current.common.copy(
+                                    basket = current.common.basket.copy(
+                                        currentOrderId = null,
+                                        currentOrderDate = null
+                                    )
+                                )
+                            )
+                        }
                         return@onSuccess
                     }
 
-                    val canEdit = OrderDateUtils.canEditOrder(
-                        Instant.fromEpochMilliseconds(order.pickUpDate)
-                    )
+                    // Check if pickup date has passed
+                    val now = Clock.System.now()
+                    val pickupInstant = Instant.fromEpochMilliseconds(loadedOrder.pickUpDate)
+                    if (now > pickupInstant) {
+                        println("⏰ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Pickup date has passed, transitioning to COMPLETED and clearing basket")
+                        // Update Firebase with COMPLETED status
+                        orderRepository.updateOrderStatus(BASKET_SELLER_ID, orderDate, orderId, com.together.newverse.domain.model.OrderStatus.COMPLETED)
+                        basketRepository.clearBasket()
+                        // Clear common basket state
+                        _state.update { current ->
+                            current.copy(
+                                common = current.common.copy(
+                                    basket = current.common.basket.copy(
+                                        currentOrderId = null,
+                                        currentOrderDate = null
+                                    )
+                                )
+                            )
+                        }
+                        return@onSuccess
+                    }
+
+                    // Apply status transition if needed (PLACED->LOCKED)
+                    val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
+                        println("🔄 basketScreenLoadMostRecentEditableOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
+                        // Update Firebase with new status
+                        orderRepository.updateOrderStatus(BASKET_SELLER_ID, orderDate, orderId, updatedOrder.status)
+
+                        // If transitioned to COMPLETED, clear basket
+                        if (updatedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
+                            println("⏰ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order transitioned to COMPLETED, clearing basket")
+                            basketRepository.clearBasket()
+                            // Clear common basket state
+                            _state.update { current ->
+                                current.copy(
+                                    common = current.common.copy(
+                                        basket = current.common.basket.copy(
+                                            currentOrderId = null,
+                                            currentOrderDate = null
+                                        )
+                                    )
+                                )
+                            }
+                            return@onSuccess
+                        }
+                        updatedOrder
+                    } ?: loadedOrder
+
+                    val canEdit = order.canEdit()
                     val currentBasketItems = basketRepository.observeBasket().value
                     val hasChanges = basketScreenCheckIfHasChanges(currentBasketItems, order.articles)
 
@@ -223,6 +280,17 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                     println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Failed to load order - ${error.message}")
                     // Clear loaded order info since loading failed
                     basketRepository.clearBasket()
+                    // Clear common basket state
+                    _state.update { current ->
+                        current.copy(
+                            common = current.common.copy(
+                                basket = current.common.basket.copy(
+                                    currentOrderId = null,
+                                    currentOrderDate = null
+                                )
+                            )
+                        )
+                    }
                 }
                 return@launch
             }
@@ -360,41 +428,56 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 return@launch
             }
 
-            // DISABLED: Merge order logic - always create new order for now
-            // val dateKey = basketScreenFormatDateKey(selectedDate)
-            // val existingOrderId = buyerProfile.placedOrderIds[dateKey]
-            //
-            // if (existingOrderId != null) {
-            //     val existingOrderPath = "orders/$BASKET_SELLER_ID/$dateKey/$existingOrderId"
-            //     val existingOrderResult = orderRepository.loadOrder(BASKET_SELLER_ID, existingOrderId, existingOrderPath)
-            //     existingOrderResult.onSuccess { existingOrder ->
-            //         val conflicts = basketScreenCalculateMergeConflicts(items, existingOrder.articles)
-            //         _state.update { current ->
-            //             current.copy(
-            //                 screens = current.screens.copy(
-            //                     basketScreen = current.screens.basketScreen.copy(
-            //                         isCheckingOut = false,
-            //                         showMergeDialog = true,
-            //                         existingOrderForMerge = existingOrder,
-            //                         mergeConflicts = conflicts
-            //                     )
-            //                 )
-            //             )
-            //         }
-            //     }.onFailure { error ->
-            //         _state.update { current ->
-            //             current.copy(
-            //                 screens = current.screens.copy(
-            //                     basketScreen = current.screens.basketScreen.copy(
-            //                         isCheckingOut = false,
-            //                         orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
-            //                     )
-            //                 )
-            //             )
-            //         }
-            //     }
-            //     return@launch
-            // }
+            // Check if there's an existing order for this pickup date - merge if so
+            val dateKey = basketScreenFormatDateKey(selectedDate)
+            val existingOrderId = buyerProfile.placedOrderIds[dateKey]
+
+            if (existingOrderId != null) {
+                val existingOrderPath = "orders/$BASKET_SELLER_ID/$dateKey/$existingOrderId"
+                val existingOrderResult = orderRepository.loadOrder(BASKET_SELLER_ID, existingOrderId, existingOrderPath)
+                existingOrderResult.onSuccess { existingOrder ->
+                    // Only merge if the existing order is still editable
+                    if (!existingOrder.canEdit()) {
+                        _state.update { current ->
+                            current.copy(
+                                screens = current.screens.copy(
+                                    basketScreen = current.screens.basketScreen.copy(
+                                        isCheckingOut = false,
+                                        orderError = "Bestehende Bestellung für diesen Termin kann nicht mehr bearbeitet werden (Frist abgelaufen)"
+                                    )
+                                )
+                            )
+                        }
+                        return@launch
+                    }
+
+                    val conflicts = basketScreenCalculateMergeConflicts(items, existingOrder.articles)
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    showMergeDialog = true,
+                                    existingOrderForMerge = existingOrder,
+                                    mergeConflicts = conflicts
+                                )
+                            )
+                        )
+                    }
+                }.onFailure { error ->
+                    _state.update { current ->
+                        current.copy(
+                            screens = current.screens.copy(
+                                basketScreen = current.screens.basketScreen.copy(
+                                    isCheckingOut = false,
+                                    orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
+                                )
+                            )
+                        )
+                    }
+                }
+                return@launch
+            }
 
             val order = Order(
                 buyerProfile = buyerProfile,
@@ -496,10 +579,18 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
             val orderPath = "orders/$BASKET_SELLER_ID/$date/$orderId"
             val result = orderRepository.loadOrder(BASKET_SELLER_ID, orderId, orderPath)
 
-            result.onSuccess { order ->
-                val canEdit = OrderDateUtils.canEditOrder(
-                    Instant.fromEpochMilliseconds(order.pickUpDate)
-                )
+            result.onSuccess { loadedOrder ->
+                // Apply status transition if needed (PLACED->LOCKED or LOCKED->COMPLETED)
+                val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
+                    println("🔄 basketScreenLoadOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
+                    // Update Firebase with new status
+                    viewModelScope.launch {
+                        orderRepository.updateOrderStatus(BASKET_SELLER_ID, date, orderId, updatedOrder.status)
+                    }
+                    updatedOrder
+                } ?: loadedOrder
+
+                val canEdit = order.canEdit()
                 val currentBasketItems = basketRepository.observeBasket().value
 
                 val shouldLoadOrderItems = forceLoad ||

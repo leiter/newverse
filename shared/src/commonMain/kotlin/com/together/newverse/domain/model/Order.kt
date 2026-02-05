@@ -131,4 +131,30 @@ data class Order(
         val pickupInstant = Instant.fromEpochMilliseconds(pickUpDate)
         return now < pickupInstant
     }
+
+    /**
+     * Returns an updated order with correct status based on current time.
+     * - PLACED -> LOCKED when Tuesday 23:59 deadline passes
+     * - LOCKED -> COMPLETED when pickup date passes
+     * Returns null if no status change needed.
+     */
+    fun transitionStatusIfNeeded(now: Instant = Clock.System.now()): Order? {
+        val pickupInstant = Instant.fromEpochMilliseconds(pickUpDate)
+
+        return when (status) {
+            OrderStatus.PLACED -> {
+                // Transition to LOCKED if deadline has passed
+                if (!OrderDateUtils.canEditOrder(pickupInstant, now)) {
+                    copy(status = OrderStatus.LOCKED)
+                } else null
+            }
+            OrderStatus.LOCKED -> {
+                // Transition to COMPLETED if pickup date has passed
+                if (now > pickupInstant) {
+                    copy(status = OrderStatus.COMPLETED)
+                } else null
+            }
+            else -> null
+        }
+    }
 }

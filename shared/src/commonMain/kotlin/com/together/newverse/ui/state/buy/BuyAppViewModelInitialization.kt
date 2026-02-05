@@ -12,12 +12,12 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
-import kotlin.time.Instant
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * Initialization extension functions for BuyAppViewModel
@@ -345,6 +345,9 @@ internal suspend fun BuyAppViewModel.loadUserProfile() {
  * Priority:
  * 1. If profile has a draft basket with items, load that (user's unsaved work)
  * 2. Otherwise, load the most recent upcoming order
+ *
+ * Also applies client-side status transitions (PLACED->LOCKED, LOCKED->COMPLETED)
+ * and clears expired draft pickup dates.
  */
 internal suspend fun BuyAppViewModel.loadCurrentOrder() {
     try {
@@ -357,7 +360,26 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
             // Check for draft basket first (user's unsaved work takes priority)
             val draftBasket = profile.draftBasket
             if (draftBasket != null && draftBasket.items.isNotEmpty()) {
-                println("🛒 loadCurrentOrder: Found draft basket with ${draftBasket.items.size} items, loading...")
+                println("🛒 loadCurrentOrder: Found draft basket with ${draftBasket.items.size} items")
+
+                // Check if the draft's selected pickup date has expired
+                val selectedDateKey = draftBasket.selectedPickupDate
+                if (selectedDateKey != null) {
+                    val pickupTimestamp = parsePickupDateFromKey(selectedDateKey)
+                    if (pickupTimestamp != null) {
+                        val pickupInstant = Instant.fromEpochMilliseconds(pickupTimestamp)
+                        if (!OrderDateUtils.canEditOrder(pickupInstant)) {
+                            // Deadline passed - clear the pickup date from draft
+                            println("⚠️ loadCurrentOrder: Draft pickup date expired, clearing...")
+                            val clearedDraft = draftBasket.copy(selectedPickupDate = null)
+                            profileRepository.saveDraftBasket(clearedDraft)
+                            basketRepository.loadFromProfile(clearedDraft)
+                            println("✅ loadCurrentOrder: Loaded draft basket with cleared pickup date")
+                            return@onSuccess
+                        }
+                    }
+                }
+
                 basketRepository.loadFromProfile(draftBasket)
                 println("✅ loadCurrentOrder: Loaded draft basket")
                 return@onSuccess
@@ -377,20 +399,44 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
             val sellerId = "" // Using empty seller ID for now
             val orderResult = orderRepository.getUpcomingOrder(sellerId, placedOrderIds)
 
-            orderResult.onSuccess { order ->
-                if (order != null) {
-                    println("✅ loadCurrentOrder: Found upcoming order - orderId=${order.id}, ${order.articles.size} items")
+            orderResult.onSuccess { loadedOrder ->
+                if (loadedOrder != null) {
+                    println("✅ loadCurrentOrder: Found upcoming order - orderId=${loadedOrder.id}, ${loadedOrder.articles.size} items")
+
+                    // Check if pickup date has already passed
+                    val now = Clock.System.now()
+                    val pickupInstant = Instant.fromEpochMilliseconds(loadedOrder.pickUpDate)
+                    if (now > pickupInstant) {
+                        println("⏰ loadCurrentOrder: Order pickup date has passed, skipping...")
+                        // Transition to COMPLETED and update Firebase
+                        val dateKey = formatDateKey(loadedOrder.pickUpDate)
+                        orderRepository.updateOrderStatus(sellerId, dateKey, loadedOrder.id, com.together.newverse.domain.model.OrderStatus.COMPLETED)
+                        return@onSuccess
+                    }
+
+                    // Apply status transition if needed (PLACED->LOCKED)
+                    val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
+                        println("🔄 loadCurrentOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
+                        // Update Firebase with new status
+                        val dateKey = formatDateKey(updatedOrder.pickUpDate)
+                        orderRepository.updateOrderStatus(sellerId, dateKey, updatedOrder.id, updatedOrder.status)
+
+                        // If order transitioned to COMPLETED, don't load it
+                        if (updatedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
+                            println("⏰ loadCurrentOrder: Order transitioned to COMPLETED, skipping...")
+                            return@onSuccess
+                        }
+                        updatedOrder
+                    } ?: loadedOrder
 
                     // Calculate date key
                     val dateKey = formatDateKey(order.pickUpDate)
 
                     // Check if order is editable (before Tuesday 23:59:59 deadline)
-                    val canEdit = OrderDateUtils.canEditOrder(
-                        Instant.fromEpochMilliseconds(order.pickUpDate)
-                    )
+                    val canEdit = order.canEdit()
 
-                    val now = Clock.System.now().toEpochMilliseconds()
-                    println("📦 loadCurrentOrder: Order canEdit=$canEdit (pickup in ${(order.pickUpDate - now) / (24 * 60 * 60 * 1000)} days)")
+                    val nowMs = now.toEpochMilliseconds()
+                    println("📦 loadCurrentOrder: Order canEdit=$canEdit (pickup in ${(order.pickUpDate - nowMs) / (24 * 60 * 60 * 1000)} days)")
 
                     // Load order items into BasketRepository with order metadata
                     basketRepository.loadOrderItems(order.articles, order.id, dateKey)
@@ -424,6 +470,24 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
         }
     } catch (e: Exception) {
         println("❌ loadCurrentOrder: Exception - ${e.message}")
+    }
+}
+
+/**
+ * Parse a pickup date key (yyyyMMdd) back to timestamp
+ * Returns null if parsing fails
+ */
+private fun parsePickupDateFromKey(dateKey: String): Long? {
+    return try {
+        if (dateKey.length != 8) return null
+        val year = dateKey.substring(0, 4).toInt()
+        val month = dateKey.substring(4, 6).toInt()
+        val day = dateKey.substring(6, 8).toInt()
+        val localDate = kotlinx.datetime.LocalDate(year, month, day)
+        localDate.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+    } catch (e: Exception) {
+        println("⚠️ parsePickupDateFromKey: Failed to parse '$dateKey': ${e.message}")
+        null
     }
 }
 

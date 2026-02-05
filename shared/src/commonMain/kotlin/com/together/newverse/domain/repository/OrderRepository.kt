@@ -1,6 +1,7 @@
 package com.together.newverse.domain.repository
 
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderStatus
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -97,4 +98,14 @@ interface OrderRepository {
      * @return The most recent upcoming order, or null if none found
      */
     suspend fun getUpcomingOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?>
+
+    /**
+     * Update only the status of an order (lightweight update for status transitions)
+     * @param sellerId The seller's ID
+     * @param date The order date (yyyyMMdd format)
+     * @param orderId The order ID
+     * @param status The new status
+     * @return Success or failure result
+     */
+    suspend fun updateOrderStatus(sellerId: String, date: String, orderId: String, status: OrderStatus): Result<Unit>
 }

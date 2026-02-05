@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.ProfileRepository
@@ -90,5 +91,14 @@ class PlatformOrderRepository(
         orderId: String
     ): Result<Boolean> {
         return actualRepository.hideOrderForBuyer(sellerId, date, orderId)
+    }
+
+    override suspend fun updateOrderStatus(
+        sellerId: String,
+        date: String,
+        orderId: String,
+        status: OrderStatus
+    ): Result<Unit> {
+        return actualRepository.updateOrderStatus(sellerId, date, orderId, status)
     }
 }
