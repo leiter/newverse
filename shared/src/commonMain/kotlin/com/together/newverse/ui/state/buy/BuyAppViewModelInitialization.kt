@@ -150,8 +150,22 @@ internal suspend fun BuyAppViewModel.checkAuthenticationStatus() {
                 if (userId != null) {
                     // User has valid persisted session
                     println("✅ Buy App Startup: Restored auth session for user: $userId")
+
+                    // Get user info from Firebase Auth
+                    val userInfo = authRepository.getCurrentUserInfo()
+                    println("📧 Buy App Startup: User info - email=${userInfo?.email}, name=${userInfo?.displayName}")
+
+                    // Set LoggedIn state immediately (don't wait for observeAuthState)
                     _state.update { current ->
                         current.copy(
+                            common = current.common.copy(
+                                user = UserState.LoggedIn(
+                                    id = userId,
+                                    email = userInfo?.email ?: "",
+                                    name = userInfo?.displayName ?: "",
+                                    role = UserRole.CUSTOMER
+                                )
+                            ),
                             meta = current.meta.copy(
                                 initializationStep = InitializationStep.LoadingProfile
                             )
@@ -357,26 +371,40 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
             println("✅ Profile loaded successfully: ${profile.displayName}")
 
             // Check if we need to update the profile with auth provider info
-            // This handles Google sign-in where profile is created with empty fields
+            // This handles Google sign-in where profile is created with empty/default fields
             var updatedProfile = profile
             if (authUserInfo != null && !authUserInfo.isAnonymous) {
-                val needsUpdate = profile.emailAddress.isBlank() || profile.displayName == "New User"
+                // Check if displayName needs update (empty, default English, or default German)
+                val isDefaultName = profile.displayName.isBlank() ||
+                    profile.displayName == "New User" ||
+                    profile.displayName == "Neuer Kunde"
+                val hasAuthDisplayName = !authUserInfo.displayName.isNullOrBlank()
+                val needsDisplayNameUpdate = isDefaultName && hasAuthDisplayName
+
+                // Check if other fields need update
+                val needsEmailUpdate = profile.emailAddress.isBlank() && !authUserInfo.email.isNullOrBlank()
+                val needsPhotoUpdate = profile.photoUrl.isBlank() && !authUserInfo.photoUrl.isNullOrBlank()
+
+                val needsUpdate = needsDisplayNameUpdate || needsEmailUpdate || needsPhotoUpdate
 
                 if (needsUpdate) {
                     println("📝 Updating profile with auth provider info...")
+                    println("   - Current displayName: '${profile.displayName}', Auth displayName: '${authUserInfo.displayName}'")
+                    println("   - needsDisplayNameUpdate: $needsDisplayNameUpdate, needsEmailUpdate: $needsEmailUpdate")
+
                     updatedProfile = profile.copy(
-                        displayName = if (profile.displayName == "New User" && !authUserInfo.displayName.isNullOrBlank()) {
-                            authUserInfo.displayName
+                        displayName = if (needsDisplayNameUpdate) {
+                            authUserInfo.displayName!!
                         } else {
                             profile.displayName
                         },
-                        emailAddress = if (profile.emailAddress.isBlank() && !authUserInfo.email.isNullOrBlank()) {
-                            authUserInfo.email
+                        emailAddress = if (needsEmailUpdate) {
+                            authUserInfo.email!!
                         } else {
                             profile.emailAddress
                         },
-                        photoUrl = if (profile.photoUrl.isBlank() && !authUserInfo.photoUrl.isNullOrBlank()) {
-                            authUserInfo.photoUrl
+                        photoUrl = if (needsPhotoUpdate) {
+                            authUserInfo.photoUrl!!
                         } else {
                             profile.photoUrl
                         },
