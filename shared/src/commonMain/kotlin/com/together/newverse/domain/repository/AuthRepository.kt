@@ -89,6 +89,14 @@ interface AuthRepository {
     suspend fun signInWithTwitter(token: String, secret: String): Result<String>
 
     /**
+     * Sign in with Apple
+     * @param idToken Apple Identity Token (JWT)
+     * @param rawNonce Raw nonce for verification
+     * @return User ID or error
+     */
+    suspend fun signInWithApple(idToken: String, rawNonce: String): Result<String>
+
+    /**
      * Send password reset email
      * @param email User's email address
      * @return Success or error

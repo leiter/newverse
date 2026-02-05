@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.data.config.Platform
 import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.AuthMode
 import com.together.newverse.ui.state.AuthScreenState
@@ -62,6 +63,8 @@ import newverse.shared.generated.resources.login_forgot_password
 import newverse.shared.generated.resources.login_google_icon
 import newverse.shared.generated.resources.login_no_account
 import newverse.shared.generated.resources.login_password_placeholder
+import newverse.shared.generated.resources.login_apple_icon
+import newverse.shared.generated.resources.login_sign_in_apple
 import newverse.shared.generated.resources.login_sign_in_google
 import newverse.shared.generated.resources.login_sign_in_twitter
 import newverse.shared.generated.resources.login_sign_up_link
@@ -303,6 +306,31 @@ fun LoginScreen(
                 modifier = Modifier.padding(end = 12.dp)
             )
             Text(stringResource(Res.string.login_sign_in_twitter), style = MaterialTheme.typography.labelLarge)
+        }
+
+        // Apple Sign-In Button (iOS only)
+        if (Platform.getCurrentPlatform() == Platform.IOS) {
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = {
+                    onAction(UnifiedUserAction.LoginWithApple)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = !authState.isLoading,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                // Apple logo
+                Text(
+                    text = stringResource(Res.string.login_apple_icon),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(end = 12.dp)
+                )
+                Text(stringResource(Res.string.login_sign_in_apple), style = MaterialTheme.typography.labelLarge)
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))

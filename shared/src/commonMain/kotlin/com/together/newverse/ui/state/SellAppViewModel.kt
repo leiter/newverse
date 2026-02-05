@@ -120,6 +120,7 @@ class SellAppViewModel(
             is UnifiedUserAction.Login -> login(action.email, action.password)
             is UnifiedUserAction.LoginWithGoogle -> loginWithGoogle()
             is UnifiedUserAction.LoginWithTwitter -> loginWithTwitter()
+            is UnifiedUserAction.LoginWithApple -> { /* Seller app doesn't support Apple Sign-In */ }
             is UnifiedUserAction.Logout -> logout()
             is UnifiedUserAction.ContinueAsGuest -> { /* Seller app requires login, guest not supported */ }
             is UnifiedUserAction.Register -> register(action.email, action.password, action.name)
@@ -746,6 +747,14 @@ class SellAppViewModel(
         _state.update { current ->
             current.copy(
                 common = current.common.copy(triggerGoogleSignOut = false)
+            )
+        }
+    }
+
+    override fun resetAppleSignInTrigger() {
+        _state.update { current ->
+            current.copy(
+                common = current.common.copy(triggerAppleSignIn = false)
             )
         }
     }

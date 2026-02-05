@@ -157,6 +157,17 @@ internal fun BuyAppViewModel.loginWithTwitter() {
     }
 }
 
+internal fun BuyAppViewModel.loginWithApple() {
+    println("🔐 UnifiedAppViewModel.loginWithApple: Triggering Apple Sign-In flow")
+    _state.update { current ->
+        current.copy(
+            common = current.common.copy(
+                triggerAppleSignIn = true
+            )
+        )
+    }
+}
+
 /**
  * Send password reset email to the specified email address.
  */

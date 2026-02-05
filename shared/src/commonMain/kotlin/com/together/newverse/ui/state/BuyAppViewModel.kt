@@ -26,6 +26,7 @@ import com.together.newverse.ui.state.buy.loadProfile
 import com.together.newverse.ui.state.buy.continueAsGuest
 import com.together.newverse.ui.state.buy.login
 import com.together.newverse.ui.state.buy.loginWithGoogle
+import com.together.newverse.ui.state.buy.loginWithApple
 import com.together.newverse.ui.state.buy.loginWithTwitter
 import com.together.newverse.ui.state.buy.logout
 import com.together.newverse.ui.state.buy.navigateBack
@@ -273,6 +274,7 @@ class BuyAppViewModel(
             is UnifiedUserAction.Login -> login(action.email, action.password)
             is UnifiedUserAction.LoginWithGoogle -> loginWithGoogle()
             is UnifiedUserAction.LoginWithTwitter -> loginWithTwitter()
+            is UnifiedUserAction.LoginWithApple -> loginWithApple()
             is UnifiedUserAction.Logout -> logout()
             is UnifiedUserAction.ContinueAsGuest -> continueAsGuest()
             is UnifiedUserAction.Register -> register(action.email, action.password, action.name)
@@ -591,6 +593,17 @@ class BuyAppViewModel(
             current.copy(
                 common = current.common.copy(
                     triggerTwitterSignIn = false
+                )
+            )
+        }
+    }
+
+    override fun resetAppleSignInTrigger() {
+        println("🔐 UnifiedAppViewModel.resetAppleSignInTrigger: Resetting trigger")
+        _state.update { current ->
+            current.copy(
+                common = current.common.copy(
+                    triggerAppleSignIn = false
                 )
             )
         }

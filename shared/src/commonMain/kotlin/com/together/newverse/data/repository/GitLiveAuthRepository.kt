@@ -9,6 +9,7 @@ import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.EmailAuthProvider
 import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.TwitterAuthProvider
+import dev.gitlive.firebase.auth.OAuthProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -231,6 +232,29 @@ class GitLiveAuthRepository : AuthRepository {
 
         } catch (e: Exception) {
             Result.failure(Exception("Twitter sign in failed: ${e.message}"))
+        }
+    }
+
+    /**
+     * Sign in with Apple.
+     */
+    override suspend fun signInWithApple(idToken: String, rawNonce: String): Result<String> {
+        return try {
+            println("🔐 GitLiveAuthRepository.signInWithApple: Authenticating with Apple")
+
+            val credential = OAuthProvider.credential("apple.com", idToken, rawNonce)
+            val authResult = auth.signInWithCredential(credential)
+            val user = authResult.user
+
+            if (user != null) {
+                println("✅ GitLiveAuthRepository.signInWithApple: Success - userId=${user.uid}")
+                Result.success(user.uid)
+            } else {
+                Result.failure(Exception("Apple sign in failed"))
+            }
+
+        } catch (e: Exception) {
+            Result.failure(Exception("Apple sign in failed: ${e.message}"))
         }
     }
 

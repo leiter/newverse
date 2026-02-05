@@ -30,6 +30,11 @@ interface AppViewModel {
     fun resetTwitterSignInTrigger()
 
     /**
+     * Reset Apple Sign-In trigger after it's been handled
+     */
+    fun resetAppleSignInTrigger()
+
+    /**
      * Reset Google Sign-Out trigger after it's been handled
      */
     fun resetGoogleSignOutTrigger()

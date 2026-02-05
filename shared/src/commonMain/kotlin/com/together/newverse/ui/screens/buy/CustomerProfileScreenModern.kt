@@ -88,6 +88,7 @@ import newverse.shared.generated.resources.action_help
 import newverse.shared.generated.resources.action_orders
 import newverse.shared.generated.resources.action_payment
 import newverse.shared.generated.resources.auth_provider_anonymous
+import newverse.shared.generated.resources.auth_provider_apple
 import newverse.shared.generated.resources.auth_provider_email
 import newverse.shared.generated.resources.auth_provider_google
 import newverse.shared.generated.resources.auth_provider_twitter
@@ -476,6 +477,7 @@ private fun ProfileHeaderCard(
                         AuthProvider.GOOGLE -> MaterialTheme.colorScheme.primaryContainer
                         AuthProvider.EMAIL -> MaterialTheme.colorScheme.secondaryContainer
                         AuthProvider.TWITTER -> MaterialTheme.colorScheme.tertiaryContainer
+                        AuthProvider.APPLE -> MaterialTheme.colorScheme.surfaceVariant
                     }
                 ) {
                     Text(
@@ -484,6 +486,7 @@ private fun ProfileHeaderCard(
                             AuthProvider.GOOGLE -> stringResource(Res.string.auth_provider_google)
                             AuthProvider.EMAIL -> stringResource(Res.string.auth_provider_email)
                             AuthProvider.TWITTER -> stringResource(Res.string.auth_provider_twitter)
+                            AuthProvider.APPLE -> stringResource(Res.string.auth_provider_apple)
                         },
                         style = MaterialTheme.typography.labelMedium,
                         color = when (authProvider) {
@@ -491,6 +494,7 @@ private fun ProfileHeaderCard(
                             AuthProvider.GOOGLE -> MaterialTheme.colorScheme.onPrimaryContainer
                             AuthProvider.EMAIL -> MaterialTheme.colorScheme.onSecondaryContainer
                             AuthProvider.TWITTER -> MaterialTheme.colorScheme.onTertiaryContainer
+                            AuthProvider.APPLE -> MaterialTheme.colorScheme.onSurfaceVariant
                         },
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                     )

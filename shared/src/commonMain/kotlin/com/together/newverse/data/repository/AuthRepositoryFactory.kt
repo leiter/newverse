@@ -187,6 +187,9 @@ class ParallelTestingAuthRepository(
     override suspend fun signInWithTwitter(token: String, secret: String) =
         primary.signInWithTwitter(token, secret)
 
+    override suspend fun signInWithApple(idToken: String, rawNonce: String) =
+        primary.signInWithApple(idToken, rawNonce)
+
     override suspend fun sendPasswordResetEmail(email: String) =
         primary.sendPasswordResetEmail(email)
 
