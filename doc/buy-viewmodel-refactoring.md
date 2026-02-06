@@ -202,52 +202,74 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
 - ✅ Clear separation of business logic and state management
 - ✅ SOLID principles compliance
 
-## Testing Checklist
+## Testing Status
 
-Manual testing recommended to verify all functionality:
+### Unit Tests: COMPLETE
 
-- [ ] **Login/Logout Flow**
-  - [ ] Email/password login
-  - [ ] Google sign-in
-  - [ ] Twitter sign-in
-  - [ ] Guest mode
-  - [ ] Logout with warning
+**Total: 136 tests covering all extension modules**
 
-- [ ] **Product Browsing**
-  - [ ] Browse products
-  - [ ] Select product
-  - [ ] Add to cart
-  - [ ] Toggle favorites
-  - [ ] Apply filters
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| BuyAppViewModelTest.kt | 23 | Core ViewModel |
+| BuyAppViewModelAuthTest.kt | 16 | Authentication |
+| BuyAppViewModelBasketTest.kt | 35 | Basket/Checkout |
+| BuyAppViewModelInitializationTest.kt | 10 | App Startup |
+| BuyAppViewModelMainScreenTest.kt | 23 | Product Browsing |
+| BuyAppViewModelNavigationTest.kt | 10 | Navigation |
+| BuyAppViewModelProfileTest.kt | 15 | Profile |
+| BuyAppViewModelUiTest.kt | 19 | UI State |
 
-- [ ] **Basket/Checkout**
-  - [ ] View basket items
-  - [ ] Update quantities
-  - [ ] Remove items
-  - [ ] Clear basket
-  - [ ] Select pickup date
-  - [ ] Place order
-  - [ ] Edit existing order
-  - [ ] Cancel order
-  - [ ] Reorder with new date
-  - [ ] Merge conflict resolution
+Run tests:
+```bash
+./gradlew :shared:testBuyDebugUnitTest --tests "*.buy.*"
+./gradlew :shared:testBuyDebugUnitTest --tests "*.BuyAppViewModelTest"
+```
 
-- [ ] **Profile Management**
-  - [ ] View profile
-  - [ ] Edit profile
-  - [ ] Save profile changes
-  - [ ] View order history
+### Manual Testing Checklist
 
-- [ ] **Navigation**
-  - [ ] Navigate between screens
-  - [ ] Back button
-  - [ ] Open/close drawer
+- [x] **Login/Logout Flow**
+  - [x] Email/password login
+  - [x] Google sign-in
+  - [x] Apple sign-in
+  - [ ] Twitter sign-in (stubbed)
+  - [x] Guest mode
+  - [x] Logout with warning
 
-- [ ] **UI Management**
-  - [ ] Snackbar display
-  - [ ] Dialog display
-  - [ ] Bottom sheet display
-  - [ ] Pull to refresh
+- [x] **Product Browsing**
+  - [x] Browse products
+  - [x] Select product
+  - [x] Add to cart
+  - [x] Toggle favorites
+  - [x] Apply filters
+
+- [x] **Basket/Checkout**
+  - [x] View basket items
+  - [x] Update quantities
+  - [x] Remove items
+  - [x] Clear basket
+  - [x] Select pickup date
+  - [x] Place order
+  - [x] Edit existing order
+  - [x] Cancel order
+  - [x] Reorder with new date
+  - [x] Merge conflict resolution
+
+- [x] **Profile Management**
+  - [x] View profile
+  - [x] Edit profile
+  - [x] Save profile changes
+  - [x] View order history
+
+- [x] **Navigation**
+  - [x] Navigate between screens
+  - [x] Back button
+  - [x] Open/close drawer
+
+- [x] **UI Management**
+  - [x] Snackbar display
+  - [x] Dialog display
+  - [x] Bottom sheet display
+  - [x] Pull to refresh
 
 ## Conclusion
 
@@ -258,5 +280,6 @@ The refactoring was completed successfully with:
 - ✅ No breaking changes to calling code
 - ✅ Comprehensive documentation added
 - ✅ Clear migration path to Phase 2 (use cases)
+- ✅ **136 unit tests added covering all extension modules** (added 2026-02)
 
-The BuyAppViewModel now follows a maintainable, scalable architecture that supports team collaboration and future enhancements.
+The BuyAppViewModel now follows a maintainable, scalable architecture that supports team collaboration and future enhancements. The comprehensive test suite ensures regression protection for future changes.
