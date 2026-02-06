@@ -13,8 +13,8 @@ import com.together.newverse.ui.screens.buy.FavoritesScreen
 import com.together.newverse.ui.screens.buy.OrderHistoryScreen
 import com.together.newverse.ui.screens.buy.ProductDetailScreen
 import com.together.newverse.ui.state.AuthProvider
-import com.together.newverse.ui.state.UnifiedAppAction
-import com.together.newverse.ui.state.UnifiedAppState
+import com.together.newverse.ui.state.BuyAppState
+import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.UserState
 
 /**
@@ -29,8 +29,8 @@ import com.together.newverse.ui.state.UserState
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    appState: UnifiedAppState,
-    onAction: (UnifiedAppAction) -> Unit,
+    appState: BuyAppState,
+    onAction: (BuyAction) -> Unit,
     startDestination: String = NavRoutes.Home.route,
 ) {
     NavHost(
@@ -62,19 +62,19 @@ fun NavGraph(
             val orderDateArg = backStackEntry.arguments?.read { getStringOrNull("orderDate") }
 
             BasketScreen(
-                state = appState.screens.basketScreen,
-                currentArticles = appState.screens.mainScreen.articles,
+                state = appState.basketScreen,
+                currentArticles = appState.mainScreen.articles,
                 onAction = { action -> onAction(action) },
                 onNavigateToOrders = { navController.navigate(NavRoutes.Buy.OrderHistory.route) },
-                orderId = orderIdArg ?: appState.common.basket.currentOrderId,
-                orderDate = orderDateArg ?: appState.common.basket.currentOrderDate
+                orderId = orderIdArg ?: appState.basket.currentOrderId,
+                orderDate = orderDateArg ?: appState.basket.currentOrderDate
             )
         }
 
         composable(NavRoutes.Buy.Profile.route) {
             // Determine auth status from user state and profile
-            val userState = appState.common.user
-            val profile = appState.screens.customerProfile.profile
+            val userState = appState.user
+            val profile = appState.customerProfile.profile
 
             // Determine authProvider first
             val authProvider = when {
@@ -99,7 +99,7 @@ fun NavGraph(
             }
 
             CustomerProfileScreenModern(
-                state = appState.screens.customerProfile,
+                state = appState.customerProfile,
                 onAction = onAction,
                 onNavigateToAbout = { navController.navigate(NavRoutes.About.route) },
                 onNavigateToOrders = { navController.navigate(NavRoutes.Buy.OrderHistory.route) },
@@ -112,7 +112,7 @@ fun NavGraph(
 
         composable(NavRoutes.Buy.OrderHistory.route) {
             OrderHistoryScreen(
-                appState = appState,
+                orderHistoryState = appState.orderHistory,
                 onAction = onAction,
                 onBackClick = { navController.popBackStack() },
                 onOrderClick = { orderId, orderDate ->
@@ -124,7 +124,7 @@ fun NavGraph(
 
         composable(NavRoutes.Buy.Favorites.route) {
             FavoritesScreen(
-                state = appState.screens.mainScreen,
+                state = appState.mainScreen,
                 onAction = onAction,
                 onNavigateBack = { navController.popBackStack() }
             )
@@ -140,30 +140,30 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val articleId = backStackEntry.arguments?.read { getString("articleId") } ?: ""
-            val article = appState.screens.mainScreen.articles.find { it.id == articleId }
+            val article = appState.mainScreen.articles.find { it.id == articleId }
 
             ProductDetailScreen(
                 article = article,
-                basketItems = appState.screens.mainScreen.basketItems,
-                favouriteArticles = appState.screens.mainScreen.favouriteArticles,
+                basketItems = appState.mainScreen.basketItems,
+                favouriteArticles = appState.mainScreen.favouriteArticles,
                 onAddToCart = { art, qty ->
                     // Use the same logic as HeroProductCard for adding to cart
-                    onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.SelectArticle(art))
-                    onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.UpdateQuantity(qty))
-                    onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.AddToCart)
+                    onAction(com.together.newverse.ui.state.BuyMainScreenAction.SelectArticle(art))
+                    onAction(com.together.newverse.ui.state.BuyMainScreenAction.UpdateQuantity(qty))
+                    onAction(com.together.newverse.ui.state.BuyMainScreenAction.AddToCart)
                     navController.popBackStack()
                 },
                 onRemoveFromCart = { productId ->
                     // Find the article and remove it
-                    val art = appState.screens.mainScreen.articles.find { it.id == productId }
+                    val art = appState.mainScreen.articles.find { it.id == productId }
                     if (art != null) {
-                        onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.SelectArticle(art))
-                        onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.RemoveFromBasket)
+                        onAction(com.together.newverse.ui.state.BuyMainScreenAction.SelectArticle(art))
+                        onAction(com.together.newverse.ui.state.BuyMainScreenAction.RemoveFromBasket)
                     }
                     navController.popBackStack()
                 },
                 onToggleFavourite = { id ->
-                    onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.ToggleFavourite(id))
+                    onAction(com.together.newverse.ui.state.BuyMainScreenAction.ToggleFavourite(id))
                 },
                 onNavigateBack = { navController.popBackStack() }
             )

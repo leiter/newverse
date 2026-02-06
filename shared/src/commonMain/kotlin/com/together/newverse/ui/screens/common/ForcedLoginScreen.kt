@@ -63,8 +63,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.state.AuthScreenState
-import com.together.newverse.ui.state.UnifiedAppAction
-import com.together.newverse.ui.state.UnifiedUserAction
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_leaf_icon
 import newverse.shared.generated.resources.button_sign_in
@@ -104,7 +102,9 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ForcedLoginScreen(
     authState: AuthScreenState = AuthScreenState(),
-    onAction: (UnifiedAppAction) -> Unit = {},
+    onLogin: (email: String, password: String) -> Unit = { _, _ -> },
+    onLoginWithGoogle: () -> Unit = {},
+    onRequestPasswordReset: (email: String) -> Unit = {},
     onShowPasswordResetDialog: () -> Unit = {},
     onHidePasswordResetDialog: () -> Unit = {}
 ) {
@@ -164,7 +164,7 @@ fun ForcedLoginScreen(
         val passwordValid = validatePassword()
 
         if (emailValid && passwordValid) {
-            onAction(UnifiedUserAction.Login(email, password))
+            onLogin(email, password)
         }
     }
 
@@ -381,7 +381,7 @@ fun ForcedLoginScreen(
 
                     // Google Sign-In Button
                     OutlinedButton(
-                        onClick = { onAction(UnifiedUserAction.LoginWithGoogle) },
+                        onClick = onLoginWithGoogle,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -509,7 +509,7 @@ fun ForcedLoginScreen(
                             else -> null
                         }
                         if (resetEmailError == null) {
-                            onAction(UnifiedUserAction.RequestPasswordReset(resetEmail))
+                            onRequestPasswordReset(resetEmail)
                         }
                     },
                     enabled = !authState.isLoading

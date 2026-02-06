@@ -17,8 +17,8 @@ import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.navigation.PlatformAction
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.SnackbarType
-import com.together.newverse.ui.state.UnifiedNavigationAction
-import com.together.newverse.ui.state.UnifiedUiAction
+import com.together.newverse.ui.state.BuyNavigationAction
+import com.together.newverse.ui.state.BuyUiAction
 import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.GoogleSignInHelper
 import com.together.newverse.util.ImagePicker
@@ -101,20 +101,20 @@ class BuyMainActivity : ComponentActivity() {
                                     Log.d("BuyMainActivity", "Successfully signed in with Google: $userId")
 
                                     // Show success message
-                                    viewModel.dispatch(UnifiedUiAction.ShowSnackbar(
+                                    viewModel.dispatch(BuyUiAction.ShowSnackbar(
                                         message = "Signed in successfully",
                                         type = SnackbarType.SUCCESS
                                     ))
 
                                     // Navigate to home after short delay
                                     delay(500)
-                                    viewModel.dispatch(UnifiedNavigationAction.NavigateTo(NavRoutes.Home))
+                                    viewModel.dispatch(BuyNavigationAction.NavigateTo(NavRoutes.Home))
                                 }
                                 .onFailure { error ->
                                     Log.e("BuyMainActivity", "Failed to sign in with Google: ${error.message}")
 
                                     // Show error message
-                                    viewModel.dispatch(UnifiedUiAction.ShowSnackbar(
+                                    viewModel.dispatch(BuyUiAction.ShowSnackbar(
                                         message = "Sign in failed: ${error.message}",
                                         type = SnackbarType.ERROR
                                     ))
@@ -125,7 +125,7 @@ class BuyMainActivity : ComponentActivity() {
                         Log.e("BuyMainActivity", "Failed to get ID token: ${error.message}")
 
                         // Show error message
-                        viewModel.dispatch(UnifiedUiAction.ShowSnackbar(
+                        viewModel.dispatch(BuyUiAction.ShowSnackbar(
                             message = "Failed to get ID token: ${error.message}",
                             type = SnackbarType.ERROR
                         ))

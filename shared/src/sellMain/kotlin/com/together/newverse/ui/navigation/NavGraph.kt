@@ -22,8 +22,8 @@ import com.together.newverse.ui.screens.sell.SellerProfileScreen
 import com.together.newverse.ui.screens.sell.SellerProfileViewModel
 import org.koin.compose.viewmodel.koinViewModel
 import com.together.newverse.ui.state.NotificationSettings
-import com.together.newverse.ui.state.UnifiedAppAction
-import com.together.newverse.ui.state.UnifiedAppState
+import com.together.newverse.ui.state.SellAppState
+import com.together.newverse.ui.state.SellAction
 
 /**
  * Sell (Merchant) Navigation Routes Module
@@ -41,8 +41,8 @@ import com.together.newverse.ui.state.UnifiedAppState
  */
 fun NavGraphBuilder.navGraph(
     navController: NavController,
-    appState: UnifiedAppState,
-    onAction: (UnifiedAppAction) -> Unit,
+    appState: SellAppState,
+    onAction: (SellAction) -> Unit,
     sellAppViewModel: com.together.newverse.ui.state.SellAppViewModel,
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateBack: () -> Unit = {},
@@ -125,7 +125,7 @@ fun NavGraphBuilder.navGraph(
 
     composable(NavRoutes.Sell.Products.route) {
         ProductsScreen(
-            productsState = appState.screens.products,
+            productsState = appState.products,
             onCreateProduct = onNavigateToCreateProduct,
             onProductClick = { /* TODO: Navigate to product detail */ }
         )

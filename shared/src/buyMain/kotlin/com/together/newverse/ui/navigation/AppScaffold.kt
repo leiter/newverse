@@ -77,9 +77,9 @@ fun AppScaffold(
     val appState by viewModel.state.collectAsState()
 
     // Observe Google Sign-In trigger
-    LaunchedEffect(appState.common.triggerGoogleSignIn) {
-        println("🔍 AppScaffold: LaunchedEffect triggered, triggerGoogleSignIn=${appState.common.triggerGoogleSignIn}")
-        if (appState.common.triggerGoogleSignIn) {
+    LaunchedEffect(appState.triggerGoogleSignIn) {
+        println("🔍 AppScaffold: LaunchedEffect triggered, triggerGoogleSignIn=${appState.triggerGoogleSignIn}")
+        if (appState.triggerGoogleSignIn) {
             println("🔐 AppScaffold: Calling onPlatformAction(GoogleSignIn)")
             onPlatformAction(PlatformAction.GoogleSignIn)
             viewModel.resetGoogleSignInTrigger()
@@ -87,8 +87,8 @@ fun AppScaffold(
     }
 
     // Observe Twitter Sign-In trigger
-    LaunchedEffect(appState.common.triggerTwitterSignIn) {
-        if (appState.common.triggerTwitterSignIn) {
+    LaunchedEffect(appState.triggerTwitterSignIn) {
+        if (appState.triggerTwitterSignIn) {
             println("🔐 AppScaffold: Calling onPlatformAction(TwitterSignIn)")
             onPlatformAction(PlatformAction.TwitterSignIn)
             viewModel.resetTwitterSignInTrigger()
@@ -96,8 +96,8 @@ fun AppScaffold(
     }
 
     // Observe Apple Sign-In trigger
-    LaunchedEffect(appState.common.triggerAppleSignIn) {
-        if (appState.common.triggerAppleSignIn) {
+    LaunchedEffect(appState.triggerAppleSignIn) {
+        if (appState.triggerAppleSignIn) {
             println("🔐 AppScaffold: Calling onPlatformAction(AppleSignIn)")
             onPlatformAction(PlatformAction.AppleSignIn)
             viewModel.resetAppleSignInTrigger()
@@ -105,8 +105,8 @@ fun AppScaffold(
     }
 
     // Observe Google Sign-Out trigger
-    LaunchedEffect(appState.common.triggerGoogleSignOut) {
-        if (appState.common.triggerGoogleSignOut) {
+    LaunchedEffect(appState.triggerGoogleSignOut) {
+        if (appState.triggerGoogleSignOut) {
             println("🔐 AppScaffold: Calling onPlatformAction(GoogleSignOut)")
             onPlatformAction(PlatformAction.GoogleSignOut)
             viewModel.resetGoogleSignOutTrigger()
@@ -167,22 +167,29 @@ fun AppScaffold(
     }
 
     // Check if user needs to authenticate (no session, show login/register screen)
-    if (appState.common.user is com.together.newverse.ui.state.UserState.NotAuthenticated) {
-        when (appState.screens.auth.mode) {
+    if (appState.user is com.together.newverse.ui.state.UserState.NotAuthenticated) {
+        when (appState.auth.mode) {
             com.together.newverse.ui.state.AuthMode.REGISTER -> {
                 // Show register screen
                 com.together.newverse.ui.screens.common.RegisterScreen(
-                    authState = appState.screens.auth,
-                    onAction = { action -> viewModel.dispatch(action) }
+                    authState = appState.auth,
+                    onRegister = { email, pw, name -> viewModel.dispatch(com.together.newverse.ui.state.BuyUserAction.Register(email, pw, name)) },
+                    onNavigateToLogin = { viewModel.dispatch(com.together.newverse.ui.state.BuyUiAction.SetAuthMode(com.together.newverse.ui.state.AuthMode.LOGIN)) }
                 )
             }
             else -> {
                 // Default to login screen (LOGIN, FORGOT_PASSWORD, etc.)
                 com.together.newverse.ui.screens.common.LoginScreen(
-                    authState = appState.screens.auth,
-                    onAction = { action -> viewModel.dispatch(action) },
-                    onShowPasswordResetDialog = { viewModel.dispatch(com.together.newverse.ui.state.UnifiedUiAction.ShowPasswordResetDialog) },
-                    onHidePasswordResetDialog = { viewModel.dispatch(com.together.newverse.ui.state.UnifiedUiAction.HidePasswordResetDialog) }
+                    authState = appState.auth,
+                    onLogin = { email, pw -> viewModel.dispatch(com.together.newverse.ui.state.BuyUserAction.Login(email, pw)) },
+                    onLoginWithGoogle = { viewModel.dispatch(com.together.newverse.ui.state.BuyUserAction.LoginWithGoogle) },
+                    onLoginWithTwitter = { viewModel.dispatch(com.together.newverse.ui.state.BuyUserAction.LoginWithTwitter) },
+                    onLoginWithApple = { viewModel.dispatch(com.together.newverse.ui.state.BuyUserAction.LoginWithApple) },
+                    onContinueAsGuest = { viewModel.dispatch(com.together.newverse.ui.state.BuyUserAction.ContinueAsGuest) },
+                    onNavigateToRegister = { viewModel.dispatch(com.together.newverse.ui.state.BuyUiAction.SetAuthMode(com.together.newverse.ui.state.AuthMode.REGISTER)) },
+                    onRequestPasswordReset = { email -> viewModel.dispatch(com.together.newverse.ui.state.BuyUserAction.RequestPasswordReset(email)) },
+                    onShowPasswordResetDialog = { viewModel.dispatch(com.together.newverse.ui.state.BuyUiAction.ShowPasswordResetDialog) },
+                    onHidePasswordResetDialog = { viewModel.dispatch(com.together.newverse.ui.state.BuyUiAction.HidePasswordResetDialog) }
                 )
             }
         }
@@ -190,10 +197,13 @@ fun AppScaffold(
     }
 
     // Check if login is required (seller flavor without authentication)
-    if (appState.common.requiresLogin) {
+    if (appState.requiresLogin) {
         // Show forced login screen
         com.together.newverse.ui.screens.common.ForcedLoginScreen(
-            onAction = { action -> viewModel.dispatch(action) }
+            authState = appState.auth,
+            onLogin = { email, pw -> viewModel.dispatch(com.together.newverse.ui.state.BuyUserAction.Login(email, pw)) },
+            onLoginWithGoogle = { viewModel.dispatch(com.together.newverse.ui.state.BuyUserAction.LoginWithGoogle) },
+            onRequestPasswordReset = { email -> viewModel.dispatch(com.together.newverse.ui.state.BuyUserAction.RequestPasswordReset(email)) }
         )
         return // Exit early, don't show main UI yet
     }
@@ -204,8 +214,8 @@ fun AppScaffold(
     val keyboardManager = rememberKeyboardManager()
 
     // Observe snackbar state changes from ViewModel
-    LaunchedEffect(appState.common.ui.snackbar) {
-        appState.common.ui.snackbar?.let { snackbar ->
+    LaunchedEffect(appState.ui.snackbar) {
+        appState.ui.snackbar?.let { snackbar ->
             snackbarHostState.showSnackbar(
                 message = snackbar.message,
                 actionLabel = snackbar.actionLabel,
@@ -216,7 +226,7 @@ fun AppScaffold(
                 }
             )
             // Auto-hide snackbar after showing
-            viewModel.dispatch(com.together.newverse.ui.state.UnifiedUiAction.HideSnackbar)
+            viewModel.dispatch(com.together.newverse.ui.state.BuyUiAction.HideSnackbar)
         }
     }
 
@@ -225,8 +235,8 @@ fun AppScaffold(
     // The ViewModel state wasn't syncing with direct navController navigation,
     // causing this LaunchedEffect to re-navigate back to the previous screen
     /*
-    LaunchedEffect(appState.common.navigation.currentRoute) {
-        val targetRoute = appState.common.navigation.currentRoute
+    LaunchedEffect(appState.navigation.currentRoute) {
+        val targetRoute = appState.navigation.currentRoute
         val currentDestination = navController.currentBackStackEntry?.destination?.route
 
         // Only navigate if we're not already at the target route
@@ -335,7 +345,7 @@ fun AppScaffold(
                     if (isDetailScreen) {
                         IconButton(
                             onClick = {
-                                viewModel.dispatch(com.together.newverse.ui.state.UnifiedNavigationAction.NavigateBack)
+                                viewModel.dispatch(com.together.newverse.ui.state.BuyNavigationAction.NavigateBack)
                                 navController.navigateUp()
                             }
                         ) {

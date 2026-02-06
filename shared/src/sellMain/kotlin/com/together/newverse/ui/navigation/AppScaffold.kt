@@ -28,8 +28,8 @@ import com.together.newverse.ui.state.NotificationAction
 import com.together.newverse.ui.state.NotificationSettings
 import com.together.newverse.ui.state.SellAppViewModel
 import com.together.newverse.ui.state.SnackbarDuration
-import com.together.newverse.ui.state.UnifiedUiAction
-import com.together.newverse.ui.state.UnifiedUserAction
+import com.together.newverse.ui.state.SellUiAction
+import com.together.newverse.ui.state.SellUserAction
 import com.together.newverse.util.DocumentPickerResult
 import com.together.newverse.util.LocalDocumentPicker
 import com.together.newverse.util.rememberKeyboardManager
@@ -38,7 +38,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * App Scaffold for Sell/Merchant flavor
- * Uses SellAppViewModel and UnifiedAppState
+ * Uses SellAppViewModel and SellAppState
  *
  * This file is in sellMain source set, so it's ONLY compiled for Sell flavor.
  */
@@ -82,32 +82,32 @@ fun AppScaffold(
     }
 
     // Observe Google Sign-In trigger
-    LaunchedEffect(state.common.triggerGoogleSignIn) {
-        if (state.common.triggerGoogleSignIn) {
+    LaunchedEffect(state.triggerGoogleSignIn) {
+        if (state.triggerGoogleSignIn) {
             onPlatformAction(PlatformAction.GoogleSignIn)
             viewModel.resetGoogleSignInTrigger()
         }
     }
 
     // Observe Google Sign-Out trigger
-    LaunchedEffect(state.common.triggerGoogleSignOut) {
-        if (state.common.triggerGoogleSignOut) {
+    LaunchedEffect(state.triggerGoogleSignOut) {
+        if (state.triggerGoogleSignOut) {
             onPlatformAction(PlatformAction.GoogleSignOut)
             viewModel.resetGoogleSignOutTrigger()
         }
     }
 
     // Observe Twitter Sign-In trigger
-    LaunchedEffect(state.common.triggerTwitterSignIn) {
-        if (state.common.triggerTwitterSignIn) {
+    LaunchedEffect(state.triggerTwitterSignIn) {
+        if (state.triggerTwitterSignIn) {
             onPlatformAction(PlatformAction.TwitterSignIn)
             viewModel.resetTwitterSignInTrigger()
         }
     }
 
     // Observe snackbar state changes from ViewModel
-    LaunchedEffect(state.common.ui.snackbar) {
-        state.common.ui.snackbar?.let { snackbar ->
+    LaunchedEffect(state.ui.snackbar) {
+        state.ui.snackbar?.let { snackbar ->
             snackbarHostState.showSnackbar(
                 message = snackbar.message,
                 actionLabel = snackbar.actionLabel,
@@ -117,7 +117,7 @@ fun AppScaffold(
                     SnackbarDuration.INDEFINITE -> androidx.compose.material3.SnackbarDuration.Indefinite
                 }
             )
-            viewModel.dispatch(UnifiedUiAction.HideSnackbar)
+            viewModel.dispatch(SellUiAction.HideSnackbar)
         }
     }
 
@@ -130,12 +130,14 @@ fun AppScaffold(
     }
 
     // Check if login is required (seller flavor without authentication)
-    if (state.common.requiresLogin) {
+    if (state.requiresLogin) {
         com.together.newverse.ui.screens.common.ForcedLoginScreen(
-            authState = state.screens.auth,
-            onAction = { action -> viewModel.dispatch(action) },
-            onShowPasswordResetDialog = { viewModel.dispatch(UnifiedUiAction.ShowPasswordResetDialog) },
-            onHidePasswordResetDialog = { viewModel.dispatch(UnifiedUiAction.HidePasswordResetDialog) }
+            authState = state.auth,
+            onLogin = { email, pw -> viewModel.dispatch(SellUserAction.Login(email, pw)) },
+            onLoginWithGoogle = { viewModel.dispatch(SellUserAction.LoginWithGoogle) },
+            onRequestPasswordReset = { email -> viewModel.dispatch(SellUserAction.RequestPasswordReset(email)) },
+            onShowPasswordResetDialog = { viewModel.dispatch(SellUiAction.ShowPasswordResetDialog) },
+            onHidePasswordResetDialog = { viewModel.dispatch(SellUiAction.HidePasswordResetDialog) }
         )
         return
     }
@@ -250,7 +252,7 @@ fun AppScaffold(
                     navController.navigate(NavRoutes.Sell.NotificationSettings.route)
                 },
                 onLogout = {
-                    viewModel.dispatch(UnifiedUserAction.Logout)
+                    viewModel.dispatch(SellUserAction.Logout)
                 },
                 notificationSettings = notificationSettings,
                 onNotificationAction = onNotificationAction,
@@ -269,11 +271,11 @@ fun AppScaffold(
         }
 
         // Show dialog if present
-        state.common.ui.dialog?.let { dialog ->
+        state.ui.dialog?.let { dialog ->
             AppDialog(
                 dialog = dialog,
                 onDismiss = {
-                    viewModel.dispatch(UnifiedUiAction.HideDialog)
+                    viewModel.dispatch(SellUiAction.HideDialog)
                 }
             )
         }

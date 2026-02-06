@@ -199,6 +199,13 @@ android {
         getByName("sell") {
             kotlin.srcDirs("src/sellMain/kotlin")
         }
+        // Flavor-specific test source sets
+        getByName("testBuy") {
+            kotlin.srcDirs("src/buyTest/kotlin")
+        }
+        getByName("testSell") {
+            kotlin.srcDirs("src/sellTest/kotlin")
+        }
     }
 }
 

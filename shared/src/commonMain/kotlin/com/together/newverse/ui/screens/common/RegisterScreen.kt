@@ -23,13 +23,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.together.newverse.ui.state.AuthMode
 import com.together.newverse.ui.state.AuthScreenState
-import com.together.newverse.ui.state.UnifiedAppAction
-import com.together.newverse.ui.state.UnifiedNavigationAction
-import com.together.newverse.ui.state.UnifiedUiAction
-import com.together.newverse.ui.state.UnifiedUserAction
-import com.together.newverse.ui.navigation.NavRoutes
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -38,7 +32,8 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun RegisterScreen(
     authState: AuthScreenState = AuthScreenState(),
-    onAction: (UnifiedAppAction) -> Unit = {}
+    onRegister: (email: String, password: String, name: String) -> Unit = { _, _, _ -> },
+    onNavigateToLogin: () -> Unit = {}
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -293,7 +288,7 @@ fun RegisterScreen(
                 val termsValid = validateTerms()
 
                 if (nameValid && emailValid && passwordValid && confirmPasswordValid && termsValid) {
-                    onAction(UnifiedUserAction.Register(email, password, name))
+                    onRegister(email, password, name)
                 }
             },
             modifier = Modifier
@@ -339,10 +334,7 @@ fun RegisterScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(
-                onClick = {
-                    // Switch back to login screen
-                    onAction(UnifiedUiAction.SetAuthMode(AuthMode.LOGIN))
-                },
+                onClick = onNavigateToLogin,
                 enabled = !authState.isLoading
             ) {
                 Text(stringResource(Res.string.register_sign_in_link))

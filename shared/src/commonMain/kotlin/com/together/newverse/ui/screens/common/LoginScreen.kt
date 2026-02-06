@@ -39,13 +39,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.data.config.Platform
-import com.together.newverse.ui.navigation.NavRoutes
-import com.together.newverse.ui.state.AuthMode
 import com.together.newverse.ui.state.AuthScreenState
-import com.together.newverse.ui.state.UnifiedAppAction
-import com.together.newverse.ui.state.UnifiedNavigationAction
-import com.together.newverse.ui.state.UnifiedUiAction
-import com.together.newverse.ui.state.UnifiedUserAction
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_leaf_icon
 import newverse.shared.generated.resources.button_cancel
@@ -83,7 +77,13 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun LoginScreen(
     authState: AuthScreenState = AuthScreenState(),
-    onAction: (UnifiedAppAction) -> Unit = {},
+    onLogin: (email: String, password: String) -> Unit = { _, _ -> },
+    onLoginWithGoogle: () -> Unit = {},
+    onLoginWithTwitter: () -> Unit = {},
+    onLoginWithApple: () -> Unit = {},
+    onContinueAsGuest: () -> Unit = {},
+    onNavigateToRegister: () -> Unit = {},
+    onRequestPasswordReset: (email: String) -> Unit = {},
     onShowPasswordResetDialog: () -> Unit = {},
     onHidePasswordResetDialog: () -> Unit = {}
 ) {
@@ -224,7 +224,7 @@ fun LoginScreen(
                 val passwordValid = validatePassword()
 
                 if (emailValid && passwordValid) {
-                    onAction(UnifiedUserAction.Login(email, password))
+                    onLogin(email, password)
                 }
             },
             modifier = Modifier
@@ -262,9 +262,7 @@ fun LoginScreen(
 
         // Google Sign-In Button
         OutlinedButton(
-            onClick = {
-                onAction(UnifiedUserAction.LoginWithGoogle)
-            },
+            onClick = onLoginWithGoogle,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -287,9 +285,7 @@ fun LoginScreen(
 
         // Twitter Sign-In Button
         OutlinedButton(
-            onClick = {
-                onAction(UnifiedUserAction.LoginWithTwitter)
-            },
+            onClick = onLoginWithTwitter,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -312,9 +308,7 @@ fun LoginScreen(
         if (Platform.getCurrentPlatform() == Platform.IOS) {
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
-                onClick = {
-                    onAction(UnifiedUserAction.LoginWithApple)
-                },
+                onClick = onLoginWithApple,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -337,10 +331,7 @@ fun LoginScreen(
 
         // Continue as Guest Button
         OutlinedButton(
-            onClick = {
-                // Create anonymous user and proceed with app initialization
-                onAction(UnifiedUserAction.ContinueAsGuest)
-            },
+            onClick = onContinueAsGuest,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -361,10 +352,7 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(
-                onClick = {
-                    // Switch to register screen
-                    onAction(UnifiedUiAction.SetAuthMode(AuthMode.REGISTER))
-                },
+                onClick = onNavigateToRegister,
                 enabled = !authState.isLoading
             ) {
                 Text(stringResource(Res.string.login_sign_up_link))
@@ -452,7 +440,7 @@ fun LoginScreen(
                             else -> null
                         }
                         if (resetEmailError == null) {
-                            onAction(UnifiedUserAction.RequestPasswordReset(resetEmail))
+                            onRequestPasswordReset(resetEmail)
                         }
                     },
                     enabled = !authState.isLoading

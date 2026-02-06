@@ -72,7 +72,7 @@ import androidx.compose.animation.core.tween
 import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
 import com.together.newverse.ui.state.MainScreenState
-import com.together.newverse.ui.state.UnifiedAppAction
+import com.together.newverse.ui.state.SellAction
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
@@ -88,7 +88,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun MainScreenModern(
     state: MainScreenState,
-    onAction: (UnifiedAppAction) -> Unit
+    onAction: (SellAction) -> Unit
 ) {
     MainScreenModernContent(
         state = state,
@@ -100,7 +100,7 @@ fun MainScreenModern(
 @Composable
 private fun MainScreenModernContent(
     state: MainScreenState,
-    onAction: (UnifiedAppAction) -> Unit,
+    onAction: (SellAction) -> Unit,
 ) {
     val products = state.articles
     val selectedProduct = state.selectedArticle
@@ -138,10 +138,10 @@ private fun MainScreenModernContent(
                                 originalQuantity = originalQuantity,
                                 isInBasket = isInBasket,
                                 isFavourite = isFavourite,
-                                onQuantityChange = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.UpdateQuantity(it)) },
-                                onAddToCart = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.AddToCart) },
-                                onRemoveFromBasket = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.RemoveFromBasket) },
-                                onToggleFavourite = { onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.ToggleFavourite(product.id)) }
+                                onQuantityChange = { /* Not used in seller app */ },
+                                onAddToCart = { /* Not used in seller app */ },
+                                onRemoveFromBasket = { /* Not used in seller app */ },
+                                onToggleFavourite = { /* Not used in seller app */ }
                             )
                         }
                     }
@@ -205,7 +205,7 @@ private fun MainScreenModernContent(
                             product = product,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.SelectArticle(product))
+                                /* Not used in seller app */
                             }
                         )
                     }

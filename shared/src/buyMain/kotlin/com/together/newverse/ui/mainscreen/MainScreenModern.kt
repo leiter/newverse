@@ -35,8 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.state.MainScreenState
-import com.together.newverse.ui.state.UnifiedAppAction
-import com.together.newverse.ui.state.UnifiedMainScreenAction
+import com.together.newverse.ui.state.BuyAction
+import com.together.newverse.ui.state.BuyMainScreenAction
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.products_search_placeholder
 import newverse.shared.generated.resources.products_search_clear
@@ -52,7 +52,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun MainScreenModern(
     state: MainScreenState,
-    onAction: (UnifiedAppAction) -> Unit,
+    onAction: (BuyAction) -> Unit,
     onNavigateToProductDetail: (String) -> Unit = {}
 ) {
     MainScreenModernContent(
@@ -66,7 +66,7 @@ fun MainScreenModern(
 @Composable
 private fun MainScreenModernContent(
     state: MainScreenState,
-    onAction: (UnifiedAppAction) -> Unit,
+    onAction: (BuyAction) -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
 ) {
     val products = state.filteredArticles
@@ -84,10 +84,10 @@ private fun MainScreenModernContent(
             )
             when (result) {
                 SnackbarResult.ActionPerformed -> {
-                    onAction(UnifiedMainScreenAction.StartNewOrder)
+                    onAction(BuyMainScreenAction.StartNewOrder)
                 }
                 SnackbarResult.Dismissed -> {
-                    onAction(UnifiedMainScreenAction.DismissNewOrderSnackbar)
+                    onAction(BuyMainScreenAction.DismissNewOrderSnackbar)
                 }
             }
         }
@@ -126,10 +126,10 @@ private fun MainScreenModernContent(
                                     originalQuantity = originalQuantity,
                                     isInBasket = isInBasket,
                                     isFavourite = isFavourite,
-                                    onQuantityChange = { onAction(UnifiedMainScreenAction.UpdateQuantity(it)) },
-                                    onAddToCart = { onAction(UnifiedMainScreenAction.AddToCart) },
-                                    onRemoveFromBasket = { onAction(UnifiedMainScreenAction.RemoveFromBasket) },
-                                    onToggleFavourite = { onAction(UnifiedMainScreenAction.ToggleFavourite(product.id)) }
+                                    onQuantityChange = { onAction(BuyMainScreenAction.UpdateQuantity(it)) },
+                                    onAddToCart = { onAction(BuyMainScreenAction.AddToCart) },
+                                    onRemoveFromBasket = { onAction(BuyMainScreenAction.RemoveFromBasket) },
+                                    onToggleFavourite = { onAction(BuyMainScreenAction.ToggleFavourite(product.id)) }
                                 )
                             }
                         }
@@ -139,7 +139,7 @@ private fun MainScreenModernContent(
                         // Search Bar
                         OutlinedTextField(
                             value = state.searchQuery,
-                            onValueChange = { onAction(UnifiedMainScreenAction.UpdateSearchQuery(it)) },
+                            onValueChange = { onAction(BuyMainScreenAction.UpdateSearchQuery(it)) },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = { Text(stringResource(Res.string.products_search_placeholder)) },
                             leadingIcon = {
@@ -151,7 +151,7 @@ private fun MainScreenModernContent(
                             },
                             trailingIcon = {
                                 if (state.searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { onAction(UnifiedMainScreenAction.ClearSearchQuery) }) {
+                                    IconButton(onClick = { onAction(BuyMainScreenAction.ClearSearchQuery) }) {
                                         Icon(
                                             imageVector = Icons.Default.Clear,
                                             contentDescription = stringResource(Res.string.products_search_clear),
@@ -174,7 +174,7 @@ private fun MainScreenModernContent(
                         CategoryChips(
                             activeFilter = state.activeFilter,
                             onFilterSelected = { filter ->
-                                onAction(UnifiedMainScreenAction.SetFilter(filter))
+                                onAction(BuyMainScreenAction.SetFilter(filter))
                             }
                         )
                     }
