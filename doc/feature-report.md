@@ -1,6 +1,6 @@
 # Newverse Feature Report
 
-**Date:** 2025-12-16
+**Date:** 2026-02-06
 **Apps:** Newverse Buy & Newverse Sell
 **Platform:** Kotlin Multiplatform (Android + iOS)
 
@@ -102,7 +102,9 @@ View Orders → Update Status → Mark Complete
 |--------|---------|----------|
 | Email/Password | Yes | Yes |
 | Google Sign-In | Yes | Yes |
+| Apple Sign-In | Yes | Yes |
 | Guest/Anonymous | Yes | No (forced login) |
+| Email Linking | Yes | N/A |
 | Twitter Sign-In | Stubbed | Stubbed |
 
 ### 3.2 Data Layer
@@ -244,13 +246,19 @@ val revenue = orders
 ### 4.4 Technical Debt
 
 #### 4.4.1 ViewModel Size
-**Issue:** `BuyAppViewModel.kt` is ~1600 lines
-**Risk:** Maintenance difficulty, testing complexity
+**Status:** RESOLVED
+**Solution:** BuyAppViewModel refactored using extension functions
 
-**Recommendation:**
-- Extract feature-specific logic into use cases
-- Consider splitting into feature ViewModels
-- Keep unified action pattern but delegate handling
+The monolithic 3,697-line ViewModel was split into 7 domain-specific extension files:
+- `BuyAppViewModelBasket.kt` - Basket/checkout (1,221 lines)
+- `BuyAppViewModelAuth.kt` - Authentication (654 lines)
+- `BuyAppViewModelMainScreen.kt` - Product browsing (444 lines)
+- `BuyAppViewModelInitialization.kt` - App startup (427 lines)
+- `BuyAppViewModelProfile.kt` - User profile (316 lines)
+- `BuyAppViewModelUi.kt` - UI management (130 lines)
+- `BuyAppViewModelNavigation.kt` - Navigation (69 lines)
+
+Core ViewModel reduced to 844 lines (77% reduction).
 
 #### 4.4.2 Error Handling Consistency
 **Issue:** Some screens show errors, others silently fail
@@ -262,13 +270,19 @@ val revenue = orders
 - Add retry mechanisms consistently
 
 #### 4.4.3 Test Coverage
-**Current State:** Buyer stories exist for integration testing
-**Gap:** Unit tests for ViewModels and repositories
+**Status:** SIGNIFICANTLY IMPROVED
 
-**Recommendation:**
-- Add unit tests for business logic
-- Mock repositories for ViewModel tests
-- Add UI tests for critical flows
+| Test Category | Count | Status |
+|---------------|-------|--------|
+| Buyer ViewModel Tests | 136 | Complete |
+| Seller ViewModel Tests | 98 | Complete |
+| **Total Unit Tests** | **234** | **Passing** |
+
+**Coverage includes:**
+- All 7 BuyAppViewModel extension modules
+- SellAppViewModel core functionality
+- Seller screen ViewModels (Overview, Orders, Profile, CreateProduct)
+- Fake repository infrastructure for mocking
 
 ---
 
@@ -283,8 +297,14 @@ val revenue = orders
 | Revenue Dashboard | N/A | No | Medium |
 | Market Management | N/A | Partial | Medium |
 | Password Reset | ✅ Yes | ✅ Yes | Complete |
+| Apple Sign-In | ✅ Yes | ✅ Yes | Complete |
+| Email Linking | ✅ Yes | N/A | Complete |
+| Auto-Login | ✅ Yes | ✅ Yes | Complete |
+| ViewModel Refactoring | ✅ Done | N/A | Complete |
+| Unit Tests | ✅ 136 | ✅ 98 | Complete |
 | iOS Image Picker | No | No | High (blocks iOS) |
 | iOS Document Picker | N/A | No | Medium |
+| iOS Google Sign-In | No | No | High (blocks iOS) |
 | Promo Codes | No | N/A | Low |
 | Twitter Sign-In | No | No | Low |
 | Product Edit | N/A | Partial | Medium |
@@ -293,29 +313,29 @@ val revenue = orders
 
 ## 6. Recommended Roadmap
 
-### Phase 1: Core Completion
-1. Implement product search (Buy)
-2. Add product detail view (Both)
-3. Fix revenue calculation (Sell)
-4. Complete iOS image picker
+### Phase 1: Core Completion (Current Priority)
+1. ~~ViewModel refactoring~~ ✅ Complete
+2. ~~Unit test coverage~~ ✅ Complete (234 tests)
+3. Implement product search (Buy) - **HIGH PRIORITY**
+4. Add product detail view (Both) - **HIGH PRIORITY**
+5. Fix revenue calculation (Sell)
 
-### Phase 2: User Experience
+### Phase 2: iOS Platform Completion
+1. iOS Image Picker implementation - **BLOCKS iOS RELEASE**
+2. iOS Google Sign-In implementation - **BLOCKS iOS RELEASE**
+3. iOS Document Picker (Sell app)
+4. iOS platform-specific actions in MainViewController
+
+### Phase 3: User Experience
 1. Push notifications (Both)
-2. Password reset flow
-3. Favorites persistence (Buy)
-4. Pull-to-refresh on lists
+2. Pull-to-refresh on lists
+3. Error handling standardization
 
-### Phase 3: Business Features
+### Phase 4: Business Features
 1. Market management completion (Sell)
 2. Product edit functionality (Sell)
 3. Promo codes (Buy)
 4. Advanced filters (Buy)
-
-### Phase 4: Polish
-1. Error handling standardization
-2. ViewModel refactoring
-3. Test coverage improvement
-4. Performance optimization
 
 ---
 
@@ -328,10 +348,20 @@ Newverse has a solid foundation with well-architected code, proper separation of
 - Cross-platform code sharing via KMP
 - Sophisticated order management with deadlines
 - Bulk import capability for sellers
+- Comprehensive unit test coverage (234 tests)
+- Well-organized codebase with extension function architecture
+- Multiple authentication options (Email, Google, Apple, Guest)
+
+**Recent Improvements (2026-02):**
+- BuyAppViewModel refactored (77% size reduction)
+- Unit tests added for all ViewModels
+- Apple Sign-In implemented
+- Email linking for guest accounts
+- Auto-login and display name detection fixed
 
 **Critical Gaps:**
 - Search functionality (high user impact)
 - iOS platform features (blocks release)
 - Product detail views (basic UX expectation)
 
-Addressing the high-priority items would significantly improve user experience and enable iOS release.
+**Next Priority:** iOS platform completion to enable iOS release, followed by search functionality for improved user experience.
