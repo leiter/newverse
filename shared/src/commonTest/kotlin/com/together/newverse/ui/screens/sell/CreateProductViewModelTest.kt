@@ -1,6 +1,8 @@
 package com.together.newverse.ui.screens.sell
 
 import app.cash.turbine.test
+import com.together.newverse.data.config.DefaultProductCatalogConfig
+import com.together.newverse.data.config.DefaultSellerConfig
 import com.together.newverse.test.FakeArticleRepository
 import com.together.newverse.test.FakeAuthRepository
 import com.together.newverse.test.FakeStorageRepository
@@ -40,7 +42,9 @@ class CreateProductViewModelTest {
         return CreateProductViewModel(
             articleRepository = articleRepository,
             authRepository = authRepository,
-            storageRepository = storageRepository
+            storageRepository = storageRepository,
+            sellerConfig = DefaultSellerConfig(),
+            catalogConfig = DefaultProductCatalogConfig()
         )
     }
 
@@ -77,11 +81,11 @@ class CreateProductViewModelTest {
         viewModel.saveProduct()
         advanceUntilIdle()
 
-        // Then state should be Error with validation message
+        // Then state should be ValidationFailed
         viewModel.uiState.test {
             val state = awaitItem()
-            assertIs<CreateProductUiState.Error>(state)
-            assertTrue(state.message.contains("Produktname"))
+            assertIs<CreateProductUiState.ValidationFailed>(state)
+            assertEquals(ValidationError.ProductNameRequired, state.error)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -99,11 +103,11 @@ class CreateProductViewModelTest {
         viewModel.saveProduct()
         advanceUntilIdle()
 
-        // Then state should be Error with validation message
+        // Then state should be ValidationFailed
         viewModel.uiState.test {
             val state = awaitItem()
-            assertIs<CreateProductUiState.Error>(state)
-            assertTrue(state.message.contains("Suchbegriffe"))
+            assertIs<CreateProductUiState.ValidationFailed>(state)
+            assertEquals(ValidationError.SearchTermsRequired, state.error)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -123,11 +127,11 @@ class CreateProductViewModelTest {
         viewModel.saveProduct()
         advanceUntilIdle()
 
-        // Then state should be Error with validation message
+        // Then state should be ValidationFailed
         viewModel.uiState.test {
             val state = awaitItem()
-            assertIs<CreateProductUiState.Error>(state)
-            assertTrue(state.message.contains("Preis"))
+            assertIs<CreateProductUiState.ValidationFailed>(state)
+            assertEquals(ValidationError.PriceRequired, state.error)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -147,11 +151,11 @@ class CreateProductViewModelTest {
         viewModel.saveProduct()
         advanceUntilIdle()
 
-        // Then state should be Error with validation message
+        // Then state should be ValidationFailed
         viewModel.uiState.test {
             val state = awaitItem()
-            assertIs<CreateProductUiState.Error>(state)
-            assertTrue(state.message.contains("Preis"))
+            assertIs<CreateProductUiState.ValidationFailed>(state)
+            assertEquals(ValidationError.PriceRequired, state.error)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -173,11 +177,11 @@ class CreateProductViewModelTest {
         viewModel.saveProduct()
         advanceUntilIdle()
 
-        // Then state should be Error about image
+        // Then state should be ValidationFailed about image
         viewModel.uiState.test {
             val state = awaitItem()
-            assertIs<CreateProductUiState.Error>(state)
-            assertTrue(state.message.contains("Produktbild") || state.message.contains("image"))
+            assertIs<CreateProductUiState.ValidationFailed>(state)
+            assertEquals(ValidationError.ImageRequired, state.error)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -339,14 +343,14 @@ class CreateProductViewModelTest {
         authRepository.setCurrentUserId("seller_123")
         val viewModel = createViewModel()
 
-        // Trigger an error
+        // Trigger a validation error
         viewModel.saveProduct()
         advanceUntilIdle()
 
-        // Verify error state
+        // Verify validation failed state
         viewModel.uiState.test {
             val errorState = awaitItem()
-            assertIs<CreateProductUiState.Error>(errorState)
+            assertIs<CreateProductUiState.ValidationFailed>(errorState)
             cancelAndIgnoreRemainingEvents()
         }
 
@@ -463,14 +467,14 @@ class CreateProductViewModelTest {
         authRepository.setCurrentUserId("seller_123")
         val viewModel = createViewModel()
 
-        // Trigger an error
+        // Trigger a validation error
         viewModel.saveProduct()
         advanceUntilIdle()
 
-        // Verify error state
+        // Verify validation failed state
         viewModel.uiState.test {
             val errorState = awaitItem()
-            assertIs<CreateProductUiState.Error>(errorState)
+            assertIs<CreateProductUiState.ValidationFailed>(errorState)
             cancelAndIgnoreRemainingEvents()
         }
 

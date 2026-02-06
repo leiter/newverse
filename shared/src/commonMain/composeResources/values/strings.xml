@@ -559,4 +559,23 @@
     <!-- Mission Section -->
     <string name="about_mission_title">Unsere Mission</string>
     <string name="about_mission_text">Wir bringen frische, biologische und regionale Lebensmittel direkt vom Feld zu Ihnen nach Hause. Für eine nachhaltige Zukunft und gesunde Ernährung.</string>
+
+    <!-- ========================================= -->
+    <!-- VALIDATION & ERROR MESSAGES (ViewModels) -->
+    <!-- ========================================= -->
+
+    <!-- CreateProductViewModel validation -->
+    <string name="validation_product_name_required">Produktname ist erforderlich</string>
+    <string name="validation_search_terms_required">Suchbegriffe sind erforderlich</string>
+    <string name="validation_price_required">Gültiger Preis ist erforderlich</string>
+    <string name="validation_unit_required">Einheit ist erforderlich</string>
+    <string name="validation_category_required">Kategorie ist erforderlich</string>
+    <string name="validation_image_required">Produktbild ist erforderlich</string>
+    <string name="validation_weight_required">Gewicht pro Stück ist erforderlich für zählbare Einheiten</string>
+
+    <!-- OverviewViewModel import errors -->
+    <string name="import_no_products_found">Keine Produkte in der Datei gefunden</string>
+    <string name="import_file_read_error">Datei konnte nicht gelesen werden: %1$s</string>
+    <string name="import_auth_required">Authentifizierung erforderlich</string>
+    <string name="import_failed">Import fehlgeschlagen: %1$s</string>
 </resources>

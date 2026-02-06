@@ -1,5 +1,7 @@
 package com.together.newverse.util
 
+import com.together.newverse.data.config.DefaultOrderScheduleConfig
+import com.together.newverse.domain.config.OrderScheduleConfig
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.*
@@ -7,43 +9,71 @@ import kotlinx.datetime.*
 /**
  * Utility functions for order date calculations
  *
- * Business Rules:
- * - Pickup day: Always Thursday
- * - Edit deadline: Tuesday 23:59:59 before pickup Thursday
- * - If today is Wednesday or later in the week, order is for NEXT Thursday
+ * Business Rules (configurable via OrderScheduleConfig):
+ * - Pickup day: Configurable (default: Thursday)
+ * - Edit deadline: Configurable (default: Tuesday 23:59:59 before pickup)
+ * - If today is past the deadline day, order is for NEXT pickup day
  */
 object OrderDateUtils {
 
+    private val defaultConfig: OrderScheduleConfig = DefaultOrderScheduleConfig()
+
     /**
-     * Calculate the next pickup date (Thursday) from a given date
+     * Calculate the number of days from [fromDay] to [targetDay], always positive (1-7).
+     * Returns 7 if they are the same day (next week's occurrence).
+     */
+    private fun daysUntil(fromDay: DayOfWeek, targetDay: DayOfWeek): Int {
+        val diff = (targetDay.isoDayNumber - fromDay.isoDayNumber + 7) % 7
+        return if (diff == 0) 7 else diff
+    }
+
+    /**
+     * Calculate the number of days between two days of week (can be 0 for same day).
+     */
+    private fun daysBetween(fromDay: DayOfWeek, toDay: DayOfWeek): Int {
+        return (toDay.isoDayNumber - fromDay.isoDayNumber + 7) % 7
+    }
+
+    /**
+     * Calculate the next pickup date from a given date.
      *
      * Rules:
-     * - Monday/Tuesday: This week's Thursday
-     * - Wednesday onwards: Next week's Thursday
-     * - Thursday: Next week's Thursday (not today)
+     * - If today is on or before the deadline day (and pickup day is still ahead): this week's pickup day
+     * - If today is past the deadline day: next week's pickup day
+     * - On pickup day itself: next week's pickup day
      *
      * @param fromDate Starting date (defaults to now)
      * @param timeZone Time zone for calculations (defaults to system)
-     * @return Instant representing Thursday at 00:00 local time
+     * @param config Order schedule configuration (defaults to Thursday pickup, Tuesday 23:59 deadline)
+     * @return Instant representing pickup day at 00:00 local time
      */
     fun calculateNextPickupDate(
         fromDate: Instant = Clock.System.now(),
-        timeZone: TimeZone = TimeZone.currentSystemDefault()
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        config: OrderScheduleConfig = defaultConfig
     ): Instant {
         val localDate = fromDate.toLocalDateTime(timeZone).date
         val currentDayOfWeek = localDate.dayOfWeek
 
-        val daysUntilNextThursday = when (currentDayOfWeek) {
-            DayOfWeek.MONDAY -> 3      // Mon → Thu (this week)
-            DayOfWeek.TUESDAY -> 2     // Tue → Thu (this week)
-            DayOfWeek.WEDNESDAY -> 8   // Wed → Thu (next week, skip this Thu)
-            DayOfWeek.THURSDAY -> 7    // Thu → Thu (next week)
-            DayOfWeek.FRIDAY -> 6      // Fri → Thu (next week)
-            DayOfWeek.SATURDAY -> 5    // Sat → Thu (next week)
-            DayOfWeek.SUNDAY -> 4      // Sun → Thu (next week)
+        // How many days from deadline day to pickup day
+        val deadlineToPickup = daysBetween(config.deadlineDay, config.pickupDay)
+
+        // How many days from current day to pickup day (1-7, with same day = 7)
+        val daysToPickup = daysUntil(currentDayOfWeek, config.pickupDay)
+
+        // The deadline for the upcoming pickup is: pickup_date - deadlineToPickup days
+        // If we're already past the deadline day (i.e., daysToPickup < deadlineToPickup),
+        // we need to go to next week's pickup instead.
+        // On the deadline day itself (daysToPickup == deadlineToPickup), the deadline
+        // hasn't passed yet, so we still target this week's pickup.
+        val actualDaysToPickup = if (daysToPickup < deadlineToPickup) {
+            // We're past the deadline for this week's pickup, go to next week
+            daysToPickup + 7
+        } else {
+            daysToPickup
         }
 
-        val pickupDate = localDate.plus(daysUntilNextThursday, DateTimeUnit.DAY)
+        val pickupDate = localDate.plus(actualDaysToPickup, DateTimeUnit.DAY)
 
         // Return as Instant at midnight (start of day) in the given timezone
         return pickupDate.atTime(0, 0)
@@ -51,28 +81,33 @@ object OrderDateUtils {
     }
 
     /**
-     * Calculate the edit deadline (Tuesday 23:59:59) for a given pickup date
+     * Calculate the edit deadline for a given pickup date.
      *
-     * @param pickupDate The Thursday pickup date
+     * @param pickupDate The pickup date
      * @param timeZone Time zone for calculations (defaults to system)
-     * @return Instant representing Tuesday 23:59:59 before the pickup
+     * @param config Order schedule configuration
+     * @return Instant representing the deadline day at the configured time
      */
     fun calculateEditDeadline(
         pickupDate: Instant,
-        timeZone: TimeZone = TimeZone.currentSystemDefault()
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        config: OrderScheduleConfig = defaultConfig
     ): Instant {
         val pickupLocalDate = pickupDate.toLocalDateTime(timeZone).date
 
-        // Verify it's a Thursday
-        require(pickupLocalDate.dayOfWeek == DayOfWeek.THURSDAY) {
-            "Pickup date must be a Thursday, got ${pickupLocalDate.dayOfWeek}"
+        // Verify it's the configured pickup day
+        require(pickupLocalDate.dayOfWeek == config.pickupDay) {
+            "Pickup date must be a ${config.pickupDay}, got ${pickupLocalDate.dayOfWeek}"
         }
 
-        // Tuesday is 2 days before Thursday
-        val tuesdayDate = pickupLocalDate.minus(2, DateTimeUnit.DAY)
+        // Calculate days from deadline day to pickup day
+        val deadlineToPickup = daysBetween(config.deadlineDay, config.pickupDay)
 
-        // Return Tuesday at 23:59:59
-        return tuesdayDate.atTime(23, 59, 59, 999_000_000)
+        // Deadline is deadlineToPickup days before pickup
+        val deadlineDate = pickupLocalDate.minus(deadlineToPickup, DateTimeUnit.DAY)
+
+        // Return at configured deadline time
+        return deadlineDate.atTime(config.deadlineHour, config.deadlineMinute, 59, 999_000_000)
             .toInstant(timeZone)
     }
 
@@ -82,14 +117,16 @@ object OrderDateUtils {
      * @param pickupDate The order's pickup date
      * @param now Current time (defaults to now)
      * @param timeZone Time zone for calculations (defaults to system)
+     * @param config Order schedule configuration
      * @return true if order can be edited, false otherwise
      */
     fun canEditOrder(
         pickupDate: Instant,
         now: Instant = Clock.System.now(),
-        timeZone: TimeZone = TimeZone.currentSystemDefault()
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        config: OrderScheduleConfig = defaultConfig
     ): Boolean {
-        val deadline = calculateEditDeadline(pickupDate, timeZone)
+        val deadline = calculateEditDeadline(pickupDate, timeZone, config)
         return now <= deadline
     }
 
@@ -99,9 +136,10 @@ object OrderDateUtils {
     fun getOrderWindowStatus(
         pickupDate: Instant,
         now: Instant = Clock.System.now(),
-        timeZone: TimeZone = TimeZone.currentSystemDefault()
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        config: OrderScheduleConfig = defaultConfig
     ): OrderWindowStatus {
-        val deadline = calculateEditDeadline(pickupDate, timeZone)
+        val deadline = calculateEditDeadline(pickupDate, timeZone, config)
 
         return when {
             now <= deadline -> OrderWindowStatus.OPEN
@@ -112,19 +150,21 @@ object OrderDateUtils {
 
     /**
      * Check if a given pickup date is for the current ordering cycle
-     * (i.e., the next Thursday from today)
+     * (i.e., the next pickup date from today)
      *
      * @param pickupDate The pickup date to check
      * @param now Current time (defaults to now)
      * @param timeZone Time zone for calculations (defaults to system)
-     * @return true if pickup date matches the next Thursday
+     * @param config Order schedule configuration
+     * @return true if pickup date matches the next pickup date
      */
     fun isCurrentOrderingCycle(
         pickupDate: Instant,
         now: Instant = Clock.System.now(),
-        timeZone: TimeZone = TimeZone.currentSystemDefault()
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        config: OrderScheduleConfig = defaultConfig
     ): Boolean {
-        val nextPickup = calculateNextPickupDate(now, timeZone)
+        val nextPickup = calculateNextPickupDate(now, timeZone, config)
         val pickupLocalDate = pickupDate.toLocalDateTime(timeZone).date
         val nextPickupLocalDate = nextPickup.toLocalDateTime(timeZone).date
 
@@ -137,14 +177,16 @@ object OrderDateUtils {
      * @param pickupDate The order's pickup date
      * @param now Current time (defaults to now)
      * @param timeZone Time zone for calculations (defaults to system)
+     * @param config Order schedule configuration
      * @return DateTimePeriod representing remaining time, or null if deadline passed
      */
     fun timeUntilDeadline(
         pickupDate: Instant,
         now: Instant = Clock.System.now(),
-        timeZone: TimeZone = TimeZone.currentSystemDefault()
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        config: OrderScheduleConfig = defaultConfig
     ): DateTimePeriod? {
-        val deadline = calculateEditDeadline(pickupDate, timeZone)
+        val deadline = calculateEditDeadline(pickupDate, timeZone, config)
 
         if (now > deadline) return null
 
@@ -158,14 +200,16 @@ object OrderDateUtils {
      * @param pickupDate The order's pickup date
      * @param now Current time (defaults to now)
      * @param timeZone Time zone for calculations (defaults to system)
+     * @param config Order schedule configuration
      * @return Formatted string like "2 days, 5 hours" or "Deadline passed"
      */
     fun formatTimeUntilDeadline(
         pickupDate: Instant,
         now: Instant = Clock.System.now(),
-        timeZone: TimeZone = TimeZone.currentSystemDefault()
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        config: OrderScheduleConfig = defaultConfig
     ): String {
-        val period = timeUntilDeadline(pickupDate, now, timeZone) ?: return "Deadline passed"
+        val period = timeUntilDeadline(pickupDate, now, timeZone, config) ?: return "Deadline passed"
 
         val days = period.days
         val hours = period.hours
@@ -188,9 +232,10 @@ object OrderDateUtils {
     fun getDeadlineWarningLevel(
         pickupDate: Instant,
         now: Instant = Clock.System.now(),
-        timeZone: TimeZone = TimeZone.currentSystemDefault()
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        config: OrderScheduleConfig = defaultConfig
     ): DeadlineWarningLevel {
-        val period = timeUntilDeadline(pickupDate, now, timeZone)
+        val period = timeUntilDeadline(pickupDate, now, timeZone, config)
             ?: return DeadlineWarningLevel.EXPIRED
 
         val totalHours = period.days * 24 + period.hours
@@ -216,32 +261,34 @@ object OrderDateUtils {
     }
 
     /**
-     * Get list of available pickup dates (Thursdays) where deadline hasn't passed
+     * Get list of available pickup dates where deadline hasn't passed
      *
      * @param count How many future dates to return (default: 5)
      * @param now Current time (defaults to now)
      * @param timeZone Time zone for calculations (defaults to system)
-     * @return List of Instants representing available Thursdays
+     * @param config Order schedule configuration
+     * @return List of Instants representing available pickup dates
      */
     fun getAvailablePickupDates(
         count: Int = 5,
         now: Instant = Clock.System.now(),
-        timeZone: TimeZone = TimeZone.currentSystemDefault()
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        config: OrderScheduleConfig = defaultConfig
     ): List<Instant> {
         val dates = mutableListOf<Instant>()
         var currentDate = now
 
         while (dates.size < count) {
-            val nextThursday = calculateNextPickupDate(currentDate, timeZone)
+            val nextPickup = calculateNextPickupDate(currentDate, timeZone, config)
 
-            // Check if deadline has passed for this Thursday
-            if (canEditOrder(nextThursday, now, timeZone)) {
-                dates.add(nextThursday)
+            // Check if deadline has passed for this pickup date
+            if (canEditOrder(nextPickup, now, timeZone, config)) {
+                dates.add(nextPickup)
             }
 
-            // Move to day after this Thursday to find next one
-            val nextThursdayLocal = nextThursday.toLocalDateTime(timeZone)
-            currentDate = nextThursdayLocal.date
+            // Move to day after this pickup date to find next one
+            val nextPickupLocal = nextPickup.toLocalDateTime(timeZone)
+            currentDate = nextPickupLocal.date
                 .plus(1, DateTimeUnit.DAY)
                 .atStartOfDayIn(timeZone)
         }
@@ -256,18 +303,20 @@ object OrderDateUtils {
      * @param pickupDate The selected pickup date
      * @param now Current time (defaults to now)
      * @param timeZone Time zone for calculations (defaults to system)
+     * @param config Order schedule configuration
      * @return true if date is still valid for ordering
      */
     fun isPickupDateValid(
         pickupDate: Instant,
         now: Instant = Clock.System.now(),
-        timeZone: TimeZone = TimeZone.currentSystemDefault()
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        config: OrderScheduleConfig = defaultConfig
     ): Boolean {
         // Must be in future
         if (pickupDate <= now) return false
 
         // Deadline must not have passed
-        return canEditOrder(pickupDate, now, timeZone)
+        return canEditOrder(pickupDate, now, timeZone, config)
     }
 
     /**
@@ -299,9 +348,9 @@ object OrderDateUtils {
  * Status of an order window relative to current time
  */
 enum class OrderWindowStatus {
-    OPEN,              // Can place or edit order (before Tuesday 23:59)
-    DEADLINE_PASSED,   // Cannot edit (after Tuesday 23:59, before Thursday)
-    PICKUP_PASSED      // Order completed (after Thursday)
+    OPEN,              // Can place or edit order (before deadline)
+    DEADLINE_PASSED,   // Cannot edit (after deadline, before pickup)
+    PICKUP_PASSED      // Order completed (after pickup day)
 }
 
 /**

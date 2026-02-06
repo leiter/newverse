@@ -1,6 +1,8 @@
 package com.together.newverse.ui.screens.sell
 
 import app.cash.turbine.test
+import com.together.newverse.data.config.DefaultSellerConfig
+import com.together.newverse.data.service.BnnProductImportService
 import com.together.newverse.domain.model.Article
 import com.together.newverse.test.FakeArticleRepository
 import com.together.newverse.test.FakeAuthRepository
@@ -42,7 +44,9 @@ class OverviewViewModelTest {
         return OverviewViewModel(
             articleRepository = articleRepository,
             orderRepository = orderRepository,
-            authRepository = authRepository
+            authRepository = authRepository,
+            sellerConfig = DefaultSellerConfig(),
+            productImportService = BnnProductImportService()
         )
     }
 

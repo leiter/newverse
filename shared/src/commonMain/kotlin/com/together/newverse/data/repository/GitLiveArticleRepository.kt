@@ -267,7 +267,10 @@ class GitLiveArticleRepository(
     }
 
     companion object {
-        // Hardcoded seller ID for now
+        @Deprecated(
+            "Use SellerConfig.sellerId instead. Inject SellerConfig via DI.",
+            ReplaceWith("sellerConfig.sellerId")
+        )
         const val DEFAULT_SELLER_ID = "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
     }
 

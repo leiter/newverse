@@ -2,8 +2,6 @@ package com.together.newverse.android
 
 import android.app.Application
 import com.google.firebase.FirebaseApp
-import com.together.newverse.data.config.FeatureFlags
-import com.together.newverse.data.config.AuthProvider
 import com.together.newverse.data.firebase.GitLiveFirebaseInit
 import com.together.newverse.di.androidDomainModule
 import com.together.newverse.di.flavorAppModule
@@ -24,7 +22,7 @@ class NewverseApp : Application() {
         // Initialize feature flags BEFORE Firebase and Koin
         // This must happen first to ensure all dependencies use the correct configuration
         com.together.newverse.data.config.FeatureFlagConfig.configureForProduction()
-        println("🚀 NewverseApp: Feature flags configured for PRODUCTION (Firebase only)")
+        println("🚀 NewverseApp: Feature flags configured for PRODUCTION")
 
         // Initialize Firebase (required for both Firebase and GitLive SDKs)
         FirebaseApp.initializeApp(this)
@@ -38,12 +36,9 @@ class NewverseApp : Application() {
             println("⚠️ NewverseApp: Firebase persistence already enabled or failed: ${e.message}")
         }
 
-        // Initialize GitLive if configured
-        if (FeatureFlags.authProvider == AuthProvider.GITLIVE ||
-            FeatureFlags.authProvider == AuthProvider.AUTO) {
-            println("🚀 NewverseApp: Initializing GitLive Firebase SDK")
-            GitLiveFirebaseInit.initialize()
-        }
+        // Initialize GitLive Firebase SDK (cross-platform)
+        println("🚀 NewverseApp: Initializing GitLive Firebase SDK")
+        GitLiveFirebaseInit.initialize()
 
         startKoin {
             androidLogger()

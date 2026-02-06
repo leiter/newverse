@@ -507,4 +507,23 @@
     <!-- Mission Section -->
     <string name="about_mission_title">Our Mission</string>
     <string name="about_mission_text">We bring fresh, organic and regional food directly from the field to your home. For a sustainable future and healthy nutrition.</string>
+
+    <!-- ========================================= -->
+    <!-- VALIDATION & ERROR MESSAGES (ViewModels) -->
+    <!-- ========================================= -->
+
+    <!-- CreateProductViewModel validation -->
+    <string name="validation_product_name_required">Product name is required</string>
+    <string name="validation_search_terms_required">Search terms are required</string>
+    <string name="validation_price_required">Valid price is required</string>
+    <string name="validation_unit_required">Unit is required</string>
+    <string name="validation_category_required">Category is required</string>
+    <string name="validation_image_required">Product image is required</string>
+    <string name="validation_weight_required">Weight per piece is required for countable units</string>
+
+    <!-- OverviewViewModel import errors -->
+    <string name="import_no_products_found">No products found in file</string>
+    <string name="import_file_read_error">Could not read file: %1$s</string>
+    <string name="import_auth_required">Authentication required</string>
+    <string name="import_failed">Import failed: %1$s</string>
 </resources>

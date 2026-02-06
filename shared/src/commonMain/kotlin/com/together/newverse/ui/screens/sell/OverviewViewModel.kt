@@ -2,8 +2,8 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.data.parser.BnnParser
-import com.together.newverse.data.repository.GitLiveArticleRepository
+import com.together.newverse.domain.config.SellerConfig
+import com.together.newverse.domain.service.ProductImportService
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
@@ -20,6 +20,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.getString
 
 /**
  * ViewModel for Seller Overview/Dashboard screen
@@ -27,7 +30,9 @@ import kotlinx.coroutines.launch
 class OverviewViewModel(
     private val articleRepository: ArticleRepository,
     private val orderRepository: OrderRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val sellerConfig: SellerConfig,
+    private val productImportService: ProductImportService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<OverviewUiState>(OverviewUiState.Loading)
@@ -42,7 +47,6 @@ class OverviewViewModel(
     private val articles = mutableListOf<Article>()
     private var activeOrdersCount = 0
     private var allOrders = listOf<Order>()
-    private val bnnParser = BnnParser()
 
     init {
         loadOverview()
@@ -59,8 +63,7 @@ class OverviewViewModel(
                 return@launch
             }
 
-            // Use DEFAULT_SELLER_ID for consistent article storage
-            val sellerId = GitLiveArticleRepository.DEFAULT_SELLER_ID
+            val sellerId = sellerConfig.sellerId
 
             // Observe both articles and orders
             launch {
@@ -242,12 +245,13 @@ class OverviewViewModel(
             _importState.value = ImportState.Parsing
 
             try {
-                // Parse BNN file
-                val products = bnnParser.parse(fileContent)
+                val products = productImportService.parse(fileContent)
                 println("📦 Parsed ${products.size} products from BNN file")
 
                 if (products.isEmpty()) {
-                    _importState.value = ImportState.Error("Keine Produkte in der Datei gefunden")
+                    _importState.value = ImportState.Error(
+                        getStringOrFallback(Res.string.import_no_products_found, "No products found")
+                    )
                     return@launch
                 }
 
@@ -256,7 +260,9 @@ class OverviewViewModel(
 
             } catch (e: Exception) {
                 println("❌ Parse failed: ${e.message}")
-                _importState.value = ImportState.Error("Datei konnte nicht gelesen werden: ${e.message}")
+                _importState.value = ImportState.Error(
+                    getStringOrFallback(Res.string.import_file_read_error, "File read error: ${e.message}", e.message ?: "")
+                )
             }
         }
     }
@@ -272,12 +278,13 @@ class OverviewViewModel(
             val currentUserId = authRepository.getCurrentUserId()
             if (currentUserId == null) {
                 println("❌ Cannot import products: User not authenticated")
-                _importState.value = ImportState.Error("Authentifizierung erforderlich")
+                _importState.value = ImportState.Error(
+                    getStringOrFallback(Res.string.import_auth_required, "Authentication required")
+                )
                 return@launch
             }
 
-            // Use DEFAULT_SELLER_ID for consistent article storage
-            val sellerId = GitLiveArticleRepository.DEFAULT_SELLER_ID
+            val sellerId = sellerConfig.sellerId
 
             try {
                 var successCount = 0
@@ -313,7 +320,9 @@ class OverviewViewModel(
 
             } catch (e: Exception) {
                 println("❌ Import failed: ${e.message}")
-                _importState.value = ImportState.Error("Import fehlgeschlagen: ${e.message}")
+                _importState.value = ImportState.Error(
+                    getStringOrFallback(Res.string.import_failed, "Import failed: ${e.message}", e.message ?: "")
+                )
             }
         }
     }
@@ -323,6 +332,21 @@ class OverviewViewModel(
      */
     fun resetImportState() {
         _importState.value = ImportState.Idle
+    }
+
+    /**
+     * Safely get a localized string, falling back to a default if resources are unavailable.
+     */
+    private suspend fun getStringOrFallback(
+        resource: org.jetbrains.compose.resources.StringResource,
+        fallback: String,
+        vararg formatArgs: Any
+    ): String {
+        return try {
+            if (formatArgs.isNotEmpty()) getString(resource, *formatArgs) else getString(resource)
+        } catch (_: Exception) {
+            fallback
+        }
     }
 }
 

@@ -44,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.together.newverse.domain.model.ProductCategory
 import com.together.newverse.domain.model.ProductUnit
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedUiAction
@@ -88,6 +87,17 @@ fun CreateProductScreen(
 
     val successMessage = stringResource(Res.string.create_product_success)
 
+    // Resolve validation errors to localized strings
+    val validationMessages = mapOf(
+        ValidationError.ProductNameRequired to stringResource(Res.string.validation_product_name_required),
+        ValidationError.SearchTermsRequired to stringResource(Res.string.validation_search_terms_required),
+        ValidationError.PriceRequired to stringResource(Res.string.validation_price_required),
+        ValidationError.UnitRequired to stringResource(Res.string.validation_unit_required),
+        ValidationError.CategoryRequired to stringResource(Res.string.validation_category_required),
+        ValidationError.ImageRequired to stringResource(Res.string.validation_image_required),
+        ValidationError.WeightRequired to stringResource(Res.string.validation_weight_required)
+    )
+
     // Handle UI state changes
     LaunchedEffect(uiState) {
         when (uiState) {
@@ -95,6 +105,10 @@ fun CreateProductScreen(
                 showSnackbar(successMessage)
                 viewModel.resetState()
                 onNavigateBack()
+            }
+            is CreateProductUiState.ValidationFailed -> {
+                val error = (uiState as CreateProductUiState.ValidationFailed).error
+                showSnackbar(validationMessages[error] ?: error.name)
             }
             is CreateProductUiState.Error -> {
                 val error = (uiState as CreateProductUiState.Error).message
@@ -188,6 +202,7 @@ fun CreateProductScreen(
                 UnitSelector(
                     selectedUnit = unit,
                     onUnitSelected = viewModel::onUnitChange,
+                    units = viewModel.availableUnits,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -208,6 +223,7 @@ fun CreateProductScreen(
             CategorySelector(
                 selectedCategory = category,
                 onCategorySelected = viewModel::onCategoryChange,
+                categories = viewModel.availableCategories,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -342,10 +358,10 @@ private fun ImageSection(
 private fun CategorySelector(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
+    categories: List<String>,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val categories = ProductCategory.getAllDisplayNames()
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -387,10 +403,10 @@ private fun CategorySelector(
 private fun UnitSelector(
     selectedUnit: String,
     onUnitSelected: (String) -> Unit,
+    units: List<String>,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val units = ProductUnit.getAllDisplayNames()
 
     ExposedDropdownMenuBox(
         expanded = expanded,

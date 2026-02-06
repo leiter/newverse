@@ -1,5 +1,7 @@
 package com.together.newverse.di
 
+import com.together.newverse.data.service.BnnProductImportService
+import com.together.newverse.domain.service.ProductImportService
 import com.together.newverse.ui.screens.sell.CreateProductViewModel
 import com.together.newverse.ui.screens.sell.OrdersViewModel
 import com.together.newverse.ui.screens.sell.OverviewViewModel
@@ -15,6 +17,9 @@ import org.koin.dsl.module
  * This is in sellMain source set, so it's ONLY compiled for Sell flavor.
  */
 val appModule = module {
+    // Product import service
+    single<ProductImportService> { BnnProductImportService() }
+
     // Main Sell App ViewModel
     viewModel {
         SellAppViewModel(
@@ -24,9 +29,9 @@ val appModule = module {
     }
 
     // Sell-specific ViewModels
-    viewModel { OverviewViewModel(get(), get(), get()) }
+    viewModel { OverviewViewModel(get(), get(), get(), get(), get()) }
     viewModel { OrdersViewModel(get(), get()) }
-    viewModel { CreateProductViewModel(get(), get(), get()) }
+    viewModel { CreateProductViewModel(get(), get(), get(), get(), get()) }
     viewModel { SellerProfileViewModel(get(), get(), get(), get()) }
 }
 

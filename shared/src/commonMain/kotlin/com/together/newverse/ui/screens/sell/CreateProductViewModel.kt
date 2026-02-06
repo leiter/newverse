@@ -2,10 +2,10 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.config.ProductCatalogConfig
+import com.together.newverse.domain.config.SellerConfig
 import com.together.newverse.domain.model.Article
-import com.together.newverse.domain.model.ProductCategory
 import com.together.newverse.domain.model.ProductUnit
-import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.StorageRepository
@@ -21,7 +21,9 @@ import kotlinx.coroutines.launch
 class CreateProductViewModel(
     private val articleRepository: ArticleRepository,
     private val authRepository: AuthRepository,
-    private val storageRepository: StorageRepository
+    private val storageRepository: StorageRepository,
+    private val sellerConfig: SellerConfig,
+    private val catalogConfig: ProductCatalogConfig
 ) : ViewModel() {
 
     // UI State
@@ -41,11 +43,17 @@ class CreateProductViewModel(
     private val _price = MutableStateFlow("")
     val price: StateFlow<String> = _price.asStateFlow()
 
-    private val _unit = MutableStateFlow(ProductUnit.KG.displayName)
+    private val _unit = MutableStateFlow(catalogConfig.defaultUnit)
     val unit: StateFlow<String> = _unit.asStateFlow()
 
-    private val _category = MutableStateFlow(ProductCategory.GEMUESE.displayName)
+    private val _category = MutableStateFlow(catalogConfig.defaultCategory)
     val category: StateFlow<String> = _category.asStateFlow()
+
+    /** Available categories from config, exposed for UI dropdowns */
+    val availableCategories: List<String> = catalogConfig.categories
+
+    /** Available units from config, exposed for UI dropdowns */
+    val availableUnits: List<String> = catalogConfig.units
 
     private val _weightPerPiece = MutableStateFlow("")
     val weightPerPiece: StateFlow<String> = _weightPerPiece.asStateFlow()
@@ -120,7 +128,7 @@ class CreateProductViewModel(
         // Validate inputs
         val validationError = validateForm()
         if (validationError != null) {
-            _uiState.value = CreateProductUiState.Error(validationError)
+            _uiState.value = CreateProductUiState.ValidationFailed(validationError)
             return
         }
 
@@ -135,9 +143,7 @@ class CreateProductViewModel(
                     return@launch
                 }
 
-                // Use DEFAULT_SELLER_ID for consistent article storage
-                // This ensures buyer app can see seller's articles via live updates
-                val sellerId = GitLiveArticleRepository.DEFAULT_SELLER_ID
+                val sellerId = sellerConfig.sellerId
 
                 // Upload image if new image data exists
                 var finalImageUrl = _imageUrl.value
@@ -199,32 +205,32 @@ class CreateProductViewModel(
 
     /**
      * Validate form inputs
-     * @return Error message if validation fails, null if valid
+     * @return ValidationError if validation fails, null if valid
      */
-    private fun validateForm(): String? {
+    private fun validateForm(): ValidationError? {
         if (_productName.value.isBlank()) {
-            return "Produktname ist erforderlich"
+            return ValidationError.ProductNameRequired
         }
 
         if (_searchTerms.value.isBlank()) {
-            return "Suchbegriffe sind erforderlich"
+            return ValidationError.SearchTermsRequired
         }
 
         val priceValue = _price.value.toDoubleOrNull()
         if (priceValue == null || priceValue <= 0) {
-            return "Gültiger Preis ist erforderlich"
+            return ValidationError.PriceRequired
         }
 
         if (_unit.value.isBlank()) {
-            return "Einheit ist erforderlich"
+            return ValidationError.UnitRequired
         }
 
         if (_category.value.isBlank()) {
-            return "Kategorie ist erforderlich"
+            return ValidationError.CategoryRequired
         }
 
         if (_imageData.value == null && _imageUrl.value.isBlank()) {
-            return "Produktbild ist erforderlich"
+            return ValidationError.ImageRequired
         }
 
         // Validate weight per piece if unit is countable
@@ -232,7 +238,7 @@ class CreateProductViewModel(
         if (unitEnum?.isCountable == true) {
             val weight = _weightPerPiece.value.toDoubleOrNull()
             if (weight == null || weight <= 0) {
-                return "Gewicht pro Stück ist erforderlich für zählbare Einheiten"
+                return ValidationError.WeightRequired
             }
         }
 
@@ -265,8 +271,8 @@ class CreateProductViewModel(
         _productId.value = ""
         _searchTerms.value = ""
         _price.value = ""
-        _unit.value = ProductUnit.KG.displayName
-        _category.value = ProductCategory.GEMUESE.displayName
+        _unit.value = catalogConfig.defaultUnit
+        _category.value = catalogConfig.defaultCategory
         _weightPerPiece.value = ""
         _detailInfo.value = ""
         _available.value = true
@@ -279,7 +285,8 @@ class CreateProductViewModel(
      * Clear error state
      */
     fun clearError() {
-        if (_uiState.value is CreateProductUiState.Error) {
+        if (_uiState.value is CreateProductUiState.Error ||
+            _uiState.value is CreateProductUiState.ValidationFailed) {
             _uiState.value = CreateProductUiState.Idle
         }
     }
@@ -299,5 +306,20 @@ sealed interface CreateProductUiState {
     data object Idle : CreateProductUiState
     data object Saving : CreateProductUiState
     data object Success : CreateProductUiState
+    data class ValidationFailed(val error: ValidationError) : CreateProductUiState
     data class Error(val message: String) : CreateProductUiState
+}
+
+/**
+ * Validation errors for product creation form.
+ * Each maps to a string resource for localized display.
+ */
+enum class ValidationError {
+    ProductNameRequired,
+    SearchTermsRequired,
+    PriceRequired,
+    UnitRequired,
+    CategoryRequired,
+    ImageRequired,
+    WeightRequired
 }
