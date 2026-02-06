@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.width
 import com.together.newverse.ui.components.ProductListItem
+import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -420,6 +421,11 @@ private fun SuccessContent(
             StatCard(
                 title = stringResource(Res.string.overview_active_orders),
                 value = state.activeOrders.toString(),
+                modifier = Modifier.weight(1f)
+            )
+            StatCard(
+                title = stringResource(Res.string.overview_total_revenue),
+                value = "${state.totalRevenue.formatPrice()}€",
                 modifier = Modifier.weight(1f)
             )
         }

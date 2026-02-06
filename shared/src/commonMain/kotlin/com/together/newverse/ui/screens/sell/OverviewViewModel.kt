@@ -9,6 +9,7 @@ import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
 import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.Product
 import com.together.newverse.domain.model.toArticle
 import com.together.newverse.domain.repository.ArticleRepository
@@ -40,6 +41,7 @@ class OverviewViewModel(
 
     private val articles = mutableListOf<Article>()
     private var activeOrdersCount = 0
+    private var allOrders = listOf<Order>()
     private val bnnParser = BnnParser()
 
     init {
@@ -101,6 +103,8 @@ class OverviewViewModel(
                         // Don't fail the whole screen, just show 0 orders
                     }
                     .collect { orders ->
+                        // Store all orders for revenue calculation
+                        allOrders = orders
                         // Count only active orders (not completed, cancelled, or outdated)
                         activeOrdersCount = orders.count { it.isActiveOrder() }
                         println("📊 Active orders count: $activeOrdersCount (total: ${orders.size})")
@@ -122,10 +126,20 @@ class OverviewViewModel(
         _uiState.value = OverviewUiState.Success(
             totalProducts = articles.size,
             activeOrders = activeOrdersCount,
-            totalRevenue = 0.0, // TODO: Calculate from orders
+            totalRevenue = calculateTotalRevenue(),
             recentArticles = filteredArticles,
             recentOrders = emptyList() // TODO: Get from order repository
         )
+    }
+
+    /**
+     * Calculate total revenue from completed orders
+     */
+    private fun calculateTotalRevenue(): Double {
+        return allOrders
+            .filter { it.status == OrderStatus.COMPLETED || it.status == OrderStatus.LOCKED }
+            .flatMap { it.articles }
+            .sumOf { it.getTotalPrice() }
     }
 
     fun setFilter(filter: ProductFilter) {
@@ -136,6 +150,7 @@ class OverviewViewModel(
     fun refresh() {
         articles.clear()
         activeOrdersCount = 0
+        allOrders = emptyList()
         loadOverview()
     }
 

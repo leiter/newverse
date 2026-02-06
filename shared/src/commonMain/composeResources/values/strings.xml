@@ -187,6 +187,17 @@
     <string name="products_title">Produkte durchsuchen</string>
     <string name="products_empty">Keine Produkte verfügbar</string>
     <string name="products_error_load">Fehler beim Laden der Produkte: %s</string>
+    <string name="products_search_placeholder">Produkte suchen...</string>
+    <string name="products_search_no_results">Keine Produkte gefunden</string>
+    <string name="products_search_clear">Suche löschen</string>
+    <string name="products_detail_title">Produktdetails</string>
+    <string name="products_detail_add_to_cart">In den Warenkorb</string>
+    <string name="products_detail_update_cart">Warenkorb aktualisieren</string>
+    <string name="products_detail_remove_from_cart">Aus dem Warenkorb entfernen</string>
+    <string name="products_detail_category">Kategorie</string>
+    <string name="products_detail_description">Beschreibung</string>
+    <string name="products_detail_quantity">Menge</string>
+    <string name="products_detail_not_found">Produkt nicht gefunden</string>
 
     <!-- ========================================= -->
     <!-- BASKET SCREEN (BUY MODULE) -->
@@ -466,6 +477,7 @@
     <string name="overview_available_products">Verfügbare Produkte</string>
     <string name="overview_unavailable_products">Nicht verfügbar</string>
     <string name="overview_active_orders">Aktive Bestellungen</string>
+    <string name="overview_total_revenue">Umsatz (Gesamt)</string>
     <string name="overview_your_products">Ihre Produkte</string>
     <string name="overview_delete_selected">Ausgewählte löschen</string>
     <string name="overview_available">Verfügbar</string>

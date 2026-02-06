@@ -4,6 +4,7 @@ import com.together.newverse.data.config.FeatureFlags
 import com.together.newverse.data.config.AuthProvider
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
+import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.AuthRepository
@@ -63,5 +64,13 @@ class PlatformProfileRepository(
 
     override suspend fun deleteBuyerProfile(userId: String): Result<Unit> {
         return actualRepository.deleteBuyerProfile(userId)
+    }
+
+    override suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit> {
+        return actualRepository.saveDraftBasket(draftBasket)
+    }
+
+    override suspend fun clearDraftBasket(): Result<Unit> {
+        return actualRepository.clearDraftBasket()
     }
 }

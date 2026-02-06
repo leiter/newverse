@@ -27,7 +27,10 @@ fun NavGraphBuilder.commonNavGraph(
     composable(NavRoutes.Home.route) {
         MainScreenModern(
             state = appState.screens.mainScreen,
-            onAction = onAction
+            onAction = onAction,
+            onNavigateToProductDetail = { articleId ->
+                navController.navigate(NavRoutes.Buy.ProductDetail.createRoute(articleId))
+            }
         )
     }
 

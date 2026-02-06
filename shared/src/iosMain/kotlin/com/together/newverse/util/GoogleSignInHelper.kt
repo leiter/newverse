@@ -1,114 +1,178 @@
 package com.together.newverse.util
 
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.coroutines.suspendCancellableCoroutine
+import platform.Foundation.NSURL
+import platform.UIKit.UIApplication
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
 /**
  * iOS Google Sign-In Helper
  *
- * This class will handle Google Sign-In flow for iOS.
+ * This class provides the Kotlin interface for Google Sign-In.
+ * The actual Google Sign-In flow is handled by Swift code that calls into this.
  *
- * Implementation requires:
+ * Prerequisites (configured in iOS app):
  * 1. GoogleSignIn CocoaPod (already in Podfile)
  * 2. URL scheme configuration in Info.plist (REVERSED_CLIENT_ID)
- * 3. Swift interop for UIViewController presentation
+ * 3. GoogleService-Info.plist with CLIENT_ID
  *
- * TODO: Implement when Mac access is available
- *
- * Reference: https://developers.google.com/identity/sign-in/ios/start-integrating
+ * Usage:
+ * The Swift layer (ContentView/AppDelegate) should:
+ * 1. Import GoogleSignIn
+ * 2. Configure GIDSignIn with the client ID
+ * 3. Handle URL callbacks
+ * 4. Call GoogleSignInHelper methods with results
  */
+@OptIn(ExperimentalForeignApi::class)
 class GoogleSignInHelper {
+
+    // Callback storage for async sign-in
+    private var signInCompletion: ((Result<String>) -> Unit)? = null
 
     /**
      * Initiates Google Sign-In flow.
+     * This sets up the completion handler that Swift code will call.
      *
-     * @param presentingViewController The view controller to present the sign-in UI
      * @param completion Callback with ID token or error
-     *
-     * TODO: Implement actual Google Sign-In
      */
     fun signIn(
         completion: (Result<String>) -> Unit
     ) {
-        println("🔐 GoogleSignInHelper (iOS): Sign-in requested")
-        println("⚠️  GoogleSignInHelper (iOS): Not implemented yet - requires Mac/Xcode")
+        println("Google Sign-In (iOS): Sign-in requested from Kotlin")
+        signInCompletion = completion
 
-        // For now, return an error
-        completion(
-            Result.failure(
-                NotImplementedError("Google Sign-In not implemented for iOS yet. Requires Mac access for testing.")
-            )
-        )
+        // Signal to Swift that sign-in should start
+        // This will be picked up by the PlatformAction handler in AppScaffold
+        // which triggers the Swift-side Google Sign-In flow
+    }
+
+    /**
+     * Called from Swift when sign-in completes successfully
+     *
+     * @param idToken The ID token from Google
+     */
+    fun onSignInSuccess(idToken: String) {
+        println("Google Sign-In (iOS): Sign-in success callback received")
+        signInCompletion?.invoke(Result.success(idToken))
+        signInCompletion = null
+    }
+
+    /**
+     * Called from Swift when sign-in fails
+     *
+     * @param errorMessage The error message
+     */
+    fun onSignInError(errorMessage: String) {
+        println("Google Sign-In (iOS): Sign-in error callback received: $errorMessage")
+        signInCompletion?.invoke(Result.failure(Exception(errorMessage)))
+        signInCompletion = null
+    }
+
+    /**
+     * Called from Swift when user cancels sign-in
+     */
+    fun onSignInCancelled() {
+        println("Google Sign-In (iOS): Sign-in cancelled")
+        signInCompletion?.invoke(Result.failure(Exception("User cancelled sign-in")))
+        signInCompletion = null
+    }
+
+    /**
+     * Suspending version of signIn for coroutine usage
+     */
+    suspend fun signInSuspend(): String {
+        return suspendCancellableCoroutine { continuation ->
+            signIn { result ->
+                result.onSuccess { idToken ->
+                    continuation.resume(idToken)
+                }.onFailure { error ->
+                    continuation.resumeWithException(error)
+                }
+            }
+        }
     }
 
     /**
      * Sign out from Google.
-     *
-     * TODO: Implement actual Google Sign-Out
+     * Note: The actual sign-out is handled by Swift layer.
      */
     fun signOut() {
-        println("🔐 GoogleSignInHelper (iOS): Sign-out requested")
-        println("⚠️  GoogleSignInHelper (iOS): Not implemented yet")
+        println("Google Sign-In (iOS): Sign-out requested")
+        // Sign-out handled by Swift GIDSignIn.sharedInstance.signOut()
     }
 
     /**
      * Check if user is currently signed in to Google.
-     *
-     * TODO: Implement actual check
+     * Note: The actual check is handled by Swift layer.
      */
     fun isSignedIn(): Boolean {
+        // This would need to be queried from Swift layer
         return false
     }
 
     /**
      * Restore previous sign-in if available.
      *
-     * TODO: Implement actual restore
+     * @param completion Callback with ID token if restored, null if no previous sign-in
      */
     fun restorePreviousSignIn(
         completion: (Result<String>?) -> Unit
     ) {
-        println("🔐 GoogleSignInHelper (iOS): Restore sign-in requested")
-        completion(null) // No previous sign-in
+        println("Google Sign-In (iOS): Restore sign-in requested")
+        // Restore handled by Swift layer using GIDSignIn.sharedInstance.restorePreviousSignIn
+        completion(null) // Default: no previous sign-in
+    }
+
+    companion object {
+        // Singleton instance for Swift interop
+        val shared = GoogleSignInHelper()
     }
 }
 
 /**
- * Implementation notes for when Mac access is available:
+ * Implementation notes for Swift integration:
  *
- * 1. Add URL Scheme to Info.plist:
- *    ```xml
- *    <key>CFBundleURLTypes</key>
- *    <array>
- *      <dict>
- *        <key>CFBundleURLSchemes</key>
- *        <array>
- *          <string>YOUR_REVERSED_CLIENT_ID</string>
- *        </array>
- *      </dict>
- *    </array>
- *    ```
+ * In your Swift code (ContentView or AppDelegate), implement Google Sign-In like this:
  *
- * 2. Configure Google Sign-In in app startup (Swift):
- *    ```swift
- *    import GoogleSignIn
+ * ```swift
+ * import GoogleSignIn
+ * import shared
  *
- *    let clientID = "YOUR_CLIENT_ID"
- *    let config = GIDConfiguration(clientID: clientID)
- *    GIDSignIn.sharedInstance.configuration = config
- *    ```
+ * // Configure on app startup:
+ * func configureGoogleSignIn() {
+ *     guard let clientID = FirebaseApp.app()?.options.clientID else { return }
+ *     let config = GIDConfiguration(clientID: clientID)
+ *     GIDSignIn.sharedInstance.configuration = config
+ * }
  *
- * 3. Handle sign-in (Swift):
- *    ```swift
- *    GIDSignIn.sharedInstance.signIn(
- *      withPresenting: presentingViewController
- *    ) { result, error in
- *      guard let user = result?.user,
- *            let idToken = user.idToken?.tokenString else {
- *        return
- *      }
- *      // Pass idToken to Firebase
- *    }
- *    ```
+ * // Handle sign-in action from Kotlin:
+ * func handleGoogleSignIn() {
+ *     guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+ *           let rootViewController = windowScene.windows.first?.rootViewController else {
+ *         GoogleSignInHelper.shared.onSignInError(errorMessage: "No root view controller")
+ *         return
+ *     }
  *
- * 4. Kotlin-Swift interop:
- *    Create a Swift wrapper that can be called from Kotlin,
- *    or use expect/actual pattern with Swift implementation.
+ *     GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
+ *         if let error = error {
+ *             GoogleSignInHelper.shared.onSignInError(errorMessage: error.localizedDescription)
+ *             return
+ *         }
+ *
+ *         guard let idToken = result?.user.idToken?.tokenString else {
+ *             GoogleSignInHelper.shared.onSignInError(errorMessage: "No ID token received")
+ *             return
+ *         }
+ *
+ *         GoogleSignInHelper.shared.onSignInSuccess(idToken: idToken)
+ *     }
+ * }
+ *
+ * // Handle URL callback in SceneDelegate or AppDelegate:
+ * func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+ *     return GIDSignIn.sharedInstance.handle(url)
+ * }
+ * ```
  */

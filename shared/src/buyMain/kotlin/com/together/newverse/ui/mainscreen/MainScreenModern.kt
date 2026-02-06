@@ -14,7 +14,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -29,6 +37,11 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedMainScreenAction
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.products_search_placeholder
+import newverse.shared.generated.resources.products_search_clear
+import newverse.shared.generated.resources.products_search_no_results
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Buy flavor MainScreenModern (default)
@@ -39,11 +52,13 @@ import com.together.newverse.ui.state.UnifiedMainScreenAction
 @Composable
 fun MainScreenModern(
     state: MainScreenState,
-    onAction: (UnifiedAppAction) -> Unit
+    onAction: (UnifiedAppAction) -> Unit,
+    onNavigateToProductDetail: (String) -> Unit = {}
 ) {
     MainScreenModernContent(
         state = state,
         onAction = onAction,
+        onNavigateToProductDetail = onNavigateToProductDetail,
     )
 }
 
@@ -52,6 +67,7 @@ fun MainScreenModern(
 private fun MainScreenModernContent(
     state: MainScreenState,
     onAction: (UnifiedAppAction) -> Unit,
+    onNavigateToProductDetail: (String) -> Unit,
 ) {
     val products = state.filteredArticles
     val selectedProduct = state.selectedArticle
@@ -120,6 +136,40 @@ private fun MainScreenModernContent(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // Search Bar
+                        OutlinedTextField(
+                            value = state.searchQuery,
+                            onValueChange = { onAction(UnifiedMainScreenAction.UpdateSearchQuery(it)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text(stringResource(Res.string.products_search_placeholder)) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            trailingIcon = {
+                                if (state.searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { onAction(UnifiedMainScreenAction.ClearSearchQuery) }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Clear,
+                                            contentDescription = stringResource(Res.string.products_search_clear),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         // Category Filter Chips
                         CategoryChips(
                             activeFilter = state.activeFilter,
@@ -169,6 +219,24 @@ private fun MainScreenModernContent(
                     }
                 }
 
+                // No results state when search query returns empty
+                if (!state.isLoading && products.isEmpty() && state.searchQuery.isNotEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                stringResource(Res.string.products_search_no_results),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
                 // Product Grid
                 items(products.chunked(2)) { productPair ->
                     Row(
@@ -180,7 +248,8 @@ private fun MainScreenModernContent(
                                 product = product,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
-                                    onAction(UnifiedMainScreenAction.SelectArticle(product))
+                                    // Navigate to product detail screen
+                                    onNavigateToProductDetail(product.id)
                                 }
                             )
                         }

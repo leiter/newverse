@@ -678,24 +678,35 @@ data class MainScreenState(
     val favouriteArticles: List<String> = emptyList(),
     val activeFilter: ProductFilter = ProductFilter.ALL,
     val canEditOrder: Boolean = true,
-    val showNewOrderSnackbar: Boolean = false
+    val showNewOrderSnackbar: Boolean = false,
+    val searchQuery: String = ""
 ) : ScreenState {
 
     /**
-     * Returns articles filtered by availability and the active filter.
+     * Returns articles filtered by availability, the active filter, and search query.
      * Only available articles are shown to buyers.
      */
     val filteredArticles: List<Article>
         get() {
             // First filter by availability - only show available products
-            val availableArticles = articles.filter { it.available }
+            var filtered = articles.filter { it.available }
+
+            // Apply search query if not empty
+            if (searchQuery.isNotBlank()) {
+                val query = searchQuery.trim().lowercase()
+                filtered = filtered.filter { article ->
+                    article.productName.lowercase().contains(query) ||
+                    article.searchTerms.lowercase().contains(query) ||
+                    article.category.lowercase().contains(query)
+                }
+            }
 
             // Then apply the active filter
             return when (activeFilter) {
-                ProductFilter.ALL -> availableArticles
-                ProductFilter.FAVOURITES -> availableArticles.filter { favouriteArticles.contains(it.id) }
-                ProductFilter.OBST -> availableArticles.filter { it.searchTerms.contains("obst", ignoreCase = true) }
-                ProductFilter.GEMUESE -> availableArticles.filter { it.searchTerms.contains("gemüse", ignoreCase = true) }
+                ProductFilter.ALL -> filtered
+                ProductFilter.FAVOURITES -> filtered.filter { favouriteArticles.contains(it.id) }
+                ProductFilter.OBST -> filtered.filter { it.searchTerms.contains("obst", ignoreCase = true) }
+                ProductFilter.GEMUESE -> filtered.filter { it.searchTerms.contains("gemüse", ignoreCase = true) }
             }
         }
 }

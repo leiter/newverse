@@ -34,12 +34,15 @@ import kotlinx.coroutines.launch
 internal fun BuyAppViewModel.handleMainScreenAction(action: UnifiedMainScreenAction) {
     when (action) {
         is UnifiedMainScreenAction.SelectArticle -> selectMainScreenArticle(action.article)
+        is UnifiedMainScreenAction.ViewProductDetail -> { /* Handled by navigation layer */ }
         is UnifiedMainScreenAction.UpdateQuantity -> handleUpdateQuantity(action.quantity)
         is UnifiedMainScreenAction.UpdateQuantityText -> handleUpdateQuantityFromText(action.text)
         UnifiedMainScreenAction.AddToCart -> handleAddToCart()
         UnifiedMainScreenAction.RemoveFromBasket -> handleRemoveFromBasket()
         is UnifiedMainScreenAction.ToggleFavourite -> toggleMainScreenFavourite(action.articleId)
         is UnifiedMainScreenAction.SetFilter -> setMainScreenFilter(action.filter)
+        is UnifiedMainScreenAction.UpdateSearchQuery -> updateSearchQuery(action.query)
+        UnifiedMainScreenAction.ClearSearchQuery -> updateSearchQuery("")
         UnifiedMainScreenAction.Refresh -> refreshMainScreen()
         UnifiedMainScreenAction.DismissNewOrderSnackbar -> dismissNewOrderSnackbar()
         UnifiedMainScreenAction.StartNewOrder -> startNewOrder()
@@ -134,6 +137,18 @@ internal fun BuyAppViewModel.setMainScreenFilter(filter: ProductFilter) {
             screens = current.screens.copy(
                 mainScreen = current.screens.mainScreen.copy(
                     activeFilter = filter
+                )
+            )
+        )
+    }
+}
+
+internal fun BuyAppViewModel.updateSearchQuery(query: String) {
+    _state.update { current ->
+        current.copy(
+            screens = current.screens.copy(
+                mainScreen = current.screens.mainScreen.copy(
+                    searchQuery = query
                 )
             )
         )

@@ -32,6 +32,11 @@ sealed class NavRoutes(val route: String) {
         data object Profile : Buy("buy/profile")
         data object OrderHistory : Buy("buy/order_history")
         data object Favorites : Buy("buy/favorites")
+        data object ProductDetail : Buy("buy/product/{articleId}") {
+            fun createRoute(articleId: String): String {
+                return "buy/product/$articleId"
+            }
+        }
     }
 
     // Sell (Merchant) routes
@@ -64,6 +69,7 @@ sealed class NavRoutes(val route: String) {
             Buy.Profile,
             Buy.OrderHistory,
             Buy.Favorites,
+            Buy.ProductDetail,
             // Sell routes
             Sell.Overview,
             Sell.Orders,
@@ -124,6 +130,7 @@ sealed class NavRoutes(val route: String) {
             Buy.Profile -> Res.string.nav_customer_profile
             Buy.OrderHistory -> Res.string.action_orders
             Buy.Favorites -> Res.string.action_favorites
+            Buy.ProductDetail -> Res.string.products_title
             Sell.Overview -> Res.string.nav_product_overview
             Sell.Orders -> Res.string.nav_manage_orders
             Sell.OrderDetail -> Res.string.order_detail_title

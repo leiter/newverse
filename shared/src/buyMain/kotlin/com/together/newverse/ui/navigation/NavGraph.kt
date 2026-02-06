@@ -11,6 +11,7 @@ import com.together.newverse.ui.screens.buy.BasketScreen
 import com.together.newverse.ui.screens.buy.CustomerProfileScreenModern
 import com.together.newverse.ui.screens.buy.FavoritesScreen
 import com.together.newverse.ui.screens.buy.OrderHistoryScreen
+import com.together.newverse.ui.screens.buy.ProductDetailScreen
 import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.UnifiedAppAction
 import com.together.newverse.ui.state.UnifiedAppState
@@ -125,6 +126,45 @@ fun NavGraph(
             FavoritesScreen(
                 state = appState.screens.mainScreen,
                 onAction = onAction,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Product Detail screen
+        composable(
+            route = NavRoutes.Buy.ProductDetail.route,
+            arguments = listOf(
+                navArgument("articleId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val articleId = backStackEntry.arguments?.read { getString("articleId") } ?: ""
+            val article = appState.screens.mainScreen.articles.find { it.id == articleId }
+
+            ProductDetailScreen(
+                article = article,
+                basketItems = appState.screens.mainScreen.basketItems,
+                favouriteArticles = appState.screens.mainScreen.favouriteArticles,
+                onAddToCart = { art, qty ->
+                    // Use the same logic as HeroProductCard for adding to cart
+                    onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.SelectArticle(art))
+                    onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.UpdateQuantity(qty))
+                    onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.AddToCart)
+                    navController.popBackStack()
+                },
+                onRemoveFromCart = { productId ->
+                    // Find the article and remove it
+                    val art = appState.screens.mainScreen.articles.find { it.id == productId }
+                    if (art != null) {
+                        onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.SelectArticle(art))
+                        onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.RemoveFromBasket)
+                    }
+                    navController.popBackStack()
+                },
+                onToggleFavourite = { id ->
+                    onAction(com.together.newverse.ui.state.UnifiedMainScreenAction.ToggleFavourite(id))
+                },
                 onNavigateBack = { navController.popBackStack() }
             )
         }

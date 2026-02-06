@@ -137,12 +137,15 @@ sealed interface UnifiedFilterAction : UnifiedAppAction {
 // ===== Main Screen Actions =====
 sealed interface UnifiedMainScreenAction : UnifiedAppAction {
     data class SelectArticle(val article: Article) : UnifiedMainScreenAction
+    data class ViewProductDetail(val articleId: String) : UnifiedMainScreenAction
     data class UpdateQuantity(val quantity: Double) : UnifiedMainScreenAction
     data class UpdateQuantityText(val text: String) : UnifiedMainScreenAction
     data object AddToCart : UnifiedMainScreenAction
     data object RemoveFromBasket : UnifiedMainScreenAction
     data class ToggleFavourite(val articleId: String) : UnifiedMainScreenAction
     data class SetFilter(val filter: ProductFilter) : UnifiedMainScreenAction
+    data class UpdateSearchQuery(val query: String) : UnifiedMainScreenAction
+    data object ClearSearchQuery : UnifiedMainScreenAction
     data object Refresh : UnifiedMainScreenAction
     data object DismissNewOrderSnackbar : UnifiedMainScreenAction
     data object StartNewOrder : UnifiedMainScreenAction
