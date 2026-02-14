@@ -65,18 +65,28 @@ fun CreateProductScreen(
     // Get ImagePicker from CompositionLocal
     val imagePicker = LocalImagePicker.current
         ?: error("ImagePicker not provided. Make sure to wrap app with CompositionLocalProvider(LocalImagePicker provides imagePicker)")
-    val uiState by viewModel.uiState.collectAsState()
-    val productName by viewModel.productName.collectAsState()
-    val productId by viewModel.productId.collectAsState()
-    val searchTerms by viewModel.searchTerms.collectAsState()
-    val price by viewModel.price.collectAsState()
-    val unit by viewModel.unit.collectAsState()
-    val category by viewModel.category.collectAsState()
-    val weightPerPiece by viewModel.weightPerPiece.collectAsState()
-    val detailInfo by viewModel.detailInfo.collectAsState()
-    val available by viewModel.available.collectAsState()
-    val imageData by viewModel.imageData.collectAsState()
+
+    // Collect FormState - single source of truth for form data
+    val formState by viewModel.formState.collectAsState()
     val uploadProgress by viewModel.uploadProgress.collectAsState()
+    val saveSuccess by viewModel.saveSuccess.collectAsState()
+
+    // Extract form data for easier access
+    val formData = formState.data
+    val productName = formData.productName
+    val productId = formData.productId
+    val searchTerms = formData.searchTerms
+    val price = formData.price
+    val unit = formData.unit
+    val category = formData.category
+    val weightPerPiece = formData.weightPerPiece
+    val detailInfo = formData.detailInfo
+    val available = formData.available
+    val imageData = formData.imageData
+
+    // Form state properties
+    val isSubmitting = formState.isSubmitting
+    val hasErrors = formState.hasErrors
 
     val scope = rememberCoroutineScope()
 
@@ -89,32 +99,39 @@ fun CreateProductScreen(
 
     // Resolve validation errors to localized strings
     val validationMessages = mapOf(
-        ValidationError.ProductNameRequired to stringResource(Res.string.validation_product_name_required),
-        ValidationError.SearchTermsRequired to stringResource(Res.string.validation_search_terms_required),
-        ValidationError.PriceRequired to stringResource(Res.string.validation_price_required),
-        ValidationError.UnitRequired to stringResource(Res.string.validation_unit_required),
-        ValidationError.CategoryRequired to stringResource(Res.string.validation_category_required),
-        ValidationError.ImageRequired to stringResource(Res.string.validation_image_required),
-        ValidationError.WeightRequired to stringResource(Res.string.validation_weight_required)
+        ValidationError.ProductNameRequired.fieldName to stringResource(Res.string.validation_product_name_required),
+        ValidationError.SearchTermsRequired.fieldName to stringResource(Res.string.validation_search_terms_required),
+        ValidationError.PriceRequired.fieldName to stringResource(Res.string.validation_price_required),
+        ValidationError.UnitRequired.fieldName to stringResource(Res.string.validation_unit_required),
+        ValidationError.CategoryRequired.fieldName to stringResource(Res.string.validation_category_required),
+        ValidationError.ImageRequired.fieldName to stringResource(Res.string.validation_image_required),
+        ValidationError.WeightRequired.fieldName to stringResource(Res.string.validation_weight_required)
     )
 
-    // Handle UI state changes
-    LaunchedEffect(uiState) {
-        when (uiState) {
-            is CreateProductUiState.Success -> {
-                showSnackbar(successMessage)
-                viewModel.resetState()
-                onNavigateBack()
+    // Handle success
+    LaunchedEffect(saveSuccess) {
+        if (saveSuccess) {
+            showSnackbar(successMessage)
+            viewModel.resetState()
+            onNavigateBack()
+        }
+    }
+
+    // Handle validation errors
+    LaunchedEffect(formState.fieldErrors) {
+        if (formState.fieldErrors.isNotEmpty() && formState.hasAttemptedSubmit) {
+            val firstError = formState.fieldErrors.entries.firstOrNull()
+            if (firstError != null) {
+                val message = validationMessages[firstError.key] ?: firstError.value
+                showSnackbar(message)
             }
-            is CreateProductUiState.ValidationFailed -> {
-                val error = (uiState as CreateProductUiState.ValidationFailed).error
-                showSnackbar(validationMessages[error] ?: error.name)
-            }
-            is CreateProductUiState.Error -> {
-                val error = (uiState as CreateProductUiState.Error).message
-                showSnackbar(error)
-            }
-            else -> {}
+        }
+    }
+
+    // Handle submit error
+    LaunchedEffect(formState.submitError) {
+        formState.submitError?.let { error ->
+            showSnackbar(error)
         }
     }
 
@@ -252,7 +269,7 @@ fun CreateProductScreen(
             }
 
             // Upload Progress
-            if (uiState is CreateProductUiState.Saving && uploadProgress > 0f) {
+            if (isSubmitting && uploadProgress > 0f) {
                 LinearProgressIndicator(
                     progress = { uploadProgress },
                     modifier = Modifier.fillMaxWidth()
@@ -267,9 +284,9 @@ fun CreateProductScreen(
             Button(
                 onClick = { viewModel.saveProduct() },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = uiState !is CreateProductUiState.Saving
+                enabled = !isSubmitting
             ) {
-                if (uiState is CreateProductUiState.Saving) {
+                if (isSubmitting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         color = MaterialTheme.colorScheme.onPrimary
@@ -282,7 +299,7 @@ fun CreateProductScreen(
             OutlinedButton(
                 onClick = onNavigateBack,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = uiState !is CreateProductUiState.Saving
+                enabled = !isSubmitting
             ) {
                 Text(stringResource(Res.string.button_cancel))
             }

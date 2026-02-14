@@ -9,14 +9,72 @@ import com.together.newverse.domain.model.ProductUnit
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.StorageRepository
+import com.together.newverse.ui.state.core.FormState
+import com.together.newverse.ui.state.core.clearFieldError
+import com.together.newverse.ui.state.core.formStateOf
+import com.together.newverse.ui.state.core.submitFailure
+import com.together.newverse.ui.state.core.submitSuccess
+import com.together.newverse.ui.state.core.submitting
+import com.together.newverse.ui.state.core.updateField
+import com.together.newverse.ui.state.core.withFieldErrors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
+ * Data class representing the product creation form fields.
+ */
+data class ProductFormData(
+    val productName: String = "",
+    val productId: String = "",
+    val searchTerms: String = "",
+    val price: String = "",
+    val unit: String = "",
+    val category: String = "",
+    val weightPerPiece: String = "",
+    val detailInfo: String = "",
+    val available: Boolean = true,
+    val imageData: ByteArray? = null,
+    val imageUrl: String = ""
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+        other as ProductFormData
+        return productName == other.productName &&
+                productId == other.productId &&
+                searchTerms == other.searchTerms &&
+                price == other.price &&
+                unit == other.unit &&
+                category == other.category &&
+                weightPerPiece == other.weightPerPiece &&
+                detailInfo == other.detailInfo &&
+                available == other.available &&
+                imageData.contentEquals(other.imageData) &&
+                imageUrl == other.imageUrl
+    }
+
+    override fun hashCode(): Int {
+        var result = productName.hashCode()
+        result = 31 * result + productId.hashCode()
+        result = 31 * result + searchTerms.hashCode()
+        result = 31 * result + price.hashCode()
+        result = 31 * result + unit.hashCode()
+        result = 31 * result + category.hashCode()
+        result = 31 * result + weightPerPiece.hashCode()
+        result = 31 * result + detailInfo.hashCode()
+        result = 31 * result + available.hashCode()
+        result = 31 * result + (imageData?.contentHashCode() ?: 0)
+        result = 31 * result + imageUrl.hashCode()
+        return result
+    }
+}
+
+/**
  * ViewModel for Create Product screen
- * Handles product creation with image upload
+ * Handles product creation with image upload using FormState pattern.
  */
 class CreateProductViewModel(
     private val articleRepository: ArticleRepository,
@@ -26,28 +84,24 @@ class CreateProductViewModel(
     private val catalogConfig: ProductCatalogConfig
 ) : ViewModel() {
 
-    // UI State
-    private val _uiState = MutableStateFlow<CreateProductUiState>(CreateProductUiState.Idle)
-    val uiState: StateFlow<CreateProductUiState> = _uiState.asStateFlow()
+    // Form state using FormState pattern
+    private val _formState = MutableStateFlow(
+        formStateOf(
+            ProductFormData(
+                unit = catalogConfig.defaultUnit,
+                category = catalogConfig.defaultCategory
+            )
+        )
+    )
+    val formState: StateFlow<FormState<ProductFormData>> = _formState.asStateFlow()
 
-    // Form Fields
-    private val _productName = MutableStateFlow("")
-    val productName: StateFlow<String> = _productName.asStateFlow()
+    // Upload progress (separate from form state as it's transient UI state)
+    private val _uploadProgress = MutableStateFlow(0f)
+    val uploadProgress: StateFlow<Float> = _uploadProgress.asStateFlow()
 
-    private val _productId = MutableStateFlow("")
-    val productId: StateFlow<String> = _productId.asStateFlow()
-
-    private val _searchTerms = MutableStateFlow("")
-    val searchTerms: StateFlow<String> = _searchTerms.asStateFlow()
-
-    private val _price = MutableStateFlow("")
-    val price: StateFlow<String> = _price.asStateFlow()
-
-    private val _unit = MutableStateFlow(catalogConfig.defaultUnit)
-    val unit: StateFlow<String> = _unit.asStateFlow()
-
-    private val _category = MutableStateFlow(catalogConfig.defaultCategory)
-    val category: StateFlow<String> = _category.asStateFlow()
+    // Success state for navigation
+    private val _saveSuccess = MutableStateFlow(false)
+    val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
 
     /** Available categories from config, exposed for UI dropdowns */
     val availableCategories: List<String> = catalogConfig.categories
@@ -55,69 +109,109 @@ class CreateProductViewModel(
     /** Available units from config, exposed for UI dropdowns */
     val availableUnits: List<String> = catalogConfig.units
 
-    private val _weightPerPiece = MutableStateFlow("")
-    val weightPerPiece: StateFlow<String> = _weightPerPiece.asStateFlow()
+    // ===== Legacy compatibility properties =====
+    // These expose individual fields for screens not yet migrated to FormState
 
-    private val _detailInfo = MutableStateFlow("")
-    val detailInfo: StateFlow<String> = _detailInfo.asStateFlow()
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.data.productName", ReplaceWith("formState.value.data.productName"))
+    val productName: StateFlow<String> get() = MutableStateFlow(_formState.value.data.productName)
 
-    private val _available = MutableStateFlow(true)
-    val available: StateFlow<Boolean> = _available.asStateFlow()
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.data.productId", ReplaceWith("formState.value.data.productId"))
+    val productId: StateFlow<String> get() = MutableStateFlow(_formState.value.data.productId)
 
-    // Image handling
-    private val _imageData = MutableStateFlow<ByteArray?>(null)
-    val imageData: StateFlow<ByteArray?> = _imageData.asStateFlow()
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.data.searchTerms", ReplaceWith("formState.value.data.searchTerms"))
+    val searchTerms: StateFlow<String> get() = MutableStateFlow(_formState.value.data.searchTerms)
 
-    private val _imageUrl = MutableStateFlow("")
-    val imageUrl: StateFlow<String> = _imageUrl.asStateFlow()
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.data.price", ReplaceWith("formState.value.data.price"))
+    val price: StateFlow<String> get() = MutableStateFlow(_formState.value.data.price)
 
-    private val _uploadProgress = MutableStateFlow(0f)
-    val uploadProgress: StateFlow<Float> = _uploadProgress.asStateFlow()
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.data.unit", ReplaceWith("formState.value.data.unit"))
+    val unit: StateFlow<String> get() = MutableStateFlow(_formState.value.data.unit)
+
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.data.category", ReplaceWith("formState.value.data.category"))
+    val category: StateFlow<String> get() = MutableStateFlow(_formState.value.data.category)
+
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.data.weightPerPiece", ReplaceWith("formState.value.data.weightPerPiece"))
+    val weightPerPiece: StateFlow<String> get() = MutableStateFlow(_formState.value.data.weightPerPiece)
+
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.data.detailInfo", ReplaceWith("formState.value.data.detailInfo"))
+    val detailInfo: StateFlow<String> get() = MutableStateFlow(_formState.value.data.detailInfo)
+
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.data.available", ReplaceWith("formState.value.data.available"))
+    val available: StateFlow<Boolean> get() = MutableStateFlow(_formState.value.data.available)
+
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.data.imageData", ReplaceWith("formState.value.data.imageData"))
+    val imageData: StateFlow<ByteArray?> get() = MutableStateFlow(_formState.value.data.imageData)
+
+    /** @deprecated Use formState instead */
+    @Deprecated("Use formState.isSubmitting or saveSuccess", ReplaceWith("formState.value.isSubmitting"))
+    val uiState: StateFlow<CreateProductUiState> get() = MutableStateFlow(
+        when {
+            _saveSuccess.value -> CreateProductUiState.Success
+            _formState.value.isSubmitting -> CreateProductUiState.Saving
+            _formState.value.submitError != null -> CreateProductUiState.Error(_formState.value.submitError!!)
+            _formState.value.hasErrors -> {
+                val firstError = _formState.value.fieldErrors.entries.firstOrNull()
+                if (firstError != null) {
+                    CreateProductUiState.ValidationFailed(
+                        ValidationError.entries.find { it.fieldName == firstError.key } ?: ValidationError.ProductNameRequired
+                    )
+                } else {
+                    CreateProductUiState.Idle
+                }
+            }
+            else -> CreateProductUiState.Idle
+        }
+    )
 
     // Form update functions
     fun onProductNameChange(value: String) {
-        _productName.value = value
-        clearError()
+        _formState.update { it.updateField { data -> data.copy(productName = value) }.clearFieldError(ValidationError.ProductNameRequired.fieldName) }
     }
 
     fun onProductIdChange(value: String) {
-        _productId.value = value
+        _formState.update { it.updateField { data -> data.copy(productId = value) } }
     }
 
     fun onSearchTermsChange(value: String) {
-        _searchTerms.value = value
+        _formState.update { it.updateField { data -> data.copy(searchTerms = value) }.clearFieldError(ValidationError.SearchTermsRequired.fieldName) }
     }
 
     fun onPriceChange(value: String) {
-        _price.value = value
-        clearError()
+        _formState.update { it.updateField { data -> data.copy(price = value) }.clearFieldError(ValidationError.PriceRequired.fieldName) }
     }
 
     fun onUnitChange(value: String) {
-        _unit.value = value
-        clearError()
+        _formState.update { it.updateField { data -> data.copy(unit = value) }.clearFieldError(ValidationError.UnitRequired.fieldName) }
     }
 
     fun onCategoryChange(value: String) {
-        _category.value = value
-        clearError()
+        _formState.update { it.updateField { data -> data.copy(category = value) }.clearFieldError(ValidationError.CategoryRequired.fieldName) }
     }
 
     fun onWeightPerPieceChange(value: String) {
-        _weightPerPiece.value = value
+        _formState.update { it.updateField { data -> data.copy(weightPerPiece = value) }.clearFieldError(ValidationError.WeightRequired.fieldName) }
     }
 
     fun onDetailInfoChange(value: String) {
-        _detailInfo.value = value
+        _formState.update { it.updateField { data -> data.copy(detailInfo = value) } }
     }
 
     fun onAvailableChange(value: Boolean) {
-        _available.value = value
+        _formState.update { it.updateField { data -> data.copy(available = value) } }
     }
 
     fun onImageSelected(imageData: ByteArray) {
-        _imageData.value = imageData
-        clearError()
+        _formState.update { it.updateField { data -> data.copy(imageData = imageData) }.clearFieldError(ValidationError.ImageRequired.fieldName) }
     }
 
     /**
@@ -126,40 +220,39 @@ class CreateProductViewModel(
      */
     fun saveProduct() {
         // Validate inputs
-        val validationError = validateForm()
-        if (validationError != null) {
-            _uiState.value = CreateProductUiState.ValidationFailed(validationError)
+        val errors = validateFormData(_formState.value.data)
+        if (errors.isNotEmpty()) {
+            _formState.update { it.withFieldErrors(errors) }
             return
         }
 
         viewModelScope.launch {
-            _uiState.value = CreateProductUiState.Saving
+            _formState.update { it.submitting() }
 
             try {
                 // Verify user is authenticated
                 val currentUserId = authRepository.getCurrentUserId()
                 if (currentUserId == null) {
-                    _uiState.value = CreateProductUiState.Error("User not authenticated")
+                    _formState.update { it.submitFailure("User not authenticated") }
                     return@launch
                 }
 
                 val sellerId = sellerConfig.sellerId
+                val formData = _formState.value.data
 
                 // Upload image if new image data exists
-                var finalImageUrl = _imageUrl.value
-                if (_imageData.value != null) {
+                var finalImageUrl = formData.imageUrl
+                if (formData.imageData != null) {
                     _uploadProgress.value = 0f
                     val uploadResult = storageRepository.uploadImage(
-                        imageData = _imageData.value!!,
+                        imageData = formData.imageData,
                         onProgress = { progress ->
                             _uploadProgress.value = progress
                         }
                     )
 
                     if (uploadResult.isFailure) {
-                        _uiState.value = CreateProductUiState.Error(
-                            "Failed to upload image: ${uploadResult.exceptionOrNull()?.message}"
-                        )
+                        _formState.update { it.submitFailure("Failed to upload image: ${uploadResult.exceptionOrNull()?.message}") }
                         return@launch
                     }
 
@@ -169,15 +262,15 @@ class CreateProductViewModel(
                 // Create article object
                 val article = Article(
                     id = "", // Firebase will generate ID
-                    productId = _productId.value,
-                    productName = _productName.value,
-                    price = _price.value.toDouble(),
-                    unit = _unit.value,
-                    category = _category.value,
-                    searchTerms = prepareSearchTerms(),
-                    weightPerPiece = _weightPerPiece.value.toDoubleOrNull() ?: 0.0,
-                    detailInfo = _detailInfo.value,
-                    available = _available.value,
+                    productId = formData.productId,
+                    productName = formData.productName,
+                    price = formData.price.toDouble(),
+                    unit = formData.unit,
+                    category = formData.category,
+                    searchTerms = prepareSearchTerms(formData),
+                    weightPerPiece = formData.weightPerPiece.toDoubleOrNull() ?: 0.0,
+                    detailInfo = formData.detailInfo,
+                    available = formData.available,
                     imageUrl = finalImageUrl
                 )
 
@@ -185,77 +278,76 @@ class CreateProductViewModel(
                 val saveResult = articleRepository.saveArticle(sellerId, article)
 
                 if (saveResult.isSuccess) {
-                    _uiState.value = CreateProductUiState.Success
+                    _formState.update { it.submitSuccess() }
+                    _saveSuccess.value = true
                     clearForm()
                 } else {
-                    _uiState.value = CreateProductUiState.Error(
-                        "Failed to save product: ${saveResult.exceptionOrNull()?.message}"
-                    )
+                    _formState.update { it.submitFailure("Failed to save product: ${saveResult.exceptionOrNull()?.message}") }
                 }
 
             } catch (e: Exception) {
                 println("❌ CreateProductViewModel.saveProduct: Error - ${e.message}")
                 e.printStackTrace()
-                _uiState.value = CreateProductUiState.Error(
-                    e.message ?: "Failed to save product"
-                )
+                _formState.update { it.submitFailure(e.message ?: "Failed to save product") }
             }
         }
     }
 
     /**
-     * Validate form inputs
-     * @return ValidationError if validation fails, null if valid
+     * Validate form data and return field errors.
+     * @return Map of field names to error messages
      */
-    private fun validateForm(): ValidationError? {
-        if (_productName.value.isBlank()) {
-            return ValidationError.ProductNameRequired
+    private fun validateFormData(data: ProductFormData): Map<String, String> {
+        val errors = mutableMapOf<String, String>()
+
+        if (data.productName.isBlank()) {
+            errors[ValidationError.ProductNameRequired.fieldName] = "Product name is required"
         }
 
-        if (_searchTerms.value.isBlank()) {
-            return ValidationError.SearchTermsRequired
+        if (data.searchTerms.isBlank()) {
+            errors[ValidationError.SearchTermsRequired.fieldName] = "Search terms are required"
         }
 
-        val priceValue = _price.value.toDoubleOrNull()
+        val priceValue = data.price.toDoubleOrNull()
         if (priceValue == null || priceValue <= 0) {
-            return ValidationError.PriceRequired
+            errors[ValidationError.PriceRequired.fieldName] = "Valid price is required"
         }
 
-        if (_unit.value.isBlank()) {
-            return ValidationError.UnitRequired
+        if (data.unit.isBlank()) {
+            errors[ValidationError.UnitRequired.fieldName] = "Unit is required"
         }
 
-        if (_category.value.isBlank()) {
-            return ValidationError.CategoryRequired
+        if (data.category.isBlank()) {
+            errors[ValidationError.CategoryRequired.fieldName] = "Category is required"
         }
 
-        if (_imageData.value == null && _imageUrl.value.isBlank()) {
-            return ValidationError.ImageRequired
+        if (data.imageData == null && data.imageUrl.isBlank()) {
+            errors[ValidationError.ImageRequired.fieldName] = "Image is required"
         }
 
         // Validate weight per piece if unit is countable
-        val unitEnum = ProductUnit.fromDisplayName(_unit.value)
+        val unitEnum = ProductUnit.fromDisplayName(data.unit)
         if (unitEnum?.isCountable == true) {
-            val weight = _weightPerPiece.value.toDoubleOrNull()
+            val weight = data.weightPerPiece.toDoubleOrNull()
             if (weight == null || weight <= 0) {
-                return ValidationError.WeightRequired
+                errors[ValidationError.WeightRequired.fieldName] = "Weight per piece is required for countable units"
             }
         }
 
-        return null
+        return errors
     }
 
     /**
      * Prepare search terms by adding product name and removing duplicates
      */
-    private fun prepareSearchTerms(): String {
+    private fun prepareSearchTerms(data: ProductFormData): String {
         val terms = mutableSetOf<String>()
 
         // Add product name
-        terms.add(_productName.value.trim())
+        terms.add(data.productName.trim())
 
         // Add search terms
-        _searchTerms.value.split(",")
+        data.searchTerms.split(",")
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .forEach { terms.add(it) }
@@ -267,17 +359,12 @@ class CreateProductViewModel(
      * Clear the form after successful save
      */
     private fun clearForm() {
-        _productName.value = ""
-        _productId.value = ""
-        _searchTerms.value = ""
-        _price.value = ""
-        _unit.value = catalogConfig.defaultUnit
-        _category.value = catalogConfig.defaultCategory
-        _weightPerPiece.value = ""
-        _detailInfo.value = ""
-        _available.value = true
-        _imageData.value = null
-        _imageUrl.value = ""
+        _formState.value = formStateOf(
+            ProductFormData(
+                unit = catalogConfig.defaultUnit,
+                category = catalogConfig.defaultCategory
+            )
+        )
         _uploadProgress.value = 0f
     }
 
@@ -285,9 +372,11 @@ class CreateProductViewModel(
      * Clear error state
      */
     fun clearError() {
-        if (_uiState.value is CreateProductUiState.Error ||
-            _uiState.value is CreateProductUiState.ValidationFailed) {
-            _uiState.value = CreateProductUiState.Idle
+        _formState.update {
+            it.copy(
+                submitError = null,
+                fieldErrors = emptyMap()
+            )
         }
     }
 
@@ -295,7 +384,8 @@ class CreateProductViewModel(
      * Reset to idle state (for navigation)
      */
     fun resetState() {
-        _uiState.value = CreateProductUiState.Idle
+        _saveSuccess.value = false
+        clearError()
     }
 }
 
@@ -312,14 +402,14 @@ sealed interface CreateProductUiState {
 
 /**
  * Validation errors for product creation form.
- * Each maps to a string resource for localized display.
+ * Each maps to a field name for FormState integration and a string resource for localized display.
  */
-enum class ValidationError {
-    ProductNameRequired,
-    SearchTermsRequired,
-    PriceRequired,
-    UnitRequired,
-    CategoryRequired,
-    ImageRequired,
-    WeightRequired
+enum class ValidationError(val fieldName: String) {
+    ProductNameRequired("productName"),
+    SearchTermsRequired("searchTerms"),
+    PriceRequired("price"),
+    UnitRequired("unit"),
+    CategoryRequired("category"),
+    ImageRequired("image"),
+    WeightRequired("weightPerPiece")
 }
