@@ -60,11 +60,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -137,21 +139,26 @@ fun CustomerProfileScreenModern(
     onNavigateToFavorites: () -> Unit = {},
     isAnonymous: Boolean = true,
     authProvider: AuthProvider = AuthProvider.ANONYMOUS,
-    userEmail: String? = null
+    userEmail: String? = null,
+    profileViewModel: CustomerProfileViewModel = koinViewModel()
 ) {
     val defaultMarket = stringResource(Res.string.default_market)
     val profile = state.profile
     val photoUrl = state.photoUrl
 
-    var displayName by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
+    // FormState-based personal info management
+    val formState by profileViewModel.formState.collectAsState()
+    val isEditingPersonalInfo by profileViewModel.isEditing.collectAsState()
+    val displayName = formState.data.displayName
+    val email = formState.data.email
+    val phone = formState.data.phone
+
+    // Other local state that's not part of the form
     var selectedMarket by remember { mutableStateOf(defaultMarket) }
     var pickupTime by remember { mutableStateOf("15:45") }
     var notificationsEnabled by remember { mutableStateOf(true) }
     var newsletterEnabled by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
-    var isEditingPersonalInfo by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
@@ -216,12 +223,10 @@ fun CustomerProfileScreenModern(
         onAction(com.together.newverse.ui.state.BuyProfileAction.LoadCustomerProfile)
     }
 
-    // Update UI state when profile loads
+    // Initialize FormState when profile loads
     LaunchedEffect(profile) {
         profile?.let {
-            displayName = it.displayName
-            email = it.emailAddress
-            phone = it.telephoneNumber
+            profileViewModel.initializeFromProfile(it)
         }
     }
 
@@ -269,27 +274,18 @@ fun CustomerProfileScreenModern(
                         email = email,
                         phone = phone,
                         isEditing = isEditingPersonalInfo,
-                        onDisplayNameChange = { displayName = it },
-                        onEmailChange = { email = it },
-                        onPhoneChange = { phone = it },
-                        onEditClick = { isEditingPersonalInfo = true },
+                        isSubmitting = formState.isSubmitting,
+                        emailError = formState.getFieldError(ProfileValidation.FIELD_EMAIL),
+                        phoneError = formState.getFieldError(ProfileValidation.FIELD_PHONE),
+                        onDisplayNameChange = { profileViewModel.onDisplayNameChange(it) },
+                        onEmailChange = { profileViewModel.onEmailChange(it) },
+                        onPhoneChange = { profileViewModel.onPhoneChange(it) },
+                        onEditClick = { profileViewModel.startEditing() },
                         onSaveClick = {
-                            // Save the changes to Firebase
-                            onAction(com.together.newverse.ui.state.BuyProfileAction.SaveBuyerProfile(
-                                displayName = displayName,
-                                email = email,
-                                phone = phone
-                            ))
-                            isEditingPersonalInfo = false
+                            profileViewModel.saveProfile()
                         },
                         onCancelClick = {
-                            // Restore original values
-                            profile?.let {
-                                displayName = it.displayName
-                                email = it.emailAddress
-                                phone = it.telephoneNumber
-                            }
-                            isEditingPersonalInfo = false
+                            profileViewModel.cancelEditing()
                         }
                     )
 
@@ -504,31 +500,15 @@ private fun ProfileHeaderCard(
     }
 }
 
-// Validation helper functions
-private fun isValidEmail(email: String): Boolean {
-    if (email.isEmpty()) return true // Empty is valid (optional field)
-    val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
-    return emailRegex.matches(email)
-}
-
-private fun isValidPhoneNumber(phone: String): Boolean {
-    if (phone.isEmpty()) return true // Empty is valid (optional field)
-    // Allow digits, spaces, +, -, (, )
-    val cleanedPhone = phone.replace(Regex("[\\s+\\-()]"), "")
-    return cleanedPhone.length >= 10 && cleanedPhone.all { it.isDigit() }
-}
-
-private fun hasValidPhoneChars(phone: String): Boolean {
-    if (phone.isEmpty()) return true
-    return phone.all { it.isDigit() || it.isWhitespace() || it == '+' || it == '-' || it == '(' || it == ')' }
-}
-
 @Composable
 private fun PersonalInfoCard(
     displayName: String,
     email: String,
     phone: String,
     isEditing: Boolean,
+    isSubmitting: Boolean = false,
+    emailError: String? = null,
+    phoneError: String? = null,
     onDisplayNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
@@ -536,16 +516,30 @@ private fun PersonalInfoCard(
     onSaveClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
-    // Validation states
-    val isEmailValid = isValidEmail(email)
-    val hasValidPhoneCharacters = hasValidPhoneChars(phone)
-    val isPhoneValid = hasValidPhoneCharacters && isValidPhoneNumber(phone)
-    val canSave = isEmailValid && isPhoneValid
+    // Validation states - use ProfileValidation for real-time validation
+    val isEmailValid = ProfileValidation.isValidEmail(email)
+    val hasValidPhoneCharacters = ProfileValidation.hasValidPhoneChars(phone)
+    val isPhoneValid = hasValidPhoneCharacters && ProfileValidation.isValidPhoneNumber(phone)
+    val canSave = isEmailValid && isPhoneValid && !isSubmitting
 
-    // Error messages
+    // Error messages from FormState or computed
     val emailErrorMessage = stringResource(Res.string.error_email_format)
     val phoneFormatErrorMessage = stringResource(Res.string.error_phone_format)
     val phoneCharsErrorMessage = stringResource(Res.string.error_phone_invalid_chars)
+
+    // Map error keys to localized messages
+    val resolvedEmailError = when {
+        emailError != null -> emailErrorMessage
+        !isEmailValid -> emailErrorMessage
+        else -> null
+    }
+    val resolvedPhoneError = when {
+        phoneError == "phone_invalid_chars" -> phoneCharsErrorMessage
+        phoneError == "phone_format" -> phoneFormatErrorMessage
+        !hasValidPhoneCharacters -> phoneCharsErrorMessage
+        !isPhoneValid -> phoneFormatErrorMessage
+        else -> null
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -591,7 +585,7 @@ private fun PersonalInfoCard(
                 onValueChange = onDisplayNameChange,
                 label = stringResource(Res.string.label_display_name),
                 leadingIcon = Icons.Default.Person,
-                enabled = isEditing,
+                enabled = isEditing && !isSubmitting,
                 isValid = displayName.isNotEmpty()
             )
 
@@ -602,10 +596,10 @@ private fun PersonalInfoCard(
                 onValueChange = onEmailChange,
                 label = stringResource(Res.string.label_email),
                 leadingIcon = Icons.Default.Email,
-                enabled = isEditing,
+                enabled = isEditing && !isSubmitting,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 isValid = isEmailValid,
-                errorMessage = if (!isEmailValid) emailErrorMessage else null
+                errorMessage = resolvedEmailError
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -615,14 +609,10 @@ private fun PersonalInfoCard(
                 onValueChange = onPhoneChange,
                 label = stringResource(Res.string.label_phone),
                 leadingIcon = Icons.Default.Phone,
-                enabled = isEditing,
+                enabled = isEditing && !isSubmitting,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 isValid = isPhoneValid,
-                errorMessage = when {
-                    !hasValidPhoneCharacters -> phoneCharsErrorMessage
-                    !isPhoneValid -> phoneFormatErrorMessage
-                    else -> null
-                }
+                errorMessage = resolvedPhoneError
             )
 
             // Save and Cancel Buttons (only show when editing)
@@ -636,6 +626,7 @@ private fun PersonalInfoCard(
                     OutlinedButton(
                         onClick = onCancelClick,
                         modifier = Modifier.weight(1f),
+                        enabled = !isSubmitting,
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )

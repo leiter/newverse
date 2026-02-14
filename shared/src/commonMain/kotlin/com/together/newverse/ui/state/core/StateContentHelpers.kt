@@ -20,10 +20,22 @@ import androidx.compose.runtime.Composable
  * }
  * ```
  *
+ * With skeleton loader:
+ * ```
+ * AsyncStateContent(
+ *     state = articlesState,
+ *     skeletonContent = { ArticleListSkeleton() },
+ *     onRetry = { viewModel.loadArticles() }
+ * ) { articles ->
+ *     ArticleList(articles = articles)
+ * }
+ * ```
+ *
  * @param state The AsyncState to render
  * @param onRetry Optional retry callback for error state (only shown if error is retryable)
  * @param initialContent Optional composable for Initial state (defaults to nothing)
  * @param loadingContent Optional composable for Loading state (defaults to nothing)
+ * @param skeletonContent Optional skeleton composable for Loading state (takes precedence over loadingContent)
  * @param errorContent Optional custom error composable (overrides default)
  * @param content Composable for Success state, receives the data
  */
@@ -33,12 +45,19 @@ fun <T> AsyncStateContent(
     onRetry: (() -> Unit)? = null,
     initialContent: @Composable () -> Unit = {},
     loadingContent: @Composable () -> Unit = {},
+    skeletonContent: (@Composable () -> Unit)? = null,
     errorContent: (@Composable (message: String, retryable: Boolean) -> Unit)? = null,
     content: @Composable (T) -> Unit
 ) {
     when (state) {
         is AsyncState.Initial -> initialContent()
-        is AsyncState.Loading -> loadingContent()
+        is AsyncState.Loading -> {
+            if (skeletonContent != null) {
+                skeletonContent()
+            } else {
+                loadingContent()
+            }
+        }
         is AsyncState.Error -> {
             if (errorContent != null) {
                 errorContent(state.message, state.retryable)
@@ -78,6 +97,7 @@ fun <T> AsyncStateContent(
  * @param awaitingAuthContent Optional composable while checking auth (defaults to nothing)
  * @param authRequiredContent Optional custom auth required composable (overrides default)
  * @param loadingContent Optional composable for authenticated loading state
+ * @param skeletonContent Optional skeleton composable for loading state (takes precedence over loadingContent)
  * @param errorContent Optional custom error composable for authenticated error state
  * @param content Composable for authenticated success state, receives the data
  */
@@ -89,6 +109,7 @@ fun <T> AuthAwareContent(
     awaitingAuthContent: @Composable () -> Unit = {},
     authRequiredContent: (@Composable () -> Unit)? = null,
     loadingContent: @Composable () -> Unit = {},
+    skeletonContent: (@Composable () -> Unit)? = null,
     errorContent: (@Composable (message: String, retryable: Boolean) -> Unit)? = null,
     content: @Composable (T) -> Unit
 ) {
@@ -108,6 +129,7 @@ fun <T> AuthAwareContent(
                 state = state.data,
                 onRetry = onRetry,
                 loadingContent = loadingContent,
+                skeletonContent = skeletonContent,
                 errorContent = errorContent,
                 content = content
             )
@@ -125,6 +147,7 @@ fun <T> AuthAwareContent(
  * @param onLoginRequired Callback when user needs to authenticate
  * @param onRetry Optional retry callback for error states
  * @param loadingContent Composable for any loading state (auth or data)
+ * @param skeletonContent Optional skeleton composable for loading state (takes precedence over loadingContent)
  * @param authRequiredContent Optional custom auth required composable
  * @param errorContent Optional custom error composable
  * @param content Composable for success state
@@ -135,12 +158,19 @@ fun <T> AuthAwareContentWithLoading(
     onLoginRequired: () -> Unit = {},
     onRetry: (() -> Unit)? = null,
     loadingContent: @Composable () -> Unit = {},
+    skeletonContent: (@Composable () -> Unit)? = null,
     authRequiredContent: (@Composable () -> Unit)? = null,
     errorContent: (@Composable (message: String, retryable: Boolean) -> Unit)? = null,
     content: @Composable (T) -> Unit
 ) {
     when (state) {
-        is AuthAwareState.AwaitingAuth -> loadingContent()
+        is AuthAwareState.AwaitingAuth -> {
+            if (skeletonContent != null) {
+                skeletonContent()
+            } else {
+                loadingContent()
+            }
+        }
         is AuthAwareState.AuthRequired -> {
             if (authRequiredContent != null) {
                 authRequiredContent()
@@ -151,7 +181,13 @@ fun <T> AuthAwareContentWithLoading(
         is AuthAwareState.Authenticated -> {
             when (state.data) {
                 is AsyncState.Initial,
-                is AsyncState.Loading -> loadingContent()
+                is AsyncState.Loading -> {
+                    if (skeletonContent != null) {
+                        skeletonContent()
+                    } else {
+                        loadingContent()
+                    }
+                }
                 is AsyncState.Error -> {
                     if (errorContent != null) {
                         errorContent(state.data.message, state.data.retryable)

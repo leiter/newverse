@@ -1,5 +1,6 @@
 package com.together.newverse.di
 
+import com.together.newverse.ui.screens.buy.CustomerProfileViewModel
 import com.together.newverse.ui.state.BuyAppViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -22,6 +23,12 @@ val appModule = module {
         )
     }
 
+    // Customer Profile ViewModel (FormState-based)
+    viewModel {
+        CustomerProfileViewModel(
+            profileRepository = get()
+        )
+    }
 }
 
 /**
