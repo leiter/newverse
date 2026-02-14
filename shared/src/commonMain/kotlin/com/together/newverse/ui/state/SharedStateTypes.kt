@@ -5,12 +5,18 @@ import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.navigation.NavRoutes
+import com.together.newverse.ui.state.core.AsyncState
+import com.together.newverse.ui.state.core.AuthAwareState
 
 // ===== Base Interfaces =====
 
 /**
  * Base interface for all screen states.
  * Ensures consistent loading and error handling.
+ *
+ * @see AsyncState For a more flexible approach with Initial/Loading/Success/Error states.
+ * Consider migrating screen states to use AsyncState<T> for better composition with
+ * AuthAwareState and flow operators.
  */
 interface ScreenState {
     val isLoading: Boolean
@@ -38,6 +44,13 @@ typealias OrderHistoryScreenState = ListingState<Order>
 
 // ===== User State =====
 
+/**
+ * Legacy user state type. Consider using AuthState from AuthFlowCoordinator for
+ * authentication state, which provides better integration with auth-aware flows.
+ *
+ * @see com.together.newverse.ui.state.core.AuthState For auth-driven state management.
+ * @see com.together.newverse.ui.state.core.AuthAwareState For wrapping data with auth context.
+ */
 sealed interface UserState {
     data object NotAuthenticated : UserState
     data object Guest : UserState
@@ -71,6 +84,14 @@ data class UserProfile(
 
 // ===== Error State =====
 
+/**
+ * Error state with detailed information.
+ *
+ * Note: For simpler error handling in async operations, consider using
+ * AsyncState.Error which provides message, cause, and retryable fields.
+ *
+ * @see com.together.newverse.ui.state.core.AsyncState.Error
+ */
 data class ErrorState(
     val message: String,
     val code: String? = null,
@@ -173,6 +194,15 @@ data class BasketState(
 
 // ===== App Metadata =====
 
+/**
+ * App metadata and initialization state.
+ *
+ * Note: For auth initialization, consider using AuthFlowCoordinator which
+ * handles auth state initialization automatically with AuthState.Initializing.
+ *
+ * @see com.together.newverse.ui.state.core.AuthFlowCoordinator
+ * @see com.together.newverse.ui.state.core.AuthState
+ */
 data class AppMetaState(
     val version: String = "1.0.0",
     val buildNumber: Int = 1,
