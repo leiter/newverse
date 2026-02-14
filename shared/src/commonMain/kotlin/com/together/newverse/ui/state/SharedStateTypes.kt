@@ -63,6 +63,31 @@ fun <T> ListingState<T>.toAsyncState(): AsyncState<List<T>> = when {
     else -> AsyncState.Success(items)
 }
 
+/**
+ * Converts a ScreenState to AsyncState for use with AsyncStateContent.
+ * Generic version for any ScreenState with a data property.
+ *
+ * @param dataExtractor Function to extract the data from the screen state
+ */
+inline fun <S : ScreenState, T> S.toAsyncState(dataExtractor: (S) -> T?): AsyncState<T> {
+    val currentError = error // Store in local val for smart cast
+    return when {
+        isLoading -> AsyncState.Loading
+        currentError != null -> AsyncState.Error(
+            message = currentError.message,
+            retryable = currentError.retryable
+        )
+        else -> {
+            val data = dataExtractor(this)
+            if (data != null) {
+                AsyncState.Success(data)
+            } else {
+                AsyncState.Initial
+            }
+        }
+    }
+}
+
 // ===== User State =====
 
 /**
@@ -336,6 +361,13 @@ data class CustomerProfileScreenState(
 ) : ScreenState
 
 /**
+ * Converts CustomerProfileScreenState to AsyncState<BuyerProfile>.
+ * Use with AsyncStateContent for consistent loading/error handling.
+ */
+fun CustomerProfileScreenState.toProfileAsyncState(): AsyncState<BuyerProfile> =
+    toAsyncState { it.profile }
+
+/**
  * Authentication provider types
  */
 enum class AuthProvider {
@@ -399,6 +431,22 @@ data class MainScreenState(
                 ProductFilter.GEMUESE -> filtered.filter { it.searchTerms.contains("gemüse", ignoreCase = true) }
             }
         }
+}
+
+/**
+ * Converts MainScreenState to AsyncState<List<Article>>.
+ * Use with AsyncStateContent for consistent loading/error handling.
+ */
+fun MainScreenState.toArticlesAsyncState(): AsyncState<List<Article>> {
+    val currentError = error // Store in local val for smart cast
+    return when {
+        isLoading && articles.isEmpty() -> AsyncState.Loading
+        currentError != null -> AsyncState.Error(
+            message = currentError.message,
+            retryable = currentError.retryable
+        )
+        else -> AsyncState.Success(filteredArticles)
+    }
 }
 
 // ===== Sell-only types =====
