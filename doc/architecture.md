@@ -126,3 +126,99 @@ fun SearchBar(onSearch: (String) -> Unit) {
     Button(onClick = { onSearch(query) }) { Text("Search") }
 }
 ```
+
+## Core State Abstractions
+
+Located in `shared/src/commonMain/.../ui/state/core/`:
+
+### AsyncState<T>
+
+Generic loading/success/error pattern:
+
+```kotlin
+sealed interface AsyncState<out T> {
+    data object Initial : AsyncState<Nothing>
+    data object Loading : AsyncState<Nothing>
+    data class Success<T>(val data: T) : AsyncState<T>
+    data class Error(val message: String, val retryable: Boolean = true) : AsyncState<Nothing>
+}
+
+// Usage in ViewModel
+val ordersState: StateFlow<AsyncState<List<Order>>> = ...
+
+// Usage in Composable
+AsyncStateContent(
+    state = ordersState,
+    onRetry = { viewModel.loadOrders() },
+    loadingContent = { CircularProgressIndicator() }
+) { orders ->
+    OrderList(orders = orders)
+}
+```
+
+### AuthAwareState<T>
+
+For auth-dependent data flows:
+
+```kotlin
+sealed interface AuthAwareState<out T> {
+    data object AwaitingAuth : AuthAwareState<Nothing>
+    data object AuthRequired : AuthAwareState<Nothing>
+    data class Authenticated<T>(val userId: String, val data: AsyncState<T>) : AuthAwareState<T>
+}
+
+// Usage with AuthFlowCoordinator
+val profileFlow: StateFlow<AuthAwareState<BuyerProfile>> =
+    authFlowCoordinator.whenAuthenticated { userId ->
+        profileRepository.observeProfile()
+    }.stateIn(viewModelScope, SharingStarted.Lazily, AuthAwareState.AwaitingAuth)
+```
+
+### FormState<T>
+
+For form management with validation:
+
+```kotlin
+data class FormState<T>(
+    val data: T,
+    val isSubmitting: Boolean = false,
+    val fieldErrors: Map<String, String> = emptyMap(),
+    val isDirty: Boolean = false
+)
+
+// Usage
+val formState = formStateOf(ProductFormData())
+    .updateField { it.copy(name = "New Product") }
+    .validate { data ->
+        if (data.name.isBlank()) mapOf("name" to "Required") else emptyMap()
+    }
+```
+
+### Converters
+
+Bridge legacy ScreenState to AsyncState:
+
+```kotlin
+// Convert ListingState to AsyncState
+val asyncState = orderHistoryState.toAsyncState()
+
+// Generic converter with data extractor
+val profileAsync = customerProfileState.toAsyncState { it.profile }
+```
+
+## BaseAppViewModel
+
+Both BuyAppViewModel and SellAppViewModel extend BaseAppViewModel which provides:
+
+- `authCoordinator` - AuthFlowCoordinator for auth-aware flows
+- `isAuthenticated()` - Check current auth state
+- `initializeAuthCoordinator()` - Setup auth observation
+
+```kotlin
+abstract class BaseAppViewModel<S : Any, A : Any>(
+    protected val authRepository: AuthRepository
+) : ViewModel() {
+    protected val authCoordinator = AuthFlowCoordinator(authRepository)
+
+    abstract fun dispatch(action: A)
+}
