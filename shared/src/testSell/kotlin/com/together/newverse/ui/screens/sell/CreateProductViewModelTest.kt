@@ -14,6 +14,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -471,20 +472,22 @@ class CreateProductViewModelTest {
         viewModel.saveProduct()
         advanceUntilIdle()
 
-        // Verify validation failed state
-        viewModel.uiState.test {
+        // Verify validation failed state (formState has errors)
+        viewModel.formState.test {
             val errorState = awaitItem()
-            assertIs<CreateProductUiState.ValidationFailed>(errorState)
+            assertTrue(errorState.hasErrors)
+            assertTrue(errorState.fieldErrors.containsKey("productName"))
             cancelAndIgnoreRemainingEvents()
         }
 
         // When changing a field
         viewModel.onProductNameChange("New Name")
+        advanceUntilIdle()
 
-        // Then state should be Idle
-        viewModel.uiState.test {
+        // Then productName error should be cleared
+        viewModel.formState.test {
             val state = awaitItem()
-            assertIs<CreateProductUiState.Idle>(state)
+            assertFalse(state.fieldErrors.containsKey("productName"))
             cancelAndIgnoreRemainingEvents()
         }
     }
