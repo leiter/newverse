@@ -1,18 +1,17 @@
 package com.together.newverse.ui.state
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.ui.navigation.NavRoutes
+import com.together.newverse.ui.state.core.AuthState
+import com.together.newverse.ui.state.core.BaseAppViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
@@ -20,17 +19,18 @@ import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
 
 /**
- * Sell flavor ViewModel managing all app state for seller/vendor app
+ * Sell flavor ViewModel managing all app state for seller/vendor app.
  *
  * Uses SellAppState (flattened, seller-only state) with SellAction types.
+ * Extends BaseAppViewModel for auth-driven state management via AuthFlowCoordinator.
  */
 class SellAppViewModel(
     private val articleRepository: ArticleRepository,
-    private val authRepository: AuthRepository
-) : ViewModel() {
+    authRepository: AuthRepository
+) : BaseAppViewModel<SellAppState, SellAction>(authRepository) {
 
-    private val _state = MutableStateFlow(SellAppState())
-    val state: StateFlow<SellAppState> = _state.asStateFlow()
+    override val _state = MutableStateFlow(SellAppState())
+    override val state: StateFlow<SellAppState> = _state.asStateFlow()
 
     // Pending import content - stored in ViewModel to survive configuration changes
     private val _pendingImportContent = MutableStateFlow<String?>(null)
@@ -41,47 +41,72 @@ class SellAppViewModel(
     }
 
     init {
+        // Initialize auth coordinator from base class
+        initializeAuthCoordinator()
+
+        // Observe auth state changes and sync to SellAppState
+        observeAuthStateChanges()
+
         // Initialize app on startup
         initializeApp()
-
-        // Observe auth state changes
-        observeAuthState()
-
-        // Load articles after auth is ready
-        viewModelScope.launch {
-            authRepository.observeAuthState()
-                .filterNotNull()
-                .first()
-            loadProducts()
-        }
     }
 
-    private fun observeAuthState() {
+    /**
+     * Observes AuthFlowCoordinator's auth state and syncs to SellAppState.
+     * This bridges the new AuthState to the existing UserState for backward compatibility.
+     */
+    private fun observeAuthStateChanges() {
         viewModelScope.launch {
-            authRepository.observeAuthState().collect { userId ->
+            authCoordinator.authState.collect { authState ->
                 _state.update { current ->
                     current.copy(
-                        user = if (userId != null) {
-                            UserState.LoggedIn(
-                                id = userId,
-                                email = "",
-                                name = "",
-                                role = UserRole.SELLER
+                        user = authState.toUserState(),
+                        requiresLogin = authState !is AuthState.Authenticated,
+                        meta = when (authState) {
+                            is AuthState.Initializing -> current.meta.copy(
+                                isInitializing = true,
+                                initializationStep = InitializationStep.CheckingAuth
                             )
-                        } else {
-                            UserState.Guest
-                        },
-                        // Seller flavor: require login if no user
-                        requiresLogin = userId == null
+                            is AuthState.NotAuthenticated -> current.meta.copy(
+                                isInitializing = false,
+                                isInitialized = true,
+                                initializationStep = InitializationStep.Complete
+                            )
+                            is AuthState.Authenticated -> current.meta.copy(
+                                isInitializing = false,
+                                isInitialized = true,
+                                initializationStep = InitializationStep.Complete
+                            )
+                        }
                     )
+                }
+
+                // Load products when authenticated
+                if (authState is AuthState.Authenticated) {
+                    loadProducts()
                 }
             }
         }
     }
 
+    /**
+     * Converts AuthState to UserState for backward compatibility with existing UI.
+     */
+    private fun AuthState.toUserState(): UserState = when (this) {
+        is AuthState.Initializing -> UserState.Loading
+        is AuthState.NotAuthenticated -> UserState.Guest
+        is AuthState.Authenticated -> UserState.LoggedIn(
+            id = userId,
+            name = displayName ?: "",
+            email = email ?: "",
+            role = UserRole.SELLER,
+            profileImageUrl = photoUrl
+        )
+    }
+
     // ===== Public Action Handlers =====
 
-    fun dispatch(action: SellAction) {
+    override fun dispatch(action: SellAction) {
         when (action) {
             is SellNavigationAction -> handleNavigationAction(action)
             is SellUserAction -> handleUserAction(action)
@@ -140,13 +165,13 @@ class SellAppViewModel(
 
     private fun handleUiAction(action: SellUiAction) {
         when (action) {
-            is SellUiAction.ShowSnackbar -> showSnackbar(action.message, action.type)
-            is SellUiAction.HideSnackbar -> hideSnackbar()
-            is SellUiAction.ShowDialog -> showDialog(action.dialog)
-            is SellUiAction.HideDialog -> hideDialog()
+            is SellUiAction.ShowSnackbar -> showSnackbarInState(action.message, action.type)
+            is SellUiAction.HideSnackbar -> hideSnackbarInState()
+            is SellUiAction.ShowDialog -> showDialogInState(action.dialog)
+            is SellUiAction.HideDialog -> hideDialogInState()
             is SellUiAction.ShowBottomSheet -> { /* TODO */ }
             is SellUiAction.HideBottomSheet -> { /* TODO */ }
-            is SellUiAction.SetRefreshing -> setRefreshing(action.isRefreshing)
+            is SellUiAction.SetRefreshing -> setRefreshingInState(action.isRefreshing)
             is SellUiAction.ShowPasswordResetDialog -> showPasswordResetDialog()
             is SellUiAction.HidePasswordResetDialog -> hidePasswordResetDialog()
             is SellUiAction.SetAuthMode -> { /* Not applicable to seller app - requires login */ }
@@ -174,33 +199,9 @@ class SellAppViewModel(
                     )
                 )}
 
-                checkAuthenticationStatus()
-
-                // Wait for auth state to stabilize
-                val userId = authRepository.observeAuthState()
-                    .filterNotNull()
-                    .first()
-
-                println("🚀 Sell App Init: Authentication complete, user ID: $userId")
-
-                // Load products
-                _state.update { it.copy(
-                    meta = it.meta.copy(
-                        initializationStep = InitializationStep.LoadingArticles
-                    )
-                )}
-                loadProducts()
-
-                // Mark initialization complete
-                _state.update { it.copy(
-                    meta = it.meta.copy(
-                        isInitializing = false,
-                        isInitialized = true,
-                        initializationStep = InitializationStep.Complete
-                    )
-                )}
-
-                println("🚀 Sell App Init: Initialization complete!")
+                // AuthFlowCoordinator handles auth checking automatically
+                // We just wait for it to complete and then load products
+                println("🚀 Sell App Init: Waiting for auth state...")
 
             } catch (e: Exception) {
                 println("❌ Sell App Init: Error - ${e.message}")
@@ -214,61 +215,6 @@ class SellAppViewModel(
                         )
                     )
                 )}
-            }
-        }
-    }
-
-    private suspend fun checkAuthenticationStatus() {
-        try {
-            println("🔍 Sell App: Checking authentication")
-
-            authRepository.checkPersistedAuth().fold(
-                onSuccess = { userId ->
-                    if (userId != null) {
-                        println("✅ Sell App: Restored auth session for user: $userId")
-                    } else {
-                        // Seller flavor requires login
-                        println("🏪 Sell App: No auth - login required")
-                        _state.update { current ->
-                            current.copy(
-                                user = UserState.Guest,
-                                requiresLogin = true,
-                                meta = current.meta.copy(
-                                    isInitializing = false,
-                                    isInitialized = true,
-                                    initializationStep = InitializationStep.Complete
-                                )
-                            )
-                        }
-                    }
-                },
-                onFailure = { error ->
-                    println("⚠️ Sell App: Failed to check auth - ${error.message}")
-                    _state.update { current ->
-                        current.copy(
-                            user = UserState.Guest,
-                            requiresLogin = true,
-                            meta = current.meta.copy(
-                                isInitializing = false,
-                                isInitialized = true,
-                                initializationStep = InitializationStep.Complete
-                            )
-                        )
-                    }
-                }
-            )
-        } catch (e: Exception) {
-            println("❌ Sell App: Exception checking auth - ${e.message}")
-            _state.update { current ->
-                current.copy(
-                    user = UserState.Guest,
-                    requiresLogin = true,
-                    meta = current.meta.copy(
-                        isInitializing = false,
-                        isInitialized = true,
-                        initializationStep = InitializationStep.Complete
-                    )
-                )
             }
         }
     }
@@ -322,6 +268,12 @@ class SellAppViewModel(
     // ===== Products =====
 
     private fun loadProducts() {
+        // Only load if authenticated
+        if (!isAuthenticated()) {
+            println("📦 SellAppViewModel.loadProducts: Skipping - not authenticated")
+            return
+        }
+
         viewModelScope.launch {
             println("📦 SellAppViewModel.loadProducts: START")
 
@@ -402,9 +354,9 @@ class SellAppViewModel(
         }
     }
 
-    // ===== UI =====
+    // ===== UI (state-embedded for backward compatibility) =====
 
-    private fun showSnackbar(message: String, type: SnackbarType) {
+    private fun showSnackbarInState(message: String, type: SnackbarType) {
         _state.update { current ->
             current.copy(
                 ui = current.ui.copy(
@@ -414,7 +366,7 @@ class SellAppViewModel(
         }
     }
 
-    private fun hideSnackbar() {
+    private fun hideSnackbarInState() {
         _state.update { current ->
             current.copy(
                 ui = current.ui.copy(snackbar = null)
@@ -422,7 +374,7 @@ class SellAppViewModel(
         }
     }
 
-    private fun showDialog(dialog: DialogState) {
+    private fun showDialogInState(dialog: DialogState) {
         _state.update { current ->
             current.copy(
                 ui = current.ui.copy(dialog = dialog)
@@ -430,7 +382,7 @@ class SellAppViewModel(
         }
     }
 
-    private fun hideDialog() {
+    private fun hideDialogInState() {
         _state.update { current ->
             current.copy(
                 ui = current.ui.copy(dialog = null)
@@ -438,7 +390,7 @@ class SellAppViewModel(
         }
     }
 
-    private fun setRefreshing(isRefreshing: Boolean) {
+    private fun setRefreshingInState(isRefreshing: Boolean) {
         _state.update { current ->
             current.copy(
                 ui = current.ui.copy(isRefreshing = isRefreshing)
@@ -464,23 +416,20 @@ class SellAppViewModel(
                 .onSuccess { userId ->
                     println("✅ Seller Login Success: userId=$userId")
 
+                    // AuthFlowCoordinator will automatically update auth state
+                    // which triggers observeAuthStateChanges() to update SellAppState
+
                     _state.update { current ->
                         current.copy(
                             auth = current.auth.copy(
                                 isLoading = false,
                                 isSuccess = true,
                                 error = null
-                            ),
-                            requiresLogin = false,
-                            meta = current.meta.copy(
-                                isInitializing = false,
-                                isInitialized = true,
-                                initializationStep = InitializationStep.Complete
                             )
                         )
                     }
 
-                    showSnackbar(getString(Res.string.snackbar_login_success), SnackbarType.SUCCESS)
+                    showSnackbarInState(getString(Res.string.snackbar_login_success), SnackbarType.SUCCESS)
                 }
                 .onFailure { error ->
                     val errorMessage = when {
@@ -502,7 +451,7 @@ class SellAppViewModel(
                         else -> error.message ?: getString(Res.string.error_login_failed)
                     }
 
-                    showSnackbar(errorMessage, SnackbarType.ERROR)
+                    showSnackbarInState(errorMessage, SnackbarType.ERROR)
 
                     _state.update { current ->
                         current.copy(
@@ -559,7 +508,7 @@ class SellAppViewModel(
                             )
                         )
                     }
-                    showSnackbar(getString(Res.string.password_reset_sent), SnackbarType.SUCCESS)
+                    showSnackbarInState(getString(Res.string.password_reset_sent), SnackbarType.SUCCESS)
                 }
                 .onFailure { error ->
                     println("❌ Password reset failed: ${error.message}")
@@ -579,7 +528,7 @@ class SellAppViewModel(
                             )
                         )
                     }
-                    showSnackbar(errorMessage, SnackbarType.ERROR)
+                    showSnackbarInState(errorMessage, SnackbarType.ERROR)
                 }
         }
     }
@@ -646,17 +595,16 @@ class SellAppViewModel(
         viewModelScope.launch {
             authRepository.signOut()
                 .onSuccess {
+                    // AuthFlowCoordinator will automatically update auth state
                     _state.update { current ->
                         current.copy(
-                            user = UserState.Guest,
-                            requiresLogin = true,
                             triggerGoogleSignOut = true
                         )
                     }
-                    showSnackbar(getString(Res.string.snackbar_logout_success), SnackbarType.SUCCESS)
+                    showSnackbarInState(getString(Res.string.snackbar_logout_success), SnackbarType.SUCCESS)
                 }
                 .onFailure { error ->
-                    showSnackbar(error.message ?: getString(Res.string.snackbar_logout_failed), SnackbarType.ERROR)
+                    showSnackbarInState(error.message ?: getString(Res.string.snackbar_logout_failed), SnackbarType.ERROR)
                 }
         }
     }
@@ -687,14 +635,9 @@ class SellAppViewModel(
 
             authRepository.signUpWithEmail(email, password)
                 .onSuccess { userId ->
+                    // AuthFlowCoordinator will automatically update auth state
                     _state.update { current ->
                         current.copy(
-                            user = UserState.LoggedIn(
-                                id = userId,
-                                name = name,
-                                email = email,
-                                role = UserRole.SELLER
-                            ),
                             auth = current.auth.copy(
                                 isLoading = false,
                                 error = null,
@@ -703,7 +646,7 @@ class SellAppViewModel(
                         )
                     }
 
-                    showSnackbar(getString(Res.string.snackbar_account_created), SnackbarType.SUCCESS)
+                    showSnackbarInState(getString(Res.string.snackbar_account_created), SnackbarType.SUCCESS)
                     delay(1500)
                     navigateTo(NavRoutes.Login)
                 }
@@ -726,7 +669,7 @@ class SellAppViewModel(
                         )
                     }
 
-                    showSnackbar(errorMessage, SnackbarType.ERROR)
+                    showSnackbarInState(errorMessage, SnackbarType.ERROR)
                 }
         }
     }
