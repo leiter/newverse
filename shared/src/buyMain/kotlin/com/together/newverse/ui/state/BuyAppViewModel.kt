@@ -86,6 +86,13 @@ class BuyAppViewModel(
     internal val authFlowCoordinator: AuthFlowCoordinator
         get() = authCoordinator
 
+    /**
+     * Expose viewModelScope for extension functions.
+     * Needed for Flow operators like stateIn().
+     */
+    internal val scope: kotlinx.coroutines.CoroutineScope
+        get() = viewModelScope
+
     init {
         // Initialize auth coordinator from base class
         initializeAuthCoordinator()
