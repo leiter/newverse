@@ -28,7 +28,14 @@ class FakeProfileRepository : ProfileRepository {
     var shouldFailGetSellerProfile = false
     var shouldFailSaveSellerProfile = false
     var shouldFailGetBuyerProfile = false
+    var shouldFailSaveBuyerProfile = false
     var failureMessage = "Test error"
+
+    // Track buyer profile operations
+    var saveBuyerProfileCalled = false
+        private set
+    var lastSavedBuyerProfile: BuyerProfile? = null
+        private set
 
     /**
      * Set the seller profile to be returned
@@ -52,9 +59,12 @@ class FakeProfileRepository : ProfileRepository {
         _sellerProfile.value = null
         saveSellerProfileCalled = false
         lastSavedSellerProfile = null
+        saveBuyerProfileCalled = false
+        lastSavedBuyerProfile = null
         shouldFailGetSellerProfile = false
         shouldFailSaveSellerProfile = false
         shouldFailGetBuyerProfile = false
+        shouldFailSaveBuyerProfile = false
         failureMessage = "Test error"
     }
 
@@ -76,6 +86,13 @@ class FakeProfileRepository : ProfileRepository {
     }
 
     override suspend fun saveBuyerProfile(profile: BuyerProfile): Result<BuyerProfile> {
+        saveBuyerProfileCalled = true
+        lastSavedBuyerProfile = profile
+
+        if (shouldFailSaveBuyerProfile) {
+            return Result.failure(Exception(failureMessage))
+        }
+
         _buyerProfile.value = profile
         return Result.success(profile)
     }

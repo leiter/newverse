@@ -41,6 +41,18 @@ kotlin {
             dependsOn(commonMain.get())
         }
 
+        // Buy flavor test source set - depends on commonTest and buyMain
+        val testBuy by creating {
+            dependsOn(commonTest.get())
+            dependsOn(buyMain)
+        }
+
+        // Sell flavor test source set - depends on commonTest and sellMain
+        val testSell by creating {
+            dependsOn(commonTest.get())
+            dependsOn(sellMain)
+        }
+
         // Android flavor-specific source sets that depend on KMP source sets
         // These link the KMP source sets (buyMain/sellMain) to Android flavors
         val androidBuy by creating {
@@ -201,10 +213,10 @@ android {
         }
         // Flavor-specific test source sets
         getByName("testBuy") {
-            kotlin.srcDirs("src/buyTest/kotlin")
+            kotlin.srcDirs("src/testBuy/kotlin")
         }
         getByName("testSell") {
-            kotlin.srcDirs("src/sellTest/kotlin")
+            kotlin.srcDirs("src/testSell/kotlin")
         }
     }
 }
