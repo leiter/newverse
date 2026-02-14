@@ -8,9 +8,8 @@ import com.together.newverse.ui.state.ErrorType
 import com.together.newverse.ui.state.InitializationStep
 import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
+import com.together.newverse.ui.state.core.AuthState
 import com.together.newverse.util.OrderDateUtils
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -24,12 +23,11 @@ import kotlin.time.Instant
  * Initialization extension functions for BuyAppViewModel
  *
  * Handles app startup, authentication flow, and initial data loading.
+ * Uses AuthFlowCoordinator for centralized auth state management.
  *
  * Extracted functions:
  * - initializeApp - Main initialization orchestration
- * - checkAuthenticationStatus - Check for persisted auth session
- * - signInAsGuest - Anonymous sign-in fallback
- * - observeAuthState - Reactive auth state monitoring
+ * - observeAuthStateChanges - Reactive auth state monitoring via AuthFlowCoordinator
  * - loadOpenOrderAfterAuth - Load cart after login
  * - loadUserProfile - Load user profile during init
  * - loadCurrentOrder - Load most recent order during init
@@ -37,11 +35,28 @@ import kotlin.time.Instant
  */
 
 /**
- * Main initialization flow - executes sequentially based on auth state
+ * Converts AuthState to UserState for backward compatibility with existing UI.
+ */
+internal fun AuthState.toUserState(): UserState = when (this) {
+    is AuthState.Initializing -> UserState.Loading
+    is AuthState.NotAuthenticated -> UserState.NotAuthenticated
+    is AuthState.Authenticated -> UserState.LoggedIn(
+        id = userId,
+        name = displayName ?: "",
+        email = email ?: "",
+        role = UserRole.CUSTOMER,
+        profileImageUrl = photoUrl
+    )
+}
+
+/**
+ * Main initialization flow - executes sequentially based on auth state.
+ * AuthFlowCoordinator handles auth checking automatically.
+ *
  * Flow:
- * 1. Check Auth
- * 2. If signed in: Load Profile → Load Order
- * 3. Load Articles (for all users)
+ * 1. Set initializing state
+ * 2. AuthFlowCoordinator handles auth check
+ * 3. observeAuthStateChanges handles loading user data when authenticated
  */
 internal fun BuyAppViewModel.initializeApp() {
     viewModelScope.launch {
@@ -54,63 +69,12 @@ internal fun BuyAppViewModel.initializeApp() {
                 )
             )}
 
-            // Step 1: Check authentication status
-            checkAuthenticationStatus()
-
-            // Step 2: Check if user needs to authenticate (no persisted session)
-            if (_state.value.user is UserState.NotAuthenticated) {
-                println("🔐 App Init: No auth - waiting for user to login or continue as guest")
-                return@launch  // Stop - wait for user to authenticate via LoginScreen
-            }
-
-            // Step 3: Wait for auth state to stabilize
-            println("🚀 App Init: Waiting for authentication to complete...")
-            val userId = authRepository.observeAuthState()
-                .filterNotNull()
-                .first()
-
-            println("🚀 App Init: Authentication complete, user ID: $userId")
-
-            // Step 3: Load user-specific data (we have a valid userId)
-            println("🚀 App Init: User logged in, loading user-specific data...")
-
-            // Step 3a: Load Profile
-            _state.update { it.copy(
-                meta = it.meta.copy(
-                    initializationStep = InitializationStep.LoadingProfile
-                )
-            )}
-            loadUserProfile()
-
-            // Step 3b: Load current order
-            _state.update { it.copy(
-                meta = it.meta.copy(
-                    initializationStep = InitializationStep.LoadingOrder
-                )
-            )}
-            loadCurrentOrder()
-
-            // Step 4: Load articles (for all users)
-            _state.update { it.copy(
-                meta = it.meta.copy(
-                    initializationStep = InitializationStep.LoadingArticles
-                )
-            )}
-            loadProducts()
-
-            // Step 5: Mark initialization complete
-            _state.update { it.copy(
-                meta = it.meta.copy(
-                    isInitializing = false,
-                    isInitialized = true,
-                    initializationStep = InitializationStep.Complete
-                )
-            )}
-
-            println("🚀 App Init: Initialization complete!")
+            // AuthFlowCoordinator handles auth checking automatically
+            // observeAuthStateChanges will trigger loading when authenticated
+            println("🚀 Buy App Init: Waiting for auth state from coordinator...")
 
         } catch (e: Exception) {
-            println("❌ App Init: Error during initialization: ${e.message}")
+            println("❌ Buy App Init: Error during initialization: ${e.message}")
             e.printStackTrace()
             _state.update { it.copy(
                 meta = it.meta.copy(
@@ -127,157 +91,81 @@ internal fun BuyAppViewModel.initializeApp() {
 }
 
 /**
- * Check if user has a persisted authentication session
- * This runs BEFORE any Firebase connections
- *
- * Buy flavor: If no session, show login screen (NotAuthenticated state)
+ * Observes AuthFlowCoordinator's auth state and syncs to BuyAppState.
+ * This bridges the new AuthState to the existing UserState for backward compatibility.
+ * Also handles loading user data when authentication changes.
  */
-internal suspend fun BuyAppViewModel.checkAuthenticationStatus() {
-    try {
-        _state.update { current ->
-            current.copy(
-                meta = current.meta.copy(
-                    initializationStep = InitializationStep.CheckingAuth
-                )
-            )
-        }
-
-        println("🔍 Buy App Startup: Checking authentication")
-
-        // Check for persisted authentication session
-        authRepository.checkPersistedAuth().fold(
-            onSuccess = { userId ->
-                if (userId != null) {
-                    // User has valid persisted session
-                    println("✅ Buy App Startup: Restored auth session for user: $userId")
-
-                    // Get user info from Firebase Auth
-                    val userInfo = authRepository.getCurrentUserInfo()
-                    println("📧 Buy App Startup: User info - email=${userInfo?.email}, name=${userInfo?.displayName}")
-
-                    // Set LoggedIn state immediately (don't wait for observeAuthState)
-                    _state.update { current ->
-                        current.copy(
-                            user = UserState.LoggedIn(
-                                id = userId,
-                                email = userInfo?.email ?: "",
-                                name = userInfo?.displayName ?: "",
-                                role = UserRole.CUSTOMER
-                            ),
-                            meta = current.meta.copy(
-                                initializationStep = InitializationStep.LoadingProfile
-                            )
-                        )
-                    }
-                } else {
-                    // No persisted session - show login screen
-                    println("🔐 Buy App Startup: No auth - showing login screen...")
-                    setNotAuthenticatedState()
-                }
-            },
-            onFailure = { error ->
-                // Failed to check auth - show login screen
-                println("⚠️ Buy App Startup: Failed to check auth - ${error.message}, showing login screen...")
-                setNotAuthenticatedState()
-            }
-        )
-    } catch (e: Exception) {
-        // Error checking auth - show login screen
-        println("❌ Buy App Startup: Exception checking auth - ${e.message}, showing login screen...")
-        setNotAuthenticatedState()
-    }
-}
-
-/**
- * Set state to NotAuthenticated - user must choose to login or continue as guest
- */
-internal fun BuyAppViewModel.setNotAuthenticatedState() {
-    _state.update { current ->
-        current.copy(
-            user = UserState.NotAuthenticated,
-            meta = current.meta.copy(
-                isInitializing = false,
-                isInitialized = false,
-                initializationStep = InitializationStep.NotStarted
-            )
-        )
-    }
-}
-
-/**
- * Sign in anonymously as a guest user
- */
-internal suspend fun BuyAppViewModel.signInAsGuest() {
-    authRepository.signInAnonymously().fold(
-        onSuccess = { userId ->
-            println("App Startup: Guest sign-in successful, user ID: $userId")
-            _state.update { current ->
-                current.copy(
-                    meta = current.meta.copy(
-                        initializationStep = InitializationStep.CheckingAuth
-                    )
-                )
-            }
-        },
-        onFailure = { error ->
-            println("App Startup: Guest sign-in failed - ${error.message}")
-            _state.update { current ->
-                current.copy(
-                    meta = current.meta.copy(
-                        initializationStep = InitializationStep.Failed(
-                            step = "authentication",
-                            message = error.message ?: "Failed to create session"
-                        )
-                    )
-                )
-            }
-        }
-    )
-}
-
-internal fun BuyAppViewModel.observeAuthState() {
+internal fun BuyAppViewModel.observeAuthStateChanges() {
     viewModelScope.launch {
-        authRepository.observeAuthState().collect { userId ->
+        var previousAuthState: AuthState? = null
+
+        authFlowCoordinator.authState.collect { authState ->
             val previousUserState = _state.value.user
 
-            // Get user info from Firebase Auth (email, displayName, etc.)
-            val userInfo = if (userId != null) authRepository.getCurrentUserInfo() else null
-
+            // Update state with new auth info
             _state.update { current ->
-                val newUserState = if (userId != null) {
-                    UserState.LoggedIn(
-                        id = userId,
-                        email = userInfo?.email ?: "",
-                        name = userInfo?.displayName ?: "",
-                        role = UserRole.CUSTOMER
-                    )
-                } else {
-                    // Keep NotAuthenticated if that's current state (user hasn't chosen yet)
-                    if (current.user is UserState.NotAuthenticated) {
-                        UserState.NotAuthenticated
-                    } else {
-                        UserState.Guest
-                    }
-                }
-
                 current.copy(
-                    user = newUserState,
-                    // Buy flavor: never require login (guest access allowed)
-                    requiresLogin = false
+                    user = authState.toUserState(),
+                    requiresLogin = false, // Buy flavor: guest access allowed
+                    meta = when (authState) {
+                        is AuthState.Initializing -> current.meta.copy(
+                            isInitializing = true,
+                            initializationStep = InitializationStep.CheckingAuth
+                        )
+                        is AuthState.NotAuthenticated -> current.meta.copy(
+                            isInitializing = false,
+                            isInitialized = false,
+                            initializationStep = InitializationStep.NotStarted
+                        )
+                        is AuthState.Authenticated -> current.meta // Keep current, will be updated below
+                    }
                 )
             }
 
-            // Handle transitions when user signs in
-            if (userId != null) {
-                // If coming from NotAuthenticated (first-time auth), run full initialization
-                if (previousUserState is UserState.NotAuthenticated) {
-                    println("🔐 Auth state changed: NotAuthenticated -> LoggedIn, resuming initialization...")
+            // Handle auth state transitions
+            when {
+                // Just became authenticated
+                authState is AuthState.Authenticated && previousAuthState !is AuthState.Authenticated -> {
+                    println("🔐 Auth state changed: ${previousAuthState?.javaClass?.simpleName} -> Authenticated")
+
+                    // If coming from NotAuthenticated (first-time auth), run full initialization
+                    if (previousUserState is UserState.NotAuthenticated) {
+                        println("🔐 First-time auth, running full initialization...")
+                        val userInfo = AuthUserInfo(
+                            id = authState.userId,
+                            email = authState.email,
+                            displayName = authState.displayName,
+                            photoUrl = authState.photoUrl,
+                            isAnonymous = authState.isAnonymous
+                        )
+                        resumeInitializationAfterAuth(userInfo)
+                    } else {
+                        // Already initialized, just refresh the order and load products
+                        loadOpenOrderAfterAuth()
+                        loadMainScreenArticles()
+                    }
+                }
+
+                // Just became not authenticated (logged out)
+                authState is AuthState.NotAuthenticated && previousAuthState is AuthState.Authenticated -> {
+                    println("🔐 Auth state changed: Authenticated -> NotAuthenticated (logged out)")
+                }
+
+                // Finished initializing (from checking to authenticated)
+                authState is AuthState.Authenticated && previousAuthState is AuthState.Initializing -> {
+                    println("🔐 Auth initialized with existing session")
+                    val userInfo = AuthUserInfo(
+                        id = authState.userId,
+                        email = authState.email,
+                        displayName = authState.displayName,
+                        photoUrl = authState.photoUrl,
+                        isAnonymous = authState.isAnonymous
+                    )
                     resumeInitializationAfterAuth(userInfo)
-                } else {
-                    // Already initialized, just refresh the order
-                    loadOpenOrderAfterAuth()
                 }
             }
+
+            previousAuthState = authState
         }
     }
 }

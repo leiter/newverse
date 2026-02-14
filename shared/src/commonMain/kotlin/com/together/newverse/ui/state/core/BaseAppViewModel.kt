@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
  * @param A The type of actions this ViewModel handles
  */
 abstract class BaseAppViewModel<S : Any, A : Any>(
-    protected val authRepository: AuthRepository
+    internal val authRepository: AuthRepository
 ) : ViewModel() {
 
     /**
@@ -55,8 +55,9 @@ abstract class BaseAppViewModel<S : Any, A : Any>(
 
     /**
      * Internal state flow - subclasses must initialize this.
+     * Note: Using internal visibility to allow extension functions access in flavor modules.
      */
-    protected abstract val _state: MutableStateFlow<S>
+    internal abstract val _state: MutableStateFlow<S>
 
     /**
      * Public state flow for observers.

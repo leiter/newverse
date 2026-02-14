@@ -1,6 +1,5 @@
 package com.together.newverse.ui.state
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
@@ -31,7 +30,7 @@ import com.together.newverse.ui.state.buy.loginWithTwitter
 import com.together.newverse.ui.state.buy.logout
 import com.together.newverse.ui.state.buy.navigateBack
 import com.together.newverse.ui.state.buy.navigateTo
-import com.together.newverse.ui.state.buy.observeAuthState
+import com.together.newverse.ui.state.buy.observeAuthStateChanges
 import com.together.newverse.ui.state.buy.observeMainScreenBasket
 import com.together.newverse.ui.state.buy.observeMainScreenBuyerProfile
 import com.together.newverse.ui.state.buy.openDrawer
@@ -45,12 +44,12 @@ import com.together.newverse.ui.state.buy.showBottomSheet
 import com.together.newverse.ui.state.buy.showDialog
 import com.together.newverse.ui.state.buy.showPasswordResetDialog
 import com.together.newverse.ui.state.buy.showSnackbar
+import com.together.newverse.ui.state.core.AuthFlowCoordinator
+import com.together.newverse.ui.state.core.BaseAppViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
@@ -62,6 +61,7 @@ import org.jetbrains.compose.resources.getString
  *
  * Core ViewModel for the buyer/customer app implementing a Redux-like pattern.
  * Uses BuyAppState (flattened, buyer-only state) instead of the legacy UnifiedAppState.
+ * Extends BaseAppViewModel for auth-driven state management via AuthFlowCoordinator.
  *
  * Domain logic is organized using Kotlin extension functions in the buy/ package.
  */
@@ -69,22 +69,32 @@ class BuyAppViewModel(
     internal val articleRepository: ArticleRepository,
     internal val orderRepository: OrderRepository,
     internal val profileRepository: ProfileRepository,
-    internal val authRepository: AuthRepository,
+    authRepository: AuthRepository,
     internal val basketRepository: BasketRepository
-) : ViewModel() {
+) : BaseAppViewModel<BuyAppState, BuyAction>(authRepository) {
 
     /**
      * Internal state exposed for extension functions.
      */
-    internal val _state = MutableStateFlow(BuyAppState())
-    val state: StateFlow<BuyAppState> = _state.asStateFlow()
+    override val _state = MutableStateFlow(BuyAppState())
+    override val state: StateFlow<BuyAppState> = _state.asStateFlow()
+
+    /**
+     * Expose authCoordinator for extension functions.
+     * Extension functions can use this to observe auth state changes.
+     */
+    internal val authFlowCoordinator: AuthFlowCoordinator
+        get() = authCoordinator
 
     init {
+        // Initialize auth coordinator from base class
+        initializeAuthCoordinator()
+
+        // Observe auth state changes and sync to BuyAppState
+        observeAuthStateChanges()
+
         // Initialize app on startup
         initializeApp()
-
-        // Observe auth state changes
-        observeAuthState()
 
         // Initialize MainScreen observers
         observeMainScreenBasket()
@@ -93,13 +103,7 @@ class BuyAppViewModel(
         // Initialize BasketScreen observers
         initializeBasketScreen()
 
-        // Load MainScreen articles after auth is ready
-        viewModelScope.launch {
-            authRepository.observeAuthState()
-                .filterNotNull()
-                .first()
-            loadMainScreenArticles()
-        }
+        // Load MainScreen articles after auth is ready (handled by observeAuthStateChanges)
     }
 
     // ===== Public Action Handlers =====
@@ -107,7 +111,7 @@ class BuyAppViewModel(
     /**
      * Main action dispatcher - all UI actions go through here
      */
-    fun dispatch(action: BuyAction) {
+    override fun dispatch(action: BuyAction) {
         when (action) {
             // Navigation actions
             is BuyNavigationAction -> handleNavigationAction(action)
@@ -224,6 +228,12 @@ class BuyAppViewModel(
     }
 
     internal fun loadProducts() {
+        // Only load if authenticated
+        if (!isAuthenticated()) {
+            println("📦 BuyAppViewModel.loadProducts: Skipping - not authenticated")
+            return
+        }
+
         viewModelScope.launch {
             println("📦 BuyAppViewModel.loadProducts: START")
 
