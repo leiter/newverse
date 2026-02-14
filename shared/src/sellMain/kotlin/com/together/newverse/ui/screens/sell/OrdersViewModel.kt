@@ -8,89 +8,88 @@ import com.together.newverse.domain.model.isActive
 import com.together.newverse.domain.model.isFinalized
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
+import com.together.newverse.ui.state.core.AsyncState
+import com.together.newverse.ui.state.core.asAsyncState
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 /**
- * ViewModel for Seller Orders Management screen
- * Based on universe project's OrdersViewModel
+ * ViewModel for Seller Orders Management screen.
+ *
+ * Uses AsyncState<List<Order>> for type-safe loading/success/error handling.
+ * Orders are automatically filtered and sorted based on the selected filter.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class OrdersViewModel(
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<OrdersUiState>(OrdersUiState.Loading)
-    val uiState: StateFlow<OrdersUiState> = _uiState.asStateFlow()
-
     private val _selectedFilter = MutableStateFlow(OrderFilter.ALL)
     val selectedFilter: StateFlow<OrderFilter> = _selectedFilter.asStateFlow()
 
-    init {
-        loadOrders()
-    }
+    // Trigger for refreshing orders
+    private val _refreshTrigger = MutableStateFlow(0)
 
-    private fun loadOrders() {
-        viewModelScope.launch {
-            _uiState.value = OrdersUiState.Loading
+    /**
+     * Orders state using AsyncState for type-safe loading/success/error.
+     * Automatically updates when filter changes or refresh is triggered.
+     */
+    val ordersState: StateFlow<AsyncState<List<Order>>> = combine(
+        _selectedFilter,
+        _refreshTrigger
+    ) { filter, _ -> filter }
+        .flatMapLatest { filter ->
+            val sellerId = authRepository.getCurrentUserId() ?: ""
+            println("📦 OrdersViewModel: Loading orders for sellerId='$sellerId', filter=$filter")
 
-            try {
-                // Get current seller ID (authenticated user)
-                val sellerId = authRepository.getCurrentUserId() ?: ""
-
-                println("📦 OrdersViewModel.loadOrders: sellerId='$sellerId'")
-
-                // Observe seller orders in real-time
+            if (sellerId.isEmpty()) {
+                flowOf(AsyncState.Error("Not authenticated", retryable = true))
+            } else {
                 orderRepository.observeSellerOrders(sellerId)
-                    .catch { error ->
-                        println("❌ OrdersViewModel.loadOrders: Error - ${error.message}")
-                        _uiState.value = OrdersUiState.Error(
-                            error.message ?: "Failed to load orders"
-                        )
-                    }
-                    .collect { orders ->
-                        println("✅ OrdersViewModel.loadOrders: Loaded ${orders.size} orders")
-
+                    .map { orders ->
                         // Apply filter
-                        val filteredOrders = when (_selectedFilter.value) {
+                        val filteredOrders = when (filter) {
                             OrderFilter.ALL -> orders
                             OrderFilter.PENDING -> orders.filter { it.status.isActive() && !it.status.isFinalized() }
                             OrderFilter.COMPLETED -> orders.filter { it.status == OrderStatus.COMPLETED }
                             OrderFilter.CANCELLED -> orders.filter { it.status == OrderStatus.CANCELLED }
                         }
-
                         // Sort by pickup date descending (most recent/upcoming first)
-                        val sortedOrders = filteredOrders.sortedByDescending { it.pickUpDate }
-
-                        _uiState.value = OrdersUiState.Success(sortedOrders)
+                        filteredOrders.sortedByDescending { it.pickUpDate }
                     }
-            } catch (e: Exception) {
-                println("❌ OrdersViewModel.loadOrders: Error - ${e.message}")
-                _uiState.value = OrdersUiState.Error(
-                    e.message ?: "Failed to load orders"
-                )
+                    .asAsyncState()
             }
         }
-    }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AsyncState.Loading
+        )
 
     fun setFilter(filter: OrderFilter) {
         _selectedFilter.value = filter
-        loadOrders()
+    }
+
+    fun refresh() {
+        _refreshTrigger.value++
     }
 
     fun markAsFavorite(orderId: String) {
         // TODO: Implement with repository
-    }
-
-    fun refresh() {
-        loadOrders()
     }
 
     /**
@@ -141,12 +140,6 @@ class OrdersViewModel(
 
         return "$year$month$day"
     }
-}
-
-sealed interface OrdersUiState {
-    data object Loading : OrdersUiState
-    data class Success(val orders: List<Order>) : OrdersUiState
-    data class Error(val message: String) : OrdersUiState
 }
 
 enum class OrderFilter {

@@ -12,71 +12,43 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
+import com.together.newverse.ui.state.core.AsyncState
+import com.together.newverse.ui.state.core.AsyncStateContent
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Orders screen for sellers to manage incoming orders
- * Based on universe project's ShowOrdersFragment
+ * Orders screen for sellers to manage incoming orders.
+ * Uses AsyncStateContent for clean loading/error/success handling.
  */
 @Composable
 fun OrdersScreen(
     viewModel: OrdersViewModel = koinViewModel(),
     onOrderClick: (String) -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val ordersState by viewModel.ordersState.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-
-        //Spacer(modifier = Modifier.height(16.dp))
-
-        // Content based on state
-        when (val state = uiState) {
-            is OrdersUiState.Loading -> {
+        AsyncStateContent(
+            state = ordersState,
+            onRetry = { viewModel.refresh() },
+            loadingContent = {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
                 }
-            }
-
-            is OrdersUiState.Success -> {
-                if (state.orders.isEmpty()) {
-                    // Empty state
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.no_orders_message),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    // Orders list
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(state.orders) { order ->
-                            SellerOrderCard(
-                                order = order,
-                                onClick = { onOrderClick(order.id) }
-                            )
-                        }
-                    }
-                }
-            }
-
-            is OrdersUiState.Error -> {
+            },
+            errorContent = { message, retryable ->
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -86,15 +58,54 @@ fun OrdersScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = state.message,
+                            text = message,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
-                        Button(onClick = { viewModel.refresh() }) {
-                            Text(stringResource(Res.string.retry))
+                        if (retryable) {
+                            Button(onClick = { viewModel.refresh() }) {
+                                Text(stringResource(Res.string.retry))
+                            }
                         }
                     }
                 }
+            }
+        ) { orders ->
+            OrdersContent(
+                orders = orders,
+                onOrderClick = onOrderClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun OrdersContent(
+    orders: List<Order>,
+    onOrderClick: (String) -> Unit
+) {
+    if (orders.isEmpty()) {
+        // Empty state
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(Res.string.no_orders_message),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        // Orders list
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(orders) { order ->
+                SellerOrderCard(
+                    order = order,
+                    onClick = { onOrderClick(order.id) }
+                )
             }
         }
     }
@@ -106,7 +117,7 @@ fun OrdersScreen(
  */
 @Composable
 private fun SellerOrderCard(
-    order: com.together.newverse.domain.model.Order,
+    order: Order,
     onClick: () -> Unit = {}
 ) {
     // Check if order is cancelled

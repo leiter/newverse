@@ -19,6 +19,7 @@ import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.graphics.Color
+import com.together.newverse.ui.state.core.AsyncState
 
 /**
  * Order detail screen for sellers to view and manage individual orders
@@ -30,13 +31,13 @@ fun OrderDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: OrdersViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val ordersState by viewModel.ordersState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
 
     // Find the order from the current state
-    val order = when (val state = uiState) {
-        is OrdersUiState.Success -> state.orders.find { it.id == orderId }
+    val order = when (val state = ordersState) {
+        is AsyncState.Success -> state.data.find { it.id == orderId }
         else -> null
     }
 
