@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Market
+import com.together.newverse.domain.model.SellerProfile
+import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -27,7 +29,10 @@ import kotlin.uuid.Uuid
 
 @Composable
 fun SellerProfileScreen(
-    uiState: SellerProfileUiState,
+    profileState: AsyncState<SellerProfile>,
+    statsState: ProfileStats,
+    dialogState: ProfileDialogState,
+    isSaving: Boolean = false,
     onNotificationSettingsClick: () -> Unit = {},
     onLogout: () -> Unit = {},
     onShowPaymentInfo: () -> Unit = {},
@@ -35,166 +40,196 @@ fun SellerProfileScreen(
     onShowMarketDialog: (Market?) -> Unit = {},
     onHideMarketDialog: () -> Unit = {},
     onSaveMarket: (Market) -> Unit = {},
-    onDeleteMarket: (String) -> Unit = {}
+    onDeleteMarket: (String) -> Unit = {},
+    onRetry: () -> Unit = {}
 ) {
-    val profile = uiState.profile
+    // Extract profile from state
+    val profile = (profileState as? AsyncState.Success)?.data
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = stringResource(Res.string.seller_profile_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            // Profile info card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+        when (profileState) {
+            is AsyncState.Loading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
                 )
-            ) {
+            }
+            is AsyncState.Error -> {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = profile?.displayName ?: stringResource(Res.string.seller_profile_placeholder_name),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        text = profileState.message,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
                     )
-                    if (profile?.telephoneNumber?.isNotEmpty() == true) {
-                        Text(
-                            text = profile.telephoneNumber,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                    if (profile?.city?.isNotEmpty() == true) {
-                        Text(
-                            text = "${profile.street} ${profile.houseNumber}, ${profile.zipCode} ${profile.city}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = onRetry) {
+                        Text(stringResource(Res.string.button_retry))
                     }
                 }
             }
-
-            Text(
-                text = stringResource(Res.string.seller_profile_stats_title),
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                StatCard(stringResource(Res.string.seller_profile_stat_products), uiState.productCount.toString(), Modifier.weight(1f))
-                StatCard(stringResource(Res.string.seller_profile_stat_orders), uiState.orderCount.toString(), Modifier.weight(1f))
-            }
-
-            Text(
-                text = stringResource(Res.string.seller_profile_settings_title),
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            // Edit Profile - Markets Section
-            OutlinedCard(
-                onClick = { onShowMarketDialog(null) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            is AsyncState.Success, is AsyncState.Initial -> {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
+                    Text(
+                        text = stringResource(Res.string.seller_profile_title),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    // Profile info card
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
                     ) {
-                        Text(
-                            text = stringResource(Res.string.seller_profile_markets),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = stringResource(Res.string.seller_profile_add_market),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = profile?.displayName ?: stringResource(Res.string.seller_profile_placeholder_name),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            if (profile?.telephoneNumber?.isNotEmpty() == true) {
+                                Text(
+                                    text = profile.telephoneNumber,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            if (profile?.city?.isNotEmpty() == true) {
+                                Text(
+                                    text = "${profile.street} ${profile.houseNumber}, ${profile.zipCode} ${profile.city}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
                     }
 
-                    if (profile?.markets.isNullOrEmpty()) {
-                        Text(
-                            text = stringResource(Res.string.seller_profile_no_markets),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        profile?.markets?.forEach { market ->
-                            MarketListItem(
-                                market = market,
-                                onEdit = { onShowMarketDialog(market) },
-                                onDelete = { onDeleteMarket(market.id) }
+                    Text(
+                        text = stringResource(Res.string.seller_profile_stats_title),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        StatCard(stringResource(Res.string.seller_profile_stat_products), statsState.productCount.toString(), Modifier.weight(1f))
+                        StatCard(stringResource(Res.string.seller_profile_stat_orders), statsState.orderCount.toString(), Modifier.weight(1f))
+                    }
+
+                    Text(
+                        text = stringResource(Res.string.seller_profile_settings_title),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    // Edit Profile - Markets Section
+                    OutlinedCard(
+                        onClick = { onShowMarketDialog(null) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.seller_profile_markets),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = stringResource(Res.string.seller_profile_add_market),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            if (profile?.markets.isNullOrEmpty()) {
+                                Text(
+                                    text = stringResource(Res.string.seller_profile_no_markets),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                profile?.markets?.forEach { market ->
+                                    MarketListItem(
+                                        market = market,
+                                        onEdit = { onShowMarketDialog(market) },
+                                        onDelete = { onDeleteMarket(market.id) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Payment Settings - Cash Only Info
+                    OutlinedCard(
+                        onClick = onShowPaymentInfo,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.seller_profile_payment),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
+
+                    // Notification Settings
+                    OutlinedCard(
+                        onClick = onNotificationSettingsClick,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.nav_notification_settings),
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    OutlinedButton(
+                        onClick = onLogout,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(Res.string.button_sign_out))
+                    }
                 }
-            }
-
-            // Payment Settings - Cash Only Info
-            OutlinedCard(
-                onClick = onShowPaymentInfo,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(Res.string.seller_profile_payment),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            // Notification Settings
-            OutlinedCard(
-                onClick = onNotificationSettingsClick,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = stringResource(Res.string.nav_notification_settings),
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            OutlinedButton(
-                onClick = onLogout,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(Res.string.button_sign_out))
             }
         }
 
-        // Loading overlay
-        if (uiState.isLoading) {
+        // Saving overlay
+        if (isSaving) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -202,7 +237,7 @@ fun SellerProfileScreen(
     }
 
     // Payment Info Dialog
-    if (uiState.showPaymentInfo) {
+    if (dialogState.showPaymentInfo) {
         AlertDialog(
             onDismissRequest = onHidePaymentInfo,
             title = { Text(stringResource(Res.string.seller_profile_payment)) },
@@ -216,9 +251,9 @@ fun SellerProfileScreen(
     }
 
     // Market Edit Dialog
-    if (uiState.showMarketDialog) {
+    if (dialogState.showMarketDialog) {
         MarketEditDialog(
-            market = uiState.editingMarket,
+            market = dialogState.editingMarket,
             onDismiss = onHideMarketDialog,
             onSave = onSaveMarket
         )
@@ -511,14 +546,63 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
 }
 
 // Backwards compatible version without ViewModel
+@Suppress("DEPRECATION")
 @Composable
 fun SellerProfileScreen(
     onNotificationSettingsClick: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     SellerProfileScreen(
-        uiState = SellerProfileUiState(),
+        profileState = AsyncState.Initial,
+        statsState = ProfileStats(),
+        dialogState = ProfileDialogState(),
         onNotificationSettingsClick = onNotificationSettingsClick,
         onLogout = onLogout
+    )
+}
+
+// Legacy overload for backward compatibility
+@Suppress("DEPRECATION")
+@Deprecated("Use the version with separate state flows")
+@Composable
+fun SellerProfileScreen(
+    uiState: SellerProfileUiState,
+    onNotificationSettingsClick: () -> Unit = {},
+    onLogout: () -> Unit = {},
+    onShowPaymentInfo: () -> Unit = {},
+    onHidePaymentInfo: () -> Unit = {},
+    onShowMarketDialog: (Market?) -> Unit = {},
+    onHideMarketDialog: () -> Unit = {},
+    onSaveMarket: (Market) -> Unit = {},
+    onDeleteMarket: (String) -> Unit = {}
+) {
+    // Convert legacy state to new state format
+    val profileState: AsyncState<SellerProfile> = when {
+        uiState.isLoading -> AsyncState.Loading
+        uiState.error != null -> AsyncState.Error(uiState.error)
+        uiState.profile != null -> AsyncState.Success(uiState.profile)
+        else -> AsyncState.Initial
+    }
+
+    SellerProfileScreen(
+        profileState = profileState,
+        statsState = ProfileStats(
+            productCount = uiState.productCount,
+            orderCount = uiState.orderCount
+        ),
+        dialogState = ProfileDialogState(
+            showMarketDialog = uiState.showMarketDialog,
+            editingMarket = uiState.editingMarket,
+            showPaymentInfo = uiState.showPaymentInfo
+        ),
+        isSaving = false,
+        onNotificationSettingsClick = onNotificationSettingsClick,
+        onLogout = onLogout,
+        onShowPaymentInfo = onShowPaymentInfo,
+        onHidePaymentInfo = onHidePaymentInfo,
+        onShowMarketDialog = onShowMarketDialog,
+        onHideMarketDialog = onHideMarketDialog,
+        onSaveMarket = onSaveMarket,
+        onDeleteMarket = onDeleteMarket
     )
 }

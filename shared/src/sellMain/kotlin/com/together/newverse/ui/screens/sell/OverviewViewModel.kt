@@ -15,6 +15,7 @@ import com.together.newverse.domain.model.toArticle
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
+import com.together.newverse.ui.state.core.AsyncState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,8 +36,8 @@ class OverviewViewModel(
     private val productImportService: ProductImportService
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<OverviewUiState>(OverviewUiState.Loading)
-    val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
+    private val _overviewState = MutableStateFlow<AsyncState<OverviewData>>(AsyncState.Loading)
+    val overviewState: StateFlow<AsyncState<OverviewData>> = _overviewState.asStateFlow()
 
     private val _importState = MutableStateFlow<ImportState>(ImportState.Idle)
     val importState: StateFlow<ImportState> = _importState.asStateFlow()
@@ -54,12 +55,12 @@ class OverviewViewModel(
 
     private fun loadOverview() {
         viewModelScope.launch {
-            _uiState.value = OverviewUiState.Loading
+            _overviewState.value = AsyncState.Loading
 
             // Verify user is authenticated
             val currentUserId = authRepository.getCurrentUserId()
             if (currentUserId == null) {
-                _uiState.value = OverviewUiState.Error("Not authenticated")
+                _overviewState.value = AsyncState.Error("Not authenticated")
                 return@launch
             }
 
@@ -70,7 +71,7 @@ class OverviewViewModel(
                 // Observe articles for current seller
                 articleRepository.getArticles(sellerId)
                     .catch { e ->
-                        _uiState.value = OverviewUiState.Error("Failed to load articles: ${e.message}")
+                        _overviewState.value = AsyncState.Error("Failed to load articles: ${e.message}", e)
                     }
                     .collect { article ->
                         // Update articles list based on mode
@@ -126,12 +127,14 @@ class OverviewViewModel(
             ProductFilter.NOT_AVAILABLE -> articles.filter { !it.available }
         }
 
-        _uiState.value = OverviewUiState.Success(
-            totalProducts = articles.size,
-            activeOrders = activeOrdersCount,
-            totalRevenue = calculateTotalRevenue(),
-            recentArticles = filteredArticles,
-            recentOrders = emptyList() // TODO: Get from order repository
+        _overviewState.value = AsyncState.Success(
+            OverviewData(
+                totalProducts = articles.size,
+                activeOrders = activeOrdersCount,
+                totalRevenue = calculateTotalRevenue(),
+                recentArticles = filteredArticles,
+                recentOrders = emptyList() // TODO: Get from order repository
+            )
         )
     }
 
@@ -163,7 +166,7 @@ class OverviewViewModel(
             val sellerId = authRepository.getCurrentUserId()
             if (sellerId == null) {
                 println("❌ Cannot delete articles: User not authenticated")
-                _uiState.value = OverviewUiState.Error("Authentication required to delete products")
+                _overviewState.value = AsyncState.Error("Authentication required to delete products")
                 return@launch
             }
 
@@ -196,7 +199,7 @@ class OverviewViewModel(
             val sellerId = authRepository.getCurrentUserId()
             if (sellerId == null) {
                 println("❌ Cannot update articles: User not authenticated")
-                _uiState.value = OverviewUiState.Error("Authentication required to update products")
+                _overviewState.value = AsyncState.Error("Authentication required to update products")
                 return@launch
             }
 
@@ -362,17 +365,16 @@ sealed interface ImportState {
     data class Error(val message: String) : ImportState
 }
 
-sealed interface OverviewUiState {
-    data object Loading : OverviewUiState
-    data class Success(
-        val totalProducts: Int,
-        val activeOrders: Int,
-        val totalRevenue: Double,
-        val recentArticles: List<Article>,
-        val recentOrders: List<Order>
-    ) : OverviewUiState
-    data class Error(val message: String) : OverviewUiState
-}
+/**
+ * Data class containing overview/dashboard data
+ */
+data class OverviewData(
+    val totalProducts: Int,
+    val activeOrders: Int,
+    val totalRevenue: Double,
+    val recentArticles: List<Article>,
+    val recentOrders: List<Order>
+)
 
 /**
  * Filter options for product list

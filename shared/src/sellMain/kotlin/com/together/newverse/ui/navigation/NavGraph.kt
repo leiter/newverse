@@ -140,10 +140,16 @@ fun NavGraphBuilder.navGraph(
 
     composable(NavRoutes.Sell.Profile.route) {
         val profileViewModel: SellerProfileViewModel = koinViewModel()
-        val uiState = profileViewModel.uiState.collectAsState()
+        val profileState = profileViewModel.profileState.collectAsState()
+        val statsState = profileViewModel.statsState.collectAsState()
+        val dialogState = profileViewModel.dialogState.collectAsState()
+        val isSaving = profileViewModel.isSaving.collectAsState()
 
         SellerProfileScreen(
-            uiState = uiState.value,
+            profileState = profileState.value,
+            statsState = statsState.value,
+            dialogState = dialogState.value,
+            isSaving = isSaving.value,
             onNotificationSettingsClick = onNavigateToNotificationSettings,
             onLogout = onLogout,
             onShowPaymentInfo = { profileViewModel.showPaymentInfo() },
@@ -151,13 +157,14 @@ fun NavGraphBuilder.navGraph(
             onShowMarketDialog = { market -> profileViewModel.showMarketDialog(market) },
             onHideMarketDialog = { profileViewModel.hideMarketDialog() },
             onSaveMarket = { market ->
-                if (uiState.value.editingMarket != null) {
+                if (dialogState.value.editingMarket != null) {
                     profileViewModel.updateMarket(market)
                 } else {
                     profileViewModel.addMarket(market)
                 }
             },
-            onDeleteMarket = { marketId -> profileViewModel.removeMarket(marketId) }
+            onDeleteMarket = { marketId -> profileViewModel.removeMarket(marketId) },
+            onRetry = { profileViewModel.refresh() }
         )
     }
 

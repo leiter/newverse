@@ -9,6 +9,7 @@ import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
+import com.together.newverse.ui.state.core.AsyncState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,8 +26,21 @@ class SellerProfileViewModel(
     private val orderRepository: OrderRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SellerProfileUiState())
-    val uiState: StateFlow<SellerProfileUiState> = _uiState.asStateFlow()
+    // Profile state using AsyncState pattern
+    private val _profileState = MutableStateFlow<AsyncState<SellerProfile>>(AsyncState.Loading)
+    val profileState: StateFlow<AsyncState<SellerProfile>> = _profileState.asStateFlow()
+
+    // Stats state
+    private val _statsState = MutableStateFlow(ProfileStats())
+    val statsState: StateFlow<ProfileStats> = _statsState.asStateFlow()
+
+    // Dialog/UI state
+    private val _dialogState = MutableStateFlow(ProfileDialogState())
+    val dialogState: StateFlow<ProfileDialogState> = _dialogState.asStateFlow()
+
+    // Saving state
+    private val _isSaving = MutableStateFlow(false)
+    val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
     private val articles = mutableListOf<Article>()
 
@@ -37,31 +51,23 @@ class SellerProfileViewModel(
 
     private fun loadProfile() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _profileState.value = AsyncState.Loading
 
             val sellerId = authRepository.getCurrentUserId()
             if (sellerId == null) {
-                _uiState.update { it.copy(isLoading = false, error = "Not authenticated") }
+                _profileState.value = AsyncState.Error("Not authenticated")
                 return@launch
             }
 
             profileRepository.getSellerProfile(sellerId).fold(
                 onSuccess = { profile ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            profile = profile,
-                            error = null
-                        )
-                    }
+                    _profileState.value = AsyncState.Success(profile)
                 },
                 onFailure = { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = e.message ?: "Failed to load profile"
-                        )
-                    }
+                    _profileState.value = AsyncState.Error(
+                        e.message ?: "Failed to load profile",
+                        e
+                    )
                 }
             )
         }
@@ -85,7 +91,7 @@ class SellerProfileViewModel(
                                 articles.removeAll { it.id == article.id }
                             }
                         }
-                        _uiState.update { it.copy(productCount = articles.size) }
+                        _statsState.update { it.copy(productCount = articles.size) }
                     }
             }
 
@@ -93,7 +99,7 @@ class SellerProfileViewModel(
             launch {
                 orderRepository.observeSellerOrders(sellerId)
                     .collect { orders ->
-                        _uiState.update { it.copy(orderCount = orders.size) }
+                        _statsState.update { it.copy(orderCount = orders.size) }
                     }
             }
         }
@@ -101,39 +107,31 @@ class SellerProfileViewModel(
 
     fun saveProfile(profile: SellerProfile) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _isSaving.value = true
 
             profileRepository.saveSellerProfile(profile).fold(
                 onSuccess = {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            profile = profile,
-                            error = null
-                        )
-                    }
+                    _profileState.value = AsyncState.Success(profile)
+                    _isSaving.value = false
                 },
                 onFailure = { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = e.message ?: "Failed to save profile"
-                        )
-                    }
+                    // Keep the current profile but show error via a snackbar or similar
+                    println("❌ Failed to save profile: ${e.message}")
+                    _isSaving.value = false
                 }
             )
         }
     }
 
     fun addMarket(market: Market) {
-        val currentProfile = _uiState.value.profile ?: return
+        val currentProfile = (_profileState.value as? AsyncState.Success)?.data ?: return
         val updatedMarkets = currentProfile.markets + market
         val updatedProfile = currentProfile.copy(markets = updatedMarkets)
         saveProfile(updatedProfile)
     }
 
     fun updateMarket(market: Market) {
-        val currentProfile = _uiState.value.profile ?: return
+        val currentProfile = (_profileState.value as? AsyncState.Success)?.data ?: return
         val updatedMarkets = currentProfile.markets.map {
             if (it.id == market.id) market else it
         }
@@ -142,14 +140,14 @@ class SellerProfileViewModel(
     }
 
     fun removeMarket(marketId: String) {
-        val currentProfile = _uiState.value.profile ?: return
+        val currentProfile = (_profileState.value as? AsyncState.Success)?.data ?: return
         val updatedMarkets = currentProfile.markets.filter { it.id != marketId }
         val updatedProfile = currentProfile.copy(markets = updatedMarkets)
         saveProfile(updatedProfile)
     }
 
     fun showMarketDialog(market: Market? = null) {
-        _uiState.update {
+        _dialogState.update {
             it.copy(
                 showMarketDialog = true,
                 editingMarket = market
@@ -158,7 +156,7 @@ class SellerProfileViewModel(
     }
 
     fun hideMarketDialog() {
-        _uiState.update {
+        _dialogState.update {
             it.copy(
                 showMarketDialog = false,
                 editingMarket = null
@@ -167,11 +165,11 @@ class SellerProfileViewModel(
     }
 
     fun showPaymentInfo() {
-        _uiState.update { it.copy(showPaymentInfo = true) }
+        _dialogState.update { it.copy(showPaymentInfo = true) }
     }
 
     fun hidePaymentInfo() {
-        _uiState.update { it.copy(showPaymentInfo = false) }
+        _dialogState.update { it.copy(showPaymentInfo = false) }
     }
 
     fun refresh() {
@@ -182,8 +180,26 @@ class SellerProfileViewModel(
 }
 
 /**
- * UI State for Seller Profile screen
+ * Stats data for the profile screen
  */
+data class ProfileStats(
+    val productCount: Int = 0,
+    val orderCount: Int = 0
+)
+
+/**
+ * Dialog state for the profile screen
+ */
+data class ProfileDialogState(
+    val showMarketDialog: Boolean = false,
+    val editingMarket: Market? = null,
+    val showPaymentInfo: Boolean = false
+)
+
+/**
+ * @deprecated Use profileState: AsyncState<SellerProfile>, statsState: ProfileStats, dialogState: ProfileDialogState instead
+ */
+@Deprecated("Use separate state flows: profileState, statsState, dialogState")
 data class SellerProfileUiState(
     val isLoading: Boolean = false,
     val profile: SellerProfile? = null,

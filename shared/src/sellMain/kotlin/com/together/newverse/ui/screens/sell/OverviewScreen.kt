@@ -20,6 +20,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.width
 import com.together.newverse.ui.components.ProductListItem
+import com.together.newverse.ui.state.core.AsyncState
+import com.together.newverse.ui.state.core.AsyncStateContent
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -37,7 +39,7 @@ fun OverviewScreen(
     onAvailabilityModeChange: (Boolean) -> Unit = {},
     onNavigateToImportPreview: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val overviewState by viewModel.overviewState.collectAsState()
     val importState by viewModel.importState.collectAsState()
 
     // Observe pending import content directly from SellAppViewModel (survives config changes)
@@ -84,34 +86,33 @@ fun OverviewScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Content based on state
-            when (val state = uiState) {
-                is OverviewUiState.Loading -> {
-                    LoadingContent()
-                }
-                is OverviewUiState.Error -> {
+            // Content based on state using AsyncStateContent helper
+            AsyncStateContent(
+                state = overviewState,
+                onRetry = { viewModel.refresh() },
+                loadingContent = { LoadingContent() },
+                errorContent = { message, _ ->
                     ErrorContent(
-                        message = state.message,
+                        message = message,
                         onRetry = { viewModel.refresh() }
                     )
                 }
-                is OverviewUiState.Success -> {
-                    val currentFilter by viewModel.currentFilter.collectAsState()
-                    SuccessContent(
-                        state = state,
-                        currentFilter = currentFilter,
-                        onFilterChange = { viewModel.setFilter(it) },
-                        isSelectionMode = isSelectionMode || isAvailabilityMode,
-                        selectedArticleIds = selectedArticleIds,
-                        onArticleSelectionToggle = { articleId ->
-                            selectedArticleIds = if (selectedArticleIds.contains(articleId)) {
-                                selectedArticleIds - articleId
-                            } else {
-                                selectedArticleIds + articleId
-                            }
+            ) { data ->
+                val currentFilter by viewModel.currentFilter.collectAsState()
+                SuccessContent(
+                    data = data,
+                    currentFilter = currentFilter,
+                    onFilterChange = { viewModel.setFilter(it) },
+                    isSelectionMode = isSelectionMode || isAvailabilityMode,
+                    selectedArticleIds = selectedArticleIds,
+                    onArticleSelectionToggle = { articleId ->
+                        selectedArticleIds = if (selectedArticleIds.contains(articleId)) {
+                            selectedArticleIds - articleId
+                        } else {
+                            selectedArticleIds + articleId
                         }
-                    )
-                }
+                    }
+                )
             }
         }
 
@@ -392,7 +393,7 @@ private fun ErrorContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SuccessContent(
-    state: OverviewUiState.Success,
+    data: OverviewData,
     currentFilter: ProductFilter = ProductFilter.ALL,
     onFilterChange: (ProductFilter) -> Unit = {},
     isSelectionMode: Boolean = false,
@@ -415,17 +416,17 @@ private fun SuccessContent(
                     ProductFilter.AVAILABLE -> stringResource(Res.string.overview_available_products)
                     ProductFilter.NOT_AVAILABLE -> stringResource(Res.string.overview_unavailable_products)
                 },
-                value = state.recentArticles.size.toString(),
+                value = data.recentArticles.size.toString(),
                 modifier = Modifier.weight(1f)
             )
             StatCard(
                 title = stringResource(Res.string.overview_active_orders),
-                value = state.activeOrders.toString(),
+                value = data.activeOrders.toString(),
                 modifier = Modifier.weight(1f)
             )
             StatCard(
                 title = stringResource(Res.string.overview_total_revenue),
-                value = "${state.totalRevenue.formatPrice()}€",
+                value = "${data.totalRevenue.formatPrice()}€",
                 modifier = Modifier.weight(1f)
             )
         }
@@ -492,7 +493,7 @@ private fun SuccessContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (state.recentArticles.isEmpty()) {
+        if (data.recentArticles.isEmpty()) {
             // Empty state
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -532,7 +533,7 @@ private fun SuccessContent(
                     .height(400.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                items(state.recentArticles) { article ->
+                items(data.recentArticles) { article ->
                     SelectableProductListItem(
                         productName = article.productName,
                         price = article.price,
