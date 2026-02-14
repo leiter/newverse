@@ -35,6 +35,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Order
+import com.together.newverse.ui.state.core.AsyncStateContent
+import com.together.newverse.ui.state.toAsyncState
 import com.together.newverse.util.formatPrice
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -47,11 +49,9 @@ fun OrderHistoryScreen(
     orderHistoryState: com.together.newverse.ui.state.OrderHistoryScreenState,
     onAction: (com.together.newverse.ui.state.BuyAction) -> Unit = {},
     onBackClick: () -> Unit = {},
-    onOrderClick: (orderId: String, orderDate: String) -> Unit = { _, _ -> }
+    onOrderClick: (orderId: String, orderDate: String) -> Unit = { _, _ -> },
+    onRetry: () -> Unit = { onAction(com.together.newverse.ui.state.BuyProfileAction.LoadOrderHistory) }
 ) {
-    val orderHistory = orderHistoryState.items.sortedByDescending { it.pickUpDate }
-    val isLoading = orderHistoryState.isLoading
-
     // Load order history when screen opens
     androidx.compose.runtime.LaunchedEffect(Unit) {
         println("📋 OrderHistoryScreen: Triggering loadOrderHistory")
@@ -76,9 +76,11 @@ fun OrderHistoryScreen(
                 )
         )
 
-        when {
-            isLoading -> {
-                // Loading state
+        // Use AsyncStateContent for clean loading/error/success handling
+        AsyncStateContent(
+            state = orderHistoryState.toAsyncState(),
+            onRetry = onRetry,
+            loadingContent = {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -95,8 +97,34 @@ fun OrderHistoryScreen(
                         )
                     }
                 }
+            },
+            errorContent = { message, retryable ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        if (retryable) {
+                            androidx.compose.material3.Button(onClick = onRetry) {
+                                Text("Erneut versuchen")
+                            }
+                        }
+                    }
+                }
             }
-            orderHistory.isEmpty() -> {
+        ) { orders ->
+            val sortedOrders = orders.sortedByDescending { it.pickUpDate }
+
+            if (sortedOrders.isEmpty()) {
                 // Empty state
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -134,8 +162,7 @@ fun OrderHistoryScreen(
                         )
                     }
                 }
-            }
-            else -> {
+            } else {
                 // Order list
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -144,14 +171,14 @@ fun OrderHistoryScreen(
                 ) {
                     item {
                         Text(
-                            text = "${orderHistory.size} ${if (orderHistory.size == 1) "Bestellung" else "Bestellungen"}",
+                            text = "${sortedOrders.size} ${if (sortedOrders.size == 1) "Bestellung" else "Bestellungen"}",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
 
-                    items(orderHistory) { order ->
+                    items(sortedOrders) { order ->
                         OrderHistoryCard(
                             order = order,
                             onClick = {

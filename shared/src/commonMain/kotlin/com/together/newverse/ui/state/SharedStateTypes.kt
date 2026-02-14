@@ -42,6 +42,27 @@ typealias ProductsScreenState = ListingState<Article>
 typealias OrdersScreenState = ListingState<Order>
 typealias OrderHistoryScreenState = ListingState<Order>
 
+/**
+ * Converts a ListingState to AsyncState for use with AsyncStateContent.
+ * This enables gradual migration from the legacy pattern to AsyncState.
+ *
+ * Usage:
+ * ```
+ * val asyncState = orderHistoryState.toAsyncState()
+ * AsyncStateContent(state = asyncState) { orders ->
+ *     // Render orders
+ * }
+ * ```
+ */
+fun <T> ListingState<T>.toAsyncState(): AsyncState<List<T>> = when {
+    isLoading -> AsyncState.Loading
+    error != null -> AsyncState.Error(
+        message = error.message,
+        retryable = error.retryable
+    )
+    else -> AsyncState.Success(items)
+}
+
 // ===== User State =====
 
 /**
