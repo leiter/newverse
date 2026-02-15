@@ -20,6 +20,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.graphics.Color
 import com.together.newverse.ui.state.core.AsyncState
+import kotlinx.coroutines.launch
 
 /**
  * Order detail screen for sellers to view and manage individual orders
@@ -34,6 +35,8 @@ fun OrderDetailScreen(
     val ordersState by viewModel.ordersState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     // Find the order from the current state
     val order = when (val state = ordersState) {
@@ -42,6 +45,7 @@ fun OrderDetailScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             if (order != null) {
                 FloatingActionButton(
@@ -103,8 +107,13 @@ fun OrderDetailScreen(
                         },
                         onError = { error ->
                             isDeleting = false
-                            // TODO: Show error message
-                            println("❌ Failed to hide order: $error")
+                            showDeleteDialog = false
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = error,
+                                    duration = SnackbarDuration.Long
+                                )
+                            }
                         }
                     )
                 },

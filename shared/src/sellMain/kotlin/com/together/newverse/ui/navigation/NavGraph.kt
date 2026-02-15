@@ -57,7 +57,8 @@ fun NavGraphBuilder.navGraph(
     getAvailabilityMode: () -> Boolean = { false },
     onAvailabilityModeChange: (Boolean) -> Unit = {},
     onNavigateToImportPreview: () -> Unit = {},
-    onNavigateBackFromImport: () -> Unit = {}
+    onNavigateBackFromImport: () -> Unit = {},
+    onNavigateToProductDetail: (String) -> Unit = {}
 ) {
     composable(NavRoutes.Sell.Overview.route) {
         val overviewViewModel: OverviewViewModel = koinViewModel()
@@ -127,7 +128,21 @@ fun NavGraphBuilder.navGraph(
         ProductsScreen(
             productsState = appState.products,
             onCreateProduct = onNavigateToCreateProduct,
-            onProductClick = { /* TODO: Navigate to product detail */ }
+            onProductClick = { article -> onNavigateToProductDetail(article.id) }
+        )
+    }
+
+    composable(
+        route = NavRoutes.Sell.ProductDetail.route,
+        arguments = listOf(
+            navArgument("articleId") { type = NavType.StringType }
+        )
+    ) { backStackEntry ->
+        val articleId = backStackEntry.arguments?.read { getStringOrNull("articleId") } ?: return@composable
+        // For now, navigate to create product screen - will be replaced with dedicated product detail/edit screen
+        CreateProductScreen(
+            onNavigateBack = onNavigateBack,
+            onAction = onAction
         )
     }
 

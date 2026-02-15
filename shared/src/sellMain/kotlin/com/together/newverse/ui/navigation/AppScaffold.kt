@@ -30,6 +30,10 @@ import com.together.newverse.ui.state.SellAppViewModel
 import com.together.newverse.ui.state.SnackbarDuration
 import com.together.newverse.ui.state.SellUiAction
 import com.together.newverse.ui.state.SellUserAction
+import com.together.newverse.ui.state.core.AsyncState
+import com.together.newverse.ui.screens.sell.OrdersViewModel
+import com.together.newverse.domain.model.isActive
+import com.together.newverse.domain.model.isFinalized
 import com.together.newverse.util.DocumentPickerResult
 import com.together.newverse.util.LocalDocumentPicker
 import com.together.newverse.util.rememberKeyboardManager
@@ -61,6 +65,18 @@ fun AppScaffold(
     // Get the Sell-specific ViewModel
     val viewModel = koinViewModel<SellAppViewModel>()
     val state by viewModel.state.collectAsState()
+
+    // Get orders ViewModel for pending orders count
+    val ordersViewModel = koinViewModel<OrdersViewModel>()
+    val ordersState by ordersViewModel.ordersState.collectAsState()
+
+    // Calculate pending orders count from orders state
+    val pendingOrdersCount = when (val orders = ordersState) {
+        is AsyncState.Success -> orders.data.count {
+            it.status.isActive() && !it.status.isFinalized()
+        }
+        else -> 0
+    }
 
     // Snackbar host state
     val snackbarHostState = remember { SnackbarHostState() }
@@ -167,7 +183,7 @@ fun AppScaffold(
         topBar = {
             SellerTopBar(
                 currentRoute = currentRoute,
-                pendingOrdersCount = 0, // TODO: Get from state when implemented
+                pendingOrdersCount = pendingOrdersCount,
                 isSelectionMode = isSelectionMode,
                 isAvailabilityMode = isAvailabilityMode,
                 onNavigateBack = {
@@ -266,6 +282,9 @@ fun AppScaffold(
                 },
                 onNavigateBackFromImport = {
                     navController.popBackStack()
+                },
+                onNavigateToProductDetail = { articleId ->
+                    navController.navigate(NavRoutes.Sell.ProductDetail.createRoute(articleId))
                 }
             )
         }

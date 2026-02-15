@@ -137,7 +137,7 @@ class SellAppViewModel(
             is SellUserAction.Logout -> logout()
             is SellUserAction.ContinueAsGuest -> { /* Seller app requires login, guest not supported */ }
             is SellUserAction.Register -> register(action.email, action.password, action.name)
-            is SellUserAction.UpdateProfile -> { /* TODO */ }
+            is SellUserAction.UpdateProfile -> { /* Handled by SellerProfileViewModel.saveProfile() */ }
             is SellUserAction.RequestPasswordReset -> sendPasswordResetEmail(action.email)
         }
     }
@@ -147,9 +147,9 @@ class SellAppViewModel(
             is SellProductAction.LoadProducts -> loadProducts()
             is SellProductAction.RefreshProducts -> refreshProducts()
             is SellProductAction.SelectProduct -> selectProduct(action.product)
-            is SellProductAction.ViewProductDetail -> { /* TODO */ }
+            is SellProductAction.ViewProductDetail -> { /* Handled via navigation in NavGraph */ }
             is SellProductAction.CreateProduct -> { /* Handled by CreateProductViewModel */ }
-            is SellProductAction.UpdateProduct -> { /* TODO */ }
+            is SellProductAction.UpdateProduct -> { /* Handled by CreateProductViewModel */ }
             is SellProductAction.DeleteProduct -> { /* Handled by OverviewViewModel */ }
         }
     }
@@ -169,8 +169,12 @@ class SellAppViewModel(
             is SellUiAction.HideSnackbar -> hideSnackbarInState()
             is SellUiAction.ShowDialog -> showDialogInState(action.dialog)
             is SellUiAction.HideDialog -> hideDialogInState()
-            is SellUiAction.ShowBottomSheet -> { /* TODO */ }
-            is SellUiAction.HideBottomSheet -> { /* TODO */ }
+            is SellUiAction.ShowBottomSheet -> {
+                _state.update { it.copy(ui = it.ui.copy(bottomSheet = action.sheet)) }
+            }
+            is SellUiAction.HideBottomSheet -> {
+                _state.update { it.copy(ui = it.ui.copy(bottomSheet = null)) }
+            }
             is SellUiAction.SetRefreshing -> setRefreshingInState(action.isRefreshing)
             is SellUiAction.ShowPasswordResetDialog -> showPasswordResetDialog()
             is SellUiAction.HidePasswordResetDialog -> hidePasswordResetDialog()
@@ -181,9 +185,9 @@ class SellAppViewModel(
     private fun handleProfileAction(action: SellProfileAction) {
         when (action) {
             is SellProfileAction.LoadProfile -> { /* Handled by SellerProfileScreen */ }
-            is SellProfileAction.UpdateProfileField -> { /* TODO */ }
-            is SellProfileAction.SaveProfile -> { /* TODO */ }
-            is SellProfileAction.CancelProfileEdit -> { /* TODO */ }
+            is SellProfileAction.UpdateProfileField -> { /* Handled by SellerProfileViewModel */ }
+            is SellProfileAction.SaveProfile -> { /* Handled by SellerProfileViewModel.saveProfile() */ }
+            is SellProfileAction.CancelProfileEdit -> { /* Handled by SellerProfileViewModel */ }
         }
     }
 

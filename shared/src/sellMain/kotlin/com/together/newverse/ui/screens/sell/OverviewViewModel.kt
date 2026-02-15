@@ -133,7 +133,10 @@ class OverviewViewModel(
                 activeOrders = activeOrdersCount,
                 totalRevenue = calculateTotalRevenue(),
                 recentArticles = filteredArticles,
-                recentOrders = emptyList() // TODO: Get from order repository
+                recentOrders = allOrders
+                    .filter { it.isActiveOrder() }
+                    .sortedByDescending { it.pickUpDate }
+                    .take(5)
             )
         )
     }
