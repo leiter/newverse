@@ -192,7 +192,7 @@ internal fun BuyAppViewModel.loadOpenOrderAfterAuth() {
                 println("🛒 BuyAppViewModel.loadOpenOrderAfterAuth: Found ${placedOrderIds.size} placed orders")
 
                 // Get the most recent editable order
-                val sellerId = "" // Using empty seller ID for now
+                val sellerId = sellerConfig.sellerId
                 val orderResult = orderRepository.getOpenEditableOrder(sellerId, placedOrderIds)
 
                 orderResult.onSuccess { order ->
@@ -383,7 +383,7 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
             println("📦 loadCurrentOrder: Found ${placedOrderIds.size} placed orders, looking for upcoming order...")
 
             // Get the most recent upcoming order (not just editable)
-            val sellerId = "" // Using empty seller ID for now
+            val sellerId = sellerConfig.sellerId
             val orderResult = orderRepository.getUpcomingOrder(sellerId, placedOrderIds)
 
             orderResult.onSuccess { loadedOrder ->

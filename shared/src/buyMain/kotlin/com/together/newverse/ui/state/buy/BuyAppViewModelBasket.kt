@@ -1,7 +1,6 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
@@ -41,9 +40,6 @@ import kotlin.time.Instant
  * - Merge: basketScreenCalculateMergeConflicts, basketScreenHideMergeDialog, basketScreenResolveMergeConflict, basketScreenConfirmMerge
  * - Helpers: basketScreenCheckIfHasChanges, basketScreenFormatDateKey, basketScreenFormatDate, basketScreenCanEditOrder, basketScreenGetDaysUntilPickup
  */
-
-// Seller ID constant
-private const val BASKET_SELLER_ID = GitLiveArticleRepository.DEFAULT_SELLER_ID
 
 // Debounce delay for saving draft basket (ms)
 private const val DRAFT_SAVE_DEBOUNCE_MS = 2000L
@@ -184,8 +180,8 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 val (orderId, orderDate) = loadedOrderInfo
                 println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order already loaded - orderId=$orderId, date=$orderDate")
 
-                val orderPath = "orders/$BASKET_SELLER_ID/$orderDate/$orderId"
-                val result = orderRepository.loadOrder(BASKET_SELLER_ID, orderId, orderPath)
+                val orderPath = "orders/$sellerConfig.sellerId/$orderDate/$orderId"
+                val result = orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
                 result.onSuccess { loadedOrder ->
                     // Check if order is finalized
                     if (loadedOrder.status == com.together.newverse.domain.model.OrderStatus.CANCELLED ||
@@ -210,7 +206,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                     if (now > pickupInstant) {
                         println("⏰ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Pickup date has passed, transitioning to COMPLETED and clearing basket")
                         // Update Firebase with COMPLETED status
-                        orderRepository.updateOrderStatus(BASKET_SELLER_ID, orderDate, orderId, com.together.newverse.domain.model.OrderStatus.COMPLETED)
+                        orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, com.together.newverse.domain.model.OrderStatus.COMPLETED)
                         basketRepository.clearBasket()
                         // Clear basket state
                         _state.update { current ->
@@ -228,7 +224,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                     val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
                         println("🔄 basketScreenLoadMostRecentEditableOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
                         // Update Firebase with new status
-                        orderRepository.updateOrderStatus(BASKET_SELLER_ID, orderDate, orderId, updatedOrder.status)
+                        orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, updatedOrder.status)
 
                         // If transitioned to COMPLETED, clear basket
                         if (updatedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
@@ -291,7 +287,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 return@launch
             }
 
-            val orderResult = orderRepository.getOpenEditableOrder(BASKET_SELLER_ID, buyerProfile.placedOrderIds)
+            val orderResult = orderRepository.getOpenEditableOrder(sellerConfig.sellerId, buyerProfile.placedOrderIds)
             val order = orderResult.getOrNull()
 
             if (order != null) {
@@ -355,6 +351,20 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 return@launch
             }
 
+            // Check if buyer is blocked by seller
+            val isBlocked = profileRepository.isClientBlocked(sellerConfig.sellerId, currentUserId)
+            if (isBlocked) {
+                _state.update { current ->
+                    current.copy(
+                        basketScreen = current.basketScreen.copy(
+                            isCheckingOut = false,
+                            orderError = "You have been blocked by this seller"
+                        )
+                    )
+                }
+                return@launch
+            }
+
             val items = _state.value.basketScreen.items
             if (items.isEmpty()) {
                 _state.update { current ->
@@ -411,8 +421,8 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
             val existingOrderId = buyerProfile.placedOrderIds[dateKey]
 
             if (existingOrderId != null) {
-                val existingOrderPath = "orders/$BASKET_SELLER_ID/$dateKey/$existingOrderId"
-                val existingOrderResult = orderRepository.loadOrder(BASKET_SELLER_ID, existingOrderId, existingOrderPath)
+                val existingOrderPath = "orders/$sellerConfig.sellerId/$dateKey/$existingOrderId"
+                val existingOrderResult = orderRepository.loadOrder(sellerConfig.sellerId, existingOrderId, existingOrderPath)
                 existingOrderResult.onSuccess { existingOrder ->
                     // Only merge if the existing order is still editable
                     if (!existingOrder.canEdit()) {
@@ -454,7 +464,7 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
             val order = Order(
                 buyerProfile = buyerProfile,
                 createdDate = Clock.System.now().toEpochMilliseconds(),
-                sellerId = BASKET_SELLER_ID,
+                sellerId = sellerConfig.sellerId,
                 marketId = "",
                 pickUpDate = selectedDate,
                 message = "",
@@ -538,8 +548,8 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
         }
 
         try {
-            val orderPath = "orders/$BASKET_SELLER_ID/$date/$orderId"
-            val result = orderRepository.loadOrder(BASKET_SELLER_ID, orderId, orderPath)
+            val orderPath = "orders/$sellerConfig.sellerId/$date/$orderId"
+            val result = orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
 
             result.onSuccess { loadedOrder ->
                 // Apply status transition if needed (PLACED->LOCKED or LOCKED->COMPLETED)
@@ -547,7 +557,7 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                     println("🔄 basketScreenLoadOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
                     // Update Firebase with new status
                     viewModelScope.launch {
-                        orderRepository.updateOrderStatus(BASKET_SELLER_ID, date, orderId, updatedOrder.status)
+                        orderRepository.updateOrderStatus(sellerConfig.sellerId, date, orderId, updatedOrder.status)
                     }
                     updatedOrder
                 } ?: loadedOrder
@@ -711,7 +721,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                 id = orderId,
                 buyerProfile = buyerProfile,
                 createdDate = createdDate,
-                sellerId = BASKET_SELLER_ID,
+                sellerId = sellerConfig.sellerId,
                 marketId = "",
                 pickUpDate = pickupDate,
                 message = "",
@@ -800,10 +810,10 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
             }
 
             println("🛒 BuyAppViewModel.basketScreenCancelOrder: Calling orderRepository.cancelOrder")
-            println("🛒 BuyAppViewModel.basketScreenCancelOrder: sellerId=$BASKET_SELLER_ID")
+            println("🛒 BuyAppViewModel.basketScreenCancelOrder: sellerId=$sellerConfig.sellerId")
             println("🛒 BuyAppViewModel.basketScreenCancelOrder: orderDate=$orderDate")
             println("🛒 BuyAppViewModel.basketScreenCancelOrder: orderId=$orderId")
-            val result = orderRepository.cancelOrder(BASKET_SELLER_ID, orderDate, orderId)
+            val result = orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId)
 
             if (result.isSuccess) {
                 println("🛒 BuyAppViewModel.basketScreenCancelOrder: Cancel SUCCESS, clearing basket")

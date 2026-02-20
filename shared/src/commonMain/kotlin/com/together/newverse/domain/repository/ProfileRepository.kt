@@ -64,6 +64,37 @@ interface ProfileRepository {
     suspend fun deleteBuyerProfile(userId: String): Result<Unit>
 
     /**
+     * Add a buyer as a known client to a seller's profile.
+     * @param sellerId The seller's ID
+     * @param buyerId The buyer's ID to register
+     */
+    suspend fun addKnownClient(sellerId: String, buyerId: String): Result<Unit>
+
+    /**
+     * Block a buyer from placing orders with a seller.
+     * Moves from knownClientIds to blockedClientIds.
+     * @param sellerId The seller's ID
+     * @param buyerId The buyer's ID to block
+     */
+    suspend fun blockClient(sellerId: String, buyerId: String): Result<Unit>
+
+    /**
+     * Unblock a buyer, allowing them to place orders again.
+     * Moves from blockedClientIds to knownClientIds.
+     * @param sellerId The seller's ID
+     * @param buyerId The buyer's ID to unblock
+     */
+    suspend fun unblockClient(sellerId: String, buyerId: String): Result<Unit>
+
+    /**
+     * Check if a buyer is blocked by a seller.
+     * @param sellerId The seller's ID
+     * @param buyerId The buyer's ID to check
+     * @return true if blocked
+     */
+    suspend fun isClientBlocked(sellerId: String, buyerId: String): Boolean
+
+    /**
      * Save draft basket to buyer profile
      * @param draftBasket The draft basket to save
      * @return Success or failure result

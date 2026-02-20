@@ -158,12 +158,14 @@ fun NavGraphBuilder.navGraph(
         val profileState = profileViewModel.profileState.collectAsState()
         val statsState = profileViewModel.statsState.collectAsState()
         val dialogState = profileViewModel.dialogState.collectAsState()
+        val customerState = profileViewModel.customerState.collectAsState()
         val isSaving = profileViewModel.isSaving.collectAsState()
 
         SellerProfileScreen(
             profileState = profileState.value,
             statsState = statsState.value,
             dialogState = dialogState.value,
+            customerState = customerState.value,
             isSaving = isSaving.value,
             onNotificationSettingsClick = onNavigateToNotificationSettings,
             onLogout = onLogout,
@@ -179,6 +181,8 @@ fun NavGraphBuilder.navGraph(
                 }
             },
             onDeleteMarket = { marketId -> profileViewModel.removeMarket(marketId) },
+            onBlockCustomer = { buyerId -> profileViewModel.blockCustomer(buyerId) },
+            onUnblockCustomer = { buyerId -> profileViewModel.unblockCustomer(buyerId) },
             onRetry = { profileViewModel.refresh() }
         )
     }

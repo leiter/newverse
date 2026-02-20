@@ -1,7 +1,6 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.state.BuyAppViewModel
@@ -320,7 +319,7 @@ internal fun BuyAppViewModel.loadMainScreenArticles() {
         println("🎬 BuyAppViewModel.loadMainScreenArticles: Set loading state to true")
 
         // Load articles for a specific seller or use empty string for current user
-        val sellerId = "" // Empty string for current authenticated user
+        val sellerId = sellerConfig.sellerId
         println("🎬 BuyAppViewModel.loadMainScreenArticles: Calling articleRepository.getArticles(sellerId='$sellerId')")
 
         articleRepository.getArticles(sellerId)

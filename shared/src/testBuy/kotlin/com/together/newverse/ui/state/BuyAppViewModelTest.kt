@@ -6,11 +6,13 @@ import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
 import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.config.MutableSellerConfig
 import com.together.newverse.test.FakeArticleRepository
 import com.together.newverse.test.FakeAuthRepository
 import com.together.newverse.test.FakeBasketRepository
 import com.together.newverse.test.FakeOrderRepository
 import com.together.newverse.test.FakeProfileRepository
+import com.together.newverse.test.FakeSellerConfig
 import com.together.newverse.test.MainDispatcherRule
 import com.together.newverse.ui.navigation.NavRoutes
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -72,7 +74,8 @@ class BuyAppViewModelTest {
         orderRepository = orderRepository,
         profileRepository = profileRepository,
         authRepository = authRepository,
-        basketRepository = basketRepository
+        basketRepository = basketRepository,
+        sellerConfig = FakeSellerConfig()
     )
 
     // ===== Test Helpers =====

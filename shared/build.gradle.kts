@@ -143,6 +143,9 @@ kotlin {
             // Google Sign-In
             implementation("com.google.android.gms:play-services-auth:21.2.0")
 
+            // QR Code generation (ZXing)
+            implementation("com.google.zxing:core:3.5.3")
+
             // Coroutines Play Services
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
 

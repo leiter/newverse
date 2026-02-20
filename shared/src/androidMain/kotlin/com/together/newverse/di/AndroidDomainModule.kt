@@ -3,6 +3,7 @@ package com.together.newverse.di
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.data.config.DefaultProductCatalogConfig
 import com.together.newverse.data.config.DefaultSellerConfig
+import com.together.newverse.data.config.SellerIdStorage
 import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.data.repository.GitLiveAuthRepository
 import com.together.newverse.data.repository.GitLiveOrderRepository
@@ -26,6 +27,7 @@ import org.koin.dsl.module
  */
 val androidDomainModule = module {
     // Configs
+    single { SellerIdStorage(get()) }
     single<SellerConfig> { DefaultSellerConfig() }
     single<OrderScheduleConfig> { DefaultOrderScheduleConfig() }
     single<ProductCatalogConfig> { DefaultProductCatalogConfig() }

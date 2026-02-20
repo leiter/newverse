@@ -140,6 +140,30 @@ class FakeProfileRepository : ProfileRepository {
         return Result.success(Unit)
     }
 
+    private val knownClients = mutableMapOf<String, MutableSet<String>>()
+    private val blockedClients = mutableMapOf<String, MutableSet<String>>()
+
+    override suspend fun addKnownClient(sellerId: String, buyerId: String): Result<Unit> {
+        knownClients.getOrPut(sellerId) { mutableSetOf() }.add(buyerId)
+        return Result.success(Unit)
+    }
+
+    override suspend fun blockClient(sellerId: String, buyerId: String): Result<Unit> {
+        knownClients[sellerId]?.remove(buyerId)
+        blockedClients.getOrPut(sellerId) { mutableSetOf() }.add(buyerId)
+        return Result.success(Unit)
+    }
+
+    override suspend fun unblockClient(sellerId: String, buyerId: String): Result<Unit> {
+        blockedClients[sellerId]?.remove(buyerId)
+        knownClients.getOrPut(sellerId) { mutableSetOf() }.add(buyerId)
+        return Result.success(Unit)
+    }
+
+    override suspend fun isClientBlocked(sellerId: String, buyerId: String): Boolean {
+        return blockedClients[sellerId]?.contains(buyerId) == true
+    }
+
     override suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit> {
         val currentProfile = _buyerProfile.value
         if (currentProfile != null) {

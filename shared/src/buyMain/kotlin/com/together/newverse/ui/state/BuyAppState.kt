@@ -11,6 +11,10 @@ data class BuyAppState(
     val user: UserState = UserState.Guest,
     val requiresLogin: Boolean = false,
 
+    // Seller connection
+    val connectedSellerId: String = "",
+    val isDemoMode: Boolean = true,
+
     // Basket
     val basket: BasketState = BasketState(),
 

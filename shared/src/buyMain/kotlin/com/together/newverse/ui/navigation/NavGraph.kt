@@ -31,6 +31,7 @@ fun NavGraph(
     navController: NavHostController,
     appState: BuyAppState,
     onAction: (BuyAction) -> Unit,
+    onPlatformAction: (PlatformAction) -> Unit = {},
     startDestination: String = NavRoutes.Home.route,
 ) {
     NavHost(
@@ -106,7 +107,10 @@ fun NavGraph(
                 onNavigateToFavorites = { navController.navigate(NavRoutes.Buy.Favorites.route) },
                 isAnonymous = isAnonymous,
                 authProvider = authProvider,
-                userEmail = userEmail
+                userEmail = userEmail,
+                connectedSellerId = appState.connectedSellerId,
+                isDemoMode = appState.isDemoMode,
+                onScanQrCode = { onPlatformAction(PlatformAction.ScanQrCode) }
             )
         }
 

@@ -97,6 +97,17 @@ class MockProfileRepository : ProfileRepository {
         }
     }
 
+    override suspend fun addKnownClient(sellerId: String, buyerId: String): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun blockClient(sellerId: String, buyerId: String): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun unblockClient(sellerId: String, buyerId: String): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun isClientBlocked(sellerId: String, buyerId: String): Boolean = false
+
     override suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit> {
         return try {
             delay(100)

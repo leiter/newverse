@@ -70,3 +70,9 @@ sealed interface SellProfileAction : SellAction {
     data object SaveProfile : SellProfileAction
     data object CancelProfileEdit : SellProfileAction
 }
+
+// ===== Customer Management Actions =====
+sealed interface SellCustomerAction : SellAction {
+    data class BlockCustomer(val buyerId: String) : SellCustomerAction
+    data class UnblockCustomer(val buyerId: String) : SellCustomerAction
+}

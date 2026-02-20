@@ -114,6 +114,7 @@ class SellAppViewModel(
             is SellOrderAction -> handleOrderAction(action)
             is SellUiAction -> handleUiAction(action)
             is SellProfileAction -> handleProfileAction(action)
+            is SellCustomerAction -> { /* Handled by SellerProfileViewModel directly */ }
         }
     }
 

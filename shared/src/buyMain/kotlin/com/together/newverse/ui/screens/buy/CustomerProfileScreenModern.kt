@@ -98,6 +98,13 @@ import newverse.shared.generated.resources.error_email_format
 import newverse.shared.generated.resources.error_phone_format
 import newverse.shared.generated.resources.error_phone_invalid_chars
 import newverse.shared.generated.resources.payment_cash_only_info
+import newverse.shared.generated.resources.seller_connection_title
+import newverse.shared.generated.resources.seller_connection_demo_mode
+import newverse.shared.generated.resources.seller_connection_connected_to
+import newverse.shared.generated.resources.seller_connection_enter_id
+import newverse.shared.generated.resources.seller_connection_connect
+import newverse.shared.generated.resources.seller_connection_reset_demo
+import newverse.shared.generated.resources.seller_connection_scan_qr
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_confirm
 import newverse.shared.generated.resources.button_edit
@@ -140,6 +147,9 @@ fun CustomerProfileScreenModern(
     isAnonymous: Boolean = true,
     authProvider: AuthProvider = AuthProvider.ANONYMOUS,
     userEmail: String? = null,
+    connectedSellerId: String = "",
+    isDemoMode: Boolean = true,
+    onScanQrCode: () -> Unit = {},
     profileViewModel: CustomerProfileViewModel = koinViewModel()
 ) {
     val defaultMarket = stringResource(Res.string.default_market)
@@ -294,6 +304,19 @@ fun CustomerProfileScreenModern(
                         selectedMarket = selectedMarket,
                         pickupTime = pickupTime,
                         isEditing = isEditing,
+                    )
+
+                    // Seller Connection Card
+                    SellerConnectionCard(
+                        connectedSellerId = connectedSellerId,
+                        isDemoMode = isDemoMode,
+                        onConnectToSeller = { sellerId ->
+                            onAction(com.together.newverse.ui.state.BuySellerAction.ConnectToSeller(sellerId))
+                        },
+                        onResetToDemo = {
+                            onAction(com.together.newverse.ui.state.BuySellerAction.ResetToDemo)
+                        },
+                        onScanQrCode = onScanQrCode
                     )
 
                     // Notification Settings Card - temporarily hidden
@@ -1271,6 +1294,119 @@ private fun ModernTextField(
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(start = 16.dp, top = 4.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun SellerConnectionCard(
+    connectedSellerId: String,
+    isDemoMode: Boolean,
+    onConnectToSeller: (String) -> Unit,
+    onResetToDemo: () -> Unit,
+    onScanQrCode: () -> Unit
+) {
+    var sellerIdInput by remember { mutableStateOf("") }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Title
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = stringResource(Res.string.seller_connection_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            // Status
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = if (isDemoMode) {
+                    MaterialTheme.colorScheme.secondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.primaryContainer
+                }
+            ) {
+                Text(
+                    text = if (isDemoMode) {
+                        stringResource(Res.string.seller_connection_demo_mode)
+                    } else {
+                        stringResource(Res.string.seller_connection_connected_to, connectedSellerId)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
+
+            // Input row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = sellerIdInput,
+                    onValueChange = { sellerIdInput = it },
+                    label = { Text(stringResource(Res.string.seller_connection_enter_id)) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    trailingIcon = {
+                        IconButton(onClick = onScanQrCode) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBox,
+                                contentDescription = stringResource(Res.string.seller_connection_scan_qr)
+                            )
+                        }
+                    }
+                )
+            }
+
+            // Connect button
+            Button(
+                onClick = {
+                    onConnectToSeller(sellerIdInput.trim())
+                    sellerIdInput = ""
+                },
+                enabled = sellerIdInput.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(stringResource(Res.string.seller_connection_connect))
+            }
+
+            // Reset to demo button (only when not in demo mode)
+            if (!isDemoMode) {
+                TextButton(
+                    onClick = onResetToDemo,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(Res.string.seller_connection_reset_demo))
+                }
+            }
         }
     }
 }

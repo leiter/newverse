@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.SellerProfile
+import com.together.newverse.ui.components.QrCodeImage
 import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -32,6 +33,7 @@ fun SellerProfileScreen(
     profileState: AsyncState<SellerProfile>,
     statsState: ProfileStats,
     dialogState: ProfileDialogState,
+    customerState: CustomerManagementState = CustomerManagementState(),
     isSaving: Boolean = false,
     onNotificationSettingsClick: () -> Unit = {},
     onLogout: () -> Unit = {},
@@ -41,6 +43,8 @@ fun SellerProfileScreen(
     onHideMarketDialog: () -> Unit = {},
     onSaveMarket: (Market) -> Unit = {},
     onDeleteMarket: (String) -> Unit = {},
+    onBlockCustomer: (String) -> Unit = {},
+    onUnblockCustomer: (String) -> Unit = {},
     onRetry: () -> Unit = {}
 ) {
     // Extract profile from state
@@ -204,6 +208,71 @@ fun SellerProfileScreen(
                         }
                     }
 
+                    // QR Code Card for customer connection
+                    if (profile != null) {
+                        val deepLink = "newverse://connect?sellerId=${profile.id}"
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.seller_connection_share_qr),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                QrCodeImage(
+                                    content = deepLink,
+                                    sizeDp = 200
+                                )
+                                Text(
+                                    text = stringResource(Res.string.seller_connection_qr_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    // Connected Customers Card
+                    if (customerState.allClientIds.isNotEmpty()) {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.customer_management_title),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+
+                                customerState.knownClientIds.forEach { buyerId ->
+                                    CustomerListItem(
+                                        buyerId = buyerId,
+                                        isBlocked = false,
+                                        onBlock = { onBlockCustomer(buyerId) },
+                                        onUnblock = {}
+                                    )
+                                }
+
+                                customerState.blockedClientIds.forEach { buyerId ->
+                                    CustomerListItem(
+                                        buyerId = buyerId,
+                                        isBlocked = true,
+                                        onBlock = {},
+                                        onUnblock = { onUnblockCustomer(buyerId) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Notification Settings
                     OutlinedCard(
                         onClick = onNotificationSettingsClick,
@@ -308,6 +377,66 @@ private fun MarketListItem(
                         imageVector = Icons.Default.Delete,
                         contentDescription = stringResource(Res.string.market_delete),
                         tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomerListItem(
+    buyerId: String,
+    isBlocked: Boolean,
+    onBlock: () -> Unit,
+    onUnblock: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isBlocked) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = buyerId,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1
+                )
+                Text(
+                    text = if (isBlocked) {
+                        stringResource(Res.string.customer_management_blocked)
+                    } else {
+                        stringResource(Res.string.customer_management_active)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isBlocked) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    }
+                )
+            }
+            if (isBlocked) {
+                TextButton(onClick = onUnblock) {
+                    Text(stringResource(Res.string.customer_management_unblock))
+                }
+            } else {
+                TextButton(onClick = onBlock) {
+                    Text(
+                        text = stringResource(Res.string.customer_management_block),
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }

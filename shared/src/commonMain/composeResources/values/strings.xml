@@ -578,4 +578,23 @@
     <string name="import_file_read_error">Datei konnte nicht gelesen werden: %1$s</string>
     <string name="import_auth_required">Authentifizierung erforderlich</string>
     <string name="import_failed">Import fehlgeschlagen: %1$s</string>
+
+    <!-- Seller Connection -->
+    <string name="seller_connection_title">Verkäufer-Verbindung</string>
+    <string name="seller_connection_demo_mode">Demo-Modus</string>
+    <string name="seller_connection_connected_to">Verbunden mit: %1$s</string>
+    <string name="seller_connection_enter_id">Verkäufer-ID eingeben</string>
+    <string name="seller_connection_connect">Verbinden</string>
+    <string name="seller_connection_reset_demo">Zurück zum Demo-Modus</string>
+    <string name="seller_connection_scan_qr">QR-Code scannen</string>
+    <string name="seller_connection_share_qr">QR-Code teilen</string>
+    <string name="seller_connection_qr_hint">Kunden können diesen QR-Code scannen, um sich zu verbinden</string>
+
+    <!-- Customer Management -->
+    <string name="customer_management_title">Verbundene Kunden</string>
+    <string name="customer_management_no_customers">Noch keine verbundenen Kunden</string>
+    <string name="customer_management_block">Blockieren</string>
+    <string name="customer_management_unblock">Freigeben</string>
+    <string name="customer_management_blocked">Blockiert</string>
+    <string name="customer_management_active">Aktiv</string>
 </resources>

@@ -1,5 +1,7 @@
 package com.together.newverse.android
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -18,6 +20,7 @@ import com.together.newverse.ui.navigation.PlatformAction
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.BuyNavigationAction
+import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.ui.state.BuyUiAction
 import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.GoogleSignInHelper
@@ -27,6 +30,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import org.koin.android.ext.android.inject
 import org.koin.compose.koinInject
 
@@ -66,6 +70,55 @@ class BuyMainActivity : ComponentActivity() {
                 }
             }
         }
+
+        // Handle deep link if app was launched via one
+        handleDeepLink(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "newverse" && uri.host == "connect") {
+            val sellerId = uri.getQueryParameter("sellerId")
+            if (!sellerId.isNullOrBlank()) {
+                Log.d("BuyMainActivity", "Deep link received: connect to seller $sellerId")
+                val viewModel: BuyAppViewModel by inject()
+                viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerId))
+            }
+        }
+    }
+
+    private fun launchQrScanner(viewModel: BuyAppViewModel) {
+        val scanner = GmsBarcodeScanning.getClient(this)
+        scanner.startScan()
+            .addOnSuccessListener { barcode ->
+                val rawValue = barcode.rawValue ?: return@addOnSuccessListener
+                Log.d("BuyMainActivity", "QR scanned: $rawValue")
+
+                // Try to parse as deep link
+                val uri = Uri.parse(rawValue)
+                val sellerId = if (uri.scheme == "newverse" && uri.host == "connect") {
+                    uri.getQueryParameter("sellerId")
+                } else {
+                    // Treat raw value as seller ID directly
+                    rawValue
+                }
+
+                if (!sellerId.isNullOrBlank()) {
+                    viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerId))
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("BuyMainActivity", "QR scan failed: ${e.message}", e)
+                viewModel.dispatch(BuyUiAction.ShowSnackbar(
+                    message = "QR scan failed: ${e.message}",
+                    type = SnackbarType.ERROR
+                ))
+            }
     }
 
     /**
@@ -165,6 +218,10 @@ class BuyMainActivity : ComponentActivity() {
                     is PlatformAction.AppleSignIn -> {
                         Log.d("BuyMainActivity", "AppleSignIn action ignored on Android")
                         // Apple Sign-In is only available on iOS
+                    }
+                    is PlatformAction.ScanQrCode -> {
+                        Log.d("BuyMainActivity", "Handling ScanQrCode action")
+                        launchQrScanner(viewModel)
                     }
                 }
             }

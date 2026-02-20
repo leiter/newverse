@@ -526,4 +526,23 @@
     <string name="import_file_read_error">Could not read file: %1$s</string>
     <string name="import_auth_required">Authentication required</string>
     <string name="import_failed">Import failed: %1$s</string>
+
+    <!-- Seller Connection -->
+    <string name="seller_connection_title">Seller Connection</string>
+    <string name="seller_connection_demo_mode">Demo Mode</string>
+    <string name="seller_connection_connected_to">Connected to: %1$s</string>
+    <string name="seller_connection_enter_id">Enter seller ID</string>
+    <string name="seller_connection_connect">Connect</string>
+    <string name="seller_connection_reset_demo">Reset to Demo Mode</string>
+    <string name="seller_connection_scan_qr">Scan QR Code</string>
+    <string name="seller_connection_share_qr">Share QR Code</string>
+    <string name="seller_connection_qr_hint">Customers can scan this QR code to connect</string>
+
+    <!-- Customer Management -->
+    <string name="customer_management_title">Connected Customers</string>
+    <string name="customer_management_no_customers">No connected customers yet</string>
+    <string name="customer_management_block">Block</string>
+    <string name="customer_management_unblock">Unblock</string>
+    <string name="customer_management_blocked">Blocked</string>
+    <string name="customer_management_active">Active</string>
 </resources>

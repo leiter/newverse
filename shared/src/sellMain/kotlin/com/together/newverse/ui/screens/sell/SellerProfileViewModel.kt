@@ -38,6 +38,10 @@ class SellerProfileViewModel(
     private val _dialogState = MutableStateFlow(ProfileDialogState())
     val dialogState: StateFlow<ProfileDialogState> = _dialogState.asStateFlow()
 
+    // Customer management state
+    private val _customerState = MutableStateFlow(CustomerManagementState())
+    val customerState: StateFlow<CustomerManagementState> = _customerState.asStateFlow()
+
     // Saving state
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
@@ -62,6 +66,10 @@ class SellerProfileViewModel(
             profileRepository.getSellerProfile(sellerId).fold(
                 onSuccess = { profile ->
                     _profileState.value = AsyncState.Success(profile)
+                    _customerState.value = CustomerManagementState(
+                        knownClientIds = profile.knownClientIds,
+                        blockedClientIds = profile.blockedClientIds
+                    )
                 },
                 onFailure = { e ->
                     _profileState.value = AsyncState.Error(
@@ -172,6 +180,34 @@ class SellerProfileViewModel(
         _dialogState.update { it.copy(showPaymentInfo = false) }
     }
 
+    fun blockCustomer(buyerId: String) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.blockClient(sellerId, buyerId).onSuccess {
+                _customerState.update {
+                    it.copy(
+                        knownClientIds = it.knownClientIds - buyerId,
+                        blockedClientIds = it.blockedClientIds + buyerId
+                    )
+                }
+            }
+        }
+    }
+
+    fun unblockCustomer(buyerId: String) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.unblockClient(sellerId, buyerId).onSuccess {
+                _customerState.update {
+                    it.copy(
+                        blockedClientIds = it.blockedClientIds - buyerId,
+                        knownClientIds = it.knownClientIds + buyerId
+                    )
+                }
+            }
+        }
+    }
+
     fun refresh() {
         articles.clear()
         loadProfile()
@@ -195,6 +231,17 @@ data class ProfileDialogState(
     val editingMarket: Market? = null,
     val showPaymentInfo: Boolean = false
 )
+
+/**
+ * Customer management state for the seller profile screen
+ */
+data class CustomerManagementState(
+    val knownClientIds: List<String> = emptyList(),
+    val blockedClientIds: List<String> = emptyList()
+) {
+    val allClientIds: List<String>
+        get() = knownClientIds + blockedClientIds
+}
 
 /**
  * @deprecated Use profileState: AsyncState<SellerProfile>, statsState: ProfileStats, dialogState: ProfileDialogState instead

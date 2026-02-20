@@ -285,6 +285,77 @@ class GitLiveProfileRepository(
         }
     }
 
+    override suspend fun addKnownClient(sellerId: String, buyerId: String): Result<Unit> {
+        return try {
+            sellersRef.child(sellerId).child("knownClientIds").child(buyerId).setValue(true)
+            // Update cache
+            sellerProfileCache[sellerId]?.let { cached ->
+                if (buyerId !in cached.knownClientIds) {
+                    sellerProfileCache[sellerId] = cached.copy(
+                        knownClientIds = cached.knownClientIds + buyerId
+                    )
+                }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.addKnownClient: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun blockClient(sellerId: String, buyerId: String): Result<Unit> {
+        return try {
+            // Remove from known, add to blocked
+            sellersRef.child(sellerId).child("knownClientIds").child(buyerId).removeValue()
+            sellersRef.child(sellerId).child("blockedClientIds").child(buyerId).setValue(true)
+            // Update cache
+            sellerProfileCache[sellerId]?.let { cached ->
+                sellerProfileCache[sellerId] = cached.copy(
+                    knownClientIds = cached.knownClientIds - buyerId,
+                    blockedClientIds = cached.blockedClientIds + buyerId
+                )
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.blockClient: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun unblockClient(sellerId: String, buyerId: String): Result<Unit> {
+        return try {
+            // Remove from blocked, add to known
+            sellersRef.child(sellerId).child("blockedClientIds").child(buyerId).removeValue()
+            sellersRef.child(sellerId).child("knownClientIds").child(buyerId).setValue(true)
+            // Update cache
+            sellerProfileCache[sellerId]?.let { cached ->
+                sellerProfileCache[sellerId] = cached.copy(
+                    blockedClientIds = cached.blockedClientIds - buyerId,
+                    knownClientIds = cached.knownClientIds + buyerId
+                )
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.unblockClient: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun isClientBlocked(sellerId: String, buyerId: String): Boolean {
+        return try {
+            // Check cache first
+            sellerProfileCache[sellerId]?.let { cached ->
+                return buyerId in cached.blockedClientIds
+            }
+            // Fetch from Firebase
+            val snapshot = sellersRef.child(sellerId).child("blockedClientIds").child(buyerId).valueEvents.first()
+            snapshot.exists
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.isClientBlocked: Error - ${e.message}")
+            false
+        }
+    }
+
     override suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit> {
         return try {
             println("🛒 GitLiveProfileRepository.saveDraftBasket: START - ${draftBasket.items.size} items")
@@ -434,10 +505,23 @@ class GitLiveProfileRepository(
                     sellerId = value["sellerId"] as? String ?: sellerId,
                     markets = markets,
                     urls = (value["urls"] as? List<String>) ?: emptyList(),
-                    knownClientIds = (value["knownClientIds"] as? List<String>) ?: emptyList()
+                    knownClientIds = parseClientIds(value["knownClientIds"]),
+                    blockedClientIds = parseClientIds(value["blockedClientIds"])
                 )
             }
             else -> createMockSellerProfile(sellerId)
+        }
+    }
+
+    /**
+     * Parse client IDs from Firebase.
+     * Supports both list format and map format ({"buyerId": true}).
+     */
+    private fun parseClientIds(data: Any?): List<String> {
+        return when (data) {
+            is List<*> -> data.filterIsInstance<String>()
+            is Map<*, *> -> data.keys.filterIsInstance<String>()
+            else -> emptyList()
         }
     }
 
@@ -508,7 +592,8 @@ class GitLiveProfileRepository(
             "sellerId" to profile.sellerId,
             "markets" to marketsData,
             "urls" to profile.urls,
-            "knownClientIds" to profile.knownClientIds
+            "knownClientIds" to profile.knownClientIds.associateWith { true },
+            "blockedClientIds" to profile.blockedClientIds.associateWith { true }
         )
     }
 

@@ -3,12 +3,14 @@ package com.together.newverse.ui.state
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.config.MutableSellerConfig
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.state.buy.closeDrawer
+import com.together.newverse.ui.state.buy.connectToSeller
 import com.together.newverse.ui.state.buy.handleAccountAction
 import com.together.newverse.ui.state.buy.handleBasketScreenAction
 import com.together.newverse.ui.state.buy.handleMainScreenAction
@@ -28,6 +30,7 @@ import com.together.newverse.ui.state.buy.loginWithGoogle
 import com.together.newverse.ui.state.buy.loginWithApple
 import com.together.newverse.ui.state.buy.loginWithTwitter
 import com.together.newverse.ui.state.buy.logout
+import com.together.newverse.ui.state.buy.handleSellerAction
 import com.together.newverse.ui.state.buy.navigateBack
 import com.together.newverse.ui.state.buy.navigateTo
 import com.together.newverse.ui.state.buy.observeAuthStateChanges
@@ -70,13 +73,17 @@ class BuyAppViewModel(
     internal val orderRepository: OrderRepository,
     internal val profileRepository: ProfileRepository,
     authRepository: AuthRepository,
-    internal val basketRepository: BasketRepository
+    internal val basketRepository: BasketRepository,
+    internal val sellerConfig: MutableSellerConfig
 ) : BaseAppViewModel<BuyAppState, BuyAction>(authRepository) {
 
     /**
      * Internal state exposed for extension functions.
      */
-    override val _state = MutableStateFlow(BuyAppState())
+    override val _state = MutableStateFlow(BuyAppState(
+        connectedSellerId = sellerConfig.sellerId,
+        isDemoMode = sellerConfig.isDemoMode
+    ))
     override val state: StateFlow<BuyAppState> = _state.asStateFlow()
 
     /**
@@ -149,6 +156,9 @@ class BuyAppViewModel(
 
             // Account management actions (guest linking, logout warning, etc.)
             is BuyAccountAction -> handleAccountAction(action)
+
+            // Seller connection actions
+            is BuySellerAction -> handleSellerAction(action)
         }
     }
 
@@ -253,7 +263,7 @@ class BuyAppViewModel(
 
             println("📦 BuyAppViewModel.loadProducts: Set loading state to true")
 
-            val sellerId = ""
+            val sellerId = sellerConfig.sellerId
             println("📦 BuyAppViewModel.loadProducts: Calling articleRepository.getArticles(sellerId='$sellerId')")
 
             articleRepository.getArticles(sellerId)

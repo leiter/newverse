@@ -79,7 +79,7 @@ val BuyAppViewModel.orderHistoryFlow: StateFlow<AuthAwareState<List<Order>>>
                 if (profile.placedOrderIds.isEmpty()) {
                     flowOf(emptyList())
                 } else {
-                    orderRepository.observeBuyerOrders("", profile.placedOrderIds)
+                    orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds)
                 }
             }
     }.stateIn(
@@ -110,7 +110,7 @@ val BuyAppViewModel.dashboardFlow: StateFlow<AuthAwareState<BuyerDashboardData>>
                     if (profile.placedOrderIds.isEmpty()) {
                         flowOf(emptyList())
                     } else {
-                        orderRepository.observeBuyerOrders("", profile.placedOrderIds)
+                        orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds)
                     }
                 }
         ) { profile, orders ->

@@ -1,7 +1,6 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.repository.AuthUserInfo
 import com.together.newverse.ui.navigation.NavRoutes
@@ -572,7 +571,7 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
                 if (buyerProfile != null) {
                     // Clear user data: cancel future orders, keep past orders, delete profile
                     val cleanUpResult = profileRepository.clearUserData(
-                        sellerId = GitLiveArticleRepository.DEFAULT_SELLER_ID,
+                        sellerId = sellerConfig.sellerId,
                         buyerProfile = buyerProfile
                     )
 

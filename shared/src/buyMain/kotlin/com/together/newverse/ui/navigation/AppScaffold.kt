@@ -65,6 +65,7 @@ sealed interface PlatformAction {
     data object TwitterSignIn : PlatformAction
     data object AppleSignIn : PlatformAction
     data object GoogleSignOut : PlatformAction
+    data object ScanQrCode : PlatformAction
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -412,6 +413,7 @@ fun AppScaffold(
                 navController = navController,
                 appState = appState,
                 onAction = { action -> viewModel.dispatch(action) },
+                onPlatformAction = onPlatformAction,
             )
         }
     }

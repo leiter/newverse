@@ -125,6 +125,9 @@ dependencies {
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
+    // QR Code scanning (buyer app)
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+
     // Material Components (for testing UI)
     implementation("com.google.android.material:material:1.12.0")
 
