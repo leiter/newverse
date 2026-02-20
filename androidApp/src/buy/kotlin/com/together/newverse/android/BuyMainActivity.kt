@@ -84,10 +84,22 @@ class BuyMainActivity : ComponentActivity() {
         val uri = intent?.data ?: return
         if (uri.scheme == "newverse" && uri.host == "connect") {
             val sellerId = uri.getQueryParameter("sellerId")
+            val inviteId = uri.getQueryParameter("inviteId")
+            val expiresStr = uri.getQueryParameter("expires")
+
             if (!sellerId.isNullOrBlank()) {
-                Log.d("BuyMainActivity", "Deep link received: connect to seller $sellerId")
                 val viewModel: BuyAppViewModel by inject()
-                viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerId))
+
+                if (!inviteId.isNullOrBlank() && !expiresStr.isNullOrBlank()) {
+                    // Invitation-based deep link
+                    val expiresAt = expiresStr.toLongOrNull() ?: 0L
+                    Log.d("BuyMainActivity", "Deep link received: invitation $inviteId for seller $sellerId (expires: $expiresAt)")
+                    viewModel.dispatch(BuySellerAction.ConnectWithInvitation(sellerId, inviteId, expiresAt))
+                } else {
+                    // Legacy direct connection (backward compat)
+                    Log.d("BuyMainActivity", "Deep link received: connect to seller $sellerId")
+                    viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerId))
+                }
             }
         }
     }
@@ -101,15 +113,25 @@ class BuyMainActivity : ComponentActivity() {
 
                 // Try to parse as deep link
                 val uri = Uri.parse(rawValue)
-                val sellerId = if (uri.scheme == "newverse" && uri.host == "connect") {
-                    uri.getQueryParameter("sellerId")
+                if (uri.scheme == "newverse" && uri.host == "connect") {
+                    val sellerId = uri.getQueryParameter("sellerId")
+                    val inviteId = uri.getQueryParameter("inviteId")
+                    val expiresStr = uri.getQueryParameter("expires")
+
+                    if (!sellerId.isNullOrBlank()) {
+                        if (!inviteId.isNullOrBlank() && !expiresStr.isNullOrBlank()) {
+                            val expiresAt = expiresStr.toLongOrNull() ?: 0L
+                            Log.d("BuyMainActivity", "QR: invitation $inviteId for seller $sellerId")
+                            viewModel.dispatch(BuySellerAction.ConnectWithInvitation(sellerId, inviteId, expiresAt))
+                        } else {
+                            viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerId))
+                        }
+                    }
                 } else {
                     // Treat raw value as seller ID directly
-                    rawValue
-                }
-
-                if (!sellerId.isNullOrBlank()) {
-                    viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerId))
+                    if (rawValue.isNotBlank()) {
+                        viewModel.dispatch(BuySellerAction.ConnectToSeller(rawValue))
+                    }
                 }
             }
             .addOnFailureListener { e ->

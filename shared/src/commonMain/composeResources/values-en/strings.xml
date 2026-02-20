@@ -538,6 +538,31 @@
     <string name="seller_connection_share_qr">Share QR Code</string>
     <string name="seller_connection_qr_hint">Customers can scan this QR code to connect</string>
 
+    <!-- Invitations -->
+    <string name="invitation_generate">Generate Connection Link</string>
+    <string name="invitation_generating">Generating invitation...</string>
+    <string name="invitation_expires">Valid until: %1$s</string>
+    <string name="invitation_expired">Invitation expired</string>
+    <string name="invitation_confirm_title">Confirm Seller Connection</string>
+    <string name="invitation_confirm_message">Do you want to connect to %1$s?</string>
+    <string name="invitation_accept">Accept</string>
+    <string name="invitation_reject">Reject</string>
+    <string name="invitation_pending_title">Invitations</string>
+    <string name="invitation_send_to_buyer">Send Invitation to Buyer</string>
+    <string name="invitation_send">Send</string>
+    <string name="invitation_buyer_id_hint">Enter buyer ID</string>
+    <string name="invitation_invalid">Invitation invalid or not found</string>
+    <string name="invitation_expired_message">This invitation has expired. Please request a new one.</string>
+    <string name="invitation_demo_gate_message">Please scan a seller\'s QR code or accept an invitation</string>
+    <string name="invitation_revoke">Revoke</string>
+    <string name="invitation_sent">Invitation sent</string>
+    <string name="invitation_accepted">Accepted</string>
+    <string name="invitation_from">Invitation from %1$s</string>
+    <string name="invitation_expiry_label">Expiry</string>
+    <string name="invitation_expiry_24h">24 hours</string>
+    <string name="invitation_expiry_1h">1 hour</string>
+    <string name="invitation_expiry_48h">48 hours</string>
+
     <!-- Customer Management -->
     <string name="customer_management_title">Connected Customers</string>
     <string name="customer_management_no_customers">No connected customers yet</string>

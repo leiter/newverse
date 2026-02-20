@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.ui.components.QrCodeImage
@@ -25,6 +26,7 @@ import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -34,6 +36,7 @@ fun SellerProfileScreen(
     statsState: ProfileStats,
     dialogState: ProfileDialogState,
     customerState: CustomerManagementState = CustomerManagementState(),
+    invitationState: InvitationManagementState = InvitationManagementState(),
     isSaving: Boolean = false,
     onNotificationSettingsClick: () -> Unit = {},
     onLogout: () -> Unit = {},
@@ -45,6 +48,9 @@ fun SellerProfileScreen(
     onDeleteMarket: (String) -> Unit = {},
     onBlockCustomer: (String) -> Unit = {},
     onUnblockCustomer: (String) -> Unit = {},
+    onGenerateInvitation: (Int) -> Unit = {},
+    onSendInvitationToBuyer: (String) -> Unit = {},
+    onRevokeInvitation: (String) -> Unit = {},
     onRetry: () -> Unit = {}
 ) {
     // Extract profile from state
@@ -208,34 +214,14 @@ fun SellerProfileScreen(
                         }
                     }
 
-                    // QR Code Card for customer connection
+                    // Invitation-based QR Code Card
                     if (profile != null) {
-                        val deepLink = "newverse://connect?sellerId=${profile.id}"
-                        Card(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.seller_connection_share_qr),
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                QrCodeImage(
-                                    content = deepLink,
-                                    sizeDp = 200
-                                )
-                                Text(
-                                    text = stringResource(Res.string.seller_connection_qr_hint),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                        InvitationCard(
+                            invitationState = invitationState,
+                            onGenerateInvitation = onGenerateInvitation,
+                            onRevokeInvitation = onRevokeInvitation,
+                            onSendInvitationToBuyer = onSendInvitationToBuyer
+                        )
                     }
 
                     // Connected Customers Card
@@ -439,6 +425,169 @@ private fun CustomerListItem(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InvitationCard(
+    invitationState: InvitationManagementState,
+    onGenerateInvitation: (Int) -> Unit,
+    onRevokeInvitation: (String) -> Unit,
+    onSendInvitationToBuyer: (String) -> Unit
+) {
+    var buyerIdInput by remember { mutableStateOf("") }
+    var selectedExpiryMinutes by remember { mutableIntStateOf(1440) }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(Res.string.seller_connection_share_qr),
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            // Expiry selection
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.invitation_expiry_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+                listOf(
+                    60 to Res.string.invitation_expiry_1h,
+                    1440 to Res.string.invitation_expiry_24h,
+                    2880 to Res.string.invitation_expiry_48h
+                ).forEach { (minutes, labelRes) ->
+                    FilterChip(
+                        selected = selectedExpiryMinutes == minutes,
+                        onClick = { selectedExpiryMinutes = minutes },
+                        label = { Text(stringResource(labelRes)) }
+                    )
+                }
+            }
+
+            // Generate button or current QR
+            if (invitationState.currentInvitation != null && invitationState.deepLink != null) {
+                // Show QR code with current invitation
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    QrCodeImage(
+                        content = invitationState.deepLink,
+                        sizeDp = 200
+                    )
+                    Text(
+                        text = stringResource(Res.string.seller_connection_qr_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Expiry info
+                    val expiresAt = invitationState.currentInvitation.expiresAt
+                    val remainingMinutes = ((expiresAt - Clock.System.now().toEpochMilliseconds()) / 60000).coerceAtLeast(0)
+                    val expiryText = when {
+                        remainingMinutes > 60 -> "${remainingMinutes / 60}h ${remainingMinutes % 60}min"
+                        remainingMinutes > 0 -> "${remainingMinutes}min"
+                        else -> stringResource(Res.string.invitation_expired)
+                    }
+                    Text(
+                        text = stringResource(Res.string.invitation_expires, expiryText),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (remainingMinutes <= 0) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Revoke + Regenerate buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { onRevokeInvitation(invitationState.currentInvitation.id) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(Res.string.invitation_revoke))
+                        }
+                        Button(
+                            onClick = { onGenerateInvitation(selectedExpiryMinutes) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(Res.string.invitation_generate))
+                        }
+                    }
+                }
+            } else {
+                // Generate button
+                Button(
+                    onClick = { onGenerateInvitation(selectedExpiryMinutes) },
+                    enabled = !invitationState.isGenerating,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (invitationState.isGenerating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = if (invitationState.isGenerating) {
+                            stringResource(Res.string.invitation_generating)
+                        } else {
+                            stringResource(Res.string.invitation_generate)
+                        }
+                    )
+                }
+            }
+
+            HorizontalDivider()
+
+            // Send invitation to specific buyer
+            Text(
+                text = stringResource(Res.string.invitation_send_to_buyer),
+                style = MaterialTheme.typography.titleSmall
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = buyerIdInput,
+                    onValueChange = { buyerIdInput = it },
+                    label = { Text(stringResource(Res.string.invitation_buyer_id_hint)) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                Button(
+                    onClick = {
+                        onSendInvitationToBuyer(buyerIdInput.trim())
+                        buyerIdInput = ""
+                    },
+                    enabled = buyerIdInput.isNotBlank() && !invitationState.isSendingToBuyer
+                ) {
+                    Text(stringResource(Res.string.invitation_send))
+                }
+            }
+
+            // Show last sent confirmation
+            invitationState.lastSentInvitation?.let { sent ->
+                Text(
+                    text = "${stringResource(Res.string.invitation_sent)}: ${sent.buyerId}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

@@ -126,6 +126,15 @@ sealed interface BuyMainScreenAction : BuyAction {
 // ===== Seller Connection Actions =====
 sealed interface BuySellerAction : BuyAction {
     data class ConnectToSeller(val sellerId: String) : BuySellerAction
+    data class ConnectWithInvitation(
+        val sellerId: String,
+        val invitationId: String,
+        val expiresAt: Long
+    ) : BuySellerAction
+    data class AcceptPendingInvitation(val invitationId: String) : BuySellerAction
+    data class RejectPendingInvitation(val invitationId: String) : BuySellerAction
+    data object ConfirmConnection : BuySellerAction
+    data object DismissConnectionDialog : BuySellerAction
     data object ResetToDemo : BuySellerAction
 }
 

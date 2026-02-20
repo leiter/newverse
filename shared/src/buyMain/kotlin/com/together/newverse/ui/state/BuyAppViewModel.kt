@@ -7,13 +7,16 @@ import com.together.newverse.domain.config.MutableSellerConfig
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
+import com.together.newverse.domain.repository.InvitationRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.state.buy.closeDrawer
 import com.together.newverse.ui.state.buy.connectToSeller
 import com.together.newverse.ui.state.buy.handleAccountAction
 import com.together.newverse.ui.state.buy.handleBasketScreenAction
+import com.together.newverse.ui.state.buy.handleInvitationAction
 import com.together.newverse.ui.state.buy.handleMainScreenAction
+import com.together.newverse.ui.state.buy.observePendingInvitations
 import com.together.newverse.ui.state.buy.hideBottomSheet
 import com.together.newverse.ui.state.buy.hideDialog
 import com.together.newverse.ui.state.buy.hidePasswordResetDialog
@@ -74,7 +77,8 @@ class BuyAppViewModel(
     internal val profileRepository: ProfileRepository,
     authRepository: AuthRepository,
     internal val basketRepository: BasketRepository,
-    internal val sellerConfig: MutableSellerConfig
+    internal val sellerConfig: MutableSellerConfig,
+    internal val invitationRepository: InvitationRepository? = null
 ) : BaseAppViewModel<BuyAppState, BuyAction>(authRepository) {
 
     /**
@@ -116,6 +120,9 @@ class BuyAppViewModel(
 
         // Initialize BasketScreen observers
         initializeBasketScreen()
+
+        // Observe pending invitations
+        observePendingInvitations()
 
         // Load MainScreen articles after auth is ready (handled by observeAuthStateChanges)
     }

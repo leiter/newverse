@@ -76,11 +76,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.Invitation
+import com.together.newverse.ui.screens.buy.components.ConnectionConfirmDialog
 import com.together.newverse.ui.screens.buy.components.DeleteAccountDialog
 import com.together.newverse.ui.screens.buy.components.EmailLinkingDialog
 import com.together.newverse.ui.screens.buy.components.LinkAccountDialog
 import com.together.newverse.ui.screens.buy.components.LoginStatusCard
 import com.together.newverse.ui.screens.buy.components.LogoutWarningDialog
+import com.together.newverse.ui.screens.buy.components.PendingInvitationsCard
+import com.together.newverse.ui.state.ConnectionConfirmation
 import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.BuyAccountAction
 import com.together.newverse.ui.state.BuyAction
@@ -149,6 +153,8 @@ fun CustomerProfileScreenModern(
     userEmail: String? = null,
     connectedSellerId: String = "",
     isDemoMode: Boolean = true,
+    pendingInvitations: List<Invitation> = emptyList(),
+    showConnectionConfirmDialog: ConnectionConfirmation? = null,
     onScanQrCode: () -> Unit = {},
     profileViewModel: CustomerProfileViewModel = koinViewModel()
 ) {
@@ -224,6 +230,15 @@ fun CustomerProfileScreenModern(
             isLoading = state.isLoading,
             onConfirm = { onAction(BuyAccountAction.ConfirmDeleteAccount) },
             onDismiss = { onAction(BuyAccountAction.DismissDeleteAccountDialog) }
+        )
+    }
+
+    // Connection Confirmation Dialog
+    if (showConnectionConfirmDialog != null) {
+        ConnectionConfirmDialog(
+            confirmation = showConnectionConfirmDialog,
+            onConfirm = { onAction(com.together.newverse.ui.state.BuySellerAction.ConfirmConnection) },
+            onDismiss = { onAction(com.together.newverse.ui.state.BuySellerAction.DismissConnectionDialog) }
         )
     }
 
@@ -304,6 +319,17 @@ fun CustomerProfileScreenModern(
                         selectedMarket = selectedMarket,
                         pickupTime = pickupTime,
                         isEditing = isEditing,
+                    )
+
+                    // Pending Invitations Card
+                    PendingInvitationsCard(
+                        invitations = pendingInvitations,
+                        onAccept = { invitationId ->
+                            onAction(com.together.newverse.ui.state.BuySellerAction.AcceptPendingInvitation(invitationId))
+                        },
+                        onReject = { invitationId ->
+                            onAction(com.together.newverse.ui.state.BuySellerAction.RejectPendingInvitation(invitationId))
+                        }
                     )
 
                     // Seller Connection Card

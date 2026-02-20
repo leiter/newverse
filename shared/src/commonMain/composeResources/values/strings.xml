@@ -590,6 +590,31 @@
     <string name="seller_connection_share_qr">QR-Code teilen</string>
     <string name="seller_connection_qr_hint">Kunden können diesen QR-Code scannen, um sich zu verbinden</string>
 
+    <!-- Invitations -->
+    <string name="invitation_generate">Einladungslink erstellen</string>
+    <string name="invitation_generating">Erstelle Einladung...</string>
+    <string name="invitation_expires">Gültig bis: %1$s</string>
+    <string name="invitation_expired">Einladung abgelaufen</string>
+    <string name="invitation_confirm_title">Verkäufer-Verbindung bestätigen</string>
+    <string name="invitation_confirm_message">Möchten Sie sich mit %1$s verbinden?</string>
+    <string name="invitation_accept">Annehmen</string>
+    <string name="invitation_reject">Ablehnen</string>
+    <string name="invitation_pending_title">Einladungen</string>
+    <string name="invitation_send_to_buyer">Einladung an Käufer senden</string>
+    <string name="invitation_send">Senden</string>
+    <string name="invitation_buyer_id_hint">Käufer-ID eingeben</string>
+    <string name="invitation_invalid">Einladung ungültig oder nicht gefunden</string>
+    <string name="invitation_expired_message">Diese Einladung ist abgelaufen. Bitte fordern Sie eine neue an.</string>
+    <string name="invitation_demo_gate_message">Bitte scannen Sie den QR-Code eines Verkäufers oder akzeptieren Sie eine Einladung</string>
+    <string name="invitation_revoke">Widerrufen</string>
+    <string name="invitation_sent">Einladung gesendet</string>
+    <string name="invitation_accepted">Angenommen</string>
+    <string name="invitation_from">Einladung von %1$s</string>
+    <string name="invitation_expiry_label">Gültigkeit</string>
+    <string name="invitation_expiry_24h">24 Stunden</string>
+    <string name="invitation_expiry_1h">1 Stunde</string>
+    <string name="invitation_expiry_48h">48 Stunden</string>
+
     <!-- Customer Management -->
     <string name="customer_management_title">Verbundene Kunden</string>
     <string name="customer_management_no_customers">Noch keine verbundenen Kunden</string>

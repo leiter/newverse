@@ -110,6 +110,8 @@ fun NavGraph(
                 userEmail = userEmail,
                 connectedSellerId = appState.connectedSellerId,
                 isDemoMode = appState.isDemoMode,
+                pendingInvitations = appState.pendingInvitations,
+                showConnectionConfirmDialog = appState.showConnectionConfirmDialog,
                 onScanQrCode = { onPlatformAction(PlatformAction.ScanQrCode) }
             )
         }

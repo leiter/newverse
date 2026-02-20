@@ -3,10 +3,13 @@ package com.together.newverse.ui.screens.sell
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.Invitation
+import com.together.newverse.domain.model.InvitationStatus
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.InvitationRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.state.core.AsyncState
@@ -23,7 +26,15 @@ class SellerProfileViewModel(
     private val profileRepository: ProfileRepository,
     private val authRepository: AuthRepository,
     private val articleRepository: ArticleRepository,
-    private val orderRepository: OrderRepository
+    private val orderRepository: OrderRepository,
+    private val invitationRepository: InvitationRepository = object : InvitationRepository {
+        override suspend fun createInvitation(sellerId: String, sellerDisplayName: String, expiresInMillis: Long, targetBuyerId: String?) = Result.failure<Invitation>(Exception("Not configured"))
+        override suspend fun getInvitation(invitationId: String) = Result.failure<Invitation>(Exception("Not configured"))
+        override suspend fun acceptInvitation(invitationId: String, buyerId: String) = Result.failure<Invitation>(Exception("Not configured"))
+        override suspend fun rejectInvitation(invitationId: String, buyerId: String) = Result.failure<Unit>(Exception("Not configured"))
+        override fun observePendingInvitations(buyerId: String) = kotlinx.coroutines.flow.flowOf(emptyList<Invitation>())
+        override suspend fun revokeInvitation(invitationId: String) = Result.failure<Unit>(Exception("Not configured"))
+    }
 ) : ViewModel() {
 
     // Profile state using AsyncState pattern
@@ -41,6 +52,10 @@ class SellerProfileViewModel(
     // Customer management state
     private val _customerState = MutableStateFlow(CustomerManagementState())
     val customerState: StateFlow<CustomerManagementState> = _customerState.asStateFlow()
+
+    // Invitation management state
+    private val _invitationState = MutableStateFlow(InvitationManagementState())
+    val invitationState: StateFlow<InvitationManagementState> = _invitationState.asStateFlow()
 
     // Saving state
     private val _isSaving = MutableStateFlow(false)
@@ -208,6 +223,86 @@ class SellerProfileViewModel(
         }
     }
 
+    fun generateInvitation(expiryMinutes: Int = 1440) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            val profile = (_profileState.value as? AsyncState.Success)?.data ?: return@launch
+
+            _invitationState.update { it.copy(isGenerating = true) }
+
+            val expiryMillis = expiryMinutes * 60 * 1000L
+            invitationRepository.createInvitation(
+                sellerId = sellerId,
+                sellerDisplayName = profile.displayName,
+                expiresInMillis = expiryMillis
+            ).fold(
+                onSuccess = { invitation ->
+                    val deepLink = "newverse://connect?sellerId=${invitation.sellerId}&inviteId=${invitation.id}&expires=${invitation.expiresAt}"
+                    _invitationState.update {
+                        it.copy(
+                            currentInvitation = invitation,
+                            deepLink = deepLink,
+                            isGenerating = false
+                        )
+                    }
+                },
+                onFailure = { e ->
+                    println("Failed to generate invitation: ${e.message}")
+                    _invitationState.update { it.copy(isGenerating = false) }
+                }
+            )
+        }
+    }
+
+    fun sendInvitationToBuyer(buyerId: String) {
+        if (buyerId.isBlank()) return
+
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            val profile = (_profileState.value as? AsyncState.Success)?.data ?: return@launch
+
+            _invitationState.update { it.copy(isSendingToBuyer = true) }
+
+            invitationRepository.createInvitation(
+                sellerId = sellerId,
+                sellerDisplayName = profile.displayName,
+                targetBuyerId = buyerId
+            ).fold(
+                onSuccess = { invitation ->
+                    _invitationState.update {
+                        it.copy(
+                            lastSentInvitation = invitation,
+                            isSendingToBuyer = false
+                        )
+                    }
+                },
+                onFailure = { e ->
+                    println("Failed to send invitation: ${e.message}")
+                    _invitationState.update { it.copy(isSendingToBuyer = false) }
+                }
+            )
+        }
+    }
+
+    fun revokeInvitation(invitationId: String) {
+        viewModelScope.launch {
+            invitationRepository.revokeInvitation(invitationId).fold(
+                onSuccess = {
+                    _invitationState.update {
+                        if (it.currentInvitation?.id == invitationId) {
+                            it.copy(currentInvitation = null, deepLink = null)
+                        } else {
+                            it
+                        }
+                    }
+                },
+                onFailure = { e ->
+                    println("Failed to revoke invitation: ${e.message}")
+                }
+            )
+        }
+    }
+
     fun refresh() {
         articles.clear()
         loadProfile()
@@ -242,6 +337,17 @@ data class CustomerManagementState(
     val allClientIds: List<String>
         get() = knownClientIds + blockedClientIds
 }
+
+/**
+ * Invitation management state for the seller profile screen
+ */
+data class InvitationManagementState(
+    val currentInvitation: Invitation? = null,
+    val deepLink: String? = null,
+    val isGenerating: Boolean = false,
+    val isSendingToBuyer: Boolean = false,
+    val lastSentInvitation: Invitation? = null
+)
 
 /**
  * @deprecated Use profileState: AsyncState<SellerProfile>, statsState: ProfileStats, dialogState: ProfileDialogState instead

@@ -5,6 +5,8 @@ import com.together.newverse.domain.service.ProductImportService
 import com.together.newverse.ui.screens.sell.CreateProductViewModel
 import com.together.newverse.ui.screens.sell.OrdersViewModel
 import com.together.newverse.ui.screens.sell.OverviewViewModel
+import com.together.newverse.data.repository.GitLiveInvitationRepository
+import com.together.newverse.domain.repository.InvitationRepository
 import com.together.newverse.ui.screens.sell.SellerProfileViewModel
 import com.together.newverse.ui.state.SellAppViewModel
 import org.koin.core.module.dsl.viewModel
@@ -28,11 +30,14 @@ val appModule = module {
         )
     }
 
+    // Invitation repository
+    single<InvitationRepository> { GitLiveInvitationRepository(get()) }
+
     // Sell-specific ViewModels
     viewModel { OverviewViewModel(get(), get(), get(), get(), get()) }
     viewModel { OrdersViewModel(get(), get()) }
     viewModel { CreateProductViewModel(get(), get(), get(), get(), get()) }
-    viewModel { SellerProfileViewModel(get(), get(), get(), get()) }
+    viewModel { SellerProfileViewModel(get(), get(), get(), get(), get()) }
 }
 
 /**

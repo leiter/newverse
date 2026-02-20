@@ -2,8 +2,10 @@ package com.together.newverse.di
 
 import com.together.newverse.data.config.BuyerSellerConfig
 import com.together.newverse.data.config.SellerIdStorage
+import com.together.newverse.data.repository.GitLiveInvitationRepository
 import com.together.newverse.domain.config.MutableSellerConfig
 import com.together.newverse.domain.config.SellerConfig
+import com.together.newverse.domain.repository.InvitationRepository
 import com.together.newverse.ui.screens.buy.CustomerProfileViewModel
 import com.together.newverse.ui.state.BuyAppViewModel
 import org.koin.core.module.dsl.viewModel
@@ -21,6 +23,9 @@ val appModule = module {
     single<MutableSellerConfig> { get<BuyerSellerConfig>() }
     single<SellerConfig> { get<BuyerSellerConfig>() }
 
+    // Invitation repository
+    single<InvitationRepository> { GitLiveInvitationRepository(get()) }
+
     // Main Buy App ViewModel
     viewModel {
         BuyAppViewModel(
@@ -29,7 +34,8 @@ val appModule = module {
             profileRepository = get(),
             authRepository = get(),
             basketRepository = get(),
-            sellerConfig = get()
+            sellerConfig = get(),
+            invitationRepository = get()
         )
     }
 

@@ -1,5 +1,7 @@
 package com.together.newverse.ui.state
 
+import com.together.newverse.domain.model.Invitation
+
 /**
  * Flattened state for Buy/Customer flavor.
  *
@@ -14,6 +16,10 @@ data class BuyAppState(
     // Seller connection
     val connectedSellerId: String = "",
     val isDemoMode: Boolean = true,
+
+    // Invitation state
+    val pendingInvitations: List<Invitation> = emptyList(),
+    val showConnectionConfirmDialog: ConnectionConfirmation? = null,
 
     // Basket
     val basket: BasketState = BasketState(),
@@ -40,4 +46,12 @@ data class BuyAppState(
 
     // App metadata
     val meta: AppMetaState = AppMetaState()
+)
+
+/**
+ * Data for the connection confirmation dialog.
+ */
+data class ConnectionConfirmation(
+    val invitation: Invitation,
+    val sellerDisplayName: String
 )
