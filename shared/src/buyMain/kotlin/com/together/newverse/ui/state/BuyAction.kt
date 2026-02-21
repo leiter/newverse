@@ -138,6 +138,13 @@ sealed interface BuySellerAction : BuyAction {
     data object ResetToDemo : BuySellerAction
 }
 
+// ===== Messaging Actions =====
+sealed interface BuyMessagingAction : BuyAction {
+    data object LoadConversations : BuyMessagingAction
+    data class OpenConversation(val conversationId: String) : BuyMessagingAction
+    data class AddBuyerContact(val buyerId: String, val name: String) : BuyMessagingAction
+}
+
 // ===== Basket Screen Actions =====
 sealed interface BuyBasketScreenAction : BuyAction {
     data class AddItem(val item: OrderedProduct) : BuyBasketScreenAction

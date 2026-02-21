@@ -18,6 +18,8 @@ import com.together.newverse.ui.screens.sell.OverviewScreen
 import com.together.newverse.ui.screens.sell.OverviewViewModel
 import com.together.newverse.ui.screens.sell.PickDayScreen
 import com.together.newverse.ui.screens.sell.ProductsScreen
+import com.together.newverse.ui.screens.sell.SellerConversationDetailScreen
+import com.together.newverse.ui.screens.sell.ConversationListScreen
 import com.together.newverse.ui.screens.sell.SellerProfileScreen
 import com.together.newverse.ui.screens.sell.SellerProfileViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -194,6 +196,28 @@ fun NavGraphBuilder.navGraph(
 
     composable(NavRoutes.Sell.PickDay.route) {
         PickDayScreen()
+    }
+
+    // Messaging routes
+    composable(NavRoutes.Sell.Conversations.route) {
+        ConversationListScreen(
+            onConversationClick = { conversationId ->
+                navController.navigate(NavRoutes.Sell.ConversationDetail.createRoute(conversationId))
+            }
+        )
+    }
+
+    composable(
+        route = NavRoutes.Sell.ConversationDetail.route,
+        arguments = listOf(
+            navArgument("conversationId") { type = NavType.StringType }
+        )
+    ) { backStackEntry ->
+        val conversationId = backStackEntry.arguments?.read { getStringOrNull("conversationId") } ?: return@composable
+        SellerConversationDetailScreen(
+            conversationId = conversationId,
+            onNavigateBack = onNavigateBack
+        )
     }
 
     composable(NavRoutes.Sell.NotificationSettings.route) {

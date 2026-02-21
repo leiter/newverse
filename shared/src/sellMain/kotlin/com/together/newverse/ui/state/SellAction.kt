@@ -77,6 +77,11 @@ sealed interface SellCustomerAction : SellAction {
     data class UnblockCustomer(val buyerId: String) : SellCustomerAction
 }
 
+// ===== Messaging Actions =====
+sealed interface SellMessagingAction : SellAction {
+    data class OpenConversation(val conversationId: String) : SellMessagingAction
+}
+
 // ===== Invitation Actions =====
 sealed interface SellInvitationAction : SellAction {
     data class GenerateInvitation(val expiryMinutes: Int = 1440) : SellInvitationAction

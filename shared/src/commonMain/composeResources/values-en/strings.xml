@@ -570,4 +570,34 @@
     <string name="customer_management_unblock">Unblock</string>
     <string name="customer_management_blocked">Blocked</string>
     <string name="customer_management_active">Active</string>
+
+    <!-- ========================================= -->
+    <!-- MESSAGING -->
+    <!-- ========================================= -->
+    <string name="nav_messages">Messages</string>
+    <string name="messaging_empty">No messages yet</string>
+    <string name="messaging_input_hint">Write a message...</string>
+    <string name="messaging_send">Send</string>
+    <string name="messaging_today">Today</string>
+    <string name="messaging_yesterday">Yesterday</string>
+    <string name="messaging_unread">%1$d unread</string>
+    <string name="messaging_blocked">This contact is no longer available</string>
+    <string name="messaging_send_failed_blocked">Message could not be sent</string>
+
+    <!-- Contacts -->
+    <string name="contacts_title">Contacts</string>
+    <string name="contacts_empty">No contacts yet</string>
+    <string name="contacts_add">Add Contact</string>
+    <string name="contacts_your_id">Your Contact ID</string>
+    <string name="contacts_enter_id">Enter Contact ID</string>
+    <string name="contacts_share">Share ID</string>
+    <string name="contacts_added">Contact added</string>
+    <string name="contacts_removed">Contact removed</string>
+    <string name="contacts_not_found">User not found</string>
+    <string name="contacts_block">Block Contact</string>
+    <string name="contacts_unblock">Unblock Contact</string>
+    <string name="contacts_blocked">Contact blocked</string>
+    <string name="contacts_blocked_list">Blocked Contacts</string>
+    <string name="contacts_remove">Remove Contact</string>
+    <string name="contacts_remove_confirm">Are you sure you want to remove this contact?</string>
 </resources>

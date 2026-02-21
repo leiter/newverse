@@ -8,8 +8,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.savedstate.read
 import com.together.newverse.ui.screens.buy.BasketScreen
+import com.together.newverse.ui.screens.buy.AddBuyerContactScreen
+import com.together.newverse.ui.screens.buy.BuyerContactsScreen
+import com.together.newverse.ui.screens.buy.BuyerConversationDetailScreen
 import com.together.newverse.ui.screens.buy.CustomerProfileScreenModern
 import com.together.newverse.ui.screens.buy.FavoritesScreen
+import com.together.newverse.ui.screens.buy.MessagesScreen
 import com.together.newverse.ui.screens.buy.OrderHistoryScreen
 import com.together.newverse.ui.screens.buy.ProductDetailScreen
 import com.together.newverse.ui.state.AuthProvider
@@ -133,6 +137,61 @@ fun NavGraph(
                 state = appState.mainScreen,
                 onAction = onAction,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Messages screen
+        composable(NavRoutes.Buy.Messages.route) {
+            val myUserId = when (val user = appState.user) {
+                is UserState.LoggedIn -> user.id
+                else -> ""
+            }
+            MessagesScreen(
+                state = appState.messaging,
+                myUserId = myUserId,
+                onConversationClick = { conversationId ->
+                    navController.navigate(NavRoutes.Buy.ConversationDetail.createRoute(conversationId))
+                },
+                onContactsClick = {
+                    navController.navigate(NavRoutes.Buy.BuyerContacts.route)
+                }
+            )
+        }
+
+        // Conversation detail screen
+        composable(
+            route = NavRoutes.Buy.ConversationDetail.route,
+            arguments = listOf(
+                navArgument("conversationId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val conversationId = backStackEntry.arguments?.read { getString("conversationId") } ?: ""
+            BuyerConversationDetailScreen(
+                conversationId = conversationId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Buyer contacts screens
+        composable(NavRoutes.Buy.BuyerContacts.route) {
+            BuyerContactsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onAddContact = { navController.navigate(NavRoutes.Buy.AddBuyerContact.route) },
+                onStartConversation = { contactUserId ->
+                    // Create conversation ID deterministically and navigate
+                    val myId = (appState.user as? UserState.LoggedIn)?.id ?: ""
+                    val convId = com.together.newverse.domain.model.Conversation.createId(myId, contactUserId)
+                    navController.navigate(NavRoutes.Buy.ConversationDetail.createRoute(convId))
+                }
+            )
+        }
+
+        composable(NavRoutes.Buy.AddBuyerContact.route) {
+            AddBuyerContactScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onPlatformAction = onPlatformAction
             )
         }
 

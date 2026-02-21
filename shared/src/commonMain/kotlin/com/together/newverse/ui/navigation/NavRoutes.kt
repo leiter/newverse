@@ -37,6 +37,14 @@ sealed class NavRoutes(val route: String) {
                 return "buy/product/$articleId"
             }
         }
+        data object Messages : Buy("buy/messages")
+        data object ConversationDetail : Buy("buy/conversation/{conversationId}") {
+            fun createRoute(conversationId: String): String {
+                return "buy/conversation/$conversationId"
+            }
+        }
+        data object BuyerContacts : Buy("buy/contacts")
+        data object AddBuyerContact : Buy("buy/contacts/add")
     }
 
     // Sell (Merchant) routes
@@ -59,6 +67,12 @@ sealed class NavRoutes(val route: String) {
                 return "sell/product/$articleId"
             }
         }
+        data object Conversations : Sell("sell/conversations")
+        data object ConversationDetail : Sell("sell/conversation/{conversationId}") {
+            fun createRoute(conversationId: String): String {
+                return "sell/conversation/$conversationId"
+            }
+        }
     }
 
     companion object {
@@ -75,13 +89,19 @@ sealed class NavRoutes(val route: String) {
             Buy.OrderHistory,
             Buy.Favorites,
             Buy.ProductDetail,
+            Buy.Messages,
+            Buy.ConversationDetail,
+            Buy.BuyerContacts,
+            Buy.AddBuyerContact,
             // Sell routes
             Sell.Overview,
             Sell.Orders,
             Sell.Products,
             Sell.Create,
             Sell.Profile,
-            Sell.PickDay
+            Sell.PickDay,
+            Sell.Conversations,
+            Sell.ConversationDetail
         )
 
         // Get all routes for navigation drawer (filtered by build flavor)
@@ -146,6 +166,12 @@ sealed class NavRoutes(val route: String) {
             Sell.NotificationSettings -> Res.string.nav_notification_settings
             Sell.ImportPreview -> Res.string.topbar_import_products
             Sell.ProductDetail -> Res.string.products_title
+            Buy.Messages -> Res.string.nav_messages
+            Buy.ConversationDetail -> Res.string.nav_messages
+            Buy.BuyerContacts -> Res.string.contacts_title
+            Buy.AddBuyerContact -> Res.string.contacts_add
+            Sell.Conversations -> Res.string.nav_messages
+            Sell.ConversationDetail -> Res.string.nav_messages
         }
 
         // Get category for grouping in drawer (returns StringResource)

@@ -19,6 +19,7 @@ import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.navigation.PlatformAction
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.SnackbarType
+import com.together.newverse.ui.state.BuyMessagingAction
 import com.together.newverse.ui.state.BuyNavigationAction
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.ui.state.BuyUiAction
@@ -82,23 +83,33 @@ class BuyMainActivity : ComponentActivity() {
 
     private fun handleDeepLink(intent: Intent?) {
         val uri = intent?.data ?: return
-        if (uri.scheme == "newverse" && uri.host == "connect") {
-            val sellerId = uri.getQueryParameter("sellerId")
-            val inviteId = uri.getQueryParameter("inviteId")
-            val expiresStr = uri.getQueryParameter("expires")
+        if (uri.scheme != "newverse") return
 
-            if (!sellerId.isNullOrBlank()) {
-                val viewModel: BuyAppViewModel by inject()
+        val viewModel: BuyAppViewModel by inject()
 
-                if (!inviteId.isNullOrBlank() && !expiresStr.isNullOrBlank()) {
-                    // Invitation-based deep link
-                    val expiresAt = expiresStr.toLongOrNull() ?: 0L
-                    Log.d("BuyMainActivity", "Deep link received: invitation $inviteId for seller $sellerId (expires: $expiresAt)")
-                    viewModel.dispatch(BuySellerAction.ConnectWithInvitation(sellerId, inviteId, expiresAt))
-                } else {
-                    // Legacy direct connection (backward compat)
-                    Log.d("BuyMainActivity", "Deep link received: connect to seller $sellerId")
-                    viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerId))
+        when (uri.host) {
+            "connect" -> {
+                val sellerId = uri.getQueryParameter("sellerId")
+                val inviteId = uri.getQueryParameter("inviteId")
+                val expiresStr = uri.getQueryParameter("expires")
+
+                if (!sellerId.isNullOrBlank()) {
+                    if (!inviteId.isNullOrBlank() && !expiresStr.isNullOrBlank()) {
+                        val expiresAt = expiresStr.toLongOrNull() ?: 0L
+                        Log.d("BuyMainActivity", "Deep link received: invitation $inviteId for seller $sellerId (expires: $expiresAt)")
+                        viewModel.dispatch(BuySellerAction.ConnectWithInvitation(sellerId, inviteId, expiresAt))
+                    } else {
+                        Log.d("BuyMainActivity", "Deep link received: connect to seller $sellerId")
+                        viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerId))
+                    }
+                }
+            }
+            "contact" -> {
+                val buyerId = uri.getQueryParameter("buyerId")
+                val name = uri.getQueryParameter("name") ?: ""
+                if (!buyerId.isNullOrBlank()) {
+                    Log.d("BuyMainActivity", "Deep link received: add buyer contact $buyerId ($name)")
+                    viewModel.dispatch(BuyMessagingAction.AddBuyerContact(buyerId, name))
                 }
             }
         }
@@ -126,6 +137,13 @@ class BuyMainActivity : ComponentActivity() {
                         } else {
                             viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerId))
                         }
+                    }
+                } else if (uri.scheme == "newverse" && uri.host == "contact") {
+                    val buyerId = uri.getQueryParameter("buyerId")
+                    val name = uri.getQueryParameter("name") ?: ""
+                    if (!buyerId.isNullOrBlank()) {
+                        Log.d("BuyMainActivity", "QR: add buyer contact $buyerId ($name)")
+                        viewModel.dispatch(BuyMessagingAction.AddBuyerContact(buyerId, name))
                     }
                 } else {
                     // Treat raw value as seller ID directly
@@ -244,6 +262,14 @@ class BuyMainActivity : ComponentActivity() {
                     is PlatformAction.ScanQrCode -> {
                         Log.d("BuyMainActivity", "Handling ScanQrCode action")
                         launchQrScanner(viewModel)
+                    }
+                    is PlatformAction.ShareText -> {
+                        Log.d("BuyMainActivity", "Handling ShareText action")
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, action.text)
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, null))
                     }
                 }
             }

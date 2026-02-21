@@ -1,0 +1,37 @@
+{
+  "rules": {
+    "conversations": {
+      "$conversationId": {
+        ".read": "root.child('user_conversations').child(auth.uid).child($conversationId).exists()",
+        ".write": "root.child('user_conversations').child(auth.uid).child($conversationId).exists() || !data.exists()"
+      }
+    },
+    "messages": {
+      "$conversationId": {
+        ".read": "root.child('user_conversations').child(auth.uid).child($conversationId).exists()",
+        "$messageId": {
+          ".write": "root.child('user_conversations').child(auth.uid).child($conversationId).exists()",
+          ".validate": "newData.child('senderId').val() === auth.uid"
+        }
+      }
+    },
+    "user_conversations": {
+      "$userId": {
+        ".read": "$userId === auth.uid",
+        ".write": "$userId === auth.uid || root.child('user_conversations').child(auth.uid).child(newData.key).exists()"
+      }
+    },
+    "buyer_contacts": {
+      "$buyerId": {
+        ".read": "$buyerId === auth.uid",
+        ".write": "$buyerId === auth.uid"
+      }
+    },
+    "buyer_blocked": {
+      "$buyerId": {
+        ".read": "$buyerId === auth.uid",
+        ".write": "$buyerId === auth.uid"
+      }
+    }
+  }
+}

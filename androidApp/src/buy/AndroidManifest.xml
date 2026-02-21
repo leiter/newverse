@@ -22,6 +22,16 @@
                     android:scheme="newverse"
                     android:host="connect" />
             </intent-filter>
+
+            <!-- Deep link: newverse://contact?buyerId=xyz&name=Max -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="newverse"
+                    android:host="contact" />
+            </intent-filter>
         </activity>
     </application>
 

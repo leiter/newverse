@@ -7,7 +7,9 @@ import com.together.newverse.domain.config.MutableSellerConfig
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
+import com.together.newverse.domain.repository.BuyerContactRepository
 import com.together.newverse.domain.repository.InvitationRepository
+import com.together.newverse.domain.repository.MessageRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.state.buy.closeDrawer
@@ -78,7 +80,9 @@ class BuyAppViewModel(
     authRepository: AuthRepository,
     internal val basketRepository: BasketRepository,
     internal val sellerConfig: MutableSellerConfig,
-    internal val invitationRepository: InvitationRepository? = null
+    internal val invitationRepository: InvitationRepository? = null,
+    internal val messageRepository: MessageRepository? = null,
+    internal val buyerContactRepository: BuyerContactRepository? = null
 ) : BaseAppViewModel<BuyAppState, BuyAction>(authRepository) {
 
     /**
@@ -124,6 +128,9 @@ class BuyAppViewModel(
         // Observe pending invitations
         observePendingInvitations()
 
+        // Observe unread message count
+        observeUnreadMessages()
+
         // Load MainScreen articles after auth is ready (handled by observeAuthStateChanges)
     }
 
@@ -166,6 +173,9 @@ class BuyAppViewModel(
 
             // Seller connection actions
             is BuySellerAction -> handleSellerAction(action)
+
+            // Messaging actions
+            is BuyMessagingAction -> handleMessagingAction(action)
         }
     }
 
@@ -468,6 +478,48 @@ class BuyAppViewModel(
     fun resetGoogleSignOutTrigger() {
         _state.update { current ->
             current.copy(triggerGoogleSignOut = false)
+        }
+    }
+
+    // ===== Messaging =====
+
+    private fun handleMessagingAction(action: BuyMessagingAction) {
+        when (action) {
+            is BuyMessagingAction.LoadConversations -> { /* handled by screen-level VM */ }
+            is BuyMessagingAction.OpenConversation -> { /* handled by navigation */ }
+            is BuyMessagingAction.AddBuyerContact -> addBuyerContact(action.buyerId, action.name)
+        }
+    }
+
+    private fun addBuyerContact(buyerId: String, name: String) {
+        val repo = buyerContactRepository ?: return
+        val currentUserId = (state.value.user as? UserState.LoggedIn)?.id ?: return
+
+        viewModelScope.launch {
+            repo.addContact(
+                buyerId = currentUserId,
+                contact = com.together.newverse.domain.model.BuyerContact(
+                    userId = buyerId,
+                    displayName = name,
+                    addedAt = kotlin.time.Clock.System.now().toEpochMilliseconds()
+                )
+            )
+        }
+    }
+
+    private fun observeUnreadMessages() {
+        val repo = messageRepository ?: return
+        viewModelScope.launch {
+            // Wait for auth before observing
+            authFlowCoordinator.authState.collect { authState ->
+                if (authState is com.together.newverse.ui.state.core.AuthState.Authenticated) {
+                    repo.observeUnreadCount(authState.userId)
+                        .catch { e -> println("Failed to observe unread count: ${e.message}") }
+                        .collect { count ->
+                            _state.update { it.copy(unreadMessageCount = count) }
+                        }
+                }
+            }
         }
     }
 

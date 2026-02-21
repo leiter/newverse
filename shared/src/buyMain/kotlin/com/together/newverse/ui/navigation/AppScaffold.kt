@@ -66,6 +66,7 @@ sealed interface PlatformAction {
     data object AppleSignIn : PlatformAction
     data object GoogleSignOut : PlatformAction
     data object ScanQrCode : PlatformAction
+    data class ShareText(val text: String) : PlatformAction
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

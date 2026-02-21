@@ -2,6 +2,7 @@ package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.Conversation
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.navigation.NavRoutes
@@ -87,6 +88,14 @@ inline fun <S : ScreenState, T> S.toAsyncState(dataExtractor: (S) -> T?): AsyncS
         }
     }
 }
+
+// ===== Messaging State =====
+
+data class MessagingScreenState(
+    val conversations: List<Conversation> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
 
 // ===== User State =====
 

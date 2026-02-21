@@ -27,6 +27,9 @@ data class SellAppState(
     val auth: AuthScreenState = AuthScreenState(),
     val products: ProductsScreenState = ProductsScreenState(),
 
+    // Messaging
+    val unreadMessageCount: Int = 0,
+
     // App metadata
     val meta: AppMetaState = AppMetaState()
 )

@@ -44,6 +44,10 @@ data class BuyAppState(
     val customerProfile: CustomerProfileScreenState = CustomerProfileScreenState(),
     val orderHistory: OrderHistoryScreenState = OrderHistoryScreenState(),
 
+    // Messaging
+    val messaging: MessagingScreenState = MessagingScreenState(),
+    val unreadMessageCount: Int = 0,
+
     // App metadata
     val meta: AppMetaState = AppMetaState()
 )
