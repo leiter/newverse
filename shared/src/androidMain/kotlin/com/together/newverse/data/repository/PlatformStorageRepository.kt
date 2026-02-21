@@ -25,10 +25,8 @@ class PlatformStorageRepository : StorageRepository {
         return try {
             println("📤 PlatformStorageRepository.uploadImage: START (${imageData.size} bytes)")
 
-            val path = if (filename.isEmpty()) {
+            val path = filename.ifEmpty {
                 generateImagePath()
-            } else {
-                filename
             }
 
             val imageRef = storageRef.child(path)

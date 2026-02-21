@@ -17,6 +17,15 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/upload_products"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Upload Products"
+        app:layout_constraintBottom_toTopOf="@id/login_google"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginBottom="12dp" />
+
     <com.google.android.gms.common.SignInButton
         android:id="@+id/login_google"
         android:layout_width="wrap_content"

@@ -4,4 +4,17 @@
     <!-- Debug-specific configuration shared across all flavors -->
     <!-- Flavor-specific debug activities are in buyDebug/sellDebug manifests -->
 
+    <application>
+        <activity
+            android:name="com.together.newverse.android.TestContainerActivity"
+            android:exported="true"
+            android:label="Test Container"
+            android:theme="@style/AppTheme.Test">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+    </application>
+
 </manifest>

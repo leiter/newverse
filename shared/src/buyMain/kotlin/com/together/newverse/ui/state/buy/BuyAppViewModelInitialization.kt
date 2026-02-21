@@ -124,36 +124,10 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
 
             // Handle auth state transitions
             when {
-                // Just became authenticated
-                authState is AuthState.Authenticated && previousAuthState !is AuthState.Authenticated -> {
-                    println("🔐 Auth state changed: ${previousAuthState?.javaClass?.simpleName} -> Authenticated")
-
-                    // If coming from NotAuthenticated (first-time auth), run full initialization
-                    if (previousUserState is UserState.NotAuthenticated) {
-                        println("🔐 First-time auth, running full initialization...")
-                        val userInfo = AuthUserInfo(
-                            id = authState.userId,
-                            email = authState.email,
-                            displayName = authState.displayName,
-                            photoUrl = authState.photoUrl,
-                            isAnonymous = authState.isAnonymous
-                        )
-                        resumeInitializationAfterAuth(userInfo)
-                    } else {
-                        // Already initialized, just refresh the order and load products
-                        loadOpenOrderAfterAuth()
-                        loadMainScreenArticles()
-                    }
-                }
-
-                // Just became not authenticated (logged out)
-                authState is AuthState.NotAuthenticated && previousAuthState is AuthState.Authenticated -> {
-                    println("🔐 Auth state changed: Authenticated -> NotAuthenticated (logged out)")
-                }
-
-                // Finished initializing (from checking to authenticated)
-                authState is AuthState.Authenticated && previousAuthState is AuthState.Initializing -> {
-                    println("🔐 Auth initialized with existing session")
+                // Finished initializing (from checking to authenticated) - persisted session
+                // Must be checked before the general "just became authenticated" case
+                authState is AuthState.Authenticated && (previousAuthState is AuthState.Initializing || previousAuthState == null) -> {
+                    println("🔐 Auth initialized with existing session (previousAuth=${previousAuthState?.javaClass?.simpleName})")
                     val userInfo = AuthUserInfo(
                         id = authState.userId,
                         email = authState.email,
@@ -162,6 +136,25 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
                         isAnonymous = authState.isAnonymous
                     )
                     resumeInitializationAfterAuth(userInfo)
+                }
+
+                // Just became authenticated (from NotAuthenticated - login/register)
+                authState is AuthState.Authenticated && previousAuthState is AuthState.NotAuthenticated -> {
+                    println("🔐 Auth state changed: NotAuthenticated -> Authenticated")
+                    println("🔐 First-time auth, running full initialization...")
+                    val userInfo = AuthUserInfo(
+                        id = authState.userId,
+                        email = authState.email,
+                        displayName = authState.displayName,
+                        photoUrl = authState.photoUrl,
+                        isAnonymous = authState.isAnonymous
+                    )
+                    resumeInitializationAfterAuth(userInfo)
+                }
+
+                // Just became not authenticated (logged out)
+                authState is AuthState.NotAuthenticated && previousAuthState is AuthState.Authenticated -> {
+                    println("🔐 Auth state changed: Authenticated -> NotAuthenticated (logged out)")
                 }
             }
 

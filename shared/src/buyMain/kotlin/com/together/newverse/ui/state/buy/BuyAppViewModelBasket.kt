@@ -180,7 +180,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 val (orderId, orderDate) = loadedOrderInfo
                 println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order already loaded - orderId=$orderId, date=$orderDate")
 
-                val orderPath = "orders/$sellerConfig.sellerId/$orderDate/$orderId"
+                val orderPath = "orders/${sellerConfig.sellerId}/$orderDate/$orderId"
                 val result = orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
                 result.onSuccess { loadedOrder ->
                     // Check if order is finalized
@@ -421,7 +421,7 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
             val existingOrderId = buyerProfile.placedOrderIds[dateKey]
 
             if (existingOrderId != null) {
-                val existingOrderPath = "orders/$sellerConfig.sellerId/$dateKey/$existingOrderId"
+                val existingOrderPath = "orders/${sellerConfig.sellerId}/$dateKey/$existingOrderId"
                 val existingOrderResult = orderRepository.loadOrder(sellerConfig.sellerId, existingOrderId, existingOrderPath)
                 existingOrderResult.onSuccess { existingOrder ->
                     // Only merge if the existing order is still editable
@@ -449,16 +449,12 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                         )
                     }
                 }.onFailure { error ->
-                    _state.update { current ->
-                        current.copy(
-                            basketScreen = current.basketScreen.copy(
-                                isCheckingOut = false,
-                                orderError = "Bestellung konnte nicht geladen werden: ${error.message}"
-                            )
-                        )
-                    }
+                    // Order reference is stale (e.g. placed to wrong path or deleted)
+                    // Proceed as if no existing order for this date
+                    println("⚠️ basketScreenCheckout: Stale order reference $existingOrderId for $dateKey, proceeding with new order: ${error.message}")
                 }
-                return@launch
+                // If onFailure was triggered, fall through to place a new order
+                if (_state.value.basketScreen.showMergeDialog) return@launch
             }
 
             val order = Order(
@@ -548,7 +544,7 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
         }
 
         try {
-            val orderPath = "orders/$sellerConfig.sellerId/$date/$orderId"
+            val orderPath = "orders/${sellerConfig.sellerId}/$date/$orderId"
             val result = orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
 
             result.onSuccess { loadedOrder ->
@@ -810,7 +806,7 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
             }
 
             println("🛒 BuyAppViewModel.basketScreenCancelOrder: Calling orderRepository.cancelOrder")
-            println("🛒 BuyAppViewModel.basketScreenCancelOrder: sellerId=$sellerConfig.sellerId")
+            println("🛒 BuyAppViewModel.basketScreenCancelOrder: sellerId=${sellerConfig.sellerId}")
             println("🛒 BuyAppViewModel.basketScreenCancelOrder: orderDate=$orderDate")
             println("🛒 BuyAppViewModel.basketScreenCancelOrder: orderId=$orderId")
             val result = orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId)

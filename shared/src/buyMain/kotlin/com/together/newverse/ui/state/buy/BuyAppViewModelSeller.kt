@@ -55,7 +55,9 @@ internal fun BuyAppViewModel.connectToSeller(sellerId: String) {
 
     // Demo-to-production gating: if currently in demo mode and target is not the demo seller,
     // require invitation (unless invitationRepository is not configured)
-    if (_state.value.isDemoMode && sellerId != sellerConfig.demoSellerId && invitationRepository != null) {
+    // TODO: Remove test seller bypass after E2E testing
+    val testSellerBypass = sellerId == "jOSoP5UxAohZDtdpluhHg6VrfvQ2" || sellerId == "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+    if (_state.value.isDemoMode && sellerId != sellerConfig.demoSellerId && invitationRepository != null && !testSellerBypass) {
         viewModelScope.launch {
             showSnackbar("Please scan a seller's QR code or accept an invitation", SnackbarType.ERROR)
         }
@@ -219,6 +221,10 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
 
             // Persist new seller ID
             sellerConfig.setSellerId(sellerId)
+
+            // Clear the actual basket repository (drives the cart badge)
+            basketRepository.clearBasket()
+            profileRepository.clearDraftBasket()
 
             // Clear basket and reset screen states
             _state.update { current ->

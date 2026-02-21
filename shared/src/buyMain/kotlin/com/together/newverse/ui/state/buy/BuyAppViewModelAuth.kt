@@ -731,6 +731,7 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
                 )
             }
             loadProducts()
+            loadMainScreenArticles()
 
             // Mark initialization complete
             _state.update { current ->
