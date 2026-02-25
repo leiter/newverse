@@ -110,56 +110,78 @@ class AuthFlowCoordinator(
      * Should be called once when the ViewModel is created.
      */
     fun initialize(scope: CoroutineScope) {
+        println("[NV_AuthFlowCoordinator] initialize: START - launching coroutine")
         scope.launch {
+            println("[NV_AuthFlowCoordinator] initialize: Coroutine started, checking persisted auth...")
             // First check persisted auth
             val persistedResult = authRepository.checkPersistedAuth()
+            println("[NV_AuthFlowCoordinator] initialize: checkPersistedAuth returned: $persistedResult")
 
             persistedResult.fold(
                 onSuccess = { userId ->
+                    println("[NV_AuthFlowCoordinator] initialize: checkPersistedAuth SUCCESS - userId=$userId")
                     if (userId != null) {
                         // User is authenticated, get their info
+                        println("[NV_AuthFlowCoordinator] initialize: Getting current user info...")
                         val userInfo = authRepository.getCurrentUserInfo()
+                        println("[NV_AuthFlowCoordinator] initialize: getCurrentUserInfo returned: $userInfo")
                         if (userInfo != null) {
                             _authState.value = AuthState.Authenticated.fromUserInfo(userInfo)
+                            println("[NV_AuthFlowCoordinator] initialize: Auth state set to Authenticated (from userInfo)")
                         } else {
                             // Fallback: we have a userId but couldn't get full info
+                            println("[NV_AuthFlowCoordinator] initialize: Falling back - checking isAnonymous...")
+                            val isAnon = authRepository.isAnonymous()
+                            println("[NV_AuthFlowCoordinator] initialize: isAnonymous=$isAnon")
                             _authState.value = AuthState.Authenticated(
                                 userId = userId,
                                 email = null,
                                 displayName = null,
                                 photoUrl = null,
-                                isAnonymous = authRepository.isAnonymous()
+                                isAnonymous = isAnon
                             )
+                            println("[NV_AuthFlowCoordinator] initialize: Auth state set to Authenticated (fallback)")
                         }
                     } else {
                         _authState.value = AuthState.NotAuthenticated
+                        println("[NV_AuthFlowCoordinator] initialize: Auth state set to NotAuthenticated (no userId)")
                     }
                 },
-                onFailure = {
+                onFailure = { error ->
+                    println("[NV_AuthFlowCoordinator] initialize: checkPersistedAuth FAILURE - ${error.message}")
                     _authState.value = AuthState.NotAuthenticated
+                    println("[NV_AuthFlowCoordinator] initialize: Auth state set to NotAuthenticated (error)")
                 }
             )
 
             // Then observe for ongoing auth state changes
+            println("[NV_AuthFlowCoordinator] initialize: Setting up observeAuthState collection...")
             authRepository.observeAuthState().collect { userId ->
+                println("[NV_AuthFlowCoordinator] observeAuthState: Collected userId=$userId")
                 if (userId != null) {
                     val userInfo = authRepository.getCurrentUserInfo()
+                    println("[NV_AuthFlowCoordinator] observeAuthState: getCurrentUserInfo returned: $userInfo")
                     if (userInfo != null) {
                         _authState.value = AuthState.Authenticated.fromUserInfo(userInfo)
+                        println("[NV_AuthFlowCoordinator] observeAuthState: Auth state updated to Authenticated")
                     } else {
+                        val isAnon = authRepository.isAnonymous()
                         _authState.value = AuthState.Authenticated(
                             userId = userId,
                             email = null,
                             displayName = null,
                             photoUrl = null,
-                            isAnonymous = authRepository.isAnonymous()
+                            isAnonymous = isAnon
                         )
+                        println("[NV_AuthFlowCoordinator] observeAuthState: Auth state updated to Authenticated (fallback)")
                     }
                 } else {
                     _authState.value = AuthState.NotAuthenticated
+                    println("[NV_AuthFlowCoordinator] observeAuthState: Auth state updated to NotAuthenticated")
                 }
             }
         }
+        println("[NV_AuthFlowCoordinator] initialize: END - coroutine launched")
     }
 
     /**

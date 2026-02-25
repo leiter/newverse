@@ -41,14 +41,22 @@ class SellAppViewModel(
     }
 
     init {
+        println("[NV_SellAppVM] init: START")
+
         // Initialize auth coordinator from base class
+        println("[NV_SellAppVM] init: Calling initializeAuthCoordinator()...")
         initializeAuthCoordinator()
+        println("[NV_SellAppVM] init: initializeAuthCoordinator() returned")
 
         // Observe auth state changes and sync to SellAppState
+        println("[NV_SellAppVM] init: Calling observeAuthStateChanges()...")
         observeAuthStateChanges()
+        println("[NV_SellAppVM] init: observeAuthStateChanges() returned")
 
         // Initialize app on startup
+        println("[NV_SellAppVM] init: Calling initializeApp()...")
         initializeApp()
+        println("[NV_SellAppVM] init: END")
     }
 
     /**
@@ -56,33 +64,46 @@ class SellAppViewModel(
      * This bridges the new AuthState to the existing UserState for backward compatibility.
      */
     private fun observeAuthStateChanges() {
+        println("[NV_SellAppVM] observeAuthStateChanges: Setting up auth state collection")
         viewModelScope.launch {
+            println("[NV_SellAppVM] observeAuthStateChanges: Coroutine started, collecting authState...")
             authCoordinator.authState.collect { authState ->
+                println("[NV_SellAppVM] observeAuthStateChanges: Collected authState=$authState")
                 _state.update { current ->
                     current.copy(
                         user = authState.toUserState(),
                         requiresLogin = authState !is AuthState.Authenticated,
                         meta = when (authState) {
-                            is AuthState.Initializing -> current.meta.copy(
-                                isInitializing = true,
-                                initializationStep = InitializationStep.CheckingAuth
-                            )
-                            is AuthState.NotAuthenticated -> current.meta.copy(
-                                isInitializing = false,
-                                isInitialized = true,
-                                initializationStep = InitializationStep.Complete
-                            )
-                            is AuthState.Authenticated -> current.meta.copy(
-                                isInitializing = false,
-                                isInitialized = true,
-                                initializationStep = InitializationStep.Complete
-                            )
+                            is AuthState.Initializing -> {
+                                println("[NV_SellAppVM] observeAuthStateChanges: Setting meta to Initializing/CheckingAuth")
+                                current.meta.copy(
+                                    isInitializing = true,
+                                    initializationStep = InitializationStep.CheckingAuth
+                                )
+                            }
+                            is AuthState.NotAuthenticated -> {
+                                println("[NV_SellAppVM] observeAuthStateChanges: Setting meta to NotAuthenticated/Complete")
+                                current.meta.copy(
+                                    isInitializing = false,
+                                    isInitialized = true,
+                                    initializationStep = InitializationStep.Complete
+                                )
+                            }
+                            is AuthState.Authenticated -> {
+                                println("[NV_SellAppVM] observeAuthStateChanges: Setting meta to Authenticated/Complete")
+                                current.meta.copy(
+                                    isInitializing = false,
+                                    isInitialized = true,
+                                    initializationStep = InitializationStep.Complete
+                                )
+                            }
                         }
                     )
                 }
 
                 // Load products when authenticated
                 if (authState is AuthState.Authenticated) {
+                    println("[NV_SellAppVM] observeAuthStateChanges: User authenticated, loading products...")
                     loadProducts()
                 }
             }
@@ -199,19 +220,29 @@ class SellAppViewModel(
     private fun initializeApp() {
         viewModelScope.launch {
             try {
-                _state.update { it.copy(
-                    meta = it.meta.copy(
-                        isInitializing = true,
-                        initializationStep = InitializationStep.CheckingAuth
-                    )
-                )}
+                // Only set initializing state if auth hasn't already resolved
+                // This prevents overwriting the state if observeAuthStateChanges already updated it
+                val currentAuthState = authCoordinator.authState.value
+                println("[NV_SellAppVM] initializeApp: Current auth state = $currentAuthState")
+
+                if (currentAuthState is AuthState.Initializing) {
+                    println("[NV_SellAppVM] initializeApp: Auth still initializing, setting loading state")
+                    _state.update { it.copy(
+                        meta = it.meta.copy(
+                            isInitializing = true,
+                            initializationStep = InitializationStep.CheckingAuth
+                        )
+                    )}
+                } else {
+                    println("[NV_SellAppVM] initializeApp: Auth already resolved, skipping loading state")
+                }
 
                 // AuthFlowCoordinator handles auth checking automatically
-                // We just wait for it to complete and then load products
-                println("🚀 Sell App Init: Waiting for auth state...")
+                // observeAuthStateChanges will handle the state transitions
+                println("[NV_SellAppVM] initializeApp: Waiting for auth state...")
 
             } catch (e: Exception) {
-                println("❌ Sell App Init: Error - ${e.message}")
+                println("[NV_SellAppVM] initializeApp: ERROR - ${e.message}")
                 _state.update { it.copy(
                     meta = it.meta.copy(
                         isInitializing = false,

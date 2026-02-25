@@ -109,28 +109,41 @@ class BuyAppViewModel(
         get() = viewModelScope
 
     init {
+        println("[NV_BuyAppVM] init: START")
+
         // Initialize auth coordinator from base class
+        println("[NV_BuyAppVM] init: Calling initializeAuthCoordinator()...")
         initializeAuthCoordinator()
+        println("[NV_BuyAppVM] init: initializeAuthCoordinator() returned")
 
         // Observe auth state changes and sync to BuyAppState
+        println("[NV_BuyAppVM] init: Calling observeAuthStateChanges()...")
         observeAuthStateChanges()
+        println("[NV_BuyAppVM] init: observeAuthStateChanges() returned")
 
         // Initialize app on startup
+        println("[NV_BuyAppVM] init: Calling initializeApp()...")
         initializeApp()
+        println("[NV_BuyAppVM] init: initializeApp() returned")
 
         // Initialize MainScreen observers
+        println("[NV_BuyAppVM] init: Setting up MainScreen observers...")
         observeMainScreenBasket()
         observeMainScreenBuyerProfile()
 
         // Initialize BasketScreen observers
+        println("[NV_BuyAppVM] init: Setting up BasketScreen observers...")
         initializeBasketScreen()
 
         // Observe pending invitations
+        println("[NV_BuyAppVM] init: Setting up invitation observer...")
         observePendingInvitations()
 
         // Observe unread message count
+        println("[NV_BuyAppVM] init: Setting up unread messages observer...")
         observeUnreadMessages()
 
+        println("[NV_BuyAppVM] init: END")
         // Load MainScreen articles after auth is ready (handled by observeAuthStateChanges)
     }
 

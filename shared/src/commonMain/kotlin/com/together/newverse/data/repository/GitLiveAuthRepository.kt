@@ -28,20 +28,32 @@ class GitLiveAuthRepository : AuthRepository {
      */
     override suspend fun checkPersistedAuth(): Result<String?> {
         return try {
-            println("🔐 GitLiveAuthRepository.checkPersistedAuth: Checking persisted auth")
+            println("[NV_GitLiveAuth] checkPersistedAuth: START")
+            println("[NV_GitLiveAuth] checkPersistedAuth: Getting auth.currentUser...")
 
             val currentUser = auth.currentUser
+            println("[NV_GitLiveAuth] checkPersistedAuth: currentUser = ${currentUser?.uid ?: "null"}")
+
             if (currentUser != null) {
                 // Refresh token to ensure validity
-                currentUser.getIdToken(true)
-                println("✅ GitLiveAuthRepository.checkPersistedAuth: Found user ${currentUser.uid}")
+                println("[NV_GitLiveAuth] checkPersistedAuth: Calling getIdToken(true)... (this can hang if network issues)")
+                try {
+                    currentUser.getIdToken(true)
+                    println("[NV_GitLiveAuth] checkPersistedAuth: getIdToken SUCCESS")
+                } catch (tokenError: Exception) {
+                    println("[NV_GitLiveAuth] checkPersistedAuth: getIdToken FAILED - ${tokenError.message}")
+                    // Don't fail the whole auth check if token refresh fails
+                    // User might still be valid, just couldn't refresh token
+                }
+                println("[NV_GitLiveAuth] checkPersistedAuth: Found user ${currentUser.uid}")
                 Result.success(currentUser.uid)
             } else {
-                println("✅ GitLiveAuthRepository.checkPersistedAuth: No persisted user")
+                println("[NV_GitLiveAuth] checkPersistedAuth: No persisted user")
                 Result.success(null)
             }
         } catch (e: Exception) {
-            println("❌ GitLiveAuthRepository.checkPersistedAuth: Error - ${e.message}")
+            println("[NV_GitLiveAuth] checkPersistedAuth: ERROR - ${e.message}")
+            println("[NV_GitLiveAuth] checkPersistedAuth: Stack trace: ${e.stackTraceToString()}")
             Result.failure(Exception("Failed to check auth status: ${e.message}"))
         }
     }
@@ -50,11 +62,12 @@ class GitLiveAuthRepository : AuthRepository {
      * Observe authentication state changes.
      */
     override fun observeAuthState(): Flow<String?> {
-        println("🔐 GitLiveAuthRepository.observeAuthState: Setting up auth state observer")
+        println("[NV_GitLiveAuth] observeAuthState: Setting up auth state observer")
+        println("[NV_GitLiveAuth] observeAuthState: Getting auth.authStateChanged Flow...")
 
         // GitLive provides authStateChanged as a Flow
         return auth.authStateChanged.map { user ->
-            println("🔐 GitLiveAuthRepository.observeAuthState: Auth state changed - userId=${user?.uid}")
+            println("[NV_GitLiveAuth] observeAuthState: Flow emitted - userId=${user?.uid}")
             user?.uid
         }
     }

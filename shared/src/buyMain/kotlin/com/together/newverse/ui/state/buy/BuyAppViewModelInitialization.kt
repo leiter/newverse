@@ -59,22 +59,32 @@ internal fun AuthState.toUserState(): UserState = when (this) {
  * 3. observeAuthStateChanges handles loading user data when authenticated
  */
 internal fun BuyAppViewModel.initializeApp() {
+    println("[NV_BuyAppVM] initializeApp: START")
     viewModelScope.launch {
         try {
-            // Start initialization
-            _state.update { it.copy(
-                meta = it.meta.copy(
-                    isInitializing = true,
-                    initializationStep = InitializationStep.CheckingAuth
-                )
-            )}
+            // Only set initializing state if auth hasn't already resolved
+            // This prevents overwriting the state if observeAuthStateChanges already updated it
+            val currentAuthState = authFlowCoordinator.authState.value
+            println("[NV_BuyAppVM] initializeApp: Current auth state = $currentAuthState")
+
+            if (currentAuthState is AuthState.Initializing) {
+                println("[NV_BuyAppVM] initializeApp: Auth still initializing, setting loading state")
+                _state.update { it.copy(
+                    meta = it.meta.copy(
+                        isInitializing = true,
+                        initializationStep = InitializationStep.CheckingAuth
+                    )
+                )}
+            } else {
+                println("[NV_BuyAppVM] initializeApp: Auth already resolved, skipping loading state")
+            }
 
             // AuthFlowCoordinator handles auth checking automatically
             // observeAuthStateChanges will trigger loading when authenticated
-            println("🚀 Buy App Init: Waiting for auth state from coordinator...")
+            println("[NV_BuyAppVM] initializeApp: Waiting for auth state from coordinator...")
 
         } catch (e: Exception) {
-            println("❌ Buy App Init: Error during initialization: ${e.message}")
+            println("[NV_BuyAppVM] initializeApp: ERROR - ${e.message}")
             e.printStackTrace()
             _state.update { it.copy(
                 meta = it.meta.copy(
@@ -88,6 +98,7 @@ internal fun BuyAppViewModel.initializeApp() {
             )}
         }
     }
+    println("[NV_BuyAppVM] initializeApp: END (coroutine launched)")
 }
 
 /**
@@ -96,10 +107,13 @@ internal fun BuyAppViewModel.initializeApp() {
  * Also handles loading user data when authentication changes.
  */
 internal fun BuyAppViewModel.observeAuthStateChanges() {
+    println("[NV_BuyAppVM] observeAuthStateChanges: Setting up auth state collection")
     viewModelScope.launch {
         var previousAuthState: AuthState? = null
+        println("[NV_BuyAppVM] observeAuthStateChanges: Coroutine started, collecting authState...")
 
         authFlowCoordinator.authState.collect { authState ->
+            println("[NV_BuyAppVM] observeAuthStateChanges: Collected authState=$authState (previous=$previousAuthState)")
             val previousUserState = _state.value.user
 
             // Update state with new auth info
@@ -108,16 +122,25 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
                     user = authState.toUserState(),
                     requiresLogin = false, // Buy flavor: guest access allowed
                     meta = when (authState) {
-                        is AuthState.Initializing -> current.meta.copy(
-                            isInitializing = true,
-                            initializationStep = InitializationStep.CheckingAuth
-                        )
-                        is AuthState.NotAuthenticated -> current.meta.copy(
-                            isInitializing = false,
-                            isInitialized = false,
-                            initializationStep = InitializationStep.NotStarted
-                        )
-                        is AuthState.Authenticated -> current.meta // Keep current, will be updated below
+                        is AuthState.Initializing -> {
+                            println("[NV_BuyAppVM] observeAuthStateChanges: Setting meta to Initializing/CheckingAuth")
+                            current.meta.copy(
+                                isInitializing = true,
+                                initializationStep = InitializationStep.CheckingAuth
+                            )
+                        }
+                        is AuthState.NotAuthenticated -> {
+                            println("[NV_BuyAppVM] observeAuthStateChanges: Setting meta to NotAuthenticated/NotStarted")
+                            current.meta.copy(
+                                isInitializing = false,
+                                isInitialized = false,
+                                initializationStep = InitializationStep.NotStarted
+                            )
+                        }
+                        is AuthState.Authenticated -> {
+                            println("[NV_BuyAppVM] observeAuthStateChanges: Keeping current meta (Authenticated)")
+                            current.meta // Keep current, will be updated below
+                        }
                     }
                 )
             }
@@ -127,7 +150,7 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
                 // Finished initializing (from checking to authenticated) - persisted session
                 // Must be checked before the general "just became authenticated" case
                 authState is AuthState.Authenticated && (previousAuthState is AuthState.Initializing || previousAuthState == null) -> {
-                    println("🔐 Auth initialized with existing session (previousAuth=${previousAuthState?.javaClass?.simpleName})")
+                    println("[NV_BuyAppVM] observeAuthStateChanges: Auth initialized with existing session")
                     val userInfo = AuthUserInfo(
                         id = authState.userId,
                         email = authState.email,
@@ -140,8 +163,7 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
 
                 // Just became authenticated (from NotAuthenticated - login/register)
                 authState is AuthState.Authenticated && previousAuthState is AuthState.NotAuthenticated -> {
-                    println("🔐 Auth state changed: NotAuthenticated -> Authenticated")
-                    println("🔐 First-time auth, running full initialization...")
+                    println("[NV_BuyAppVM] observeAuthStateChanges: First-time auth, running full initialization...")
                     val userInfo = AuthUserInfo(
                         id = authState.userId,
                         email = authState.email,
@@ -154,7 +176,7 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
 
                 // Just became not authenticated (logged out)
                 authState is AuthState.NotAuthenticated && previousAuthState is AuthState.Authenticated -> {
-                    println("🔐 Auth state changed: Authenticated -> NotAuthenticated (logged out)")
+                    println("[NV_BuyAppVM] observeAuthStateChanges: Logged out (Authenticated -> NotAuthenticated)")
                 }
             }
 
