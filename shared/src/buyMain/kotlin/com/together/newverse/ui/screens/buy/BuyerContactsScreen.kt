@@ -52,6 +52,7 @@ fun BuyerContactsScreen(
     viewModel: BuyerContactsViewModel = koinViewModel()
 ) {
     val contactsState by viewModel.contactsState.collectAsState()
+    val isAnonymous by viewModel.isAnonymous.collectAsState()
 
     Scaffold(
         topBar = {
@@ -65,11 +66,38 @@ fun BuyerContactsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddContact) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.contacts_add))
+            // Only show FAB for authenticated (non-anonymous) users
+            if (!isAnonymous) {
+                FloatingActionButton(onClick = onAddContact) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.contacts_add))
+                }
             }
         }
     ) { padding ->
+        // Show sign-in prompt for anonymous/guest users
+        if (isAnonymous) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Block,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Sign in to manage contacts",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            return@Scaffold
+        }
         when (val state = contactsState) {
             is AsyncState.Loading, is AsyncState.Initial -> {
                 Box(

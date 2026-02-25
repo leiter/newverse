@@ -30,15 +30,20 @@ class BuyerContactsViewModel(
     private val _currentUserId = MutableStateFlow("")
     val currentUserId: StateFlow<String> = _currentUserId.asStateFlow()
 
+    private val _isAnonymous = MutableStateFlow(true)
+    val isAnonymous: StateFlow<Boolean> = _isAnonymous.asStateFlow()
+
     init {
         viewModelScope.launch {
             _currentUserId.value = authRepository.getCurrentUserId() ?: ""
+            _isAnonymous.value = authRepository.isAnonymous()
         }
     }
 
     val contactsState: StateFlow<AsyncState<List<BuyerContact>>> =
         _currentUserId.flatMapLatest { userId ->
-            if (userId.isEmpty()) {
+            if (userId.isEmpty() || _isAnonymous.value) {
+                // Don't try to load contacts for anonymous/guest users
                 flowOf(AsyncState.Success(emptyList()))
             } else {
                 buyerContactRepository.observeContacts(userId).asAsyncState()

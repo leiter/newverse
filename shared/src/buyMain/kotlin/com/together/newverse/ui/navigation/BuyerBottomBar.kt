@@ -1,6 +1,7 @@
 package com.together.newverse.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -15,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.nav_customer_profile
 import newverse.shared.generated.resources.nav_home
+import newverse.shared.generated.resources.nav_messages
 import newverse.shared.generated.resources.nav_shopping_basket
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -22,9 +24,10 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * Bottom Navigation Bar for the Buyer App
  *
- * Provides 3 main tabs:
+ * Provides 4 main tabs:
  * - Home: Products/main screen
  * - Basket: Shopping basket with badge showing item count
+ * - Messages: Conversations with badge showing unread count
  * - Profile: Customer profile with access to About, Login, Register
  */
 
@@ -46,6 +49,11 @@ val BuyerBottomNavItems = listOf(
         labelRes = Res.string.nav_shopping_basket
     ),
     BuyerBottomNavItem(
+        route = NavRoutes.Buy.Messages.route,
+        icon = Icons.Default.Email,
+        labelRes = Res.string.nav_messages
+    ),
+    BuyerBottomNavItem(
         route = NavRoutes.Buy.Profile.route,
         icon = Icons.Default.Person,
         labelRes = Res.string.nav_customer_profile
@@ -56,6 +64,7 @@ val BuyerBottomNavItems = listOf(
 fun BuyerBottomNavigationBar(
     currentRoute: String,
     basketItemCount: Int,
+    unreadMessageCount: Int = 0,
     onNavigate: (String) -> Unit
 ) {
     println("🔍 BottomBar: Composing, currentRoute=$currentRoute")
@@ -65,13 +74,20 @@ fun BuyerBottomNavigationBar(
             val isSelected = currentRoute == item.route ||
                 currentRoute.startsWith(item.route)
 
+            // Determine badge count for this item
+            val badgeCount = when (item.route) {
+                NavRoutes.Buy.Basket.route -> basketItemCount
+                NavRoutes.Buy.Messages.route -> unreadMessageCount
+                else -> 0
+            }
+
             NavigationBarItem(
                 icon = {
-                    if (item.route == NavRoutes.Buy.Basket.route && basketItemCount > 0) {
+                    if (badgeCount > 0) {
                         BadgedBox(
                             badge = {
                                 Badge {
-                                    Text(basketItemCount.toString())
+                                    Text(badgeCount.toString())
                                 }
                             }
                         ) {

@@ -285,6 +285,7 @@ fun AppScaffold(
     // Determine if bottom bar should be shown (main screens only)
     val showBottomBar = currentRoute == NavRoutes.Home.route ||
         currentRoute.startsWith(NavRoutes.Buy.Basket.route) ||
+        currentRoute.startsWith(NavRoutes.Buy.Messages.route) ||
         currentRoute.startsWith(NavRoutes.Buy.Profile.route)
 
     Scaffold(
@@ -293,6 +294,7 @@ fun AppScaffold(
                 BuyerBottomNavigationBar(
                     currentRoute = currentRoute,
                     basketItemCount = basketItems.size,
+                    unreadMessageCount = appState.unreadMessageCount,
                     onNavigate = { route ->
                         println("🔍 AppScaffold: onNavigate called, route=$route")
                         if (route == NavRoutes.Home.route) {
