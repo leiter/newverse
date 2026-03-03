@@ -1,0 +1,12 @@
+# Path to Google Play service account JSON key file
+# You need to create this in Google Play Console > Setup > API access
+json_key_file("path/to/google-play-service-account.json")
+
+# Default package name (Buy flavor)
+package_name("com.together.buy")
+
+# Note: When uploading Sell flavor, override package_name in the lane
+# or use: package_name("com.together.sell")
+
+# For more information about the Appfile, see:
+# https://docs.fastlane.tools/advanced/#appfile

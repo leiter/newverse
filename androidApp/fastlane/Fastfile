@@ -1,0 +1,168 @@
+default_platform(:android)
+
+platform :android do
+  # ============================================
+  # Test Lanes
+  # ============================================
+
+  desc "Run unit tests"
+  lane :test do
+    gradle(
+      task: "test",
+      project_dir: ".."
+    )
+  end
+
+  # ============================================
+  # Debug Build Lanes
+  # ============================================
+
+  desc "Build debug APK for Buy flavor"
+  lane :debug_buy do
+    gradle(
+      task: "assembleBuyDebug",
+      project_dir: ".."
+    )
+    UI.message("APK location: ../androidApp/build/outputs/apk/buy/debug/")
+  end
+
+  desc "Build debug APK for Sell flavor"
+  lane :debug_sell do
+    gradle(
+      task: "assembleSellDebug",
+      project_dir: ".."
+    )
+    UI.message("APK location: ../androidApp/build/outputs/apk/sell/debug/")
+  end
+
+  # ============================================
+  # Release APK Build Lanes
+  # ============================================
+
+  desc "Build release APK for Buy flavor"
+  lane :release_buy do
+    gradle(
+      task: "assembleBuyRelease",
+      project_dir: ".."
+    )
+    UI.message("APK location: ../androidApp/build/outputs/apk/buy/release/")
+  end
+
+  desc "Build release APK for Sell flavor"
+  lane :release_sell do
+    gradle(
+      task: "assembleSellRelease",
+      project_dir: ".."
+    )
+    UI.message("APK location: ../androidApp/build/outputs/apk/sell/release/")
+  end
+
+  # ============================================
+  # Release Bundle (AAB) Build Lanes
+  # ============================================
+
+  desc "Build release bundle (AAB) for Buy flavor"
+  lane :bundle_buy do
+    gradle(
+      task: "bundleBuyRelease",
+      project_dir: ".."
+    )
+    UI.message("AAB location: ../androidApp/build/outputs/bundle/buyRelease/")
+  end
+
+  desc "Build release bundle (AAB) for Sell flavor"
+  lane :bundle_sell do
+    gradle(
+      task: "bundleSellRelease",
+      project_dir: ".."
+    )
+    UI.message("AAB location: ../androidApp/build/outputs/bundle/sellRelease/")
+  end
+
+  # ============================================
+  # Play Store Upload Lanes - Buy Flavor
+  # ============================================
+
+  desc "Upload Buy flavor to Play Store internal track"
+  lane :beta_buy do
+    bundle_buy
+    upload_to_play_store(
+      package_name: "com.together.buy",
+      track: "internal",
+      aab: "../androidApp/build/outputs/bundle/buyRelease/androidApp-buy-release.aab",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Deploy Buy flavor to Play Store production"
+  lane :deploy_buy do
+    bundle_buy
+    upload_to_play_store(
+      package_name: "com.together.buy",
+      track: "production",
+      aab: "../androidApp/build/outputs/bundle/buyRelease/androidApp-buy-release.aab"
+    )
+  end
+
+  # ============================================
+  # Play Store Upload Lanes - Sell Flavor
+  # ============================================
+
+  desc "Upload Sell flavor to Play Store internal track"
+  lane :beta_sell do
+    bundle_sell
+    upload_to_play_store(
+      package_name: "com.together.sell",
+      track: "internal",
+      aab: "../androidApp/build/outputs/bundle/sellRelease/androidApp-sell-release.aab",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Deploy Sell flavor to Play Store production"
+  lane :deploy_sell do
+    bundle_sell
+    upload_to_play_store(
+      package_name: "com.together.sell",
+      track: "production",
+      aab: "../androidApp/build/outputs/bundle/sellRelease/androidApp-sell-release.aab"
+    )
+  end
+
+  # ============================================
+  # Version Management
+  # ============================================
+
+  desc "Increment version code"
+  lane :bump_version_code do
+    # This reads and increments version code in build.gradle.kts
+    # Manual step: Update versionCode in androidApp/build.gradle.kts
+    UI.message("Please manually update versionCode in androidApp/build.gradle.kts")
+  end
+
+  # ============================================
+  # Convenience Lanes
+  # ============================================
+
+  desc "Build both flavors (debug)"
+  lane :debug_all do
+    debug_buy
+    debug_sell
+  end
+
+  desc "Build both flavors (release)"
+  lane :release_all do
+    release_buy
+    release_sell
+  end
+
+  desc "Bundle both flavors (release)"
+  lane :bundle_all do
+    bundle_buy
+    bundle_sell
+  end
+end

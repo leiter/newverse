@@ -1,0 +1,119 @@
+default_platform(:ios)
+
+platform :ios do
+  # Load API key from file
+  def api_key
+    app_store_connect_api_key(
+      key_id: "68DRP2Y8RW",
+      issuer_id: "e3c717d8-00fc-4ff7-8a05-65f96d2b1562",
+      key_filepath: "./fastlane/AuthKey_68DRP2Y8RW.p8",
+      in_house: false
+    )
+  end
+
+  desc "Run tests"
+  lane :test do
+    run_tests(
+      project: "iosApp.xcodeproj",
+      scheme: "iosApp",
+      device: "iPhone 15"
+    )
+  end
+
+  desc "Build for simulator (debug)"
+  lane :build_simulator do
+    build_app(
+      project: "iosApp.xcodeproj",
+      scheme: "iosApp",
+      configuration: "Debug",
+      destination: "generic/platform=iOS Simulator",
+      skip_archive: true,
+      skip_codesigning: true
+    )
+  end
+
+  desc "Build release for device"
+  lane :build do
+    sync_certificates
+    build_app(
+      project: "iosApp.xcodeproj",
+      scheme: "iosApp",
+      configuration: "Release",
+      export_method: "app-store"
+    )
+  end
+
+  desc "Upload to TestFlight"
+  lane :beta do
+    build
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Deploy to App Store"
+  lane :deploy do
+    build
+    upload_to_app_store(
+      api_key: api_key,
+      submit_for_review: false,
+      automatic_release: false,
+      force: true
+    )
+  end
+
+  desc "Upload metadata and screenshots only"
+  lane :deliver_metadata do
+    deliver(
+      api_key: api_key,
+      skip_binary_upload: true,
+      skip_screenshots: false,
+      force: true
+    )
+  end
+
+  desc "Increment build number"
+  lane :bump_build do
+    increment_build_number(
+      xcodeproj: "iosApp.xcodeproj"
+    )
+    build_number = get_build_number(xcodeproj: "iosApp.xcodeproj")
+    UI.message("Build number incremented to #{build_number}")
+  end
+
+  desc "Increment version number"
+  lane :bump_version do |options|
+    bump_type = options[:type] || "patch"
+    increment_version_number(
+      xcodeproj: "iosApp.xcodeproj",
+      bump_type: bump_type
+    )
+    version = get_version_number(xcodeproj: "iosApp.xcodeproj")
+    UI.message("Version incremented to #{version}")
+  end
+
+  desc "Sync certificates and provisioning profiles"
+  lane :sync_certificates do
+    match(
+      type: "appstore",
+      app_identifier: "com.together.buy",
+      readonly: true
+    )
+  end
+
+  desc "Register new devices and regenerate profiles"
+  lane :register_devices_and_regenerate do
+    register_devices(
+      devices_file: "./fastlane/devices.txt"
+    )
+    match(
+      type: "development",
+      force_for_new_devices: true
+    )
+    match(
+      type: "adhoc",
+      force_for_new_devices: true
+    )
+  end
+end

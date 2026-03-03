@@ -1,0 +1,36 @@
+# Deliverfile - App Store delivery configuration
+
+# Metadata configuration
+metadata_path("./fastlane/metadata")
+screenshots_path("./fastlane/screenshots")
+
+# Skip binary upload when only updating metadata
+# skip_binary_upload(true)
+
+# Submission settings
+submit_for_review(false)
+automatic_release(false)
+
+# Skip screenshots upload if not provided
+skip_screenshots(true)
+
+# App rating configuration (if needed)
+# app_rating_config_path("./fastlane/rating_config.json")
+
+# Price tier (0 = free)
+# price_tier(0)
+
+# Precheck settings
+precheck_include_in_app_purchases(false)
+
+# Force upload without confirmation
+force(true)
+
+# Overwrite existing screenshots
+overwrite_screenshots(false)
+
+# Run precheck before submit
+run_precheck_before_submit(true)
+
+# For more information about the Deliverfile, see:
+# https://docs.fastlane.tools/actions/deliver/
