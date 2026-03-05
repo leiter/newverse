@@ -9,8 +9,8 @@ struct ContentView: View {
 }
 
 struct ComposeView: UIViewControllerRepresentable {
-    // Apple Sign-In helper instance
-    private let appleSignInHelper = AppleSignInHelper()
+    // Apple Sign-In helper instance (Swift native helper)
+    private let appleSignInHelper = NativeAppleSignInHelper()
 
     func makeUIViewController(context: Context) -> UIViewController {
         // Use the callback-based controller for handling sign-in actions
@@ -55,7 +55,7 @@ struct ComposeView: UIViewControllerRepresentable {
 
     class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private var isKeyboardVisible = false
-        var appleSignInHelper: AppleSignInHelper?
+        var appleSignInHelper: NativeAppleSignInHelper?
 
         func setupKeyboardObservers() {
             NotificationCenter.default.addObserver(
@@ -102,7 +102,7 @@ struct ComposeView: UIViewControllerRepresentable {
             print("Google Sign-In requested from Kotlin")
             // TODO: Implement Google Sign-In using GoogleSignIn SDK
             // For now, notify Kotlin that it's not implemented
-            shared.GoogleSignInHelper.shared.onSignInError(errorMessage: "Google Sign-In not yet implemented on iOS")
+            GoogleSignInHelper.companion.shared.onSignInError(errorMessage: "Google Sign-In not yet implemented on iOS")
         }
 
         /// Handles Apple Sign-In request from Kotlin
@@ -111,7 +111,7 @@ struct ComposeView: UIViewControllerRepresentable {
 
             guard let helper = appleSignInHelper else {
                 print("Apple Sign-In Helper not available")
-                shared.AppleSignInHelper.shared.onSignInError(errorMessage: "Apple Sign-In Helper not initialized")
+                AppleSignInHelper.companion.shared.onSignInError(errorMessage: "Apple Sign-In Helper not initialized")
                 return
             }
 
@@ -134,7 +134,7 @@ struct ComposeView: UIViewControllerRepresentable {
                         onSuccess: { userId in
                             print("Apple Sign-In Firebase auth succeeded: \(userId)")
                             // Notify Kotlin helper of success
-                            shared.AppleSignInHelper.shared.onSignInSuccess(
+                            AppleSignInHelper.companion.shared.onSignInSuccess(
                                 idToken: appleResult.idToken,
                                 rawNonce: appleResult.rawNonce,
                                 fullName: fullName,
@@ -143,7 +143,7 @@ struct ComposeView: UIViewControllerRepresentable {
                         },
                         onError: { error in
                             print("Apple Sign-In Firebase auth failed: \(error)")
-                            shared.AppleSignInHelper.shared.onSignInError(errorMessage: error)
+                            AppleSignInHelper.companion.shared.onSignInError(errorMessage: error)
                         }
                     )
 
@@ -151,9 +151,9 @@ struct ComposeView: UIViewControllerRepresentable {
                     print("Apple Sign-In native flow failed: \(error.localizedDescription)")
                     if let appleError = error as? AppleSignInError,
                        case .userCancelled = appleError {
-                        shared.AppleSignInHelper.shared.onSignInCancelled()
+                        AppleSignInHelper.companion.shared.onSignInCancelled()
                     } else {
-                        shared.AppleSignInHelper.shared.onSignInError(errorMessage: error.localizedDescription)
+                        AppleSignInHelper.companion.shared.onSignInError(errorMessage: error.localizedDescription)
                     }
                 }
             }

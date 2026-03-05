@@ -14,7 +14,7 @@ platform :ios do
   desc "Run tests"
   lane :test do
     run_tests(
-      project: "iosApp.xcodeproj",
+      workspace: "iosApp.xcworkspace",
       scheme: "iosApp",
       device: "iPhone 15"
     )
@@ -24,7 +24,7 @@ platform :ios do
   lane :build_simulator do
     bump_build
     build_app(
-      project: "iosApp.xcodeproj",
+      workspace: "iosApp.xcworkspace",
       scheme: "iosApp",
       configuration: "Debug",
       destination: "generic/platform=iOS Simulator",
@@ -33,15 +33,27 @@ platform :ios do
     )
   end
 
+  desc "Build shared KMP framework"
+  lane :build_shared_framework do
+    UI.message("Building shared Kotlin framework...")
+    sh("cd ../.. && ./gradlew :shared:linkReleaseFrameworkIosArm64")
+  end
+
   desc "Build release for device"
   lane :build do
+    build_shared_framework
     bump_build
-    sync_certificates
     build_app(
-      project: "iosApp.xcodeproj",
+      workspace: "iosApp.xcworkspace",
       scheme: "iosApp",
       configuration: "Release",
-      export_method: "app-store"
+      export_method: "app-store",
+      clean: true,
+      export_options: {
+        provisioningProfiles: {
+          "com.together.buy" => "BodenschaetzeBuy"
+        }
+      }
     )
   end
 

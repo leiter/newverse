@@ -4,7 +4,7 @@ import Foundation
 
 /// Helper class for handling Apple Sign-In on iOS.
 /// Uses ASAuthorizationController for native Apple Sign-In flow.
-class AppleSignInHelper: NSObject {
+class NativeAppleSignInHelper: NSObject {
 
     /// Result type for Apple Sign-In
     struct AppleSignInResult {
@@ -70,7 +70,7 @@ class AppleSignInHelper: NSObject {
 }
 
 // MARK: - ASAuthorizationControllerDelegate
-extension AppleSignInHelper: ASAuthorizationControllerDelegate {
+extension NativeAppleSignInHelper: ASAuthorizationControllerDelegate {
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
@@ -128,7 +128,7 @@ extension AppleSignInHelper: ASAuthorizationControllerDelegate {
 }
 
 // MARK: - ASAuthorizationControllerPresentationContextProviding
-extension AppleSignInHelper: ASAuthorizationControllerPresentationContextProviding {
+extension NativeAppleSignInHelper: ASAuthorizationControllerPresentationContextProviding {
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,

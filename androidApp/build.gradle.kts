@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     kotlin("android")
@@ -9,7 +11,7 @@ plugins {
 // Read version code from properties file
 val versionPropsFile = file("version.properties")
 val appVersionCode = if (versionPropsFile.exists()) {
-    val props = java.util.Properties()
+    val props = Properties()
     props.load(versionPropsFile.inputStream())
     props.getProperty("VERSION_CODE", "1").toInt()
 } else {
