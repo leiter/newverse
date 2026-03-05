@@ -19,6 +19,7 @@ platform :android do
 
   desc "Build debug APK for Buy flavor"
   lane :debug_buy do
+    bump_version_code
     gradle(
       task: "assembleBuyDebug",
       project_dir: ".."
@@ -28,6 +29,7 @@ platform :android do
 
   desc "Build debug APK for Sell flavor"
   lane :debug_sell do
+    bump_version_code
     gradle(
       task: "assembleSellDebug",
       project_dir: ".."
@@ -41,6 +43,7 @@ platform :android do
 
   desc "Build release APK for Buy flavor"
   lane :release_buy do
+    bump_version_code
     gradle(
       task: "assembleBuyRelease",
       project_dir: ".."
@@ -50,6 +53,7 @@ platform :android do
 
   desc "Build release APK for Sell flavor"
   lane :release_sell do
+    bump_version_code
     gradle(
       task: "assembleSellRelease",
       project_dir: ".."
@@ -63,6 +67,7 @@ platform :android do
 
   desc "Build release bundle (AAB) for Buy flavor"
   lane :bundle_buy do
+    bump_version_code
     gradle(
       task: "bundleBuyRelease",
       project_dir: ".."
@@ -72,6 +77,7 @@ platform :android do
 
   desc "Build release bundle (AAB) for Sell flavor"
   lane :bundle_sell do
+    bump_version_code
     gradle(
       task: "bundleSellRelease",
       project_dir: ".."
@@ -139,9 +145,22 @@ platform :android do
 
   desc "Increment version code"
   lane :bump_version_code do
-    # This reads and increments version code in build.gradle.kts
-    # Manual step: Update versionCode in androidApp/build.gradle.kts
-    UI.message("Please manually update versionCode in androidApp/build.gradle.kts")
+    version_file = "../version.properties"
+
+    # Read current version
+    current = 1
+    if File.exist?(version_file)
+      File.readlines(version_file).each do |line|
+        if line.start_with?("VERSION_CODE=")
+          current = line.split("=")[1].strip.to_i
+        end
+      end
+    end
+
+    # Increment and write
+    new_version = current + 1
+    File.write(version_file, "VERSION_CODE=#{new_version}\n")
+    UI.message("Version code incremented to #{new_version}")
   end
 
   # ============================================

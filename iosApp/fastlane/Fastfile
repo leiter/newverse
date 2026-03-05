@@ -22,6 +22,7 @@ platform :ios do
 
   desc "Build for simulator (debug)"
   lane :build_simulator do
+    bump_build
     build_app(
       project: "iosApp.xcodeproj",
       scheme: "iosApp",
@@ -34,6 +35,7 @@ platform :ios do
 
   desc "Build release for device"
   lane :build do
+    bump_build
     sync_certificates
     build_app(
       project: "iosApp.xcodeproj",

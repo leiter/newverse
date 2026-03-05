@@ -6,6 +6,16 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+// Read version code from properties file
+val versionPropsFile = file("version.properties")
+val appVersionCode = if (versionPropsFile.exists()) {
+    val props = java.util.Properties()
+    props.load(versionPropsFile.inputStream())
+    props.getProperty("VERSION_CODE", "1").toInt()
+} else {
+    1
+}
+
 android {
     namespace = "com.together.newverse.android"
     compileSdk = 35
@@ -14,7 +24,7 @@ android {
         applicationId = "com.together"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
+        versionCode = appVersionCode
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -76,14 +86,14 @@ android {
         create("buy") {
             dimension = "userType"
             applicationIdSuffix = ".buy"
-            versionCode = 1
+            versionCode = appVersionCode
             versionNameSuffix = "-buy"
         }
 
         create("sell") {
             dimension = "userType"
             applicationIdSuffix = ".sell"
-            versionCode = 1
+            versionCode = appVersionCode
             versionNameSuffix = "-sell"
         }
     }
