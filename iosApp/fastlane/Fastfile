@@ -4,9 +4,9 @@ platform :ios do
   # Load API key from file
   def api_key
     app_store_connect_api_key(
-      key_id: "68DRP2Y8RW",
+      key_id: "M4S9AWXXL7",
       issuer_id: "e3c717d8-00fc-4ff7-8a05-65f96d2b1562",
-      key_filepath: "./fastlane/AuthKey_68DRP2Y8RW.p8",
+      key_filepath: "./fastlane/AuthKey_M4S9AWXXL7.p8",
       in_house: false
     )
   end
