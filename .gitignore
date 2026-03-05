@@ -56,3 +56,4 @@ Pods/
 Screenshot_*.png
 *.tmp
 tmp/
+iosApp/fastlane/AuthKey_*.p8
