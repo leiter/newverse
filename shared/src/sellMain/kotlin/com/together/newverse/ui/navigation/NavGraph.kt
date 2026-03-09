@@ -163,6 +163,8 @@ fun NavGraphBuilder.navGraph(
         val customerState = profileViewModel.customerState.collectAsState()
         val invitationState = profileViewModel.invitationState.collectAsState()
         val isSaving = profileViewModel.isSaving.collectAsState()
+        val accessRequests = profileViewModel.accessRequests.collectAsState()
+        val generatedBuyerLink = profileViewModel.generatedBuyerLink.collectAsState()
 
         SellerProfileScreen(
             profileState = profileState.value,
@@ -190,6 +192,12 @@ fun NavGraphBuilder.navGraph(
             onGenerateInvitation = { minutes -> profileViewModel.generateInvitation(minutes) },
             onSendInvitationToBuyer = { buyerId -> profileViewModel.sendInvitationToBuyer(buyerId) },
             onRevokeInvitation = { invitationId -> profileViewModel.revokeInvitation(invitationId) },
+            accessRequests = accessRequests.value,
+            generatedBuyerLink = generatedBuyerLink.value,
+            onGenerateBuyerLink = { profileViewModel.generateBuyerLink() },
+            onApproveRequest = { uuid -> profileViewModel.approveRequest(uuid) },
+            onBlockBuyer = { uuid -> profileViewModel.blockBuyer(uuid) },
+            onClearGeneratedLink = { profileViewModel.clearGeneratedLink() },
             onRetry = { profileViewModel.refresh() }
         )
     }

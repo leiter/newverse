@@ -1,5 +1,7 @@
 package com.together.newverse.domain.repository
 
+import com.together.newverse.domain.model.AccessRequest
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
@@ -107,4 +109,35 @@ interface ProfileRepository {
      * @return Success or failure result
      */
     suspend fun clearDraftBasket(): Result<Unit>
+
+    /**
+     * Submit an access request from a buyer to a seller.
+     * Writes to access_requests/{sellerId}/{buyerUUID} and sets status to PENDING.
+     */
+    suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit>
+
+    /**
+     * One-shot read of the buyer's access status for a specific seller.
+     */
+    suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus
+
+    /**
+     * Observe real-time access status updates for a buyer/seller pair.
+     */
+    fun observeAccessStatus(buyerUUID: String, sellerId: String): Flow<AccessStatus>
+
+    /**
+     * Observe all pending access requests for a seller.
+     */
+    fun observeAccessRequests(sellerId: String): Flow<List<AccessRequest>>
+
+    /**
+     * Approve an access request — sets status to APPROVED and removes the request.
+     */
+    suspend fun approveAccessRequest(sellerId: String, buyerUUID: String): Result<Unit>
+
+    /**
+     * Block a buyer — sets status to BLOCKED and removes the request.
+     */
+    suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit>
 }

@@ -13,7 +13,9 @@ import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -31,6 +33,9 @@ class GitLiveOrderRepository(
     // GitLive Firebase Database references
     private val database = Firebase.database
     private val ordersRootRef = database.reference("orders")
+    private val demoOrdersRootRef = database.reference("demo_orders")
+
+    private fun rootRef(isDemo: Boolean) = if (isDemo) demoOrdersRootRef else ordersRootRef
 
     // Cache for orders
     private val ordersCache = mutableMapOf<String, Order>()
@@ -85,9 +90,10 @@ class GitLiveOrderRepository(
      */
     override fun observeBuyerOrders(
         sellerId: String,
-        placedOrderIds: Map<String, String>
+        placedOrderIds: Map<String, String>,
+        isDemo: Boolean
     ): Flow<List<Order>> = flow {
-        println("🔐 GitLiveOrderRepository.observeBuyerOrders: START - ${placedOrderIds.size} orders")
+        println("🔐 GitLiveOrderRepository.observeBuyerOrders: START - ${placedOrderIds.size} orders, isDemo=$isDemo")
 
         if (placedOrderIds.isEmpty()) {
             emit(emptyList())
@@ -104,7 +110,7 @@ class GitLiveOrderRepository(
 
             // Collect orders by observing each order path
             // We'll observe the seller's orders root and filter for buyer's orders
-            val ordersRef = ordersRootRef.child(targetSellerId)
+            val ordersRef = rootRef(isDemo).child(targetSellerId)
 
             ordersRef.valueEvents.collect { snapshot ->
                 val orders = mutableListOf<Order>()
@@ -148,10 +154,11 @@ class GitLiveOrderRepository(
      */
     override suspend fun getBuyerOrders(
         sellerId: String,
-        placedOrderIds: Map<String, String>
+        placedOrderIds: Map<String, String>,
+        isDemo: Boolean
     ): Result<List<Order>> {
         return try {
-            println("🔐 GitLiveOrderRepository.getBuyerOrders: START - ${placedOrderIds.size} orders")
+            println("🔐 GitLiveOrderRepository.getBuyerOrders: START - ${placedOrderIds.size} orders, isDemo=$isDemo")
 
             if (placedOrderIds.isEmpty()) {
                 return Result.success(emptyList())
@@ -169,7 +176,7 @@ class GitLiveOrderRepository(
             // Fetch each order from GitLive Firebase
             placedOrderIds.forEach { (date, orderId) ->
                 try {
-                    val orderRef = ordersRootRef.child(targetSellerId).child(date).child(orderId)
+                    val orderRef = rootRef(isDemo).child(targetSellerId).child(date).child(orderId)
                     val snapshot = orderRef.valueEvents.first()
 
                     if (snapshot.exists) {
@@ -217,8 +224,8 @@ class GitLiveOrderRepository(
                 order.sellerId
             }
 
-            // Get reference to the date node
-            val dateRef = ordersRootRef.child(targetSellerId).child(dateString)
+            // Get reference to the date node (demo orders go to separate path)
+            val dateRef = rootRef(order.isDemoOrder).child(targetSellerId).child(dateString)
 
             // Determine order ID and reference based on whether this is a new order
             val (orderId, orderRef) = if (order.id.isEmpty()) {
@@ -413,7 +420,8 @@ class GitLiveOrderRepository(
      */
     override suspend fun getOpenEditableOrder(
         sellerId: String,
-        placedOrderIds: Map<String, String>
+        placedOrderIds: Map<String, String>,
+        isDemo: Boolean
     ): Result<Order?> {
         return try {
             println("🔐 GitLiveOrderRepository.getOpenEditableOrder: START")
@@ -424,7 +432,7 @@ class GitLiveOrderRepository(
             }
 
             // Get all buyer orders
-            val ordersResult = getBuyerOrders(sellerId, placedOrderIds)
+            val ordersResult = getBuyerOrders(sellerId, placedOrderIds, isDemo)
             if (ordersResult.isFailure) {
                 return Result.failure(ordersResult.exceptionOrNull()!!)
             }
@@ -456,7 +464,8 @@ class GitLiveOrderRepository(
      */
     override suspend fun getUpcomingOrder(
         sellerId: String,
-        placedOrderIds: Map<String, String>
+        placedOrderIds: Map<String, String>,
+        isDemo: Boolean
     ): Result<Order?> {
         return try {
             println("🔐 GitLiveOrderRepository.getUpcomingOrder: START")
@@ -467,7 +476,7 @@ class GitLiveOrderRepository(
             }
 
             // Get all buyer orders
-            val ordersResult = getBuyerOrders(sellerId, placedOrderIds)
+            val ordersResult = getBuyerOrders(sellerId, placedOrderIds, isDemo)
             if (ordersResult.isFailure) {
                 return Result.failure(ordersResult.exceptionOrNull()!!)
             }
@@ -656,6 +665,57 @@ class GitLiveOrderRepository(
 
         } catch (e: Exception) {
             println("❌ GitLiveOrderRepository.updateOrderStatus: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Delete demo orders older than 1 month from demo_orders path.
+     */
+    override suspend fun deleteOldDemoOrders(sellerId: String): Result<Int> {
+        return try {
+            println("🔐 GitLiveOrderRepository.deleteOldDemoOrders: START for sellerId=$sellerId")
+
+            val sellerDemoRef = demoOrdersRootRef.child(sellerId)
+            val snapshot = sellerDemoRef.valueEvents.first()
+
+            if (!snapshot.exists) {
+                println("✅ GitLiveOrderRepository.deleteOldDemoOrders: No demo orders found")
+                return Result.success(0)
+            }
+
+            val now = Clock.System.now()
+            val timezone = TimeZone.currentSystemDefault()
+            val nowLocal = now.toLocalDateTime(timezone)
+            // Cutoff: 1 month ago (approximate: 30 days)
+            val cutoffMillis = now.toEpochMilliseconds() - (30L * 24 * 60 * 60 * 1000)
+
+            var deletedCount = 0
+            snapshot.children.forEach { dateSnapshot ->
+                val dateKey = dateSnapshot.key ?: return@forEach
+                if (dateKey.length == 8) {
+                    try {
+                        val year = dateKey.substring(0, 4).toInt()
+                        val month = dateKey.substring(4, 6).toInt()
+                        val day = dateKey.substring(6, 8).toInt()
+                        val localDate = kotlinx.datetime.LocalDate(year, month, day)
+                        val dateMillis = localDate.atStartOfDayIn(timezone).toEpochMilliseconds()
+                        if (dateMillis < cutoffMillis) {
+                            sellerDemoRef.child(dateKey).removeValue()
+                            deletedCount++
+                            println("🗑️ GitLiveOrderRepository.deleteOldDemoOrders: Deleted $dateKey")
+                        }
+                    } catch (e: Exception) {
+                        println("⚠️ GitLiveOrderRepository.deleteOldDemoOrders: Failed to parse date key '$dateKey': ${e.message}")
+                    }
+                }
+            }
+
+            println("✅ GitLiveOrderRepository.deleteOldDemoOrders: Deleted $deletedCount date nodes")
+            Result.success(deletedCount)
+
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.deleteOldDemoOrders: Error - ${e.message}")
             Result.failure(e)
         }
     }

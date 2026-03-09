@@ -76,6 +76,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.ui.screens.buy.components.ConnectionConfirmDialog
 import com.together.newverse.ui.screens.buy.components.DeleteAccountDialog
@@ -153,6 +154,8 @@ fun CustomerProfileScreenModern(
     userEmail: String? = null,
     connectedSellerId: String = "",
     isDemoMode: Boolean = true,
+    accessStatus: AccessStatus = AccessStatus.NONE,
+    buyerUUID: String = "",
     pendingInvitations: List<Invitation> = emptyList(),
     showConnectionConfirmDialog: ConnectionConfirmation? = null,
     onScanQrCode: () -> Unit = {},
@@ -343,6 +346,12 @@ fun CustomerProfileScreenModern(
                             onAction(com.together.newverse.ui.state.BuySellerAction.ResetToDemo)
                         },
                         onScanQrCode = onScanQrCode
+                    )
+
+                    // Access Status Card
+                    AccessStatusCard(
+                        accessStatus = accessStatus,
+                        buyerUUID = buyerUUID
                     )
 
                     // Notification Settings Card - temporarily hidden
@@ -1432,6 +1441,71 @@ private fun SellerConnectionCard(
                 ) {
                     Text(stringResource(Res.string.seller_connection_reset_demo))
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccessStatusCard(
+    accessStatus: AccessStatus,
+    buyerUUID: String
+) {
+    val (containerColor, contentColor, message) = when (accessStatus) {
+        AccessStatus.NONE -> Triple(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            "No access token received yet. Ask your seller for a link."
+        )
+        AccessStatus.PENDING -> Triple(
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer,
+            "Access request pending — waiting for seller approval"
+        )
+        AccessStatus.APPROVED -> Triple(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.onPrimaryContainer,
+            "Production mode active"
+        )
+        AccessStatus.BLOCKED -> Triple(
+            MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer,
+            "Access blocked by seller"
+        )
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = containerColor)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = when (accessStatus) {
+                        AccessStatus.APPROVED -> Icons.Filled.CheckCircle
+                        AccessStatus.BLOCKED -> Icons.Filled.Close
+                        else -> Icons.Filled.Info
+                    },
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor
+                )
+            }
+            if (buyerUUID.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = buyerUUID,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor.copy(alpha = 0.7f)
+                )
             }
         }
     }

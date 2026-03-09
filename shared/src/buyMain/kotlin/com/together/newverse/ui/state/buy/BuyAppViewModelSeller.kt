@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.InvitationStatus
 import com.together.newverse.ui.state.BasketScreenState
 import com.together.newverse.ui.state.BasketState
@@ -26,6 +27,7 @@ import kotlinx.coroutines.launch
 internal fun BuyAppViewModel.handleSellerAction(action: BuySellerAction) {
     when (action) {
         is BuySellerAction.ConnectToSeller -> connectToSeller(action.sellerId)
+        is BuySellerAction.ConnectWithToken -> connectWithToken(action.sellerId, action.buyerToken)
         is BuySellerAction.ConnectWithInvitation -> connectWithInvitation(
             action.sellerId, action.invitationId, action.expiresAt
         )
@@ -226,11 +228,11 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
             basketRepository.clearBasket()
             profileRepository.clearDraftBasket()
 
-            // Clear basket and reset screen states
+            // Clear basket and reset screen states; reset accessStatus (will be re-observed)
             _state.update { current ->
                 current.copy(
                     connectedSellerId = sellerConfig.sellerId,
-                    isDemoMode = sellerConfig.isDemoMode,
+                    accessStatus = AccessStatus.NONE,
                     basket = BasketState(),
                     products = ProductsScreenState(),
                     mainScreen = MainScreenState(),
@@ -243,12 +245,10 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
             loadProducts()
             loadMainScreenArticles()
 
-            val message = if (sellerConfig.isDemoMode) {
-                "Switched to demo mode"
-            } else {
-                "Connected to seller"
-            }
-            showSnackbar(message, SnackbarType.SUCCESS)
+            // Re-observe access status for the new seller
+            startObservingAccessStatus()
+
+            showSnackbar("Connected to seller", SnackbarType.SUCCESS)
 
         } catch (e: Exception) {
             println("BuyAppViewModel.performConnection: Error - ${e.message}")

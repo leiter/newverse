@@ -1,5 +1,7 @@
 package com.together.newverse.test
 
+import com.together.newverse.domain.model.AccessRequest
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
@@ -8,6 +10,7 @@ import com.together.newverse.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Fake implementation of ProfileRepository for testing.
@@ -177,6 +180,43 @@ class FakeProfileRepository : ProfileRepository {
         if (currentProfile != null) {
             _buyerProfile.value = currentProfile.copy(draftBasket = null)
         }
+        return Result.success(Unit)
+    }
+
+    // Access request state for tests
+    private val _accessRequests = MutableStateFlow<List<AccessRequest>>(emptyList())
+    private val _accessStatus = mutableMapOf<String, AccessStatus>()
+
+    fun setAccessStatus(buyerUUID: String, sellerId: String, status: AccessStatus) {
+        _accessStatus["$buyerUUID/$sellerId"] = status
+    }
+
+    override suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
+        _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.PENDING
+        return Result.success(Unit)
+    }
+
+    override suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus {
+        return _accessStatus["$buyerUUID/$sellerId"] ?: AccessStatus.NONE
+    }
+
+    override fun observeAccessStatus(buyerUUID: String, sellerId: String): Flow<AccessStatus> {
+        return flowOf(_accessStatus["$buyerUUID/$sellerId"] ?: AccessStatus.NONE)
+    }
+
+    override fun observeAccessRequests(sellerId: String): Flow<List<AccessRequest>> {
+        return _accessRequests.asStateFlow()
+    }
+
+    override suspend fun approveAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> {
+        _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.APPROVED
+        _accessRequests.value = _accessRequests.value.filter { it.buyerUUID != buyerUUID }
+        return Result.success(Unit)
+    }
+
+    override suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
+        _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.BLOCKED
+        _accessRequests.value = _accessRequests.value.filter { it.buyerUUID != buyerUUID }
         return Result.success(Unit)
     }
 }

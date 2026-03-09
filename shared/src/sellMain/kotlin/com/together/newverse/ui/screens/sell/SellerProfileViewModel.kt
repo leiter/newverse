@@ -2,6 +2,7 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.AccessRequest
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.InvitationStatus
@@ -14,10 +15,15 @@ import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.state.core.AsyncState
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * ViewModel for Seller Profile screen
@@ -61,11 +67,59 @@ class SellerProfileViewModel(
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
+    // Access requests (live-updating)
+    private val _accessRequests = MutableStateFlow<List<AccessRequest>>(emptyList())
+    val accessRequests: StateFlow<List<AccessRequest>> = _accessRequests.asStateFlow()
+
+    // Generated buyer link
+    private val _generatedBuyerLink = MutableStateFlow<String?>(null)
+    val generatedBuyerLink: StateFlow<String?> = _generatedBuyerLink.asStateFlow()
+
     private val articles = mutableListOf<Article>()
 
     init {
         loadProfile()
         loadStats()
+        observeAccessRequests()
+    }
+
+    private fun observeAccessRequests() {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.observeAccessRequests(sellerId)
+                .catch { e -> println("❌ SellerProfileViewModel.observeAccessRequests: ${e.message}") }
+                .collect { requests -> _accessRequests.value = requests }
+        }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    fun generateBuyerLink() {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            val uuid = Uuid.random().toString()
+            val link = "newverse://connect?seller=$sellerId&token=$uuid"
+            _generatedBuyerLink.value = link
+        }
+    }
+
+    fun approveRequest(buyerUUID: String) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.approveAccessRequest(sellerId, buyerUUID)
+                .onFailure { e -> println("❌ SellerProfileViewModel.approveRequest: ${e.message}") }
+        }
+    }
+
+    fun blockBuyer(buyerUUID: String) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.blockBuyer(sellerId, buyerUUID)
+                .onFailure { e -> println("❌ SellerProfileViewModel.blockBuyer: ${e.message}") }
+        }
+    }
+
+    fun clearGeneratedLink() {
+        _generatedBuyerLink.value = null
     }
 
     private fun loadProfile() {

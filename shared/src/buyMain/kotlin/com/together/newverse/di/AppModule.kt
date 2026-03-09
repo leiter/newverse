@@ -1,6 +1,7 @@
 package com.together.newverse.di
 
 import com.together.newverse.data.config.BuyerSellerConfig
+import com.together.newverse.data.config.BuyerUUIDStorage
 import com.together.newverse.data.config.SellerIdStorage
 import com.together.newverse.data.repository.GitLiveBuyerContactRepository
 import com.together.newverse.data.repository.GitLiveInvitationRepository
@@ -45,6 +46,7 @@ val appModule = module {
             authRepository = get(),
             basketRepository = get(),
             sellerConfig = get(),
+            buyerUUIDStorage = get(),
             invitationRepository = get(),
             messageRepository = get(),
             buyerContactRepository = get()

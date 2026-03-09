@@ -1,5 +1,7 @@
 package com.together.newverse.data.repository
 
+import com.together.newverse.domain.model.AccessRequest
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
@@ -10,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Mock implementation of ProfileRepository for development and testing
@@ -133,4 +136,22 @@ class MockProfileRepository : ProfileRepository {
             Result.failure(e)
         }
     }
+
+    override suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus =
+        AccessStatus.NONE
+
+    override fun observeAccessStatus(buyerUUID: String, sellerId: String): Flow<AccessStatus> =
+        flowOf(AccessStatus.NONE)
+
+    override fun observeAccessRequests(sellerId: String): Flow<List<AccessRequest>> =
+        flowOf(emptyList())
+
+    override suspend fun approveAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit> =
+        Result.success(Unit)
 }

@@ -1,5 +1,6 @@
 package com.together.newverse.ui.state
 
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
 
 /**
@@ -15,7 +16,7 @@ data class BuyAppState(
 
     // Seller connection
     val connectedSellerId: String = "",
-    val isDemoMode: Boolean = true,
+    val accessStatus: AccessStatus = AccessStatus.NONE,
 
     // Invitation state
     val pendingInvitations: List<Invitation> = emptyList(),
@@ -50,7 +51,10 @@ data class BuyAppState(
 
     // App metadata
     val meta: AppMetaState = AppMetaState()
-)
+) {
+    /** Computed from accessStatus — no explicit copy(isDemoMode = ...) needed. */
+    val isDemoMode: Boolean get() = accessStatus != AccessStatus.APPROVED
+}
 
 /**
  * Data for the connection confirmation dialog.

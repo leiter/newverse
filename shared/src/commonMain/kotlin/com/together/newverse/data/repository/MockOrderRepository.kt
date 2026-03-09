@@ -21,7 +21,7 @@ class MockOrderRepository : OrderRepository {
         return _orders.asStateFlow()
     }
 
-    override suspend fun getBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>): Result<List<Order>> {
+    override suspend fun getBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>, isDemo: Boolean): Result<List<Order>> {
         return try {
             delay(500)
             // Filter orders based on placed order IDs
@@ -34,7 +34,7 @@ class MockOrderRepository : OrderRepository {
         }
     }
 
-    override fun observeBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>): Flow<List<Order>> {
+    override fun observeBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>, isDemo: Boolean): Flow<List<Order>> {
         // Return orders flow filtered by placed order IDs
         return _orders.asStateFlow()
     }
@@ -104,7 +104,7 @@ class MockOrderRepository : OrderRepository {
         }
     }
 
-    override suspend fun getOpenEditableOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?> {
+    override suspend fun getOpenEditableOrder(sellerId: String, placedOrderIds: Map<String, String>, isDemo: Boolean): Result<Order?> {
         return try {
             delay(300)
             // Get all orders
@@ -127,7 +127,7 @@ class MockOrderRepository : OrderRepository {
         }
     }
 
-    override suspend fun getUpcomingOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?> {
+    override suspend fun getUpcomingOrder(sellerId: String, placedOrderIds: Map<String, String>, isDemo: Boolean): Result<Order?> {
         return try {
             delay(300)
             // Get all orders
@@ -183,6 +183,10 @@ class MockOrderRepository : OrderRepository {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override suspend fun deleteOldDemoOrders(sellerId: String): Result<Int> {
+        return Result.success(0)
     }
 
     override suspend fun updateOrderStatus(

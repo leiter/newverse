@@ -19,17 +19,19 @@ interface OrderRepository {
      * Get buyer's placed orders
      * @param sellerId The seller's ID
      * @param placedOrderIds Map of date to order ID
+     * @param isDemo Whether to read from demo_orders path
      * @return List of orders
      */
-    suspend fun getBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>): Result<List<Order>>
+    suspend fun getBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>, isDemo: Boolean = false): Result<List<Order>>
 
     /**
      * Observe buyer's placed orders with real-time updates
      * @param sellerId The seller's ID
      * @param placedOrderIds Map of date to order ID
+     * @param isDemo Whether to read from demo_orders path
      * @return Flow of orders with real-time updates
      */
-    fun observeBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>): Flow<List<Order>>
+    fun observeBuyerOrders(sellerId: String, placedOrderIds: Map<String, String>, isDemo: Boolean = false): Flow<List<Order>>
 
     /**
      * Place a new order
@@ -86,18 +88,27 @@ interface OrderRepository {
      * An order is considered editable if it's more than 3 days before pickup
      * @param sellerId The seller's ID
      * @param placedOrderIds Map of date to order ID
+     * @param isDemo Whether to read from demo_orders path
      * @return The most recent editable order, or null if none found
      */
-    suspend fun getOpenEditableOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?>
+    suspend fun getOpenEditableOrder(sellerId: String, placedOrderIds: Map<String, String>, isDemo: Boolean = false): Result<Order?>
 
     /**
      * Get the most recent upcoming order for the current buyer (regardless of editability)
      * An order is considered upcoming if pickup date is in the future
      * @param sellerId The seller's ID
      * @param placedOrderIds Map of date to order ID
+     * @param isDemo Whether to read from demo_orders path
      * @return The most recent upcoming order, or null if none found
      */
-    suspend fun getUpcomingOrder(sellerId: String, placedOrderIds: Map<String, String>): Result<Order?>
+    suspend fun getUpcomingOrder(sellerId: String, placedOrderIds: Map<String, String>, isDemo: Boolean = false): Result<Order?>
+
+    /**
+     * Delete demo orders older than 1 month from demo_orders path
+     * @param sellerId The seller's ID
+     * @return Number of date nodes deleted
+     */
+    suspend fun deleteOldDemoOrders(sellerId: String): Result<Int>
 
     /**
      * Update only the status of an order (lightweight update for status transitions)

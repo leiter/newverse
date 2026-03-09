@@ -67,7 +67,8 @@ class FakeOrderRepository : OrderRepository {
 
     override suspend fun getBuyerOrders(
         sellerId: String,
-        placedOrderIds: Map<String, String>
+        placedOrderIds: Map<String, String>,
+        isDemo: Boolean
     ): Result<List<Order>> {
         val filteredOrders = _ordersFlow.value.filter { order ->
             placedOrderIds.values.contains(order.id)
@@ -77,7 +78,8 @@ class FakeOrderRepository : OrderRepository {
 
     override fun observeBuyerOrders(
         sellerId: String,
-        placedOrderIds: Map<String, String>
+        placedOrderIds: Map<String, String>,
+        isDemo: Boolean
     ): Flow<List<Order>> {
         return _ordersFlow.asStateFlow()
     }
@@ -171,7 +173,8 @@ class FakeOrderRepository : OrderRepository {
 
     override suspend fun getOpenEditableOrder(
         sellerId: String,
-        placedOrderIds: Map<String, String>
+        placedOrderIds: Map<String, String>,
+        isDemo: Boolean
     ): Result<Order?> {
         val orders = _ordersFlow.value.filter { order ->
             placedOrderIds.values.contains(order.id)
@@ -181,12 +184,17 @@ class FakeOrderRepository : OrderRepository {
 
     override suspend fun getUpcomingOrder(
         sellerId: String,
-        placedOrderIds: Map<String, String>
+        placedOrderIds: Map<String, String>,
+        isDemo: Boolean
     ): Result<Order?> {
         val orders = _ordersFlow.value.filter { order ->
             placedOrderIds.values.contains(order.id)
         }
         return Result.success(orders.firstOrNull())
+    }
+
+    override suspend fun deleteOldDemoOrders(sellerId: String): Result<Int> {
+        return Result.success(0)
     }
 
     override suspend fun updateOrderStatus(

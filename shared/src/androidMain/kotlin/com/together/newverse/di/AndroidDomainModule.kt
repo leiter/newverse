@@ -1,5 +1,6 @@
 package com.together.newverse.di
 
+import com.together.newverse.data.config.BuyerUUIDStorage
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.data.config.DefaultProductCatalogConfig
 import com.together.newverse.data.config.DefaultSellerConfig
@@ -28,6 +29,7 @@ import org.koin.dsl.module
 val androidDomainModule = module {
     // Configs
     single { SellerIdStorage(get()) }
+    single { BuyerUUIDStorage(get()) }
     single<SellerConfig> { DefaultSellerConfig() }
     single<OrderScheduleConfig> { DefaultOrderScheduleConfig() }
     single<ProductCatalogConfig> { DefaultProductCatalogConfig() }
@@ -50,7 +52,7 @@ val androidDomainModule = module {
 
     // Profile Repository - GitLive cross-platform implementation
     single<ProfileRepository> {
-        GitLiveProfileRepository(get<AuthRepository>())
+        GitLiveProfileRepository(get<AuthRepository>(), get<BuyerUUIDStorage>())
     }
 
     // Storage Repository - Native Firebase Storage (Android-specific, no GitLive equivalent)

@@ -3,6 +3,7 @@ package com.together.newverse.ui.state
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.data.config.BuyerUUIDStorage
 import com.together.newverse.domain.config.MutableSellerConfig
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
@@ -80,6 +81,7 @@ class BuyAppViewModel(
     authRepository: AuthRepository,
     internal val basketRepository: BasketRepository,
     internal val sellerConfig: MutableSellerConfig,
+    internal val buyerUUIDStorage: BuyerUUIDStorage? = null,
     internal val invitationRepository: InvitationRepository? = null,
     internal val messageRepository: MessageRepository? = null,
     internal val buyerContactRepository: BuyerContactRepository? = null
@@ -89,8 +91,8 @@ class BuyAppViewModel(
      * Internal state exposed for extension functions.
      */
     override val _state = MutableStateFlow(BuyAppState(
-        connectedSellerId = sellerConfig.sellerId,
-        isDemoMode = sellerConfig.isDemoMode
+        connectedSellerId = sellerConfig.sellerId
+        // accessStatus defaults to NONE → isDemoMode = true until Firebase confirms APPROVED
     ))
     override val state: StateFlow<BuyAppState> = _state.asStateFlow()
 

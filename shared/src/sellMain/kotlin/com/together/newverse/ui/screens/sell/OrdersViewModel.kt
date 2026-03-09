@@ -128,6 +128,19 @@ class OrdersViewModel(
     }
 
     /**
+     * Delete demo orders older than 1 month from demo_orders Firebase path
+     */
+    fun clearOldDemoOrders(onSuccess: (Int) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            orderRepository.deleteOldDemoOrders(sellerId).fold(
+                onSuccess = { count -> onSuccess(count) },
+                onFailure = { e -> onError(e.message ?: "Failed to clear demo orders") }
+            )
+        }
+    }
+
+    /**
      * Format timestamp to date key (yyyyMMdd)
      */
     private fun formatDateKey(timestamp: Long): String {

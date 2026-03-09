@@ -287,7 +287,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 return@launch
             }
 
-            val orderResult = orderRepository.getOpenEditableOrder(sellerConfig.sellerId, buyerProfile.placedOrderIds)
+            val orderResult = orderRepository.getOpenEditableOrder(sellerConfig.sellerId, buyerProfile.placedOrderIds, isDemo = sellerConfig.isDemoMode)
             val order = orderResult.getOrNull()
 
             if (order != null) {
@@ -464,7 +464,8 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 marketId = "",
                 pickUpDate = selectedDate,
                 message = "",
-                articles = items
+                articles = items,
+                isDemoOrder = _state.value.isDemoMode
             )
 
             val result = orderRepository.placeOrder(order)

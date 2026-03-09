@@ -733,6 +733,9 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             loadProducts()
             loadMainScreenArticles()
 
+            // Start observing access status if we have a stored UUID
+            startObservingAccessStatus()
+
             // Mark initialization complete
             _state.update { current ->
                 current.copy(

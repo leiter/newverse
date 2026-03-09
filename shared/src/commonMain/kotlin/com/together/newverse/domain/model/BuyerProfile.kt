@@ -14,5 +14,6 @@ data class BuyerProfile(
     val defaultPickUpTime: String = "",
     val placedOrderIds: Map<String, String> = emptyMap(), // Date -> orderId
     val favouriteArticles: List<String> = emptyList(), // List of article IDs marked as favourite
-    val draftBasket: DraftBasket? = null // Draft basket persisted for offline access
+    val draftBasket: DraftBasket? = null, // Draft basket persisted for offline access
+    val buyerUUID: String = "" // Stable UUID assigned by seller via deep link
 )

@@ -23,7 +23,8 @@ data class Order(
     val articles: List<OrderedProduct> = emptyList(),
     val status: OrderStatus = OrderStatus.DRAFT,
     val hiddenBySeller: Boolean = false,
-    val hiddenByBuyer: Boolean = false
+    val hiddenByBuyer: Boolean = false,
+    val isDemoOrder: Boolean = false
 ) {
     /**
      * Check if this order can be edited based on current time

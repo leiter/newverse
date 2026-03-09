@@ -16,19 +16,18 @@ import coil3.util.DebugLogger
  * Configures memory and disk caching for optimal performance
  */
 actual fun createImageLoader(context: PlatformContext): ImageLoader {
-    val androidContext = context as Context
 
     return ImageLoader.Builder(context)
         // Memory Cache - 25% of available memory
         .memoryCache {
             MemoryCache.Builder()
-                .maxSizePercent(androidContext, 0.25)
+                .maxSizePercent(context, 0.25)
                 .build()
         }
         // Disk Cache - 100MB for product images
         .diskCache {
             DiskCache.Builder()
-                .directory(androidContext.cacheDir.resolve("image_cache"))
+                .directory(context.cacheDir.resolve("image_cache"))
                 .maxSizeBytes(100 * 1024 * 1024) // 100 MB
                 .build()
         }
@@ -36,7 +35,7 @@ actual fun createImageLoader(context: PlatformContext): ImageLoader {
         .crossfade(true)
         // Enable logging in debug builds (check if app is debuggable)
         .apply {
-            val isDebuggable = (androidContext.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+            val isDebuggable = (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
             if (isDebuggable) {
                 logger(DebugLogger())
             }

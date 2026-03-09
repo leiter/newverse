@@ -16,8 +16,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.AccessRequest
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.SellerProfile
@@ -51,6 +54,12 @@ fun SellerProfileScreen(
     onGenerateInvitation: (Int) -> Unit = {},
     onSendInvitationToBuyer: (String) -> Unit = {},
     onRevokeInvitation: (String) -> Unit = {},
+    accessRequests: List<AccessRequest> = emptyList(),
+    generatedBuyerLink: String? = null,
+    onGenerateBuyerLink: () -> Unit = {},
+    onApproveRequest: (String) -> Unit = {},
+    onBlockBuyer: (String) -> Unit = {},
+    onClearGeneratedLink: () -> Unit = {},
     onRetry: () -> Unit = {}
 ) {
     // Extract profile from state
@@ -258,6 +267,20 @@ fun SellerProfileScreen(
                             }
                         }
                     }
+
+                    // Generate Buyer Link Card
+                    GenerateBuyerLinkCard(
+                        generatedLink = generatedBuyerLink,
+                        onGenerateLink = onGenerateBuyerLink,
+                        onClearLink = onClearGeneratedLink
+                    )
+
+                    // Access Requests Card
+                    AccessRequestsCard(
+                        requests = accessRequests,
+                        onApprove = onApproveRequest,
+                        onBlock = onBlockBuyer
+                    )
 
                     // Notification Settings
                     OutlinedCard(
@@ -837,6 +860,145 @@ fun SellerProfileScreen(
         onNotificationSettingsClick = onNotificationSettingsClick,
         onLogout = onLogout
     )
+}
+
+@Composable
+private fun GenerateBuyerLinkCard(
+    generatedLink: String?,
+    onGenerateLink: () -> Unit,
+    onClearLink: () -> Unit
+) {
+    val clipboardManager = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+
+    // Auto-copy to clipboard whenever a new link is generated
+    LaunchedEffect(generatedLink) {
+        if (generatedLink != null) {
+            clipboardManager.setText(AnnotatedString(generatedLink))
+            copied = true
+        } else {
+            copied = false
+        }
+    }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Generate Buyer Link",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "Share this link with a buyer to give them access to your store.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = onGenerateLink,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Generate new link")
+            }
+            if (generatedLink != null) {
+                OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = generatedLink,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(generatedLink))
+                                    copied = true
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(if (copied) "Copied!" else "Copy")
+                            }
+                            OutlinedButton(
+                                onClick = { onClearLink() },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Clear")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccessRequestsCard(
+    requests: List<AccessRequest>,
+    onApprove: (String) -> Unit,
+    onBlock: (String) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Access Requests (${requests.size})",
+                style = MaterialTheme.typography.titleMedium
+            )
+            if (requests.isEmpty()) {
+                Text(
+                    text = "No pending requests",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                requests.forEach { request ->
+                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = request.buyerDisplayName.ifEmpty { "Anonymous" },
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = request.buyerUUID,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = { onApprove(request.buyerUUID) },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Approve")
+                                }
+                                OutlinedButton(
+                                    onClick = { onBlock(request.buyerUUID) },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Text("Block")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Legacy overload for backward compatibility

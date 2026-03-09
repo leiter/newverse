@@ -2,6 +2,7 @@ package com.together.newverse.ui.mainscreen
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +30,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -38,6 +41,8 @@ import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyMainScreenAction
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.demo_mode_banner_action
+import newverse.shared.generated.resources.demo_mode_banner_message
 import newverse.shared.generated.resources.products_search_placeholder
 import newverse.shared.generated.resources.products_search_clear
 import newverse.shared.generated.resources.products_search_no_results
@@ -53,13 +58,52 @@ import org.jetbrains.compose.resources.stringResource
 fun MainScreenModern(
     state: MainScreenState,
     onAction: (BuyAction) -> Unit,
+    isDemoMode: Boolean = false,
+    onNavigateToProfile: () -> Unit = {},
     onNavigateToProductDetail: (String) -> Unit = {}
 ) {
     MainScreenModernContent(
         state = state,
         onAction = onAction,
+        isDemoMode = isDemoMode,
+        onNavigateToProfile = onNavigateToProfile,
         onNavigateToProductDetail = onNavigateToProductDetail,
     )
+}
+
+@Composable
+private fun DemoModeBanner(onConnectClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.tertiaryContainer)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Text(
+                text = stringResource(Res.string.demo_mode_banner_message),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        }
+        TextButton(onClick = onConnectClick) {
+            Text(
+                text = stringResource(Res.string.demo_mode_banner_action),
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -67,6 +111,8 @@ fun MainScreenModern(
 private fun MainScreenModernContent(
     state: MainScreenState,
     onAction: (BuyAction) -> Unit,
+    isDemoMode: Boolean,
+    onNavigateToProfile: () -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
 ) {
     val products = state.filteredArticles
@@ -98,8 +144,12 @@ private fun MainScreenModernContent(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+            if (isDemoMode) {
+                DemoModeBanner(onConnectClick = onNavigateToProfile)
+            }
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -260,6 +310,7 @@ private fun MainScreenModernContent(
                     }
                 }
             }
+            } // Column
         }
 
         // Snackbar for non-editable order notification

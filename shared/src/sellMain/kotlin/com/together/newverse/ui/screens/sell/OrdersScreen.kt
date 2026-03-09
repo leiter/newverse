@@ -8,6 +8,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -16,6 +18,7 @@ import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.ui.state.core.AsyncStateContent
+import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -31,50 +34,77 @@ fun OrdersScreen(
     onOrderClick: (String) -> Unit = {}
 ) {
     val ordersState by viewModel.ordersState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val clearButtonLabel = stringResource(Res.string.demo_orders_clear_button)
+    val clearResultLabel = stringResource(Res.string.demo_orders_clear_result)
+    val clearNoneLabel = stringResource(Res.string.demo_orders_clear_none)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        AsyncStateContent(
-            state = ordersState,
-            onRetry = { viewModel.refresh() },
-            loadingContent = {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            },
-            errorContent = { message, retryable ->
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            AsyncStateContent(
+                state = ordersState,
+                onRetry = { viewModel.refresh() },
+                loadingContent = {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = message,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        if (retryable) {
-                            Button(onClick = { viewModel.refresh() }) {
-                                Text(stringResource(Res.string.retry))
+                        CircularProgressIndicator()
+                    }
+                },
+                errorContent = { message, retryable ->
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Text(
+                                text = message,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            if (retryable) {
+                                Button(onClick = { viewModel.refresh() }) {
+                                    Text(stringResource(Res.string.retry))
+                                }
                             }
                         }
                     }
                 }
+            ) { orders ->
+                OrdersContent(
+                    orders = orders,
+                    onOrderClick = onOrderClick,
+                    onClearDemoOrders = {
+                        viewModel.clearOldDemoOrders(
+                            onSuccess = { count ->
+                                scope.launch {
+                                    val msg = if (count > 0) {
+                                        clearResultLabel.replace("%1\$d", count.toString())
+                                    } else {
+                                        clearNoneLabel
+                                    }
+                                    snackbarHostState.showSnackbar(msg)
+                                }
+                            },
+                            onError = { error ->
+                                scope.launch { snackbarHostState.showSnackbar(error) }
+                            }
+                        )
+                    }
+                )
             }
-        ) { orders ->
-            OrdersContent(
-                orders = orders,
-                onOrderClick = onOrderClick
-            )
         }
     }
 }
@@ -82,31 +112,46 @@ fun OrdersScreen(
 @Composable
 private fun OrdersContent(
     orders: List<Order>,
-    onOrderClick: (String) -> Unit
+    onOrderClick: (String) -> Unit,
+    onClearDemoOrders: () -> Unit = {}
 ) {
-    if (orders.isEmpty()) {
-        // Empty state
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(Res.string.no_orders_message),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    } else {
-        // Orders list
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(orders) { order ->
-                SellerOrderCard(
-                    order = order,
-                    onClick = { onOrderClick(order.id) }
+    Column(modifier = Modifier.fillMaxSize()) {
+        if (orders.isEmpty()) {
+            // Empty state
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(Res.string.no_orders_message),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        } else {
+            // Orders list
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(orders) { order ->
+                    SellerOrderCard(
+                        order = order,
+                        onClick = { onOrderClick(order.id) }
+                    )
+                }
+            }
+        }
+
+        // Demo orders cleanup button
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = onClearDemoOrders,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = stringResource(Res.string.demo_orders_clear_button))
         }
     }
 }

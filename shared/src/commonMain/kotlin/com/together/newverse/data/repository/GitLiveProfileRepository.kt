@@ -1,5 +1,8 @@
 package com.together.newverse.data.repository
 
+import com.together.newverse.data.config.BuyerUUIDStorage
+import com.together.newverse.domain.model.AccessRequest
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
@@ -16,6 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 
 /**
@@ -23,13 +27,16 @@ import kotlin.time.Clock
  * This version uses the correct GitLive Firebase SDK APIs.
  */
 class GitLiveProfileRepository(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val buyerUUIDStorage: BuyerUUIDStorage? = null
 ) : ProfileRepository {
 
     // GitLive Firebase Database references
     private val database = Firebase.database
     private val buyersRef = database.reference("buyer_profile")
     private val sellersRef = database.reference("seller_profile")
+    private val accessRequestsRef = database.reference("access_requests")
+    private val buyerAccessStatusRef = database.reference("buyer_access_status")
 
     // Local cache for performance
     private val _buyerProfile = MutableStateFlow<BuyerProfile?>(null)
@@ -419,6 +426,11 @@ class GitLiveProfileRepository(
                 val draftBasketData = value["draftBasket"] as? Map<*, *>
                 val draftBasket = draftBasketData?.let { parseDraftBasket(it) }
 
+                val uuid = value["buyerUUID"] as? String ?: ""
+                if (uuid.isNotEmpty()) {
+                    buyerUUIDStorage?.set(uuid)
+                }
+
                 BuyerProfile(
                     id = userId,
                     displayName = value["displayName"] as? String ?: "",
@@ -430,7 +442,8 @@ class GitLiveProfileRepository(
                     defaultPickUpTime = value["defaultPickUpTime"] as? String ?: "",
                     placedOrderIds = (value["placedOrderIds"] as? Map<String, String>) ?: emptyMap(),
                     favouriteArticles = (value["favouriteArticles"] as? List<String>) ?: emptyList(),
-                    draftBasket = draftBasket
+                    draftBasket = draftBasket,
+                    buyerUUID = uuid
                 )
             }
             else -> createDefaultBuyerProfile(userId)
@@ -537,7 +550,8 @@ class GitLiveProfileRepository(
             "defaultPickUpTime" to profile.defaultPickUpTime,
             "placedOrderIds" to profile.placedOrderIds,
             "favouriteArticles" to profile.favouriteArticles,
-            "draftBasket" to profile.draftBasket?.let { draftBasketToMap(it) }
+            "draftBasket" to profile.draftBasket?.let { draftBasketToMap(it) },
+            "buyerUUID" to profile.buyerUUID.ifEmpty { null }
         )
     }
 
@@ -610,6 +624,97 @@ class GitLiveProfileRepository(
             placedOrderIds = emptyMap(),
             favouriteArticles = emptyList()
         )
+    }
+
+    override suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
+        return try {
+            val now = Clock.System.now().toEpochMilliseconds()
+            // Write access request
+            accessRequestsRef.child(sellerId).child(buyerUUID).setValue(mapOf(
+                "buyerUUID" to buyerUUID,
+                "displayName" to displayName,
+                "requestedAt" to now
+            ))
+            // Write initial status = PENDING
+            buyerAccessStatusRef.child(buyerUUID).child(sellerId).setValue(mapOf(
+                "status" to AccessStatus.PENDING.name,
+                "updatedAt" to now
+            ))
+            println("✅ GitLiveProfileRepository.submitAccessRequest: Success - sellerId=$sellerId, uuid=$buyerUUID")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.submitAccessRequest: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus {
+        return try {
+            val snapshot = buyerAccessStatusRef.child(buyerUUID).child(sellerId).valueEvents.first()
+            if (!snapshot.exists) return AccessStatus.NONE
+            val data = snapshot.value as? Map<*, *> ?: return AccessStatus.NONE
+            val statusStr = data["status"] as? String ?: return AccessStatus.NONE
+            AccessStatus.entries.firstOrNull { it.name == statusStr } ?: AccessStatus.NONE
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.getAccessStatus: Error - ${e.message}")
+            AccessStatus.NONE
+        }
+    }
+
+    override fun observeAccessStatus(buyerUUID: String, sellerId: String): Flow<AccessStatus> {
+        return buyerAccessStatusRef.child(buyerUUID).child(sellerId).valueEvents.map { snapshot ->
+            if (!snapshot.exists) return@map AccessStatus.NONE
+            val data = snapshot.value as? Map<*, *> ?: return@map AccessStatus.NONE
+            val statusStr = data["status"] as? String ?: return@map AccessStatus.NONE
+            AccessStatus.entries.firstOrNull { it.name == statusStr } ?: AccessStatus.NONE
+        }
+    }
+
+    override fun observeAccessRequests(sellerId: String): Flow<List<AccessRequest>> {
+        return accessRequestsRef.child(sellerId).valueEvents.map { snapshot ->
+            if (!snapshot.exists) return@map emptyList()
+            snapshot.children.mapNotNull { child ->
+                val data = child.value as? Map<*, *> ?: return@mapNotNull null
+                AccessRequest(
+                    sellerId = sellerId,
+                    buyerUUID = data["buyerUUID"] as? String ?: child.key ?: return@mapNotNull null,
+                    buyerDisplayName = data["displayName"] as? String ?: "",
+                    requestedAt = (data["requestedAt"] as? Number)?.toLong() ?: 0L
+                )
+            }
+        }
+    }
+
+    override suspend fun approveAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> {
+        return try {
+            val now = Clock.System.now().toEpochMilliseconds()
+            buyerAccessStatusRef.child(buyerUUID).child(sellerId).setValue(mapOf(
+                "status" to AccessStatus.APPROVED.name,
+                "updatedAt" to now
+            ))
+            accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
+            println("✅ GitLiveProfileRepository.approveAccessRequest: approved uuid=$buyerUUID")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.approveAccessRequest: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
+        return try {
+            val now = Clock.System.now().toEpochMilliseconds()
+            buyerAccessStatusRef.child(buyerUUID).child(sellerId).setValue(mapOf(
+                "status" to AccessStatus.BLOCKED.name,
+                "updatedAt" to now
+            ))
+            accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
+            println("✅ GitLiveProfileRepository.blockBuyer: blocked uuid=$buyerUUID")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.blockBuyer: Error - ${e.message}")
+            Result.failure(e)
+        }
     }
 
     private fun createMockSellerProfile(sellerId: String): SellerProfile {

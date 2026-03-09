@@ -1,5 +1,6 @@
 package com.together.newverse.di
 
+import com.together.newverse.data.config.BuyerUUIDStorage
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.data.config.DefaultProductCatalogConfig
 import com.together.newverse.data.config.DefaultSellerConfig
@@ -26,6 +27,7 @@ import org.koin.dsl.module
 val iosDomainModule = module {
     // Configs
     single { SellerIdStorage() }
+    single { BuyerUUIDStorage() }
     single<SellerConfig> { DefaultSellerConfig() }
     single<OrderScheduleConfig> { DefaultOrderScheduleConfig() }
     single<ProductCatalogConfig> { DefaultProductCatalogConfig() }
@@ -48,6 +50,6 @@ val iosDomainModule = module {
 
     // Profile Repository - GitLive cross-platform implementation
     single<ProfileRepository> {
-        GitLiveProfileRepository(get<AuthRepository>())
+        GitLiveProfileRepository(get<AuthRepository>(), get<BuyerUUIDStorage>())
     }
 }
