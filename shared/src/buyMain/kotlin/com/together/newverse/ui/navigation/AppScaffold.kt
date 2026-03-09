@@ -1,15 +1,11 @@
 package com.together.newverse.ui.navigation
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -26,13 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
@@ -43,6 +36,8 @@ import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.util.rememberKeyboardManager
 import com.together.newverse.ui.state.BuyAppViewModel
+import com.together.newverse.ui.state.BuySellerAction
+import com.together.newverse.ui.state.DeepLinkRouter
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_name
 import org.jetbrains.compose.resources.stringResource
@@ -106,6 +101,43 @@ fun AppScaffold(
         }
     }
 
+    // Observe incoming deep link URLs (iOS: forwarded from Swift .onOpenURL via DeepLinkRouter)
+    val pendingDeepLink by DeepLinkRouter.pendingUrl.collectAsState()
+    LaunchedEffect(pendingDeepLink) {
+        val url = pendingDeepLink ?: return@LaunchedEffect
+        DeepLinkRouter.consume()
+        println("AppScaffold: handling deep link: $url")
+
+        try {
+            // Parse query string using Kotlin stdlib only (KMP-compatible)
+            val queryStart = url.indexOf('?')
+            val queryMap: Map<String, String> = if (queryStart >= 0) {
+                url.substring(queryStart + 1).split("&").mapNotNull { part ->
+                    val idx = part.indexOf('=')
+                    if (idx < 0) null else part.substring(0, idx) to part.substring(idx + 1)
+                }.toMap()
+            } else emptyMap()
+
+            val seller   = queryMap["seller"]   ?: queryMap["sellerId"]
+            val token    = queryMap["token"]
+            val inviteId = queryMap["inviteId"]
+            val expires  = queryMap["expires"]?.toLongOrNull()
+
+            when {
+                seller != null && token != null ->
+                    viewModel.dispatch(BuySellerAction.ConnectWithToken(seller, token))
+                seller != null && inviteId != null && expires != null ->
+                    viewModel.dispatch(BuySellerAction.ConnectWithInvitation(seller, inviteId, expires))
+                seller != null ->
+                    viewModel.dispatch(BuySellerAction.ConnectToSeller(seller))
+                else ->
+                    println("AppScaffold: deep link has no recognised seller param: $url")
+            }
+        } catch (e: Exception) {
+            println("AppScaffold: failed to parse deep link '$url': ${e.message}")
+        }
+    }
+
     // Observe Google Sign-Out trigger
     LaunchedEffect(appState.triggerGoogleSignOut) {
         if (appState.triggerGoogleSignOut) {
@@ -118,46 +150,6 @@ fun AppScaffold(
     // Get BasketRepository to observe cart count (actual basket items)
     val basketRepository = koinInject<BasketRepository>()
     val basketItems by basketRepository.observeBasket().collectAsState()
-    basketItems.size
-
-    // Animation state for cart shake
-    val shakeOffset = remember { Animatable(0f) }
-    var previousBasketItems by remember { mutableStateOf(basketItems) }
-
-    // Trigger shake animation when basket changes (items added, removed, or quantities changed)
-    LaunchedEffect(basketItems) {
-        val hasChanged = basketItems != previousBasketItems
-        val isInitialLoad = previousBasketItems.isEmpty() && basketItems.isEmpty()
-
-        // Trigger animation if basket changed and it's not the initial empty load
-        if (hasChanged && !isInitialLoad) {
-            // Shake animation: rotate left-right-left-right
-            shakeOffset.animateTo(
-                targetValue = 15f,
-                animationSpec = tween(durationMillis = 50)
-            )
-            shakeOffset.animateTo(
-                targetValue = -15f,
-                animationSpec = tween(durationMillis = 100)
-            )
-            shakeOffset.animateTo(
-                targetValue = 10f,
-                animationSpec = tween(durationMillis = 100)
-            )
-            shakeOffset.animateTo(
-                targetValue = -10f,
-                animationSpec = tween(durationMillis = 100)
-            )
-            shakeOffset.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessHigh
-                )
-            )
-        }
-        previousBasketItems = basketItems
-    }
 
     // Check if app is still initializing
     if (appState.meta.isInitializing) {
@@ -285,8 +277,7 @@ fun AppScaffold(
     // Determine if bottom bar should be shown (main screens only)
     val showBottomBar = currentRoute == NavRoutes.Home.route ||
         currentRoute.startsWith(NavRoutes.Buy.Basket.route) ||
-        currentRoute.startsWith(NavRoutes.Buy.Messages.route) ||
-        currentRoute.startsWith(NavRoutes.Buy.Profile.route)
+        currentRoute == NavRoutes.Buy.Profile.route
 
     Scaffold(
         bottomBar = {
@@ -294,7 +285,6 @@ fun AppScaffold(
                 BuyerBottomNavigationBar(
                     currentRoute = currentRoute,
                     basketItemCount = basketItems.size,
-                    unreadMessageCount = appState.unreadMessageCount,
                     onNavigate = { route ->
                         println("🔍 AppScaffold: onNavigate called, route=$route")
                         if (route == NavRoutes.Home.route) {
@@ -344,7 +334,12 @@ fun AppScaffold(
                     val isDetailScreen = currentRoute == NavRoutes.Buy.OrderHistory.route ||
                         currentRoute == NavRoutes.About.route ||
                         currentRoute == NavRoutes.Register.route ||
-                        currentRoute == NavRoutes.Login.route
+                        currentRoute == NavRoutes.Login.route ||
+                        currentRoute.startsWith(NavRoutes.Buy.Messages.route) ||
+                        currentRoute.startsWith(NavRoutes.Buy.ProductDetail.route) ||
+                        currentRoute == NavRoutes.Buy.BuyerContacts.route ||
+                        currentRoute == NavRoutes.Buy.AddBuyerContact.route ||
+                        currentRoute.startsWith(NavRoutes.Buy.ConversationDetail.route.substringBefore("{"))
 
                     if (isDetailScreen) {
                         IconButton(
@@ -361,37 +356,70 @@ fun AppScaffold(
                     }
                 },
                 actions = {
-                    // Show cart icon on Home screen (for quick access)
-                    if (currentRoute == NavRoutes.Home.route) {
+                    // Show contacts icon on Messages screen
+                    if (currentRoute == NavRoutes.Buy.Messages.route) {
+                        IconButton(onClick = {
+                            navController.navigate(NavRoutes.Buy.BuyerContacts.route) {
+                                launchSingleTop = true
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Contacts,
+                                contentDescription = "Contacts",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                    // Show email icon on Profile screen
+                    if (currentRoute == NavRoutes.Buy.Profile.route) {
                         Box(modifier = Modifier.padding(end = 8.dp)) {
                             IconButton(onClick = {
-                                println("🔍 TopBar: Navigating to Basket via topbar icon")
-                                navController.navigate(NavRoutes.Buy.Basket.route) {
-                                    popUpTo(NavRoutes.Home.route) { saveState = true }
+                                navController.navigate(NavRoutes.Buy.Messages.route) {
                                     launchSingleTop = true
-                                    restoreState = true
                                 }
-                                println("🔍 TopBar: Navigation to Basket completed")
                             }) {
                                 Icon(
-                                    imageVector = Icons.Default.ShoppingCart,
-                                    contentDescription = "Shopping Cart",
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .graphicsLayer {
-                                            rotationZ = shakeOffset.value
-                                        }
+                                    imageVector = Icons.Default.Email,
+                                    contentDescription = "Messages",
+                                    tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
-                            if (basketItems.isNotEmpty()) {
+                            if (appState.unreadMessageCount > 0) {
                                 Badge(
                                     containerColor = MaterialTheme.colorScheme.tertiary,
                                     contentColor = MaterialTheme.colorScheme.onTertiary,
                                     modifier = Modifier.align(Alignment.TopEnd)
                                 ) {
                                     Text(
-                                        text = basketItems.size.toString(),
+                                        text = appState.unreadMessageCount.toString(),
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    // Show messages icon on Home screen
+                    if (currentRoute == NavRoutes.Home.route) {
+                        Box(modifier = Modifier.padding(end = 8.dp)) {
+                            IconButton(onClick = {
+                                navController.navigate(NavRoutes.Buy.Messages.route) {
+                                    launchSingleTop = true
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Email,
+                                    contentDescription = "Messages",
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                            if (appState.unreadMessageCount > 0) {
+                                Badge(
+                                    containerColor = MaterialTheme.colorScheme.tertiary,
+                                    contentColor = MaterialTheme.colorScheme.onTertiary,
+                                    modifier = Modifier.align(Alignment.TopEnd)
+                                ) {
+                                    Text(
+                                        text = appState.unreadMessageCount.toString(),
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                 }

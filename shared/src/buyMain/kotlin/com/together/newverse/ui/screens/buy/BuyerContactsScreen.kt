@@ -13,20 +13,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,11 +35,9 @@ import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.contacts_add
 import newverse.shared.generated.resources.contacts_empty
-import newverse.shared.generated.resources.contacts_title
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BuyerContactsScreen(
     onNavigateBack: () -> Unit,
@@ -54,30 +48,10 @@ fun BuyerContactsScreen(
     val contactsState by viewModel.contactsState.collectAsState()
     val isAnonymous by viewModel.isAnonymous.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.contacts_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            // Only show FAB for authenticated (non-anonymous) users
-            if (!isAnonymous) {
-                FloatingActionButton(onClick = onAddContact) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.contacts_add))
-                }
-            }
-        }
-    ) { padding ->
-        // Show sign-in prompt for anonymous/guest users
+    Box(modifier = Modifier.fillMaxSize()) {
         if (isAnonymous) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -96,52 +70,60 @@ fun BuyerContactsScreen(
                     )
                 }
             }
-            return@Scaffold
-        }
-        when (val state = contactsState) {
-            is AsyncState.Loading, is AsyncState.Initial -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    androidx.compose.material3.CircularProgressIndicator()
-                }
-            }
-            is AsyncState.Error -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(state.message, color = MaterialTheme.colorScheme.error)
-                }
-            }
-            is AsyncState.Success -> {
-                val contacts = state.data
-                if (contacts.isEmpty()) {
+        } else {
+            when (val state = contactsState) {
+                is AsyncState.Loading, is AsyncState.Initial -> {
                     Box(
-                        modifier = Modifier.fillMaxSize().padding(padding),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = stringResource(Res.string.contacts_empty),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        androidx.compose.material3.CircularProgressIndicator()
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(padding)
+                }
+                is AsyncState.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        items(contacts, key = { it.userId }) { contact ->
-                            ContactRow(
-                                contact = contact,
-                                onMessage = { onStartConversation(contact.userId) },
-                                onRemove = { viewModel.removeContact(contact.userId) },
-                                onBlock = { viewModel.blockContact(contact.userId) }
+                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                is AsyncState.Success -> {
+                    val contacts = state.data
+                    if (contacts.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.contacts_empty),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(contacts, key = { it.userId }) { contact ->
+                                ContactRow(
+                                    contact = contact,
+                                    onMessage = { onStartConversation(contact.userId) },
+                                    onRemove = { viewModel.removeContact(contact.userId) },
+                                    onBlock = { viewModel.blockContact(contact.userId) }
+                                )
+                            }
                         }
                     }
                 }
+            }
+
+            // FAB for adding contacts
+            FloatingActionButton(
+                onClick = onAddContact,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.contacts_add))
             }
         }
     }

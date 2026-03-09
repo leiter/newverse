@@ -137,6 +137,8 @@ class MockProfileRepository : ProfileRepository {
         }
     }
 
+    override suspend fun saveBuyerUUID(uuid: String): Result<Unit> = Result.success(Unit)
+
     override suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> =
         Result.success(Unit)
 

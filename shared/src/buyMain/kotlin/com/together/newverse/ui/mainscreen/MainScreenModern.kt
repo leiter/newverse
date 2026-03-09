@@ -179,7 +179,8 @@ private fun MainScreenModernContent(
                                     onQuantityChange = { onAction(BuyMainScreenAction.UpdateQuantity(it)) },
                                     onAddToCart = { onAction(BuyMainScreenAction.AddToCart) },
                                     onRemoveFromBasket = { onAction(BuyMainScreenAction.RemoveFromBasket) },
-                                    onToggleFavourite = { onAction(BuyMainScreenAction.ToggleFavourite(product.id)) }
+                                    onToggleFavourite = { onAction(BuyMainScreenAction.ToggleFavourite(product.id)) },
+                                    onNavigateToDetail = { onNavigateToProductDetail(product.id) }
                                 )
                             }
                         }
@@ -298,8 +299,7 @@ private fun MainScreenModernContent(
                                 product = product,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
-                                    // Navigate to product detail screen
-                                    onNavigateToProductDetail(product.id)
+                                    onAction(BuyMainScreenAction.SelectArticle(product))
                                 }
                             )
                         }

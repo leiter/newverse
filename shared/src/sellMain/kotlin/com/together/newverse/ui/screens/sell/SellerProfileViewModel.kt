@@ -97,7 +97,7 @@ class SellerProfileViewModel(
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             val uuid = Uuid.random().toString()
-            val link = "newverse://connect?seller=$sellerId&token=$uuid"
+            val link = "https://cutthecrap.link/connect?seller=$sellerId&token=$uuid"
             _generatedBuyerLink.value = link
         }
     }

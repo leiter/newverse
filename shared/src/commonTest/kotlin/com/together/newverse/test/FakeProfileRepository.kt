@@ -191,6 +191,10 @@ class FakeProfileRepository : ProfileRepository {
         _accessStatus["$buyerUUID/$sellerId"] = status
     }
 
+    override suspend fun saveBuyerUUID(uuid: String): Result<Unit> {
+        return Result.success(Unit)
+    }
+
     override suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
         _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.PENDING
         return Result.success(Unit)

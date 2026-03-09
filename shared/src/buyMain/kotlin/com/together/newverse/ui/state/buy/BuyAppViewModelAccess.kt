@@ -3,6 +3,7 @@ package com.together.newverse.ui.state.buy
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.ui.state.BuyAppViewModel
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -26,6 +27,7 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
 
     viewModelScope.launch {
         profileRepository.observeAccessStatus(uuid, sellerId)
+            .catch { e -> println("[NV_Access] observeAccessStatus error (permission?): ${e.message}") }
             .collect { status ->
                 println("[NV_Access] observeAccessStatus: status=$status uuid=$uuid")
                 _state.update { it.copy(accessStatus = status) }
@@ -48,6 +50,9 @@ internal fun BuyAppViewModel.connectWithToken(sellerId: String, buyerToken: Stri
     connectToSeller(sellerId)
 
     viewModelScope.launch {
+        // Ensure buyerUUID is persisted in Firebase profile so security rules allow reading status
+        profileRepository.saveBuyerUUID(buyerToken)
+
         // Fetch current status first — never overwrite APPROVED or BLOCKED
         val currentStatus = profileRepository.getAccessStatus(buyerToken, sellerId)
         println("[NV_Access] connectWithToken: currentStatus=$currentStatus uuid=$buyerToken")

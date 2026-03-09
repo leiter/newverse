@@ -1,6 +1,7 @@
 package com.together.newverse.ui.screens.buy
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -8,15 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,7 +26,6 @@ import newverse.shared.generated.resources.messaging_blocked
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BuyerConversationDetailScreen(
     conversationId: String,
@@ -60,75 +53,66 @@ fun BuyerConversationDetailScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(otherParticipantName.ifEmpty { "Conversation" }) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Messages list
+        Box(modifier = Modifier.weight(1f)) {
+            when (val state = messagesState) {
+                is AsyncState.Loading, is AsyncState.Initial -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator()
                     }
                 }
-            )
-        },
-        bottomBar = {
-            if (isBlocked) {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(Res.string.messaging_blocked),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                is AsyncState.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                    }
                 }
-            } else {
-                MessageInput(
-                    text = inputText,
-                    onTextChange = { viewModel.updateInputText(it) },
-                    onSend = { viewModel.sendMessage(otherParticipantId, otherParticipantName) },
-                    enabled = !isSending
-                )
+                is AsyncState.Success -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 8.dp),
+                        state = listState
+                    ) {
+                        items(state.data, key = { it.id }) { message ->
+                            MessageBubble(
+                                text = message.text,
+                                timestamp = message.timestamp,
+                                isFromMe = message.senderId == myId,
+                                senderName = message.senderName,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
+                    }
+                }
             }
         }
-    ) { padding ->
-        when (val state = messagesState) {
-            is AsyncState.Loading, is AsyncState.Initial -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    androidx.compose.material3.CircularProgressIndicator()
-                }
+
+        // Bottom input or blocked message
+        if (isBlocked) {
+            Box(
+                modifier = Modifier.padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(Res.string.messaging_blocked),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            is AsyncState.Error -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(state.message, color = MaterialTheme.colorScheme.error)
-                }
-            }
-            is AsyncState.Success -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(horizontal = 8.dp),
-                    state = listState
-                ) {
-                    items(state.data, key = { it.id }) { message ->
-                        MessageBubble(
-                            text = message.text,
-                            timestamp = message.timestamp,
-                            isFromMe = message.senderId == myId,
-                            senderName = message.senderName,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                    item { Spacer(Modifier.height(8.dp)) }
-                }
-            }
+        } else {
+            MessageInput(
+                text = inputText,
+                onTextChange = { viewModel.updateInputText(it) },
+                onSend = { viewModel.sendMessage(otherParticipantId, otherParticipantName) },
+                enabled = !isSending
+            )
         }
     }
 }

@@ -1,5 +1,59 @@
 {
   "rules": {
+    "articles": {
+      "$sellerId": {
+        ".read": "auth != null",
+        ".write": "auth != null && $sellerId === auth.uid"
+      }
+    },
+    "seller_profile": {
+      "$sellerId": {
+        ".read": "auth != null",
+        ".write": "auth != null && $sellerId === auth.uid"
+      }
+    },
+    "orders": {
+      "$sellerId": {
+        ".read": "auth != null && ($sellerId === auth.uid || root.child('seller_profile').child($sellerId).child('knownClientIds').child(auth.uid).exists())",
+        "$date": {
+          "$orderId": {
+            ".write": "auth != null && ($sellerId === auth.uid || (data.child('buyerId').val() === auth.uid || !data.exists()) && !root.child('seller_profile').child($sellerId).child('blockedClientIds').child(auth.uid).exists())"
+          }
+        }
+      }
+    },
+    "buyer_profile": {
+      "$userId": {
+        ".read": "auth != null && $userId === auth.uid",
+        ".write": "auth != null && $userId === auth.uid"
+      }
+    },
+    "invitations": {
+      "$invitationId": {
+        ".read": "auth != null && (data.child('sellerId').val() === auth.uid || data.child('buyerId').val() === auth.uid || data.child('buyerId').val() === null)",
+        ".write": "auth != null && ((!data.exists() && newData.child('sellerId').val() === auth.uid) || (data.exists() && data.child('sellerId').val() === auth.uid) || (data.exists() && data.child('buyerId').val() === auth.uid && data.child('status').val() === 'PENDING'))"
+      }
+    },
+    "buyer_invitations": {
+      "$buyerId": {
+        ".read": "auth != null && $buyerId === auth.uid",
+        ".write": "auth != null"
+      }
+    },
+    "buyer_access_status": {
+      "$buyerUUID": {
+        "$sellerId": {
+          ".read": "auth != null && (root.child('buyer_profile').child(auth.uid).child('buyerUUID').val() === $buyerUUID || auth.uid === $sellerId)",
+          ".write": "auth != null && (root.child('buyer_profile').child(auth.uid).child('buyerUUID').val() === $buyerUUID || auth.uid === $sellerId)"
+        }
+      }
+    },
+    "access_requests": {
+      "$sellerId": {
+        ".read": "auth != null && auth.uid === $sellerId",
+        ".write": "auth != null"
+      }
+    },
     "conversations": {
       "$conversationId": {
         ".read": "root.child('user_conversations').child(auth.uid).child($conversationId).exists()",
@@ -18,7 +72,9 @@
     "user_conversations": {
       "$userId": {
         ".read": "$userId === auth.uid",
-        ".write": "$userId === auth.uid || root.child('user_conversations').child(auth.uid).child(newData.key).exists()"
+        "$conversationId": {
+          ".write": "$userId === auth.uid || root.child('user_conversations').child(auth.uid).child($conversationId).exists()"
+        }
       }
     },
     "buyer_contacts": {

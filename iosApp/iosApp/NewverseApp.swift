@@ -25,6 +25,10 @@ struct NewverseApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    // Forward deep links (newverse://) from iOS into the Kotlin/Compose layer
+                    MainViewControllerKt.handleDeepLinkUrl(url: url.absoluteString)
+                }
         }
     }
 }

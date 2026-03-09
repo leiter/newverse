@@ -155,7 +155,7 @@ sealed class NavRoutes(val route: String) {
             Buy.Profile -> Res.string.nav_customer_profile
             Buy.OrderHistory -> Res.string.action_orders
             Buy.Favorites -> Res.string.action_favorites
-            Buy.ProductDetail -> Res.string.products_title
+            Buy.ProductDetail -> Res.string.products_detail_title
             Sell.Overview -> Res.string.nav_product_overview
             Sell.Orders -> Res.string.nav_manage_orders
             Sell.OrderDetail -> Res.string.order_detail_title

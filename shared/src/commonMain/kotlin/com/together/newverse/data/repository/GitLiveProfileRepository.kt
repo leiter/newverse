@@ -626,6 +626,20 @@ class GitLiveProfileRepository(
         )
     }
 
+    override suspend fun saveBuyerUUID(uuid: String): Result<Unit> {
+        return try {
+            val userId = authRepository.getCurrentUserId()
+                ?: return Result.failure(Exception("User not authenticated"))
+            buyersRef.child(userId).child("buyerUUID").setValue(uuid)
+            buyerUUIDStorage?.set(uuid)
+            println("✅ GitLiveProfileRepository.saveBuyerUUID: saved uuid=$uuid for userId=$userId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.saveBuyerUUID: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     override suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()

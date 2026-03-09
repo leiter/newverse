@@ -111,6 +111,12 @@ interface ProfileRepository {
     suspend fun clearDraftBasket(): Result<Unit>
 
     /**
+     * Persist buyerUUID to the buyer's Firebase profile so security rules can verify ownership.
+     * Must be called before observeAccessStatus to ensure the read is permitted.
+     */
+    suspend fun saveBuyerUUID(uuid: String): Result<Unit>
+
+    /**
      * Submit an access request from a buyer to a seller.
      * Writes to access_requests/{sellerId}/{buyerUUID} and sets status to PENDING.
      */

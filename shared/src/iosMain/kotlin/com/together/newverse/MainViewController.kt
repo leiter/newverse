@@ -3,8 +3,18 @@ package com.together.newverse
 import androidx.compose.ui.window.ComposeUIViewController
 import com.together.newverse.ui.navigation.AppScaffold
 import com.together.newverse.ui.navigation.PlatformAction
+import com.together.newverse.ui.state.DeepLinkRouter
 import com.together.newverse.ui.theme.NewverseTheme
 import platform.UIKit.UIViewController
+
+/**
+ * Called from Swift `.onOpenURL` to forward a deep link URL into the Kotlin layer.
+ * The URL is picked up by [AppScaffold] via [DeepLinkRouter].
+ */
+fun handleDeepLinkUrl(url: String) {
+    println("iOS Deep Link received: $url")
+    DeepLinkRouter.route(url)
+}
 
 /**
  * Creates the main UIViewController for iOS app

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -76,6 +77,7 @@ internal fun HeroProductCard(
     onAddToCart: () -> Unit,
     onRemoveFromBasket: () -> Unit,
     onToggleFavourite: () -> Unit,
+    onNavigateToDetail: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Helper function to check if unit is weight-based
@@ -156,6 +158,18 @@ internal fun HeroProductCard(
                                         imageVector = if (isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                         contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
                                         tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = onNavigateToDetail,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = "Produktdetails",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }

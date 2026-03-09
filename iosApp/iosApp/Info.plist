@@ -63,6 +63,14 @@
 				<string>com.googleusercontent.apps.352833414422-llkofcdstuc7pcf0qubpratujmkrj106</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>newverse</string>
+			</array>
+		</dict>
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
