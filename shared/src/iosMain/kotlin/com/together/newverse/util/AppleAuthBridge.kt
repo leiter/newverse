@@ -58,6 +58,7 @@ object AppleAuthBridge : KoinComponent {
 
                 result.onSuccess { userId ->
                     println("AppleAuthBridge: Firebase auth success - userId=$userId")
+                    AppleSignInState.notifyAuthComplete()
                     onSuccess(userId)
                 }.onFailure { error ->
                     println("AppleAuthBridge: Firebase auth failed - ${error.message}")

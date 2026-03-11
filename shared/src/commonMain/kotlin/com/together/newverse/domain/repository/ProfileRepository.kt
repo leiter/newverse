@@ -146,4 +146,21 @@ interface ProfileRepository {
      * Block a buyer — sets status to BLOCKED and removes the request.
      */
     suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit>
+
+    /**
+     * Approve an access request and track the buyer in the seller's approvedBuyerIds list.
+     */
+    suspend fun approveAccessRequestWithTracking(sellerId: String, buyerUUID: String, displayName: String): Result<Unit>
+
+    /**
+     * Unblock a previously approved buyer — sets status back to APPROVED and moves them
+     * from blockedClientIds back to approvedBuyerIds.
+     */
+    suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit>
+
+    /**
+     * Observe the approved buyer IDs for a seller in real-time.
+     * Emits the current list immediately and updates on any change.
+     */
+    fun observeApprovedBuyerIds(sellerId: String): Flow<List<String>>
 }

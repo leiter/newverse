@@ -9,6 +9,7 @@ import com.together.newverse.ui.state.InitializationStep
 import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import com.together.newverse.ui.state.core.AuthState
+import com.together.newverse.util.AppleSignInState
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -486,6 +487,19 @@ private fun parsePickupDateFromKey(dateKey: String): Long? {
     } catch (e: Exception) {
         println("⚠️ parsePickupDateFromKey: Failed to parse '$dateKey': ${e.message}")
         null
+    }
+}
+
+/**
+ * Observes Apple Sign-In completion signal and force-refreshes the AuthFlowCoordinator state.
+ * Needed on iOS where auth.authStateChanged is unreliable after signInWithCredential().
+ */
+internal fun BuyAppViewModel.observeAppleSignInCompletion() {
+    viewModelScope.launch {
+        AppleSignInState.authCompleted.collect {
+            println("[NV_BuyAppVM] observeAppleSignInCompletion: Apple Sign-In complete, refreshing auth state")
+            authFlowCoordinator.refreshUserInfo()
+        }
     }
 }
 

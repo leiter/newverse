@@ -39,6 +39,7 @@ import com.together.newverse.ui.state.buy.logout
 import com.together.newverse.ui.state.buy.handleSellerAction
 import com.together.newverse.ui.state.buy.navigateBack
 import com.together.newverse.ui.state.buy.navigateTo
+import com.together.newverse.ui.state.buy.observeAppleSignInCompletion
 import com.together.newverse.ui.state.buy.observeAuthStateChanges
 import com.together.newverse.ui.state.buy.observeMainScreenBasket
 import com.together.newverse.ui.state.buy.observeMainScreenBuyerProfile
@@ -122,6 +123,9 @@ class BuyAppViewModel(
         println("[NV_BuyAppVM] init: Calling observeAuthStateChanges()...")
         observeAuthStateChanges()
         println("[NV_BuyAppVM] init: observeAuthStateChanges() returned")
+
+        // Observe Apple Sign-In completion to force-refresh auth state on iOS
+        observeAppleSignInCompletion()
 
         // Initialize app on startup
         println("[NV_BuyAppVM] init: Calling initializeApp()...")

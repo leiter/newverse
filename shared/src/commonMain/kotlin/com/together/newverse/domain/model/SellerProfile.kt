@@ -20,4 +20,5 @@ data class SellerProfile(
     val urls: List<String> = emptyList(),
     val knownClientIds: List<String> = emptyList(),
     val blockedClientIds: List<String> = emptyList(),
+    val approvedBuyerIds: List<String> = emptyList(),
 )

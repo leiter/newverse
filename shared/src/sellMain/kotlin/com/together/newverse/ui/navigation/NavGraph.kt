@@ -172,6 +172,8 @@ fun NavGraphBuilder.navGraph(
             onGenerateBuyerLink = { profileViewModel.generateBuyerLink() },
             onApproveRequest = { uuid -> profileViewModel.approveRequest(uuid) },
             onBlockBuyer = { uuid -> profileViewModel.blockBuyer(uuid) },
+            onBlockApprovedBuyer = { uuid -> profileViewModel.blockApprovedBuyer(uuid) },
+            onUnblockApprovedBuyer = { uuid -> profileViewModel.unblockApprovedBuyer(uuid) },
             onClearGeneratedLink = { profileViewModel.clearGeneratedLink() },
             onRetry = { profileViewModel.refresh() }
         )

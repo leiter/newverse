@@ -519,7 +519,8 @@ class GitLiveProfileRepository(
                     markets = markets,
                     urls = (value["urls"] as? List<String>) ?: emptyList(),
                     knownClientIds = parseClientIds(value["knownClientIds"]),
-                    blockedClientIds = parseClientIds(value["blockedClientIds"])
+                    blockedClientIds = parseClientIds(value["blockedClientIds"]),
+                    approvedBuyerIds = parseClientIds(value["approvedBuyerIds"])
                 )
             }
             else -> createMockSellerProfile(sellerId)
@@ -607,7 +608,8 @@ class GitLiveProfileRepository(
             "markets" to marketsData,
             "urls" to profile.urls,
             "knownClientIds" to profile.knownClientIds.associateWith { true },
-            "blockedClientIds" to profile.blockedClientIds.associateWith { true }
+            "blockedClientIds" to profile.blockedClientIds.associateWith { true },
+            "approvedBuyerIds" to profile.approvedBuyerIds.associateWith { true }
         )
     }
 
@@ -723,10 +725,75 @@ class GitLiveProfileRepository(
                 "updatedAt" to now
             ))
             accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
+            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).removeValue()
+            sellersRef.child(sellerId).child("blockedClientIds").child(buyerUUID).setValue(true)
+            // Update cache
+            sellerProfileCache[sellerId]?.let { cached ->
+                sellerProfileCache[sellerId] = cached.copy(
+                    approvedBuyerIds = cached.approvedBuyerIds - buyerUUID,
+                    blockedClientIds = cached.blockedClientIds + buyerUUID
+                )
+            }
             println("✅ GitLiveProfileRepository.blockBuyer: blocked uuid=$buyerUUID")
             Result.success(Unit)
         } catch (e: Exception) {
             println("❌ GitLiveProfileRepository.blockBuyer: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun approveAccessRequestWithTracking(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
+        return try {
+            val now = Clock.System.now().toEpochMilliseconds()
+            buyerAccessStatusRef.child(buyerUUID).child(sellerId).setValue(mapOf(
+                "status" to AccessStatus.APPROVED.name,
+                "updatedAt" to now
+            ))
+            accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
+            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue(true)
+            // Update cache
+            sellerProfileCache[sellerId]?.let { cached ->
+                if (buyerUUID !in cached.approvedBuyerIds) {
+                    sellerProfileCache[sellerId] = cached.copy(
+                        approvedBuyerIds = cached.approvedBuyerIds + buyerUUID
+                    )
+                }
+            }
+            println("✅ GitLiveProfileRepository.approveAccessRequestWithTracking: approved uuid=$buyerUUID")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.approveAccessRequestWithTracking: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override fun observeApprovedBuyerIds(sellerId: String): Flow<List<String>> {
+        return sellersRef.child(sellerId).child("approvedBuyerIds").valueEvents.map { snapshot ->
+            if (!snapshot.exists) return@map emptyList()
+            parseClientIds(snapshot.value)
+        }
+    }
+
+    override suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
+        return try {
+            val now = Clock.System.now().toEpochMilliseconds()
+            buyerAccessStatusRef.child(buyerUUID).child(sellerId).setValue(mapOf(
+                "status" to AccessStatus.APPROVED.name,
+                "updatedAt" to now
+            ))
+            sellersRef.child(sellerId).child("blockedClientIds").child(buyerUUID).removeValue()
+            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue(true)
+            // Update cache
+            sellerProfileCache[sellerId]?.let { cached ->
+                sellerProfileCache[sellerId] = cached.copy(
+                    blockedClientIds = cached.blockedClientIds - buyerUUID,
+                    approvedBuyerIds = cached.approvedBuyerIds + buyerUUID
+                )
+            }
+            println("✅ GitLiveProfileRepository.unblockApprovedBuyer: unblocked uuid=$buyerUUID")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.unblockApprovedBuyer: Error - ${e.message}")
             Result.failure(e)
         }
     }

@@ -156,4 +156,13 @@ class MockProfileRepository : ProfileRepository {
 
     override suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit> =
         Result.success(Unit)
+
+    override suspend fun approveAccessRequestWithTracking(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit> =
+        Result.success(Unit)
+
+    override fun observeApprovedBuyerIds(sellerId: String): Flow<List<String>> =
+        flowOf(emptyList())
 }

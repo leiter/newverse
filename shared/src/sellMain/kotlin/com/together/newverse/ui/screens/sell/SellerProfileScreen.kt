@@ -59,6 +59,8 @@ fun SellerProfileScreen(
     onGenerateBuyerLink: () -> Unit = {},
     onApproveRequest: (String) -> Unit = {},
     onBlockBuyer: (String) -> Unit = {},
+    onBlockApprovedBuyer: (String) -> Unit = {},
+    onUnblockApprovedBuyer: (String) -> Unit = {},
     onClearGeneratedLink: () -> Unit = {},
     onRetry: () -> Unit = {}
 ) {
@@ -261,7 +263,7 @@ fun SellerProfileScreen(
                                         buyerId = buyerId,
                                         isBlocked = true,
                                         onBlock = {},
-                                        onUnblock = { onUnblockCustomer(buyerId) }
+                                        onUnblock = { onUnblockApprovedBuyer(buyerId) }
                                     )
                                 }
                             }
@@ -280,6 +282,12 @@ fun SellerProfileScreen(
                         requests = accessRequests,
                         onApprove = onApproveRequest,
                         onBlock = onBlockBuyer
+                    )
+
+                    // Approved Buyers Card
+                    ApprovedBuyersCard(
+                        approvedBuyerIds = customerState.approvedBuyerIds,
+                        onBlock = onBlockApprovedBuyer
                     )
 
                     // Notification Settings
@@ -992,6 +1000,64 @@ private fun AccessRequestsCard(
                                 ) {
                                     Text("Block")
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApprovedBuyersCard(
+    approvedBuyerIds: List<String>,
+    onBlock: (String) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Approved Buyers (${approvedBuyerIds.size})",
+                style = MaterialTheme.typography.titleMedium
+            )
+            if (approvedBuyerIds.isEmpty()) {
+                Text(
+                    text = "No approved buyers yet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                approvedBuyerIds.forEach { buyerUUID ->
+                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = buyerUUID.take(16) + "…",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = "Approved",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            TextButton(onClick = { onBlock(buyerUUID) }) {
+                                Text(
+                                    text = "Block",
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         }
                     }

@@ -81,6 +81,7 @@ class SellerProfileViewModel(
         loadProfile()
         loadStats()
         observeAccessRequests()
+        observeApprovedBuyers()
     }
 
     private fun observeAccessRequests() {
@@ -89,6 +90,18 @@ class SellerProfileViewModel(
             profileRepository.observeAccessRequests(sellerId)
                 .catch { e -> println("❌ SellerProfileViewModel.observeAccessRequests: ${e.message}") }
                 .collect { requests -> _accessRequests.value = requests }
+        }
+    }
+
+    private fun observeApprovedBuyers() {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.observeApprovedBuyerIds(sellerId)
+                .catch { e -> println("❌ SellerProfileViewModel.observeApprovedBuyers: ${e.message}") }
+                .collect { ids ->
+                    println("✅ SellerProfileViewModel.observeApprovedBuyers: ${ids.size} approved buyers")
+                    _customerState.update { it.copy(approvedBuyerIds = ids) }
+                }
         }
     }
 
@@ -105,7 +118,11 @@ class SellerProfileViewModel(
     fun approveRequest(buyerUUID: String) {
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            profileRepository.approveAccessRequest(sellerId, buyerUUID)
+            val displayName = _accessRequests.value.find { it.buyerUUID == buyerUUID }?.buyerDisplayName ?: ""
+            profileRepository.approveAccessRequestWithTracking(sellerId, buyerUUID, displayName)
+                .onSuccess {
+                    _customerState.update { it.copy(approvedBuyerIds = it.approvedBuyerIds + buyerUUID) }
+                }
                 .onFailure { e -> println("❌ SellerProfileViewModel.approveRequest: ${e.message}") }
         }
     }
@@ -115,6 +132,38 @@ class SellerProfileViewModel(
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             profileRepository.blockBuyer(sellerId, buyerUUID)
                 .onFailure { e -> println("❌ SellerProfileViewModel.blockBuyer: ${e.message}") }
+        }
+    }
+
+    fun blockApprovedBuyer(buyerUUID: String) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.blockBuyer(sellerId, buyerUUID)
+                .onSuccess {
+                    _customerState.update {
+                        it.copy(
+                            approvedBuyerIds = it.approvedBuyerIds - buyerUUID,
+                            blockedClientIds = it.blockedClientIds + buyerUUID
+                        )
+                    }
+                }
+                .onFailure { e -> println("❌ SellerProfileViewModel.blockApprovedBuyer: ${e.message}") }
+        }
+    }
+
+    fun unblockApprovedBuyer(buyerUUID: String) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.unblockApprovedBuyer(sellerId, buyerUUID)
+                .onSuccess {
+                    _customerState.update {
+                        it.copy(
+                            blockedClientIds = it.blockedClientIds - buyerUUID,
+                            approvedBuyerIds = it.approvedBuyerIds + buyerUUID
+                        )
+                    }
+                }
+                .onFailure { e -> println("❌ SellerProfileViewModel.unblockApprovedBuyer: ${e.message}") }
         }
     }
 
@@ -137,7 +186,8 @@ class SellerProfileViewModel(
                     _profileState.value = AsyncState.Success(profile)
                     _customerState.value = CustomerManagementState(
                         knownClientIds = profile.knownClientIds,
-                        blockedClientIds = profile.blockedClientIds
+                        blockedClientIds = profile.blockedClientIds,
+                        approvedBuyerIds = profile.approvedBuyerIds
                     )
                 },
                 onFailure = { e ->
@@ -386,7 +436,8 @@ data class ProfileDialogState(
  */
 data class CustomerManagementState(
     val knownClientIds: List<String> = emptyList(),
-    val blockedClientIds: List<String> = emptyList()
+    val blockedClientIds: List<String> = emptyList(),
+    val approvedBuyerIds: List<String> = emptyList()
 ) {
     val allClientIds: List<String>
         get() = knownClientIds + blockedClientIds
