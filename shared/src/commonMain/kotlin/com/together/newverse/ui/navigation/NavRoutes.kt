@@ -56,17 +56,11 @@ sealed class NavRoutes(val route: String) {
                 return "sell/order/$orderId"
             }
         }
-        data object Products : Sell("sell/products")
         data object Create : Sell("sell/create")
         data object Profile : Sell("sell/profile")
         data object PickDay : Sell("sell/pick_day")
         data object NotificationSettings : Sell("sell/notification_settings")
         data object ImportPreview : Sell("sell/import_preview")
-        data object ProductDetail : Sell("sell/product/{articleId}") {
-            fun createRoute(articleId: String): String {
-                return "sell/product/$articleId"
-            }
-        }
         data object Conversations : Sell("sell/conversations")
         data object ConversationDetail : Sell("sell/conversation/{conversationId}") {
             fun createRoute(conversationId: String): String {
@@ -96,7 +90,6 @@ sealed class NavRoutes(val route: String) {
             // Sell routes
             Sell.Overview,
             Sell.Orders,
-            Sell.Products,
             Sell.Create,
             Sell.Profile,
             Sell.PickDay,
@@ -159,13 +152,11 @@ sealed class NavRoutes(val route: String) {
             Sell.Overview -> Res.string.nav_product_overview
             Sell.Orders -> Res.string.nav_manage_orders
             Sell.OrderDetail -> Res.string.order_detail_title
-            Sell.Products -> Res.string.overview_your_products
             Sell.Create -> Res.string.nav_create_product
             Sell.Profile -> Res.string.nav_seller_profile
             Sell.PickDay -> Res.string.nav_pick_delivery_day
             Sell.NotificationSettings -> Res.string.nav_notification_settings
             Sell.ImportPreview -> Res.string.topbar_import_products
-            Sell.ProductDetail -> Res.string.products_title
             Buy.Messages -> Res.string.nav_messages
             Buy.ConversationDetail -> Res.string.nav_messages
             Buy.BuyerContacts -> Res.string.contacts_title

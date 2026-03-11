@@ -21,16 +21,22 @@ import kotlinx.coroutines.launch
  * Called after auth+seller connection is confirmed.
  */
 internal fun BuyAppViewModel.startObservingAccessStatus() {
-    val uuid = buyerUUIDStorage?.get() ?: return
+    val uuid = buyerUUIDStorage?.get()
     val sellerId = sellerConfig.sellerId
     if (sellerId.isEmpty()) return
+
+    if (uuid == null) {
+        // No personal invite — buyer is in demo mode, show banner immediately
+        _state.update { it.copy(isAccessStatusLoaded = true) }
+        return
+    }
 
     viewModelScope.launch {
         profileRepository.observeAccessStatus(uuid, sellerId)
             .catch { e -> println("[NV_Access] observeAccessStatus error (permission?): ${e.message}") }
             .collect { status ->
                 println("[NV_Access] observeAccessStatus: status=$status uuid=$uuid")
-                _state.update { it.copy(accessStatus = status) }
+                _state.update { it.copy(accessStatus = status, isAccessStatusLoaded = true) }
             }
     }
 }
@@ -46,8 +52,9 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
 internal fun BuyAppViewModel.connectWithToken(sellerId: String, buyerToken: String) {
     buyerUUIDStorage?.set(buyerToken)
 
-    // Reuse existing connect-to-seller flow (stores sellerId, reloads products, resets state)
-    connectToSeller(sellerId)
+    // Bypass the demo mode gate — having a valid token means the seller has authorized this buyer.
+    // connectToSeller would block a demo-mode buyer from connecting to a real seller.
+    performConnection(sellerId)
 
     viewModelScope.launch {
         // Ensure buyerUUID is persisted in Firebase profile so security rules allow reading status

@@ -25,7 +25,6 @@ data class SellAppState(
 
     // Screen states
     val auth: AuthScreenState = AuthScreenState(),
-    val products: ProductsScreenState = ProductsScreenState(),
 
     // Messaging
     val unreadMessageCount: Int = 0,

@@ -129,6 +129,11 @@ internal suspend fun BuyAppViewModel.saveDraftBasketToProfile() {
         return
     }
 
+    if (_state.value.isDemoMode) {
+        println("🛒 saveDraftBasketToProfile: Skipping - demo mode, no Firebase write")
+        return
+    }
+
     val selectedDateTimestamp = _state.value.basketScreen.selectedPickupDate
     val selectedDateKey = selectedDateTimestamp?.let { basketScreenFormatDateKey(it) }
     val draftBasket = basketRepository.toDraftBasket(selectedDateKey)
@@ -468,12 +473,20 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 isDemoOrder = _state.value.isDemoMode
             )
 
-            val result = orderRepository.placeOrder(order)
+            // In demo mode, simulate a local order without writing to Firebase
+            // (demo users don't have write permission)
+            val result = if (_state.value.isDemoMode) {
+                val demoOrder = order.copy(id = "demo_${Clock.System.now().toEpochMilliseconds()}")
+                Result.success(demoOrder)
+            } else {
+                orderRepository.placeOrder(order)
+            }
             result.onSuccess { placedOrder ->
-                // Clear draft basket from profile BEFORE loading the placed order
-                // to avoid triggering the draft warning dialog
+                // Clear draft basket — skip Firebase profile write in demo mode
                 try {
-                    profileRepository.clearDraftBasket()
+                    if (!_state.value.isDemoMode) {
+                        profileRepository.clearDraftBasket()
+                    }
                     basketRepository.clearBasket()
                     println("🛒 basketScreenCheckout: Cleared draft basket after order placed")
                 } catch (e: Exception) {
@@ -481,7 +494,9 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 }
 
                 val placedDateKey = basketScreenFormatDateKey(placedOrder.pickUpDate)
-                basketScreenLoadOrder(placedOrder.id, placedDateKey, forceLoad = true)
+                if (!_state.value.isDemoMode) {
+                    basketScreenLoadOrder(placedOrder.id, placedDateKey, forceLoad = true)
+                }
 
                 _state.update { current ->
                     current.copy(

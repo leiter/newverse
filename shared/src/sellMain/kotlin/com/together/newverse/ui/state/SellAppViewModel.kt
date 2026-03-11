@@ -1,8 +1,6 @@
 package com.together.newverse.ui.state
 
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.domain.model.Article
-import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.core.AuthState
@@ -11,7 +9,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
@@ -25,7 +22,6 @@ import org.jetbrains.compose.resources.getString
  * Extends BaseAppViewModel for auth-driven state management via AuthFlowCoordinator.
  */
 class SellAppViewModel(
-    private val articleRepository: ArticleRepository,
     authRepository: AuthRepository
 ) : BaseAppViewModel<SellAppState, SellAction>(authRepository) {
 
@@ -101,11 +97,6 @@ class SellAppViewModel(
                     )
                 }
 
-                // Load products when authenticated
-                if (authState is AuthState.Authenticated) {
-                    println("[NV_SellAppVM] observeAuthStateChanges: User authenticated, loading products...")
-                    loadProducts()
-                }
             }
         }
     }
@@ -131,7 +122,6 @@ class SellAppViewModel(
         when (action) {
             is SellNavigationAction -> handleNavigationAction(action)
             is SellUserAction -> handleUserAction(action)
-            is SellProductAction -> handleProductAction(action)
             is SellOrderAction -> handleOrderAction(action)
             is SellUiAction -> handleUiAction(action)
             is SellProfileAction -> handleProfileAction(action)
@@ -163,18 +153,6 @@ class SellAppViewModel(
             is SellUserAction.Register -> register(action.email, action.password, action.name)
             is SellUserAction.UpdateProfile -> { /* Handled by SellerProfileViewModel.saveProfile() */ }
             is SellUserAction.RequestPasswordReset -> sendPasswordResetEmail(action.email)
-        }
-    }
-
-    private fun handleProductAction(action: SellProductAction) {
-        when (action) {
-            is SellProductAction.LoadProducts -> loadProducts()
-            is SellProductAction.RefreshProducts -> refreshProducts()
-            is SellProductAction.SelectProduct -> selectProduct(action.product)
-            is SellProductAction.ViewProductDetail -> { /* Handled via navigation in NavGraph */ }
-            is SellProductAction.CreateProduct -> { /* Handled by CreateProductViewModel */ }
-            is SellProductAction.UpdateProduct -> { /* Handled by CreateProductViewModel */ }
-            is SellProductAction.DeleteProduct -> { /* Handled by OverviewViewModel */ }
         }
     }
 
@@ -299,95 +277,6 @@ class SellAppViewModel(
         _state.update { current ->
             current.copy(
                 navigation = current.navigation.copy(isDrawerOpen = false)
-            )
-        }
-    }
-
-    // ===== Products =====
-
-    private fun loadProducts() {
-        // Only load if authenticated
-        if (!isAuthenticated()) {
-            println("📦 SellAppViewModel.loadProducts: Skipping - not authenticated")
-            return
-        }
-
-        viewModelScope.launch {
-            println("📦 SellAppViewModel.loadProducts: START")
-
-            _state.update { current ->
-                current.copy(
-                    products = current.products.copy(isLoading = true, error = null)
-                )
-            }
-
-            val sellerId = ""
-            articleRepository.getArticles(sellerId)
-                .catch { e ->
-                    println("❌ SellAppViewModel.loadProducts: ERROR - ${e.message}")
-                    _state.update { current ->
-                        current.copy(
-                            products = current.products.copy(
-                                isLoading = false,
-                                error = ErrorState(
-                                    message = e.message ?: "Failed to load products",
-                                    type = ErrorType.NETWORK
-                                )
-                            )
-                        )
-                    }
-                }
-                .collect { article ->
-                    _state.update { current ->
-                        val currentProducts = current.products.items.toMutableList()
-
-                        when (article.mode) {
-                            Article.MODE_ADDED -> {
-                                // Check if article already exists to avoid duplicates
-                                val existingIndex = currentProducts.indexOfFirst { it.id == article.id }
-                                if (existingIndex >= 0) {
-                                    currentProducts[existingIndex] = article
-                                } else {
-                                    currentProducts.add(article)
-                                }
-                            }
-                            Article.MODE_CHANGED -> {
-                                val index = currentProducts.indexOfFirst { it.id == article.id }
-                                if (index >= 0) currentProducts[index] = article
-                            }
-                            Article.MODE_REMOVED -> currentProducts.removeAll { it.id == article.id }
-                        }
-
-                        current.copy(
-                            products = current.products.copy(
-                                isLoading = false,
-                                items = currentProducts,
-                                error = null
-                            )
-                        )
-                    }
-                }
-        }
-    }
-
-    private fun refreshProducts() {
-        _state.update { current ->
-            current.copy(
-                ui = current.ui.copy(isRefreshing = true)
-            )
-        }
-        loadProducts()
-        _state.update { current ->
-            current.copy(
-                ui = current.ui.copy(isRefreshing = false)
-            )
-        }
-    }
-
-    private fun selectProduct(product: Article) {
-        _state.update { current ->
-            current.copy(
-                products = current.products.copy(selectedItem = product)
             )
         }
     }

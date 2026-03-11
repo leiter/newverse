@@ -17,6 +17,7 @@ data class BuyAppState(
     // Seller connection
     val connectedSellerId: String = "",
     val accessStatus: AccessStatus = AccessStatus.NONE,
+    val isAccessStatusLoaded: Boolean = false,
 
     // Invitation state
     val pendingInvitations: List<Invitation> = emptyList(),
@@ -52,8 +53,8 @@ data class BuyAppState(
     // App metadata
     val meta: AppMetaState = AppMetaState()
 ) {
-    /** Computed from accessStatus — no explicit copy(isDemoMode = ...) needed. */
-    val isDemoMode: Boolean get() = accessStatus != AccessStatus.APPROVED
+    /** Only show demo banner once the real status has been loaded from Firebase. */
+    val isDemoMode: Boolean get() = isAccessStatusLoaded && accessStatus != AccessStatus.APPROVED
 }
 
 /**

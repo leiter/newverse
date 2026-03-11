@@ -29,7 +29,6 @@ val appModule = module {
     // Main Sell App ViewModel
     viewModel {
         SellAppViewModel(
-            articleRepository = get(),
             authRepository = get()
         )
     }

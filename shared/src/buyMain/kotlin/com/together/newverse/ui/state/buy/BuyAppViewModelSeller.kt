@@ -217,8 +217,12 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
                     return@launch
                 }
 
-                // Register as known client
-                profileRepository.addKnownClient(sellerId, buyerId)
+                // Register as known client (non-fatal — may fail for demo/unapproved buyers)
+                try {
+                    profileRepository.addKnownClient(sellerId, buyerId)
+                } catch (e: Exception) {
+                    println("BuyAppViewModel.performConnection: addKnownClient failed (non-fatal) - ${e.message}")
+                }
             }
 
             // Persist new seller ID
@@ -226,7 +230,12 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
 
             // Clear the actual basket repository (drives the cart badge)
             basketRepository.clearBasket()
-            profileRepository.clearDraftBasket()
+            // Clear draft basket from Firebase (non-fatal — may fail for demo/unapproved buyers)
+            try {
+                profileRepository.clearDraftBasket()
+            } catch (e: Exception) {
+                println("BuyAppViewModel.performConnection: clearDraftBasket failed (non-fatal) - ${e.message}")
+            }
 
             // Clear basket and reset screen states; reset accessStatus (will be re-observed)
             _state.update { current ->

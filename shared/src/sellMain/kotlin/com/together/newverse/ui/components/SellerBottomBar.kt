@@ -1,7 +1,6 @@
 package com.together.newverse.ui.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -61,11 +60,6 @@ private val SellerBottomNavItems = listOf(
         route = NavRoutes.Sell.Orders.route,
         labelRes = Res.string.bottomnav_demand,
         icon = Icons.Default.ShoppingCart
-    ),
-    BottomNavItem(
-        route = NavRoutes.Sell.Products.route,
-        labelRes = Res.string.bottomnav_products,
-        icon = Icons.AutoMirrored.Filled.List
     ),
     BottomNavItem(
         route = NavRoutes.Sell.Create.route,

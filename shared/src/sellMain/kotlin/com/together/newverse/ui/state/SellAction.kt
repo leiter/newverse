@@ -1,6 +1,5 @@
 package com.together.newverse.ui.state
 
-import com.together.newverse.domain.model.Article
 import com.together.newverse.ui.navigation.NavRoutes
 
 /**
@@ -28,17 +27,6 @@ sealed interface SellUserAction : SellAction {
     data class Register(val email: String, val password: String, val name: String) : SellUserAction
     data class UpdateProfile(val profile: UserProfile) : SellUserAction
     data class RequestPasswordReset(val email: String) : SellUserAction
-}
-
-// ===== Product Actions =====
-sealed interface SellProductAction : SellAction {
-    data object LoadProducts : SellProductAction
-    data object RefreshProducts : SellProductAction
-    data class SelectProduct(val product: Article) : SellProductAction
-    data class ViewProductDetail(val productId: String) : SellProductAction
-    data class CreateProduct(val productData: ProductFormData) : SellProductAction
-    data class UpdateProduct(val productId: String, val productData: ProductFormData) : SellProductAction
-    data class DeleteProduct(val productId: String) : SellProductAction
 }
 
 // ===== Order Actions =====

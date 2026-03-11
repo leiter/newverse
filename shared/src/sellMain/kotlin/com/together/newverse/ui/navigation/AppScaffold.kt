@@ -261,9 +261,6 @@ fun AppScaffold(
                 onNavigateBack = {
                     navController.popBackStack()
                 },
-                onNavigateToCreateProduct = {
-                    navController.navigate(NavRoutes.Sell.Create.route)
-                },
                 onNavigateToNotificationSettings = {
                     navController.navigate(NavRoutes.Sell.NotificationSettings.route)
                 },
@@ -282,9 +279,6 @@ fun AppScaffold(
                 },
                 onNavigateBackFromImport = {
                     navController.popBackStack()
-                },
-                onNavigateToProductDetail = { articleId ->
-                    navController.navigate(NavRoutes.Sell.ProductDetail.createRoute(articleId))
                 }
             )
         }

@@ -1,11 +1,6 @@
 package com.together.newverse.ui.state
 
 import app.cash.turbine.test
-import com.together.newverse.domain.model.Article
-import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
-import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
-import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
-import com.together.newverse.test.FakeArticleRepository
 import com.together.newverse.test.FakeAuthRepository
 import com.together.newverse.test.MainDispatcherRule
 import com.together.newverse.ui.navigation.NavRoutes
@@ -39,44 +34,25 @@ import kotlin.test.assertTrue
 class SellAppViewModelTest {
 
     private val dispatcherRule = MainDispatcherRule()
-    private lateinit var articleRepository: FakeArticleRepository
     private lateinit var authRepository: FakeAuthRepository
 
     @BeforeTest
     fun setup() {
         dispatcherRule.setup()
-        articleRepository = FakeArticleRepository()
         authRepository = FakeAuthRepository()
     }
 
     @AfterTest
     fun tearDown() {
-        articleRepository.reset()
         authRepository.reset()
         dispatcherRule.tearDown()
     }
 
     private fun createViewModel() = SellAppViewModel(
-        articleRepository = articleRepository,
         authRepository = authRepository
     )
 
-    // ===== Test Helpers =====
-
-    private fun createArticle(
-        id: String,
-        name: String = "Product $id",
-        mode: Int = MODE_ADDED
-    ): Article {
-        return Article(
-            id = id,
-            productId = "prod_$id",
-            productName = name,
-            mode = mode
-        )
-    }
-
-    // ===== A. Initial State (4 tests) =====
+    // ===== A. Initial State (3 tests) =====
 
     @Test
     fun `initial state has Guest user`() = runTest {
@@ -95,13 +71,6 @@ class SellAppViewModelTest {
 
         // Then requiresLogin is true
         assertTrue(viewModel.state.value.requiresLogin)
-    }
-
-    @Test
-    fun `initial state has empty products`() = runTest {
-        val viewModel = createViewModel()
-
-        assertTrue(viewModel.state.value.products.items.isEmpty())
     }
 
     @Test
@@ -238,99 +207,6 @@ class SellAppViewModelTest {
 
         // Then drawer is closed
         assertFalse(viewModel.state.value.navigation.isDrawerOpen)
-    }
-
-    // ===== D. Product Loading (5 tests) =====
-
-    @Test
-    fun `LoadProducts does not load when not authenticated`() = runTest {
-        // Given no authenticated user
-        authRepository.setCurrentUserId(null)
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        // When dispatching LoadProducts
-        viewModel.dispatch(SellProductAction.LoadProducts)
-        advanceUntilIdle()
-
-        // Then products remain empty (not loaded)
-        assertTrue(viewModel.state.value.products.items.isEmpty())
-        assertFalse(viewModel.state.value.products.isLoading)
-    }
-
-    @Test
-    fun `LoadProducts adds articles with MODE_ADDED`() = runTest {
-        // Given authenticated user
-        authRepository.setCurrentUserId("seller_123")
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        // When articles are emitted
-        articleRepository.emitArticle(createArticle("1", mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("2", mode = MODE_ADDED))
-        advanceUntilIdle()
-
-        // Then articles are in products list
-        assertEquals(2, viewModel.state.value.products.items.size)
-    }
-
-    @Test
-    fun `LoadProducts updates articles with MODE_CHANGED`() = runTest {
-        // Given authenticated user and existing article
-        authRepository.setCurrentUserId("seller_123")
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        articleRepository.emitArticle(createArticle("1", "Original Name", MODE_ADDED))
-        advanceUntilIdle()
-
-        // When article is changed
-        articleRepository.emitArticle(createArticle("1", "Updated Name", MODE_CHANGED))
-        advanceUntilIdle()
-
-        // Then article is updated
-        assertEquals(1, viewModel.state.value.products.items.size)
-        assertEquals("Updated Name", viewModel.state.value.products.items[0].productName)
-    }
-
-    @Test
-    fun `LoadProducts removes articles with MODE_REMOVED`() = runTest {
-        // Given authenticated user and existing articles
-        authRepository.setCurrentUserId("seller_123")
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        articleRepository.emitArticle(createArticle("1", mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("2", mode = MODE_ADDED))
-        advanceUntilIdle()
-        assertEquals(2, viewModel.state.value.products.items.size)
-
-        // When article is removed
-        articleRepository.emitArticle(createArticle("1", mode = MODE_REMOVED))
-        advanceUntilIdle()
-
-        // Then article is removed
-        assertEquals(1, viewModel.state.value.products.items.size)
-        assertEquals("2", viewModel.state.value.products.items[0].id)
-    }
-
-    @Test
-    fun `SelectProduct sets selectedItem`() = runTest {
-        // Given authenticated user
-        authRepository.setCurrentUserId("seller_123")
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        val article = createArticle("1")
-        articleRepository.emitArticle(article)
-        advanceUntilIdle()
-
-        // When selecting product
-        viewModel.dispatch(SellProductAction.SelectProduct(article))
-
-        // Then product is selected
-        assertNotNull(viewModel.state.value.products.selectedItem)
-        assertEquals("1", viewModel.state.value.products.selectedItem?.id)
     }
 
     // ===== E. UI Actions (6 tests) =====
@@ -556,24 +432,6 @@ class SellAppViewModelTest {
         // Then back stack is unchanged (can't go back further)
         assertEquals(1, viewModel.state.value.navigation.backStack.size)
         assertEquals(NavRoutes.Home, viewModel.state.value.navigation.currentRoute)
-    }
-
-    @Test
-    fun `does not duplicate articles on multiple MODE_ADDED for same ID`() = runTest {
-        // Given authenticated user
-        authRepository.setCurrentUserId("seller_123")
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        // When emitting same article twice
-        articleRepository.emitArticle(createArticle("1", "Version 1", MODE_ADDED))
-        advanceUntilIdle()
-        articleRepository.emitArticle(createArticle("1", "Version 2", MODE_ADDED))
-        advanceUntilIdle()
-
-        // Then only one article exists (updated)
-        assertEquals(1, viewModel.state.value.products.items.size)
-        assertEquals("Version 2", viewModel.state.value.products.items[0].productName)
     }
 
     @Test

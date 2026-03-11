@@ -17,7 +17,6 @@ import com.together.newverse.ui.screens.sell.OrdersScreen
 import com.together.newverse.ui.screens.sell.OverviewScreen
 import com.together.newverse.ui.screens.sell.OverviewViewModel
 import com.together.newverse.ui.screens.sell.PickDayScreen
-import com.together.newverse.ui.screens.sell.ProductsScreen
 import com.together.newverse.ui.screens.sell.SellerConversationDetailScreen
 import com.together.newverse.ui.screens.sell.ConversationListScreen
 import com.together.newverse.ui.screens.sell.SellerProfileScreen
@@ -48,7 +47,6 @@ fun NavGraphBuilder.navGraph(
     sellAppViewModel: com.together.newverse.ui.state.SellAppViewModel,
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateBack: () -> Unit = {},
-    onNavigateToCreateProduct: () -> Unit = {},
     onNavigateToNotificationSettings: () -> Unit = {},
     onLogout: () -> Unit = {},
     notificationSettings: NotificationSettings = NotificationSettings(),
@@ -59,8 +57,7 @@ fun NavGraphBuilder.navGraph(
     getAvailabilityMode: () -> Boolean = { false },
     onAvailabilityModeChange: (Boolean) -> Unit = {},
     onNavigateToImportPreview: () -> Unit = {},
-    onNavigateBackFromImport: () -> Unit = {},
-    onNavigateToProductDetail: (String) -> Unit = {}
+    onNavigateBackFromImport: () -> Unit = {}
 ) {
     composable(NavRoutes.Sell.Overview.route) {
         val overviewViewModel: OverviewViewModel = koinViewModel()
@@ -123,28 +120,6 @@ fun NavGraphBuilder.navGraph(
         OrderDetailScreen(
             orderId = orderId,
             onNavigateBack = onNavigateBack
-        )
-    }
-
-    composable(NavRoutes.Sell.Products.route) {
-        ProductsScreen(
-            productsState = appState.products,
-            onCreateProduct = onNavigateToCreateProduct,
-            onProductClick = { article -> onNavigateToProductDetail(article.id) }
-        )
-    }
-
-    composable(
-        route = NavRoutes.Sell.ProductDetail.route,
-        arguments = listOf(
-            navArgument("articleId") { type = NavType.StringType }
-        )
-    ) { backStackEntry ->
-        val articleId = backStackEntry.arguments?.read { getStringOrNull("articleId") } ?: return@composable
-        // For now, navigate to create product screen - will be replaced with dedicated product detail/edit screen
-        CreateProductScreen(
-            onNavigateBack = onNavigateBack,
-            onAction = onAction
         )
     }
 

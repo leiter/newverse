@@ -28,7 +28,6 @@ import newverse.shared.generated.resources.topbar_import_products
 import newverse.shared.generated.resources.topbar_new_product
 import newverse.shared.generated.resources.topbar_notifications
 import newverse.shared.generated.resources.topbar_orders
-import newverse.shared.generated.resources.topbar_products
 import newverse.shared.generated.resources.topbar_profile
 import newverse.shared.generated.resources.topbar_select_delete
 import newverse.shared.generated.resources.topbar_seller
@@ -59,7 +58,6 @@ fun SellerTopBar(
     // Get localized titles
     val sortimentTitle = stringResource(Res.string.topbar_sortiment)
     val ordersTitle = stringResource(Res.string.topbar_orders)
-    val productsTitle = stringResource(Res.string.topbar_products)
     val newProductTitle = stringResource(Res.string.topbar_new_product)
     val profileTitle = stringResource(Res.string.topbar_profile)
     val notificationsTitle = stringResource(Res.string.topbar_notifications)
@@ -78,7 +76,6 @@ fun SellerTopBar(
                         currentRoute,
                         sortimentTitle,
                         ordersTitle,
-                        productsTitle,
                         newProductTitle,
                         profileTitle,
                         notificationsTitle,
@@ -198,7 +195,6 @@ private fun getRouteTitle(
     route: String,
     sortimentTitle: String,
     ordersTitle: String,
-    productsTitle: String,
     newProductTitle: String,
     profileTitle: String,
     notificationsTitle: String,
@@ -207,7 +203,6 @@ private fun getRouteTitle(
     return when (route) {
         NavRoutes.Sell.Overview.route -> sortimentTitle
         NavRoutes.Sell.Orders.route -> ordersTitle
-        NavRoutes.Sell.Products.route -> productsTitle
         NavRoutes.Sell.Create.route -> newProductTitle
         NavRoutes.Sell.Profile.route -> profileTitle
         NavRoutes.Sell.NotificationSettings.route -> notificationsTitle
