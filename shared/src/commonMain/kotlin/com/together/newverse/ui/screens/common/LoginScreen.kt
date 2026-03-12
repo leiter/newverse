@@ -24,6 +24,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -120,6 +121,10 @@ fun LoginScreen(
         return passwordError == null
     }
 
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -335,7 +340,10 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            enabled = !authState.isLoading
+            enabled = !authState.isLoading,
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         ) {
             Text(stringResource(Res.string.button_continue_guest), style = MaterialTheme.typography.labelLarge)
         }
@@ -394,6 +402,7 @@ fun LoginScreen(
                 )
             }
         }
+    }
     }
 
     // Password Reset Dialog

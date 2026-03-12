@@ -31,9 +31,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import org.koin.android.ext.android.inject
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Buy flavor MainActivity
@@ -53,6 +54,18 @@ class BuyMainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Diagnostic: check native Firebase Auth state BEFORE anything else
+        val nativeAuth = FirebaseAuth.getInstance()
+        val nativeUser = nativeAuth.currentUser
+        Log.d("BuyMainActivity", "[NV_DIAG] Native FirebaseAuth.currentUser = ${nativeUser?.uid ?: "null"} (isAnonymous=${nativeUser?.isAnonymous})")
+        Log.d("BuyMainActivity", "[NV_DIAG] Native FirebaseAuth instance = $nativeAuth")
+
+        // Add persistent native auth listener to track ALL auth state changes
+        nativeAuth.addAuthStateListener { auth ->
+            val user = auth.currentUser
+            Log.d("BuyMainActivity", "[NV_DIAG_LISTENER] Native AuthStateListener fired: uid=${user?.uid ?: "null"} isAnonymous=${user?.isAnonymous} providers=${user?.providerData?.map { it.providerId }}")
+        }
 
         setTheme(R.style.AppTheme)
 
@@ -192,7 +205,7 @@ class BuyMainActivity : ComponentActivity() {
     private fun AppScaffoldWithGoogleSignIn() {
         val context = LocalContext.current
         val googleSignInHelper = GoogleSignInHelper(context, webClientId)
-        val viewModel: BuyAppViewModel = koinInject()
+        val viewModel = koinViewModel<BuyAppViewModel>()
 
         // Register for Google Sign-In activity result
         val googleSignInLauncher = rememberLauncherForActivityResult(
@@ -211,6 +224,10 @@ class BuyMainActivity : ComponentActivity() {
                             authRepository.signInWithGoogle(idToken)
                                 .onSuccess { userId ->
                                     Log.d("BuyMainActivity", "Successfully signed in with Google: $userId")
+
+                                    // Diagnostic: check if native Firebase also has the user now
+                                    val nativeUserAfterSignIn = FirebaseAuth.getInstance().currentUser
+                                    Log.d("BuyMainActivity", "[NV_DIAG] After Google sign-in: native currentUser = ${nativeUserAfterSignIn?.uid ?: "null"} (provider: ${nativeUserAfterSignIn?.providerData?.map { it.providerId }})")
 
                                     // Show success message
                                     viewModel.dispatch(BuyUiAction.ShowSnackbar(

@@ -46,15 +46,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.together.newverse.ui.theme.BrownAccent
-import com.together.newverse.ui.theme.DarkGreen
 import com.together.newverse.ui.theme.ErrorRed
 import com.together.newverse.ui.theme.FabGreen
 import com.together.newverse.ui.theme.Gray600
-import com.together.newverse.ui.theme.Gray700
-import com.together.newverse.ui.theme.Gray800
 import com.together.newverse.ui.theme.InfoBlue
 import com.together.newverse.ui.theme.LeafGreen
-import com.together.newverse.ui.theme.LightCream
 import com.together.newverse.ui.theme.OrganicBeige
 import com.together.newverse.ui.theme.SuccessGreen
 import com.together.newverse.ui.theme.White
@@ -71,7 +67,7 @@ fun AboutScreenModern(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = LightCream
+        color = MaterialTheme.colorScheme.background
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Background gradient
@@ -120,7 +116,7 @@ private fun HeroSection() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -157,7 +153,7 @@ private fun HeroSection() {
             Text(
                 text = stringResource(Res.string.app_tagline_full),
                 style = MaterialTheme.typography.bodyLarge,
-                color = Gray600,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
@@ -214,7 +210,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                     text = stringResource(Res.string.about_contact_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = DarkGreen
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -327,7 +323,7 @@ private fun LegalInfoCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -358,7 +354,7 @@ private fun LegalInfoCard() {
                     text = stringResource(Res.string.about_impressum_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = DarkGreen
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -391,7 +387,7 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -422,7 +418,7 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                     text = stringResource(Res.string.about_privacy_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = DarkGreen
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -431,7 +427,7 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
             Text(
                 text = stringResource(Res.string.about_privacy_intro),
                 style = MaterialTheme.typography.bodyLarge,
-                color = Gray700,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium
             )
 
@@ -440,7 +436,7 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
             Text(
                 text = stringResource(Res.string.about_privacy_description),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Gray600,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 22.sp
             )
 
@@ -503,7 +499,7 @@ private fun MissionCard() {
             Text(
                 text = stringResource(Res.string.about_mission_text),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Gray700,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 lineHeight = 22.sp
             )
@@ -530,7 +526,7 @@ private fun ContactRow(
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = Gray700
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -544,14 +540,14 @@ private fun InfoSection(
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
-            color = Gray600,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = content,
             style = MaterialTheme.typography.bodyLarge,
-            color = Gray800,
+            color = MaterialTheme.colorScheme.onSurface,
             lineHeight = 22.sp
         )
     }

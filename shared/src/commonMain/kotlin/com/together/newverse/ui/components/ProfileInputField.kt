@@ -51,7 +51,7 @@ fun ProfileInputField(
         // Input field
         Surface(
             shape = RoundedCornerShape(8.dp),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier.weight(1f)
         ) {
             Row(
@@ -65,7 +65,7 @@ fun ProfileInputField(
                         Text(
                             text = hint,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
                     modifier = Modifier.weight(1f),

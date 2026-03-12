@@ -5,6 +5,7 @@ package com.together.newverse.ui.state.core
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.AuthUserInfo
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -108,20 +109,27 @@ class AuthFlowCoordinator(
     /**
      * Initializes the coordinator by checking persisted auth and observing auth state changes.
      * Should be called once when the ViewModel is created.
+     *
+     * Strategy:
+     * 1. Try checkPersistedAuth() for a fast-path synchronous read.
+     * 2. Observe authStateChanged for the definitive, ongoing state.
      */
     fun initialize(scope: CoroutineScope) {
         println("[NV_AuthFlowCoordinator] initialize: START - launching coroutine")
         scope.launch {
             println("[NV_AuthFlowCoordinator] initialize: Coroutine started, checking persisted auth...")
-            // First check persisted auth
+            // Fast-path: read currentUser synchronously (works if Firebase has already loaded)
             val persistedResult = authRepository.checkPersistedAuth()
             println("[NV_AuthFlowCoordinator] initialize: checkPersistedAuth returned: $persistedResult")
+
+            var initialCheckDone = false
 
             persistedResult.fold(
                 onSuccess = { userId ->
                     println("[NV_AuthFlowCoordinator] initialize: checkPersistedAuth SUCCESS - userId=$userId")
                     if (userId != null) {
-                        // User is authenticated, get their info
+                        // Firebase already has a user — set Authenticated immediately
+                        initialCheckDone = true
                         println("[NV_AuthFlowCoordinator] initialize: Getting current user info...")
                         val userInfo = authRepository.getCurrentUserInfo()
                         println("[NV_AuthFlowCoordinator] initialize: getCurrentUserInfo returned: $userInfo")
@@ -129,10 +137,7 @@ class AuthFlowCoordinator(
                             _authState.value = AuthState.Authenticated.fromUserInfo(userInfo)
                             println("[NV_AuthFlowCoordinator] initialize: Auth state set to Authenticated (from userInfo)")
                         } else {
-                            // Fallback: we have a userId but couldn't get full info
-                            println("[NV_AuthFlowCoordinator] initialize: Falling back - checking isAnonymous...")
                             val isAnon = authRepository.isAnonymous()
-                            println("[NV_AuthFlowCoordinator] initialize: isAnonymous=$isAnon")
                             _authState.value = AuthState.Authenticated(
                                 userId = userId,
                                 email = null,
@@ -143,21 +148,20 @@ class AuthFlowCoordinator(
                             println("[NV_AuthFlowCoordinator] initialize: Auth state set to Authenticated (fallback)")
                         }
                     } else {
-                        _authState.value = AuthState.NotAuthenticated
-                        println("[NV_AuthFlowCoordinator] initialize: Auth state set to NotAuthenticated (no userId)")
+                        // currentUser was null — Firebase may still be loading the persisted session.
+                        // Stay Initializing; authStateChanged will emit the real state shortly.
+                        println("[NV_AuthFlowCoordinator] initialize: currentUser null — waiting for authStateChanged")
                     }
                 },
                 onFailure = { error ->
-                    println("[NV_AuthFlowCoordinator] initialize: checkPersistedAuth FAILURE - ${error.message}")
-                    _authState.value = AuthState.NotAuthenticated
-                    println("[NV_AuthFlowCoordinator] initialize: Auth state set to NotAuthenticated (error)")
+                    println("[NV_AuthFlowCoordinator] initialize: checkPersistedAuth FAILURE - ${error.message}, waiting for authStateChanged")
                 }
             )
 
-            // Then observe for ongoing auth state changes
+            // Observe for ongoing auth state changes
             println("[NV_AuthFlowCoordinator] initialize: Setting up observeAuthState collection...")
             authRepository.observeAuthState().collect { userId ->
-                println("[NV_AuthFlowCoordinator] observeAuthState: Collected userId=$userId")
+                println("[NV_AuthFlowCoordinator] observeAuthState: Collected userId=$userId, currentState=${_authState.value}")
                 if (userId != null) {
                     val userInfo = authRepository.getCurrentUserInfo()
                     println("[NV_AuthFlowCoordinator] observeAuthState: getCurrentUserInfo returned: $userInfo")
@@ -174,6 +178,35 @@ class AuthFlowCoordinator(
                             isAnonymous = isAnon
                         )
                         println("[NV_AuthFlowCoordinator] observeAuthState: Auth state updated to Authenticated (fallback)")
+                    }
+                } else if (!initialCheckDone) {
+                    // First null emission during startup — Firebase Auth may still be restoring
+                    // the persisted session from SharedPreferences. Wait briefly before declaring
+                    // NotAuthenticated, then re-check.
+                    initialCheckDone = true
+                    println("[NV_AuthFlowCoordinator] observeAuthState: First null during init — waiting for Firebase to restore session...")
+                    delay(1500)
+                    val restoredUserId = authRepository.getCurrentUserId()
+                    println("[NV_AuthFlowCoordinator] observeAuthState: After wait, getCurrentUserId=$restoredUserId")
+                    if (restoredUserId != null) {
+                        val userInfo = authRepository.getCurrentUserInfo()
+                        if (userInfo != null) {
+                            _authState.value = AuthState.Authenticated.fromUserInfo(userInfo)
+                            println("[NV_AuthFlowCoordinator] observeAuthState: Session restored after wait!")
+                        } else {
+                            val isAnon = authRepository.isAnonymous()
+                            _authState.value = AuthState.Authenticated(
+                                userId = restoredUserId,
+                                email = null,
+                                displayName = null,
+                                photoUrl = null,
+                                isAnonymous = isAnon
+                            )
+                            println("[NV_AuthFlowCoordinator] observeAuthState: Session restored (fallback) after wait!")
+                        }
+                    } else {
+                        _authState.value = AuthState.NotAuthenticated
+                        println("[NV_AuthFlowCoordinator] observeAuthState: No session after wait — NotAuthenticated")
                     }
                 } else {
                     _authState.value = AuthState.NotAuthenticated

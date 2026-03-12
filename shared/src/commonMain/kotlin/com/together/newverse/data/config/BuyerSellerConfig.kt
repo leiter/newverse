@@ -13,7 +13,7 @@ class BuyerSellerConfig(
     override val demoSellerId: String = DefaultSellerConfig().sellerId
 
     override val sellerId: String
-        get() = storage.getConnectedSellerId() ?: demoSellerId
+        get() = demoSellerId
 
     override val isDemoMode: Boolean
         get() = sellerId == demoSellerId
