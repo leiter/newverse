@@ -113,6 +113,7 @@ fun NavGraph(
                 authProvider = authProvider,
                 userEmail = userEmail,
                 connectedSellerId = appState.connectedSellerId,
+                connectedSellerDisplayName = appState.connectedSellerDisplayName,
                 isDemoMode = appState.isDemoMode,
                 accessStatus = appState.accessStatus,
                 buyerUUID = appState.customerProfile.profile?.buyerUUID ?: "",

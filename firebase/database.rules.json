@@ -41,8 +41,8 @@
       }
     },
     "buyer_access_status": {
-      "$buyerUUID": {
-        "$sellerId": {
+      "$sellerId": {
+        "$buyerUUID": {
           ".read": "auth != null && (root.child('buyer_profile').child(auth.uid).child('buyerUUID').val() === $buyerUUID || auth.uid === $sellerId)",
           ".write": "auth != null && (root.child('buyer_profile').child(auth.uid).child('buyerUUID').val() === $buyerUUID || auth.uid === $sellerId)"
         }

@@ -652,9 +652,11 @@ class GitLiveProfileRepository(
                 "requestedAt" to now
             ))
             // Write initial status = PENDING
-            buyerAccessStatusRef.child(buyerUUID).child(sellerId).setValue(mapOf(
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
                 "status" to AccessStatus.PENDING.name,
-                "updatedAt" to now
+                "updatedAt" to now,
+                "buyerUUID" to buyerUUID,
+                "displayName" to displayName
             ))
             println("✅ GitLiveProfileRepository.submitAccessRequest: Success - sellerId=$sellerId, uuid=$buyerUUID")
             Result.success(Unit)
@@ -666,7 +668,7 @@ class GitLiveProfileRepository(
 
     override suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus {
         return try {
-            val snapshot = buyerAccessStatusRef.child(buyerUUID).child(sellerId).valueEvents.first()
+            val snapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).valueEvents.first()
             if (!snapshot.exists) return AccessStatus.NONE
             val data = snapshot.value as? Map<*, *> ?: return AccessStatus.NONE
             val statusStr = data["status"] as? String ?: return AccessStatus.NONE
@@ -678,7 +680,7 @@ class GitLiveProfileRepository(
     }
 
     override fun observeAccessStatus(buyerUUID: String, sellerId: String): Flow<AccessStatus> {
-        return buyerAccessStatusRef.child(buyerUUID).child(sellerId).valueEvents.map { snapshot ->
+        return buyerAccessStatusRef.child(sellerId).child(buyerUUID).valueEvents.map { snapshot ->
             if (!snapshot.exists) return@map AccessStatus.NONE
             val data = snapshot.value as? Map<*, *> ?: return@map AccessStatus.NONE
             val statusStr = data["status"] as? String ?: return@map AccessStatus.NONE
@@ -704,9 +706,10 @@ class GitLiveProfileRepository(
     override suspend fun approveAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(buyerUUID).child(sellerId).setValue(mapOf(
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
                 "status" to AccessStatus.APPROVED.name,
-                "updatedAt" to now
+                "updatedAt" to now,
+                "buyerUUID" to buyerUUID
             ))
             accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
             println("✅ GitLiveProfileRepository.approveAccessRequest: approved uuid=$buyerUUID")
@@ -720,9 +723,10 @@ class GitLiveProfileRepository(
     override suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(buyerUUID).child(sellerId).setValue(mapOf(
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
                 "status" to AccessStatus.BLOCKED.name,
-                "updatedAt" to now
+                "updatedAt" to now,
+                "buyerUUID" to buyerUUID
             ))
             accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
             sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).removeValue()
@@ -745,9 +749,11 @@ class GitLiveProfileRepository(
     override suspend fun approveAccessRequestWithTracking(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(buyerUUID).child(sellerId).setValue(mapOf(
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
                 "status" to AccessStatus.APPROVED.name,
-                "updatedAt" to now
+                "updatedAt" to now,
+                "buyerUUID" to buyerUUID,
+                "displayName" to displayName
             ))
             accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
             sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue(true)
@@ -777,9 +783,10 @@ class GitLiveProfileRepository(
     override suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(buyerUUID).child(sellerId).setValue(mapOf(
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
                 "status" to AccessStatus.APPROVED.name,
-                "updatedAt" to now
+                "updatedAt" to now,
+                "buyerUUID" to buyerUUID
             ))
             sellersRef.child(sellerId).child("blockedClientIds").child(buyerUUID).removeValue()
             sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue(true)

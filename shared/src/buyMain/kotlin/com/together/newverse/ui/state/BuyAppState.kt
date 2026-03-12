@@ -16,6 +16,7 @@ data class BuyAppState(
 
     // Seller connection
     val connectedSellerId: String = "",
+    val connectedSellerDisplayName: String = "",
     val accessStatus: AccessStatus = AccessStatus.NONE,
     val isAccessStatusLoaded: Boolean = false,
 

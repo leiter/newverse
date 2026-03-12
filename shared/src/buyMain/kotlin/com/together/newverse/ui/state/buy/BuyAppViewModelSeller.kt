@@ -237,10 +237,19 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
                 println("BuyAppViewModel.performConnection: clearDraftBasket failed (non-fatal) - ${e.message}")
             }
 
+            // Fetch seller display name
+            val sellerDisplayName = try {
+                profileRepository.getSellerProfile(sellerId).getOrNull()?.displayName ?: ""
+            } catch (e: Exception) {
+                println("BuyAppViewModel.performConnection: getSellerProfile failed (non-fatal) - ${e.message}")
+                ""
+            }
+
             // Clear basket and reset screen states; reset accessStatus (will be re-observed)
             _state.update { current ->
                 current.copy(
                     connectedSellerId = sellerConfig.sellerId,
+                    connectedSellerDisplayName = sellerDisplayName,
                     accessStatus = AccessStatus.NONE,
                     basket = BasketState(),
                     products = ProductsScreenState(),

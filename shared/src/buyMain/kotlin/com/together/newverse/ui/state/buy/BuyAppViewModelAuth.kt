@@ -712,6 +712,21 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             // Load user profile and update with auth provider info if available
             loadUserProfile(authUserInfo)
 
+            // Load seller display name if connected to a seller
+            val currentSellerId = sellerConfig.sellerId
+            if (currentSellerId.isNotEmpty()) {
+                try {
+                    val sellerDisplayName = profileRepository.getSellerProfile(currentSellerId)
+                        .getOrNull()?.displayName ?: ""
+                    _state.update { it.copy(
+                        connectedSellerId = currentSellerId,
+                        connectedSellerDisplayName = sellerDisplayName
+                    )}
+                } catch (e: Exception) {
+                    println("[NV_BuyAppVM] resumeInitializationAfterAuth: getSellerProfile failed (non-fatal) - ${e.message}")
+                }
+            }
+
             // Load current order
             _state.update { current ->
                 current.copy(

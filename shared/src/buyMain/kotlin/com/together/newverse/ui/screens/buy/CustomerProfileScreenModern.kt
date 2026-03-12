@@ -153,6 +153,7 @@ fun CustomerProfileScreenModern(
     authProvider: AuthProvider = AuthProvider.ANONYMOUS,
     userEmail: String? = null,
     connectedSellerId: String = "",
+    connectedSellerDisplayName: String = "",
     isDemoMode: Boolean = true,
     accessStatus: AccessStatus = AccessStatus.NONE,
     buyerUUID: String = "",
@@ -338,6 +339,7 @@ fun CustomerProfileScreenModern(
                     // Seller Connection Card
                     SellerConnectionCard(
                         connectedSellerId = connectedSellerId,
+                        connectedSellerDisplayName = connectedSellerDisplayName,
                         isDemoMode = isDemoMode,
                         onConnectToSeller = { sellerId ->
                             onAction(com.together.newverse.ui.state.BuySellerAction.ConnectToSeller(sellerId))
@@ -1336,6 +1338,7 @@ private fun ModernTextField(
 @Composable
 private fun SellerConnectionCard(
     connectedSellerId: String,
+    connectedSellerDisplayName: String = "",
     isDemoMode: Boolean,
     onConnectToSeller: (String) -> Unit,
     onResetToDemo: () -> Unit,
@@ -1388,7 +1391,7 @@ private fun SellerConnectionCard(
                     text = if (isDemoMode) {
                         stringResource(Res.string.seller_connection_demo_mode)
                     } else {
-                        stringResource(Res.string.seller_connection_connected_to, connectedSellerId)
+                        stringResource(Res.string.seller_connection_connected_to, connectedSellerDisplayName.ifEmpty { connectedSellerId })
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
