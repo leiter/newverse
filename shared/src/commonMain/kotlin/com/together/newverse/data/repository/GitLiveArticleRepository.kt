@@ -208,12 +208,21 @@ class GitLiveArticleRepository(
             // Create article with the ID
             val articleWithId = article.copy(id = articleId)
 
-            // Convert to map for Firebase
-            val articleMap = articleToMap(articleWithId)
-
-            // Save to GitLive Firebase
+            // Save to GitLive Firebase using updateChildren for atomic write
             val articleRef = sellerArticlesRef.child(articleId)
-            articleRef.setValue(articleMap)
+            val articleData = hashMapOf<String, Any?>(
+                "productId" to articleWithId.productId,
+                "productName" to articleWithId.productName,
+                "available" to articleWithId.available,
+                "unit" to articleWithId.unit,
+                "price" to articleWithId.price,
+                "weightPerPiece" to articleWithId.weightPerPiece,
+                "imageUrl" to articleWithId.imageUrl,
+                "category" to articleWithId.category,
+                "searchTerms" to articleWithId.searchTerms,
+                "detailInfo" to articleWithId.detailInfo
+            )
+            articleRef.updateChildren(articleData)
 
             // Update cache
             articlesCache.getOrPut(sellerId) { mutableMapOf() }[articleId] = articleWithId

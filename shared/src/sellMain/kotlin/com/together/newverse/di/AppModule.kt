@@ -40,9 +40,9 @@ val appModule = module {
     single<MessageRepository> { GitLiveMessageRepository() }
 
     // Sell-specific ViewModels
-    viewModel { OverviewViewModel(get(), get(), get(), get(), get()) }
+    viewModel { OverviewViewModel(get(), get(), get(), get()) }
     viewModel { OrdersViewModel(get(), get()) }
-    viewModel { CreateProductViewModel(get(), get(), get(), get(), get()) }
+    viewModel { CreateProductViewModel(get(), get(), get(), get()) }
     viewModel { SellerProfileViewModel(get(), get(), get(), get(), get()) }
 
     // Messaging ViewModels

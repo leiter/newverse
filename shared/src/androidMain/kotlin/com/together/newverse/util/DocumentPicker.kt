@@ -83,7 +83,7 @@ actual class DocumentPicker(private val activity: ComponentActivity) {
             val inputStream = activity.contentResolver.openInputStream(uri)
                 ?: return DocumentPickerResult.Error("Failed to open document stream")
 
-            val content = inputStream.bufferedReader().use { it.readText() }
+            val content = inputStream.bufferedReader(charset("IBM850")).use { it.readText() }
             inputStream.close()
 
             // Extract filename from URI

@@ -2,7 +2,6 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.domain.config.SellerConfig
 import com.together.newverse.domain.service.ProductImportService
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
@@ -32,7 +31,6 @@ class OverviewViewModel(
     private val articleRepository: ArticleRepository,
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
-    private val sellerConfig: SellerConfig,
     private val productImportService: ProductImportService
 ) : ViewModel() {
 
@@ -64,7 +62,7 @@ class OverviewViewModel(
                 return@launch
             }
 
-            val sellerId = sellerConfig.sellerId
+            val sellerId = currentUserId
 
             // Observe both articles and orders
             launch {
@@ -290,7 +288,7 @@ class OverviewViewModel(
                 return@launch
             }
 
-            val sellerId = sellerConfig.sellerId
+            val sellerId = currentUserId
 
             try {
                 var successCount = 0

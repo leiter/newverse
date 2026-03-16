@@ -144,7 +144,7 @@ internal fun HeroProductCard(
                                     contentColor = MaterialTheme.colorScheme.onPrimary
                                 ) {
                                     Text(
-                                        "Tagesfrisch",
+                                        "Regional & frisch",
                                         style = MaterialTheme.typography.labelSmall,
                                         modifier = Modifier.padding(horizontal = 4.dp)
                                     )

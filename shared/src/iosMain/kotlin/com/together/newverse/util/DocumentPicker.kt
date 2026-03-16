@@ -5,7 +5,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.Foundation.NSData
 import platform.Foundation.NSURL
 import platform.Foundation.NSString
-import platform.Foundation.NSUTF8StringEncoding
+import platform.CoreFoundation.CFStringConvertEncodingToNSStringEncoding
+import platform.CoreFoundation.kCFStringEncodingDOSLatin1
 import platform.Foundation.create
 import platform.Foundation.dataWithContentsOfURL
 import platform.Foundation.lastPathComponent
@@ -97,7 +98,8 @@ private class DocumentPickerDelegate(
             }
 
             // Convert to string
-            val content = NSString.create(data, NSUTF8StringEncoding) as? String
+            val cp850Encoding = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingDOSLatin1)
+            val content = NSString.create(data, cp850Encoding) as? String
             if (content == null) {
                 if (accessing) url.stopAccessingSecurityScopedResource()
                 onResult(DocumentPickerResult.Error("Failed to decode document as text"))

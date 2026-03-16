@@ -42,6 +42,7 @@
     <!-- ========================================= -->
     <string name="button_cancel">Abbrechen</string>
     <string name="button_save">Speichern</string>
+    <string name="button_update">Aktualisieren</string>
     <string name="button_confirm">Bestätigen</string>
     <string name="button_retry">Wiederholen</string>
     <string name="button_remove">Entfernen</string>

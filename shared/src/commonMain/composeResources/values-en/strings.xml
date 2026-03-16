@@ -42,6 +42,7 @@
     <!-- ========================================= -->
     <string name="button_cancel">Cancel</string>
     <string name="button_save">Save</string>
+    <string name="button_update">Update</string>
     <string name="button_confirm">Confirm</string>
     <string name="button_retry">Retry</string>
     <string name="button_remove">Remove</string>

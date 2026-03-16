@@ -58,10 +58,18 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateProductScreen(
+    articleId: String? = null,
     onNavigateBack: () -> Unit,
     onAction: (SellAction) -> Unit = {},
     viewModel: CreateProductViewModel = koinViewModel()
 ) {
+    // Load article for editing if articleId is provided
+    LaunchedEffect(articleId) {
+        if (articleId != null) {
+            viewModel.loadArticle(articleId)
+        }
+    }
+
     // Get ImagePicker from CompositionLocal
     val imagePicker = LocalImagePicker.current
         ?: error("ImagePicker not provided. Make sure to wrap app with CompositionLocalProvider(LocalImagePicker provides imagePicker)")
@@ -293,7 +301,10 @@ fun CreateProductScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                 }
-                Text(stringResource(Res.string.button_save))
+                Text(
+                    if (articleId != null) stringResource(Res.string.button_update)
+                    else stringResource(Res.string.button_save)
+                )
             }
 
             OutlinedButton(

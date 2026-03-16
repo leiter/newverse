@@ -37,7 +37,8 @@ fun OverviewScreen(
     onSelectionModeChange: (Boolean) -> Unit = {},
     isAvailabilityMode: Boolean = false,
     onAvailabilityModeChange: (Boolean) -> Unit = {},
-    onNavigateToImportPreview: () -> Unit = {}
+    onNavigateToImportPreview: () -> Unit = {},
+    onEditArticle: (String) -> Unit = {}
 ) {
     val overviewState by viewModel.overviewState.collectAsState()
     val importState by viewModel.importState.collectAsState()
@@ -111,7 +112,8 @@ fun OverviewScreen(
                         } else {
                             selectedArticleIds + articleId
                         }
-                    }
+                    },
+                    onEditArticle = onEditArticle
                 )
             }
         }
@@ -398,7 +400,8 @@ private fun SuccessContent(
     onFilterChange: (ProductFilter) -> Unit = {},
     isSelectionMode: Boolean = false,
     selectedArticleIds: Set<String> = emptySet(),
-    onArticleSelectionToggle: (String) -> Unit = {}
+    onArticleSelectionToggle: (String) -> Unit = {},
+    onEditArticle: (String) -> Unit = {}
 ) {
     var filterExpanded by remember { mutableStateOf(false) }
 
@@ -545,8 +548,11 @@ private fun SuccessContent(
                             if (isSelectionMode) {
                                 onArticleSelectionToggle(article.id)
                             } else {
-                                // TODO: Edit product
+                                onEditArticle(article.id)
                             }
+                        },
+                        onLongClick = {
+                            onEditArticle(article.id)
                         }
                     )
                 }
@@ -592,7 +598,8 @@ private fun SelectableProductListItem(
     imageUrl: String = "",
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -614,6 +621,7 @@ private fun SelectableProductListItem(
             imageUrl = imageUrl,
             unit = unit,
             onClick = onClick,
+            onLongClick = onLongClick,
             modifier = Modifier.weight(1f)
         )
     }

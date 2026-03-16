@@ -14,7 +14,7 @@ internal fun formatQuantity(quantity: Double, isWeightBased: Boolean): String {
             if (parts.size == 2) {
                 val intPart = parts[0]
                 val decPart = parts[1].take(3).trimEnd('0')
-                if (decPart.isEmpty()) intPart else "$intPart.$decPart"
+                if (decPart.isEmpty()) intPart else "$intPart,$decPart"
             } else {
                 parts[0]
             }

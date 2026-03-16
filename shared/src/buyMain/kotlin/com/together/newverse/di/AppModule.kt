@@ -1,7 +1,6 @@
 package com.together.newverse.di
 
 import com.together.newverse.data.config.BuyerSellerConfig
-import com.together.newverse.data.config.BuyerUUIDStorage
 import com.together.newverse.data.config.SellerIdStorage
 import com.together.newverse.data.repository.GitLiveBuyerContactRepository
 import com.together.newverse.data.repository.GitLiveInvitationRepository

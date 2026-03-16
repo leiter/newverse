@@ -56,7 +56,11 @@ sealed class NavRoutes(val route: String) {
                 return "sell/order/$orderId"
             }
         }
-        data object Create : Sell("sell/create")
+        data object Create : Sell("sell/create?articleId={articleId}") {
+            fun createRoute(articleId: String? = null): String {
+                return if (articleId != null) "sell/create?articleId=$articleId" else "sell/create"
+            }
+        }
         data object Profile : Sell("sell/profile")
         data object PickDay : Sell("sell/pick_day")
         data object NotificationSettings : Sell("sell/notification_settings")

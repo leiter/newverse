@@ -3,7 +3,6 @@ package com.together.newverse.ui.screens.sell
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.config.ProductCatalogConfig
-import com.together.newverse.domain.config.SellerConfig
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.ProductUnit
 import com.together.newverse.domain.repository.ArticleRepository
@@ -80,7 +79,6 @@ class CreateProductViewModel(
     private val articleRepository: ArticleRepository,
     private val authRepository: AuthRepository,
     private val storageRepository: StorageRepository,
-    private val sellerConfig: SellerConfig,
     private val catalogConfig: ProductCatalogConfig
 ) : ViewModel() {
 
@@ -102,6 +100,10 @@ class CreateProductViewModel(
     // Success state for navigation
     private val _saveSuccess = MutableStateFlow(false)
     val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
+
+    // Edit mode: holds the existing article's Firebase ID
+    private var editingArticleId: String? = null
+    val isEditMode: Boolean get() = editingArticleId != null
 
     /** Available categories from config, exposed for UI dropdowns */
     val availableCategories: List<String> = catalogConfig.categories
@@ -173,6 +175,38 @@ class CreateProductViewModel(
         }
     )
 
+    /**
+     * Load an existing article for editing.
+     */
+    fun loadArticle(articleId: String) {
+        viewModelScope.launch {
+            val currentUserId = authRepository.getCurrentUserId() ?: return@launch
+            val result = articleRepository.getArticle(currentUserId, articleId)
+            result.onSuccess { article ->
+                editingArticleId = article.id
+                // Strip product name from search terms to avoid duplication on save
+                val cleanedSearchTerms = article.searchTerms.split(",")
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() && it != article.productName.trim() }
+                    .joinToString(",")
+                _formState.value = formStateOf(
+                    ProductFormData(
+                        productName = article.productName,
+                        productId = article.productId,
+                        searchTerms = cleanedSearchTerms,
+                        price = if (article.price > 0) article.price.toString() else "",
+                        unit = article.unit.ifBlank { catalogConfig.defaultUnit },
+                        category = article.category.ifBlank { catalogConfig.defaultCategory },
+                        weightPerPiece = if (article.weightPerPiece > 0) article.weightPerPiece.toString() else "",
+                        detailInfo = article.detailInfo,
+                        available = article.available,
+                        imageUrl = article.imageUrl
+                    )
+                )
+            }
+        }
+    }
+
     // Form update functions
     fun onProductNameChange(value: String) {
         _formState.update { it.updateField { data -> data.copy(productName = value) }.clearFieldError(ValidationError.ProductNameRequired.fieldName) }
@@ -219,9 +253,11 @@ class CreateProductViewModel(
      * Uploads image first (if provided), then saves product to database
      */
     fun saveProduct() {
+        println("📝 CreateProductViewModel.saveProduct: START (editMode=$isEditMode, articleId=$editingArticleId)")
         // Validate inputs
         val errors = validateFormData(_formState.value.data)
         if (errors.isNotEmpty()) {
+            println("❌ CreateProductViewModel.saveProduct: Validation failed: $errors")
             _formState.update { it.withFieldErrors(errors) }
             return
         }
@@ -237,7 +273,7 @@ class CreateProductViewModel(
                     return@launch
                 }
 
-                val sellerId = sellerConfig.sellerId
+                val sellerId = currentUserId
                 val formData = _formState.value.data
 
                 // Upload image if new image data exists
@@ -259,9 +295,9 @@ class CreateProductViewModel(
                     finalImageUrl = uploadResult.getOrNull() ?: ""
                 }
 
-                // Create article object
+                // Create article object (preserve ID when editing)
                 val article = Article(
-                    id = "", // Firebase will generate ID
+                    id = editingArticleId ?: "", // Firebase will generate ID for new articles
                     productId = formData.productId,
                     productName = formData.productName,
                     price = formData.price.toDouble(),
@@ -321,7 +357,7 @@ class CreateProductViewModel(
             errors[ValidationError.CategoryRequired.fieldName] = "Category is required"
         }
 
-        if (data.imageData == null && data.imageUrl.isBlank()) {
+        if (!isEditMode && data.imageData == null && data.imageUrl.isBlank()) {
             errors[ValidationError.ImageRequired.fieldName] = "Image is required"
         }
 

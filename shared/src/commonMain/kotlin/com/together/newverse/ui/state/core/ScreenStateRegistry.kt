@@ -47,7 +47,7 @@ class ScreenStateRegistry {
      * Sets the state for a screen.
      */
     fun <S : Any> setState(id: ScreenId<S>, state: S) {
-        _states.value = _states.value + (id.key to state)
+        _states.value += (id.key to state)
     }
 
     /**
@@ -73,7 +73,7 @@ class ScreenStateRegistry {
      * Removes the state for a screen.
      */
     fun <S : Any> removeState(id: ScreenId<S>) {
-        _states.value = _states.value - id.key
+        _states.value -= id.key
     }
 
     /**

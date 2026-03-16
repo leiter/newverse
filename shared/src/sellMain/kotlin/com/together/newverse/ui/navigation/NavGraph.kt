@@ -68,7 +68,10 @@ fun NavGraphBuilder.navGraph(
             onSelectionModeChange = onSelectionModeChange,
             isAvailabilityMode = getAvailabilityMode(),
             onAvailabilityModeChange = onAvailabilityModeChange,
-            onNavigateToImportPreview = onNavigateToImportPreview
+            onNavigateToImportPreview = onNavigateToImportPreview,
+            onEditArticle = { articleId ->
+                navController.navigate(NavRoutes.Sell.Create.createRoute(articleId))
+            }
         )
     }
 
@@ -123,8 +126,19 @@ fun NavGraphBuilder.navGraph(
         )
     }
 
-    composable(NavRoutes.Sell.Create.route) {
+    composable(
+        route = NavRoutes.Sell.Create.route,
+        arguments = listOf(
+            navArgument("articleId") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        )
+    ) { backStackEntry ->
+        val articleId = backStackEntry.arguments?.read { getStringOrNull("articleId") }
         CreateProductScreen(
+            articleId = articleId,
             onNavigateBack = onNavigateBack,
             onAction = onAction
         )

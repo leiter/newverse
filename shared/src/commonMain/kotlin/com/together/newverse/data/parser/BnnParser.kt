@@ -9,18 +9,18 @@ import com.together.newverse.domain.model.Product
  * - Line 1: Header with metadata (BNN version, supplier info, etc.)
  * - Lines 2+: Product data, semicolon-separated
  *
- * Key Field Positions (0-indexed):
+ * Key Field Positions (0-indexed, BNN v3):
  * 0  = Article Number (productId)
  * 4  = EAN/Barcode
  * 6  = Product Name
  * 7  = Product Description/Detail
- * 10 = Quality Grade (I, II, Bio, Demeter, etc.)
- * 11 = Supplier Code
- * 13 = Origin Country Code
- * 14 = Certification (DD=Demeter, DB=Bioland, EG=EU-Bio, etc.)
- * 22 = Package Description (e.g., "6 KG")
- * 23 = Package Size (numeric, e.g., 6.000)
- * 24 = Unit (KG, ST, BT, SC, etc.)
+ * 9  = Quality Grade (I, II, Bio, Demeter, etc.)
+ * 10 = Supplier Code
+ * 12 = Origin Country Code
+ * 13 = Certification (DD=Demeter, DB=Bioland, EG=EU-Bio, etc.)
+ * 21 = Package Description (e.g., "6 KG")
+ * 22 = Package Size (numeric, e.g., 6.000)
+ * 23 = Unit (KG, ST, BT, SC, etc.)
  * 37 = Price (numeric with comma as decimal separator)
  * 67 = Base Unit for calculation
  * 68 = Weight per piece
@@ -31,19 +31,19 @@ class BnnParser {
         private const val FIELD_SEPARATOR = ";"
         private const val DECIMAL_SEPARATOR_DE = ","
 
-        // Field position constants
+        // Field position constants (BNN v3 format)
         private const val POS_PRODUCT_ID = 0
         private const val POS_AVAILABILITY_FLAG = 1
         private const val POS_BARCODE = 4
         private const val POS_PRODUCT_NAME = 6
         private const val POS_PRODUCT_DETAIL = 7
-        private const val POS_QUALITY = 10
-        private const val POS_SUPPLIER = 11
-        private const val POS_ORIGIN = 13
-        private const val POS_CERTIFICATION = 14
-        private const val POS_PACKAGE_DESC = 22
-        private const val POS_PACKAGE_SIZE = 23
-        private const val POS_UNIT = 24
+        private const val POS_QUALITY = 9
+        private const val POS_SUPPLIER = 10
+        private const val POS_ORIGIN = 12
+        private const val POS_CERTIFICATION = 13
+        private const val POS_PACKAGE_DESC = 21
+        private const val POS_PACKAGE_SIZE = 22
+        private const val POS_UNIT = 23
         private const val POS_PRICE = 37
         private const val POS_BASE_UNIT = 67
         private const val POS_WEIGHT_PER_PIECE = 68
