@@ -43,7 +43,10 @@ enum class ProductCategory(val displayName: String) {
                 "erdbeeren", "erdbeere", "kirschen", "kirsche", "pflaumen", "pflaume",
                 "trauben", "weintrauben", "orangen", "zitronen", "limetten",
                 "pfirsiche", "pfirsich", "nektarinen", "nektarine", "melonen", "melone",
-                "beeren", "himbeeren", "brombeeren", "heidelbeeren", "johannisbeeren"
+                "beeren", "himbeeren", "brombeeren", "heidelbeeren", "johannisbeeren",
+                "mango", "kiwi", "ananas", "granatapfel", "feigen", "feige",
+                "maracuja", "papaya", "litschi", "grapefruit", "mandarine", "clementine",
+                "zwetschgen", "zwetschge", "mirabellen", "mirabelle", "aprikose", "aprikosen"
                 -> OBST
 
                 // Vegetables
@@ -53,11 +56,14 @@ enum class ProductCategory(val displayName: String) {
                 "sellerie", "stangensellerie", "knollensellerie", "lauch", "porree",
                 "bohnen", "erbsen", "linsen", "kürbis", "kürbisse", "rote beete", "rüben",
                 "radieschen", "rettich", "fenchel", "spargel", "artischocken", "artischocke",
-                "zuckermais", "mais", "spinat", "mangold"
+                "zuckermais", "mais", "spinat", "mangold",
+                "rote beete", "rote bete", "knoblauch", "peperoni",
+                "chinakohl", "grünkohl", "wirsing", "rosenkohl", "pak choi"
                 -> GEMUESE
 
                 // Potatoes
-                "kartoffeln", "kartoffel", "süßkartoffeln", "süßkartoffel"
+                "kartoffeln", "kartoffel", "süßkartoffeln", "süßkartoffel",
+                "speisekartoffel", "speisekartoffeln"
                 -> KARTOFFELN
 
                 // Salad

@@ -1,6 +1,7 @@
 package com.together.newverse.data.parser
 
 import com.together.newverse.domain.model.Product
+import com.together.newverse.domain.model.ProductCategory
 
 /**
  * Parser for BNN (Bio-Naturkost-Norm) format data files.
@@ -151,37 +152,39 @@ class BnnParser {
     }
 
     /**
-     * Extract category from product name.
-     * Common patterns: "Apfel ...", "Birne ...", "Kartoffel ...", etc.
+     * Extract category from product name by checking each word against
+     * ProductCategory.fromString() which has comprehensive German keyword mappings.
+     * Checks all words (not just the first) to handle names like "Rote Bete" or "Bund-Möhren".
      */
     private fun extractCategory(productName: String): String {
-        val firstWord = productName.trim().split(" ").firstOrNull() ?: ""
+        // Split on spaces and hyphens to get individual words
+        val words = productName.trim().split(" ", "-")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
 
-        return when {
-            firstWord in listOf("Apfel", "Äpfel") -> "Obst"
-            firstWord in listOf("Birne", "Birnen") -> "Obst"
-            firstWord.contains("Orange") -> "Obst"
-            firstWord.contains("Zitron") -> "Obst"
-            firstWord.contains("Banane") -> "Obst"
-            firstWord in listOf("Trauben", "Traube") -> "Obst"
-            firstWord in listOf("Pflaumen", "Zwetschgen") -> "Obst"
-            firstWord in listOf("Pfirsich", "Nektarine") -> "Obst"
-            firstWord.contains("Beeren") -> "Obst"
-            firstWord in listOf("Kartoffel", "Speisekartoffel", "Süßkartoffel") -> "Gemüse"
-            firstWord in listOf("Möhren", "Karotten", "Bund-Möhren") -> "Gemüse"
-            firstWord in listOf("Tomate", "Tomaten") -> "Gemüse"
-            firstWord in listOf("Gurke", "Gurken") -> "Gemüse"
-            firstWord in listOf("Paprika", "Peperoni") -> "Gemüse"
-            firstWord in listOf("Salat", "Kopfsalat") -> "Gemüse"
-            firstWord in listOf("Kohl", "Kohlrabi", "Blumenkohl") -> "Gemüse"
-            firstWord in listOf("Zwiebel", "Zwiebeln") -> "Gemüse"
-            firstWord in listOf("Knoblauch") -> "Gemüse"
-            firstWord.contains("Sellerie") -> "Gemüse"
-            firstWord.contains("Fenchel") -> "Gemüse"
-            firstWord.contains("Rettich") || firstWord.contains("Radieschen") -> "Gemüse"
-            firstWord.contains("Bete") -> "Gemüse"
-            else -> "Sonstiges"
+        // Check each word against ProductCategory mappings
+        for (word in words) {
+            val category = ProductCategory.fromString(word)
+            if (category != ProductCategory.SONSTIGES) {
+                return category.displayName
+            }
         }
+
+        // Try multi-word combinations (e.g., "Rote Bete", "Lollo Rosso")
+        val lowerName = productName.lowercase()
+        val multiWordTerms = listOf(
+            "rote beete", "rote bete", "lollo rosso", "bund-möhren", "bund möhren"
+        )
+        for (term in multiWordTerms) {
+            if (lowerName.contains(term)) {
+                val category = ProductCategory.fromString(term)
+                if (category != ProductCategory.SONSTIGES) {
+                    return category.displayName
+                }
+            }
+        }
+
+        return ProductCategory.SONSTIGES.displayName
     }
 
     /**

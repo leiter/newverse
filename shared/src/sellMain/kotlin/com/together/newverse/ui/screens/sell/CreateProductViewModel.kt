@@ -184,16 +184,11 @@ class CreateProductViewModel(
             val result = articleRepository.getArticle(currentUserId, articleId)
             result.onSuccess { article ->
                 editingArticleId = article.id
-                // Strip product name from search terms to avoid duplication on save
-                val cleanedSearchTerms = article.searchTerms.split(",")
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() && it != article.productName.trim() }
-                    .joinToString(",")
                 _formState.value = formStateOf(
                     ProductFormData(
                         productName = article.productName,
                         productId = article.productId,
-                        searchTerms = cleanedSearchTerms,
+                        searchTerms = article.searchTerms,
                         price = if (article.price > 0) article.price.toString() else "",
                         unit = article.unit.ifBlank { catalogConfig.defaultUnit },
                         category = article.category.ifBlank { catalogConfig.defaultCategory },
@@ -379,8 +374,10 @@ class CreateProductViewModel(
     private fun prepareSearchTerms(data: ProductFormData): String {
         val terms = mutableSetOf<String>()
 
-        // Add product name
-        terms.add(data.productName.trim())
+        // Add product name only for new products
+        if (!isEditMode) {
+            terms.add(data.productName.trim())
+        }
 
         // Add search terms
         data.searchTerms.split(",")

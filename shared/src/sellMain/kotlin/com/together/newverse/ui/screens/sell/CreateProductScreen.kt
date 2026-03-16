@@ -153,6 +153,7 @@ fun CreateProductScreen(
         // Image Section
         ImageSection(
             imageData = imageData,
+            imageUrl = formData.imageUrl,
             onPickImage = {
                 scope.launch {
                     when (val result = imagePicker.pickImage()) {
@@ -322,9 +323,12 @@ fun CreateProductScreen(
 @Composable
 private fun ImageSection(
     imageData: ByteArray?,
+    imageUrl: String = "",
     onPickImage: () -> Unit,
     onTakePhoto: () -> Unit
 ) {
+    val hasImage = imageData != null || imageUrl.isNotBlank()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -334,10 +338,10 @@ private fun ImageSection(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            if (imageData != null) {
-                // Display image from ByteArray using Coil3
+            if (hasImage) {
+                // Display new image data or existing image URL
                 AsyncImage(
-                    model = imageData,
+                    model = imageData ?: imageUrl,
                     contentDescription = stringResource(Res.string.create_product_image),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
