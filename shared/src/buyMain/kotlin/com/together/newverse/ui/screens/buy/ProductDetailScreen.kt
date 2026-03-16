@@ -336,10 +336,7 @@ fun ProductDetailScreen(
                                         }
                                         if (filtered.count { it == ',' || it == '.' } <= 1) {
                                             quantityText = filtered
-                                            val parsedQuantity = filtered.replace(",", ".").toDoubleOrNull()
-                                            if (parsedQuantity != null) {
-                                                quantity = parsedQuantity
-                                            }
+                                            quantity = filtered.replace(",", ".").toDoubleOrNull() ?: 0.0
                                         }
                                     },
                                     textStyle = LocalTextStyle.current.copy(

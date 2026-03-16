@@ -345,11 +345,7 @@ internal fun HeroProductCard(
 
                                                 if (filtered.count { it == ',' || it == '.' } <= 1) {
                                                     quantityText = filtered
-                                                    // Parse and update quantity
-                                                    val parsedQuantity = filtered.replace(",", ".").toDoubleOrNull()
-                                                    if (parsedQuantity != null) {
-                                                        onQuantityChange(parsedQuantity)
-                                                    }
+                                                    onQuantityChange(filtered.replace(",", ".").toDoubleOrNull() ?: 0.0)
                                                 }
                                             },
                                             textStyle = LocalTextStyle.current.copy(
