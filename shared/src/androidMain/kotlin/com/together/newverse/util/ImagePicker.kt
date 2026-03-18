@@ -1,13 +1,18 @@
 package com.together.newverse.util
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.exifinterface.media.ExifInterface
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -22,6 +27,7 @@ actual class ImagePicker(private val activity: ComponentActivity) {
 
     private var pickImageLauncher: ActivityResultLauncher<String>? = null
     private var takePhotoLauncher: ActivityResultLauncher<Uri>? = null
+    private var cameraPermissionLauncher: ActivityResultLauncher<String>? = null
     private var photoUri: Uri? = null
 
     init {
@@ -48,11 +54,20 @@ actual class ImagePicker(private val activity: ComponentActivity) {
             pendingPhotoContinuation?.resume(if (success) photoUri else null)
             pendingPhotoContinuation = null
         }
+
+        // Launcher for requesting camera permission
+        cameraPermissionLauncher = activity.registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted: Boolean ->
+            pendingPermissionContinuation?.resume(granted)
+            pendingPermissionContinuation = null
+        }
     }
 
     companion object {
         private var pendingImageContinuation: kotlin.coroutines.Continuation<Uri?>? = null
         private var pendingPhotoContinuation: kotlin.coroutines.Continuation<Uri?>? = null
+        private var pendingPermissionContinuation: kotlin.coroutines.Continuation<Boolean>? = null
 
         // JPEG compression quality
         private const val JPEG_QUALITY = 85
@@ -87,6 +102,23 @@ actual class ImagePicker(private val activity: ComponentActivity) {
      */
     actual suspend fun takePhoto(): ImagePickerResult {
         return try {
+            // Check and request camera permission
+            val hasPermission = if (ContextCompat.checkSelfPermission(
+                    activity, Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                true
+            } else {
+                suspendCancellableCoroutine { continuation ->
+                    pendingPermissionContinuation = continuation
+                    cameraPermissionLauncher?.launch(Manifest.permission.CAMERA)
+                }
+            }
+
+            if (!hasPermission) {
+                return ImagePickerResult.Error("Kameraberechtigung wird benötigt, um Fotos aufzunehmen")
+            }
+
             // Create temporary file for photo
             val photoFile = createImageFile(activity)
             photoUri = FileProvider.getUriForFile(
@@ -126,8 +158,11 @@ actual class ImagePicker(private val activity: ComponentActivity) {
                 return ImagePickerResult.Error("Failed to decode image")
             }
 
+            // Correct EXIF rotation
+            val rotatedBitmap = correctExifRotation(context, uri, originalBitmap)
+
             // Resize if necessary
-            val resizedBitmap = resizeBitmap(originalBitmap, MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT)
+            val resizedBitmap = resizeBitmap(rotatedBitmap, MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT)
 
             // Convert to JPEG ByteArray
             val outputStream = ByteArrayOutputStream()
@@ -136,8 +171,11 @@ actual class ImagePicker(private val activity: ComponentActivity) {
             outputStream.close()
 
             // Clean up
-            if (resizedBitmap != originalBitmap) {
+            if (resizedBitmap != rotatedBitmap) {
                 resizedBitmap.recycle()
+            }
+            if (rotatedBitmap != originalBitmap) {
+                rotatedBitmap.recycle()
             }
             originalBitmap.recycle()
 
@@ -171,6 +209,41 @@ actual class ImagePicker(private val activity: ComponentActivity) {
         val newHeight = (height * ratio).toInt()
 
         return bitmap.scale(newWidth, newHeight)
+    }
+
+    /**
+     * Read EXIF orientation from the image URI and rotate the bitmap accordingly
+     */
+    private fun correctExifRotation(context: Context, uri: Uri, bitmap: Bitmap): Bitmap {
+        val exifStream = context.contentResolver.openInputStream(uri) ?: return bitmap
+        val exif = ExifInterface(exifStream)
+        exifStream.close()
+
+        val orientation = exif.getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_NORMAL
+        )
+
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.preScale(-1f, 1f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.preScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.preScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(270f)
+                matrix.preScale(-1f, 1f)
+            }
+            else -> return bitmap
+        }
+
+        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        return rotated
     }
 
     /**
