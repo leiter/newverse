@@ -25,7 +25,16 @@ class FakeSellerConfig(
         _sellerId = demoSellerId
     }
 
+    private var _demoOrderCount: Int = 0
+
+    override fun getDemoOrderCount(): Int = _demoOrderCount
+
+    override fun incrementDemoOrderCount() {
+        _demoOrderCount++
+    }
+
     fun reset() {
         _sellerId = demoSellerId
+        _demoOrderCount = 0
     }
 }

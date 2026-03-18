@@ -12,6 +12,14 @@ class BuyerSellerConfig(
 
     override val demoSellerId: String = DefaultSellerConfig().sellerId
 
+    init {
+        // Clear any stale seller ID from a previous version — only one seller is supported.
+        val stored = storage.getConnectedSellerId()
+        if (stored != null && stored != demoSellerId) {
+            storage.clearConnectedSellerId()
+        }
+    }
+
     override val sellerId: String
         get() = storage.getConnectedSellerId() ?: demoSellerId
 
@@ -29,4 +37,8 @@ class BuyerSellerConfig(
     override fun resetToDemo() {
         storage.clearConnectedSellerId()
     }
+
+    override fun getDemoOrderCount(): Int = storage.getDemoOrderCount()
+
+    override fun incrementDemoOrderCount() = storage.incrementDemoOrderCount()
 }

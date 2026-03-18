@@ -603,8 +603,9 @@
     <string name="contacts_remove_confirm">Are you sure you want to remove this contact?</string>
 
     <!-- Demo Mode -->
-    <string name="demo_mode_banner_message">Demo mode — orders are not real</string>
-    <string name="demo_mode_banner_action">Connect</string>
+    <string name="demo_mode_banner_message">Demo mode — %1$d of 2 trial orders remaining</string>
+    <string name="demo_mode_banner_action">Request Access</string>
+    <string name="demo_limit_reached">Demo limit reached. Please request access.</string>
     <string name="demo_orders_clear_button">Clear demo orders (&gt; 1 month)</string>
     <string name="demo_orders_clear_result">%1$d demo order(s) deleted</string>
     <string name="demo_orders_clear_none">No old demo orders found</string>

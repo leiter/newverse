@@ -59,6 +59,7 @@ fun MainScreenModern(
     state: MainScreenState,
     onAction: (BuyAction) -> Unit,
     isDemoMode: Boolean = false,
+    demoOrderCount: Int = 0,
     onNavigateToProfile: () -> Unit = {},
     onNavigateToProductDetail: (String) -> Unit = {}
 ) {
@@ -66,13 +67,14 @@ fun MainScreenModern(
         state = state,
         onAction = onAction,
         isDemoMode = isDemoMode,
+        demoOrderCount = demoOrderCount,
         onNavigateToProfile = onNavigateToProfile,
         onNavigateToProductDetail = onNavigateToProductDetail,
     )
 }
 
 @Composable
-private fun DemoModeBanner(onConnectClick: () -> Unit) {
+private fun DemoModeBanner(demoOrdersRemaining: Int, onRequestAccessClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -92,12 +94,12 @@ private fun DemoModeBanner(onConnectClick: () -> Unit) {
                 tint = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Text(
-                text = stringResource(Res.string.demo_mode_banner_message),
+                text = stringResource(Res.string.demo_mode_banner_message, demoOrdersRemaining),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
         }
-        TextButton(onClick = onConnectClick) {
+        TextButton(onClick = onRequestAccessClick) {
             Text(
                 text = stringResource(Res.string.demo_mode_banner_action),
                 color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -112,6 +114,7 @@ private fun MainScreenModernContent(
     state: MainScreenState,
     onAction: (BuyAction) -> Unit,
     isDemoMode: Boolean,
+    demoOrderCount: Int,
     onNavigateToProfile: () -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
 ) {
@@ -146,7 +149,10 @@ private fun MainScreenModernContent(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
             if (isDemoMode) {
-                DemoModeBanner(onConnectClick = onNavigateToProfile)
+                DemoModeBanner(
+                    demoOrdersRemaining = 2 - demoOrderCount,
+                    onRequestAccessClick = onNavigateToProfile
+                )
             }
             LazyColumn(
                 modifier = Modifier.weight(1f),

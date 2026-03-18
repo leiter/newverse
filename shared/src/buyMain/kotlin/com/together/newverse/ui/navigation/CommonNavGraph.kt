@@ -31,6 +31,7 @@ fun NavGraphBuilder.commonNavGraph(
             state = appState.mainScreen,
             onAction = onAction,
             isDemoMode = appState.isDemoMode,
+            demoOrderCount = appState.demoOrderCount,
             onNavigateToProfile = { navController.navigate(NavRoutes.Buy.Profile.route) },
             onNavigateToProductDetail = { articleId ->
                 navController.navigate(NavRoutes.Buy.ProductDetail.createRoute(articleId))

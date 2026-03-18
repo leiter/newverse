@@ -20,7 +20,15 @@ actual class SellerIdStorage {
         defaults.removeObjectForKey(KEY_CONNECTED_SELLER_ID)
     }
 
+    actual fun getDemoOrderCount(): Int =
+        defaults.integerForKey(KEY_DEMO_ORDER_COUNT).toInt()
+
+    actual fun incrementDemoOrderCount() {
+        defaults.setInteger((getDemoOrderCount() + 1).toLong(), forKey = KEY_DEMO_ORDER_COUNT)
+    }
+
     companion object {
         private const val KEY_CONNECTED_SELLER_ID = "connected_seller_id"
+        private const val KEY_DEMO_ORDER_COUNT = "demo_order_count"
     }
 }

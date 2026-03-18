@@ -121,12 +121,10 @@ class BuyMainActivity : ComponentActivity() {
                         viewModel.dispatch(BuySellerAction.ConnectWithInvitation(sellerIdParam, inviteId, expiresAt))
                     }
                     !sellerIdParam.isNullOrBlank() -> {
-                        Log.d("BuyMainActivity", "Deep link received: connect to seller $sellerIdParam")
-                        viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerIdParam))
+                        Log.d("BuyMainActivity", "Deep link with bare seller ID ignored: $sellerIdParam")
                     }
                     !sellerParam.isNullOrBlank() -> {
-                        Log.d("BuyMainActivity", "Deep link received: connect to seller $sellerParam (no token)")
-                        viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerParam))
+                        Log.d("BuyMainActivity", "Deep link with bare seller ID ignored: $sellerParam")
                     }
                 }
             }
@@ -167,8 +165,17 @@ class BuyMainActivity : ComponentActivity() {
                             Log.d("BuyMainActivity", "QR: invitation $inviteId for seller $sellerIdParam")
                             viewModel.dispatch(BuySellerAction.ConnectWithInvitation(sellerIdParam, inviteId, expiresAt))
                         }
-                        !sellerIdParam.isNullOrBlank() -> viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerIdParam))
-                        !sellerParam.isNullOrBlank() -> viewModel.dispatch(BuySellerAction.ConnectToSeller(sellerParam))
+                        !sellerIdParam.isNullOrBlank() -> Log.d("BuyMainActivity", "QR with bare seller ID ignored: $sellerIdParam")
+                        !sellerParam.isNullOrBlank() -> Log.d("BuyMainActivity", "QR with bare seller ID ignored: $sellerParam")
+                    }
+                } else if ((uri.scheme == "https" || uri.scheme == "http") && uri.host == "cutthecrap.link" && uri.path == "/connect") {
+                    val sellerParam = uri.getQueryParameter("seller")
+                    val tokenParam = uri.getQueryParameter("token")
+                    if (!sellerParam.isNullOrBlank() && !tokenParam.isNullOrBlank()) {
+                        Log.d("BuyMainActivity", "QR: HTTPS buyer link seller=$sellerParam token=$tokenParam")
+                        viewModel.dispatch(BuySellerAction.ConnectWithToken(sellerParam, tokenParam))
+                    } else {
+                        Log.d("BuyMainActivity", "QR: HTTPS link missing seller/token: $rawValue")
                     }
                 } else if (uri.scheme == "newverse" && uri.host == "contact") {
                     val buyerId = uri.getQueryParameter("buyerId")
@@ -178,10 +185,8 @@ class BuyMainActivity : ComponentActivity() {
                         viewModel.dispatch(BuyMessagingAction.AddBuyerContact(buyerId, name))
                     }
                 } else {
-                    // Treat raw value as seller ID directly
-                    if (rawValue.isNotBlank()) {
-                        viewModel.dispatch(BuySellerAction.ConnectToSeller(rawValue))
-                    }
+                    // Unknown QR format — ignore
+                    Log.d("BuyMainActivity", "QR with unrecognized format ignored: $rawValue")
                 }
             }
             .addOnFailureListener { e ->

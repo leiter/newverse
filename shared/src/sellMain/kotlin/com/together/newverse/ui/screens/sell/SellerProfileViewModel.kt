@@ -111,7 +111,13 @@ class SellerProfileViewModel(
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             val uuid = Uuid.random().toString()
             val link = "https://cutthecrap.link/connect?seller=$sellerId&token=$uuid"
+            println("[NV_Seller] generateBuyerLink: sellerId=$sellerId uuid=$uuid link=$link")
             _generatedBuyerLink.value = link
+            // Pre-approve in background so the buyer is immediately APPROVED upon scanning/clicking
+            launch {
+                profileRepository.approveAccessRequestWithTracking(sellerId, uuid, "QR-Link")
+                    .onFailure { e -> println("Pre-approve for buyer link failed: ${e.message}") }
+            }
         }
     }
 
@@ -348,6 +354,11 @@ class SellerProfileViewModel(
                             deepLink = deepLink,
                             isGenerating = false
                         )
+                    }
+                    // Pre-approve in background so the buyer is immediately APPROVED upon accepting
+                    launch {
+                        profileRepository.approveAccessRequestWithTracking(sellerId, invitation.id, "Invitation")
+                            .onFailure { e -> println("Pre-approve for invitation failed: ${e.message}") }
                     }
                 },
                 onFailure = { e ->

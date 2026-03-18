@@ -105,12 +105,6 @@ import newverse.shared.generated.resources.error_email_format
 import newverse.shared.generated.resources.error_phone_format
 import newverse.shared.generated.resources.error_phone_invalid_chars
 import newverse.shared.generated.resources.payment_cash_only_info
-import newverse.shared.generated.resources.seller_connection_title
-import newverse.shared.generated.resources.seller_connection_demo_mode
-import newverse.shared.generated.resources.seller_connection_connected_to
-import newverse.shared.generated.resources.seller_connection_enter_id
-import newverse.shared.generated.resources.seller_connection_connect
-import newverse.shared.generated.resources.seller_connection_reset_demo
 import newverse.shared.generated.resources.seller_connection_scan_qr
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_confirm
@@ -339,20 +333,6 @@ fun CustomerProfileScreenModern(
                         }
                     )
 
-                    // Seller Connection Card
-                    SellerConnectionCard(
-                        connectedSellerId = connectedSellerId,
-                        connectedSellerDisplayName = connectedSellerDisplayName,
-                        isDemoMode = isDemoMode,
-                        onConnectToSeller = { sellerId ->
-                            onAction(com.together.newverse.ui.state.BuySellerAction.ConnectToSeller(sellerId))
-                        },
-                        onResetToDemo = {
-                            onAction(com.together.newverse.ui.state.BuySellerAction.ResetToDemo)
-                        },
-                        onScanQrCode = onScanQrCode
-                    )
-
                     // Access Status Card
                     AccessStatusCard(
                         accessStatus = accessStatus,
@@ -360,7 +340,8 @@ fun CustomerProfileScreenModern(
                         isRequestingAccess = isRequestingAccess,
                         onRequestAccess = {
                             onAction(com.together.newverse.ui.state.BuySellerAction.RequestAccess)
-                        }
+                        },
+                        onScanQrCode = onScanQrCode
                     )
 
                     // Notification Settings Card - temporarily hidden
@@ -1342,126 +1323,14 @@ private fun ModernTextField(
     }
 }
 
-@Composable
-private fun SellerConnectionCard(
-    connectedSellerId: String,
-    connectedSellerDisplayName: String = "",
-    isDemoMode: Boolean,
-    onConnectToSeller: (String) -> Unit,
-    onResetToDemo: () -> Unit,
-    onScanQrCode: () -> Unit
-) {
-    var sellerIdInput by remember { mutableStateOf("") }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Title
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = stringResource(Res.string.seller_connection_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            // Status
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = if (isDemoMode) {
-                    MaterialTheme.colorScheme.secondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.primaryContainer
-                }
-            ) {
-                Text(
-                    text = if (isDemoMode) {
-                        stringResource(Res.string.seller_connection_demo_mode)
-                    } else {
-                        stringResource(Res.string.seller_connection_connected_to, connectedSellerDisplayName.ifEmpty { connectedSellerId })
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                )
-            }
-
-            // Input row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = sellerIdInput,
-                    onValueChange = { sellerIdInput = it },
-                    label = { Text(stringResource(Res.string.seller_connection_enter_id)) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f),
-                    trailingIcon = {
-                        IconButton(onClick = onScanQrCode) {
-                            Icon(
-                                imageVector = Icons.Default.AccountBox,
-                                contentDescription = stringResource(Res.string.seller_connection_scan_qr)
-                            )
-                        }
-                    }
-                )
-            }
-
-            // Connect button
-            Button(
-                onClick = {
-                    onConnectToSeller(sellerIdInput.trim())
-                    sellerIdInput = ""
-                },
-                enabled = sellerIdInput.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(stringResource(Res.string.seller_connection_connect))
-            }
-
-            // Reset to demo button (only when not in demo mode)
-            if (!isDemoMode) {
-                TextButton(
-                    onClick = onResetToDemo,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(Res.string.seller_connection_reset_demo))
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun AccessStatusCard(
     accessStatus: AccessStatus,
     buyerUUID: String,
     isRequestingAccess: Boolean = false,
-    onRequestAccess: () -> Unit = {}
+    onRequestAccess: () -> Unit = {},
+    onScanQrCode: () -> Unit = {}
 ) {
     val (containerColor, contentColor, message) = when (accessStatus) {
         AccessStatus.NONE -> Triple(
@@ -1519,22 +1388,37 @@ private fun AccessStatusCard(
                     color = contentColor.copy(alpha = 0.7f)
                 )
             }
-            if (accessStatus == AccessStatus.NONE) {
+            if (accessStatus != AccessStatus.APPROVED) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = onRequestAccess,
-                    enabled = !isRequestingAccess,
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (isRequestingAccess) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                    if (accessStatus == AccessStatus.NONE) {
+                        Button(
+                            onClick = onRequestAccess,
+                            enabled = !isRequestingAccess,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            if (isRequestingAccess) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Text(stringResource(Res.string.access_request_button))
+                        }
                     }
-                    Text(stringResource(Res.string.access_request_button))
+                    OutlinedButton(
+                        onClick = onScanQrCode
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountBox,
+                            contentDescription = stringResource(Res.string.seller_connection_scan_qr)
+                        )
+                    }
                 }
             }
         }

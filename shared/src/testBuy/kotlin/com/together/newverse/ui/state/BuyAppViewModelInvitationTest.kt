@@ -196,35 +196,6 @@ class BuyAppViewModelInvitationTest {
         assertNull(viewModel.state.value.showConnectionConfirmDialog)
     }
 
-    // ===== Demo-to-Production Gating =====
-
-    @Test
-    fun `demo mode blocks direct seller connection`() = runTest {
-        // SellerConfig starts in demo mode
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        // Try to connect directly to a non-demo seller
-        viewModel.dispatch(BuySellerAction.ConnectToSeller("some-real-seller"))
-        advanceUntilIdle()
-
-        // Should still be in demo mode
-        assertTrue(viewModel.state.value.isDemoMode)
-    }
-
-    // ===== Reset to Demo =====
-
-    @Test
-    fun `reset to demo works without invitation`() = runTest {
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.dispatch(BuySellerAction.ResetToDemo)
-        advanceUntilIdle()
-
-        assertTrue(viewModel.state.value.isDemoMode)
-    }
-
     // ===== Accept Pending Invitation =====
 
     @Test

@@ -19,14 +19,11 @@ import kotlinx.coroutines.launch
 /**
  * Seller connection extension functions for BuyAppViewModel.
  *
- * Handles connecting to a new seller (via QR code or manual input),
- * invitation-based connections, resetting to demo mode,
- * and reloading all seller-dependent data.
+ * Handles invitation-based connections and reloading all seller-dependent data.
  */
 
 internal fun BuyAppViewModel.handleSellerAction(action: BuySellerAction) {
     when (action) {
-        is BuySellerAction.ConnectToSeller -> connectToSeller(action.sellerId)
         is BuySellerAction.ConnectWithToken -> connectWithToken(action.sellerId, action.buyerToken)
         is BuySellerAction.ConnectWithInvitation -> connectWithInvitation(
             action.sellerId, action.invitationId, action.expiresAt
@@ -35,39 +32,8 @@ internal fun BuyAppViewModel.handleSellerAction(action: BuySellerAction) {
         is BuySellerAction.RejectPendingInvitation -> rejectPendingInvitation(action.invitationId)
         is BuySellerAction.ConfirmConnection -> confirmConnection()
         is BuySellerAction.DismissConnectionDialog -> dismissConnectionDialog()
-        is BuySellerAction.ResetToDemo -> resetToDemo()
         is BuySellerAction.RequestAccess -> requestAccess()
     }
-}
-
-internal fun BuyAppViewModel.connectToSeller(sellerId: String) {
-    if (sellerId.isBlank()) {
-        viewModelScope.launch {
-            showSnackbar("Seller ID cannot be empty", SnackbarType.ERROR)
-        }
-        return
-    }
-
-    // If same seller, no-op
-    if (sellerId == sellerConfig.sellerId) {
-        viewModelScope.launch {
-            showSnackbar("Already connected to this seller", SnackbarType.INFO)
-        }
-        return
-    }
-
-    // Demo-to-production gating: if currently in demo mode and target is not the demo seller,
-    // require invitation (unless invitationRepository is not configured)
-    // TODO: Remove test seller bypass after E2E testing
-    val testSellerBypass = sellerId == "jOSoP5UxAohZDtdpluhHg6VrfvQ2" || sellerId == "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
-    if (_state.value.isDemoMode && sellerId != sellerConfig.demoSellerId && invitationRepository != null && !testSellerBypass) {
-        viewModelScope.launch {
-            showSnackbar("Please scan a seller's QR code or accept an invitation", SnackbarType.ERROR)
-        }
-        return
-    }
-
-    performConnection(sellerId)
 }
 
 private fun BuyAppViewModel.connectWithInvitation(
@@ -144,6 +110,8 @@ private fun BuyAppViewModel.confirmConnection() {
                     _state.update { it.copy(showConnectionConfirmDialog = null) }
                     // Perform the actual connection
                     performConnection(invitation.sellerId)
+                    // Use invitation ID as buyer UUID (seller pre-approved this ID)
+                    applyPreApprovedAccess(invitation.id)
                 },
                 onFailure = { e ->
                     _state.update { it.copy(showConnectionConfirmDialog = null) }
@@ -177,6 +145,8 @@ private fun BuyAppViewModel.acceptPendingInvitation(invitationId: String) {
                 }
                 // Connect to seller
                 performConnection(invitation.sellerId)
+                // Use invitation ID as buyer UUID (seller pre-approved this ID)
+                applyPreApprovedAccess(invitation.id)
             },
             onFailure = { e ->
                 showSnackbar("Failed to accept invitation: ${e.message}", SnackbarType.ERROR)
@@ -276,7 +246,3 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
     }
 }
 
-private fun BuyAppViewModel.resetToDemo() {
-    // Reset to demo bypasses invitation check
-    performConnection(sellerConfig.demoSellerId)
-}

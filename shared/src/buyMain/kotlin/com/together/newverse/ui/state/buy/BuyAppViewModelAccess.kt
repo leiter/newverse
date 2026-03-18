@@ -51,7 +51,7 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
 @OptIn(ExperimentalUuidApi::class)
 internal fun BuyAppViewModel.requestAccess() {
     val sellerId = sellerConfig.sellerId
-    if (sellerId.isEmpty() || sellerId == sellerConfig.demoSellerId) {
+    if (sellerId.isEmpty()) {
         viewModelScope.launch {
             showSnackbar("Bitte zuerst mit einem Verkäufer verbinden", SnackbarType.ERROR)
         }
@@ -88,6 +88,19 @@ internal fun BuyAppViewModel.requestAccess() {
             _state.update { it.copy(isRequestingAccess = false) }
             showSnackbar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
         }
+    }
+}
+
+/**
+ * Apply a pre-approved UUID (from invitation or QR link).
+ * Sets the UUID locally and in Firebase, then starts observing access status.
+ * The seller already wrote APPROVED for this UUID, so the buyer sees it immediately.
+ */
+internal fun BuyAppViewModel.applyPreApprovedAccess(uuid: String) {
+    buyerUUIDStorage?.set(uuid)
+    viewModelScope.launch {
+        profileRepository.saveBuyerUUID(uuid)
+        startObservingAccessStatus()
     }
 }
 

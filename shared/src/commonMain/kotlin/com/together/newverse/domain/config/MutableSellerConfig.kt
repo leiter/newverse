@@ -16,4 +16,10 @@ interface MutableSellerConfig : SellerConfig {
 
     /** Reset to the demo seller. */
     fun resetToDemo()
+
+    /** Get the number of demo orders placed. */
+    fun getDemoOrderCount(): Int
+
+    /** Increment the demo order counter after a successful demo order. */
+    fun incrementDemoOrderCount()
 }

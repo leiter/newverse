@@ -84,7 +84,8 @@ class BuyAppViewModel(
      * Internal state exposed for extension functions.
      */
     override val _state = MutableStateFlow(BuyAppState(
-        connectedSellerId = sellerConfig.sellerId
+        connectedSellerId = sellerConfig.sellerId,
+        demoOrderCount = sellerConfig.getDemoOrderCount()
         // accessStatus defaults to NONE → isDemoMode = true until Firebase confirms APPROVED
     ))
     override val state: StateFlow<BuyAppState> = _state.asStateFlow()

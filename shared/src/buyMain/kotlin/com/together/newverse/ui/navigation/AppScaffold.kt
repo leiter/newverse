@@ -129,7 +129,7 @@ fun AppScaffold(
                 seller != null && inviteId != null && expires != null ->
                     viewModel.dispatch(BuySellerAction.ConnectWithInvitation(seller, inviteId, expires))
                 seller != null ->
-                    viewModel.dispatch(BuySellerAction.ConnectToSeller(seller))
+                    println("AppScaffold: deep link with bare seller ID (no token/invite) ignored: $seller")
                 else ->
                     println("AppScaffold: deep link has no recognised seller param: $url")
             }

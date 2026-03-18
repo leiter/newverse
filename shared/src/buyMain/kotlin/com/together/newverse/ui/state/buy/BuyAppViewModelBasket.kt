@@ -473,6 +473,19 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 isDemoOrder = _state.value.isDemoMode
             )
 
+            // In demo mode, check limit before placing order
+            if (_state.value.isDemoMode && sellerConfig.getDemoOrderCount() >= 2) {
+                _state.update { current ->
+                    current.copy(
+                        basketScreen = current.basketScreen.copy(
+                            isCheckingOut = false,
+                            orderError = "Demo-Limit erreicht. Bitte Zugang anfragen."
+                        )
+                    )
+                }
+                return@launch
+            }
+
             // In demo mode, simulate a local order without writing to Firebase
             // (demo users don't have write permission)
             val result = if (_state.value.isDemoMode) {
@@ -482,6 +495,11 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 orderRepository.placeOrder(order)
             }
             result.onSuccess { placedOrder ->
+                // Increment demo order counter
+                if (_state.value.isDemoMode) {
+                    sellerConfig.incrementDemoOrderCount()
+                    _state.update { it.copy(demoOrderCount = sellerConfig.getDemoOrderCount()) }
+                }
                 // Clear draft basket — skip Firebase profile write in demo mode
                 try {
                     if (!_state.value.isDemoMode) {

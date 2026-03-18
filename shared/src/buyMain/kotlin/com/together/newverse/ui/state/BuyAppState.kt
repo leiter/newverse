@@ -20,6 +20,7 @@ data class BuyAppState(
     val accessStatus: AccessStatus = AccessStatus.NONE,
     val isAccessStatusLoaded: Boolean = false,
     val isRequestingAccess: Boolean = false,
+    val demoOrderCount: Int = 0,
 
     // Invitation state
     val pendingInvitations: List<Invitation> = emptyList(),

@@ -8,4 +8,6 @@ expect class SellerIdStorage {
     fun getConnectedSellerId(): String?
     fun setConnectedSellerId(sellerId: String)
     fun clearConnectedSellerId()
+    fun getDemoOrderCount(): Int
+    fun incrementDemoOrderCount()
 }

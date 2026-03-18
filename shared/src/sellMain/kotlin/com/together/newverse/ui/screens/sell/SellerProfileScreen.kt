@@ -911,31 +911,36 @@ private fun GenerateBuyerLinkCard(
                 Text("Generate new link")
             }
             if (generatedLink != null) {
-                OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = generatedLink,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    QrCodeImage(
+                        content = generatedLink,
+                        sizeDp = 200
+                    )
+                    Text(
+                        text = generatedLink,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(generatedLink))
+                                copied = true
+                            },
+                            modifier = Modifier.weight(1f)
                         ) {
-                            OutlinedButton(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(generatedLink))
-                                    copied = true
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(if (copied) "Copied!" else "Copy")
-                            }
-                            OutlinedButton(
-                                onClick = { onClearLink() },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Clear")
-                            }
+                            Text(if (copied) "Copied!" else "Copy")
+                        }
+                        OutlinedButton(
+                            onClick = { onClearLink() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Clear")
                         }
                     }
                 }
