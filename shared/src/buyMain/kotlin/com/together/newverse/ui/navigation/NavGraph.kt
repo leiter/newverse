@@ -117,6 +117,7 @@ fun NavGraph(
                 isDemoMode = appState.isDemoMode,
                 accessStatus = appState.accessStatus,
                 buyerUUID = appState.customerProfile.profile?.buyerUUID ?: "",
+                isRequestingAccess = appState.isRequestingAccess,
                 pendingInvitations = appState.pendingInvitations,
                 showConnectionConfirmDialog = appState.showConnectionConfirmDialog,
                 onScanQrCode = { onPlatformAction(PlatformAction.ScanQrCode) }

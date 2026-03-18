@@ -660,4 +660,20 @@
     <string name="demo_orders_clear_button">Demo-Bestellungen löschen (&gt; 1 Monat)</string>
     <string name="demo_orders_clear_result">%1$d Demo-Bestellungen gelöscht</string>
     <string name="demo_orders_clear_none">Keine alten Demo-Bestellungen gefunden</string>
+    <string name="access_request_button">Zugang anfragen</string>
+
+    <!-- Access Requests (Seller) -->
+    <string name="access_requests_title">Zugangsanfragen (%1$d)</string>
+    <string name="access_requests_empty">Keine offenen Anfragen</string>
+    <string name="access_requests_approve">Freigeben</string>
+    <string name="access_requests_block">Blockieren</string>
+    <string name="access_requests_anonymous">Anonym</string>
+    <string name="access_requests_block_title">Käufer blockieren?</string>
+    <string name="access_requests_block_message">Dieser Käufer wird dauerhaft blockiert und kann keine Anfragen mehr senden.</string>
+
+    <!-- Relative Time -->
+    <string name="time_just_now">gerade eben</string>
+    <string name="time_minutes_ago">vor %1$d Min.</string>
+    <string name="time_hours_ago">vor %1$d Std.</string>
+    <string name="time_days_ago">vor %1$d Tagen</string>
 </resources>

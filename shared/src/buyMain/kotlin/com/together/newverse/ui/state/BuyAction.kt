@@ -137,6 +137,7 @@ sealed interface BuySellerAction : BuyAction {
     data object ConfirmConnection : BuySellerAction
     data object DismissConnectionDialog : BuySellerAction
     data object ResetToDemo : BuySellerAction
+    data object RequestAccess : BuySellerAction
 }
 
 // ===== Messaging Actions =====

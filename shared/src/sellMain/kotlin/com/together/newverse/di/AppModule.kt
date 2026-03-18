@@ -29,7 +29,8 @@ val appModule = module {
     // Main Sell App ViewModel
     viewModel {
         SellAppViewModel(
-            authRepository = get()
+            authRepository = get(),
+            profileRepository = get()
         )
     }
 

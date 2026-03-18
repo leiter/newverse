@@ -29,7 +29,6 @@ import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -526,7 +525,7 @@ private fun InvitationCard(
 
                     // Expiry info
                     val expiresAt = invitationState.currentInvitation.expiresAt
-                    val remainingMinutes = ((expiresAt - Clock.System.now().toEpochMilliseconds()) / 60000).coerceAtLeast(0)
+                    val remainingMinutes = ((expiresAt - kotlin.time.Clock.System.now().toEpochMilliseconds()) / 60000).coerceAtLeast(0)
                     val expiryText = when {
                         remainingMinutes > 60 -> "${remainingMinutes / 60}h ${remainingMinutes % 60}min"
                         remainingMinutes > 0 -> "${remainingMinutes}min"
@@ -946,11 +945,27 @@ private fun GenerateBuyerLinkCard(
 }
 
 @Composable
+private fun formatRelativeTime(epochMillis: Long): String {
+    val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
+    val diffMinutes = ((now - epochMillis) / 60_000).toInt()
+    val diffHours = diffMinutes / 60
+    val diffDays = diffHours / 24
+    return when {
+        diffMinutes < 1 -> stringResource(Res.string.time_just_now)
+        diffMinutes < 60 -> stringResource(Res.string.time_minutes_ago, diffMinutes)
+        diffHours < 24 -> stringResource(Res.string.time_hours_ago, diffHours)
+        else -> stringResource(Res.string.time_days_ago, diffDays)
+    }
+}
+
+@Composable
 private fun AccessRequestsCard(
     requests: List<AccessRequest>,
     onApprove: (String) -> Unit,
     onBlock: (String) -> Unit
 ) {
+    var buyerToBlock by remember { mutableStateOf<String?>(null) }
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -959,12 +974,12 @@ private fun AccessRequestsCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Access Requests (${requests.size})",
+                text = stringResource(Res.string.access_requests_title, requests.size),
                 style = MaterialTheme.typography.titleMedium
             )
             if (requests.isEmpty()) {
                 Text(
-                    text = "No pending requests",
+                    text = stringResource(Res.string.access_requests_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -973,7 +988,7 @@ private fun AccessRequestsCard(
                     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = request.buyerDisplayName.ifEmpty { "Anonymous" },
+                                text = request.buyerDisplayName.ifEmpty { stringResource(Res.string.access_requests_anonymous) },
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
@@ -981,6 +996,13 @@ private fun AccessRequestsCard(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (request.requestedAt > 0) {
+                                Text(
+                                    text = formatRelativeTime(request.requestedAt),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -989,16 +1011,16 @@ private fun AccessRequestsCard(
                                     onClick = { onApprove(request.buyerUUID) },
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Text("Approve")
+                                    Text(stringResource(Res.string.access_requests_approve))
                                 }
                                 OutlinedButton(
-                                    onClick = { onBlock(request.buyerUUID) },
+                                    onClick = { buyerToBlock = request.buyerUUID },
                                     modifier = Modifier.weight(1f),
                                     colors = ButtonDefaults.outlinedButtonColors(
                                         contentColor = MaterialTheme.colorScheme.error
                                     )
                                 ) {
-                                    Text("Block")
+                                    Text(stringResource(Res.string.access_requests_block))
                                 }
                             }
                         }
@@ -1006,6 +1028,33 @@ private fun AccessRequestsCard(
                 }
             }
         }
+    }
+
+    // Block confirmation dialog
+    buyerToBlock?.let { buyerId ->
+        AlertDialog(
+            onDismissRequest = { buyerToBlock = null },
+            title = { Text(stringResource(Res.string.access_requests_block_title)) },
+            text = { Text(stringResource(Res.string.access_requests_block_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onBlock(buyerId)
+                        buyerToBlock = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(stringResource(Res.string.access_requests_block))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { buyerToBlock = null }) {
+                    Text(stringResource(Res.string.button_cancel))
+                }
+            }
+        )
     }
 }
 

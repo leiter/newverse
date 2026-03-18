@@ -36,6 +36,7 @@ internal fun BuyAppViewModel.handleSellerAction(action: BuySellerAction) {
         is BuySellerAction.ConfirmConnection -> confirmConnection()
         is BuySellerAction.DismissConnectionDialog -> dismissConnectionDialog()
         is BuySellerAction.ResetToDemo -> resetToDemo()
+        is BuySellerAction.RequestAccess -> requestAccess()
     }
 }
 

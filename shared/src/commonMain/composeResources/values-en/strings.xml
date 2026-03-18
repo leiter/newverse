@@ -608,4 +608,20 @@
     <string name="demo_orders_clear_button">Clear demo orders (&gt; 1 month)</string>
     <string name="demo_orders_clear_result">%1$d demo order(s) deleted</string>
     <string name="demo_orders_clear_none">No old demo orders found</string>
+    <string name="access_request_button">Request Access</string>
+
+    <!-- Access Requests (Seller) -->
+    <string name="access_requests_title">Access Requests (%1$d)</string>
+    <string name="access_requests_empty">No pending requests</string>
+    <string name="access_requests_approve">Approve</string>
+    <string name="access_requests_block">Block</string>
+    <string name="access_requests_anonymous">Anonymous</string>
+    <string name="access_requests_block_title">Block buyer?</string>
+    <string name="access_requests_block_message">This buyer will be permanently blocked and cannot send requests anymore.</string>
+
+    <!-- Relative Time -->
+    <string name="time_just_now">just now</string>
+    <string name="time_minutes_ago">%1$d min ago</string>
+    <string name="time_hours_ago">%1$d hr ago</string>
+    <string name="time_days_ago">%1$d days ago</string>
 </resources>

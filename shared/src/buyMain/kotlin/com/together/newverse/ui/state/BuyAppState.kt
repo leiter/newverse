@@ -19,6 +19,7 @@ data class BuyAppState(
     val connectedSellerDisplayName: String = "",
     val accessStatus: AccessStatus = AccessStatus.NONE,
     val isAccessStatusLoaded: Boolean = false,
+    val isRequestingAccess: Boolean = false,
 
     // Invitation state
     val pendingInvitations: List<Invitation> = emptyList(),

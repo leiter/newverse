@@ -2,6 +2,7 @@ package com.together.newverse.ui.state
 
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.core.AuthState
 import com.together.newverse.ui.state.core.BaseAppViewModel
@@ -9,6 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
@@ -22,7 +24,8 @@ import org.jetbrains.compose.resources.getString
  * Extends BaseAppViewModel for auth-driven state management via AuthFlowCoordinator.
  */
 class SellAppViewModel(
-    authRepository: AuthRepository
+    authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository
 ) : BaseAppViewModel<SellAppState, SellAction>(authRepository) {
 
     override val _state = MutableStateFlow(SellAppState())
@@ -87,6 +90,7 @@ class SellAppViewModel(
                             }
                             is AuthState.Authenticated -> {
                                 println("[NV_SellAppVM] observeAuthStateChanges: Setting meta to Authenticated/Complete")
+                                observeAccessRequestCount(authState.userId)
                                 current.meta.copy(
                                     isInitializing = false,
                                     isInitialized = true,
@@ -114,6 +118,19 @@ class SellAppViewModel(
             role = UserRole.SELLER,
             profileImageUrl = photoUrl
         )
+    }
+
+    private var accessRequestJob: kotlinx.coroutines.Job? = null
+
+    private fun observeAccessRequestCount(sellerId: String) {
+        accessRequestJob?.cancel()
+        accessRequestJob = viewModelScope.launch {
+            profileRepository.observeAccessRequests(sellerId)
+                .catch { e -> println("[NV_SellAppVM] observeAccessRequestCount error: ${e.message}") }
+                .collect { requests ->
+                    _state.update { it.copy(pendingAccessRequestCount = requests.size) }
+                }
+        }
     }
 
     // ===== Public Action Handlers =====

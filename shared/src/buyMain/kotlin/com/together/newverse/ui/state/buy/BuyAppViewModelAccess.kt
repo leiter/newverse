@@ -3,6 +3,9 @@ package com.together.newverse.ui.state.buy
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.ui.state.BuyAppViewModel
+import com.together.newverse.ui.state.SnackbarType
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -38,6 +41,53 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
                 println("[NV_Access] observeAccessStatus: status=$status uuid=$uuid")
                 _state.update { it.copy(accessStatus = status, isAccessStatusLoaded = true) }
             }
+    }
+}
+
+/**
+ * Request access from the connected seller.
+ * Generates a buyerUUID if not already assigned, persists it, and submits an access request.
+ */
+@OptIn(ExperimentalUuidApi::class)
+internal fun BuyAppViewModel.requestAccess() {
+    val sellerId = sellerConfig.sellerId
+    if (sellerId.isEmpty() || sellerId == sellerConfig.demoSellerId) {
+        viewModelScope.launch {
+            showSnackbar("Bitte zuerst mit einem Verkäufer verbinden", SnackbarType.ERROR)
+        }
+        return
+    }
+
+    _state.update { it.copy(isRequestingAccess = true) }
+
+    viewModelScope.launch {
+        try {
+            // Reuse existing UUID or generate a new one
+            val uuid = buyerUUIDStorage?.get() ?: Uuid.random().toString()
+
+            // Persist UUID locally and in Firebase profile
+            buyerUUIDStorage?.set(uuid)
+            profileRepository.saveBuyerUUID(uuid)
+
+            // Get display name from profile or default
+            val displayName = _state.value.customerProfile.profile?.displayName
+                ?.takeIf { it.isNotBlank() } ?: "Guest"
+
+            // Submit the access request
+            profileRepository.submitAccessRequest(sellerId, uuid, displayName)
+                .onSuccess {
+                    _state.update { it.copy(isRequestingAccess = false) }
+                    startObservingAccessStatus()
+                    showSnackbar("Zugangsanfrage gesendet", SnackbarType.SUCCESS)
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(isRequestingAccess = false) }
+                    showSnackbar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
+                }
+        } catch (e: Exception) {
+            _state.update { it.copy(isRequestingAccess = false) }
+            showSnackbar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
+        }
     }
 }
 

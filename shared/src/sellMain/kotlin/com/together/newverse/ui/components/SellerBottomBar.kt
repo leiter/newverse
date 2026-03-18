@@ -20,17 +20,21 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun SellerBottomNavigationBar(
     currentRoute: String,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    pendingAccessRequestCount: Int = 0
 ) {
     NavigationBar {
         SellerBottomNavItems.forEach { item ->
             val label = stringResource(item.labelRes)
             NavigationBarItem(
                 icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = label
-                    )
+                    if (item.route == NavRoutes.Sell.Profile.route && pendingAccessRequestCount > 0) {
+                        BadgedBox(badge = { Badge { Text(pendingAccessRequestCount.toString()) } }) {
+                            Icon(imageVector = item.icon, contentDescription = label)
+                        }
+                    } else {
+                        Icon(imageVector = item.icon, contentDescription = label)
+                    }
                 },
                 label = { Text(label) },
                 selected = currentRoute == item.route,

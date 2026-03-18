@@ -29,6 +29,9 @@ data class SellAppState(
     // Messaging
     val unreadMessageCount: Int = 0,
 
+    // Access requests
+    val pendingAccessRequestCount: Int = 0,
+
     // App metadata
     val meta: AppMetaState = AppMetaState()
 )

@@ -228,6 +228,7 @@ fun AppScaffold(
         bottomBar = {
             SellerBottomNavigationBar(
                 currentRoute = currentRoute,
+                pendingAccessRequestCount = state.pendingAccessRequestCount,
                 onNavigate = { route ->
                     navController.navigate(route) {
                         // Pop up to the start destination to avoid building up a large stack

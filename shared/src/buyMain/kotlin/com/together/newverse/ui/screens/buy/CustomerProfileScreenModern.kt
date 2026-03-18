@@ -46,6 +46,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -90,6 +91,7 @@ import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.BuyAccountAction
 import com.together.newverse.ui.state.BuyAction
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.access_request_button
 import newverse.shared.generated.resources.action_favorites
 import newverse.shared.generated.resources.action_help
 import newverse.shared.generated.resources.action_orders
@@ -157,6 +159,7 @@ fun CustomerProfileScreenModern(
     isDemoMode: Boolean = true,
     accessStatus: AccessStatus = AccessStatus.NONE,
     buyerUUID: String = "",
+    isRequestingAccess: Boolean = false,
     pendingInvitations: List<Invitation> = emptyList(),
     showConnectionConfirmDialog: ConnectionConfirmation? = null,
     onScanQrCode: () -> Unit = {},
@@ -353,7 +356,11 @@ fun CustomerProfileScreenModern(
                     // Access Status Card
                     AccessStatusCard(
                         accessStatus = accessStatus,
-                        buyerUUID = buyerUUID
+                        buyerUUID = buyerUUID,
+                        isRequestingAccess = isRequestingAccess,
+                        onRequestAccess = {
+                            onAction(com.together.newverse.ui.state.BuySellerAction.RequestAccess)
+                        }
                     )
 
                     // Notification Settings Card - temporarily hidden
@@ -1452,7 +1459,9 @@ private fun SellerConnectionCard(
 @Composable
 private fun AccessStatusCard(
     accessStatus: AccessStatus,
-    buyerUUID: String
+    buyerUUID: String,
+    isRequestingAccess: Boolean = false,
+    onRequestAccess: () -> Unit = {}
 ) {
     val (containerColor, contentColor, message) = when (accessStatus) {
         AccessStatus.NONE -> Triple(
@@ -1509,6 +1518,24 @@ private fun AccessStatusCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = contentColor.copy(alpha = 0.7f)
                 )
+            }
+            if (accessStatus == AccessStatus.NONE) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onRequestAccess,
+                    enabled = !isRequestingAccess,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isRequestingAccess) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(stringResource(Res.string.access_request_button))
+                }
             }
         }
     }
