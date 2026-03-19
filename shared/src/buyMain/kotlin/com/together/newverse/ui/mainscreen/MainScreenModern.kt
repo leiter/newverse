@@ -41,6 +41,8 @@ import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyMainScreenAction
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.demo_banner_complete_profile
+import newverse.shared.generated.resources.demo_banner_profile_incomplete
 import newverse.shared.generated.resources.demo_mode_banner_action
 import newverse.shared.generated.resources.demo_mode_banner_message
 import newverse.shared.generated.resources.products_search_placeholder
@@ -60,6 +62,7 @@ fun MainScreenModern(
     onAction: (BuyAction) -> Unit,
     isDemoMode: Boolean = false,
     demoOrderCount: Int = 0,
+    isProfileIncomplete: Boolean = false,
     onNavigateToProfile: () -> Unit = {},
     onNavigateToProductDetail: (String) -> Unit = {}
 ) {
@@ -68,13 +71,18 @@ fun MainScreenModern(
         onAction = onAction,
         isDemoMode = isDemoMode,
         demoOrderCount = demoOrderCount,
+        isProfileIncomplete = isProfileIncomplete,
         onNavigateToProfile = onNavigateToProfile,
         onNavigateToProductDetail = onNavigateToProductDetail,
     )
 }
 
 @Composable
-private fun DemoModeBanner(demoOrdersRemaining: Int, onRequestAccessClick: () -> Unit) {
+private fun DemoModeBanner(
+    demoOrdersRemaining: Int,
+    isProfileIncomplete: Boolean,
+    onRequestAccessClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -94,14 +102,22 @@ private fun DemoModeBanner(demoOrdersRemaining: Int, onRequestAccessClick: () ->
                 tint = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Text(
-                text = stringResource(Res.string.demo_mode_banner_message, demoOrdersRemaining),
+                text = if (isProfileIncomplete) {
+                    stringResource(Res.string.demo_banner_profile_incomplete)
+                } else {
+                    stringResource(Res.string.demo_mode_banner_message, demoOrdersRemaining)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
         }
         TextButton(onClick = onRequestAccessClick) {
             Text(
-                text = stringResource(Res.string.demo_mode_banner_action),
+                text = if (isProfileIncomplete) {
+                    stringResource(Res.string.demo_banner_complete_profile)
+                } else {
+                    stringResource(Res.string.demo_mode_banner_action)
+                },
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
         }
@@ -115,6 +131,7 @@ private fun MainScreenModernContent(
     onAction: (BuyAction) -> Unit,
     isDemoMode: Boolean,
     demoOrderCount: Int,
+    isProfileIncomplete: Boolean,
     onNavigateToProfile: () -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
 ) {
@@ -151,6 +168,7 @@ private fun MainScreenModernContent(
             if (isDemoMode) {
                 DemoModeBanner(
                     demoOrdersRemaining = 2 - demoOrderCount,
+                    isProfileIncomplete = isProfileIncomplete,
                     onRequestAccessClick = onNavigateToProfile
                 )
             }

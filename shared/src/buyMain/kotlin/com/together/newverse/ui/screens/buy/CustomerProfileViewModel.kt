@@ -34,6 +34,16 @@ class CustomerProfileViewModel(
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing.asStateFlow()
 
+    // Gemüsedate (pickup time + self-pickup) edit mode
+    private val _isEditingPickupTime = MutableStateFlow(false)
+    val isEditingPickupTime: StateFlow<Boolean> = _isEditingPickupTime.asStateFlow()
+
+    private val _pickupTime = MutableStateFlow("")
+    val pickupTime: StateFlow<String> = _pickupTime.asStateFlow()
+
+    private val _isSelfPickup = MutableStateFlow(false)
+    val isSelfPickup: StateFlow<Boolean> = _isSelfPickup.asStateFlow()
+
     private var currentProfile: BuyerProfile? = null
 
     /**
@@ -43,6 +53,8 @@ class CustomerProfileViewModel(
         currentProfile = profile
         val formData = ProfileFormData.fromProfile(profile)
         _formState.value = formStateOf(formData)
+        _pickupTime.value = profile.defaultPickUpTime.ifEmpty { "15:45" }
+        _isSelfPickup.value = profile.isSelfPickup
     }
 
     /**
@@ -91,6 +103,63 @@ class CustomerProfileViewModel(
     }
 
     /**
+     * Update the street field.
+     */
+    fun onStreetChange(value: String) {
+        _formState.update { state ->
+            state.updateField { data -> data.copy(street = value) }
+        }
+    }
+
+    /**
+     * Update the house number field.
+     */
+    fun onHouseNumberChange(value: String) {
+        _formState.update { state ->
+            state.updateField { data -> data.copy(houseNumber = value) }
+        }
+    }
+
+    // --- Gemüsedate edit mode ---
+
+    fun startEditingPickupTime() {
+        _isEditingPickupTime.value = true
+    }
+
+    fun cancelEditingPickupTime() {
+        // Reset to current profile values
+        currentProfile?.let {
+            _pickupTime.value = it.defaultPickUpTime.ifEmpty { "15:45" }
+            _isSelfPickup.value = it.isSelfPickup
+        }
+        _isEditingPickupTime.value = false
+    }
+
+    fun onPickupTimeChange(value: String) {
+        _pickupTime.value = value
+    }
+
+    fun onSelfPickupToggle(value: Boolean) {
+        _isSelfPickup.value = value
+    }
+
+    fun savePickupTime() {
+        val profile = currentProfile ?: return
+        viewModelScope.launch {
+            val updatedProfile = profile.copy(
+                defaultPickUpTime = _pickupTime.value,
+                isSelfPickup = _isSelfPickup.value
+            )
+            profileRepository.saveBuyerProfile(updatedProfile)
+                .onSuccess {
+                    currentProfile = it
+                    _isEditingPickupTime.value = false
+                }
+                .onFailure { /* keep editing open on failure */ }
+        }
+    }
+
+    /**
      * Save the profile.
      * Validates the form data and submits to the repository if valid.
      */
@@ -115,7 +184,9 @@ class CustomerProfileViewModel(
             val updatedProfile = profile.copy(
                 displayName = currentData.displayName,
                 emailAddress = currentData.email,
-                telephoneNumber = currentData.phone
+                telephoneNumber = currentData.phone,
+                street = currentData.street,
+                houseNumber = currentData.houseNumber
             )
 
             profileRepository.saveBuyerProfile(updatedProfile)

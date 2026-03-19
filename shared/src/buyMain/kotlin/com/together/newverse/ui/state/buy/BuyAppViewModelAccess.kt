@@ -11,6 +11,45 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
+ * Tracks which required profile fields are missing.
+ */
+internal data class MissingProfileData(
+    val name: Boolean = false,
+    val pickupTime: Boolean = false,
+    val street: Boolean = false,     // only relevant if !isSelfPickup
+    val houseNumber: Boolean = false  // only relevant if !isSelfPickup
+) {
+    val isComplete: Boolean get() = !name && !pickupTime && !street && !houseNumber
+    val allMissing: Boolean get() = name && pickupTime && (street || houseNumber)
+}
+
+/**
+ * Check whether the buyer profile has all required fields filled.
+ */
+internal fun BuyAppViewModel.checkProfileCompleteness(): MissingProfileData {
+    val profile = _state.value.customerProfile.profile
+    val isSelfPickup = profile?.isSelfPickup ?: false
+    return MissingProfileData(
+        name = profile?.displayName.isNullOrBlank(),
+        pickupTime = profile?.defaultPickUpTime.isNullOrBlank(),
+        street = if (isSelfPickup) false else profile?.street.isNullOrBlank(),
+        houseNumber = if (isSelfPickup) false else profile?.houseNumber.isNullOrBlank()
+    )
+}
+
+/**
+ * Build a user-facing message listing which fields are still missing.
+ */
+internal fun buildMissingFieldsMessage(missing: MissingProfileData): String {
+    val fields = mutableListOf<String>()
+    if (missing.name) fields.add("Name")
+    if (missing.pickupTime) fields.add("Abholzeit")
+    if (missing.street) fields.add("Straße")
+    if (missing.houseNumber) fields.add("Hausnummer")
+    return "Fehlende Angaben: ${fields.joinToString(", ")}"
+}
+
+/**
  * Access request extension functions for BuyAppViewModel.
  *
  * Handles:
@@ -58,6 +97,20 @@ internal fun BuyAppViewModel.requestAccess() {
         return
     }
 
+    // Check profile completeness before requesting access
+    val missing = checkProfileCompleteness()
+    if (!missing.isComplete) {
+        if (missing.allMissing) {
+            _state.update { it.copy(showProfileIncompleteDialog = true) }
+        } else {
+            viewModelScope.launch {
+                showSnackbar(buildMissingFieldsMessage(missing), SnackbarType.WARNING)
+            }
+        }
+        _state.update { it.copy(isRequestingAccess = false) }
+        return
+    }
+
     _state.update { it.copy(isRequestingAccess = true) }
 
     viewModelScope.launch {
@@ -96,6 +149,27 @@ internal fun BuyAppViewModel.requestAccess() {
  * Sets the UUID locally and in Firebase, then starts observing access status.
  * The seller already wrote APPROVED for this UUID, so the buyer sees it immediately.
  */
+/**
+ * Dismiss the profile incomplete dialog.
+ */
+internal fun BuyAppViewModel.dismissProfileIncompleteDialog() {
+    _state.update { it.copy(showProfileIncompleteDialog = false) }
+}
+
+/**
+ * Retry connecting with a previously stored pending token after profile is completed.
+ */
+internal fun BuyAppViewModel.retryPendingConnection() {
+    val pending = _state.value.pendingConnectToken
+    _state.update { it.copy(
+        showProfileIncompleteDialog = false,
+        pendingConnectToken = null
+    ) }
+    if (pending != null) {
+        connectWithToken(pending.first, pending.second)
+    }
+}
+
 internal fun BuyAppViewModel.applyPreApprovedAccess(uuid: String) {
     buyerUUIDStorage?.set(uuid)
     viewModelScope.launch {
@@ -113,6 +187,17 @@ internal fun BuyAppViewModel.applyPreApprovedAccess(uuid: String) {
  * 4. Start observing access status for real-time updates
  */
 internal fun BuyAppViewModel.connectWithToken(sellerId: String, buyerToken: String) {
+    // Check profile completeness before connecting
+    val missing = checkProfileCompleteness()
+    if (!missing.isComplete) {
+        // Store the pending token for later retry
+        _state.update { it.copy(
+            pendingConnectToken = Pair(sellerId, buyerToken),
+            showProfileIncompleteDialog = true
+        ) }
+        return
+    }
+
     buyerUUIDStorage?.set(buyerToken)
 
     // Bypass the demo mode gate — having a valid token means the seller has authorized this buyer.

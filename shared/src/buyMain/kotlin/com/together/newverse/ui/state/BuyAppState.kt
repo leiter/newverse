@@ -53,6 +53,10 @@ data class BuyAppState(
     val messaging: MessagingScreenState = MessagingScreenState(),
     val unreadMessageCount: Int = 0,
 
+    // Profile completeness
+    val showProfileIncompleteDialog: Boolean = false,
+    val pendingConnectToken: Pair<String, String>? = null, // (sellerId, token) awaiting profile completion
+
     // App metadata
     val meta: AppMetaState = AppMetaState()
 ) {

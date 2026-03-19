@@ -280,7 +280,7 @@
     <string name="section_personal_info">Persönliche Daten</string>
 
     <!-- Delivery Preferences Section -->
-    <string name="section_delivery_preferences">Abholpräferenzen</string>
+    <string name="section_delivery_preferences">Gemüsedate</string>
     <string name="label_marketplace">Marktplatz</string>
     <string name="label_pickup_time">Abholzeit</string>
     <string name="pickup_time_format">%s Uhr</string>
@@ -677,4 +677,23 @@
     <string name="time_minutes_ago">vor %1$d Min.</string>
     <string name="time_hours_ago">vor %1$d Std.</string>
     <string name="time_days_ago">vor %1$d Tagen</string>
+
+    <!-- Address Fields -->
+    <string name="label_street">Straße</string>
+    <string name="label_house_number">Hausnummer</string>
+
+    <!-- Self-Pickup -->
+    <string name="label_self_pickup">Selbstabholer</string>
+    <string name="label_self_pickup_hint">Ich hole meine Bestellung selbst ab</string>
+
+    <!-- Profile Incomplete -->
+    <string name="demo_banner_profile_incomplete">Bitte vervollständige dein Profil (Name, Adresse, Abholzeit)</string>
+    <string name="demo_banner_complete_profile">Profil vervollständigen</string>
+    <string name="profile_incomplete_dialog_title">Profil unvollständig</string>
+    <string name="profile_incomplete_dialog_message">Bitte fülle Name, Straße, Hausnummer und Abholzeit aus, bevor du Zugang anfragst.</string>
+    <string name="missing_field_name">Name fehlt</string>
+    <string name="missing_field_street">Straße fehlt</string>
+    <string name="missing_field_house_number">Hausnummer fehlt</string>
+    <string name="missing_field_pickup_time">Abholzeit fehlt</string>
+    <string name="profile_incomplete_go_to_profile">Zum Profil</string>
 </resources>

@@ -269,7 +269,7 @@
     <string name="section_personal_info">Personal Information</string>
 
     <!-- Delivery Preferences Section -->
-    <string name="section_delivery_preferences">Pickup Preferences</string>
+    <string name="section_delivery_preferences">Veggie Date</string>
     <string name="label_marketplace">Marketplace</string>
     <string name="label_pickup_time">Pickup Time</string>
     <string name="pickup_time_format">%s</string>
@@ -625,4 +625,23 @@
     <string name="time_minutes_ago">%1$d min ago</string>
     <string name="time_hours_ago">%1$d hr ago</string>
     <string name="time_days_ago">%1$d days ago</string>
+
+    <!-- Address Fields -->
+    <string name="label_street">Street</string>
+    <string name="label_house_number">House Number</string>
+
+    <!-- Self-Pickup -->
+    <string name="label_self_pickup">Self-pickup</string>
+    <string name="label_self_pickup_hint">I will pick up my order myself</string>
+
+    <!-- Profile Incomplete -->
+    <string name="demo_banner_profile_incomplete">Please complete your profile (name, address, pickup time)</string>
+    <string name="demo_banner_complete_profile">Complete Profile</string>
+    <string name="profile_incomplete_dialog_title">Profile Incomplete</string>
+    <string name="profile_incomplete_dialog_message">Please fill in name, street, house number, and pickup time before requesting access.</string>
+    <string name="missing_field_name">Name missing</string>
+    <string name="missing_field_street">Street missing</string>
+    <string name="missing_field_house_number">House number missing</string>
+    <string name="missing_field_pickup_time">Pickup time missing</string>
+    <string name="profile_incomplete_go_to_profile">Go to Profile</string>
 </resources>

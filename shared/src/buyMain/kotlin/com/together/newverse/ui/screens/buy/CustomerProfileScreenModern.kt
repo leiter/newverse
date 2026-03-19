@@ -131,10 +131,18 @@ import newverse.shared.generated.resources.profile_no_email
 import newverse.shared.generated.resources.profile_picture
 import newverse.shared.generated.resources.profile_verified
 import newverse.shared.generated.resources.quick_actions_title
+import newverse.shared.generated.resources.label_house_number
+import newverse.shared.generated.resources.label_self_pickup
+import newverse.shared.generated.resources.label_self_pickup_hint
+import newverse.shared.generated.resources.label_street
 import newverse.shared.generated.resources.section_delivery_preferences
 import newverse.shared.generated.resources.section_notifications
 import newverse.shared.generated.resources.section_personal_info
+import newverse.shared.generated.resources.profile_incomplete_dialog_title
+import newverse.shared.generated.resources.profile_incomplete_dialog_message
+import newverse.shared.generated.resources.profile_incomplete_go_to_profile
 import org.jetbrains.compose.resources.stringResource
+import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.util.formatString
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -157,9 +165,9 @@ fun CustomerProfileScreenModern(
     pendingInvitations: List<Invitation> = emptyList(),
     showConnectionConfirmDialog: ConnectionConfirmation? = null,
     onScanQrCode: () -> Unit = {},
+    showProfileIncompleteDialog: Boolean = false,
     profileViewModel: CustomerProfileViewModel = koinViewModel()
 ) {
-    val defaultMarket = stringResource(Res.string.default_market)
     val profile = state.profile
     val photoUrl = state.photoUrl
 
@@ -169,10 +177,15 @@ fun CustomerProfileScreenModern(
     val displayName = formState.data.displayName
     val email = formState.data.email
     val phone = formState.data.phone
+    val street = formState.data.street
+    val houseNumber = formState.data.houseNumber
+
+    // Gemüsedate edit state
+    val isEditingPickupTime by profileViewModel.isEditingPickupTime.collectAsState()
+    val pickupTime by profileViewModel.pickupTime.collectAsState()
+    val isSelfPickup by profileViewModel.isSelfPickup.collectAsState()
 
     // Other local state that's not part of the form
-    var selectedMarket by remember { mutableStateOf(defaultMarket) }
-    var pickupTime by remember { mutableStateOf("15:45") }
     var notificationsEnabled by remember { mutableStateOf(true) }
     var newsletterEnabled by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
@@ -243,6 +256,22 @@ fun CustomerProfileScreenModern(
         )
     }
 
+    // Profile Incomplete Dialog
+    if (showProfileIncompleteDialog) {
+        AlertDialog(
+            onDismissRequest = { onAction(BuySellerAction.DismissProfileIncompleteDialog) },
+            confirmButton = {
+                TextButton(
+                    onClick = { onAction(BuySellerAction.DismissProfileIncompleteDialog) }
+                ) {
+                    Text(stringResource(Res.string.profile_incomplete_go_to_profile))
+                }
+            },
+            title = { Text(stringResource(Res.string.profile_incomplete_dialog_title)) },
+            text = { Text(stringResource(Res.string.profile_incomplete_dialog_message)) }
+        )
+    }
+
     // Load profile when screen is first displayed
     LaunchedEffect(Unit) {
         println("👤 CustomerProfileScreen: Loading customer profile")
@@ -299,6 +328,9 @@ fun CustomerProfileScreenModern(
                         displayName = displayName,
                         email = email,
                         phone = phone,
+                        street = street,
+                        houseNumber = houseNumber,
+                        isSelfPickup = isSelfPickup,
                         isEditing = isEditingPersonalInfo,
                         isSubmitting = formState.isSubmitting,
                         emailError = formState.getFieldError(ProfileValidation.FIELD_EMAIL),
@@ -306,6 +338,8 @@ fun CustomerProfileScreenModern(
                         onDisplayNameChange = { profileViewModel.onDisplayNameChange(it) },
                         onEmailChange = { profileViewModel.onEmailChange(it) },
                         onPhoneChange = { profileViewModel.onPhoneChange(it) },
+                        onStreetChange = { profileViewModel.onStreetChange(it) },
+                        onHouseNumberChange = { profileViewModel.onHouseNumberChange(it) },
                         onEditClick = { profileViewModel.startEditing() },
                         onSaveClick = {
                             profileViewModel.saveProfile()
@@ -315,11 +349,16 @@ fun CustomerProfileScreenModern(
                         }
                     )
 
-                    // Delivery Preferences Card
-                    DeliveryPreferencesCard(
-                        selectedMarket = selectedMarket,
+                    // Gemüsedate Card
+                    GemusedateCard(
                         pickupTime = pickupTime,
-                        isEditing = isEditing,
+                        isSelfPickup = isSelfPickup,
+                        isEditing = isEditingPickupTime,
+                        onEditClick = { profileViewModel.startEditingPickupTime() },
+                        onSaveClick = { profileViewModel.savePickupTime() },
+                        onCancelClick = { profileViewModel.cancelEditingPickupTime() },
+                        onPickupTimeChange = { profileViewModel.onPickupTimeChange(it) },
+                        onSelfPickupToggle = { profileViewModel.onSelfPickupToggle(it) }
                     )
 
                     // Pending Invitations Card
@@ -553,6 +592,9 @@ private fun PersonalInfoCard(
     displayName: String,
     email: String,
     phone: String,
+    street: String,
+    houseNumber: String,
+    isSelfPickup: Boolean,
     isEditing: Boolean,
     isSubmitting: Boolean = false,
     emailError: String? = null,
@@ -560,6 +602,8 @@ private fun PersonalInfoCard(
     onDisplayNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
+    onStreetChange: (String) -> Unit,
+    onHouseNumberChange: (String) -> Unit,
     onEditClick: () -> Unit,
     onSaveClick: () -> Unit,
     onCancelClick: () -> Unit
@@ -663,6 +707,31 @@ private fun PersonalInfoCard(
                 errorMessage = resolvedPhoneError
             )
 
+            // Address fields — only shown when NOT self-pickup
+            if (!isSelfPickup) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ModernTextField(
+                    value = street,
+                    onValueChange = onStreetChange,
+                    label = stringResource(Res.string.label_street),
+                    leadingIcon = Icons.Default.LocationOn,
+                    enabled = isEditing && !isSubmitting,
+                    isValid = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ModernTextField(
+                    value = houseNumber,
+                    onValueChange = onHouseNumberChange,
+                    label = stringResource(Res.string.label_house_number),
+                    leadingIcon = Icons.Default.LocationOn,
+                    enabled = isEditing && !isSubmitting,
+                    isValid = true
+                )
+            }
+
             // Save and Cancel Buttons (only show when editing)
             if (isEditing) {
                 Spacer(modifier = Modifier.height(20.dp))
@@ -706,10 +775,15 @@ private fun PersonalInfoCard(
 }
 
 @Composable
-private fun DeliveryPreferencesCard(
-    selectedMarket: String,
+private fun GemusedateCard(
     pickupTime: String,
+    isSelfPickup: Boolean,
     isEditing: Boolean,
+    onEditClick: () -> Unit,
+    onSaveClick: () -> Unit,
+    onCancelClick: () -> Unit,
+    onPickupTimeChange: (String) -> Unit,
+    onSelfPickupToggle: (Boolean) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -722,88 +796,55 @@ private fun DeliveryPreferencesCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            SectionHeader(
-                icon = Icons.Default.LocationOn,
-                title = stringResource(Res.string.section_delivery_preferences),
-                iconColor = MaterialTheme.colorScheme.tertiary
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Market Selection
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable(enabled = isEditing) { /* Open market selection */ },
-                color = if (isEditing) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
-                border = BorderStroke(
-                    1.dp,
-                    if (isEditing) MaterialTheme.colorScheme.primary else Color.Transparent
-                )
+            // Section Header with Edit Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                SectionHeader(
+                    icon = Icons.Default.DateRange,
+                    title = stringResource(Res.string.section_delivery_preferences),
+                    iconColor = MaterialTheme.colorScheme.tertiary
+                )
+
+                if (!isEditing) {
+                    IconButton(
+                        onClick = onEditClick,
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
-                            Icons.Outlined.LocationOn,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Column {
-                            Text(
-                                text = stringResource(Res.string.label_marketplace),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = selectedMarket,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                    if (isEditing) {
-                        Icon(
-                            Icons.Default.ArrowDropDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            Icons.Default.Edit,
+                            contentDescription = stringResource(Res.string.button_edit),
+                            tint = MaterialTheme.colorScheme.tertiary
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Pickup Time
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable(enabled = isEditing) { /* Open time picker */ },
-                color = if (isEditing) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
-                border = BorderStroke(
-                    1.dp,
-                    if (isEditing) MaterialTheme.colorScheme.primary else Color.Transparent
+            if (isEditing) {
+                ModernTextField(
+                    value = pickupTime,
+                    onValueChange = onPickupTimeChange,
+                    label = stringResource(Res.string.label_pickup_time),
+                    leadingIcon = Icons.Default.DateRange,
+                    enabled = true,
+                    isValid = pickupTime.isNotEmpty()
                 )
-            ) {
-                Row(
+            } else {
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .clip(RoundedCornerShape(12.dp)),
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -826,12 +867,73 @@ private fun DeliveryPreferencesCard(
                             )
                         }
                     }
-                    if (isEditing) {
-                        Icon(
-                            Icons.Default.DateRange,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Selbstabholer toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(Res.string.label_self_pickup),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(Res.string.label_self_pickup_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = isSelfPickup,
+                    onCheckedChange = onSelfPickupToggle,
+                    enabled = isEditing,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.surface,
+                        checkedTrackColor = MaterialTheme.colorScheme.tertiary
+                    )
+                )
+            }
+
+            // Save and Cancel Buttons (only show when editing)
+            if (isEditing) {
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onCancelClick,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    ) {
+                        Text(stringResource(Res.string.button_cancel))
+                    }
+
+                    Button(
+                        onClick = onSaveClick,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(Res.string.button_save))
                     }
                 }
             }

@@ -27,11 +27,20 @@ fun NavGraphBuilder.commonNavGraph(
 ) {
     // Home/Main Screen
     composable(NavRoutes.Home.route) {
+        val profile = appState.customerProfile.profile
+        val isSelfPickup = profile?.isSelfPickup ?: false
+        val isProfileIncomplete = appState.isDemoMode && (
+            profile?.displayName.isNullOrBlank() ||
+            profile?.defaultPickUpTime.isNullOrBlank() ||
+            (!isSelfPickup && (profile?.street.isNullOrBlank() || profile?.houseNumber.isNullOrBlank()))
+        )
+
         MainScreenModern(
             state = appState.mainScreen,
             onAction = onAction,
             isDemoMode = appState.isDemoMode,
             demoOrderCount = appState.demoOrderCount,
+            isProfileIncomplete = isProfileIncomplete,
             onNavigateToProfile = { navController.navigate(NavRoutes.Buy.Profile.route) },
             onNavigateToProductDetail = { articleId ->
                 navController.navigate(NavRoutes.Buy.ProductDetail.createRoute(articleId))

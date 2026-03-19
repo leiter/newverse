@@ -8,7 +8,9 @@ import com.together.newverse.domain.model.BuyerProfile
 data class ProfileFormData(
     val displayName: String = "",
     val email: String = "",
-    val phone: String = ""
+    val phone: String = "",
+    val street: String = "",
+    val houseNumber: String = ""
 ) {
     companion object {
         /**
@@ -17,7 +19,9 @@ data class ProfileFormData(
         fun fromProfile(profile: BuyerProfile): ProfileFormData = ProfileFormData(
             displayName = profile.displayName,
             email = profile.emailAddress,
-            phone = profile.telephoneNumber
+            phone = profile.telephoneNumber,
+            street = profile.street,
+            houseNumber = profile.houseNumber
         )
     }
 }

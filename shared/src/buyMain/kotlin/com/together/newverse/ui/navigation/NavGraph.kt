@@ -120,7 +120,8 @@ fun NavGraph(
                 isRequestingAccess = appState.isRequestingAccess,
                 pendingInvitations = appState.pendingInvitations,
                 showConnectionConfirmDialog = appState.showConnectionConfirmDialog,
-                onScanQrCode = { onPlatformAction(PlatformAction.ScanQrCode) }
+                onScanQrCode = { onPlatformAction(PlatformAction.ScanQrCode) },
+                showProfileIncompleteDialog = appState.showProfileIncompleteDialog
             )
         }
 

@@ -33,6 +33,8 @@ internal fun BuyAppViewModel.handleSellerAction(action: BuySellerAction) {
         is BuySellerAction.ConfirmConnection -> confirmConnection()
         is BuySellerAction.DismissConnectionDialog -> dismissConnectionDialog()
         is BuySellerAction.RequestAccess -> requestAccess()
+        is BuySellerAction.DismissProfileIncompleteDialog -> dismissProfileIncompleteDialog()
+        is BuySellerAction.RetryPendingConnection -> retryPendingConnection()
     }
 }
 

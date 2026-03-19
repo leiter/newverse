@@ -136,6 +136,8 @@ sealed interface BuySellerAction : BuyAction {
     data object ConfirmConnection : BuySellerAction
     data object DismissConnectionDialog : BuySellerAction
     data object RequestAccess : BuySellerAction
+    data object DismissProfileIncompleteDialog : BuySellerAction
+    data object RetryPendingConnection : BuySellerAction
 }
 
 // ===== Messaging Actions =====

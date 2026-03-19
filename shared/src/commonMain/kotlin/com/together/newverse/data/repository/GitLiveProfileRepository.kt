@@ -443,7 +443,10 @@ class GitLiveProfileRepository(
                     placedOrderIds = (value["placedOrderIds"] as? Map<String, String>) ?: emptyMap(),
                     favouriteArticles = (value["favouriteArticles"] as? List<String>) ?: emptyList(),
                     draftBasket = draftBasket,
-                    buyerUUID = uuid
+                    buyerUUID = uuid,
+                    street = value["street"] as? String ?: "",
+                    houseNumber = value["houseNumber"] as? String ?: "",
+                    isSelfPickup = value["isSelfPickup"] as? Boolean ?: false
                 )
             }
             else -> createDefaultBuyerProfile(userId)
@@ -552,7 +555,10 @@ class GitLiveProfileRepository(
             "placedOrderIds" to profile.placedOrderIds,
             "favouriteArticles" to profile.favouriteArticles,
             "draftBasket" to profile.draftBasket?.let { draftBasketToMap(it) },
-            "buyerUUID" to profile.buyerUUID.ifEmpty { null }
+            "buyerUUID" to profile.buyerUUID.ifEmpty { null },
+            "street" to profile.street,
+            "houseNumber" to profile.houseNumber,
+            "isSelfPickup" to profile.isSelfPickup
         )
     }
 
