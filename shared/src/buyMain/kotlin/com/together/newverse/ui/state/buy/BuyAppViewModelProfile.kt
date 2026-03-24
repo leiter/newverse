@@ -107,6 +107,24 @@ internal fun BuyAppViewModel.loadOrderHistory() {
         }
 
         try {
+            // In demo mode, load orders from local storage instead of Firebase
+            if (_state.value.isDemoMode) {
+                val demoOrders = sellerConfig.loadDemoOrders().map { order ->
+                    order.transitionStatusIfNeeded() ?: order
+                }
+                println("✅ BuyAppViewModel.loadOrderHistory: Loaded ${demoOrders.size} demo orders from local storage")
+                _state.update { current ->
+                    current.copy(
+                        orderHistory = current.orderHistory.copy(
+                            isLoading = false,
+                            items = demoOrders,
+                            error = null
+                        )
+                    )
+                }
+                return@launch
+            }
+
             // Get profile from state, or fetch it if not available
             var profile = _state.value.customerProfile.profile
             if (profile == null) {

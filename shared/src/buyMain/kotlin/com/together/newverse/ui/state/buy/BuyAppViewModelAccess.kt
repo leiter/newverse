@@ -78,7 +78,12 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
             .catch { e -> println("[NV_Access] observeAccessStatus error (permission?): ${e.message}") }
             .collect { status ->
                 println("[NV_Access] observeAccessStatus: status=$status uuid=$uuid")
+                val wasDemoMode = _state.value.isDemoMode
                 _state.update { it.copy(accessStatus = status, isAccessStatusLoaded = true) }
+                // Clean up demo orders when access is approved
+                if (wasDemoMode && status == AccessStatus.APPROVED) {
+                    sellerConfig.clearDemoOrders()
+                }
             }
     }
 }

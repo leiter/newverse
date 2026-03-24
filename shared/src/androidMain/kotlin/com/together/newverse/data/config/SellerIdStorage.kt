@@ -22,16 +22,20 @@ actual class SellerIdStorage(context: Context) {
         prefs.edit().remove(KEY_CONNECTED_SELLER_ID).apply()
     }
 
-    actual fun getDemoOrderCount(): Int =
-        prefs.getInt(KEY_DEMO_ORDER_COUNT, 0)
+    actual fun getDemoOrders(): String =
+        prefs.getString(KEY_DEMO_ORDERS, "") ?: ""
 
-    actual fun incrementDemoOrderCount() {
-        prefs.edit().putInt(KEY_DEMO_ORDER_COUNT, getDemoOrderCount() + 1).apply()
+    actual fun setDemoOrders(json: String) {
+        prefs.edit().putString(KEY_DEMO_ORDERS, json).apply()
+    }
+
+    actual fun clearDemoOrders() {
+        prefs.edit().remove(KEY_DEMO_ORDERS).apply()
     }
 
     companion object {
         private const val PREFS_FILE = "newverse_seller_config"
         private const val KEY_CONNECTED_SELLER_ID = "connected_seller_id"
-        private const val KEY_DEMO_ORDER_COUNT = "demo_order_count"
+        private const val KEY_DEMO_ORDERS = "demo_orders"
     }
 }

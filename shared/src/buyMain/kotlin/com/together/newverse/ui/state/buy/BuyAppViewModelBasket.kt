@@ -185,8 +185,14 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 val (orderId, orderDate) = loadedOrderInfo
                 println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order already loaded - orderId=$orderId, date=$orderDate")
 
-                val orderPath = "orders/${sellerConfig.sellerId}/$orderDate/$orderId"
-                val result = orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
+                val result = if (sellerConfig.isDemoMode) {
+                    val demoOrder = sellerConfig.loadDemoOrders().find { it.id == orderId }
+                    if (demoOrder != null) Result.success(demoOrder)
+                    else Result.failure(Exception("Demo order not found"))
+                } else {
+                    val orderPath = "orders/${sellerConfig.sellerId}/$orderDate/$orderId"
+                    orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
+                }
                 result.onSuccess { loadedOrder ->
                     // Check if order is finalized
                     if (loadedOrder.status == com.together.newverse.domain.model.OrderStatus.CANCELLED ||
@@ -210,8 +216,10 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                     val pickupInstant = Instant.fromEpochMilliseconds(loadedOrder.pickUpDate)
                     if (now > pickupInstant) {
                         println("⏰ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Pickup date has passed, transitioning to COMPLETED and clearing basket")
-                        // Update Firebase with COMPLETED status
-                        orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, com.together.newverse.domain.model.OrderStatus.COMPLETED)
+                        // Update Firebase with COMPLETED status (skip in demo mode)
+                        if (!sellerConfig.isDemoMode) {
+                            orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, com.together.newverse.domain.model.OrderStatus.COMPLETED)
+                        }
                         basketRepository.clearBasket()
                         // Clear basket state
                         _state.update { current ->
@@ -228,8 +236,10 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                     // Apply status transition if needed (PLACED->LOCKED)
                     val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
                         println("🔄 basketScreenLoadMostRecentEditableOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
-                        // Update Firebase with new status
-                        orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, updatedOrder.status)
+                        // Update Firebase with new status (skip in demo mode)
+                        if (!sellerConfig.isDemoMode) {
+                            orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, updatedOrder.status)
+                        }
 
                         // If transitioned to COMPLETED, clear basket
                         if (updatedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
@@ -280,6 +290,19 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                             )
                         )
                     }
+                }
+                return@launch
+            }
+
+            // In demo mode, find the most recent editable order from local storage
+            if (sellerConfig.isDemoMode) {
+                val demoOrder = sellerConfig.loadDemoOrders()
+                    .firstOrNull { it.canEdit() }
+                if (demoOrder != null) {
+                    val dateKey = basketScreenFormatDateKey(demoOrder.pickUpDate)
+                    basketScreenLoadOrder(demoOrder.id, dateKey)
+                } else {
+                    println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: No editable demo orders")
                 }
                 return@launch
             }
@@ -473,19 +496,6 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 isDemoOrder = _state.value.isDemoMode
             )
 
-            // In demo mode, check limit before placing order
-            if (_state.value.isDemoMode && sellerConfig.getDemoOrderCount() >= 2) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCheckingOut = false,
-                            orderError = "Demo-Limit erreicht. Bitte Zugang anfragen."
-                        )
-                    )
-                }
-                return@launch
-            }
-
             // In demo mode, simulate a local order without writing to Firebase
             // (demo users don't have write permission)
             val result = if (_state.value.isDemoMode) {
@@ -495,10 +505,10 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 orderRepository.placeOrder(order)
             }
             result.onSuccess { placedOrder ->
-                // Increment demo order counter
+                // Persist demo order locally
                 if (_state.value.isDemoMode) {
-                    sellerConfig.incrementDemoOrderCount()
-                    _state.update { it.copy(demoOrderCount = sellerConfig.getDemoOrderCount()) }
+                    sellerConfig.saveDemoOrder(placedOrder)
+                    loadOrderHistory()
                 }
                 // Clear draft basket — skip Firebase profile write in demo mode
                 try {
@@ -512,9 +522,7 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 }
 
                 val placedDateKey = basketScreenFormatDateKey(placedOrder.pickUpDate)
-                if (!_state.value.isDemoMode) {
-                    basketScreenLoadOrder(placedOrder.id, placedDateKey, forceLoad = true)
-                }
+                basketScreenLoadOrder(placedOrder.id, placedDateKey, forceLoad = true)
 
                 _state.update { current ->
                     current.copy(
@@ -578,16 +586,24 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
         }
 
         try {
-            val orderPath = "orders/${sellerConfig.sellerId}/$date/$orderId"
-            val result = orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
+            val result = if (sellerConfig.isDemoMode) {
+                val demoOrder = sellerConfig.loadDemoOrders().find { it.id == orderId }
+                if (demoOrder != null) Result.success(demoOrder)
+                else Result.failure(Exception("Demo order not found"))
+            } else {
+                val orderPath = "orders/${sellerConfig.sellerId}/$date/$orderId"
+                orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
+            }
 
             result.onSuccess { loadedOrder ->
                 // Apply status transition if needed (PLACED->LOCKED or LOCKED->COMPLETED)
                 val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
                     println("🔄 basketScreenLoadOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
-                    // Update Firebase with new status
-                    viewModelScope.launch {
-                        orderRepository.updateOrderStatus(sellerConfig.sellerId, date, orderId, updatedOrder.status)
+                    // Update Firebase with new status (skip in demo mode)
+                    if (!sellerConfig.isDemoMode) {
+                        viewModelScope.launch {
+                            orderRepository.updateOrderStatus(sellerConfig.sellerId, date, orderId, updatedOrder.status)
+                        }
                     }
                     updatedOrder
                 } ?: loadedOrder
@@ -758,7 +774,13 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                 articles = items
             )
 
-            val result = orderRepository.updateOrder(updatedOrder)
+            val result = if (_state.value.isDemoMode) {
+                sellerConfig.updateDemoOrder(updatedOrder)
+                loadOrderHistory()
+                Result.success(Unit)
+            } else {
+                orderRepository.updateOrder(updatedOrder)
+            }
             result.onSuccess {
                 val currentItems = _state.value.basketScreen.items
                 _state.update { current ->

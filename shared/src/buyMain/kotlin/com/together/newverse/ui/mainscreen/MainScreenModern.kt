@@ -61,7 +61,6 @@ fun MainScreenModern(
     state: MainScreenState,
     onAction: (BuyAction) -> Unit,
     isDemoMode: Boolean = false,
-    demoOrderCount: Int = 0,
     isProfileIncomplete: Boolean = false,
     onNavigateToProfile: () -> Unit = {},
     onNavigateToProductDetail: (String) -> Unit = {}
@@ -70,7 +69,6 @@ fun MainScreenModern(
         state = state,
         onAction = onAction,
         isDemoMode = isDemoMode,
-        demoOrderCount = demoOrderCount,
         isProfileIncomplete = isProfileIncomplete,
         onNavigateToProfile = onNavigateToProfile,
         onNavigateToProductDetail = onNavigateToProductDetail,
@@ -79,7 +77,6 @@ fun MainScreenModern(
 
 @Composable
 private fun DemoModeBanner(
-    demoOrdersRemaining: Int,
     isProfileIncomplete: Boolean,
     onRequestAccessClick: () -> Unit
 ) {
@@ -105,7 +102,7 @@ private fun DemoModeBanner(
                 text = if (isProfileIncomplete) {
                     stringResource(Res.string.demo_banner_profile_incomplete)
                 } else {
-                    stringResource(Res.string.demo_mode_banner_message, demoOrdersRemaining)
+                    stringResource(Res.string.demo_mode_banner_message)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -130,7 +127,6 @@ private fun MainScreenModernContent(
     state: MainScreenState,
     onAction: (BuyAction) -> Unit,
     isDemoMode: Boolean,
-    demoOrderCount: Int,
     isProfileIncomplete: Boolean,
     onNavigateToProfile: () -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
@@ -167,7 +163,6 @@ private fun MainScreenModernContent(
             Column(modifier = Modifier.fillMaxSize()) {
             if (isDemoMode) {
                 DemoModeBanner(
-                    demoOrdersRemaining = 2 - demoOrderCount,
                     isProfileIncomplete = isProfileIncomplete,
                     onRequestAccessClick = onNavigateToProfile
                 )

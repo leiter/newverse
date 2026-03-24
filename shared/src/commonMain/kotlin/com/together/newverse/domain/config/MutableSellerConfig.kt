@@ -1,5 +1,7 @@
 package com.together.newverse.domain.config
 
+import com.together.newverse.domain.model.Order
+
 /**
  * Mutable seller configuration for the buyer app.
  * Allows changing the connected seller at runtime (e.g., via QR code scan or manual input).
@@ -17,9 +19,15 @@ interface MutableSellerConfig : SellerConfig {
     /** Reset to the demo seller. */
     fun resetToDemo()
 
-    /** Get the number of demo orders placed. */
-    fun getDemoOrderCount(): Int
+    /** Persist a demo order to local storage. */
+    fun saveDemoOrder(order: Order)
 
-    /** Increment the demo order counter after a successful demo order. */
-    fun incrementDemoOrderCount()
+    /** Update an existing demo order in local storage (matched by ID). */
+    fun updateDemoOrder(order: Order)
+
+    /** Load all persisted demo orders from local storage. */
+    fun loadDemoOrders(): List<Order>
+
+    /** Clear all persisted demo orders. */
+    fun clearDemoOrders()
 }

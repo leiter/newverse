@@ -1,6 +1,7 @@
 package com.together.newverse.test
 
 import com.together.newverse.domain.config.MutableSellerConfig
+import com.together.newverse.domain.model.Order
 
 /**
  * Fake implementation of MutableSellerConfig for testing.
@@ -25,16 +26,25 @@ class FakeSellerConfig(
         _sellerId = demoSellerId
     }
 
-    private var _demoOrderCount: Int = 0
+    private val _demoOrders = mutableListOf<Order>()
 
-    override fun getDemoOrderCount(): Int = _demoOrderCount
+    override fun saveDemoOrder(order: Order) {
+        _demoOrders.add(order)
+    }
 
-    override fun incrementDemoOrderCount() {
-        _demoOrderCount++
+    override fun updateDemoOrder(order: Order) {
+        val index = _demoOrders.indexOfFirst { it.id == order.id }
+        if (index >= 0) _demoOrders[index] = order
+    }
+
+    override fun loadDemoOrders(): List<Order> = _demoOrders.toList()
+
+    override fun clearDemoOrders() {
+        _demoOrders.clear()
     }
 
     fun reset() {
         _sellerId = demoSellerId
-        _demoOrderCount = 0
+        _demoOrders.clear()
     }
 }

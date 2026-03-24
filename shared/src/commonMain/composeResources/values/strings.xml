@@ -655,7 +655,7 @@
     <string name="contacts_remove_confirm">Moechten Sie diesen Kontakt wirklich entfernen?</string>
 
     <!-- Demo Mode -->
-    <string name="demo_mode_banner_message">Demo-Modus — %1$d von 2 Probebestellungen übrig</string>
+    <string name="demo_mode_banner_message">Demo-Modus — Zugang anfragen um alle Funktionen freizuschalten</string>
     <string name="demo_mode_banner_action">Zugang anfragen</string>
     <string name="demo_limit_reached">Demo-Limit erreicht. Bitte Zugang anfragen.</string>
     <string name="demo_orders_clear_button">Demo-Bestellungen löschen (&gt; 1 Monat)</string>

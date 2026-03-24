@@ -751,6 +751,11 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             // Start observing access status if we have a stored UUID
             startObservingAccessStatus()
 
+            // Load persisted demo orders on startup
+            if (sellerConfig.isDemoMode) {
+                loadOrderHistory()
+            }
+
             // Mark initialization complete
             _state.update { current ->
                 current.copy(

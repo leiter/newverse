@@ -603,7 +603,7 @@
     <string name="contacts_remove_confirm">Are you sure you want to remove this contact?</string>
 
     <!-- Demo Mode -->
-    <string name="demo_mode_banner_message">Demo mode — %1$d of 2 trial orders remaining</string>
+    <string name="demo_mode_banner_message">Demo mode — request access to unlock all features</string>
     <string name="demo_mode_banner_action">Request Access</string>
     <string name="demo_limit_reached">Demo limit reached. Please request access.</string>
     <string name="demo_orders_clear_button">Clear demo orders (&gt; 1 month)</string>
