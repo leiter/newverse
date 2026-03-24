@@ -319,7 +319,7 @@ class GitLiveProfileRepository(
             sellerProfileCache[sellerId]?.let { cached ->
                 sellerProfileCache[sellerId] = cached.copy(
                     knownClientIds = cached.knownClientIds - buyerId,
-                    blockedClientIds = cached.blockedClientIds + buyerId
+                    blockedClientIds = cached.blockedClientIds + (buyerId to "")
                 )
             }
             Result.success(Unit)
@@ -522,8 +522,8 @@ class GitLiveProfileRepository(
                     markets = markets,
                     urls = (value["urls"] as? List<String>) ?: emptyList(),
                     knownClientIds = parseClientIds(value["knownClientIds"]),
-                    blockedClientIds = parseClientIds(value["blockedClientIds"]),
-                    approvedBuyerIds = parseClientIds(value["approvedBuyerIds"])
+                    blockedClientIds = parseClientMap(value["blockedClientIds"]),
+                    approvedBuyerIds = parseClientMap(value["approvedBuyerIds"])
                 )
             }
             else -> createMockSellerProfile(sellerId)
@@ -539,6 +539,25 @@ class GitLiveProfileRepository(
             is List<*> -> data.filterIsInstance<String>()
             is Map<*, *> -> data.keys.filterIsInstance<String>()
             else -> emptyList()
+        }
+    }
+
+    /**
+     * Parse client map from Firebase.
+     * Returns uuid → displayName. Legacy `true` values map to empty string.
+     */
+    private fun parseClientMap(data: Any?): Map<String, String> {
+        return when (data) {
+            is Map<*, *> -> data.entries.associate { (key, value) ->
+                val uuid = key as? String ?: ""
+                val name = when (value) {
+                    is String -> if (value == "true") "" else value
+                    else -> ""
+                }
+                uuid to name
+            }.filterKeys { it.isNotEmpty() }
+            is List<*> -> data.filterIsInstance<String>().associateWith { "" }
+            else -> emptyMap()
         }
     }
 
@@ -614,8 +633,8 @@ class GitLiveProfileRepository(
             "markets" to marketsData,
             "urls" to profile.urls,
             "knownClientIds" to profile.knownClientIds.associateWith { true },
-            "blockedClientIds" to profile.blockedClientIds.associateWith { true },
-            "approvedBuyerIds" to profile.approvedBuyerIds.associateWith { true }
+            "blockedClientIds" to profile.blockedClientIds.mapValues { (_, name) -> if (name.isBlank()) true as Any else name as Any },
+            "approvedBuyerIds" to profile.approvedBuyerIds.mapValues { (_, name) -> if (name.isBlank()) true as Any else name as Any }
         )
     }
 
@@ -735,16 +754,20 @@ class GitLiveProfileRepository(
                 "buyerUUID" to buyerUUID
             ))
             accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
+            // Carry display name from approved list to blocked list
+            val displayName = sellerProfileCache[sellerId]?.approvedBuyerIds?.get(buyerUUID) ?: ""
             sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).removeValue()
-            sellersRef.child(sellerId).child("blockedClientIds").child(buyerUUID).setValue(true)
+            sellersRef.child(sellerId).child("blockedClientIds").child(buyerUUID)
+                .setValue((if (displayName.isBlank()) true else displayName) as Any)
             // Update cache
             sellerProfileCache[sellerId]?.let { cached ->
                 sellerProfileCache[sellerId] = cached.copy(
                     approvedBuyerIds = cached.approvedBuyerIds - buyerUUID,
-                    blockedClientIds = cached.blockedClientIds + buyerUUID
+                    blockedClientIds = cached.blockedClientIds + (buyerUUID to displayName)
                 )
             }
             println("✅ GitLiveProfileRepository.blockBuyer: blocked uuid=$buyerUUID")
+
             Result.success(Unit)
         } catch (e: Exception) {
             println("❌ GitLiveProfileRepository.blockBuyer: Error - ${e.message}")
@@ -762,12 +785,13 @@ class GitLiveProfileRepository(
                 "displayName" to displayName
             ))
             accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
-            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue(true)
+            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID)
+                .setValue((if (displayName.isBlank()) true else displayName) as Any)
             // Update cache
             sellerProfileCache[sellerId]?.let { cached ->
                 if (buyerUUID !in cached.approvedBuyerIds) {
                     sellerProfileCache[sellerId] = cached.copy(
-                        approvedBuyerIds = cached.approvedBuyerIds + buyerUUID
+                        approvedBuyerIds = cached.approvedBuyerIds + (buyerUUID to displayName)
                     )
                 }
             }
@@ -779,10 +803,30 @@ class GitLiveProfileRepository(
         }
     }
 
-    override fun observeApprovedBuyerIds(sellerId: String): Flow<List<String>> {
+    override suspend fun updateApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
+        return try {
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("displayName").setValue(displayName)
+            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue((if (displayName.isBlank()) true else displayName) as Any)
+            // Update cache
+            sellerProfileCache[sellerId]?.let { cached ->
+                if (buyerUUID in cached.approvedBuyerIds) {
+                    sellerProfileCache[sellerId] = cached.copy(
+                        approvedBuyerIds = cached.approvedBuyerIds + (buyerUUID to displayName)
+                    )
+                }
+            }
+            println("✅ GitLiveProfileRepository.updateApprovedBuyerDisplayName: updated uuid=$buyerUUID name=$displayName")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.updateApprovedBuyerDisplayName: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>> {
         return sellersRef.child(sellerId).child("approvedBuyerIds").valueEvents.map { snapshot ->
-            if (!snapshot.exists) return@map emptyList()
-            parseClientIds(snapshot.value)
+            if (!snapshot.exists) return@map emptyMap()
+            parseClientMap(snapshot.value)
         }
     }
 
@@ -794,13 +838,17 @@ class GitLiveProfileRepository(
                 "updatedAt" to now,
                 "buyerUUID" to buyerUUID
             ))
+            // Carry display name from blocked list back to approved list
+            val displayName = sellerProfileCache[sellerId]?.blockedClientIds?.get(buyerUUID) ?: ""
             sellersRef.child(sellerId).child("blockedClientIds").child(buyerUUID).removeValue()
-            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue(true)
+            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID)
+                .setValue((if (displayName.isBlank()) true else displayName) as Any)
             // Update cache
             sellerProfileCache[sellerId]?.let { cached ->
+                val name = cached.blockedClientIds[buyerUUID] ?: ""
                 sellerProfileCache[sellerId] = cached.copy(
                     blockedClientIds = cached.blockedClientIds - buyerUUID,
-                    approvedBuyerIds = cached.approvedBuyerIds + buyerUUID
+                    approvedBuyerIds = cached.approvedBuyerIds + (buyerUUID to name)
                 )
             }
             println("✅ GitLiveProfileRepository.unblockApprovedBuyer: unblocked uuid=$buyerUUID")

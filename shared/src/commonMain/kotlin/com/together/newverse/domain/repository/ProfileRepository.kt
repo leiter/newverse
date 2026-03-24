@@ -159,8 +159,14 @@ interface ProfileRepository {
     suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit>
 
     /**
-     * Observe the approved buyer IDs for a seller in real-time.
-     * Emits the current list immediately and updates on any change.
+     * Update the display name of an approved buyer in both buyer_access_status and approvedBuyerIds.
+     * Used when a QR-pre-approved buyer connects and their real name becomes available.
      */
-    fun observeApprovedBuyerIds(sellerId: String): Flow<List<String>>
+    suspend fun updateApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit>
+
+    /**
+     * Observe the approved buyer IDs for a seller in real-time.
+     * Emits a map of buyerUUID to displayName. Empty string means name is unknown (legacy data).
+     */
+    fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>>
 }

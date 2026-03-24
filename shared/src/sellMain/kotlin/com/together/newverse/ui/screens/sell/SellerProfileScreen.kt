@@ -21,6 +21,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.AccessRequest
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.SellerProfile
@@ -235,7 +236,7 @@ fun SellerProfileScreen(
                     }
 
                     // Connected Customers Card
-                    if (customerState.allClientIds.isNotEmpty()) {
+                    if (customerState.knownClientIds.isNotEmpty()) {
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(
                                 modifier = Modifier
@@ -257,14 +258,6 @@ fun SellerProfileScreen(
                                     )
                                 }
 
-                                customerState.blockedClientIds.forEach { buyerId ->
-                                    CustomerListItem(
-                                        buyerId = buyerId,
-                                        isBlocked = true,
-                                        onBlock = {},
-                                        onUnblock = { onUnblockApprovedBuyer(buyerId) }
-                                    )
-                                }
                             }
                         }
                     }
@@ -284,10 +277,26 @@ fun SellerProfileScreen(
                     )
 
                     // Approved Buyers Card
-                    ApprovedBuyersCard(
-                        approvedBuyerIds = customerState.approvedBuyerIds,
-                        onBlock = onBlockApprovedBuyer
+                    BuyerListCard(
+                        title = "Approved Buyers",
+                        buyers = customerState.approvedBuyers,
+                        emptyText = "No approved buyers yet",
+                        actionLabel = "Block",
+                        actionColor = MaterialTheme.colorScheme.error,
+                        onAction = onBlockApprovedBuyer
                     )
+
+                    // Blocked Buyers Card
+                    if (customerState.blockedBuyers.isNotEmpty()) {
+                        BuyerListCard(
+                            title = "Blocked Buyers",
+                            buyers = customerState.blockedBuyers,
+                            emptyText = "",
+                            actionLabel = stringResource(Res.string.customer_management_unblock),
+                            actionColor = MaterialTheme.colorScheme.primary,
+                            onAction = onUnblockApprovedBuyer
+                        )
+                    }
 
                     // Notification Settings
                     OutlinedCard(
@@ -403,6 +412,7 @@ private fun MarketListItem(
 @Composable
 private fun CustomerListItem(
     buyerId: String,
+    displayName: String = "",
     isBlocked: Boolean,
     onBlock: () -> Unit,
     onUnblock: () -> Unit
@@ -426,7 +436,7 @@ private fun CustomerListItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = buyerId,
+                    text = displayName.ifBlank { buyerId.take(16) + "\u2026" },
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1
                 )
@@ -1064,9 +1074,13 @@ private fun AccessRequestsCard(
 }
 
 @Composable
-private fun ApprovedBuyersCard(
-    approvedBuyerIds: List<String>,
-    onBlock: (String) -> Unit
+private fun BuyerListCard(
+    title: String,
+    buyers: List<BuyerEntry>,
+    emptyText: String,
+    actionLabel: String,
+    actionColor: androidx.compose.ui.graphics.Color,
+    onAction: (String) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -1076,46 +1090,76 @@ private fun ApprovedBuyersCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Approved Buyers (${approvedBuyerIds.size})",
+                text = "$title (${buyers.size})",
                 style = MaterialTheme.typography.titleMedium
             )
-            if (approvedBuyerIds.isEmpty()) {
+            if (buyers.isEmpty()) {
                 Text(
-                    text = "No approved buyers yet",
+                    text = emptyText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                approvedBuyerIds.forEach { buyerUUID ->
-                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = buyerUUID.take(16) + "…",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    text = "Approved",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            TextButton(onClick = { onBlock(buyerUUID) }) {
-                                Text(
-                                    text = "Block",
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                    }
+                buyers.forEach { entry ->
+                    BuyerListItem(
+                        entry = entry,
+                        actionLabel = actionLabel,
+                        actionColor = actionColor,
+                        onAction = { onAction(entry.id) }
+                    )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BuyerListItem(
+    entry: BuyerEntry,
+    actionLabel: String,
+    actionColor: androidx.compose.ui.graphics.Color,
+    onAction: () -> Unit
+) {
+    val statusColor = when (entry.status) {
+        AccessStatus.APPROVED -> MaterialTheme.colorScheme.primary
+        AccessStatus.BLOCKED -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val statusLabel = when (entry.status) {
+        AccessStatus.APPROVED -> "Approved"
+        AccessStatus.BLOCKED -> "Blocked"
+        AccessStatus.PENDING -> "Pending"
+        AccessStatus.NONE -> "None"
+    }
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.displayName.ifBlank { entry.id.take(16) + "\u2026" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1
+                )
+                Text(
+                    text = if (entry.displayName.isNotBlank()) {
+                        "$statusLabel \u00b7 ${entry.id.take(8)}\u2026"
+                    } else {
+                        statusLabel
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = statusColor
+                )
+            }
+            TextButton(onClick = onAction) {
+                Text(
+                    text = actionLabel,
+                    color = actionColor
+                )
             }
         }
     }

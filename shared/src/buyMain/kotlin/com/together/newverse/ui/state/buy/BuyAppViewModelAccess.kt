@@ -217,11 +217,17 @@ internal fun BuyAppViewModel.connectWithToken(sellerId: String, buyerToken: Stri
         val currentStatus = profileRepository.getAccessStatus(buyerToken, sellerId)
         println("[NV_Access] connectWithToken: currentStatus=$currentStatus uuid=$buyerToken")
 
+        val displayName = _state.value.customerProfile.profile?.displayName?.takeIf { it.isNotBlank() } ?: "Guest"
+
         if (currentStatus == AccessStatus.NONE) {
-            val displayName = _state.value.customerProfile.profile?.displayName?.takeIf { it.isNotBlank() } ?: "Guest"
             profileRepository.submitAccessRequest(sellerId, buyerToken, displayName)
                 .onSuccess { println("[NV_Access] connectWithToken: Access request submitted") }
                 .onFailure { e -> println("[NV_Access] connectWithToken: Failed to submit request - ${e.message}") }
+        } else if (currentStatus == AccessStatus.APPROVED) {
+            // QR pre-approval case: update display name from placeholder to real name
+            profileRepository.updateApprovedBuyerDisplayName(sellerId, buyerToken, displayName)
+                .onSuccess { println("[NV_Access] connectWithToken: Updated buyer display name") }
+                .onFailure { e -> println("[NV_Access] connectWithToken: Failed to update display name - ${e.message}") }
         }
 
         startObservingAccessStatus()

@@ -3,6 +3,7 @@ package com.together.newverse.ui.screens.sell
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.AccessRequest
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.InvitationStatus
@@ -98,9 +99,13 @@ class SellerProfileViewModel(
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             profileRepository.observeApprovedBuyerIds(sellerId)
                 .catch { e -> println("❌ SellerProfileViewModel.observeApprovedBuyers: ${e.message}") }
-                .collect { ids ->
-                    println("✅ SellerProfileViewModel.observeApprovedBuyers: ${ids.size} approved buyers")
-                    _customerState.update { it.copy(approvedBuyerIds = ids) }
+                .collect { map ->
+                    println("✅ SellerProfileViewModel.observeApprovedBuyers: ${map.size} approved buyers")
+                    _customerState.update { state ->
+                        state.copy(approvedBuyers = map.map { (id, name) ->
+                            BuyerEntry(id, name, AccessStatus.APPROVED)
+                        })
+                    }
                 }
         }
     }
@@ -126,9 +131,6 @@ class SellerProfileViewModel(
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             val displayName = _accessRequests.value.find { it.buyerUUID == buyerUUID }?.buyerDisplayName ?: ""
             profileRepository.approveAccessRequestWithTracking(sellerId, buyerUUID, displayName)
-                .onSuccess {
-                    _customerState.update { it.copy(approvedBuyerIds = it.approvedBuyerIds + buyerUUID) }
-                }
                 .onFailure { e -> println("❌ SellerProfileViewModel.approveRequest: ${e.message}") }
         }
     }
@@ -144,12 +146,17 @@ class SellerProfileViewModel(
     fun blockApprovedBuyer(buyerUUID: String) {
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            // Grab display name before the repo call removes the entry
+            val displayName = _customerState.value.approvedBuyers
+                .find { it.id == buyerUUID }?.displayName ?: ""
             profileRepository.blockBuyer(sellerId, buyerUUID)
                 .onSuccess {
-                    _customerState.update {
-                        it.copy(
-                            approvedBuyerIds = it.approvedBuyerIds - buyerUUID,
-                            blockedClientIds = it.blockedClientIds + buyerUUID
+                    // Only update blockedBuyers; approvedBuyers is handled by the Firebase observer
+                    _customerState.update { state ->
+                        state.copy(
+                            blockedBuyers = state.blockedBuyers + BuyerEntry(
+                                buyerUUID, displayName, AccessStatus.BLOCKED
+                            )
                         )
                     }
                 }
@@ -162,10 +169,10 @@ class SellerProfileViewModel(
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             profileRepository.unblockApprovedBuyer(sellerId, buyerUUID)
                 .onSuccess {
-                    _customerState.update {
-                        it.copy(
-                            blockedClientIds = it.blockedClientIds - buyerUUID,
-                            approvedBuyerIds = it.approvedBuyerIds + buyerUUID
+                    // Only update blockedBuyers; approvedBuyers is handled by the Firebase observer
+                    _customerState.update { state ->
+                        state.copy(
+                            blockedBuyers = state.blockedBuyers.filter { it.id != buyerUUID }
                         )
                     }
                 }
@@ -192,8 +199,12 @@ class SellerProfileViewModel(
                     _profileState.value = AsyncState.Success(profile)
                     _customerState.value = CustomerManagementState(
                         knownClientIds = profile.knownClientIds,
-                        blockedClientIds = profile.blockedClientIds,
-                        approvedBuyerIds = profile.approvedBuyerIds
+                        blockedBuyers = profile.blockedClientIds.map { (id, name) ->
+                            BuyerEntry(id, name, AccessStatus.BLOCKED)
+                        },
+                        approvedBuyers = profile.approvedBuyerIds.map { (id, name) ->
+                            BuyerEntry(id, name, AccessStatus.APPROVED)
+                        }
                     )
                 },
                 onFailure = { e ->
@@ -312,7 +323,7 @@ class SellerProfileViewModel(
                 _customerState.update {
                     it.copy(
                         knownClientIds = it.knownClientIds - buyerId,
-                        blockedClientIds = it.blockedClientIds + buyerId
+                        blockedBuyers = it.blockedBuyers + BuyerEntry(buyerId, "", AccessStatus.BLOCKED)
                     )
                 }
             }
@@ -325,7 +336,7 @@ class SellerProfileViewModel(
             profileRepository.unblockClient(sellerId, buyerId).onSuccess {
                 _customerState.update {
                     it.copy(
-                        blockedClientIds = it.blockedClientIds - buyerId,
+                        blockedBuyers = it.blockedBuyers.filter { b -> b.id != buyerId },
                         knownClientIds = it.knownClientIds + buyerId
                     )
                 }
@@ -443,15 +454,24 @@ data class ProfileDialogState(
 )
 
 /**
+ * A buyer entry with id, display name, and access status.
+ */
+data class BuyerEntry(
+    val id: String,
+    val displayName: String,
+    val status: AccessStatus
+)
+
+/**
  * Customer management state for the seller profile screen
  */
 data class CustomerManagementState(
     val knownClientIds: List<String> = emptyList(),
-    val blockedClientIds: List<String> = emptyList(),
-    val approvedBuyerIds: List<String> = emptyList()
+    val approvedBuyers: List<BuyerEntry> = emptyList(),
+    val blockedBuyers: List<BuyerEntry> = emptyList()
 ) {
     val allClientIds: List<String>
-        get() = knownClientIds + blockedClientIds
+        get() = knownClientIds + blockedBuyers.map { it.id }
 }
 
 /**

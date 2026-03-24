@@ -221,28 +221,33 @@ class FakeProfileRepository : ProfileRepository {
     override suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
         _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.BLOCKED
         _accessRequests.value = _accessRequests.value.filter { it.buyerUUID != buyerUUID }
-        approvedBuyers.getOrPut(sellerId) { mutableSetOf() }.remove(buyerUUID)
+        approvedBuyers.getOrPut(sellerId) { mutableMapOf() }.remove(buyerUUID)
         blockedClients.getOrPut(sellerId) { mutableSetOf() }.add(buyerUUID)
         return Result.success(Unit)
     }
 
-    private val approvedBuyers = mutableMapOf<String, MutableSet<String>>()
+    private val approvedBuyers = mutableMapOf<String, MutableMap<String, String>>()
 
     override suspend fun approveAccessRequestWithTracking(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
         _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.APPROVED
         _accessRequests.value = _accessRequests.value.filter { it.buyerUUID != buyerUUID }
-        approvedBuyers.getOrPut(sellerId) { mutableSetOf() }.add(buyerUUID)
+        approvedBuyers.getOrPut(sellerId) { mutableMapOf() }[buyerUUID] = displayName
         return Result.success(Unit)
     }
 
     override suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
         _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.APPROVED
         blockedClients[sellerId]?.remove(buyerUUID)
-        approvedBuyers.getOrPut(sellerId) { mutableSetOf() }.add(buyerUUID)
+        approvedBuyers.getOrPut(sellerId) { mutableMapOf() }[buyerUUID] = ""
         return Result.success(Unit)
     }
 
-    override fun observeApprovedBuyerIds(sellerId: String): Flow<List<String>> {
-        return flowOf(approvedBuyers[sellerId]?.toList() ?: emptyList())
+    override suspend fun updateApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
+        approvedBuyers[sellerId]?.put(buyerUUID, displayName)
+        return Result.success(Unit)
+    }
+
+    override fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>> {
+        return flowOf(approvedBuyers[sellerId]?.toMap() ?: emptyMap())
     }
 }

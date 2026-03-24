@@ -163,6 +163,9 @@ class MockProfileRepository : ProfileRepository {
     override suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit> =
         Result.success(Unit)
 
-    override fun observeApprovedBuyerIds(sellerId: String): Flow<List<String>> =
-        flowOf(emptyList())
+    override suspend fun updateApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> =
+        Result.success(Unit)
+
+    override fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>> =
+        flowOf(emptyMap())
 }
