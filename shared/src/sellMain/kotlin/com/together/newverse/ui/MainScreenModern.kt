@@ -64,9 +64,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import com.together.newverse.domain.model.Article
 import com.together.newverse.ui.components.HeroProductCardSkeleton
 import com.together.newverse.ui.components.ProductCardSkeleton
-import com.together.newverse.domain.model.Article
 import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.SellAction
 import com.together.newverse.util.formatPrice
@@ -556,7 +556,12 @@ private fun CategoryChips(
                 onClick = { selectedCategory = category },
                 label = { Text(category) },
                 leadingIcon = if (selectedCategory == category) {
-                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp))
+                    }
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primary,
@@ -571,8 +576,8 @@ private fun CategoryChips(
 @Composable
 private fun SectionHeader(
     title: String,
-    subtitle: String? = null,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
 ) {
     Column(modifier = modifier) {
         Text(

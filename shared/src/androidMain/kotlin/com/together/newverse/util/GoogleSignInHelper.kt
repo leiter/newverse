@@ -19,7 +19,7 @@ import com.google.android.gms.tasks.Task
  */
 class GoogleSignInHelper(
     private val context: Context,
-    private val webClientId: String
+    webClientId: String
 ) {
     private val googleSignInClient: GoogleSignInClient
 
