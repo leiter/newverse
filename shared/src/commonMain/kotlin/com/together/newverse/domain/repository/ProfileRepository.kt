@@ -171,6 +171,13 @@ interface ProfileRepository {
     suspend fun updateApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit>
 
     /**
+     * Correct the display name of an approved buyer in the seller's approvedBuyerIds list.
+     * Only updates seller_profile — does not touch buyer_access_status.
+     * Called by the seller after resolving a QR-link placeholder via getBuyerDisplayName.
+     */
+    suspend fun correctApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit>
+
+    /**
      * Observe the approved buyer IDs for a seller in real-time.
      * Emits a map of buyerUUID to displayName. Empty string means name is unknown.
      */

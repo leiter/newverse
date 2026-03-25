@@ -841,6 +841,22 @@ class GitLiveProfileRepository(
         }
     }
 
+    override suspend fun correctApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
+        return try {
+            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue(displayName)
+            sellerProfileCache[sellerId]?.let { cached ->
+                sellerProfileCache[sellerId] = cached.copy(
+                    approvedBuyerIds = cached.approvedBuyerIds + (buyerUUID to displayName)
+                )
+            }
+            println("✅ GitLiveProfileRepository.correctApprovedBuyerDisplayName: uuid=$buyerUUID name=$displayName")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.correctApprovedBuyerDisplayName: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     override fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>> {
         return sellersRef.child(sellerId).child("approvedBuyerIds").valueEvents.map { snapshot ->
             if (!snapshot.exists) return@map emptyMap()
