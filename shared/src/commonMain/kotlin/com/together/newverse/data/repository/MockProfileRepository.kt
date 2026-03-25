@@ -172,5 +172,5 @@ class MockProfileRepository : ProfileRepository {
     override suspend fun cancelAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> =
         Result.success(Unit)
 
-    override suspend fun getBuyerDisplayName(buyerUUID: String): String = ""
+    override suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String = ""
 }

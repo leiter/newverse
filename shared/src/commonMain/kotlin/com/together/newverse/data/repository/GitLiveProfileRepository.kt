@@ -877,17 +877,18 @@ class GitLiveProfileRepository(
         }
     }
 
-    override suspend fun getBuyerDisplayName(buyerUUID: String): String {
+    override suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String {
         return try {
-            // buyer_profile is indexed by Firebase auth UID, not by the custom buyerUUID token.
-            // Query for the profile whose buyerUUID field matches the given token.
-            val snapshot = buyersRef.orderByChild("buyerUUID").equalTo(buyerUUID).valueEvents.first()
-            if (!snapshot.exists) return ""
-            val profileSnapshot = snapshot.children.firstOrNull() ?: return ""
-            val data = profileSnapshot.value as? Map<*, *> ?: return ""
-            data["displayName"] as? String ?: ""
+            // Step 1: resolve authUID from buyer_access_status — written by the buyer on connect
+            val authUIDSnapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("authUID").valueEvents.first()
+            val authUID = authUIDSnapshot.value as? String
+            if (authUID.isNullOrBlank()) return "" // buyer has not connected yet (knowledge gap)
+
+            // Step 2: read display name directly from buyer profile by auth UID
+            val nameSnapshot = buyersRef.child(authUID).child("displayName").valueEvents.first()
+            nameSnapshot.value as? String ?: ""
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.getBuyerDisplayName: Error for uuid=$buyerUUID - ${e.message}")
+            println("❌ GitLiveProfileRepository.getBuyerDisplayName: Error sellerId=$sellerId uuid=$buyerUUID - ${e.message}")
             ""
         }
     }

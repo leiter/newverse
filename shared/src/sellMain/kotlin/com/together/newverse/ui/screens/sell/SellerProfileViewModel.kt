@@ -105,7 +105,7 @@ class SellerProfileViewModel(
                 .collect { map ->
                     println("✅ SellerProfileViewModel.observeApprovedBuyers: ${map.size} approved buyers")
                     val entries = map.map { (id, name) -> BuyerEntry(id, name, AccessStatus.APPROVED) }
-                    val enriched = enrichWithDisplayNames(entries)
+                    val enriched = enrichWithDisplayNames(sellerId, entries)
                     _customerState.update { state -> state.copy(approvedBuyers = enriched) }
                 }
         }
@@ -181,12 +181,12 @@ class SellerProfileViewModel(
         }
     }
 
-    private suspend fun enrichWithDisplayNames(entries: List<BuyerEntry>): List<BuyerEntry> =
+    private suspend fun enrichWithDisplayNames(sellerId: String, entries: List<BuyerEntry>): List<BuyerEntry> =
         coroutineScope {
             entries.map { entry ->
                 if (entry.displayName.isBlank() || entry.displayName == QR_LINK_PLACEHOLDER) {
                     async {
-                        val name = profileRepository.getBuyerDisplayName(entry.id)
+                        val name = profileRepository.getBuyerDisplayName(sellerId, entry.id)
                         entry.copy(displayName = name.ifBlank { entry.displayName })
                     }
                 } else {
@@ -214,8 +214,8 @@ class SellerProfileViewModel(
                     _profileState.value = AsyncState.Success(profile)
                     val blockedEntries = profile.blockedClientIds.map { (id, name) -> BuyerEntry(id, name, AccessStatus.BLOCKED) }
                     val approvedEntries = profile.approvedBuyerIds.map { (id, name) -> BuyerEntry(id, name, AccessStatus.APPROVED) }
-                    val enrichedBlocked = enrichWithDisplayNames(blockedEntries)
-                    val enrichedApproved = enrichWithDisplayNames(approvedEntries)
+                    val enrichedBlocked = enrichWithDisplayNames(sellerId, blockedEntries)
+                    val enrichedApproved = enrichWithDisplayNames(sellerId, approvedEntries)
                     _customerState.value = CustomerManagementState(
                         knownClientIds = profile.knownClientIds,
                         blockedBuyers = enrichedBlocked,

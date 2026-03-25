@@ -177,8 +177,10 @@ interface ProfileRepository {
     fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>>
 
     /**
-     * Fetch the display name of a buyer by their UUID from buyer_profile.
-     * Returns empty string if the profile does not exist or has no display name.
+     * Resolve the display name for a buyer identified by their UUID token.
+     * Reads authUID from buyer_access_status/{sellerId}/{buyerUUID}/authUID,
+     * then fetches the display name from buyer_profile/{authUID}/displayName.
+     * Returns empty string if the buyer has not connected yet (knowledge gap).
      */
-    suspend fun getBuyerDisplayName(buyerUUID: String): String
+    suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String
 }
