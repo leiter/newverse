@@ -187,11 +187,12 @@ class SellerProfileViewModel(
                 if (entry.displayName.isBlank() || entry.displayName == QR_LINK_PLACEHOLDER) {
                     async {
                         val name = profileRepository.getBuyerDisplayName(sellerId, entry.id)
-                        if (name.isNotBlank()) {
+                        val isResolved = name.isNotBlank() && name != QR_LINK_PLACEHOLDER
+                        if (isResolved) {
                             // Persist the resolved name so future loads and the observer see the real name
                             profileRepository.correctApprovedBuyerDisplayName(sellerId, entry.id, name)
                         }
-                        entry.copy(displayName = name.ifBlank { entry.displayName })
+                        entry.copy(displayName = if (isResolved) name else entry.displayName)
                     }
                 } else {
                     async { entry }

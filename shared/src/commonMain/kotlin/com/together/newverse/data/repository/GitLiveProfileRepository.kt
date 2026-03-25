@@ -895,14 +895,11 @@ class GitLiveProfileRepository(
 
     override suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String {
         return try {
-            // Step 1: resolve authUID from buyer_access_status — written by the buyer on connect
-            val authUIDSnapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("authUID").valueEvents.first()
-            val authUID = authUIDSnapshot.value as? String
-            if (authUID.isNullOrBlank()) return "" // buyer has not connected yet (knowledge gap)
-
-            // Step 2: read display name directly from buyer profile by auth UID
-            val nameSnapshot = buyersRef.child(authUID).child("displayName").valueEvents.first()
-            nameSnapshot.value as? String ?: ""
+            // Read displayName from buyer_access_status — the seller owns this path and the buyer
+            // writes their real name here via updateApprovedBuyerDisplayName on connect.
+            // buyer_profile is protected by Firebase rules (owner-only), so it cannot be read here.
+            val snapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("displayName").valueEvents.first()
+            snapshot.value as? String ?: ""
         } catch (e: Exception) {
             println("❌ GitLiveProfileRepository.getBuyerDisplayName: Error sellerId=$sellerId uuid=$buyerUUID - ${e.message}")
             ""
