@@ -670,18 +670,20 @@ class GitLiveProfileRepository(
     override suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
+            val authUID = authRepository.getCurrentUserId() ?: ""
             // Write access request
             accessRequestsRef.child(sellerId).child(buyerUUID).setValue(mapOf(
                 "buyerUUID" to buyerUUID,
                 "displayName" to displayName,
                 "requestedAt" to now
             ))
-            // Write initial status = PENDING
+            // Write initial status = PENDING, include authUID so the seller can resolve the buyer profile
             buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
                 "status" to AccessStatus.PENDING.name,
                 "updatedAt" to now,
                 "buyerUUID" to buyerUUID,
-                "displayName" to displayName
+                "displayName" to displayName,
+                "authUID" to authUID
             ))
             println("✅ GitLiveProfileRepository.submitAccessRequest: Success - sellerId=$sellerId, uuid=$buyerUUID")
             Result.success(Unit)
@@ -817,7 +819,11 @@ class GitLiveProfileRepository(
 
     override suspend fun updateApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
         return try {
+            val authUID = authRepository.getCurrentUserId() ?: ""
             buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("displayName").setValue(displayName)
+            if (authUID.isNotBlank()) {
+                buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("authUID").setValue(authUID)
+            }
             sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue((if (displayName.isBlank()) true else displayName) as Any)
             // Update cache
             sellerProfileCache[sellerId]?.let { cached ->
