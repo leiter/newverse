@@ -168,4 +168,9 @@ class MockProfileRepository : ProfileRepository {
 
     override fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>> =
         flowOf(emptyMap())
+
+    override suspend fun cancelAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun getBuyerDisplayName(buyerUUID: String): String = ""
 }

@@ -123,6 +123,12 @@ interface ProfileRepository {
     suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit>
 
     /**
+     * Cancel a previously submitted access request.
+     * Removes access_requests/{sellerId}/{buyerUUID} and buyer_access_status/{sellerId}/{buyerUUID}.
+     */
+    suspend fun cancelAccessRequest(sellerId: String, buyerUUID: String): Result<Unit>
+
+    /**
      * One-shot read of the buyer's access status for a specific seller.
      */
     suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus
@@ -166,7 +172,13 @@ interface ProfileRepository {
 
     /**
      * Observe the approved buyer IDs for a seller in real-time.
-     * Emits a map of buyerUUID to displayName. Empty string means name is unknown (legacy data).
+     * Emits a map of buyerUUID to displayName. Empty string means name is unknown.
      */
     fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>>
+
+    /**
+     * Fetch the display name of a buyer by their UUID from buyer_profile.
+     * Returns empty string if the profile does not exist or has no display name.
+     */
+    suspend fun getBuyerDisplayName(buyerUUID: String): String
 }

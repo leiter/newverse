@@ -203,6 +203,7 @@ internal fun BuyAppViewModel.connectWithToken(sellerId: String, buyerToken: Stri
         return
     }
 
+    val oldUUID = buyerUUIDStorage?.get()
     buyerUUIDStorage?.set(buyerToken)
 
     // Bypass the demo mode gate — having a valid token means the seller has authorized this buyer.
@@ -210,6 +211,12 @@ internal fun BuyAppViewModel.connectWithToken(sellerId: String, buyerToken: Stri
     performConnection(sellerId)
 
     viewModelScope.launch {
+        // Cancel any previously submitted request under a different UUID
+        if (oldUUID != null && oldUUID != buyerToken) {
+            profileRepository.cancelAccessRequest(sellerId, oldUUID)
+                .onFailure { e -> println("[NV_Access] connectWithToken: Failed to cancel old request ($oldUUID) - ${e.message}") }
+        }
+
         // Ensure buyerUUID is persisted in Firebase profile so security rules allow reading status
         profileRepository.saveBuyerUUID(buyerToken)
 

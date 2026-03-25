@@ -691,6 +691,18 @@ class GitLiveProfileRepository(
         }
     }
 
+    override suspend fun cancelAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> {
+        return try {
+            accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).removeValue()
+            println("✅ GitLiveProfileRepository.cancelAccessRequest: cancelled uuid=$buyerUUID")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.cancelAccessRequest: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus {
         return try {
             val snapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).valueEvents.first()
@@ -856,6 +868,16 @@ class GitLiveProfileRepository(
         } catch (e: Exception) {
             println("❌ GitLiveProfileRepository.unblockApprovedBuyer: Error - ${e.message}")
             Result.failure(e)
+        }
+    }
+
+    override suspend fun getBuyerDisplayName(buyerUUID: String): String {
+        return try {
+            val snapshot = buyersRef.child(buyerUUID).child("displayName").valueEvents.first()
+            snapshot.value as? String ?: ""
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.getBuyerDisplayName: Error for uuid=$buyerUUID - ${e.message}")
+            ""
         }
     }
 

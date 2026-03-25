@@ -2,6 +2,7 @@ package com.together.newverse.data.config
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 /**
  * Android implementation of [BuyerUUIDStorage] using SharedPreferences.
@@ -14,11 +15,11 @@ actual class BuyerUUIDStorage(context: Context) {
     actual fun get(): String? = prefs.getString(KEY_BUYER_UUID, null)
 
     actual fun set(uuid: String) {
-        prefs.edit().putString(KEY_BUYER_UUID, uuid).apply()
+        prefs.edit { putString(KEY_BUYER_UUID, uuid) }
     }
 
     actual fun clear() {
-        prefs.edit().remove(KEY_BUYER_UUID).apply()
+        prefs.edit { remove(KEY_BUYER_UUID) }
     }
 
     companion object {

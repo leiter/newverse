@@ -17,6 +17,9 @@ import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.state.core.AsyncState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -101,11 +104,9 @@ class SellerProfileViewModel(
                 .catch { e -> println("❌ SellerProfileViewModel.observeApprovedBuyers: ${e.message}") }
                 .collect { map ->
                     println("✅ SellerProfileViewModel.observeApprovedBuyers: ${map.size} approved buyers")
-                    _customerState.update { state ->
-                        state.copy(approvedBuyers = map.map { (id, name) ->
-                            BuyerEntry(id, name, AccessStatus.APPROVED)
-                        })
-                    }
+                    val entries = map.map { (id, name) -> BuyerEntry(id, name, AccessStatus.APPROVED) }
+                    val enriched = enrichWithDisplayNames(entries)
+                    _customerState.update { state -> state.copy(approvedBuyers = enriched) }
                 }
         }
     }
@@ -180,6 +181,20 @@ class SellerProfileViewModel(
         }
     }
 
+    private suspend fun enrichWithDisplayNames(entries: List<BuyerEntry>): List<BuyerEntry> =
+        coroutineScope {
+            entries.map { entry ->
+                if (entry.displayName.isBlank()) {
+                    async {
+                        val name = profileRepository.getBuyerDisplayName(entry.id)
+                        entry.copy(displayName = name)
+                    }
+                } else {
+                    async { entry }
+                }
+            }.awaitAll()
+        }
+
     fun clearGeneratedLink() {
         _generatedBuyerLink.value = null
     }
@@ -197,14 +212,14 @@ class SellerProfileViewModel(
             profileRepository.getSellerProfile(sellerId).fold(
                 onSuccess = { profile ->
                     _profileState.value = AsyncState.Success(profile)
+                    val blockedEntries = profile.blockedClientIds.map { (id, name) -> BuyerEntry(id, name, AccessStatus.BLOCKED) }
+                    val approvedEntries = profile.approvedBuyerIds.map { (id, name) -> BuyerEntry(id, name, AccessStatus.APPROVED) }
+                    val enrichedBlocked = enrichWithDisplayNames(blockedEntries)
+                    val enrichedApproved = enrichWithDisplayNames(approvedEntries)
                     _customerState.value = CustomerManagementState(
                         knownClientIds = profile.knownClientIds,
-                        blockedBuyers = profile.blockedClientIds.map { (id, name) ->
-                            BuyerEntry(id, name, AccessStatus.BLOCKED)
-                        },
-                        approvedBuyers = profile.approvedBuyerIds.map { (id, name) ->
-                            BuyerEntry(id, name, AccessStatus.APPROVED)
-                        }
+                        blockedBuyers = enrichedBlocked,
+                        approvedBuyers = enrichedApproved
                     )
                 },
                 onFailure = { e ->
