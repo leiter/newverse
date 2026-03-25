@@ -745,7 +745,7 @@ class GitLiveProfileRepository(
     override suspend fun approveAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).updateChildren(mapOf(
                 "status" to AccessStatus.APPROVED.name,
                 "updatedAt" to now,
                 "buyerUUID" to buyerUUID
@@ -762,7 +762,7 @@ class GitLiveProfileRepository(
     override suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).updateChildren(mapOf(
                 "status" to AccessStatus.BLOCKED.name,
                 "updatedAt" to now,
                 "buyerUUID" to buyerUUID
@@ -792,7 +792,7 @@ class GitLiveProfileRepository(
     override suspend fun approveAccessRequestWithTracking(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).updateChildren(mapOf(
                 "status" to AccessStatus.APPROVED.name,
                 "updatedAt" to now,
                 "buyerUUID" to buyerUUID,
@@ -851,7 +851,7 @@ class GitLiveProfileRepository(
     override suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
+            buyerAccessStatusRef.child(sellerId).child(buyerUUID).updateChildren(mapOf(
                 "status" to AccessStatus.APPROVED.name,
                 "updatedAt" to now,
                 "buyerUUID" to buyerUUID
