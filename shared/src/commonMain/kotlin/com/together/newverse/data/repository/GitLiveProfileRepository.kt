@@ -873,8 +873,13 @@ class GitLiveProfileRepository(
 
     override suspend fun getBuyerDisplayName(buyerUUID: String): String {
         return try {
-            val snapshot = buyersRef.child(buyerUUID).child("displayName").valueEvents.first()
-            snapshot.value as? String ?: ""
+            // buyer_profile is indexed by Firebase auth UID, not by the custom buyerUUID token.
+            // Query for the profile whose buyerUUID field matches the given token.
+            val snapshot = buyersRef.orderByChild("buyerUUID").equalTo(buyerUUID).valueEvents.first()
+            if (!snapshot.exists) return ""
+            val profileSnapshot = snapshot.children.firstOrNull() ?: return ""
+            val data = profileSnapshot.value as? Map<*, *> ?: return ""
+            data["displayName"] as? String ?: ""
         } catch (e: Exception) {
             println("❌ GitLiveProfileRepository.getBuyerDisplayName: Error for uuid=$buyerUUID - ${e.message}")
             ""

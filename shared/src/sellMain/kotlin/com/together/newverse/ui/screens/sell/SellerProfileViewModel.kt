@@ -121,7 +121,7 @@ class SellerProfileViewModel(
             _generatedBuyerLink.value = link
             // Pre-approve in background so the buyer is immediately APPROVED upon scanning/clicking
             launch {
-                profileRepository.approveAccessRequestWithTracking(sellerId, uuid, "QR-Link")
+                profileRepository.approveAccessRequestWithTracking(sellerId, uuid, QR_LINK_PLACEHOLDER)
                     .onFailure { e -> println("Pre-approve for buyer link failed: ${e.message}") }
             }
         }
@@ -184,10 +184,10 @@ class SellerProfileViewModel(
     private suspend fun enrichWithDisplayNames(entries: List<BuyerEntry>): List<BuyerEntry> =
         coroutineScope {
             entries.map { entry ->
-                if (entry.displayName.isBlank()) {
+                if (entry.displayName.isBlank() || entry.displayName == QR_LINK_PLACEHOLDER) {
                     async {
                         val name = profileRepository.getBuyerDisplayName(entry.id)
-                        entry.copy(displayName = name)
+                        entry.copy(displayName = name.ifBlank { entry.displayName })
                     }
                 } else {
                     async { entry }
@@ -467,6 +467,9 @@ data class ProfileDialogState(
     val editingMarket: Market? = null,
     val showPaymentInfo: Boolean = false
 )
+
+/** Placeholder display name assigned to QR-link pre-approved buyers before they connect. */
+const val QR_LINK_PLACEHOLDER = "QR-Link"
 
 /**
  * A buyer entry with id, display name, and access status.
