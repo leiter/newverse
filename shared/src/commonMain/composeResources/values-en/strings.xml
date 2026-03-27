@@ -404,6 +404,9 @@
     <string name="create_product_search_terms_hint">Comma separated</string>
     <string name="create_product_article_number">Article Number</string>
     <string name="create_product_price_required">Price *</string>
+    <string name="create_product_acquire_price">Acquire Price</string>
+    <string name="create_product_markup_factor">Markup</string>
+    <string name="create_product_tax_rate">Tax</string>
     <string name="create_product_weight_required">Weight per piece (kg) *</string>
     <string name="create_product_additional_info">Additional Information</string>
     <string name="create_product_additional_info_hint">Origin, quality, organic certification, etc.</string>

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.config.ProductCatalogConfig
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.ProductUnit
+import com.together.newverse.domain.model.TaxRate
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.StorageRepository
@@ -30,6 +31,9 @@ data class ProductFormData(
     val productId: String = "",
     val searchTerms: String = "",
     val price: String = "",
+    val acquirePrice: String = "",
+    val markupFactor: String = "1.0",
+    val taxRate: TaxRate = TaxRate.REDUCED,
     val unit: String = "",
     val category: String = "",
     val weightPerPiece: String = "",
@@ -46,6 +50,9 @@ data class ProductFormData(
                 productId == other.productId &&
                 searchTerms == other.searchTerms &&
                 price == other.price &&
+                acquirePrice == other.acquirePrice &&
+                markupFactor == other.markupFactor &&
+                taxRate == other.taxRate &&
                 unit == other.unit &&
                 category == other.category &&
                 weightPerPiece == other.weightPerPiece &&
@@ -60,6 +67,9 @@ data class ProductFormData(
         result = 31 * result + productId.hashCode()
         result = 31 * result + searchTerms.hashCode()
         result = 31 * result + price.hashCode()
+        result = 31 * result + acquirePrice.hashCode()
+        result = 31 * result + markupFactor.hashCode()
+        result = 31 * result + taxRate.hashCode()
         result = 31 * result + unit.hashCode()
         result = 31 * result + category.hashCode()
         result = 31 * result + weightPerPiece.hashCode()
@@ -110,6 +120,9 @@ class CreateProductViewModel(
 
     /** Available units from config, exposed for UI dropdowns */
     val availableUnits: List<String> = catalogConfig.units
+
+    /** Available tax rates from config, exposed for UI dropdown */
+    val availableTaxRates: List<TaxRate> = catalogConfig.taxRates
 
     // ===== Legacy compatibility properties =====
     // These expose individual fields for screens not yet migrated to FormState
@@ -190,6 +203,9 @@ class CreateProductViewModel(
                         productId = article.productId,
                         searchTerms = article.searchTerms,
                         price = if (article.price > 0) article.price.toString() else "",
+                        acquirePrice = if (article.acquirePrice > 0) article.acquirePrice.toString() else "",
+                        markupFactor = if (article.markupFactor > 0) article.markupFactor.toString() else "1.0",
+                        taxRate = TaxRate.fromRate(article.taxRate),
                         unit = article.unit.ifBlank { catalogConfig.defaultUnit },
                         category = article.category.ifBlank { catalogConfig.defaultCategory },
                         weightPerPiece = if (article.weightPerPiece > 0) article.weightPerPiece.toString() else "",
@@ -216,7 +232,55 @@ class CreateProductViewModel(
     }
 
     fun onPriceChange(value: String) {
-        _formState.update { it.updateField { data -> data.copy(price = value) }.clearFieldError(ValidationError.PriceRequired.fieldName) }
+        _formState.update { state ->
+            val updated = state.updateField { data -> data.copy(price = value) }
+                .clearFieldError(ValidationError.PriceRequired.fieldName)
+            val data = updated.data
+            val sellPrice = value.toDoubleOrNull()
+            val acquire = data.acquirePrice.toDoubleOrNull()
+            if (sellPrice != null && acquire != null && acquire > 0) {
+                val factor = sellPrice / (acquire * (1.0 + data.taxRate.rate))
+                val rounded = (factor * 10000).toLong() / 10000.0
+                updated.updateField { d -> d.copy(markupFactor = rounded.toString()) }
+            } else {
+                updated
+            }
+        }
+    }
+
+    fun onAcquirePriceChange(value: String) {
+        _formState.update { state ->
+            val updated = state.updateField { data -> data.copy(acquirePrice = value) }
+            recalculateSellPrice(updated)
+        }
+    }
+
+    fun onMarkupFactorChange(value: String) {
+        _formState.update { state ->
+            val updated = state.updateField { data -> data.copy(markupFactor = value) }
+            recalculateSellPrice(updated)
+        }
+    }
+
+    fun onTaxRateChange(taxRate: TaxRate) {
+        _formState.update { state ->
+            val updated = state.updateField { data -> data.copy(taxRate = taxRate) }
+            recalculateSellPrice(updated)
+        }
+    }
+
+    private fun recalculateSellPrice(state: FormState<ProductFormData>): FormState<ProductFormData> {
+        val data = state.data
+        val acquire = data.acquirePrice.toDoubleOrNull()
+        val factor = data.markupFactor.toDoubleOrNull()
+        return if (acquire != null && acquire > 0 && factor != null && factor > 0) {
+            val sellPrice = acquire * factor * (1.0 + data.taxRate.rate)
+            val rounded = (sellPrice * 100).toLong() / 100.0
+            state.updateField { d -> d.copy(price = rounded.toString()) }
+                .clearFieldError(ValidationError.PriceRequired.fieldName)
+        } else {
+            state
+        }
     }
 
     fun onUnitChange(value: String) {
@@ -296,6 +360,9 @@ class CreateProductViewModel(
                     productId = formData.productId,
                     productName = formData.productName,
                     price = formData.price.toDouble(),
+                    acquirePrice = formData.acquirePrice.toDoubleOrNull() ?: 0.0,
+                    markupFactor = formData.markupFactor.toDoubleOrNull() ?: 1.0,
+                    taxRate = formData.taxRate.rate,
                     unit = formData.unit,
                     category = formData.category,
                     searchTerms = prepareSearchTerms(formData),

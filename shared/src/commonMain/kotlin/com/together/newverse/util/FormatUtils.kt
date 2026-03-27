@@ -22,6 +22,15 @@ expect fun formatString(format: String, vararg args: Any): String
  * - 99.99 -> "99,99"
  * - 0.5 -> "0,50"
  */
+/**
+ * Derive an acquisition price from a selling price using a markup factor.
+ * Default markup of 30% (factor = 1.30) is typical for organic produce.
+ *
+ * Example: 3.90.acquirePriceFromMarkup() → 3.00
+ */
+fun Double.acquirePriceFromMarkup(markupPercent: Double = 30.0): Double =
+    this / (1.0 + markupPercent / 100.0)
+
 fun Double.formatPrice(): String {
     // Round to 2 decimal places
     val rounded = (this * 100).toLong() / 100.0

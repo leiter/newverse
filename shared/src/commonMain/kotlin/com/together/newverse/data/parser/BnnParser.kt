@@ -45,6 +45,7 @@ class BnnParser {
         private const val POS_PACKAGE_DESC = 21
         private const val POS_PACKAGE_SIZE = 22
         private const val POS_UNIT = 23
+        private const val POS_ACQUIRE_PRICE = 35
         private const val POS_PRICE = 37
         private const val POS_BASE_UNIT = 67
         private const val POS_WEIGHT_PER_PIECE = 68
@@ -103,6 +104,10 @@ class BnnParser {
                 .replace(DECIMAL_SEPARATOR_DE, ".")
                 .toDoubleOrNull() ?: 0.0
 
+            val acquirePrice = fields.getOrEmpty(POS_ACQUIRE_PRICE)
+                .replace(DECIMAL_SEPARATOR_DE, ".")
+                .toDoubleOrNull() ?: 0.0
+
             val price = fields.getOrEmpty(POS_PRICE)
                 .replace(DECIMAL_SEPARATOR_DE, ".")
                 .toDoubleOrNull() ?: 0.0
@@ -143,6 +148,7 @@ class BnnParser {
                 barcode = barcode,
                 minOrderQuantity = 1.0, // Default to 1
                 supplier = supplier,
+                acquirePrice = acquirePrice,
                 stock = 0 // Not provided in BNN format
             )
         } catch (e: Exception) {

@@ -415,6 +415,9 @@
     <string name="create_product_search_terms_hint">Durch Komma getrennt</string>
     <string name="create_product_article_number">Artikelnummer</string>
     <string name="create_product_price_required">Preis *</string>
+    <string name="create_product_acquire_price">Einkaufspreis</string>
+    <string name="create_product_markup_factor">Aufschlag</string>
+    <string name="create_product_tax_rate">MwSt.</string>
     <string name="create_product_weight_required">Gewicht pro Stück (kg) *</string>
     <string name="create_product_additional_info">Zusatzinformationen</string>
     <string name="create_product_additional_info_hint">Herkunft, Qualität, Bio-Siegel, etc.</string>

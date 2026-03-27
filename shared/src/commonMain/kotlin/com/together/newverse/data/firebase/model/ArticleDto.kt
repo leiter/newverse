@@ -17,6 +17,9 @@ data class ArticleDto(
     val category: String = "",
     val searchTerms: String = "",
     val detailInfo: String = "",
+    val acquirePrice: Double = 0.0,
+    val markupFactor: Double = 1.0,
+    val taxRate: Double = 0.07,
 ) {
     /**
      * Convert Firebase DTO to domain model
@@ -33,7 +36,10 @@ data class ArticleDto(
             imageUrl = imageUrl,
             category = category,
             searchTerms = searchTerms,
-            detailInfo = detailInfo
+            detailInfo = detailInfo,
+            acquirePrice = acquirePrice,
+            markupFactor = markupFactor,
+            taxRate = taxRate
         )
     }
 
@@ -52,7 +58,10 @@ data class ArticleDto(
                 imageUrl = article.imageUrl,
                 category = article.category,
                 searchTerms = article.searchTerms,
-                detailInfo = article.detailInfo
+                detailInfo = article.detailInfo,
+                acquirePrice = article.acquirePrice,
+                markupFactor = article.markupFactor,
+                taxRate = article.taxRate
             )
         }
     }

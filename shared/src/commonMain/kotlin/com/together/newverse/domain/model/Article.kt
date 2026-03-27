@@ -15,6 +15,9 @@ data class Article(
     val category: String = "",
     val searchTerms: String = "",
     val detailInfo: String = "",
+    val acquirePrice: Double = 0.0,
+    val markupFactor: Double = 1.0,
+    val taxRate: Double = TaxRate.REDUCED.rate,
     val mode: Int = MODE_UNDEFINED
 ) {
     companion object {

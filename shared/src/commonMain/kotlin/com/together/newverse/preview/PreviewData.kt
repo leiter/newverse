@@ -1,6 +1,7 @@
 package com.together.newverse.preview
 
 import com.together.newverse.domain.model.*
+import com.together.newverse.util.acquirePriceFromMarkup
 
 /**
  * Simple basket item for preview purposes
@@ -23,6 +24,7 @@ object PreviewData {
             available = true,
             imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp6852941846258768194.tmp?alt=media&token=f4b2a6a2-a8fa-495b-a093-04c269e97abe",
             price = 2.3,
+            acquirePrice = 2.3.acquirePriceFromMarkup(),
             unit = "kg",
             category = "Bananen",
             detailInfo = "Demeter Biobananen. Die Bananen stammen aus Peru und sind nach Vorgaben der Demeter angebaut.",
@@ -35,6 +37,7 @@ object PreviewData {
             available = true,
             imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609270827791_tmp1052065387795357072.tmp?alt=media&token=3ae17db0-a140-4a3d-bd6d-2843cfd5b36e",
             price = 2.3,
+            acquirePrice = 2.3.acquirePriceFromMarkup(),
             unit = "kg",
             category = "Apfel",
             detailInfo = "Leicht säuerlicher Apfel. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
@@ -47,6 +50,7 @@ object PreviewData {
             available = true,
             imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1576373532957500855.tmp?alt=media&token=81892fcd-c346-479a-8b56-4b56d7ce8381",
             price = 2.3,
+            acquirePrice = 2.3.acquirePriceFromMarkup(),
             unit = "kg",
             category = "Kartoffel",
             detailInfo = "Festkochende Kartoffel vom Hof Apfeltraum. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
@@ -59,6 +63,7 @@ object PreviewData {
             available = true,
             imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp274159401886863829.tmp?alt=media&token=e725f46f-5ab3-440c-9586-c04c6e1b7392",
             price = 2.9,
+            acquirePrice = 2.9.acquirePriceFromMarkup(),
             unit = "Stück",
             category = "Stangensellerie",
             detailInfo = "Aus der Umgebung. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
@@ -71,6 +76,7 @@ object PreviewData {
             available = true,
             imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp7534516650759375907.tmp?alt=media&token=d474b967-46e9-45b2-8931-336f9c780ee3",
             price = 3.69,
+            acquirePrice = 3.69.acquirePriceFromMarkup(),
             unit = "Bund",
             category = "Karotten",
             detailInfo = "Vom Biohof Waldheide. Die Karotten wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
@@ -83,6 +89,7 @@ object PreviewData {
             available = true,
             imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1145260240680560593.tmp?alt=media&token=0670c0da-e260-4d41-b5d8-1a119ea24a64",
             price = 5.69,
+            acquirePrice = 5.69.acquirePriceFromMarkup(),
             unit = "Schale",
             category = "Erdbeeren",
             detailInfo = "Vom Biohof Waldheide. Die Erdbeeren stammen aus Friedenau vom Hof Bio Müller. Bei der Aufzucht wurden keinerlei Insektiziede verwendet.",
@@ -95,6 +102,7 @@ object PreviewData {
             available = true,
             imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609405653076_tmp824873246873729560.tmp?alt=media&token=3cd22727-cec8-4d86-ba92-140b24c6675b",
             price = 10.69,
+            acquirePrice = 10.69.acquirePriceFromMarkup(),
             unit = "kg",
             category = "Knoblauch",
             detailInfo = "Vom Biohof Waldheide. Der Knoblauch wurde nach den Produktionsvorgaben von Demeter erzeugt.",
@@ -107,6 +115,7 @@ object PreviewData {
             available = true,
             imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1576373532957500855.tmp?alt=media&token=81892fcd-c346-479a-8b56-4b56d7ce8381",
             price = 2.9,
+            acquirePrice = 2.9.acquirePriceFromMarkup(),
             unit = "kg",
             category = "Kartoffeln",
             detailInfo = "Festkochende Kartoffel vom Hof Apfeltraum. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
@@ -119,6 +128,7 @@ object PreviewData {
             available = true,
             imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609270827791_tmp1052065387795357072.tmp?alt=media&token=3ae17db0-a140-4a3d-bd6d-2843cfd5b36e",
             price = 2.3,
+            acquirePrice = 2.3.acquirePriceFromMarkup(),
             unit = "kg",
             category = "Apfel",
             detailInfo = "Saftig und sauer. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
@@ -131,6 +141,7 @@ object PreviewData {
             available = true,
             imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609270827791_tmp1052065387795357072.tmp?alt=media&token=3ae17db0-a140-4a3d-bd6d-2843cfd5b36e",
             price = 2.3,
+            acquirePrice = 2.3.acquirePriceFromMarkup(),
             unit = "kg",
             category = "Apfel",
             detailInfo = "Süß-sauerer Apfel. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",

@@ -1,6 +1,6 @@
 # Newverse Development TODO
 
-**Last Updated:** 2026-02-06
+**Last Updated:** 2026-03-25
 
 ## Current Status
 
@@ -160,6 +160,10 @@
 - [x] Product Detail View - dedicated screen with full info
 - [x] Revenue Calculation (Sell App) - StatCard in overview
 - [x] TestFlight upload (2026-02-06)
+- [x] Buy/sell code generalization — flavor source set separation (6 phases, generalize branch)
+- [x] Buyer display name resolution in seller app (QR-Link enrichment loop)
+- [x] acquirePrice field added to Product/Article/Firebase (BNN position 35)
+- [x] Markup factor + tax rate pricing calculation in product creation form
 
 ---
 

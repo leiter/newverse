@@ -33,13 +33,32 @@ Firebase (Realtime Database, Storage)
 
 1. Product Name* (required)
 2. Search Terms* (comma-separated)
-3. Price* (> 0)
-4. Unit* (dropdown)
-5. Weight per Piece* (required for countable units)
-6. Category* (dropdown)
-7. Detail Info (optional)
-8. Availability (toggle)
-9. Product Image* (required)
+3. Price* (selling price, > 0 — auto-filled by pricing calculation)
+4. Acquire Price (Einkaufspreis, optional — purchase/cost price)
+5. Markup Factor (Aufschlag, default 1.0 — multiplier on acquire price)
+6. Tax Rate (MwSt., dropdown: 0% / 7% / 19%, configurable via `ProductCatalogConfig`)
+7. Unit* (dropdown)
+8. Weight per Piece* (required for countable units)
+9. Category* (dropdown)
+10. Detail Info (optional)
+11. Availability (toggle)
+12. Product Image* (required)
+
+## Pricing Calculation
+
+Selling price is derived automatically:
+
+```
+sellPrice = acquirePrice × markupFactor × (1 + taxRate)
+```
+
+Bidirectional: editing the sell price directly recalculates `markupFactor`:
+
+```
+markupFactor = sellPrice / (acquirePrice × (1 + taxRate))
+```
+
+All three fields (`acquirePrice`, `markupFactor`, `taxRate`) are persisted to Firebase via `ArticleDto`.
 
 ## Setup Required
 
@@ -86,10 +105,11 @@ CompositionLocalProvider(LocalImagePicker provides imagePicker) {
 - `CreateProductScreen.kt` - Full form UI
 - `AppModule.kt`, `AndroidDomainModule.kt` - DI
 
+## BNN Import
+
+The BNN parser (`BnnParser.kt`) populates `acquirePrice` from field position 35 (Einkaufspreis). Position 37 is the selling price. Both are parsed with German decimal format (comma → dot).
+
 ## Not Yet Implemented
 
-- Edit existing product
-- Delete product
 - iOS ImagePicker
 - Barcode scanner
-- Bulk import (BNN parser exists)

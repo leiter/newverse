@@ -3,6 +3,7 @@ package com.together.newverse.data.config
 import com.together.newverse.domain.config.ProductCatalogConfig
 import com.together.newverse.domain.model.ProductCategory
 import com.together.newverse.domain.model.ProductUnit
+import com.together.newverse.domain.model.TaxRate
 
 /**
  * Default product catalog configuration backed by the existing ProductCategory and ProductUnit enums.
@@ -12,4 +13,6 @@ class DefaultProductCatalogConfig : ProductCatalogConfig {
     override val units: List<String> = ProductUnit.getAllDisplayNames()
     override val defaultCategory: String = ProductCategory.GEMUESE.displayName
     override val defaultUnit: String = ProductUnit.KG.displayName
+    override val taxRates: List<TaxRate> = TaxRate.entries
+    override val defaultTaxRate: TaxRate = TaxRate.REDUCED
 }

@@ -44,6 +44,9 @@ data class Product(
 
     // Seller-Specific
     val supplier: String = "",              // Supplier code (BTR, SCH, etc.)
+    val acquirePrice: Double = 0.0,         // Acquisition/purchase price per unit in EUR
+    val markupFactor: Double = 1.0,         // Markup factor applied on top of acquire price
+    val taxRate: Double = TaxRate.REDUCED.rate, // Tax rate (e.g. 0.07 for 7%)
     val stock: Int = 0                      // Available stock quantity
 )
 
@@ -61,7 +64,10 @@ fun Article.toProduct(): Product = Product(
     category = this.category,
     imageUrl = this.imageUrl,
     searchTerms = this.searchTerms,
-    detailInfo = this.detailInfo
+    detailInfo = this.detailInfo,
+    acquirePrice = this.acquirePrice,
+    markupFactor = this.markupFactor,
+    taxRate = this.taxRate
 )
 
 /**
@@ -78,5 +84,8 @@ fun Product.toArticle(): Article = Article(
     imageUrl = this.imageUrl,
     category = this.category,
     searchTerms = this.searchTerms,
-    detailInfo = this.detailInfo
+    detailInfo = this.detailInfo,
+    acquirePrice = this.acquirePrice,
+    markupFactor = this.markupFactor,
+    taxRate = this.taxRate
 )

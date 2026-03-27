@@ -1,6 +1,6 @@
 # Newverse Feature Report
 
-**Date:** 2026-02-06
+**Date:** 2026-03-25
 **Apps:** Newverse Buy & Newverse Sell
 **Platform:** Kotlin Multiplatform (Android + iOS)
 
@@ -71,6 +71,9 @@ Select Pickup Date → Place Order → Confirmation
 | **Delivery Days** | Partial | Configure operating days (UI exists) |
 | **Notifications** | Partial | Notification preferences screen |
 | **Dashboard** | Complete | Product stats, filtering, quick actions |
+| **Acquire Price** | Complete | Purchase/cost price per product, parsed from BNN position 35 |
+| **Pricing Calculation** | Complete | Markup factor + tax rate (MwSt.) auto-fills selling price; bidirectional |
+| **Buyer Access Control** | Complete | QR-link invite flow, approved/blocked buyer lists with display names |
 
 ### 2.2 User Flow
 
@@ -358,6 +361,13 @@ Newverse has a solid foundation with well-architected code, proper separation of
 - Apple Sign-In implemented
 - Email linking for guest accounts
 - Auto-login and display name detection fixed
+
+**Recent Improvements (2026-03):**
+- Buy/sell flavor separation complete — all screens, ViewModels, and state in dedicated source sets
+- Buyer display name resolution: seller app enriches QR-link placeholders by reading `buyer_access_status`, persists corrected names
+- `acquirePrice` field added to Product/Article/ArticleDto — parsed from BNN position 35, persisted to Firebase
+- Markup factor + tax rate fields in product form — bidirectional: editing sell price updates markup, editing acquire/markup/tax recalculates sell price
+- Tax rate configurable via `ProductCatalogConfig` (default: 7% / `TaxRate.REDUCED`)
 
 **Critical Gaps:**
 - Search functionality (high user impact)

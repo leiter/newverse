@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.ProductUnit
+import com.together.newverse.domain.model.TaxRate
 import com.together.newverse.ui.state.SellAction
 import com.together.newverse.ui.state.SellUiAction
 import com.together.newverse.util.ImagePickerResult
@@ -85,6 +86,9 @@ fun CreateProductScreen(
     val productId = formData.productId
     val searchTerms = formData.searchTerms
     val price = formData.price
+    val acquirePrice = formData.acquirePrice
+    val markupFactor = formData.markupFactor
+    val taxRate = formData.taxRate
     val unit = formData.unit
     val category = formData.category
     val weightPerPiece = formData.weightPerPiece
@@ -229,6 +233,37 @@ fun CreateProductScreen(
                     selectedUnit = unit,
                     onUnitSelected = viewModel::onUnitChange,
                     units = viewModel.availableUnits,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Acquire Price (optional)
+            OutlinedTextField(
+                value = acquirePrice,
+                onValueChange = viewModel::onAcquirePriceChange,
+                label = { Text(stringResource(Res.string.create_product_acquire_price)) },
+                prefix = { Text(stringResource(Res.string.create_product_price_prefix)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // Markup Factor + Tax Rate
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = markupFactor,
+                    onValueChange = viewModel::onMarkupFactorChange,
+                    label = { Text(stringResource(Res.string.create_product_markup_factor)) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+
+                TaxRateSelector(
+                    selectedTaxRate = taxRate,
+                    onTaxRateSelected = viewModel::onTaxRateChange,
+                    taxRates = viewModel.availableTaxRates,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -380,6 +415,51 @@ private fun ImageSection(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TaxRateSelector(
+    selectedTaxRate: TaxRate,
+    onTaxRateSelected: (TaxRate) -> Unit,
+    taxRates: List<TaxRate>,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = selectedTaxRate.displayName,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(Res.string.create_product_tax_rate)) },
+            trailingIcon = {
+                Icon(Icons.Default.ArrowDropDown, stringResource(Res.string.create_product_tax_rate))
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            taxRates.forEach { rate ->
+                DropdownMenuItem(
+                    text = { Text(rate.displayName) },
+                    onClick = {
+                        onTaxRateSelected(rate)
+                        expanded = false
+                    }
+                )
             }
         }
     }
