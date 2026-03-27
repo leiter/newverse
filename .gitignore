@@ -58,3 +58,4 @@ Screenshot_*.png
 tmp/
 iosApp/fastlane/AuthKey_*.p8
 debug.keystore
+plf.bnn
