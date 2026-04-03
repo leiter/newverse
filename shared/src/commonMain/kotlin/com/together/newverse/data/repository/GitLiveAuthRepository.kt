@@ -254,8 +254,18 @@ class GitLiveAuthRepository : AuthRepository {
     override suspend fun signInWithApple(idToken: String, rawNonce: String): Result<String> {
         return try {
             println("🔐 GitLiveAuthRepository.signInWithApple: Authenticating with Apple")
+            println("🔐 GitLiveAuthRepository.signInWithApple: idToken length=${idToken.length}, rawNonce length=${rawNonce.length}")
+            println("🔐 GitLiveAuthRepository.signInWithApple: idToken preview=${idToken.take(50)}...")
 
-            val credential = OAuthProvider.credential("apple.com", idToken, rawNonce)
+            // Create OAuth credential for Apple Sign-In
+            // Per GitLive Firebase Auth API for Apple: (providerId, idToken, rawNonce)
+            val credential = OAuthProvider.credential(
+                providerId = "apple.com",
+                idToken = idToken,
+                rawNonce = rawNonce
+            )
+
+            println("🔐 GitLiveAuthRepository.signInWithApple: Credential created, signing in...")
             val authResult = auth.signInWithCredential(credential)
             val user = authResult.user
 
@@ -263,10 +273,13 @@ class GitLiveAuthRepository : AuthRepository {
                 println("✅ GitLiveAuthRepository.signInWithApple: Success - userId=${user.uid}")
                 Result.success(user.uid)
             } else {
-                Result.failure(Exception("Apple sign in failed"))
+                println("❌ GitLiveAuthRepository.signInWithApple: User is null after sign-in")
+                Result.failure(Exception("Apple sign in failed - no user returned"))
             }
 
         } catch (e: Exception) {
+            println("❌ GitLiveAuthRepository.signInWithApple: Exception - ${e.message}")
+            e.printStackTrace()
             Result.failure(Exception("Apple sign in failed: ${e.message}"))
         }
     }

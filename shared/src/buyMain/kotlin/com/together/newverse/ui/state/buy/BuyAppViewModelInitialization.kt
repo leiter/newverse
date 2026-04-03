@@ -498,7 +498,24 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
     viewModelScope.launch {
         AppleSignInState.authCompleted.collect {
             println("[NV_BuyAppVM] observeAppleSignInCompletion: Apple Sign-In complete, refreshing auth state")
+
+            // Refresh auth state in coordinator
             authFlowCoordinator.refreshUserInfo()
+
+            // Manually trigger initialization flow since authStateChanged might not fire
+            val currentUserId = authRepository.getCurrentUserId()
+            if (currentUserId != null) {
+                println("[NV_BuyAppVM] observeAppleSignInCompletion: User authenticated, triggering initialization")
+                val userInfo = authRepository.getCurrentUserInfo()
+                if (userInfo != null) {
+                    resumeInitializationAfterAuth(userInfo)
+                } else {
+                    println("[NV_BuyAppVM] observeAppleSignInCompletion: No user info available, using basic initialization")
+                    resumeInitializationAfterAuth()
+                }
+            } else {
+                println("[NV_BuyAppVM] observeAppleSignInCompletion: Warning - no current user found after Apple Sign-In")
+            }
         }
     }
 }
