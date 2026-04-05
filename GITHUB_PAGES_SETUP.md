@@ -113,13 +113,13 @@ These URLs have been added to `iosApp/APP_STORE_METADATA.md`.
 
 ### Update Contact Email
 
-Currently: **markro77@arcor.de**
+Currently: **bodenschaetze@cutthecrap.link**
 
 To change:
 ```bash
 cd docs
 # Replace in all HTML files
-sed -i '' 's/markro77@arcor.de/your-new-email@example.com/g' *.html
+sed -i '' 's/bodenschaetze@cutthecrap.link/your-new-email@example.com/g' *.html
 ```
 
 ### Update Brand Colors

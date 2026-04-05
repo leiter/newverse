@@ -97,3 +97,4 @@ GoogleService-Info.plist
 # Keep these tracked (they're the source files):
 !GoogleService-Info-Buy.plist
 !GoogleService-Info-Sell.plist
+vendor/

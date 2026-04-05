@@ -1,7 +1,7 @@
 # Newverse iOS App Store Metadata
 
 **App Identifier:** com.together.buy
-**Apple ID:** markro77@arcor.de
+**Apple ID:** bodenschaetze@cutthecrap.link
 **Team ID:** K4K982LMZ9
 **App Store ID:** 6757431931
 
