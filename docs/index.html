@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newverse - Your Local Marketplace</title>
+    <meta name="description" content="Discover regional products from local sellers in your area">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #fafafa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #008577 0%, #0A6308 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .logo svg {
+            width: 70px;
+            height: 70px;
+            fill: white;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #008577;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            color: #666;
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #008577;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: #0A6308;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        ul li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        ul li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #008577;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .download-section {
+            text-align: center;
+        }
+
+        .download-section p {
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        a {
+            color: #008577;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            background: white;
+            border: 2px solid #008577;
+        }
+
+        a:hover {
+            background: #008577;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 133, 119, 0.3);
+        }
+
+        footer {
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+            margin-top: 40px;
+        }
+
+        footer .footer-links {
+            margin-top: 15px;
+        }
+
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .tagline {
+                font-size: 1rem;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V7.3l7-3.11v8.8z"/>
+            </svg>
+        </div>
+
+        <h1>Newverse</h1>
+
+        <p class="tagline">Discover regional products from local sellers in your area</p>
+
+        <div class="card">
+            <h2>Features</h2>
+
+            <h3>For Customers</h3>
+            <ul>
+                <li>Browse fresh products from local vendors</li>
+                <li>Easy ordering and pickup scheduling</li>
+                <li>Save your favorite products</li>
+                <li>Track orders and manage deliveries</li>
+            </ul>
+
+            <h3>For Sellers</h3>
+            <ul>
+                <li>Manage your product inventory</li>
+                <li>Process and fulfill customer orders</li>
+                <li>Track sales and performance</li>
+                <li>Set flexible pickup schedules</li>
+            </ul>
+        </div>
+
+        <div class="card download-section">
+            <h2>Download</h2>
+            <p><strong>Coming Soon</strong></p>
+            <p>iOS - App Store</p>
+            <p>Android - Google Play Store</p>
+        </div>
+
+        <div class="card">
+            <h2>About</h2>
+            <p>Newverse connects local communities with regional merchants and producers. We believe in supporting local businesses and promoting sustainable, community-focused commerce.</p>
+        </div>
+
+        <div class="links">
+            <a href="support.html">Support</a>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms of Service</a>
+        </div>
+
+        <footer>
+            <p>© 2025 Newverse. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>
