@@ -294,8 +294,12 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 return@launch
             }
 
+            // sellerConfig.isDemoMode is always true because demoSellerId == real sellerId,
+            // so use state.isDemoMode to distinguish demo (local) from real (Firebase) orders.
+            val isDemo = _state.value.isDemoMode
+
             // In demo mode, find the most recent editable order from local storage
-            if (sellerConfig.isDemoMode) {
+            if (isDemo) {
                 val demoOrder = sellerConfig.loadDemoOrders()
                     .firstOrNull { it.canEdit() }
                 if (demoOrder != null) {
@@ -315,7 +319,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 return@launch
             }
 
-            val orderResult = orderRepository.getOpenEditableOrder(sellerConfig.sellerId, buyerProfile.placedOrderIds, isDemo = sellerConfig.isDemoMode)
+            val orderResult = orderRepository.getOpenEditableOrder(sellerConfig.sellerId, buyerProfile.placedOrderIds, isDemo = isDemo)
             val order = orderResult.getOrNull()
 
             if (order != null) {

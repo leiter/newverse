@@ -652,12 +652,6 @@ private fun ModernProductCard(
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
-//                            Icon(
-//                                imageVector = Icons.Default.Star,
-//                                contentDescription = "Error loading image",
-//                                modifier = Modifier.zIndex(2f).size(40.dp),
-//                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-//                            )
                         }
                     }
                 )

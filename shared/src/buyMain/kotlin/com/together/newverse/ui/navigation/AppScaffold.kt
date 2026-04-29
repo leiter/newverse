@@ -339,7 +339,8 @@ fun AppScaffold(
                         currentRoute.startsWith(NavRoutes.Buy.ProductDetail.route) ||
                         currentRoute == NavRoutes.Buy.BuyerContacts.route ||
                         currentRoute == NavRoutes.Buy.AddBuyerContact.route ||
-                        currentRoute.startsWith(NavRoutes.Buy.ConversationDetail.route.substringBefore("{"))
+                        currentRoute.startsWith(NavRoutes.Buy.ConversationDetail.route.substringBefore("{")) ||
+                        currentRoute == NavRoutes.Buy.Favorites.route
 
                     if (isDetailScreen) {
                         IconButton(

@@ -398,9 +398,12 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
 
             println("📦 loadCurrentOrder: Found ${placedOrderIds.size} placed orders, looking for upcoming order...")
 
-            // Get the most recent upcoming order (not just editable)
+            // Get the most recent upcoming order (not just editable).
+            // Use state.isDemoMode, NOT sellerConfig.isDemoMode — the seller config always
+            // reports isDemoMode=true because demoSellerId == real sellerId, which would
+            // route all fetches to demo_orders/ and miss real Firebase orders.
             val sellerId = sellerConfig.sellerId
-            val orderResult = orderRepository.getUpcomingOrder(sellerId, placedOrderIds, isDemo = sellerConfig.isDemoMode)
+            val orderResult = orderRepository.getUpcomingOrder(sellerId, placedOrderIds, isDemo = _state.value.isDemoMode)
 
             orderResult.onSuccess { loadedOrder ->
                 if (loadedOrder != null) {
@@ -445,6 +448,8 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
                     basketRepository.loadOrderItems(order.articles, order.id, dateKey)
 
                     // Update state to store order info and editability
+                    // Also populate basketScreen so it has order context if
+                    // basketScreenLoadMostRecentEditableOrder() ran before auth resolved
                     _state.update { current ->
                         current.copy(
                             basket = current.basket.copy(
@@ -453,6 +458,19 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
                             ),
                             mainScreen = current.mainScreen.copy(
                                 canEditOrder = canEdit
+                            ),
+                            basketScreen = current.basketScreen.copy(
+                                orderId = order.id,
+                                orderDate = dateKey,
+                                pickupDate = order.pickUpDate,
+                                createdDate = order.createdDate,
+                                isEditMode = false,
+                                canEdit = canEdit,
+                                isLoadingOrder = false,
+                                items = order.articles,
+                                total = order.articles.sumOf { it.price * it.amountCount },
+                                originalOrderItems = order.articles,
+                                hasChanges = false
                             )
                         )
                     }
