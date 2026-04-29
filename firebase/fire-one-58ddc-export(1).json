@@ -1,0 +1,2584 @@
+{
+  "articles": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "-OfhnHb00g3WUzVDZR3x": {
+        "available": true,
+        "category": "Kartoffel",
+        "detailInfo": "Festkochende Kartoffel vom Hof Apfeltraum. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1576373532957500855.tmp?alt=media&token=81892fcd-c346-479a-8b56-4b56d7ce8381",
+        "price": 2.3,
+        "productId": "2",
+        "productName": "Linda Kartoffeln",
+        "searchTerms": "Kartoffel,Kartoffeln,Gemüse",
+        "unit": "kg",
+        "weightPerPiece": 0
+      },
+      "-OfhnHb00g3WUzVDZR3y": {
+        "available": true,
+        "category": "Apfel",
+        "detailInfo": "Leicht säuerlicher Apfel. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609270827791_tmp1052065387795357072.tmp?alt=media&token=3ae17db0-a140-4a3d-bd6d-2843cfd5b36e",
+        "price": 2.3,
+        "productId": "1",
+        "productName": "Granny Smith",
+        "searchTerms": "Apfel,Äpfel,Obst",
+        "unit": "kg",
+        "weightPerPiece": 0
+      },
+      "-OfhnHb00g3WUzVDZR3z": {
+        "available": true,
+        "category": "Bananen",
+        "detailInfo": "Demeter Biobananen. Die Bananen stammen aus Peru und sind nach Vorgaben der Demeter angebaut.",
+        "id": "",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp6852941846258768194.tmp?alt=media&token=f4b2a6a2-a8fa-495b-a093-04c269e97abe",
+        "mode": -1,
+        "price": 2.3,
+        "productId": "0",
+        "productName": "Feigenbananen",
+        "searchTerms": "Banane,Obst",
+        "unit": "kg",
+        "weighPerPiece": 0.13
+      },
+      "-OfhnHb1nV_gDkY56PA3": {
+        "available": true,
+        "category": "Knoblauch",
+        "detailInfo": "Vom Biohof Waldheide. Der Knoblauch wurde nach den Produktionsvorgaben von Demeter erzeugt.",
+        "id": "",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609405653076_tmp824873246873729560.tmp?alt=media&token=3cd22727-cec8-4d86-ba92-140b24c6675b",
+        "mode": -1,
+        "price": 10.69,
+        "productId": "6",
+        "productName": "Knoblauch,Gemüse",
+        "searchTerms": "",
+        "unit": "kg",
+        "weighPerPiece": 0.03
+      },
+      "-OfhnHb1nV_gDkY56PA4": {
+        "available": true,
+        "category": "Kartoffeln",
+        "detailInfo": "Festkochende Kartoffel vom Hof Apfeltraum. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1576373532957500855.tmp?alt=media&token=81892fcd-c346-479a-8b56-4b56d7ce8381",
+        "price": 2.9,
+        "productId": "2",
+        "productName": "Siglinde Kartoffeln",
+        "searchTerms": "Kartoffel,Gemüse",
+        "unit": "kg",
+        "weightPerPiece": 0
+      },
+      "-OfhnHb2_vjYGxPpFHtH": {
+        "available": true,
+        "category": "Stangensellerie",
+        "detailInfo": "Aus der Umgebung. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp274159401886863829.tmp?alt=media&token=e725f46f-5ab3-440c-9586-c04c6e1b7392",
+        "price": 2.9,
+        "productId": "3",
+        "productName": "Stangensellerie",
+        "searchTerms": "Gemüse",
+        "unit": "Stück",
+        "weightPerPiece": 0
+      },
+      "-OfhnHb3qNC7JucUDSeF": {
+        "available": true,
+        "category": "Apfel",
+        "detailInfo": "Saftig und sauer. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609270827791_tmp1052065387795357072.tmp?alt=media&token=3ae17db0-a140-4a3d-bd6d-2843cfd5b36e",
+        "price": 2.3,
+        "productId": "1",
+        "productName": "Boskop",
+        "searchTerms": "Äpfel,Obst",
+        "unit": "kg",
+        "weightPerPiece": 0
+      },
+      "-OfhnHb55HiUDG8ALTFJ": {
+        "available": true,
+        "category": "Apfel",
+        "detailInfo": "Süß-sauerer Apfel. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609270827791_tmp1052065387795357072.tmp?alt=media&token=3ae17db0-a140-4a3d-bd6d-2843cfd5b36e",
+        "price": 2.3,
+        "productId": "1",
+        "productName": "Elstar",
+        "searchTerms": "Äpfel,Obst",
+        "unit": "kg",
+        "weightPerPiece": 0
+      },
+      "-OfhnHb55HiUDG8ALTFK": {
+        "available": true,
+        "category": "Erdbeeren",
+        "detailInfo": "Vom Biohof Waldheide. Die Erdbeeren stammen aus Friedenau vom Hof Bio Müller. Bei der Aufzucht wurden keinerlei Insektiziede verwendet.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1145260240680560593.tmp?alt=media&token=0670c0da-e260-4d41-b5d8-1a119ea24a64",
+        "price": 5.69,
+        "productId": "5",
+        "productName": "Erdbeeren",
+        "searchTerms": "Erdbeere,Obst",
+        "unit": "Schale",
+        "weightPerPiece": 0
+      },
+      "-OfhnHb55HiUDG8ALTFL": {
+        "available": true,
+        "category": "Karotten",
+        "detailInfo": "Vom Biohof Waldheide. Die Karotten wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp7534516650759375907.tmp?alt=media&token=d474b967-46e9-45b2-8931-336f9c780ee3",
+        "price": 3.69,
+        "productId": "4",
+        "productName": "Atomic Red",
+        "searchTerms": "Möhren,Möhre,Karotte,Karotten,Gemüse",
+        "unit": "Bund",
+        "weightPerPiece": 0
+      }
+    },
+    "jOSoP5UxAohZDtdpluhHg6VrfvQ2": {
+      "-Om-7GeK4yJk3VZI95Qj": {
+        "available": true,
+        "category": "Exotisch",
+        "detailInfo": "Goldene Bio-Mangos aus Peru. Nach Demeter-Vorgaben angebaut.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp6852941846258768194.tmp?alt=media&token=f4b2a6a2-a8fa-495b-a093-04c269e97abe",
+        "price": 4.5,
+        "productId": "",
+        "productName": "TEST-Mangos Gold",
+        "searchTerms": "mango,exotisch,obst",
+        "unit": "kg",
+        "weightPerPiece": 0.35
+      },
+      "-Om-7GqMDDD76CK8BMwe": {
+        "available": true,
+        "category": "Gemuese",
+        "detailInfo": "Knackige rote Paprika vom Biohof Waldheide.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp7534516650759375907.tmp?alt=media&token=d474b967-46e9-45b2-8931-336f9c780ee3",
+        "price": 3.9,
+        "productId": "",
+        "productName": "TEST-Rote Paprika",
+        "searchTerms": "paprika,gemuese,rot",
+        "unit": "kg",
+        "weightPerPiece": 0.2
+      },
+      "-Om-7GshNVtWodibJRJO": {
+        "available": true,
+        "category": "Kraeuter",
+        "detailInfo": "Frischer Basilikum im Topf. Bio-Qualitaet aus der Region.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp274159401886863829.tmp?alt=media&token=e725f46f-5ab3-440c-9586-c04c6e1b7392",
+        "price": 2.5,
+        "productId": "",
+        "productName": "TEST-Basilikum Topf",
+        "searchTerms": "basilikum,kraeuter,topf",
+        "unit": "Stueck",
+        "weightPerPiece": 1
+      },
+      "-Om-7Gv3seYVEIi_7L0H": {
+        "available": true,
+        "category": "Exotisch",
+        "detailInfo": "Suesse Honigmelone aus Spanien. Biologisch angebaut.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1145260240680560593.tmp?alt=media&token=0670c0da-e260-4d41-b5d8-1a119ea24a64",
+        "price": 3.2,
+        "productId": "",
+        "productName": "TEST-Honigmelone",
+        "searchTerms": "melone,honigmelone,obst",
+        "unit": "Stueck",
+        "weightPerPiece": 1
+      },
+      "-Om-7GxQ8nr2y3ZXtm2C": {
+        "available": true,
+        "category": "Kartoffel",
+        "detailInfo": "Festkochende Demeter-Kartoffeln vom Hof Apfeltraum.",
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1576373532957500855.tmp?alt=media&token=81892fcd-c346-479a-8b56-4b56d7ce8381",
+        "price": 2.8,
+        "productId": "",
+        "productName": "TEST-Demeter Kartoffeln",
+        "searchTerms": "kartoffel,kartoffeln",
+        "unit": "kg",
+        "weightPerPiece": 0.06
+      }
+    }
+  },
+  "buyer_access_status": {
+    "9c05aea3-d6c1-4cdd-9c29-47b2d1b32b6f": {
+      "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+        "status": "APPROVED",
+        "updatedAt": 1773084302751
+      }
+    },
+    "a6b0f006-6060-4ad1-9d1d-501118e8d86b": {
+      "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+        "status": "APPROVED",
+        "updatedAt": 1773083364310
+      }
+    },
+    "b028e885-0ae7-4f0c-a52c-1ba2a6c3d17c": {
+      "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+        "status": "APPROVED",
+        "updatedAt": 1773250996049
+      }
+    }
+  },
+  "buyer_profile": {
+    "3PXMkzipSjO7Dpb4aIPMhhQKPEL2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x",
+        "-OfhnHb1nV_gDkY56PA4"
+      ],
+      "id": "3PXMkzipSjO7Dpb4aIPMhhQKPEL2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "4J0Sc64HMnT91dYs1XdMzYItzx33": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-MVVOVBOANfr5eYJFSWD"
+      ],
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "4TWbvsE8B6TECot5uXjGtoxZPby1": {
+      "anonymous": false,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-Om-7GshNVtWodibJRJO",
+        "-Om-7GxQ8nr2y3ZXtm2C",
+        "-Om-7GeK4yJk3VZI95Qj"
+      ],
+      "id": "4TWbvsE8B6TECot5uXjGtoxZPby1",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "5LFwmsSCa2Xl4rSKxEwkiythpId2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x"
+      ],
+      "id": "5LFwmsSCa2Xl4rSKxEwkiythpId2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "5ckFvzUiV4acARIo86BeDteE1AD2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "id": "5ckFvzUiV4acARIo86BeDteE1AD2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "65XOvEvZvYccTK05adej1DC28hA2": {
+      "anonymous": false,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "Marco ",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x",
+        "-OfhnHb00g3WUzVDZR3y"
+      ],
+      "id": "65XOvEvZvYccTK05adej1DC28hA2",
+      "photoUrl": "",
+      "placedOrderIds": {
+        "20260212": "-OkgQk1RQpvlWUgiRgRQ",
+        "20260305": "-Om-RFECkkrlzrfviyRs",
+        "2026-01-15": "-OiHxs2Fz5xwGxNbWmbL"
+      },
+      "telephoneNumber": ""
+    },
+    "7g1hsjnEiweiTD0nr4Dz1WtU5pM2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x"
+      ],
+      "id": "7g1hsjnEiweiTD0nr4Dz1WtU5pM2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "8LPP5z9ibWVpLb3smMtTKbpLICL2": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "photoUrl": "",
+      "placedOrderIds": {
+        "20251127": "-OeqhxTPR-jT2wtrBWgM"
+      },
+      "telephoneNumber": ""
+    },
+    "9Ne0WS1Dk4hcgOa0Qy6wj6o55KH3": {
+      "anonymous": false,
+      "buyerUUID": "9c05aea3-d6c1-4cdd-9c29-47b2d1b32b6f",
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "",
+      "draftBasket": {
+        "items": [
+          {
+            "amount": "3.0",
+            "amountCount": 3,
+            "id": "",
+            "piecesCount": 3,
+            "price": 2.9,
+            "productId": "-OfhnHb2_vjYGxPpFHtH",
+            "productName": "Stangensellerie",
+            "unit": "Stück"
+          }
+        ],
+        "lastModified": 1773250469501
+      },
+      "emailAddress": "",
+      "id": "9Ne0WS1Dk4hcgOa0Qy6wj6o55KH3",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "By47K03ITRfy3nbNIqwF9i4t0Y22": {
+      "anonymous": false,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "Me myself and I ",
+      "emailAddress": "marsf@fc.de",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x",
+        "-OfhnHb00g3WUzVDZR3y",
+        "-OfhnHb00g3WUzVDZR3z"
+      ],
+      "id": "By47K03ITRfy3nbNIqwF9i4t0Y22",
+      "photoUrl": "",
+      "placedOrderIds": {
+        "2025-12-18": "-OgbRblTNWwha_L_S2w8"
+      },
+      "telephoneNumber": ""
+    },
+    "FVafjRlQoeb45FDiVqS8z5KlP7r2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3y",
+        "-OfhnHb00g3WUzVDZR3x"
+      ],
+      "id": "FVafjRlQoeb45FDiVqS8z5KlP7r2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "G4TXRbI76FcUHCHzUVzDvt2Fq8q2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x",
+        "-OfhnHb1nV_gDkY56PA4"
+      ],
+      "id": "G4TXRbI76FcUHCHzUVzDvt2Fq8q2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "GMVQDYCErHcgjLb3NzvO2yMqr332": {
+      "anonymous": true,
+      "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+      "defaultPickUpTime": "14:45",
+      "displayName": "freundlic",
+      "emailAddress": "",
+      "id": "",
+      "mode": -1,
+      "photoUrl": "",
+      "placedOrderIds": {
+        "20220623": "-N51gBwzpyvBxyzji6uc",
+        "20230831": "-Nd0Q0Ud_eJCnZrPVBUS"
+      },
+      "telephoneNumber": ""
+    },
+    "MeCa8dJ1VLZyrIv9glZ8d4ujaht2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x",
+        "-OfhnHb00g3WUzVDZR3y"
+      ],
+      "id": "MeCa8dJ1VLZyrIv9glZ8d4ujaht2",
+      "photoUrl": "",
+      "placedOrderIds": {
+        "2025-12-11": "-Ofxk30evdL0u0dYhKJb"
+      },
+      "telephoneNumber": ""
+    },
+    "N4JBICOWOndwSaVwnzFMbD4bhY63": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "photoUrl": "",
+      "placedOrderIds": {
+        "20251127": "-OeaVupIveHeCvly0etC"
+      },
+      "telephoneNumber": ""
+    },
+    "P921uHjOLcfQw3cfnp9xrDDYca02": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3z",
+        "-OfhnHb2_vjYGxPpFHtH",
+        "-OfhnHb00g3WUzVDZR3y",
+        "-OfhnHb1nV_gDkY56PA4",
+        "-OfhnHb55HiUDG8ALTFL",
+        "-OfhnHb55HiUDG8ALTFJ",
+        "-OfhnHb3qNC7JucUDSeF",
+        "-OfhnHb55HiUDG8ALTFK",
+        "-OfhnHb1nV_gDkY56PA3"
+      ],
+      "id": "P921uHjOLcfQw3cfnp9xrDDYca02",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "PV5VADWP54P4W5wAezy7UCq5hR03": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-MVVOVBOANfr5eYJFSWD"
+      ],
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "SMry20UPX2MA9UcfXs2nqXkRu033": {
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "favouriteProductIds": [
+        "-MVVOVBOANfr5eYJFSWD",
+        "-MVVOVBOANfr5eYJFSWJ",
+        "-MVVOVBOANfr5eYJFSWI"
+      ],
+      "isAnonymous": true,
+      "mode": -1,
+      "phoneNumber": "",
+      "photoUrl": "",
+      "providerId": ""
+    },
+    "SchgDfqARhVSM53ARwUQsmgwYKZ2": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-MVVOVBOANfr5eYJFSWD",
+        "-MVVOVBOANfr5eYJFSWE"
+      ],
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "WVsVWRfzEheW7x7RWd4hmHC5QUZ2": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "id": "",
+      "mode": -1,
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "Xk9dewDm0rPxRSJiKe8PSttKnXU2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb1nV_gDkY56PA3",
+        "-OfhnHb00g3WUzVDZR3z",
+        "-OfhnHb00g3WUzVDZR3x"
+      ],
+      "id": "Xk9dewDm0rPxRSJiKe8PSttKnXU2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "XmIxmIKoCLh0tWXcYqQJDUXXY8m1": {
+      "anonymous": false,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3y"
+      ],
+      "id": "XmIxmIKoCLh0tWXcYqQJDUXXY8m1",
+      "photoUrl": "",
+      "placedOrderIds": {
+        "2025-12-18": "-Ogc68-dwZ6fDyhr8Wik"
+      },
+      "telephoneNumber": ""
+    },
+    "ZUium3miV5cVum3WHZjb4C8ryLg2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb1nV_gDkY56PA3",
+        "-OfhnHb00g3WUzVDZR3z",
+        "-OfhnHb55HiUDG8ALTFJ",
+        "-OfhnHb55HiUDG8ALTFL"
+      ],
+      "id": "ZUium3miV5cVum3WHZjb4C8ryLg2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "bCDVJtEnIMWZPDCpPXe5hALzDdB3": {
+      "anonymous": true,
+      "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+      "defaultPickUpTime": "16:45",
+      "displayName": "Marco Leiter",
+      "emailAddress": "",
+      "id": "",
+      "mode": -1,
+      "photoUrl": "",
+      "placedOrderIds": {
+        "20230908": "-NdkD6zepFkqrwh3XU3L",
+        "20230915": "-NdkIFiG8oxGfxAgk_I1"
+      },
+      "telephoneNumber": ""
+    },
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "anonymous": false,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "Marco Leiter",
+      "emailAddress": "mmaleiter@gmail.com",
+      "id": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+      "photoUrl": "https://lh3.googleusercontent.com/a-/AOh14GiOvn1gy_0c4sDH6zr20VfzyJUF2qY5TwBnLk9K=s96-c",
+      "telephoneNumber": ""
+    },
+    "cS8B7ghYpaUk3jUomvJkFbiiSVK2": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-MVVOVBOANfr5eYJFSWK",
+        "-MVVOVBOANfr5eYJFSWE",
+        "-MVVOVBOANfr5eYJFSWG"
+      ],
+      "photoUrl": "",
+      "placedOrderIds": {
+        "20251127": "-OeaWXtS9TOBqOvg8rHO"
+      },
+      "telephoneNumber": ""
+    },
+    "cqGjXlLzOQar9lOu2vZWudliZ713": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "id": "",
+      "mode": -1,
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "eZbKZXqm1OMUj3Mtkbic3gLURez1": {
+      "anonymous": false,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3y",
+        "-OfhnHb00g3WUzVDZR3z"
+      ],
+      "id": "eZbKZXqm1OMUj3Mtkbic3gLURez1",
+      "photoUrl": "",
+      "placedOrderIds": {
+        "20260122": "-OixfXhj7J-Z46jkx-Li",
+        "20260205": "-OkY_-3R7v-om22ILQc3"
+      },
+      "telephoneNumber": ""
+    },
+    "erKyr5wUpLSTQEclMIhgGHsnpzG2": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-MVVOVBOANfr5eYJFSWG"
+      ],
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "ev8jndPJY5cKAmyeovGKc3oapfh2": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-MVVOVBOANfr5eYJFSWD",
+        "-MVVOVBOANfr5eYJFSWE"
+      ],
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "ew3flwg19bbOO5U5Ije0Ml8HgdC2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x",
+        "-OfhnHb00g3WUzVDZR3y",
+        "-OfhnHb55HiUDG8ALTFL"
+      ],
+      "id": "ew3flwg19bbOO5U5Ije0Ml8HgdC2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "fTzEtOYU39Y4ksmFJMJuVCkyAuJ3": {
+      "anonymous": false,
+      "buyerUUID": "9c05aea3-d6c1-4cdd-9c29-47b2d1b32b6f",
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "",
+      "draftBasket": {
+        "items": [
+          {
+            "amount": "6.0",
+            "amountCount": 6,
+            "id": "",
+            "piecesCount": 2147483647,
+            "price": 2.3,
+            "productId": "-OfhnHb00g3WUzVDZR3z",
+            "productName": "Feigenbananen",
+            "unit": "kg"
+          }
+        ],
+        "lastModified": 1773089301132
+      },
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3z",
+        "-OfhnHb55HiUDG8ALTFK",
+        "-OfhnHb55HiUDG8ALTFL",
+        "-OfhnHb00g3WUzVDZR3x"
+      ],
+      "id": "fTzEtOYU39Y4ksmFJMJuVCkyAuJ3",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "g1W8ObZLyOUwTd18EQ0luW2Fe4C2": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "photoUrl": "",
+      "placedOrderIds": {
+        "20251127": "-OeaAPNp53KBuv1-oCYX"
+      },
+      "telephoneNumber": ""
+    },
+    "iAOCvjEQQmMdOBHvq0p96tIYiIh1": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x"
+      ],
+      "id": "iAOCvjEQQmMdOBHvq0p96tIYiIh1",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "jCvH0d4qs8hitn1vFUaLg4n9J9i2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x"
+      ],
+      "id": "jCvH0d4qs8hitn1vFUaLg4n9J9i2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "jJMXsWVY2ePMWpANHYeHBMLyJyU2": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-MVVOVBOANfr5eYJFSWD"
+      ],
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "oqqR0iVCAuRmP6PWl3XNz0XnnL33": {
+      "buyerUUID": "b028e885-0ae7-4f0c-a52c-1ba2a6c3d17c"
+    },
+    "pQ1WERw8Y6PNd43u4Vl06Qok3ue2": {
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "favouriteProductIds": [
+        "-MVVOVBOANfr5eYJFSWJ",
+        "-MVVOVBOANfr5eYJFSWK",
+        "-MVVOVBOANfr5eYJFSWE",
+        "-MVVOVBOANfr5eYJFSWH"
+      ],
+      "isAnonymous": true,
+      "mode": -1,
+      "phoneNumber": "",
+      "photoUrl": "",
+      "providerId": ""
+    },
+    "rZcXBoA8AeT8IjeDb9wpMNW4RvH2": {
+      "anonymous": false,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "id": "rZcXBoA8AeT8IjeDb9wpMNW4RvH2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "rmgL0G25xaOseK80ugMCYg6qEBt1": {
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultTime": "",
+      "displayName": "",
+      "emailAddress": "",
+      "photoUrl": "",
+      "placedOrderIds": {
+        "20251122": "-OdpKZiD1NHRfi-bboFa"
+      },
+      "telephoneNumber": ""
+    },
+    "tCOjLPOezlR8tzQyHIHZ3QEQoIt1": {
+      "anonymous": false,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "test@example.de",
+      "id": "tCOjLPOezlR8tzQyHIHZ3QEQoIt1",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "vpVP94O1hITHBVU9yp8Rt4S4BuZ2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb1nV_gDkY56PA3"
+      ],
+      "id": "vpVP94O1hITHBVU9yp8Rt4S4BuZ2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    },
+    "yxXp90VjEeYfI6LGH8qxEaoTvEp2": {
+      "anonymous": 0,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "displayName": "New User",
+      "emailAddress": "",
+      "favouriteArticles": [
+        "-OfhnHb00g3WUzVDZR3x"
+      ],
+      "id": "yxXp90VjEeYfI6LGH8qxEaoTvEp2",
+      "photoUrl": "",
+      "telephoneNumber": ""
+    }
+  },
+  "orders": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "20210325": {
+        "-MWQWTmZ_rRBWNvAGH6r": {
+          "articles": [
+            {
+              "amount": "0,805 kg",
+              "amountCount": 0.805,
+              "id": "-MVVOVBOANfr5eYJFSWG",
+              "mode": -1,
+              "piecesCount": 7,
+              "price": 2.3,
+              "productId": "1",
+              "productName": "Boskop",
+              "unit": "kg"
+            },
+            {
+              "amount": "2 Schale",
+              "amountCount": 2,
+              "id": "-MVVOVBOANfr5eYJFSWD",
+              "mode": -1,
+              "piecesCount": 2,
+              "price": 5.99,
+              "productId": "555",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            },
+            {
+              "amount": "0,736 kg",
+              "amountCount": 0.736,
+              "id": "-MVVOVBOANfr5eYJFSWL",
+              "mode": -1,
+              "piecesCount": 8,
+              "price": 2.3,
+              "productId": "1",
+              "productName": "Granny Smith",
+              "unit": "kg"
+            },
+            {
+              "amount": "1,170 kg",
+              "amountCount": 1.17,
+              "id": "-MVVOVBOANfr5eYJFSWM",
+              "mode": -1,
+              "piecesCount": 13,
+              "price": 2.9,
+              "productId": "244",
+              "productName": "Siglinde Kartoffeln",
+              "unit": "kg"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": true,
+            "defaultMarket": "",
+            "defaultPickUpTime": "",
+            "displayName": "Fd,ryrxbnbh",
+            "emailAddress": "",
+            "id": "",
+            "mode": -1,
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210325": "-MWQWTmZ_rRBWNvAGH6r",
+              "20210326": "-MWQXO0vX4bqA0lYNMEU",
+              "20210401": "-MWQXnjzP9Re27wRBaWB",
+              "20210402": "-MWQXV1JRqGDvKChRMv4"
+            },
+            "telephoneNumber": ""
+          },
+          "createdDate": 1616513173777,
+          "id": "",
+          "marketId": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+          "message": "f,f,f,ggxg g gcy",
+          "mode": -1,
+          "notFavourite": true,
+          "pickUpDate": 1616680844008,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        },
+        "-MWVy2lfRVGXIaDwm0wE": {
+          "articles": [
+            {
+              "amount": "0,575 kg",
+              "amountCount": 0.575,
+              "id": "-MVVOVBOANfr5eYJFSWG",
+              "mode": -1,
+              "piecesCount": 5,
+              "price": 2.3,
+              "productId": "1",
+              "productName": "Boskop",
+              "unit": "kg"
+            },
+            {
+              "amount": "0,150 Kg",
+              "amountCount": 0.15,
+              "id": "-MVVOVBOANfr5eYJFSWF",
+              "mode": -1,
+              "piecesCount": 5,
+              "price": 10.69,
+              "productId": "6",
+              "productName": "Knoblauch",
+              "unit": "Kg"
+            },
+            {
+              "amount": "8 Schale",
+              "amountCount": 8,
+              "id": "-MVVOVBOANfr5eYJFSWD",
+              "mode": -1,
+              "piecesCount": 8,
+              "price": 5.99,
+              "productId": "555",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": true,
+            "defaultMarket": "",
+            "defaultPickUpTime": "",
+            "displayName": "Marco",
+            "emailAddress": "",
+            "id": "",
+            "mode": -1,
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210325": "-MWVy2lfRVGXIaDwm0wE",
+              "20210326": "-MWVy_yobHV56iUGIHGg"
+            },
+            "telephoneNumber": ""
+          },
+          "createdDate": 1616534755605,
+          "id": "",
+          "marketId": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+          "message": "",
+          "mode": -1,
+          "notFavourite": true,
+          "pickUpDate": 1616680854727,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        }
+      },
+      "20210326": {
+        "-MWVy_yobHV56iUGIHGg": {
+          "articles": [
+            {
+              "amount": "4 Schale",
+              "amountCount": 4,
+              "id": "-MVVOVBOANfr5eYJFSWD",
+              "mode": -1,
+              "piecesCount": 4,
+              "price": 5.99,
+              "productId": "555",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": true,
+            "defaultMarket": "",
+            "defaultPickUpTime": "",
+            "displayName": "Marco",
+            "emailAddress": "",
+            "id": "",
+            "mode": -1,
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210325": "-MWVy2lfRVGXIaDwm0wE",
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20210401": "-MWiKbTikS5oQYl5CQJ9"
+            },
+            "telephoneNumber": ""
+          },
+          "createdDate": 1616758903089,
+          "id": "",
+          "marketId": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+          "message": "",
+          "mode": -1,
+          "notFavourite": true,
+          "pickUpDate": 1616767232158,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        }
+      },
+      "20210401": {
+        "-MWiKbTikS5oQYl5CQJ9": {
+          "articles": [
+            {
+              "amount": "1,265 kg",
+              "amountCount": 1.265,
+              "id": "-MVVOVBOANfr5eYJFSWG",
+              "mode": -1,
+              "piecesCount": 11,
+              "price": 2.3,
+              "productId": "1",
+              "productName": "Boskop",
+              "unit": "kg"
+            },
+            {
+              "amount": "8 Schale",
+              "amountCount": 8,
+              "id": "-MVVOVBOANfr5eYJFSWD",
+              "mode": -1,
+              "piecesCount": 8,
+              "price": 5.99,
+              "productId": "555",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            },
+            {
+              "amount": "0,150 Kg",
+              "amountCount": 0.15,
+              "id": "-MVVOVBOANfr5eYJFSWF",
+              "mode": -1,
+              "piecesCount": 5,
+              "price": 10.69,
+              "productId": "6",
+              "productName": "Knoblauch",
+              "unit": "Kg"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": true,
+            "defaultMarket": "",
+            "defaultPickUpTime": "",
+            "displayName": "Marco",
+            "emailAddress": "",
+            "id": "",
+            "mode": -1,
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210325": "-MWVy2lfRVGXIaDwm0wE",
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20210401": "-MWiKbTikS5oQYl5CQJ9"
+            },
+            "telephoneNumber": ""
+          },
+          "createdDate": 1616759053680,
+          "id": "",
+          "marketId": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+          "message": "",
+          "mode": -1,
+          "notFavourite": true,
+          "pickUpDate": 1617282005694,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        }
+      },
+      "20220623": {
+        "-N51gBwzpyvBxyzji6uc": {
+          "articles": [
+            {
+              "amount": "1,500 kg",
+              "amountCount": 1.5,
+              "id": "-MVVOVBOANfr5eYJFSWJ",
+              "mode": -1,
+              "piecesCount": 0,
+              "price": 2.3,
+              "productId": "1",
+              "productName": "Elstar",
+              "unit": "kg"
+            },
+            {
+              "amount": "4 Stück",
+              "amountCount": 4.1,
+              "id": "-MVVOVBOANfr5eYJFSWE",
+              "mode": -1,
+              "piecesCount": 4,
+              "price": 2.9,
+              "productId": "3",
+              "productName": "Stangensellerie",
+              "unit": "Stück"
+            },
+            {
+              "amount": "3 Bund",
+              "amountCount": 3.7,
+              "id": "-MVVOVBOANfr5eYJFSWH",
+              "mode": -1,
+              "piecesCount": 3,
+              "price": 3.69,
+              "productId": "op",
+              "productName": "Atomic Red",
+              "unit": "Bund"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": true,
+            "defaultMarket": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+            "defaultPickUpTime": "14:45",
+            "displayName": "cerc",
+            "emailAddress": "mmaleiter@gmail.com",
+            "id": "",
+            "mode": -1,
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20220623": "-N51gBwzpyvBxyzji6uc"
+            },
+            "telephoneNumber": "0172585528"
+          },
+          "createdDate": 1695392390000,
+          "id": "",
+          "marketId": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+          "message": "",
+          "mode": -1,
+          "notFavourite": true,
+          "pickUpDate": 1695392390000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        }
+      },
+      "20230831": {
+        "-Nd0Q0Ud_eJCnZrPVBUS": {
+          "articles": [
+            {
+              "amount": "3 Bund",
+              "amountCount": 3,
+              "id": "-MVVOVBOANfr5eYJFSWH",
+              "mode": -1,
+              "piecesCount": 3,
+              "price": 3.69,
+              "productId": "op",
+              "productName": "Atomic Red",
+              "unit": "Bund"
+            },
+            {
+              "amount": "1,500 kg",
+              "amountCount": 1.5,
+              "id": "-MVVOVBOANfr5eYJFSWJ",
+              "mode": -1,
+              "piecesCount": 0,
+              "price": 2.3,
+              "productId": "1",
+              "productName": "Elstar",
+              "unit": "kg"
+            },
+            {
+              "amount": "3 Stück",
+              "amountCount": 3,
+              "id": "-MVVOVBOANfr5eYJFSWE",
+              "mode": -1,
+              "piecesCount": 3,
+              "price": 2.9,
+              "productId": "3",
+              "productName": "Stangensellerie",
+              "unit": "Stück"
+            },
+            {
+              "amount": "0,520 kg",
+              "amountCount": 0.52,
+              "id": "-MVVOVBOANfr5eYJFSWK",
+              "mode": -1,
+              "piecesCount": 4,
+              "price": 2.3,
+              "productId": "0",
+              "productName": "Feigenbananen",
+              "unit": "kg"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": true,
+            "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+            "defaultPickUpTime": "14:45",
+            "displayName": "freundlic",
+            "emailAddress": "",
+            "id": "",
+            "mode": -1,
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20220623": "-N51gBwzpyvBxyzji6uc",
+              "20230831": "-Nd0Q0Ud_eJCnZrPVBUS"
+            },
+            "telephoneNumber": ""
+          },
+          "createdDate": 1693411841619,
+          "id": "",
+          "marketId": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+          "message": "",
+          "mode": -1,
+          "notFavourite": true,
+          "pickUpDate": 1693485940561,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        }
+      },
+      "20230915": {
+        "-NdkIFiG8oxGfxAgk_I1": {
+          "articles": [
+            {
+              "amount": "1 Schale",
+              "amountCount": 1,
+              "id": "-MVVOVBOANfr5eYJFSWD",
+              "mode": -1,
+              "piecesCount": 1,
+              "price": 5.96,
+              "productId": "555",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": true,
+            "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+            "defaultPickUpTime": "16:45",
+            "displayName": "Marco Leiter",
+            "emailAddress": "",
+            "id": "",
+            "mode": -1,
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20230908": "-NdkD6zepFkqrwh3XU3L"
+            },
+            "telephoneNumber": ""
+          },
+          "createdDate": 1694101211775,
+          "id": "",
+          "marketId": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+          "message": "",
+          "mode": -1,
+          "notFavourite": true,
+          "pickUpDate": 1694789107278,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        }
+      },
+      "20231102": {
+        "-NiEscIn5HrP1ztNmEqG": {
+          "articles": [
+            {
+              "amount": "0.21",
+              "amountCount": 0.21,
+              "id": "-MVVOVBOANfr5eYJFSWF",
+              "mode": -1,
+              "piecesCount": 7,
+              "price": 10.69,
+              "productId": "6",
+              "productName": "Knoblauch",
+              "unit": "Kg"
+            },
+            {
+              "amount": "3",
+              "amountCount": 3,
+              "id": "-MVVOVBOANfr5eYJFSWD",
+              "mode": -1,
+              "piecesCount": 3,
+              "price": 5.96,
+              "productId": "555",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            },
+            {
+              "amount": "0.8099999999999999",
+              "amountCount": 0.8099999999999999,
+              "id": "-MVVOVBOANfr5eYJFSWM",
+              "mode": -1,
+              "piecesCount": 9,
+              "price": 2.9,
+              "productId": "244",
+              "productName": "Siglinde Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "6",
+              "amountCount": 6,
+              "id": "-MVVOVBOANfr5eYJFSWJ",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 0.6,
+              "productId": "1",
+              "productName": "Eier",
+              "unit": "Stück"
+            },
+            {
+              "amount": "0.36",
+              "amountCount": 0.36,
+              "id": "-MVVOVBOANfr5eYJFSWI",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 2.3,
+              "productId": "55",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            }
+          ],
+          "buyerProfile": {
+            "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+            "defaultTime": "14:00",
+            "displayName": "Marco",
+            "emailAddress": "this.mail@kraut.de",
+            "favouriteProductIds": [
+              "-MVVOVBOANfr5eYJFSWF",
+              "-MVVOVBOANfr5eYJFSWJ",
+              "-MVVOVBOANfr5eYJFSWD",
+              "-MVVOVBOANfr5eYJFSWH"
+            ],
+            "isAnonymous": true,
+            "mode": -1,
+            "phoneNumber": "07141 - 92896",
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20231103": "-NiEsWK3vcOpKk04qOlK"
+            }
+          },
+          "createdDate": 1698926068977,
+          "id": "",
+          "isFavourite": false,
+          "marketId": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+          "message": "",
+          "mode": -1,
+          "pickUpDate": 1698940800000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        },
+        "-NiEsqb1mXrv9WxzYW1f": {
+          "articles": [
+            {
+              "amount": "0.8099999999999999",
+              "amountCount": 0.8099999999999999,
+              "id": "-MVVOVBOANfr5eYJFSWM",
+              "mode": -1,
+              "piecesCount": 9,
+              "price": 2.9,
+              "productId": "244",
+              "productName": "Siglinde Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "6",
+              "amountCount": 6,
+              "id": "-MVVOVBOANfr5eYJFSWJ",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 0.6,
+              "productId": "1",
+              "productName": "Eier",
+              "unit": "Stück"
+            },
+            {
+              "amount": "0.36",
+              "amountCount": 0.36,
+              "id": "-MVVOVBOANfr5eYJFSWI",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 2.3,
+              "productId": "55",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            }
+          ],
+          "buyerProfile": {
+            "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+            "defaultTime": "14:00",
+            "displayName": "Marco",
+            "emailAddress": "this.mail@kraut.de",
+            "favouriteProductIds": [
+              "-MVVOVBOANfr5eYJFSWF",
+              "-MVVOVBOANfr5eYJFSWJ",
+              "-MVVOVBOANfr5eYJFSWD",
+              "-MVVOVBOANfr5eYJFSWH"
+            ],
+            "isAnonymous": true,
+            "mode": -1,
+            "phoneNumber": "07141 - 92896",
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20231102": "-NiEscIn5HrP1ztNmEqG",
+              "20231103": "-NiEsWK3vcOpKk04qOlK"
+            }
+          },
+          "createdDate": 1698926127552,
+          "id": "",
+          "isFavourite": false,
+          "marketId": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+          "message": "",
+          "mode": -1,
+          "pickUpDate": 1698940800000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        },
+        "-NiEt-Iir3vEswoBCKwZ": {
+          "articles": [
+            {
+              "amount": "0.8099999999999999",
+              "amountCount": 0.8099999999999999,
+              "id": "-MVVOVBOANfr5eYJFSWM",
+              "mode": -1,
+              "piecesCount": 9,
+              "price": 2.9,
+              "productId": "244",
+              "productName": "Siglinde Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "6",
+              "amountCount": 6,
+              "id": "-MVVOVBOANfr5eYJFSWJ",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 0.6,
+              "productId": "1",
+              "productName": "Eier",
+              "unit": "Stück"
+            },
+            {
+              "amount": "0.36",
+              "amountCount": 0.36,
+              "id": "-MVVOVBOANfr5eYJFSWI",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 2.3,
+              "productId": "55",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            }
+          ],
+          "buyerProfile": {
+            "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+            "defaultTime": "14:00",
+            "displayName": "Marco",
+            "emailAddress": "this.mail@kraut.de",
+            "favouriteProductIds": [
+              "-MVVOVBOANfr5eYJFSWF",
+              "-MVVOVBOANfr5eYJFSWJ",
+              "-MVVOVBOANfr5eYJFSWD",
+              "-MVVOVBOANfr5eYJFSWH"
+            ],
+            "isAnonymous": true,
+            "mode": -1,
+            "phoneNumber": "07141 - 92896",
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20231102": "-NiEsqb1mXrv9WxzYW1f",
+              "20231103": "-NiEsWK3vcOpKk04qOlK"
+            }
+          },
+          "createdDate": 1698926167277,
+          "id": "",
+          "isFavourite": false,
+          "marketId": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+          "message": "",
+          "mode": -1,
+          "pickUpDate": 1698944400000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        }
+      },
+      "20231103": {
+        "-NiEngO5ilurHPbLWsdo": {
+          "articles": [
+            {
+              "amount": "8.0",
+              "amountCount": 8,
+              "id": "-MVVOVBOANfr5eYJFSWH",
+              "mode": -1,
+              "piecesCount": 8,
+              "price": 3.69,
+              "productId": "op",
+              "productName": "Atomic Red",
+              "unit": "Bund"
+            },
+            {
+              "amount": "0.21",
+              "amountCount": 0.21,
+              "id": "-MVVOVBOANfr5eYJFSWF",
+              "mode": -1,
+              "piecesCount": 7,
+              "price": 10.69,
+              "productId": "6",
+              "productName": "Knoblauch",
+              "unit": "Kg"
+            },
+            {
+              "amount": "3",
+              "amountCount": 3,
+              "id": "-MVVOVBOANfr5eYJFSWD",
+              "mode": -1,
+              "piecesCount": 3,
+              "price": 5.96,
+              "productId": "555",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            },
+            {
+              "amount": "0.8099999999999999",
+              "amountCount": 0.8099999999999999,
+              "id": "-MVVOVBOANfr5eYJFSWM",
+              "mode": -1,
+              "piecesCount": 9,
+              "price": 2.9,
+              "productId": "244",
+              "productName": "Siglinde Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "6",
+              "amountCount": 6,
+              "id": "-MVVOVBOANfr5eYJFSWJ",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 0.6,
+              "productId": "1",
+              "productName": "Eier",
+              "unit": "Stück"
+            },
+            {
+              "amount": "0.36",
+              "amountCount": 0.36,
+              "id": "-MVVOVBOANfr5eYJFSWI",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 2.3,
+              "productId": "55",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            }
+          ],
+          "buyerProfile": {
+            "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+            "defaultTime": "14:00",
+            "displayName": "Marco",
+            "emailAddress": "this.mail@kraut.de",
+            "favouriteProductIds": [
+              "-MVVOVBOANfr5eYJFSWF",
+              "-MVVOVBOANfr5eYJFSWJ",
+              "-MVVOVBOANfr5eYJFSWD",
+              "-MVVOVBOANfr5eYJFSWH"
+            ],
+            "isAnonymous": true,
+            "mode": -1,
+            "phoneNumber": "07141 - 92896",
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210326": "-MWVy_yobHV56iUGIHGg"
+            }
+          },
+          "createdDate": 1698924774970,
+          "id": "",
+          "isFavourite": false,
+          "marketId": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+          "message": "",
+          "mode": -1,
+          "pickUpDate": 1699027200000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        },
+        "-NiEnl8VQgAD2tyfHWYS": {
+          "articles": [
+            {
+              "amount": "0.21",
+              "amountCount": 0.21,
+              "id": "-MVVOVBOANfr5eYJFSWF",
+              "mode": -1,
+              "piecesCount": 7,
+              "price": 10.69,
+              "productId": "6",
+              "productName": "Knoblauch",
+              "unit": "Kg"
+            },
+            {
+              "amount": "3",
+              "amountCount": 3,
+              "id": "-MVVOVBOANfr5eYJFSWD",
+              "mode": -1,
+              "piecesCount": 3,
+              "price": 5.96,
+              "productId": "555",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            },
+            {
+              "amount": "0.8099999999999999",
+              "amountCount": 0.8099999999999999,
+              "id": "-MVVOVBOANfr5eYJFSWM",
+              "mode": -1,
+              "piecesCount": 9,
+              "price": 2.9,
+              "productId": "244",
+              "productName": "Siglinde Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "6",
+              "amountCount": 6,
+              "id": "-MVVOVBOANfr5eYJFSWJ",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 0.6,
+              "productId": "1",
+              "productName": "Eier",
+              "unit": "Stück"
+            },
+            {
+              "amount": "0.36",
+              "amountCount": 0.36,
+              "id": "-MVVOVBOANfr5eYJFSWI",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 2.3,
+              "productId": "55",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            }
+          ],
+          "buyerProfile": {
+            "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+            "defaultTime": "14:00",
+            "displayName": "Marco",
+            "emailAddress": "this.mail@kraut.de",
+            "favouriteProductIds": [
+              "-MVVOVBOANfr5eYJFSWF",
+              "-MVVOVBOANfr5eYJFSWJ",
+              "-MVVOVBOANfr5eYJFSWD",
+              "-MVVOVBOANfr5eYJFSWH"
+            ],
+            "isAnonymous": true,
+            "mode": -1,
+            "phoneNumber": "07141 - 92896",
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20231103": "-NiEngO5ilurHPbLWsdo"
+            }
+          },
+          "createdDate": 1698924794462,
+          "id": "",
+          "isFavourite": false,
+          "marketId": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+          "message": "",
+          "mode": -1,
+          "pickUpDate": 1699027200000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        },
+        "-NiEsWK3vcOpKk04qOlK": {
+          "articles": [
+            {
+              "amount": "0.21",
+              "amountCount": 0.21,
+              "id": "-MVVOVBOANfr5eYJFSWF",
+              "mode": -1,
+              "piecesCount": 7,
+              "price": 10.69,
+              "productId": "6",
+              "productName": "Knoblauch",
+              "unit": "Kg"
+            },
+            {
+              "amount": "3",
+              "amountCount": 3,
+              "id": "-MVVOVBOANfr5eYJFSWD",
+              "mode": -1,
+              "piecesCount": 3,
+              "price": 5.96,
+              "productId": "555",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            },
+            {
+              "amount": "0.8099999999999999",
+              "amountCount": 0.8099999999999999,
+              "id": "-MVVOVBOANfr5eYJFSWM",
+              "mode": -1,
+              "piecesCount": 9,
+              "price": 2.9,
+              "productId": "244",
+              "productName": "Siglinde Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "6",
+              "amountCount": 6,
+              "id": "-MVVOVBOANfr5eYJFSWJ",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 0.6,
+              "productId": "1",
+              "productName": "Eier",
+              "unit": "Stück"
+            },
+            {
+              "amount": "0.36",
+              "amountCount": 0.36,
+              "id": "-MVVOVBOANfr5eYJFSWI",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 2.3,
+              "productId": "55",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            }
+          ],
+          "buyerProfile": {
+            "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+            "defaultTime": "14:00",
+            "displayName": "Marco",
+            "emailAddress": "this.mail@kraut.de",
+            "favouriteProductIds": [
+              "-MVVOVBOANfr5eYJFSWF",
+              "-MVVOVBOANfr5eYJFSWJ",
+              "-MVVOVBOANfr5eYJFSWD",
+              "-MVVOVBOANfr5eYJFSWH"
+            ],
+            "isAnonymous": true,
+            "mode": -1,
+            "phoneNumber": "07141 - 92896",
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20231103": "-NiEnl8VQgAD2tyfHWYS"
+            }
+          },
+          "createdDate": 1698926040386,
+          "id": "",
+          "isFavourite": false,
+          "marketId": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+          "message": "",
+          "mode": -1,
+          "pickUpDate": 1699027200000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        },
+        "-NiEt812PCyRsn971wvI": {
+          "articles": [
+            {
+              "amount": "0.8099999999999999",
+              "amountCount": 0.8099999999999999,
+              "id": "-MVVOVBOANfr5eYJFSWM",
+              "mode": -1,
+              "piecesCount": 9,
+              "price": 2.9,
+              "productId": "244",
+              "productName": "Siglinde Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "6",
+              "amountCount": 6,
+              "id": "-MVVOVBOANfr5eYJFSWJ",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 0.6,
+              "productId": "1",
+              "productName": "Eier",
+              "unit": "Stück"
+            },
+            {
+              "amount": "0.36",
+              "amountCount": 0.36,
+              "id": "-MVVOVBOANfr5eYJFSWI",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 2.3,
+              "productId": "55",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "2",
+              "amountCount": 2,
+              "id": "-MVVOVBOANfr5eYJFSWE",
+              "mode": -1,
+              "piecesCount": 2,
+              "price": 2.9,
+              "productId": "3",
+              "productName": "Stangensellerie",
+              "unit": "Stück"
+            }
+          ],
+          "buyerProfile": {
+            "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+            "defaultTime": "14:00",
+            "displayName": "Marco",
+            "emailAddress": "this.mail@kraut.de",
+            "favouriteProductIds": [
+              "-MVVOVBOANfr5eYJFSWF",
+              "-MVVOVBOANfr5eYJFSWJ",
+              "-MVVOVBOANfr5eYJFSWD",
+              "-MVVOVBOANfr5eYJFSWH"
+            ],
+            "isAnonymous": true,
+            "mode": -1,
+            "phoneNumber": "07141 - 92896",
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20231102": "-NiEt-Iir3vEswoBCKwZ",
+              "20231103": "-NiEsWK3vcOpKk04qOlK"
+            }
+          },
+          "createdDate": 1698926203010,
+          "id": "",
+          "isFavourite": false,
+          "marketId": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+          "message": "",
+          "mode": -1,
+          "pickUpDate": 1699030800000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        },
+        "articles": [
+          {
+            "amount": "8.0",
+            "amountCount": 8,
+            "id": "-MVVOVBOANfr5eYJFSWH",
+            "mode": -1,
+            "piecesCount": 8,
+            "price": 3.69,
+            "productId": "op",
+            "productName": "Atomic Red",
+            "unit": "Bund"
+          },
+          {
+            "amount": "0.21",
+            "amountCount": 0.21,
+            "id": "-MVVOVBOANfr5eYJFSWF",
+            "mode": -1,
+            "piecesCount": 7,
+            "price": 10.69,
+            "productId": "6",
+            "productName": "Knoblauch",
+            "unit": "Kg"
+          },
+          {
+            "amount": "3",
+            "amountCount": 3,
+            "id": "-MVVOVBOANfr5eYJFSWD",
+            "mode": -1,
+            "piecesCount": 3,
+            "price": 5.96,
+            "productId": "555",
+            "productName": "Erdbeeren",
+            "unit": "Schale"
+          },
+          {
+            "amount": "0.8099999999999999",
+            "amountCount": 0.8099999999999999,
+            "id": "-MVVOVBOANfr5eYJFSWM",
+            "mode": -1,
+            "piecesCount": 9,
+            "price": 2.9,
+            "productId": "244",
+            "productName": "Siglinde Kartoffeln",
+            "unit": "kg"
+          },
+          {
+            "amount": "6",
+            "amountCount": 6,
+            "id": "-MVVOVBOANfr5eYJFSWJ",
+            "mode": -1,
+            "piecesCount": 6,
+            "price": 0.6,
+            "productId": "1",
+            "productName": "Eier",
+            "unit": "Stück"
+          },
+          {
+            "amount": "0.36",
+            "amountCount": 0.36,
+            "id": "-MVVOVBOANfr5eYJFSWI",
+            "mode": -1,
+            "piecesCount": 6,
+            "price": 2.3,
+            "productId": "55",
+            "productName": "Linda Kartoffeln",
+            "unit": "kg"
+          }
+        ],
+        "buyerProfile": {
+          "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+          "defaultTime": "14:00",
+          "displayName": "Marco",
+          "emailAddress": "this.mail@kraut.de",
+          "favouriteProductIds": [
+            "-MVVOVBOANfr5eYJFSWF",
+            "-MVVOVBOANfr5eYJFSWJ",
+            "-MVVOVBOANfr5eYJFSWD",
+            "-MVVOVBOANfr5eYJFSWH"
+          ],
+          "isAnonymous": true,
+          "mode": -1,
+          "phoneNumber": "07141 - 92896",
+          "photoUrl": "",
+          "placedOrderIds": {
+            "20210326": "-MWVy_yobHV56iUGIHGg"
+          }
+        },
+        "createdDate": 1698924702409,
+        "id": "",
+        "isFavourite": false,
+        "marketId": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+        "message": "",
+        "mode": -1,
+        "pickUpDate": 1699027200000,
+        "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+      },
+      "20241129": {
+        "-OCNQonKpLifKJQA8zRK": {
+          "articles": [
+            {
+              "amount": "0.8099999999999999",
+              "amountCount": 0.8099999999999999,
+              "id": "-MVVOVBOANfr5eYJFSWM",
+              "mode": -1,
+              "piecesCount": 9,
+              "price": 2.9,
+              "productId": "244",
+              "productName": "Siglinde Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "0.36",
+              "amountCount": 0.36,
+              "id": "-MVVOVBOANfr5eYJFSWI",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 2.3,
+              "productId": "55",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "2",
+              "amountCount": 2,
+              "id": "-MVVOVBOANfr5eYJFSWE",
+              "mode": -1,
+              "piecesCount": 2,
+              "price": 2.9,
+              "productId": "3",
+              "productName": "Stangensellerie",
+              "unit": "Stück"
+            },
+            {
+              "amount": "0.276",
+              "amountCount": 0.276,
+              "id": "-MVVOVBOANfr5eYJFSWL",
+              "mode": -1,
+              "piecesCount": 3,
+              "price": 2.3,
+              "productId": "1",
+              "productName": "Granny Smith",
+              "unit": "kg"
+            },
+            {
+              "amount": "0.15",
+              "amountCount": 0.15,
+              "id": "-MVVOVBOANfr5eYJFSWF",
+              "mode": -1,
+              "piecesCount": 5,
+              "price": 10.69,
+              "productId": "6",
+              "productName": "Knoblauch",
+              "unit": "Kg"
+            },
+            {
+              "amount": "6",
+              "amountCount": 6,
+              "id": "-MVVOVBOANfr5eYJFSWH",
+              "mode": -1,
+              "piecesCount": 6,
+              "price": 3.69,
+              "productId": "op",
+              "productName": "Atomic Red",
+              "unit": "Bund"
+            }
+          ],
+          "buyerProfile": {
+            "defaultMarket": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+            "defaultTime": "14:00",
+            "displayName": "Marco",
+            "emailAddress": "this.mail@kraut.de",
+            "favouriteProductIds": [
+              "-MVVOVBOANfr5eYJFSWF",
+              "-MVVOVBOANfr5eYJFSWJ",
+              "-MVVOVBOANfr5eYJFSWH",
+              "-MVVOVBOANfr5eYJFSWM"
+            ],
+            "isAnonymous": true,
+            "mode": -1,
+            "phoneNumber": "07141 - 92896",
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20231102": "-NiEt-Iir3vEswoBCKwZ",
+              "20231103": "-NiEt812PCyRsn971wvI"
+            }
+          },
+          "createdDate": 1732355509448,
+          "id": "",
+          "isFavourite": false,
+          "marketId": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+          "message": "",
+          "mode": -1,
+          "pickUpDate": 1732899600000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        }
+      },
+      "20251127": {
+        "-OeaWXtS9TOBqOvg8rHO": {
+          "articles": [
+            {
+              "amountCount": 1,
+              "price": 2.96,
+              "productId": "-MVVOVBOANfr5eYJFSWD",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            },
+            {
+              "amountCount": 2,
+              "price": 2.9,
+              "productId": "-MVVOVBOANfr5eYJFSWE",
+              "productName": "Stangensellerie",
+              "unit": "Stück"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": true,
+            "defaultMarket": "",
+            "defaultTime": "",
+            "displayName": "",
+            "emailAddress": "",
+            "photoUrl": "",
+            "placedOrderIds": {
+              "20251127": "-OeaWXtS9TOBqOvg8rHO"
+            },
+            "telephoneNumber": ""
+          },
+          "createdDate": 1763730402615,
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1764198000000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        },
+        "-OeqhxTPR-jT2wtrBWgM": {
+          "articles": [
+            {
+              "amountCount": 1,
+              "price": 2.9,
+              "productId": "-MVVOVBOANfr5eYJFSWE",
+              "productName": "Stangensellerie",
+              "unit": "Stück"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": true,
+            "defaultMarket": "",
+            "defaultTime": "",
+            "displayName": "",
+            "emailAddress": "",
+            "photoUrl": "",
+            "telephoneNumber": ""
+          },
+          "createdDate": 1764002093972,
+          "hiddenByBuyer": false,
+          "hiddenBySeller": false,
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1764198000000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        },
+        "-Oeqv5JSkZuqIrwtX3BV": {
+          "articles": [
+            {
+              "amountCount": 1,
+              "price": 2.9,
+              "productId": "-MVVOVBOANfr5eYJFSWE",
+              "productName": "Stangensellerie",
+              "unit": "Stück"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": false,
+            "defaultMarket": "",
+            "defaultTime": "",
+            "displayName": "Kunde",
+            "emailAddress": "mmaleiter@gmail.com",
+            "photoUrl": "https://lh3.googleusercontent.com/a-/AOh14GiOvn1gy_0c4sDH6zr20VfzyJUF2qY5TwBnLk9K=s96-c",
+            "placedOrderIds": {
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20231102": "-NiEt-Iir3vEswoBCKwZ",
+              "20231103": "-NiEt812PCyRsn971wvI",
+              "20241129": "-OCNQonKpLifKJQA8zRK"
+            },
+            "telephoneNumber": ""
+          },
+          "createdDate": 1764005538112,
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1764198000000,
+          "sellerId": ""
+        }
+      },
+      "20251204": {
+        "-Of9CyUfXl68NQEtRy9w": {
+          "articles": [
+            {
+              "amountCount": 1.5,
+              "id": "",
+              "price": 2.9,
+              "productId": "-MVVOVBOANfr5eYJFSWE",
+              "productName": "Stangensellerie",
+              "unit": "Stück"
+            },
+            {
+              "amountCount": 3,
+              "id": "",
+              "price": 10.69,
+              "productId": "-MVVOVBOANfr5eYJFSWF",
+              "productName": "Knoblauch",
+              "unit": "Kg"
+            },
+            {
+              "amountCount": 2,
+              "id": "",
+              "price": 2.96,
+              "productId": "-MVVOVBOANfr5eYJFSWD",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            }
+          ],
+          "buyerProfile": {
+            "anonymous": false,
+            "defaultMarket": "",
+            "defaultTime": "",
+            "displayName": "KissyMo",
+            "emailAddress": "mmaleiter@gmail.com",
+            "favouriteProductIds": [
+              "-MVVOVBOANfr5eYJFSWE",
+              "-MVVOVBOANfr5eYJFSWF"
+            ],
+            "photoUrl": "https://lh3.googleusercontent.com/a-/AOh14GiOvn1gy_0c4sDH6zr20VfzyJUF2qY5TwBnLk9K=s96-c",
+            "placedOrderIds": {
+              "20210326": "-MWVy_yobHV56iUGIHGg",
+              "20231102": "-NiEt-Iir3vEswoBCKwZ",
+              "20231103": "-NiEt812PCyRsn971wvI",
+              "20241129": "-OCNQonKpLifKJQA8zRK",
+              "20251127": "-Oeqv5JSkZuqIrwtX3BV"
+            },
+            "telephoneNumber": "071459564312"
+          },
+          "createdDate": 1764329253453,
+          "hiddenByBuyer": false,
+          "hiddenBySeller": false,
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1764802800000,
+          "sellerId": ""
+        }
+      },
+      "20260122": {
+        "-OixY3zDEv0LKX7WI-0g": {
+          "articles": [
+            {
+              "amount": "1.0",
+              "amountCount": 1,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3y",
+              "productName": "Granny Smith",
+              "unit": "kg"
+            },
+            {
+              "amount": "9.0",
+              "amountCount": 9,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3x",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            }
+          ],
+          "buyerEmail": "",
+          "buyerId": "eZbKZXqm1OMUj3Mtkbic3gLURez1",
+          "buyerName": "New User",
+          "createdDate": 1768411647990,
+          "hiddenByBuyer": false,
+          "hiddenBySeller": false,
+          "id": "-OixY3zDEv0LKX7WI-0g",
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1769036400000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "status": "CANCELLED"
+        },
+        "-Oix_88PPcgfIUzZ9YDN": {
+          "articles": [
+            {
+              "amount": "9.0",
+              "amountCount": 9,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3x",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "3.0",
+              "amountCount": 3,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3y",
+              "productName": "Granny Smith",
+              "unit": "kg"
+            }
+          ],
+          "buyerEmail": "",
+          "buyerId": "eZbKZXqm1OMUj3Mtkbic3gLURez1",
+          "buyerName": "New User",
+          "createdDate": 1768412189324,
+          "hiddenByBuyer": false,
+          "hiddenBySeller": false,
+          "id": "-Oix_88PPcgfIUzZ9YDN",
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1769036400000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "status": "CANCELLED"
+        },
+        "-OixfXhj7J-Z46jkx-Li": {
+          "articles": [
+            {
+              "amount": "58.0",
+              "amountCount": 58,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3x",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "6.0",
+              "amountCount": 6,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3y",
+              "productName": "Granny Smith",
+              "unit": "kg"
+            }
+          ],
+          "buyerEmail": "",
+          "buyerId": "eZbKZXqm1OMUj3Mtkbic3gLURez1",
+          "buyerName": "New User",
+          "createdDate": 1768413866906,
+          "hiddenByBuyer": false,
+          "hiddenBySeller": false,
+          "id": "-OixfXhj7J-Z46jkx-Li",
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1769036400000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "status": "DRAFT"
+        }
+      },
+      "20260205": {
+        "-OkY_-3R7v-om22ILQc3": {
+          "articles": [
+            {
+              "amount": "5.0",
+              "amountCount": 5,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3x",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "9.0",
+              "amountCount": 9,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3y",
+              "productName": "Granny Smith",
+              "unit": "kg"
+            }
+          ],
+          "buyerEmail": "",
+          "buyerId": "eZbKZXqm1OMUj3Mtkbic3gLURez1",
+          "buyerName": "New User",
+          "createdDate": 1770123428171,
+          "hiddenByBuyer": false,
+          "hiddenBySeller": false,
+          "id": "-OkY_-3R7v-om22ILQc3",
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1770246000000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "status": "DRAFT"
+        }
+      },
+      "20260212": {
+        "-OkgQk1RQpvlWUgiRgRQ": {
+          "articles": [
+            {
+              "amount": "1.0",
+              "amountCount": 1,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3x",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "9.0",
+              "amountCount": 9,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3y",
+              "productName": "Granny Smith",
+              "unit": "kg"
+            }
+          ],
+          "buyerEmail": "",
+          "buyerId": "65XOvEvZvYccTK05adej1DC28hA2",
+          "buyerName": "New User",
+          "createdDate": 1770271999158,
+          "hiddenByBuyer": false,
+          "hiddenBySeller": false,
+          "id": "-OkgQk1RQpvlWUgiRgRQ",
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1770850800000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "status": "DRAFT"
+        }
+      },
+      "20260226": {
+        "-Om-GFOJYb_MsaV7UXZ4": {
+          "articles": [
+            {
+              "amount": "2.0",
+              "amountCount": 2,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3x",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg"
+            },
+            {
+              "amount": "1.0",
+              "amountCount": 1,
+              "id": "",
+              "piecesCount": 2147483647,
+              "price": 2.3,
+              "productId": "-OfhnHb00g3WUzVDZR3y",
+              "productName": "Granny Smith",
+              "unit": "kg"
+            },
+            {
+              "amount": "1.0",
+              "amountCount": 1,
+              "id": "",
+              "piecesCount": 1,
+              "price": 5.69,
+              "productId": "-OfhnHb55HiUDG8ALTFK",
+              "productName": "Erdbeeren",
+              "unit": "Schale"
+            }
+          ],
+          "buyerEmail": "",
+          "buyerId": "65XOvEvZvYccTK05adej1DC28hA2",
+          "buyerName": "Marco ",
+          "createdDate": 1771678533570,
+          "hiddenByBuyer": false,
+          "hiddenBySeller": false,
+          "id": "-Om-GFOJYb_MsaV7UXZ4",
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1772060400000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "status": "PLACED"
+        }
+      }
+    },
+    "jOSoP5UxAohZDtdpluhHg6VrfvQ2": {
+      "20260226": {
+        "-Om-NgK2dqWHmjO7bk5v": {
+          "articles": [
+            {
+              "amount": "2.0",
+              "amountCount": 2,
+              "id": "",
+              "piecesCount": 5,
+              "price": 4.5,
+              "productId": "-Om-7GeK4yJk3VZI95Qj",
+              "productName": "TEST-Mangos Gold",
+              "unit": "kg"
+            },
+            {
+              "amount": "1.5",
+              "amountCount": 1.5,
+              "id": "",
+              "piecesCount": 7,
+              "price": 3.9,
+              "productId": "-Om-7GqMDDD76CK8BMwe",
+              "productName": "TEST-Rote Paprika",
+              "unit": "kg"
+            }
+          ],
+          "buyerEmail": "",
+          "buyerId": "65XOvEvZvYccTK05adej1DC28hA2",
+          "buyerName": "Marco ",
+          "createdDate": 1771680483044,
+          "hiddenByBuyer": false,
+          "hiddenBySeller": false,
+          "id": "-Om-NgK2dqWHmjO7bk5v",
+          "marketId": "",
+          "message": "",
+          "notFavourite": true,
+          "pickUpDate": 1772060400000,
+          "sellerId": "jOSoP5UxAohZDtdpluhHg6VrfvQ2",
+          "status": "CANCELLED"
+        }
+      }
+    }
+  },
+  "seller_profile": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "aboutHtml": "PGh0bWw+CiAgPGhlYWQ+CiAgICA8c3R5bGU+CiAgICAgIC8qIFVzZSBDU1MgdG8gY2hhbmdlIHRoZSB0ZXh0IGNvbG9yICovCiAgICAgIC5yZWQtdGV4dCB7CiAgICAgIGZvbnQtc2l6ZTogMThweDsKICAgICAgICBjb2xvcjogI0ZGMkU3RDMyOwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvaGVhZD4KICA8Ym9keT4KPGRpdiBjbGFzcz0naW1wcmVzc3VtJz4KPGgxIGNsYXNzPSJyZWQtdGV4dCI+SW1wcmVzc3VtPC9oMT4KPGRpdiBzdHlsZT0ndGV4dC1hbGlnbjogbGVmdDsnIGNsYXNzPSJyZWQtdGV4dCI+RXJpYyBEZWhuPC9kaXY+CjxkaXYgc3R5bGU9J3RleHQtYWxpZ246IGxlZnQ7JyBjbGFzcz0icmVkLXRleHQiPk5ldWUgR2FydGVuc3RyYcOfZTwvZGl2Pgo8ZGl2IHN0eWxlPSd0ZXh0LWFsaWduOiBsZWZ0OycgY2xhc3M9InJlZC10ZXh0Ij4gIDE1NTE3IEbDvHJzdGVud2FsZGUgLyBTcHJlZTwvZGl2Pgo8cD4KPHA+CjxwIGNsYXNzPSJyZWQtdGV4dCI+PHN0cm9uZz5WZXJ0cmV0ZW4gZHVyY2g6IDwvc3Ryb25nPjxicj4KICBFcmljIERlaG48YnI+CjwvcD4KPGRpdiBzdHlsZT0ndGV4dC1hbGlnbjogbGVmdDsnIGNsYXNzPSJyZWQtdGV4dCI+PHN0cm9uZz5Lb250YWt0Ojwvc3Ryb25nPjwvZGl2Pgo8ZGl2IHN0eWxlPSd0ZXh0LWFsaWduOiBsZWZ0OycgY2xhc3M9InJlZC10ZXh0Ij5UZWxlZm9uOiA8YSBocmVmPSd0ZWw6MDE3MjQ2MjM3NDEnPjAxNzIgLSA0NiAyMyA3NDE8L2E+PC9kaXY+CjxkaXYgc3R5bGU9J3RleHQtYWxpZ246IGxlZnQ7JyBjbGFzcz0icmVkLXRleHQiPkUtTWFpbDogPGEgaHJlZj0nbWFpbHRvOmJvZGVuc2NoYWV0emVAcG9zdGVvLmRlJz5ib2RlbnNjaGFldHplQHBvc3Rlby5kZTwvYT48L2Rpdj48YnI+CjxwPgo8cD4KPGRpdiBzdHlsZT0ndGV4dC1hbGlnbjogbGVmdDsnIGNsYXNzPSJyZWQtdGV4dCI+PHN0cm9uZyBjbGFzcz0icmVkLXRleHQiPkRhdGVuc2NodXR6PC9zdHJvbmc+PC9kaXY+CjxwIGNsYXNzPSJyZWQtdGV4dCI+V2lyIG5laG1lbiBkZW4gU2NodXR6IGFsbGVyIHBlcnPDtm5saWNoZW4gRGF0ZW4gc2VociBlcm5zdC4gQWxsZSBwZXJzb25lbmJlem9nZW5lbiBJbmZvcm1hdGlvbmVuIHdlcmRlbiB2ZXJ0cmF1bGljaCB1bmQgZ2Vtw6TDnyBkZW4gZ2VzZXR6bGljaGVuIFZvcnNjaHJpZnRlbiBiZWhhbmRlbHQuCkRpZSBBcHAga2FubiBzZWxic3R2ZXJzdMOkbmRsaWNoIGdlbnV0enQgd2VyZGVuLCBvaG5lIGRhc3MgU2llIHBlcnPDtm5saWNoZSBEYXRlbiBhbmdlYmVuLiBXZW5uIGplZG9jaCB6dSBpcmdlbmRlaW5lbSBaZWl0cHVua3QgcGVyc8O2bmxpY2hlIERhdGVuIHdpZSB6LkIuIE5hbWUsIEFkcmVzc2Ugb2RlciBFLU1haWwgYWJnZWZyYWd0IHdlcmRlbiwgd2lyZCBkaWVzIGF1ZiBmcmVpd2lsbGlnZXIgQmFzaXMgZ2VzY2hlaGVuLiBOaWVtYWxzIHdlcmRlbiB2b24gdW5zIGVyaG9iZW5lIERhdGVuIG9obmUgSWhyZSBzcGV6aWVsbGUgR2VuZWhtaWd1bmcgYW4gRHJpdHRlIHdlaXRlcmdlZ2ViZW4uPGJyPgpEYXRlbsO8YmVydHJhZ3VuZyBpbSBJbnRlcm5ldCwgd2llIHp1bSBCZWlzcGllbCDDvGJlciBFLU1haWwsIGthbm4gaW1tZXIgU2ljaGVyaGVpdHNsw7xja2VuIGF1ZndlaXNlbi4gRGVyIGtvbXBsZXR0ZSBTY2h1dHogZGVyIERhdGVuIGlzdCBpbSBJbnRlcm5ldCBuaWNodCBtw7ZnbGljaC4gPGJyPgpEZXIgTnV0enVuZyB2b24gaW0gUmFobWVuIGRlciBJbXByZXNzdW1zcGZsaWNodCB2ZXLDtmZmZW50bGljaHRlbiBLb250YWt0ZGF0ZW4gZHVyY2ggRHJpdHRlIHp1ciDDnGJlcnNlbmR1bmcgdm9uIG5pY2h0IGF1c2Ryw7xja2xpY2ggYW5nZWZvcmRlcnRlciBXZXJidW5nIHVuZCBJbmZvcm1hdGlvbnNtYXRlcmlhbGllbiB3aXJkIGhpZXJtaXQgYXVzZHLDvGNrbGljaCB3aWRlcnNwcm9jaGVuLiBJbSBGYWxsZSBkZXIgWnV3aWRlcmhhbmRsdW5nLCBiZWlzcGllbHN3ZWlzZSBkZXIgWnVzZW5kdW5nIHZvbiBXZXJiZWluZm9ybWF0aW9uZW4gbWl0dGVscyAgU3BhbS1NYWlscywgYmVoYWx0ZSBpY2ggbWlyIGRpZSBFaW5sZWl0dW5nIHJlY2h0bGljaGVyIFNjaHJpdHRlIHZvci4gPGJyPgo8L3A+Cjxicj4KPC9kaXY+CjwvYm9keT4KPC9odG1sPg==",
+      "city": "Berlin",
+      "defaultFilterChips": [
+        "Obst",
+        "Gemüse",
+        "Favouriten",
+        "Anderes"
+      ],
+      "displayName": "BodenSchätze",
+      "firstName": "Eric",
+      "houseNumber": "27",
+      "id": "",
+      "knownClientIds": {
+        "grcanIXp2sVZVw0aKeDsI7XwvIP2": true
+      },
+      "lastName": "Dehn",
+      "lat": "",
+      "lng": "",
+      "markets": [
+        {
+          "begin": "12:00",
+          "city": "Berlin",
+          "dayIndex": 5,
+          "dayOfWeek": "Donnerstag",
+          "end": "18:30",
+          "houseNumber": "99",
+          "id": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+          "mode": -1,
+          "name": "Wochenmarkt Onkel Toms Hütte",
+          "street": "Onkel-Tom-Straße",
+          "zipCode": "14169"
+        },
+        {
+          "begin": "12:00",
+          "city": "Berlin",
+          "dayIndex": 6,
+          "dayOfWeek": "Freitag",
+          "end": "18:30",
+          "houseNumber": "18",
+          "id": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+          "mode": -1,
+          "name": "Ökomarkt im Hansaviertel",
+          "street": "Altonaer Str.",
+          "zipCode": "10557"
+        },
+        {
+          "begin": "12:00",
+          "city": "Fürstenwalde ",
+          "dayIndex": 7,
+          "dayOfWeek": "Samstag",
+          "end": "14:00",
+          "houseNumber": "15",
+          "id": "731ea8c0-612a-42d5-a389-479f1d811c28",
+          "mode": -1,
+          "name": "Fürstenwalde ",
+          "street": "Neuegartenstraße",
+          "zipCode": "15479"
+        }
+      ],
+      "mode": -1,
+      "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+      "street": "Frankfurther Allee",
+      "telephoneNumber": "01724623741",
+      "zipCode": "14195"
+    },
+    "jOSoP5UxAohZDtdpluhHg6VrfvQ2": {
+      "aboutHtml": "PGh0bWw+CiAgPGhlYWQ+CiAgICA8c3R5bGU+CiAgICAgIC8qIFVzZSBDU1MgdG8gY2hhbmdlIHRoZSB0ZXh0IGNvbG9yICovCiAgICAgIC5yZWQtdGV4dCB7CiAgICAgIGZvbnQtc2l6ZTogMThweDsKICAgICAgICBjb2xvcjogI0ZGMkU3RDMyOwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvaGVhZD4KICA8Ym9keT4KPGRpdiBjbGFzcz0naW1wcmVzc3VtJz4KPGgxIGNsYXNzPSJyZWQtdGV4dCI+SW1wcmVzc3VtPC9oMT4KPGRpdiBzdHlsZT0ndGV4dC1hbGlnbjogbGVmdDsnIGNsYXNzPSJyZWQtdGV4dCI+RXJpYyBEZWhuPC9kaXY+CjxkaXYgc3R5bGU9J3RleHQtYWxpZ246IGxlZnQ7JyBjbGFzcz0icmVkLXRleHQiPk5ldWUgR2FydGVuc3RyYcOfZTwvZGl2Pgo8ZGl2IHN0eWxlPSd0ZXh0LWFsaWduOiBsZWZ0OycgY2xhc3M9InJlZC10ZXh0Ij4gIDE1NTE3IEbDvHJzdGVud2FsZGUgLyBTcHJlZTwvZGl2Pgo8cD4KPHA+CjxwIGNsYXNzPSJyZWQtdGV4dCI+PHN0cm9uZz5WZXJ0cmV0ZW4gZHVyY2g6IDwvc3Ryb25nPjxicj4KICBFcmljIERlaG48YnI+CjwvcD4KPGRpdiBzdHlsZT0ndGV4dC1hbGlnbjogbGVmdDsnIGNsYXNzPSJyZWQtdGV4dCI+PHN0cm9uZz5Lb250YWt0Ojwvc3Ryb25nPjwvZGl2Pgo8ZGl2IHN0eWxlPSd0ZXh0LWFsaWduOiBsZWZ0OycgY2xhc3M9InJlZC10ZXh0Ij5UZWxlZm9uOiA8YSBocmVmPSd0ZWw6MDE3MjQ2MjM3NDEnPjAxNzIgLSA0NiAyMyA3NDE8L2E+PC9kaXY+CjxkaXYgc3R5bGU9J3RleHQtYWxpZ246IGxlZnQ7JyBjbGFzcz0icmVkLXRleHQiPkUtTWFpbDogPGEgaHJlZj0nbWFpbHRvOmJvZGVuc2NoYWV0emVAcG9zdGVvLmRlJz5ib2RlbnNjaGFldHplQHBvc3Rlby5kZTwvYT48L2Rpdj48YnI+CjxwPgo8cD4KPGRpdiBzdHlsZT0ndGV4dC1hbGlnbjogbGVmdDsnIGNsYXNzPSJyZWQtdGV4dCI+PHN0cm9uZyBjbGFzcz0icmVkLXRleHQiPkRhdGVuc2NodXR6PC9zdHJvbmc+PC9kaXY+CjxwIGNsYXNzPSJyZWQtdGV4dCI+V2lyIG5laG1lbiBkZW4gU2NodXR6IGFsbGVyIHBlcnPDtm5saWNoZW4gRGF0ZW4gc2VociBlcm5zdC4gQWxsZSBwZXJzb25lbmJlem9nZW5lbiBJbmZvcm1hdGlvbmVuIHdlcmRlbiB2ZXJ0cmF1bGljaCB1bmQgZ2Vtw6TDnyBkZW4gZ2VzZXR6bGljaGVuIFZvcnNjaHJpZnRlbiBiZWhhbmRlbHQuCkRpZSBBcHAga2FubiBzZWxic3R2ZXJzdMOkbmRsaWNoIGdlbnV0enQgd2VyZGVuLCBvaG5lIGRhc3MgU2llIHBlcnPDtm5saWNoZSBEYXRlbiBhbmdlYmVuLiBXZW5uIGplZG9jaCB6dSBpcmdlbmRlaW5lbSBaZWl0cHVua3QgcGVyc8O2bmxpY2hlIERhdGVuIHdpZSB6LkIuIE5hbWUsIEFkcmVzc2Ugb2RlciBFLU1haWwgYWJnZWZyYWd0IHdlcmRlbiwgd2lyZCBkaWVzIGF1ZiBmcmVpd2lsbGlnZXIgQmFzaXMgZ2VzY2hlaGVuLiBOaWVtYWxzIHdlcmRlbiB2b24gdW5zIGVyaG9iZW5lIERhdGVuIG9obmUgSWhyZSBzcGV6aWVsbGUgR2VuZWhtaWd1bmcgYW4gRHJpdHRlIHdlaXRlcmdlZ2ViZW4uPGJyPgpEYXRlbsO8YmVydHJhZ3VuZyBpbSBJbnRlcm5ldCwgd2llIHp1bSBCZWlzcGllbCDDvGJlciBFLU1haWwsIGthbm4gaW1tZXIgU2ljaGVyaGVpdHNsw7xja2VuIGF1ZndlaXNlbi4gRGVyIGtvbXBsZXR0ZSBTY2h1dHogZGVyIERhdGVuIGlzdCBpbSBJbnRlcm5ldCBuaWNodCBtw7ZnbGljaC4gPGJyPgpEZXIgTnV0enVuZyB2b24gaW0gUmFobWVuIGRlciBJbXByZXNzdW1zcGZsaWNodCB2ZXLDtmZmZW50bGljaHRlbiBLb250YWt0ZGF0ZW4gZHVyY2ggRHJpdHRlIHp1ciDDnGJlcnNlbmR1bmcgdm9uIG5pY2h0IGF1c2Ryw7xja2xpY2ggYW5nZWZvcmRlcnRlciBXZXJidW5nIHVuZCBJbmZvcm1hdGlvbnNtYXRlcmlhbGllbiB3aXJkIGhpZXJtaXQgYXVzZHLDvGNrbGljaCB3aWRlcnNwcm9jaGVuLiBJbSBGYWxsZSBkZXIgWnV3aWRlcmhhbmRsdW5nLCBiZWlzcGllbHN3ZWlzZSBkZXIgWnVzZW5kdW5nIHZvbiBXZXJiZWluZm9ybWF0aW9uZW4gbWl0dGVscyAgU3BhbS1NYWlscywgYmVoYWx0ZSBpY2ggbWlyIGRpZSBFaW5sZWl0dW5nIHJlY2h0bGljaGVyIFNjaHJpdHRlIHZvci4gPGJyPgo8L3A+Cjxicj4KPC9kaXY+CjwvYm9keT4KPC9odG1sPg==",
+      "city": "Berlin",
+      "defaultFilterChips": [
+        "Obst",
+        "Gemüse",
+        "Favouriten",
+        "Anderes"
+      ],
+      "displayName": "BodenSchätze",
+      "firstName": "Eric",
+      "houseNumber": "27",
+      "id": "",
+      "knownClientIds": {
+        "65XOvEvZvYccTK05adej1DC28hA2": true,
+        "grcanIXp2sVZVw0aKeDsI7XwvIP2": true
+      },
+      "lastName": "Dehn",
+      "lat": "",
+      "lng": "",
+      "markets": [
+        {
+          "begin": "12:00",
+          "city": "Berlin",
+          "dayIndex": 5,
+          "dayOfWeek": "Donnerstag",
+          "end": "18:30",
+          "houseNumber": "99",
+          "id": "dcdcedd4-81d5-4b6b-8566-c0426098fa69",
+          "mode": -1,
+          "name": "Wochenmarkt Onkel Toms Hütte",
+          "street": "Onkel-Tom-Straße",
+          "zipCode": "14169"
+        },
+        {
+          "begin": "12:00",
+          "city": "Berlin",
+          "dayIndex": 6,
+          "dayOfWeek": "Freitag",
+          "end": "18:30",
+          "houseNumber": "18",
+          "id": "bb8590a8-6fb5-4a4e-a140-b493bb4df9ac",
+          "mode": -1,
+          "name": "Ökomarkt im Hansaviertel",
+          "street": "Altonaer Str.",
+          "zipCode": "10557"
+        },
+        {
+          "begin": "12:00",
+          "city": "Fürstenwalde ",
+          "dayIndex": 7,
+          "dayOfWeek": "Samstag",
+          "end": "14:00",
+          "houseNumber": "15",
+          "id": "731ea8c0-612a-42d5-a389-479f1d811c28",
+          "mode": -1,
+          "name": "Fürstenwalde ",
+          "street": "Neuegartenstraße",
+          "zipCode": "15479"
+        }
+      ],
+      "mode": -1,
+      "sellerId": "jOSoP5UxAohZDtdpluhHg6VrfvQ2",
+      "street": "Frankfurther Allee",
+      "telephoneNumber": 17312345678,
+      "zipCode": "14195"
+    }
+  }
+}
