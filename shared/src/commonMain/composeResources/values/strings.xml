@@ -665,6 +665,10 @@
     <string name="demo_orders_clear_result">%1$d Demo-Bestellungen gelöscht</string>
     <string name="demo_orders_clear_none">Keine alten Demo-Bestellungen gefunden</string>
     <string name="access_request_button">Zugang anfragen</string>
+    <string name="access_status_none">Noch kein Zugriffstoken erhalten. Bitte den Verkäufer um einen Link.</string>
+    <string name="access_status_pending">Zugangsanfrage ausstehend – warte auf Freigabe durch den Verkäufer</string>
+    <string name="access_status_approved">Produktionsmodus aktiv</string>
+    <string name="access_status_blocked">Zugang vom Verkäufer gesperrt</string>
 
     <!-- Access Requests (Seller) -->
     <string name="access_requests_title">Zugangsanfragen (%1$d)</string>

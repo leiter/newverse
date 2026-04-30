@@ -613,6 +613,10 @@
     <string name="demo_orders_clear_result">%1$d demo order(s) deleted</string>
     <string name="demo_orders_clear_none">No old demo orders found</string>
     <string name="access_request_button">Request Access</string>
+    <string name="access_status_none">No access token received yet. Ask your seller for a link.</string>
+    <string name="access_status_pending">Access request pending — waiting for seller approval</string>
+    <string name="access_status_approved">Production mode active</string>
+    <string name="access_status_blocked">Access blocked by seller</string>
 
     <!-- Access Requests (Seller) -->
     <string name="access_requests_title">Access Requests (%1$d)</string>
