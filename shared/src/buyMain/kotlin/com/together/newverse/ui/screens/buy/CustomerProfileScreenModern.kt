@@ -144,6 +144,11 @@ import newverse.shared.generated.resources.profile_incomplete_go_to_profile
 import org.jetbrains.compose.resources.stringResource
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.util.formatString
+import newverse.shared.generated.resources.access_status_approved
+import newverse.shared.generated.resources.access_status_blocked
+import newverse.shared.generated.resources.access_status_none
+import newverse.shared.generated.resources.access_status_pending
+import newverse.shared.generated.resources.button_ok
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

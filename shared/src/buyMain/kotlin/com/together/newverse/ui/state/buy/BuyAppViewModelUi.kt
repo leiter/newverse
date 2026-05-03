@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.update
  * - hidePasswordResetDialog
  */
 
-internal fun BuyAppViewModel.showSnackbar(message: String, type: SnackbarType) {
+internal fun BuyAppViewModel.showSnackBar(message: String, type: SnackbarType) {
     _state.update { current ->
         current.copy(
             ui = current.ui.copy(
@@ -35,7 +35,7 @@ internal fun BuyAppViewModel.showSnackbar(message: String, type: SnackbarType) {
     }
 }
 
-internal fun BuyAppViewModel.hideSnackbar() {
+internal fun BuyAppViewModel.hideSnackBar() {
     _state.update { current ->
         current.copy(
             ui = current.ui.copy(snackbar = null)

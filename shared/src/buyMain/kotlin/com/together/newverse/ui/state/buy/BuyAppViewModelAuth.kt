@@ -1,7 +1,6 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.repository.AuthUserInfo
 import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.BasketState
@@ -86,7 +85,7 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
                 }
 
                 // Show success message
-                showSnackbar(getString(Res.string.snackbar_login_success), SnackbarType.SUCCESS)
+                showSnackBar(getString(Res.string.snackbar_login_success), SnackbarType.SUCCESS)
 
                 // Resume app initialization (load profile, order, articles)
                 resumeInitializationAfterAuth()
@@ -110,7 +109,7 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
                 }
 
                 // Show error snackbar
-                showSnackbar(errorMessage, SnackbarType.ERROR)
+                showSnackBar(errorMessage, SnackbarType.ERROR)
 
                 // Update state with error
                 _state.update { current ->
@@ -182,7 +181,7 @@ internal fun BuyAppViewModel.sendPasswordResetEmail(email: String) {
                         )
                     )
                 }
-                showSnackbar(getString(Res.string.password_reset_sent), SnackbarType.SUCCESS)
+                showSnackBar(getString(Res.string.password_reset_sent), SnackbarType.SUCCESS)
             }
             .onFailure { error ->
                 println("❌ Password reset failed: ${error.message}")
@@ -202,7 +201,7 @@ internal fun BuyAppViewModel.sendPasswordResetEmail(email: String) {
                         )
                     )
                 }
-                showSnackbar(errorMessage, SnackbarType.ERROR)
+                showSnackBar(errorMessage, SnackbarType.ERROR)
             }
     }
 }
@@ -219,10 +218,10 @@ internal fun BuyAppViewModel.logout() {
                         triggerGoogleSignOut = true
                     )
                 }
-                showSnackbar(getString(Res.string.snackbar_logout_success), SnackbarType.SUCCESS)
+                showSnackBar(getString(Res.string.snackbar_logout_success), SnackbarType.SUCCESS)
             }
             .onFailure { error ->
-                showSnackbar(error.message ?: getString(Res.string.snackbar_logout_failed), SnackbarType.ERROR)
+                showSnackBar(error.message ?: getString(Res.string.snackbar_logout_failed), SnackbarType.ERROR)
             }
     }
 }
@@ -357,7 +356,7 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
                 )
             }
 
-            showSnackbar(getString(Res.string.logout_guest_success), SnackbarType.INFO)
+            showSnackBar(getString(Res.string.logout_guest_success), SnackbarType.INFO)
 
         } catch (e: Exception) {
             println("❌ Error during guest logout: ${e.message}")
@@ -368,7 +367,7 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
                     )
                 )
             }
-            showSnackbar(getString(Res.string.logout_error, e.message ?: "Unknown error"), SnackbarType.ERROR)
+            showSnackBar(getString(Res.string.logout_error, e.message ?: "Unknown error"), SnackbarType.ERROR)
         }
     }
 }
@@ -461,7 +460,7 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
                 }
 
                 // Show success message
-                showSnackbar(getString(Res.string.link_account_success), SnackbarType.SUCCESS)
+                showSnackBar(getString(Res.string.link_account_success), SnackbarType.SUCCESS)
             }
             .onFailure { error ->
                 println("❌ BuyAppViewModel.linkWithEmail: Error - ${error.message}")
@@ -615,7 +614,7 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
             } else {
                 getString(Res.string.account_deleted_success)
             }
-            showSnackbar(message, SnackbarType.INFO)
+            showSnackBar(message, SnackbarType.INFO)
 
         } catch (e: Exception) {
             // Hide loading and dialog on error
@@ -627,7 +626,7 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
                     )
                 )
             }
-            showSnackbar("Fehler beim Löschen: ${e.message}", SnackbarType.ERROR)
+            showSnackBar("Fehler beim Löschen: ${e.message}", SnackbarType.ERROR)
         }
     }
 }
@@ -821,7 +820,7 @@ internal fun BuyAppViewModel.register(email: String, password: String, name: Str
                 }
 
                 // Show success message
-                showSnackbar(getString(Res.string.snackbar_account_created), SnackbarType.SUCCESS)
+                showSnackBar(getString(Res.string.snackbar_account_created), SnackbarType.SUCCESS)
 
                 // Navigate to login after a short delay
                 delay(1500)
@@ -852,7 +851,7 @@ internal fun BuyAppViewModel.register(email: String, password: String, name: Str
                     )
                 }
 
-                showSnackbar(errorMessage, SnackbarType.ERROR)
+                showSnackBar(errorMessage, SnackbarType.ERROR)
             }
     }
 }

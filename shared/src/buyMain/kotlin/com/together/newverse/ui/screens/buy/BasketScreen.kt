@@ -239,6 +239,8 @@ fun BasketContent(
 
         // Error message
         state.orderError?.let { error ->
+            //todo you can do better
+            if(!error.endsWith("Demo order not found"))
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

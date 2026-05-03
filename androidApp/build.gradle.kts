@@ -1,3 +1,4 @@
+import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
@@ -59,12 +60,24 @@ android {
         )
     }
 
+    val releaseSigningPropsFile = File("/home/mandroid/Videos/AA_FILES/bodenkunde_signing")
+    val releaseSigningProps = Properties()
+    if (releaseSigningPropsFile.exists()) {
+        releaseSigningProps.load(FileInputStream(releaseSigningPropsFile))
+    }
+
     signingConfigs {
         getByName("debug") {
             storeFile = file("../debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
+        }
+        create("release") {
+            storeFile = File("/home/mandroid/Videos/AA_FILES/boden_kunde.jks")
+            storePassword = releaseSigningProps["storePassword"] as String?
+            keyAlias = releaseSigningProps["keyAlias"] as String?
+            keyPassword = releaseSigningProps["keyPassword"] as String?
         }
     }
 
@@ -73,6 +86,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true // Remove unused resources
             proguardFiles(
