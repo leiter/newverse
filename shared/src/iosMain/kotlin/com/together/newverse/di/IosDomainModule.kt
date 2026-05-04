@@ -4,6 +4,7 @@ import com.together.newverse.data.config.BuyerUUIDStorage
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.data.config.DefaultProductCatalogConfig
 import com.together.newverse.data.config.DefaultSellerConfig
+import com.together.newverse.data.config.DemoOrderStorage
 import com.together.newverse.data.config.SellerIdStorage
 import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.data.repository.GitLiveAuthRepository
@@ -27,6 +28,7 @@ import org.koin.dsl.module
 val iosDomainModule = module {
     // Configs
     single { SellerIdStorage() }
+    single { DemoOrderStorage() }
     single { BuyerUUIDStorage() }
     single<SellerConfig> { DefaultSellerConfig() }
     single<OrderScheduleConfig> { DefaultOrderScheduleConfig() }

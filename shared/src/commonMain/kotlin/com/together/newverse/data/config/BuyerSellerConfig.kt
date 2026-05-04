@@ -13,7 +13,8 @@ import kotlinx.serialization.encodeToString
  * Uses [SellerIdStorage] for platform-specific persistence (SharedPreferences on Android, NSUserDefaults on iOS).
  */
 class BuyerSellerConfig(
-    private val storage: SellerIdStorage
+    private val storage: SellerIdStorage,
+    private val demoStorage: DemoOrderStorage,
 ) : MutableSellerConfig {
 
     override val demoSellerId: String = DefaultSellerConfig().sellerId
@@ -26,6 +27,20 @@ class BuyerSellerConfig(
         if (stored != null && stored != demoSellerId) {
             storage.clearConnectedSellerId()
         }
+
+        // One-shot migration: move legacy demo orders out of newverse_seller_config
+        // into the dedicated newverse_demo_orders prefs file.
+        if (demoStorage.getDemoOrdersJson().isBlank()) {
+            val legacy = storage.getDemoOrders()
+            if (legacy.isNotBlank()) {
+                demoStorage.setDemoOrdersJson(legacy)
+                storage.clearDemoOrders()
+            }
+        }
+    }
+
+    companion object {
+        const val DEMO_FIREBASE_WRITE_LIMIT = 3
     }
 
     override val sellerId: String
@@ -49,24 +64,31 @@ class BuyerSellerConfig(
     override fun saveDemoOrder(order: Order) {
         val existing = loadDemoDtos()
         val updated = existing + order.toDemoDto()
-        storage.setDemoOrders(json.encodeToString(updated))
+        demoStorage.setDemoOrdersJson(json.encodeToString(updated))
     }
 
     override fun updateDemoOrder(order: Order) {
         val existing = loadDemoDtos()
         val updated = existing.map { if (it.id == order.id) order.toDemoDto() else it }
-        storage.setDemoOrders(json.encodeToString(updated))
+        demoStorage.setDemoOrdersJson(json.encodeToString(updated))
     }
 
     override fun loadDemoOrders(): List<Order> =
         loadDemoDtos().map { it.toOrder() }
 
     override fun clearDemoOrders() {
-        storage.clearDemoOrders()
+        demoStorage.clearDemoOrders()
+    }
+
+    override fun firebaseDemoWritesRemaining(): Int =
+        (DEMO_FIREBASE_WRITE_LIMIT - demoStorage.getFirebaseWriteCount()).coerceAtLeast(0)
+
+    override fun recordFirebaseDemoWrite() {
+        demoStorage.setFirebaseWriteCount(demoStorage.getFirebaseWriteCount() + 1)
     }
 
     private fun loadDemoDtos(): List<DemoOrderDto> {
-        val raw = storage.getDemoOrders()
+        val raw = demoStorage.getDemoOrdersJson()
         if (raw.isBlank()) return emptyList()
         return try {
             json.decodeFromString<List<DemoOrderDto>>(raw)

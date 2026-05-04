@@ -500,23 +500,33 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 isDemoOrder = _state.value.isDemoMode
             )
 
-            // In demo mode, simulate a local order without writing to Firebase
-            // (demo users don't have write permission)
-            val result = if (_state.value.isDemoMode) {
-                val demoOrder = order.copy(id = "demo_${Clock.System.now().toEpochMilliseconds()}")
-                Result.success(demoOrder)
+            // Demo mode: capture the first N demo orders in Firebase (under demo_orders/)
+            // so we can see what people initially order, then fall back to local-only
+            // persistence for any further demo orders to bound Firebase writes.
+            val isDemo = _state.value.isDemoMode
+            val result = if (isDemo) {
+                if (sellerConfig.firebaseDemoWritesRemaining() > 0) {
+                    // placeOrder() routes to demo_orders/ via order.isDemoOrder = true
+                    // and updates buyerProfile.placedOrderIds.
+                    orderRepository.placeOrder(order).onSuccess {
+                        sellerConfig.recordFirebaseDemoWrite()
+                    }
+                } else {
+                    val demoOrder = order.copy(id = "demo_${Clock.System.now().toEpochMilliseconds()}")
+                    Result.success(demoOrder)
+                }
             } else {
                 orderRepository.placeOrder(order)
             }
             result.onSuccess { placedOrder ->
-                // Persist demo order locally
-                if (_state.value.isDemoMode) {
+                // Persist demo order locally regardless of whether it was also written to Firebase.
+                if (isDemo) {
                     sellerConfig.saveDemoOrder(placedOrder)
                     loadOrderHistory()
                 }
                 // Clear draft basket — skip Firebase profile write in demo mode
                 try {
-                    if (!_state.value.isDemoMode) {
+                    if (!isDemo) {
                         profileRepository.clearDraftBasket()
                     }
                     basketRepository.clearBasket()

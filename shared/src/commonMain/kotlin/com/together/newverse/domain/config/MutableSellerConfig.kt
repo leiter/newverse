@@ -30,4 +30,14 @@ interface MutableSellerConfig : SellerConfig {
 
     /** Clear all persisted demo orders. */
     fun clearDemoOrders()
+
+    /**
+     * Number of demo orders that may still be written to Firebase before
+     * subsequent demo orders are persisted only on-device. Counter is
+     * lifetime per device and survives reinstall to the same prefs file.
+     */
+    fun firebaseDemoWritesRemaining(): Int
+
+    /** Increment the lifetime Firebase demo-write counter. Call only after a successful Firebase write. */
+    fun recordFirebaseDemoWrite()
 }
