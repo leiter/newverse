@@ -1096,7 +1096,7 @@ internal fun BuyAppViewModel.basketScreenReorderWithNewDate(newPickupDate: Long,
 
             val updatedItems = mutableListOf<OrderedProduct>()
             for (item in currentItems) {
-                val article = currentArticles.find { it.id == item.id }
+                val article = currentArticles.find { it.id == item.productId }
                 if (article != null && article.available) {
                     updatedItems.add(item.copy(
                         price = article.price,
