@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state
 
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import com.together.newverse.data.config.BuyerUUIDStorage
 import com.together.newverse.domain.config.MutableSellerConfig
 import com.together.newverse.domain.model.Article
@@ -102,6 +103,8 @@ class BuyAppViewModel(
      */
     internal val scope: kotlinx.coroutines.CoroutineScope
         get() = viewModelScope
+
+    internal var draftSaveJob: Job? = null
 
     init {
         println("[NV_BuyAppVM] init: START")

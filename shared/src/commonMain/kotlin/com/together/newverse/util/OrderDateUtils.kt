@@ -293,7 +293,7 @@ object OrderDateUtils {
                 .atStartOfDayIn(timeZone)
         }
 
-        return dates
+        return dates.take(2)
     }
 
     /**

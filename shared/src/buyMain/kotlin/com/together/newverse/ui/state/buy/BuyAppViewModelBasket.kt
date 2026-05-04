@@ -12,7 +12,6 @@ import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
 import com.together.newverse.util.OrderDateUtils
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -38,14 +37,71 @@ import kotlin.time.Instant
  * - Date handling: basketScreenLoadAvailableDates, basketScreenShowDatePicker, basketScreenHideDatePicker, basketScreenSelectPickupDate
  * - Reorder: basketScreenShowReorderDatePicker, basketScreenHideReorderDatePicker, basketScreenReorderWithNewDate
  * - Merge: basketScreenCalculateMergeConflicts, basketScreenHideMergeDialog, basketScreenResolveMergeConflict, basketScreenConfirmMerge
- * - Helpers: basketScreenCheckIfHasChanges, basketScreenFormatDateKey, basketScreenFormatDate, basketScreenCanEditOrder, basketScreenGetDaysUntilPickup
+ * - Helpers: basketScreenCheckIfHasChanges, basketScreenFormatDateKey
  */
 
 // Debounce delay for saving draft basket (ms)
 private const val DRAFT_SAVE_DEBOUNCE_MS = 2000L
 
-// Job for debounced draft basket saving
-private var draftSaveJob: Job? = null
+// Flip to true to surface verbose basket-flow tracing in Logcat.
+private const val LOG_BASKET = false
+
+private fun bLog(message: String) {
+    if (LOG_BASKET) println(message)
+}
+
+/**
+ * Reset all in-flight basket flags and set/clear the basket-screen error message.
+ * Used as the common exit point for checkout / update / cancel / merge / reorder failures.
+ */
+private fun BuyAppViewModel.setBasketError(message: String?) {
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                isCheckingOut = false,
+                isCancelling = false,
+                isMerging = false,
+                isReordering = false,
+                orderError = message
+            )
+        )
+    }
+}
+
+/**
+ * Drop a placedOrderIds entry that points at the given orderId. Best-effort: swallows
+ * exceptions and logs them. No-op if the order isn't currently referenced.
+ */
+private suspend fun BuyAppViewModel.removePlacedOrderIdReference(orderId: String) {
+    try {
+        val profile = profileRepository.getBuyerProfile().getOrNull() ?: return
+        val pruned = profile.placedOrderIds.filterValues { it != orderId }
+        if (pruned.size == profile.placedOrderIds.size) return
+        profileRepository.saveBuyerProfile(profile.copy(placedOrderIds = pruned))
+        bLog("🛒 removePlacedOrderIdReference: Removed $orderId from buyer profile")
+    } catch (e: Exception) {
+        bLog("🛒 removePlacedOrderIdReference: Failed - ${e.message}")
+    }
+}
+
+/**
+ * Load the buyer profile, falling back to a minimal placeholder if Firebase fails or the
+ * profile doesn't exist yet. Used by checkout / update-order / merge paths that require
+ * a buyerProfile snapshot but should not abort if the read errors.
+ */
+internal suspend fun BuyAppViewModel.getBuyerProfileOrFallback(currentUserId: String): BuyerProfile {
+    val profile = try {
+        profileRepository.getBuyerProfile().getOrNull()
+    } catch (_: Exception) {
+        null
+    }
+    return profile ?: BuyerProfile(
+        id = currentUserId,
+        displayName = "Kunde",
+        emailAddress = "",
+        anonymous = false
+    )
+}
 
 internal fun BuyAppViewModel.handleBasketScreenAction(action: BuyBasketScreenAction) {
     when (action) {
@@ -119,18 +175,20 @@ private fun BuyAppViewModel.scheduleDraftBasketSave() {
     }
 }
 
+
+
 /**
  * Save the current draft basket to the user's profile.
  * Only saves if there are items and it's a draft (not loaded from an existing order).
  */
 internal suspend fun BuyAppViewModel.saveDraftBasketToProfile() {
     if (!basketRepository.hasDraftBasket()) {
-        println("🛒 saveDraftBasketToProfile: Skipping - not a draft basket")
+        bLog("🛒 saveDraftBasketToProfile: Skipping - not a draft basket")
         return
     }
 
     if (_state.value.isDemoMode) {
-        println("🛒 saveDraftBasketToProfile: Skipping - demo mode, no Firebase write")
+        bLog("🛒 saveDraftBasketToProfile: Skipping - demo mode, no Firebase write")
         return
     }
 
@@ -140,50 +198,45 @@ internal suspend fun BuyAppViewModel.saveDraftBasketToProfile() {
 
     if (draftBasket.items.isEmpty()) {
         // Clear draft basket if empty
-        println("🛒 saveDraftBasketToProfile: Basket empty, clearing draft")
+        bLog("🛒 saveDraftBasketToProfile: Basket empty, clearing draft")
         profileRepository.clearDraftBasket()
         return
     }
 
-    println("🛒 saveDraftBasketToProfile: Saving ${draftBasket.items.size} items to profile")
+    bLog("🛒 saveDraftBasketToProfile: Saving ${draftBasket.items.size} items to profile")
     profileRepository.saveDraftBasket(draftBasket).fold(
         onSuccess = {
-            println("✅ saveDraftBasketToProfile: Draft basket saved")
+            bLog("✅ saveDraftBasketToProfile: Draft basket saved")
         },
         onFailure = { error ->
-            println("❌ saveDraftBasketToProfile: Failed - ${error.message}")
+            bLog("❌ saveDraftBasketToProfile: Failed - ${error.message}")
         }
     )
 }
 
-internal fun BuyAppViewModel.basketScreenCheckIfHasChanges(currentItems: List<OrderedProduct>, originalItems: List<OrderedProduct>): Boolean {
-    if (originalItems.isEmpty() && currentItems.isEmpty()) return false
-    if (originalItems.isEmpty()) return true
+internal fun basketScreenCheckIfHasChanges(
+    currentItems: List<OrderedProduct>,
+    originalItems: List<OrderedProduct>
+): Boolean {
     if (currentItems.size != originalItems.size) return true
-
-    currentItems.forEach { currentItem ->
-        val originalItem = originalItems.find { it.productId == currentItem.productId }
-        if (originalItem == null) return true
-        if (originalItem.amountCount != currentItem.amountCount) return true
+    if (currentItems.isEmpty()) return false
+    val originalByProduct = originalItems.associateBy { it.productId }
+    if (originalByProduct.size != originalItems.size) return true // duplicate productIds → treat as changed
+    return currentItems.any { item ->
+        val original = originalByProduct[item.productId] ?: return@any true
+        original.amountCount != item.amountCount
     }
-
-    originalItems.forEach { originalItem ->
-        val currentItem = currentItems.find { it.productId == originalItem.productId }
-        if (currentItem == null) return true
-    }
-
-    return false
 }
 
 internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
     viewModelScope.launch {
         try {
-            println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: START")
+            bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: START")
 
             val loadedOrderInfo = basketRepository.getLoadedOrderInfo()
             if (loadedOrderInfo != null) {
                 val (orderId, orderDate) = loadedOrderInfo
-                println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order already loaded - orderId=$orderId, date=$orderDate")
+                bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order already loaded - orderId=$orderId, date=$orderDate")
 
                 val result = if (sellerConfig.isDemoMode) {
                     val demoOrder = sellerConfig.loadDemoOrders().find { it.id == orderId }
@@ -197,7 +250,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                     // Check if order is finalized
                     if (loadedOrder.status == com.together.newverse.domain.model.OrderStatus.CANCELLED ||
                         loadedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
-                        println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order is finalized, clearing basket")
+                        bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order is finalized, clearing basket")
                         basketRepository.clearBasket()
                         // Clear basket state
                         _state.update { current ->
@@ -215,7 +268,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                     val now = Clock.System.now()
                     val pickupInstant = Instant.fromEpochMilliseconds(loadedOrder.pickUpDate)
                     if (now > pickupInstant) {
-                        println("⏰ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Pickup date has passed, transitioning to COMPLETED and clearing basket")
+                        bLog("⏰ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Pickup date has passed, transitioning to COMPLETED and clearing basket")
                         // Update Firebase with COMPLETED status (skip in demo mode)
                         if (!sellerConfig.isDemoMode) {
                             orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, com.together.newverse.domain.model.OrderStatus.COMPLETED)
@@ -235,7 +288,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
 
                     // Apply status transition if needed (PLACED->LOCKED)
                     val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
-                        println("🔄 basketScreenLoadMostRecentEditableOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
+                        bLog("🔄 basketScreenLoadMostRecentEditableOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
                         // Update Firebase with new status (skip in demo mode)
                         if (!sellerConfig.isDemoMode) {
                             orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, updatedOrder.status)
@@ -243,7 +296,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
 
                         // If transitioned to COMPLETED, clear basket
                         if (updatedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
-                            println("⏰ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order transitioned to COMPLETED, clearing basket")
+                            bLog("⏰ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order transitioned to COMPLETED, clearing basket")
                             basketRepository.clearBasket()
                             // Clear basket state
                             _state.update { current ->
@@ -278,7 +331,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                         )
                     }
                 }.onFailure { error ->
-                    println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Failed to load order - ${error.message}")
+                    bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Failed to load order - ${error.message}")
                     // Clear loaded order info since loading failed
                     basketRepository.clearBasket()
                     // Clear basket state
@@ -306,7 +359,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                     val dateKey = basketScreenFormatDateKey(demoOrder.pickUpDate)
                     basketScreenLoadOrder(demoOrder.id, dateKey)
                 } else {
-                    println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: No editable demo orders")
+                    bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: No editable demo orders")
                 }
                 return@launch
             }
@@ -315,7 +368,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
             val buyerProfile = profileResult.getOrNull()
 
             if (buyerProfile == null || buyerProfile.placedOrderIds.isEmpty()) {
-                println("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: No buyer profile or orders")
+                bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: No buyer profile or orders")
                 return@launch
             }
 
@@ -327,7 +380,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 basketScreenLoadOrder(order.id, dateKey)
             }
         } catch (e: Exception) {
-            println("❌ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Error - ${e.message}")
+            bLog("❌ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Error - ${e.message}")
         }
     }
 }
@@ -358,7 +411,7 @@ internal fun BuyAppViewModel.basketScreenClearBasket() {
 
 internal fun BuyAppViewModel.basketScreenCheckout() {
     viewModelScope.launch {
-        println("🛒 BuyAppViewModel.basketScreenCheckout: START")
+        bLog("🛒 BuyAppViewModel.basketScreenCheckout: START")
         _state.update { current ->
             current.copy(
                 basketScreen = current.basketScreen.copy(
@@ -372,51 +425,24 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
         try {
             val currentUserId = authRepository.getCurrentUserId()
             if (currentUserId == null) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCheckingOut = false,
-                            orderError = "Bitte melden Sie sich an, um eine Bestellung aufzugeben"
-                        )
-                    )
-                }
+                setBasketError("Bitte melden Sie sich an, um eine Bestellung aufzugeben")
                 return@launch
             }
 
             // Check if buyer is blocked by seller
             val isBlocked = profileRepository.isClientBlocked(sellerConfig.sellerId, currentUserId)
             if (isBlocked) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCheckingOut = false,
-                            orderError = "You have been blocked by this seller"
-                        )
-                    )
-                }
+                setBasketError("You have been blocked by this seller")
                 return@launch
             }
 
             val items = _state.value.basketScreen.items
             if (items.isEmpty()) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCheckingOut = false,
-                            orderError = "Warenkorb ist leer"
-                        )
-                    )
-                }
+                setBasketError("Warenkorb ist leer")
                 return@launch
             }
 
-            val buyerProfile = try {
-                profileRepository.getBuyerProfile().getOrNull() ?: BuyerProfile(
-                    id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false
-                )
-            } catch (e: Exception) {
-                BuyerProfile(id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false)
-            }
+            val buyerProfile = getBuyerProfileOrFallback(currentUserId)
 
             val selectedDate = _state.value.basketScreen.selectedPickupDate
             if (selectedDate == null) {
@@ -454,18 +480,16 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
 
             if (existingOrderId != null) {
                 val existingOrderPath = "orders/${sellerConfig.sellerId}/$dateKey/$existingOrderId"
-                val existingOrderResult = orderRepository.loadOrder(sellerConfig.sellerId, existingOrderId, existingOrderPath)
-                existingOrderResult.onSuccess { existingOrder ->
-                    // Only merge if the existing order is still editable
+                val existingOrder = orderRepository
+                    .loadOrder(sellerConfig.sellerId, existingOrderId, existingOrderPath)
+                    .getOrElse { error ->
+                        // Stale reference (deleted / wrong path) — fall through and place a new order.
+                        bLog("⚠️ basketScreenCheckout: Stale order reference $existingOrderId for $dateKey, proceeding with new order: ${error.message}")
+                        null
+                    }
+                if (existingOrder != null) {
                     if (!existingOrder.canEdit()) {
-                        _state.update { current ->
-                            current.copy(
-                                basketScreen = current.basketScreen.copy(
-                                    isCheckingOut = false,
-                                    orderError = "Bestehende Bestellung für diesen Termin kann nicht mehr bearbeitet werden (Frist abgelaufen)"
-                                )
-                            )
-                        }
+                        setBasketError("Bestehende Bestellung für diesen Termin kann nicht mehr bearbeitet werden (Frist abgelaufen)")
                         return@launch
                     }
 
@@ -480,13 +504,8 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                             )
                         )
                     }
-                }.onFailure { error ->
-                    // Order reference is stale (e.g. placed to wrong path or deleted)
-                    // Proceed as if no existing order for this date
-                    println("⚠️ basketScreenCheckout: Stale order reference $existingOrderId for $dateKey, proceeding with new order: ${error.message}")
+                    return@launch
                 }
-                // If onFailure was triggered, fall through to place a new order
-                if (_state.value.basketScreen.showMergeDialog) return@launch
             }
 
             val order = Order(
@@ -530,9 +549,9 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                         profileRepository.clearDraftBasket()
                     }
                     basketRepository.clearBasket()
-                    println("🛒 basketScreenCheckout: Cleared draft basket after order placed")
+                    bLog("🛒 basketScreenCheckout: Cleared draft basket after order placed")
                 } catch (e: Exception) {
-                    println("⚠️ basketScreenCheckout: Failed to clear draft basket: ${e.message}")
+                    bLog("⚠️ basketScreenCheckout: Failed to clear draft basket: ${e.message}")
                 }
 
                 val placedDateKey = basketScreenFormatDateKey(placedOrder.pickUpDate)
@@ -547,24 +566,10 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                     )
                 }
             }.onFailure { error ->
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCheckingOut = false,
-                            orderError = error.message ?: "Bestellung fehlgeschlagen"
-                        )
-                    )
-                }
+                setBasketError(error.message ?: "Bestellung fehlgeschlagen")
             }
         } catch (e: Exception) {
-            _state.update { current ->
-                current.copy(
-                    basketScreen = current.basketScreen.copy(
-                        isCheckingOut = false,
-                        orderError = e.message ?: "Ein Fehler ist aufgetreten"
-                    )
-                )
-            }
+            setBasketError(e.message ?: "Ein Fehler ist aufgetreten")
         }
     }
 }
@@ -582,11 +587,11 @@ internal fun BuyAppViewModel.basketScreenResetOrderState() {
 
 internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String, forceLoad: Boolean = false) {
     viewModelScope.launch {
-        println("🛒 BuyAppViewModel.basketScreenLoadOrder: START - orderId=$orderId, date=$date, forceLoad=$forceLoad")
+        bLog("🛒 BuyAppViewModel.basketScreenLoadOrder: START - orderId=$orderId, date=$date, forceLoad=$forceLoad")
 
         // Check for unsaved draft basket (only if not force loading after dialog confirmation)
         if (!forceLoad && basketScreenShowDraftWarningIfNeeded(orderId, date)) {
-            println("🛒 BuyAppViewModel.basketScreenLoadOrder: Draft warning dialog shown, waiting for user decision")
+            bLog("🛒 BuyAppViewModel.basketScreenLoadOrder: Draft warning dialog shown, waiting for user decision")
             return@launch
         }
 
@@ -612,7 +617,7 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
             result.onSuccess { loadedOrder ->
                 // Apply status transition if needed (PLACED->LOCKED or LOCKED->COMPLETED)
                 val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
-                    println("🔄 basketScreenLoadOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
+                    bLog("🔄 basketScreenLoadOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
                     // Update Firebase with new status (skip in demo mode)
                     if (!sellerConfig.isDemoMode) {
                         viewModelScope.launch {
@@ -702,7 +707,7 @@ internal fun BuyAppViewModel.basketScreenEnableEditing() {
 
 internal fun BuyAppViewModel.basketScreenUpdateOrder() {
     viewModelScope.launch {
-        println("🛒 BuyAppViewModel.basketScreenUpdateOrder: START")
+        bLog("🛒 BuyAppViewModel.basketScreenUpdateOrder: START")
         _state.update { current ->
             current.copy(
                 basketScreen = current.basketScreen.copy(
@@ -719,63 +724,29 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
             val createdDate = basketState.createdDate
 
             if (orderId == null || pickupDate == null || createdDate == null) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCheckingOut = false,
-                            orderError = "Bestellinformationen fehlen"
-                        )
-                    )
-                }
+                setBasketError("Bestellinformationen fehlen")
                 return@launch
             }
 
             val canEdit = OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
             if (!canEdit) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCheckingOut = false,
-                            orderError = "Bearbeitungsfrist abgelaufen (Dienstag 23:59)"
-                        )
-                    )
-                }
+                setBasketError("Bearbeitungsfrist abgelaufen (Dienstag 23:59)")
                 return@launch
             }
 
             val currentUserId = authRepository.getCurrentUserId()
             if (currentUserId == null) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCheckingOut = false,
-                            orderError = "Benutzer nicht angemeldet"
-                        )
-                    )
-                }
+                setBasketError("Benutzer nicht angemeldet")
                 return@launch
             }
 
             val items = basketState.items
             if (items.isEmpty()) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCheckingOut = false,
-                            orderError = "Warenkorb ist leer"
-                        )
-                    )
-                }
+                setBasketError("Warenkorb ist leer")
                 return@launch
             }
 
-            val buyerProfile = try {
-                profileRepository.getBuyerProfile().getOrNull() ?: BuyerProfile(
-                    id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false
-                )
-            } catch (e: Exception) {
-                BuyerProfile(id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false)
-            }
+            val buyerProfile = getBuyerProfileOrFallback(currentUserId)
 
             val updatedOrder = Order(
                 id = orderId,
@@ -789,9 +760,10 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
             )
 
             val result = if (_state.value.isDemoMode) {
-                sellerConfig.updateDemoOrder(updatedOrder)
-                loadOrderHistory()
-                Result.success(Unit)
+                runCatching {
+                    sellerConfig.updateDemoOrder(updatedOrder)
+                    loadOrderHistory()
+                }
             } else {
                 orderRepository.updateOrder(updatedOrder)
             }
@@ -809,31 +781,17 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                     )
                 }
             }.onFailure { error ->
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCheckingOut = false,
-                            orderError = error.message ?: "Aktualisierung fehlgeschlagen"
-                        )
-                    )
-                }
+                setBasketError(error.message ?: "Aktualisierung fehlgeschlagen")
             }
         } catch (e: Exception) {
-            _state.update { current ->
-                current.copy(
-                    basketScreen = current.basketScreen.copy(
-                        isCheckingOut = false,
-                        orderError = e.message ?: "Ein Fehler ist aufgetreten"
-                    )
-                )
-            }
+            setBasketError(e.message ?: "Ein Fehler ist aufgetreten")
         }
     }
 }
 
 internal fun BuyAppViewModel.basketScreenCancelOrder() {
     viewModelScope.launch {
-        println("🛒 BuyAppViewModel.basketScreenCancelOrder: START")
+        bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: START")
         _state.update { current ->
             current.copy(
                 basketScreen = current.basketScreen.copy(
@@ -851,56 +809,31 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
             val pickupDate = basketState.pickupDate
 
             if (orderId == null || orderDate == null || pickupDate == null) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCancelling = false,
-                            orderError = "Bestellinformationen fehlen"
-                        )
-                    )
-                }
+                setBasketError("Bestellinformationen fehlen")
                 return@launch
             }
 
             val canEdit = OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
             if (!canEdit) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isCancelling = false,
-                            orderError = "Stornierung nicht mehr möglich (Frist: Dienstag 23:59)"
-                        )
-                    )
-                }
+                setBasketError("Stornierung nicht mehr möglich (Frist: Dienstag 23:59)")
                 return@launch
             }
 
-            println("🛒 BuyAppViewModel.basketScreenCancelOrder: Calling orderRepository.cancelOrder")
-            println("🛒 BuyAppViewModel.basketScreenCancelOrder: sellerId=${sellerConfig.sellerId}")
-            println("🛒 BuyAppViewModel.basketScreenCancelOrder: orderDate=$orderDate")
-            println("🛒 BuyAppViewModel.basketScreenCancelOrder: orderId=$orderId")
+            bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: Calling orderRepository.cancelOrder")
+            bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: sellerId=${sellerConfig.sellerId}")
+            bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: orderDate=$orderDate")
+            bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: orderId=$orderId")
             val result = orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId)
 
             if (result.isSuccess) {
-                println("🛒 BuyAppViewModel.basketScreenCancelOrder: Cancel SUCCESS, clearing basket")
+                bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: Cancel SUCCESS, clearing basket")
                 // Clear basket in proper suspend context
                 basketRepository.clearBasket()
-                println("🛒 BuyAppViewModel.basketScreenCancelOrder: Basket cleared")
+                bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: Basket cleared")
 
-                // Remove cancelled order from buyer profile's placedOrderIds
-                try {
-                    val profile = profileRepository.getBuyerProfile().getOrNull()
-                    if (profile != null && profile.placedOrderIds.containsValue(orderId)) {
-                        val updatedOrderIds = profile.placedOrderIds.filterValues { it != orderId }
-                        val updatedProfile = profile.copy(placedOrderIds = updatedOrderIds)
-                        profileRepository.saveBuyerProfile(updatedProfile)
-                        println("🛒 BuyAppViewModel.basketScreenCancelOrder: Removed cancelled order from buyer profile")
-                    }
-                } catch (e: Exception) {
-                    println("🛒 BuyAppViewModel.basketScreenCancelOrder: Failed to update profile - ${e.message}")
-                }
+                removePlacedOrderIdReference(orderId)
 
-                println("🛒 BuyAppViewModel.basketScreenCancelOrder: Updating state")
+                bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: Updating state")
                 val availableDates = _state.value.basketScreen.availablePickupDates
                 _state.update { current ->
                     current.copy(
@@ -914,29 +847,18 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
                         )
                     )
                 }
-                println("🛒 BuyAppViewModel.basketScreenCancelOrder: State updated to empty basket with cancelSuccess=true")
+                bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: State updated to empty basket with cancelSuccess=true")
             } else {
                 val error = result.exceptionOrNull()
                 val errorMessage = error?.message ?: "Stornierung fehlgeschlagen"
-                println("🛒 BuyAppViewModel.basketScreenCancelOrder: Cancel FAILED - $errorMessage")
+                bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: Cancel FAILED - $errorMessage")
 
                 // If order not found, the order was already cancelled/deleted - clear basket and show empty state
                 if (errorMessage.contains("not found", ignoreCase = true)) {
-                    println("🛒 BuyAppViewModel.basketScreenCancelOrder: Order not found, clearing basket")
+                    bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: Order not found, clearing basket")
                     basketRepository.clearBasket()
 
-                    // Also remove from buyer profile's placedOrderIds
-                    try {
-                        val profile = profileRepository.getBuyerProfile().getOrNull()
-                        if (profile != null && profile.placedOrderIds.containsValue(orderId)) {
-                            val updatedOrderIds = profile.placedOrderIds.filterValues { it != orderId }
-                            val updatedProfile = profile.copy(placedOrderIds = updatedOrderIds)
-                            profileRepository.saveBuyerProfile(updatedProfile)
-                            println("🛒 BuyAppViewModel.basketScreenCancelOrder: Removed order from buyer profile")
-                        }
-                    } catch (e: Exception) {
-                        println("🛒 BuyAppViewModel.basketScreenCancelOrder: Failed to update profile - ${e.message}")
-                    }
+                    removePlacedOrderIdReference(orderId)
 
                     val availableDates = _state.value.basketScreen.availablePickupDates
                     _state.update { current ->
@@ -951,31 +873,17 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
                         )
                     }
                 } else {
-                    _state.update { current ->
-                        current.copy(
-                            basketScreen = current.basketScreen.copy(
-                                isCancelling = false,
-                                orderError = errorMessage
-                            )
-                        )
-                    }
+                    setBasketError(errorMessage)
                 }
             }
         } catch (e: Exception) {
-            _state.update { current ->
-                current.copy(
-                    basketScreen = current.basketScreen.copy(
-                        isCancelling = false,
-                        orderError = e.message ?: "Ein Fehler ist aufgetreten"
-                    )
-                )
-            }
+            setBasketError(e.message ?: "Ein Fehler ist aufgetreten")
         }
     }
 }
 
 internal fun BuyAppViewModel.basketScreenLoadAvailableDates() {
-    println("📅 BuyAppViewModel.basketScreenLoadAvailableDates: START")
+    bLog("📅 BuyAppViewModel.basketScreenLoadAvailableDates: START")
     val dates = OrderDateUtils.getAvailablePickupDates(count = 5)
     _state.update { current ->
         current.copy(
@@ -1053,7 +961,7 @@ internal fun BuyAppViewModel.basketScreenHideReorderDatePicker() {
 
 internal fun BuyAppViewModel.basketScreenReorderWithNewDate(newPickupDate: Long, currentArticles: List<Article>) {
     viewModelScope.launch {
-        println("🛒 BuyAppViewModel.basketScreenReorderWithNewDate: START")
+        bLog("🛒 BuyAppViewModel.basketScreenReorderWithNewDate: START")
         _state.update { current ->
             current.copy(
                 basketScreen = current.basketScreen.copy(
@@ -1083,14 +991,7 @@ internal fun BuyAppViewModel.basketScreenReorderWithNewDate(newPickupDate: Long,
 
             val currentItems = _state.value.basketScreen.items
             if (currentItems.isEmpty()) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isReordering = false,
-                            orderError = "Keine Artikel zum Nachbestellen"
-                        )
-                    )
-                }
+                setBasketError("Keine Artikel zum Nachbestellen")
                 return@launch
             }
 
@@ -1135,14 +1036,7 @@ internal fun BuyAppViewModel.basketScreenReorderWithNewDate(newPickupDate: Long,
                 )
             }
         } catch (e: Exception) {
-            _state.update { current ->
-                current.copy(
-                    basketScreen = current.basketScreen.copy(
-                        isReordering = false,
-                        orderError = e.message ?: "Ein Fehler ist aufgetreten"
-                    )
-                )
-            }
+            setBasketError(e.message ?: "Ein Fehler ist aufgetreten")
         }
     }
 }
@@ -1231,7 +1125,7 @@ internal fun BuyAppViewModel.basketScreenResolveMergeConflict(productId: String,
 
 internal fun BuyAppViewModel.basketScreenConfirmMerge() {
     viewModelScope.launch {
-        println("🔀 BuyAppViewModel.basketScreenConfirmMerge: START")
+        bLog("🔀 BuyAppViewModel.basketScreenConfirmMerge: START")
         _state.update { current ->
             current.copy(
                 basketScreen = current.basketScreen.copy(isMerging = true)
@@ -1243,14 +1137,7 @@ internal fun BuyAppViewModel.basketScreenConfirmMerge() {
             val existingOrder = basketState.existingOrderForMerge
 
             if (existingOrder == null) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isMerging = false,
-                            orderError = "Keine bestehende Bestellung zum Zusammenführen"
-                        )
-                    )
-                }
+                setBasketError("Keine bestehende Bestellung zum Zusammenführen")
                 return@launch
             }
 
@@ -1289,24 +1176,11 @@ internal fun BuyAppViewModel.basketScreenConfirmMerge() {
 
             val currentUserId = authRepository.getCurrentUserId()
             if (currentUserId == null) {
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isMerging = false,
-                            orderError = "Benutzer nicht angemeldet"
-                        )
-                    )
-                }
+                setBasketError("Benutzer nicht angemeldet")
                 return@launch
             }
 
-            val buyerProfile = try {
-                profileRepository.getBuyerProfile().getOrNull() ?: BuyerProfile(
-                    id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false
-                )
-            } catch (e: Exception) {
-                BuyerProfile(id = currentUserId, displayName = "Kunde", emailAddress = "", anonymous = false)
-            }
+            val buyerProfile = getBuyerProfileOrFallback(currentUserId)
 
             val mergedOrder = existingOrder.copy(
                 buyerProfile = buyerProfile,
@@ -1321,9 +1195,9 @@ internal fun BuyAppViewModel.basketScreenConfirmMerge() {
                 // Clear draft basket from profile since order is now placed/merged
                 try {
                     profileRepository.clearDraftBasket()
-                    println("🔀 basketScreenConfirmMerge: Cleared draft basket after merge")
+                    bLog("🔀 basketScreenConfirmMerge: Cleared draft basket after merge")
                 } catch (e: Exception) {
-                    println("⚠️ basketScreenConfirmMerge: Failed to clear draft basket: ${e.message}")
+                    bLog("⚠️ basketScreenConfirmMerge: Failed to clear draft basket: ${e.message}")
                 }
 
                 _state.update { current ->
@@ -1346,62 +1220,20 @@ internal fun BuyAppViewModel.basketScreenConfirmMerge() {
                     )
                 }
             }.onFailure { error ->
-                _state.update { current ->
-                    current.copy(
-                        basketScreen = current.basketScreen.copy(
-                            isMerging = false,
-                            orderError = "Zusammenführung fehlgeschlagen: ${error.message}"
-                        )
-                    )
-                }
+                setBasketError("Zusammenführung fehlgeschlagen: ${error.message}")
             }
         } catch (e: Exception) {
-            _state.update { current ->
-                current.copy(
-                    basketScreen = current.basketScreen.copy(
-                        isMerging = false,
-                        orderError = "Ein Fehler ist aufgetreten: ${e.message}"
-                    )
-                )
-            }
+            setBasketError("Ein Fehler ist aufgetreten: ${e.message}")
         }
     }
 }
 
-internal fun BuyAppViewModel.basketScreenFormatDateKey(timestamp: Long): String {
-    val instant = Instant.fromEpochMilliseconds(timestamp)
-    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val year = dateTime.year
+internal fun basketScreenFormatDateKey(timestamp: Long): String {
+    val dateTime = Instant.fromEpochMilliseconds(timestamp)
+        .toLocalDateTime(TimeZone.currentSystemDefault())
     val month = dateTime.month.number.toString().padStart(2, '0')
     val day = dateTime.day.toString().padStart(2, '0')
-    return "$year$month$day"
-}
-
-/**
- * Format timestamp to readable date string for BasketScreen
- */
-internal fun BuyAppViewModel.basketScreenFormatDate(timestamp: Long): String {
-    val instant = Instant.fromEpochMilliseconds(timestamp)
-    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val day = dateTime.day.toString().padStart(2, '0')
-    val month = dateTime.month.number.toString().padStart(2, '0')
-    val year = dateTime.year
-    return "$day.$month.$year"
-}
-
-/**
- * Check if order can be edited based on pickup date
- */
-internal fun BuyAppViewModel.basketScreenCanEditOrder(pickupDate: Long): Boolean {
-    return OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
-}
-
-/**
- * Get days until pickup for BasketScreen
- */
-internal fun BuyAppViewModel.basketScreenGetDaysUntilPickup(pickupDate: Long): Long {
-    val diff = pickupDate - Clock.System.now().toEpochMilliseconds()
-    return diff / (24 * 60 * 60 * 1000)
+    return "${dateTime.year}$month$day"
 }
 
 // ===== Draft Warning Dialog Functions =====
@@ -1431,7 +1263,7 @@ internal fun BuyAppViewModel.basketScreenSaveDraftAndLoadOrder() {
         val pendingOrderDate = _state.value.basketScreen.pendingOrderDateForLoad
 
         if (pendingOrderId == null || pendingOrderDate == null) {
-            println("⚠️ basketScreenSaveDraftAndLoadOrder: No pending order info")
+            bLog("⚠️ basketScreenSaveDraftAndLoadOrder: No pending order info")
             basketScreenHideDraftWarningDialog()
             return@launch
         }
@@ -1439,9 +1271,9 @@ internal fun BuyAppViewModel.basketScreenSaveDraftAndLoadOrder() {
         // Save current draft to profile
         try {
             saveDraftBasketToProfile()
-            println("✅ basketScreenSaveDraftAndLoadOrder: Draft saved successfully")
+            bLog("✅ basketScreenSaveDraftAndLoadOrder: Draft saved successfully")
         } catch (e: Exception) {
-            println("⚠️ basketScreenSaveDraftAndLoadOrder: Failed to save draft: ${e.message}")
+            bLog("⚠️ basketScreenSaveDraftAndLoadOrder: Failed to save draft: ${e.message}")
         }
 
         // Hide dialog and load the order
@@ -1459,7 +1291,7 @@ internal fun BuyAppViewModel.basketScreenDiscardDraftAndLoadOrder() {
         val pendingOrderDate = _state.value.basketScreen.pendingOrderDateForLoad
 
         if (pendingOrderId == null || pendingOrderDate == null) {
-            println("⚠️ basketScreenDiscardDraftAndLoadOrder: No pending order info")
+            bLog("⚠️ basketScreenDiscardDraftAndLoadOrder: No pending order info")
             basketScreenHideDraftWarningDialog()
             return@launch
         }
@@ -1467,9 +1299,9 @@ internal fun BuyAppViewModel.basketScreenDiscardDraftAndLoadOrder() {
         // Clear the draft from profile
         try {
             profileRepository.clearDraftBasket()
-            println("✅ basketScreenDiscardDraftAndLoadOrder: Draft cleared")
+            bLog("✅ basketScreenDiscardDraftAndLoadOrder: Draft cleared")
         } catch (e: Exception) {
-            println("⚠️ basketScreenDiscardDraftAndLoadOrder: Failed to clear draft: ${e.message}")
+            bLog("⚠️ basketScreenDiscardDraftAndLoadOrder: Failed to clear draft: ${e.message}")
         }
 
         // Hide dialog and load the order
