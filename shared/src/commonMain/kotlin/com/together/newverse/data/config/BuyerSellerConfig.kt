@@ -96,4 +96,20 @@ class BuyerSellerConfig(
             emptyList()
         }
     }
+
+    fun setActiveUserId(userId: String) {
+        storage.setActiveUserId(userId)
+        demoStorage.setActiveUserId(userId)
+    }
+
+    fun clearActiveUser() {
+        storage.clearActiveUserId()
+        demoStorage.clearActiveUserId()
+    }
+
+    fun migrateAnonymousUser(fromId: String, toId: String) {
+        storage.renameUserId(fromId, toId)
+        demoStorage.renameUserId(fromId, toId)
+        setActiveUserId(toId)
+    }
 }

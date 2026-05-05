@@ -151,7 +151,7 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
                 // Finished initializing (from checking to authenticated) - persisted session
                 // Must be checked before the general "just became authenticated" case
                 authState is AuthState.Authenticated && (previousAuthState is AuthState.Initializing || previousAuthState == null) -> {
-                    println("[NV_BuyAppVM] observeAuthStateChanges: Auth initialized with existing session")
+                    println("[NV_BuyAppVM] observeAuthStateChanges: Auth initialized with existing session - userId=${authState.userId}")
                     val userInfo = AuthUserInfo(
                         id = authState.userId,
                         email = authState.email,
@@ -159,6 +159,7 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
                         photoUrl = authState.photoUrl,
                         isAnonymous = authState.isAnonymous
                     )
+                    println("[NV_BuyAppVM] observeAuthStateChanges: Calling resumeInitializationAfterAuth for persisted session")
                     resumeInitializationAfterAuth(userInfo)
                 }
 

@@ -11,7 +11,7 @@ import com.together.newverse.domain.model.Invitation
  */
 data class BuyAppState(
     // User state
-    val user: UserState = UserState.Guest,
+    val user: UserState = UserState.Loading,
     val requiresLogin: Boolean = false,
 
     // Seller connection

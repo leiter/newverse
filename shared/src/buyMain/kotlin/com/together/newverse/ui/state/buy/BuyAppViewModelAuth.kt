@@ -210,6 +210,10 @@ internal fun BuyAppViewModel.logout() {
     viewModelScope.launch {
         authRepository.signOut()
             .onSuccess {
+                // Clear per-user storage
+                buyerUUIDStorage?.clearActiveUserId()
+                (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.clearActiveUser()
+
                 // Clear basket and other user-specific data
                 _state.update { current ->
                     current.copy(
@@ -337,12 +341,17 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
             basketRepository.clearBasket()
             println("🗑️ Cleared local basket")
 
-            // Step 3: Delete Firebase Auth account (this also signs out)
+            // Step 3: Clear per-user storage
+            buyerUUIDStorage?.clearActiveUserId()
+            (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.clearActiveUser()
+            println("🗑️ Cleared per-user storage")
+
+            // Step 4: Delete Firebase Auth account (this also signs out)
             authRepository.deleteAccount()
                 .onSuccess { println("🔐 Deleted Firebase Auth account") }
                 .onFailure { e -> println("⚠️ Failed to delete auth account: ${e.message}") }
 
-            // Step 4: Clear all local state
+            // Step 5: Clear all local state
             _state.update { current ->
                 current.copy(
                     user = UserState.Guest,
@@ -428,6 +437,15 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
                 if (currentProfile != null) {
                     val updatedProfile = currentProfile.copy(emailAddress = email)
                     profileRepository.saveBuyerProfile(updatedProfile)
+                }
+
+                // Migrate anonymous user storage to real account
+                val previousUserId = (_state.value.user as? UserState.LoggedIn)?.id
+                if (previousUserId != null && previousUserId != userId) {
+                    buyerUUIDStorage?.renameUserId(previousUserId, userId)
+                    buyerUUIDStorage?.setActiveUserId(userId)
+                    (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.migrateAnonymousUser(previousUserId, userId)
+                    println("🔑 Migrated per-user storage from anonymous $previousUserId to real $userId")
                 }
 
                 // Update state: close dialog, update user state
@@ -696,6 +714,14 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             println("🚀 Resuming initialization after auth...")
             if (authUserInfo != null) {
                 println("📧 Auth user info: email=${authUserInfo.email}, name=${authUserInfo.displayName}")
+            }
+
+            // Activate per-user storage
+            val userId = authUserInfo?.id ?: authRepository.getCurrentUserId()
+            if (userId != null) {
+                buyerUUIDStorage?.setActiveUserId(userId)
+                (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.setActiveUserId(userId)
+                println("🔑 Activated per-user storage for userId=$userId")
             }
 
             // Set initializing state
