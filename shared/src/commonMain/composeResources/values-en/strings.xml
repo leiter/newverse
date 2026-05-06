@@ -651,4 +651,26 @@
     <string name="missing_field_house_number">House number missing</string>
     <string name="missing_field_pickup_time">Pickup time missing</string>
     <string name="profile_incomplete_go_to_profile">Go to Profile</string>
+
+    <!-- ========================================= -->
+    <!-- APP INITIALIZATION STEPS -->
+    <!-- ========================================= -->
+    <string name="init_starting">Starting app...</string>
+    <string name="init_checking_auth">Checking authentication...</string>
+    <string name="init_loading_profile">Loading your profile...</string>
+    <string name="init_loading_order">Loading current order...</string>
+    <string name="init_loading_articles">Loading products...</string>
+    <string name="init_complete">Ready!</string>
+    <string name="init_failed">Error: %s</string>
+
+    <!-- ========================================= -->
+    <!-- DIALOG LABELS -->
+    <!-- ========================================= -->
+    <string name="dialog_button_confirm">Confirm</string>
+    <string name="dialog_button_cancel">Cancel</string>
+    <string name="dialog_button_ok">OK</string>
+    <string name="dialog_button_retry">Retry</string>
+    <string name="dialog_button_dismiss">Dismiss</string>
+    <string name="dialog_error_title">Error</string>
+
 </resources>

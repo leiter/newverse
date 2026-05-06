@@ -703,4 +703,26 @@
     <string name="missing_field_house_number">Hausnummer fehlt</string>
     <string name="missing_field_pickup_time">Abholzeit fehlt</string>
     <string name="profile_incomplete_go_to_profile">Zum Profil</string>
+
+    <!-- ========================================= -->
+    <!-- APP INITIALIZATION STEPS -->
+    <!-- ========================================= -->
+    <string name="init_starting">App wird gestartet...</string>
+    <string name="init_checking_auth">Authentifizierung wird überprüft...</string>
+    <string name="init_loading_profile">Profil wird geladen...</string>
+    <string name="init_loading_order">Bestellung wird geladen...</string>
+    <string name="init_loading_articles">Produkte werden geladen...</string>
+    <string name="init_complete">Fertig!</string>
+    <string name="init_failed">Fehler: %s</string>
+
+    <!-- ========================================= -->
+    <!-- DIALOG LABELS -->
+    <!-- ========================================= -->
+    <string name="dialog_button_confirm">Bestätigen</string>
+    <string name="dialog_button_cancel">Abbrechen</string>
+    <string name="dialog_button_ok">OK</string>
+    <string name="dialog_button_retry">Wiederholen</string>
+    <string name="dialog_button_dismiss">Schließen</string>
+    <string name="dialog_error_title">Fehler</string>
+
 </resources>

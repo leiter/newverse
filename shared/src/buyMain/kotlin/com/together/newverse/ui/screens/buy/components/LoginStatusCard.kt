@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.state.AuthProvider
+import com.together.newverse.ui.state.localizedDisplayName
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.account_status_authenticated
 import newverse.shared.generated.resources.account_status_guest
@@ -213,7 +214,7 @@ private fun AuthenticatedStatus(
 
     // Format: "Angemeldet mit Google" (Compose Resources doesn't support %s format)
     val authenticatedText = stringResource(Res.string.account_status_authenticated)
-        .replace("%s", authProvider.displayName)
+        .replace("%s", authProvider.localizedDisplayName())
     Text(
         text = authenticatedText,
         style = MaterialTheme.typography.bodySmall,

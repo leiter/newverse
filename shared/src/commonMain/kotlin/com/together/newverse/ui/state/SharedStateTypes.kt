@@ -203,6 +203,16 @@ enum class SnackbarDuration {
     INDEFINITE
 }
 
+/**
+ * Dialog state with support for localization via extension functions.
+ * For Compose UI, use the @Composable localization extensions:
+ * @see DialogState.Confirmation.localizedConfirmLabel
+ * @see DialogState.Confirmation.localizedCancelLabel
+ * @see DialogState.Information.localizedDismissLabel
+ * @see DialogState.Error.localizedTitle
+ * @see DialogState.Error.localizedRetryLabel
+ * @see DialogState.Error.localizedDismissLabel
+ */
 sealed interface DialogState {
     data class Confirmation(
         val title: String,
@@ -286,6 +296,11 @@ sealed class InitializationStep {
         is Complete -> "Ready!"
         is Failed -> "Error: $message"
     }
+
+    /**
+     * For Compose UI, use the @Composable extension localizedMessage() instead
+     * @see InitializationStep.localizedMessage
+     */
 }
 
 // ===== Basket Screen State (checkout flow) =====
@@ -394,6 +409,11 @@ enum class AuthProvider {
             TWITTER -> "Twitter"
             APPLE -> "Apple"
         }
+
+    /**
+     * For Compose UI, use the @Composable extension localizedDisplayName() instead
+     * @see AuthProvider.localizedDisplayName
+     */
 }
 
 // ===== Main Screen State =====

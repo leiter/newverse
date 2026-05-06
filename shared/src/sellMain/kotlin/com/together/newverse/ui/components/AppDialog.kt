@@ -5,6 +5,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import com.together.newverse.ui.state.DialogState
+import com.together.newverse.ui.state.localizedCancelLabel
+import com.together.newverse.ui.state.localizedConfirmLabel
+import com.together.newverse.ui.state.localizedDismissLabel
+import com.together.newverse.ui.state.localizedErrorMessage
+import com.together.newverse.ui.state.localizedRetryLabel
+import com.together.newverse.ui.state.localizedTitle
 
 /**
  * App dialog component for seller app
@@ -27,12 +33,12 @@ fun AppDialog(
                 },
                 confirmButton = {
                     TextButton(onClick = { onConfirm?.invoke() ?: onDismiss() }) {
-                        Text(dialog.confirmLabel)
+                        Text(dialog.localizedConfirmLabel())
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = onDismiss) {
-                        Text(dialog.cancelLabel)
+                        Text(dialog.localizedCancelLabel())
                     }
                 }
             )
@@ -48,7 +54,7 @@ fun AppDialog(
                 },
                 confirmButton = {
                     TextButton(onClick = onDismiss) {
-                        Text(dialog.dismissLabel)
+                        Text(dialog.localizedDismissLabel())
                     }
                 }
             )
@@ -57,19 +63,19 @@ fun AppDialog(
             AlertDialog(
                 onDismissRequest = onDismiss,
                 title = {
-                    Text(text = dialog.title)
+                    Text(text = dialog.localizedTitle())
                 },
                 text = {
                     Text(text = dialog.message)
                 },
                 confirmButton = {
                     TextButton(onClick = { onConfirm?.invoke() ?: onDismiss() }) {
-                        Text(dialog.retryLabel)
+                        Text(dialog.localizedRetryLabel())
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = onDismiss) {
-                        Text(dialog.dismissLabel)
+                        Text(dialog.localizedDismissLabel())
                     }
                 }
             )
