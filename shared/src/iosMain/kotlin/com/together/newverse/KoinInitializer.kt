@@ -1,6 +1,6 @@
 package com.together.newverse
 
-import com.together.newverse.di.appModule
+import com.together.newverse.di.flavorAppModule
 import com.together.newverse.di.iosDomainModule
 import org.koin.core.context.startKoin
 import org.koin.dsl.KoinAppDeclaration
@@ -12,8 +12,9 @@ import org.koin.dsl.KoinAppDeclaration
 fun initKoin(appDeclaration: KoinAppDeclaration = {}) {
     startKoin {
         appDeclaration()
-        // Use iOS-specific domain module for Firebase implementations
-        modules(appModule, iosDomainModule)
+        // Use flavorAppModule (provided by buyMain or sellMain) 
+        // and iosDomainModule (provided by iosMain)
+        modules(flavorAppModule, iosDomainModule)
     }
 }
 
