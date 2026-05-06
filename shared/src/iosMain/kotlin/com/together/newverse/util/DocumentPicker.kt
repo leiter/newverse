@@ -98,7 +98,7 @@ private class DocumentPickerDelegate(
             }
 
             // Convert to string
-            val cp850Encoding = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingDOSLatin1)
+            val cp850Encoding = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingDOSLatin1.toUInt())
             val content = NSString.create(data, cp850Encoding) as? String
             if (content == null) {
                 if (accessing) url.stopAccessingSecurityScopedResource()
