@@ -32,16 +32,11 @@ kotlin {
     }
 
     cocoapods {
+        noPodspec()
         summary = "Newverse KMP shared library"
         homepage = "https://github.com/together/newverse"
         version = "1.0.0"
         ios.deploymentTarget = "15.0"
-
-        pod("FirebaseCore")
-        pod("FirebaseAuth")
-        pod("FirebaseDatabase")
-        pod("FirebaseStorage")
-        pod("GoogleSignIn")
 
         framework {
             baseName = "shared"

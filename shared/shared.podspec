@@ -39,6 +39,28 @@ Pod::Spec.new do |spec|
                     exit 0
                 fi
                 set -ev
+
+                # Locate Java — Xcode's PATH doesn't include JetBrains/Android Studio JDK.
+                # Read org.gradle.java.home from ~/.gradle/gradle.properties if set (machine-specific).
+                if [ -z "$JAVA_HOME" ]; then
+                    GRADLE_USER_PROPS="$HOME/.gradle/gradle.properties"
+                    if [ -f "$GRADLE_USER_PROPS" ]; then
+                        JAVA_HOME_PROP=$(grep "^org.gradle.java.home=" "$GRADLE_USER_PROPS" | cut -d'=' -f2-)
+                        if [ -n "$JAVA_HOME_PROP" ]; then
+                            export JAVA_HOME="$JAVA_HOME_PROP"
+                        fi
+                    fi
+                fi
+                # Fallback: check standard Android Studio location
+                if [ -z "$JAVA_HOME" ]; then
+                    if [ -d "/Applications/Android Studio.app/Contents/jbr/Contents/Home" ]; then
+                        export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+                    elif /usr/libexec/java_home > /dev/null 2>&1; then
+                        export JAVA_HOME=$(/usr/libexec/java_home)
+                    fi
+                fi
+                export PATH="$JAVA_HOME/bin:$PATH"
+
                 REPO_ROOT="$PODS_TARGET_SRCROOT"
                 "$REPO_ROOT/../gradlew" -p "$REPO_ROOT" $KOTLIN_PROJECT_PATH:syncFramework \
                     -Pkotlin.native.cocoapods.platform=$PLATFORM_NAME \
