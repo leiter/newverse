@@ -4,6 +4,7 @@ import com.codingfeline.buildkonfig.compiler.FieldSpec.Type
 
 plugins {
     kotlin("multiplatform")
+    kotlin("native.cocoapods")
     id("com.android.library")
     id("org.jetbrains.compose")
     kotlin("plugin.compose")
@@ -25,6 +26,24 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
+            baseName = "shared"
+            isStatic = true
+        }
+    }
+
+    cocoapods {
+        summary = "Newverse KMP shared library"
+        homepage = "https://github.com/together/newverse"
+        version = "1.0.0"
+        ios.deploymentTarget = "15.0"
+
+        pod("FirebaseCore")
+        pod("FirebaseAuth")
+        pod("FirebaseDatabase")
+        pod("FirebaseStorage")
+        pod("GoogleSignIn")
+
+        framework {
             baseName = "shared"
             isStatic = true
         }
@@ -66,16 +85,26 @@ kotlin {
         }
 
         // Create and configure shared iOS source set
-        // iOS builds include buyMain for navigation and buy-specific features
         val iosMain by creating {
             dependsOn(commonMain.get())
+        }
+
+        // iOS flavor-specific source sets (similar to Android)
+        val iosBuy by creating {
+            dependsOn(iosMain)
             dependsOn(buyMain)
         }
 
-        // Link iOS target source sets to iosMain
-        iosX64Main.get().dependsOn(iosMain)
-        iosArm64Main.get().dependsOn(iosMain)
-        iosSimulatorArm64Main.get().dependsOn(iosMain)
+        val iosSell by creating {
+            dependsOn(iosMain)
+            dependsOn(sellMain)
+        }
+
+        // Link iOS target source sets to flavor-specific source sets
+        // For now, default to Buy flavor. Can be switched via build variant
+        iosX64Main.get().dependsOn(iosBuy)
+        iosArm64Main.get().dependsOn(iosBuy)
+        iosSimulatorArm64Main.get().dependsOn(iosBuy)
 
         commonMain.dependencies {
             // Compose Multiplatform
