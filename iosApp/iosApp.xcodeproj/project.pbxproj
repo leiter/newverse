@@ -187,13 +187,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -247,13 +243,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -336,7 +328,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 391C7094D31349C5E547EA1D /* Pods-iosApp.release-sell.xcconfig */;
 			buildSettings = {
-				APP_DISPLAY_NAME = "Marktplatz";
+				APP_DISPLAY_NAME = Marktplatz;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
@@ -627,7 +619,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 036332E29025203BAA31E562 /* Pods-iosApp.debug-sell.xcconfig */;
 			buildSettings = {
-				APP_DISPLAY_NAME = "Marktplatz";
+				APP_DISPLAY_NAME = Marktplatz;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;

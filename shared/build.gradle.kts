@@ -47,6 +47,11 @@ kotlin {
             baseName = "shared"
             isStatic = true
         }
+
+        xcodeConfigurationToNativeBuildType["Debug-Buy"] = org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.DEBUG
+        xcodeConfigurationToNativeBuildType["Release-Buy"] = org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.RELEASE
+        xcodeConfigurationToNativeBuildType["Debug-Sell"] = org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.DEBUG
+        xcodeConfigurationToNativeBuildType["Release-Sell"] = org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.RELEASE
     }
 
     sourceSets {
