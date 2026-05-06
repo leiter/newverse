@@ -29,13 +29,13 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun InitializationStep.localizedMessage(): String = stringResource(
     when (this) {
-        is InitializationStep.NotStarted -> init_starting
-        is InitializationStep.CheckingAuth -> init_checking_auth
-        is InitializationStep.LoadingProfile -> init_loading_profile
-        is InitializationStep.LoadingOrder -> init_loading_order
-        is InitializationStep.LoadingArticles -> init_loading_articles
-        is InitializationStep.Complete -> init_complete
-        is InitializationStep.Failed -> init_failed
+        is InitializationStep.NotStarted -> Res.string.init_starting
+        is InitializationStep.CheckingAuth -> Res.string.init_checking_auth
+        is InitializationStep.LoadingProfile -> Res.string.init_loading_profile
+        is InitializationStep.LoadingOrder -> Res.string.init_loading_order
+        is InitializationStep.LoadingArticles -> Res.string.init_loading_articles
+        is InitializationStep.Complete -> Res.string.init_complete
+        is InitializationStep.Failed -> Res.string.init_failed
     }
 )
 
@@ -45,7 +45,7 @@ fun InitializationStep.localizedMessage(): String = stringResource(
  */
 @Composable
 fun InitializationStep.Failed.localizedErrorMessage(): String =
-    stringResource(init_failed, this.message)
+    stringResource(Res.string.init_failed, this.message)
 
 /**
  * Localization extension for AuthProvider
@@ -54,11 +54,11 @@ fun InitializationStep.Failed.localizedErrorMessage(): String =
 @Composable
 fun AuthProvider.localizedDisplayName(): String = stringResource(
     when (this) {
-        AuthProvider.ANONYMOUS -> auth_provider_anonymous
-        AuthProvider.GOOGLE -> auth_provider_google
-        AuthProvider.EMAIL -> auth_provider_email
-        AuthProvider.TWITTER -> auth_provider_twitter
-        AuthProvider.APPLE -> auth_provider_apple
+        AuthProvider.ANONYMOUS -> Res.string.auth_provider_anonymous
+        AuthProvider.GOOGLE -> Res.string.auth_provider_google
+        AuthProvider.EMAIL -> Res.string.auth_provider_email
+        AuthProvider.TWITTER -> Res.string.auth_provider_twitter
+        AuthProvider.APPLE -> Res.string.auth_provider_apple
     }
 )
 
@@ -68,11 +68,11 @@ fun AuthProvider.localizedDisplayName(): String = stringResource(
  */
 @Composable
 fun DialogState.Confirmation.localizedConfirmLabel(): String =
-    if (confirmLabel == "Confirm") stringResource(dialog_button_confirm) else confirmLabel
+    if (confirmLabel == "Confirm") stringResource(Res.string.dialog_button_confirm) else confirmLabel
 
 @Composable
 fun DialogState.Confirmation.localizedCancelLabel(): String =
-    if (cancelLabel == "Cancel") stringResource(dialog_button_cancel) else cancelLabel
+    if (cancelLabel == "Cancel") stringResource(Res.string.dialog_button_cancel) else cancelLabel
 
 /**
  * Localization extension for DialogState.Information
@@ -80,7 +80,7 @@ fun DialogState.Confirmation.localizedCancelLabel(): String =
  */
 @Composable
 fun DialogState.Information.localizedDismissLabel(): String =
-    if (dismissLabel == "OK") stringResource(dialog_button_ok) else dismissLabel
+    if (dismissLabel == "OK") stringResource(Res.string.dialog_button_ok) else dismissLabel
 
 /**
  * Localization extension for DialogState.Error
@@ -88,12 +88,12 @@ fun DialogState.Information.localizedDismissLabel(): String =
  */
 @Composable
 fun DialogState.Error.localizedTitle(): String =
-    if (title == "Error") stringResource(dialog_error_title) else title
+    if (title == "Error") stringResource(Res.string.dialog_error_title) else title
 
 @Composable
 fun DialogState.Error.localizedRetryLabel(): String =
-    if (retryLabel == "Retry") stringResource(dialog_button_retry) else retryLabel
+    if (retryLabel == "Retry") stringResource(Res.string.dialog_button_retry) else retryLabel
 
 @Composable
 fun DialogState.Error.localizedDismissLabel(): String =
-    if (dismissLabel == "Dismiss") stringResource(dialog_button_dismiss) else dismissLabel
+    if (dismissLabel == "Dismiss") stringResource(Res.string.dialog_button_dismiss) else dismissLabel
