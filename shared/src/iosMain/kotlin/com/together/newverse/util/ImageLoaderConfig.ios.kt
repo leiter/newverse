@@ -5,7 +5,10 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
+import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.darwin.Darwin
 import kotlinx.cinterop.ExperimentalForeignApi
 import okio.Path.Companion.toPath
 import platform.Foundation.NSCachesDirectory
@@ -25,7 +28,18 @@ actual fun createImageLoader(context: PlatformContext): ImageLoader {
         true
     ).first() as String
 
+    val httpClient = HttpClient(Darwin) {
+        engine {
+            configureRequest {
+                setAllowsCellularAccess(true)
+            }
+        }
+    }
+
     return ImageLoader.Builder(context)
+        .components {
+            add(KtorNetworkFetcherFactory(httpClient))
+        }
         // Memory Cache - 25% of available memory
         .memoryCache {
             MemoryCache.Builder()
