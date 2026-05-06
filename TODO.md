@@ -37,5 +37,7 @@ The following actions are defined in `PlatformAction` but are not yet implemente
 ### 4. iOS DI & Flavor Compilation Fix
 **Status:** ✅ Fixed (2026-03-25)  
 **Implementation:**
-- Moved `KoinInitializer.kt` and `MainViewController.kt` to flavor-specific source sets (`iosBuy`, `iosSell`).
-- This allows iOS targets to correctly resolve flavor-specific dependencies like `appModule` and `AppScaffold`.
+- Created a `MainAppScaffold` bridge using `expect/actual` to abstract flavor-specific entry points.
+- Shared `PlatformAction` interface in `commonMain` to harmonize native actions.
+- Configured `shared/build.gradle.kts` to dynamically link iOS targets to the correct flavor (`buyMain`/`sellMain`) and ensure `iosMain` is correctly included in the dependency chain.
+- This allows a common `MainViewController.kt` to drive different flavor variants on iOS.

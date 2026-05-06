@@ -97,9 +97,18 @@ kotlin {
         // Link iOS target source sets to flavor-specific source sets based on build variant
         val flavorMain = if (isSellFlavor) sellMain else buyMain
         
-        iosX64Main.get().dependsOn(flavorMain)
-        iosArm64Main.get().dependsOn(flavorMain)
-        iosSimulatorArm64Main.get().dependsOn(flavorMain)
+        iosX64Main.get().apply {
+            dependsOn(iosMain)
+            dependsOn(flavorMain)
+        }
+        iosArm64Main.get().apply {
+            dependsOn(iosMain)
+            dependsOn(flavorMain)
+        }
+        iosSimulatorArm64Main.get().apply {
+            dependsOn(iosMain)
+            dependsOn(flavorMain)
+        }
 
         commonMain.dependencies {
             // Compose Multiplatform
