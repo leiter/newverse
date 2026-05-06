@@ -54,7 +54,7 @@ private fun BuyAppViewModel.connectWithInvitation(
             // Client-side expiry fast-fail
             val now = Clock.System.now().toEpochMilliseconds()
             if (now >= expiresAt) {
-                showSnackbar("This invitation has expired. Please request a new one.", SnackbarType.ERROR)
+                showSnackBar("This invitation has expired. Please request a new one.", SnackbarType.ERROR)
                 return@launch
             }
 
@@ -63,11 +63,11 @@ private fun BuyAppViewModel.connectWithInvitation(
             result.fold(
                 onSuccess = { invitation ->
                     if (invitation.status == InvitationStatus.EXPIRED || invitation.isExpired(now)) {
-                        showSnackbar("This invitation has expired. Please request a new one.", SnackbarType.ERROR)
+                        showSnackBar("This invitation has expired. Please request a new one.", SnackbarType.ERROR)
                         return@launch
                     }
                     if (invitation.status != InvitationStatus.PENDING) {
-                        showSnackbar("This invitation is no longer valid", SnackbarType.ERROR)
+                        showSnackBar("This invitation is no longer valid", SnackbarType.ERROR)
                         return@launch
                     }
 
@@ -82,12 +82,12 @@ private fun BuyAppViewModel.connectWithInvitation(
                     }
                 },
                 onFailure = { e ->
-                    showSnackbar("Invitation invalid or not found", SnackbarType.ERROR)
+                    showSnackBar("Invitation invalid or not found", SnackbarType.ERROR)
                 }
             )
         } catch (e: Exception) {
             println("BuyAppViewModel.connectWithInvitation: Error - ${e.message}")
-            showSnackbar("Failed to validate invitation: ${e.message}", SnackbarType.ERROR)
+            showSnackBar("Failed to validate invitation: ${e.message}", SnackbarType.ERROR)
         }
     }
 }
@@ -101,7 +101,7 @@ private fun BuyAppViewModel.confirmConnection() {
         try {
             val buyerId = authRepository.getCurrentUserId()
             if (buyerId == null) {
-                showSnackbar("Not authenticated", SnackbarType.ERROR)
+                showSnackBar("Not authenticated", SnackbarType.ERROR)
                 return@launch
             }
 
@@ -117,12 +117,12 @@ private fun BuyAppViewModel.confirmConnection() {
                 },
                 onFailure = { e ->
                     _state.update { it.copy(showConnectionConfirmDialog = null) }
-                    showSnackbar("Failed to accept invitation: ${e.message}", SnackbarType.ERROR)
+                    showSnackBar("Failed to accept invitation: ${e.message}", SnackbarType.ERROR)
                 }
             )
         } catch (e: Exception) {
             _state.update { it.copy(showConnectionConfirmDialog = null) }
-            showSnackbar("Failed to connect: ${e.message}", SnackbarType.ERROR)
+            showSnackBar("Failed to connect: ${e.message}", SnackbarType.ERROR)
         }
     }
 }
@@ -151,7 +151,7 @@ private fun BuyAppViewModel.acceptPendingInvitation(invitationId: String) {
                 applyPreApprovedAccess(invitation.id)
             },
             onFailure = { e ->
-                showSnackbar("Failed to accept invitation: ${e.message}", SnackbarType.ERROR)
+                showSnackBar("Failed to accept invitation: ${e.message}", SnackbarType.ERROR)
             }
         )
     }
@@ -172,7 +172,7 @@ private fun BuyAppViewModel.rejectPendingInvitation(invitationId: String) {
                 }
             },
             onFailure = { e ->
-                showSnackbar("Failed to reject invitation: ${e.message}", SnackbarType.ERROR)
+                showSnackBar("Failed to reject invitation: ${e.message}", SnackbarType.ERROR)
             }
         )
     }
@@ -186,7 +186,7 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
             if (buyerId != null) {
                 val isBlocked = profileRepository.isClientBlocked(sellerId, buyerId)
                 if (isBlocked) {
-                    showSnackbar("You have been blocked by this seller", SnackbarType.ERROR)
+                    showSnackBar("You have been blocked by this seller", SnackbarType.ERROR)
                     return@launch
                 }
 
@@ -239,11 +239,11 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
             // Re-observe access status for the new seller
             startObservingAccessStatus()
 
-            showSnackbar("Connected to seller", SnackbarType.SUCCESS)
+            showSnackBar("Connected to seller", SnackbarType.SUCCESS)
 
         } catch (e: Exception) {
             println("BuyAppViewModel.performConnection: Error - ${e.message}")
-            showSnackbar("Failed to connect: ${e.message}", SnackbarType.ERROR)
+            showSnackBar("Failed to connect: ${e.message}", SnackbarType.ERROR)
         }
     }
 }

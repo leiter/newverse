@@ -613,6 +613,10 @@
     <string name="demo_orders_clear_result">%1$d demo order(s) deleted</string>
     <string name="demo_orders_clear_none">No old demo orders found</string>
     <string name="access_request_button">Request Access</string>
+    <string name="access_status_none">No access token received yet. Ask your seller for a link.</string>
+    <string name="access_status_pending">Access request pending — waiting for seller approval</string>
+    <string name="access_status_approved">Production mode active</string>
+    <string name="access_status_blocked">Access blocked by seller</string>
 
     <!-- Access Requests (Seller) -->
     <string name="access_requests_title">Access Requests (%1$d)</string>
@@ -647,4 +651,26 @@
     <string name="missing_field_house_number">House number missing</string>
     <string name="missing_field_pickup_time">Pickup time missing</string>
     <string name="profile_incomplete_go_to_profile">Go to Profile</string>
+
+    <!-- ========================================= -->
+    <!-- APP INITIALIZATION STEPS -->
+    <!-- ========================================= -->
+    <string name="init_starting">Starting app...</string>
+    <string name="init_checking_auth">Checking authentication...</string>
+    <string name="init_loading_profile">Loading your profile...</string>
+    <string name="init_loading_order">Loading current order...</string>
+    <string name="init_loading_articles">Loading products...</string>
+    <string name="init_complete">Ready!</string>
+    <string name="init_failed">Error: %s</string>
+
+    <!-- ========================================= -->
+    <!-- DIALOG LABELS -->
+    <!-- ========================================= -->
+    <string name="dialog_button_confirm">Confirm</string>
+    <string name="dialog_button_cancel">Cancel</string>
+    <string name="dialog_button_ok">OK</string>
+    <string name="dialog_button_retry">Retry</string>
+    <string name="dialog_button_dismiss">Dismiss</string>
+    <string name="dialog_error_title">Error</string>
+
 </resources>

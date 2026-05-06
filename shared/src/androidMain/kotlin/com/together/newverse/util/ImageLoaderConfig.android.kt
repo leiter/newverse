@@ -8,8 +8,11 @@ import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.memory.MemoryCache
+import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
 import coil3.util.DebugLogger
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
 
 /**
  * Android-specific ImageLoader configuration
@@ -17,7 +20,18 @@ import coil3.util.DebugLogger
  */
 actual fun createImageLoader(context: PlatformContext): ImageLoader {
 
+    val httpClient = HttpClient(OkHttp) {
+        engine {
+            config {
+                retryOnConnectionFailure(true)
+            }
+        }
+    }
+
     return ImageLoader.Builder(context)
+        .components {
+            add(KtorNetworkFetcherFactory(httpClient))
+        }
         // Memory Cache - 25% of available memory
         .memoryCache {
             MemoryCache.Builder()

@@ -665,6 +665,10 @@
     <string name="demo_orders_clear_result">%1$d Demo-Bestellungen gelöscht</string>
     <string name="demo_orders_clear_none">Keine alten Demo-Bestellungen gefunden</string>
     <string name="access_request_button">Zugang anfragen</string>
+    <string name="access_status_none">Noch kein Zugriffstoken erhalten. Bitte den Verkäufer um einen Link.</string>
+    <string name="access_status_pending">Zugangsanfrage ausstehend – warte auf Freigabe durch den Verkäufer</string>
+    <string name="access_status_approved">Produktionsmodus aktiv</string>
+    <string name="access_status_blocked">Zugang vom Verkäufer gesperrt</string>
 
     <!-- Access Requests (Seller) -->
     <string name="access_requests_title">Zugangsanfragen (%1$d)</string>
@@ -699,4 +703,26 @@
     <string name="missing_field_house_number">Hausnummer fehlt</string>
     <string name="missing_field_pickup_time">Abholzeit fehlt</string>
     <string name="profile_incomplete_go_to_profile">Zum Profil</string>
+
+    <!-- ========================================= -->
+    <!-- APP INITIALIZATION STEPS -->
+    <!-- ========================================= -->
+    <string name="init_starting">App wird gestartet...</string>
+    <string name="init_checking_auth">Authentifizierung wird überprüft...</string>
+    <string name="init_loading_profile">Profil wird geladen...</string>
+    <string name="init_loading_order">Bestellung wird geladen...</string>
+    <string name="init_loading_articles">Produkte werden geladen...</string>
+    <string name="init_complete">Fertig!</string>
+    <string name="init_failed">Fehler: %s</string>
+
+    <!-- ========================================= -->
+    <!-- DIALOG LABELS -->
+    <!-- ========================================= -->
+    <string name="dialog_button_confirm">Bestätigen</string>
+    <string name="dialog_button_cancel">Abbrechen</string>
+    <string name="dialog_button_ok">OK</string>
+    <string name="dialog_button_retry">Wiederholen</string>
+    <string name="dialog_button_dismiss">Schließen</string>
+    <string name="dialog_error_title">Fehler</string>
+
 </resources>

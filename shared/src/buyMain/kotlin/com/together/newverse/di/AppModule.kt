@@ -1,6 +1,7 @@
 package com.together.newverse.di
 
 import com.together.newverse.data.config.BuyerSellerConfig
+import com.together.newverse.data.config.DemoOrderStorage
 import com.together.newverse.data.config.SellerIdStorage
 import com.together.newverse.data.repository.GitLiveBuyerContactRepository
 import com.together.newverse.data.repository.GitLiveInvitationRepository
@@ -25,7 +26,7 @@ import org.koin.dsl.module
  */
 val appModule = module {
     // Seller config: mutable for buyer app, overrides the default SellerConfig binding
-    single { BuyerSellerConfig(get<SellerIdStorage>()) }
+    single { BuyerSellerConfig(get<SellerIdStorage>(), get<DemoOrderStorage>()) }
     single<MutableSellerConfig> { get<BuyerSellerConfig>() }
     single<SellerConfig> { get<BuyerSellerConfig>() }
 

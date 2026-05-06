@@ -5,11 +5,11 @@ import android.content.SharedPreferences
 
 /**
  * Android implementation of [SellerIdStorage] using SharedPreferences.
+ * Per-user storage: each userId gets their own prefs file `newverse_user_<userId>`.
  */
-actual class SellerIdStorage(context: Context) {
+actual class SellerIdStorage(private val context: Context) {
 
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+    private var prefs: SharedPreferences = noopPrefs()
 
     actual fun getConnectedSellerId(): String? =
         prefs.getString(KEY_CONNECTED_SELLER_ID, null)
@@ -33,9 +33,35 @@ actual class SellerIdStorage(context: Context) {
         prefs.edit().remove(KEY_DEMO_ORDERS).apply()
     }
 
+    actual fun setActiveUserId(userId: String) {
+        prefs = context.getSharedPreferences(prefsName(userId), Context.MODE_PRIVATE)
+    }
+
+    actual fun clearActiveUserId() {
+        prefs.edit().remove(KEY_CONNECTED_SELLER_ID).apply()
+        prefs.edit().remove(KEY_DEMO_ORDERS).apply()
+        prefs = noopPrefs()
+    }
+
+    actual fun renameUserId(fromId: String, toId: String) {
+        val from = context.getSharedPreferences(prefsName(fromId), Context.MODE_PRIVATE)
+        val to = context.getSharedPreferences(prefsName(toId), Context.MODE_PRIVATE)
+        from.getString(KEY_CONNECTED_SELLER_ID, null)?.let { id ->
+            to.edit().putString(KEY_CONNECTED_SELLER_ID, id).apply()
+        }
+        from.getString(KEY_DEMO_ORDERS, null)?.let { orders ->
+            to.edit().putString(KEY_DEMO_ORDERS, orders).apply()
+        }
+        from.edit().clear().apply()
+    }
+
+    private fun noopPrefs(): SharedPreferences =
+        context.getSharedPreferences(NOOP_PREFS_FILE, Context.MODE_PRIVATE)
+
     companion object {
-        private const val PREFS_FILE = "newverse_seller_config"
         private const val KEY_CONNECTED_SELLER_ID = "connected_seller_id"
         private const val KEY_DEMO_ORDERS = "demo_orders"
+        private const val NOOP_PREFS_FILE = "newverse_noop"
+        fun prefsName(userId: String) = "newverse_user_$userId"
     }
 }

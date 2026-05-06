@@ -97,7 +97,7 @@ internal fun BuyAppViewModel.requestAccess() {
     val sellerId = sellerConfig.sellerId
     if (sellerId.isEmpty()) {
         viewModelScope.launch {
-            showSnackbar("Bitte zuerst mit einem Verkäufer verbinden", SnackbarType.ERROR)
+            showSnackBar("Bitte zuerst mit einem Verkäufer verbinden", SnackbarType.ERROR)
         }
         return
     }
@@ -109,7 +109,7 @@ internal fun BuyAppViewModel.requestAccess() {
             _state.update { it.copy(showProfileIncompleteDialog = true) }
         } else {
             viewModelScope.launch {
-                showSnackbar(buildMissingFieldsMessage(missing), SnackbarType.WARNING)
+                showSnackBar(buildMissingFieldsMessage(missing), SnackbarType.WARNING)
             }
         }
         _state.update { it.copy(isRequestingAccess = false) }
@@ -136,15 +136,15 @@ internal fun BuyAppViewModel.requestAccess() {
                 .onSuccess {
                     _state.update { it.copy(isRequestingAccess = false) }
                     startObservingAccessStatus()
-                    showSnackbar("Zugangsanfrage gesendet", SnackbarType.SUCCESS)
+                    showSnackBar("Zugangsanfrage gesendet", SnackbarType.SUCCESS)
                 }
                 .onFailure { e ->
                     _state.update { it.copy(isRequestingAccess = false) }
-                    showSnackbar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
+                    showSnackBar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
                 }
         } catch (e: Exception) {
             _state.update { it.copy(isRequestingAccess = false) }
-            showSnackbar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
+            showSnackBar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
         }
     }
 }

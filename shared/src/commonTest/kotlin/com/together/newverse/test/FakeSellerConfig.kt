@@ -43,8 +43,19 @@ class FakeSellerConfig(
         _demoOrders.clear()
     }
 
+    private var _firebaseDemoWriteCount = 0
+    var firebaseDemoWriteLimit = 3
+
+    override fun firebaseDemoWritesRemaining(): Int =
+        (firebaseDemoWriteLimit - _firebaseDemoWriteCount).coerceAtLeast(0)
+
+    override fun recordFirebaseDemoWrite() {
+        _firebaseDemoWriteCount++
+    }
+
     fun reset() {
         _sellerId = demoSellerId
         _demoOrders.clear()
+        _firebaseDemoWriteCount = 0
     }
 }

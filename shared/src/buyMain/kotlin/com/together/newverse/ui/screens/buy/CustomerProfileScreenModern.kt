@@ -144,6 +144,11 @@ import newverse.shared.generated.resources.profile_incomplete_go_to_profile
 import org.jetbrains.compose.resources.stringResource
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.util.formatString
+import newverse.shared.generated.resources.access_status_approved
+import newverse.shared.generated.resources.access_status_blocked
+import newverse.shared.generated.resources.access_status_none
+import newverse.shared.generated.resources.access_status_pending
+import newverse.shared.generated.resources.button_ok
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1138,7 +1143,7 @@ private fun QuickActionsCard(
             },
             confirmButton = {
                 TextButton(onClick = { showPaymentDialog = false }) {
-                    Text("OK")
+                    Text(stringResource(Res.string.button_ok))
                 }
             }
         )
@@ -1434,26 +1439,31 @@ private fun AccessStatusCard(
     onRequestAccess: () -> Unit = {},
     onScanQrCode: () -> Unit = {}
 ) {
+    val statusNone = stringResource(Res.string.access_status_none)
+    val statusPending = stringResource(Res.string.access_status_pending)
+    val statusApproved = stringResource(Res.string.access_status_approved)
+    val statusBlocked = stringResource(Res.string.access_status_blocked)
+
     val (containerColor, contentColor, message) = when (accessStatus) {
         AccessStatus.NONE -> Triple(
             MaterialTheme.colorScheme.surfaceVariant,
             MaterialTheme.colorScheme.onSurfaceVariant,
-            "No access token received yet. Ask your seller for a link."
+            statusNone
         )
         AccessStatus.PENDING -> Triple(
             MaterialTheme.colorScheme.secondaryContainer,
             MaterialTheme.colorScheme.onSecondaryContainer,
-            "Access request pending — waiting for seller approval"
+            statusPending
         )
         AccessStatus.APPROVED -> Triple(
             MaterialTheme.colorScheme.primaryContainer,
             MaterialTheme.colorScheme.onPrimaryContainer,
-            "Production mode active"
+            statusApproved
         )
         AccessStatus.BLOCKED -> Triple(
             MaterialTheme.colorScheme.errorContainer,
             MaterialTheme.colorScheme.onErrorContainer,
-            "Access blocked by seller"
+            statusBlocked
         )
     }
 

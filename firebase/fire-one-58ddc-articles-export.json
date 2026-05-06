@@ -1,0 +1,166 @@
+{
+  "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+    "-OfhnHb00g3WUzVDZR3x": {
+      "available": true,
+      "category": "Kartoffel",
+      "detailInfo": "Festkochende Kartoffel vom Hof Apfeltraum. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1576373532957500855.tmp?alt=media&token=81892fcd-c346-479a-8b56-4b56d7ce8381",
+      "price": 2.3,
+      "productId": "2",
+      "productName": "Linda Kartoffeln",
+      "searchTerms": "Kartoffel,Kartoffeln,Gemüse",
+      "unit": "kg",
+      "weightPerPiece": 0
+    },
+    "-OfhnHb00g3WUzVDZR3y": {
+      "available": true,
+      "category": "Apfel",
+      "detailInfo": "Leicht säuerlicher Apfel. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609270827791_tmp1052065387795357072.tmp?alt=media&token=3ae17db0-a140-4a3d-bd6d-2843cfd5b36e",
+      "price": 2.3,
+      "productId": "1",
+      "productName": "Granny Smith",
+      "searchTerms": "Apfel,Äpfel,Obst",
+      "unit": "kg",
+      "weightPerPiece": 0
+    },
+    "-OfhnHb00g3WUzVDZR3z": {
+      "available": true,
+      "category": "Bananen",
+      "detailInfo": "Demeter Biobananen. Die Bananen stammen aus Peru und sind nach Vorgaben der Demeter angebaut.",
+      "id": "",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp6852941846258768194.tmp?alt=media&token=f4b2a6a2-a8fa-495b-a093-04c269e97abe",
+      "mode": -1,
+      "price": 2.3,
+      "productId": "0",
+      "productName": "Feigenbananen",
+      "searchTerms": "Banane,Obst",
+      "unit": "kg",
+      "weighPerPiece": 0.13
+    },
+    "-OfhnHb1nV_gDkY56PA3": {
+      "available": true,
+      "category": "Knoblauch",
+      "detailInfo": "Vom Biohof Waldheide. Der Knoblauch wurde nach den Produktionsvorgaben von Demeter erzeugt.",
+      "id": "",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609405653076_tmp824873246873729560.tmp?alt=media&token=3cd22727-cec8-4d86-ba92-140b24c6675b",
+      "mode": -1,
+      "price": 10.69,
+      "productId": "6",
+      "productName": "Knoblauch,Gemüse",
+      "searchTerms": "",
+      "unit": "kg",
+      "weighPerPiece": 0.03
+    },
+    "-OfhnHb1nV_gDkY56PA4": {
+      "available": true,
+      "category": "Kartoffeln",
+      "detailInfo": "Festkochende Kartoffel vom Hof Apfeltraum. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1576373532957500855.tmp?alt=media&token=81892fcd-c346-479a-8b56-4b56d7ce8381",
+      "price": 2.9,
+      "productId": "2",
+      "productName": "Siglinde Kartoffeln",
+      "searchTerms": "Kartoffel,Gemüse",
+      "unit": "kg",
+      "weightPerPiece": 0
+    },
+    "-OfhnHb2_vjYGxPpFHtH": {
+      "available": true,
+      "category": "Stangensellerie",
+      "detailInfo": "Aus der Umgebung. Die Kartoffeln wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp274159401886863829.tmp?alt=media&token=e725f46f-5ab3-440c-9586-c04c6e1b7392",
+      "price": 2.9,
+      "productId": "3",
+      "productName": "Stangensellerie",
+      "searchTerms": "Gemüse",
+      "unit": "Stück",
+      "weightPerPiece": 0
+    },
+    "-OfhnHb3qNC7JucUDSeF": {
+      "available": true,
+      "category": "Apfel",
+      "detailInfo": "Saftig und sauer. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609270827791_tmp1052065387795357072.tmp?alt=media&token=3ae17db0-a140-4a3d-bd6d-2843cfd5b36e",
+      "price": 2.3,
+      "productId": "1",
+      "productName": "Boskop",
+      "searchTerms": "Äpfel,Obst",
+      "unit": "kg",
+      "weightPerPiece": 0
+    },
+    "-OfhnHb55HiUDG8ALTFJ": {
+      "available": true,
+      "category": "Apfel",
+      "detailInfo": "Süß-sauerer Apfel. Die Äpfel wurden in Stralsund geerntet und sind mit dem europäischen Biosiegel versehen. Die Äpfel wurden nicht gespritzt und auch nicht gewachst.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609270827791_tmp1052065387795357072.tmp?alt=media&token=3ae17db0-a140-4a3d-bd6d-2843cfd5b36e",
+      "price": 2.3,
+      "productId": "1",
+      "productName": "Elstar",
+      "searchTerms": "Äpfel,Obst",
+      "unit": "kg",
+      "weightPerPiece": 0
+    },
+    "-OfhnHb55HiUDG8ALTFK": {
+      "available": true,
+      "category": "Erdbeeren",
+      "detailInfo": "Vom Biohof Waldheide. Die Erdbeeren stammen aus Friedenau vom Hof Bio Müller. Bei der Aufzucht wurden keinerlei Insektiziede verwendet.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1145260240680560593.tmp?alt=media&token=0670c0da-e260-4d41-b5d8-1a119ea24a64",
+      "price": 5.69,
+      "productId": "5",
+      "productName": "Erdbeeren",
+      "searchTerms": "Erdbeere,Obst",
+      "unit": "Schale",
+      "weightPerPiece": 0
+    },
+    "-OfhnHb55HiUDG8ALTFL": {
+      "available": true,
+      "category": "Karotten",
+      "detailInfo": "Vom Biohof Waldheide. Die Karotten wurden in dem Biohof Wizenau bei Buxdehude nach den Anforderungen des europäischen Biosiegels angebaut.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp7534516650759375907.tmp?alt=media&token=d474b967-46e9-45b2-8931-336f9c780ee3",
+      "price": 3.69,
+      "productId": "4",
+      "productName": "Atomic Red",
+      "searchTerms": "Möhren,Möhre,Karotte,Karotten,Gemüse",
+      "unit": "Bund",
+      "weightPerPiece": 0
+    }
+  },
+  "jOSoP5UxAohZDtdpluhHg6VrfvQ2": {
+    "-Om-7GeK4yJk3VZI95Qj": {
+      "available": true,
+      "category": "Exotisch",
+      "detailInfo": "Goldene Bio-Mangos aus Peru. Nach Demeter-Vorgaben angebaut.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp6852941846258768194.tmp?alt=media&token=f4b2a6a2-a8fa-495b-a093-04c269e97abe",
+      "price": 4.5,
+      "productId": "",
+      "productName": "TEST-Mangos Gold",
+      "searchTerms": "mango,exotisch,obst",
+      "unit": "kg",
+      "weightPerPiece": 0.35
+    },
+    "-Om-7GqMDDD76CK8BMwe": {
+      "available": true,
+      "category": "Gemuese",
+      "detailInfo": "Knackige rote Paprika vom Biohof Waldheide.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp7534516650759375907.tmp?alt=media&token=d474b967-46e9-45b2-8931-336f9c780ee3",
+      "price": 3.9,
+      "productId": "",
+      "productName": "TEST-Rote Paprika",
+      "searchTerms": "paprika,gemuese,rot",
+      "unit": "kg",
+      "weightPerPiece": 0.2
+    },
+    "-Om-7GshNVtWodibJRJO": {
+      "available": true,
+      "category": "Kraeuter",
+      "detailInfo": "Frischer Basilikum im Topf. Bio-Qualitaet aus der Region.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp274159401886863829.tmp?alt=media&token=e725f46f-5ab3-440c-9586-c04c6e1b7392",
+      "price": 2.5,
+      "productId": "",
+      "productName": "TEST-Basilikum Topf",
+      "searchTerms": "basilikum,kraeuter,topf",
+      "unit": "Stueck",
+      "weightPerPiece": 1
+    }
+  }
+}

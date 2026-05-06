@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.together.newverse.ui.state.InitializationStep
+import com.together.newverse.ui.state.localizedMessage
 import kotlinx.coroutines.delay
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -109,7 +110,7 @@ fun SplashScreen(
 
             // Status text
             Text(
-                text = initializationStep.displayMessage() + dots,
+                text = initializationStep.localizedMessage() + dots,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )

@@ -1,23 +1,19 @@
-# Uncomment the next line to define a global platform for your project
 platform :ios, '15.0'
 
+# Map custom Buy/Sell configurations to CocoaPods debug/release types
+project 'iosApp', {
+  'Debug-Buy'   => :debug,
+  'Release-Buy' => :release,
+  'Debug-Sell'  => :debug,
+  'Release-Sell' => :release
+}
+
 target 'iosApp' do
-  # Comment the next line if you don't want to use dynamic frameworks
   use_frameworks!
 
-  # Pods for iosApp
-
-  # Firebase Native SDKs (Required by GitLive)
-  # GitLive Firebase SDK wraps these native implementations
-  # See: https://github.com/GitLiveApp/firebase-kotlin-sdk
-  pod 'FirebaseCore'      # Core Firebase - Required
-  pod 'FirebaseAuth'      # Authentication - Required by dev.gitlive:firebase-auth
-  pod 'FirebaseDatabase'  # Realtime Database - Required by dev.gitlive:firebase-database
-  pod 'FirebaseStorage'   # Cloud Storage - Required by dev.gitlive:firebase-storage
-
-  # Google Sign-In
-  # Required because GitLiveAuthRepository uses GoogleAuthProvider
-  pod 'GoogleSignIn'
+  # KMP shared module — provides Firebase/GoogleSignIn as transitive dependencies
+  # Before first pod install: ./gradlew :shared:generateDummyFramework
+  pod 'shared', :path => '../shared'
 
 end
 
@@ -26,6 +22,7 @@ post_install do |installer|
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+      config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
     end
   end
 end

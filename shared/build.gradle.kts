@@ -4,6 +4,7 @@ import com.codingfeline.buildkonfig.compiler.FieldSpec.Type
 
 plugins {
     kotlin("multiplatform")
+    kotlin("native.cocoapods")
     id("com.android.library")
     id("org.jetbrains.compose")
     kotlin("plugin.compose")
@@ -28,6 +29,24 @@ kotlin {
             baseName = "shared"
             isStatic = true
         }
+    }
+
+    cocoapods {
+        noPodspec()
+        summary = "Newverse KMP shared library"
+        homepage = "https://github.com/together/newverse"
+        version = "1.0.0"
+        ios.deploymentTarget = "15.0"
+
+        framework {
+            baseName = "shared"
+            isStatic = true
+        }
+
+        xcodeConfigurationToNativeBuildType["Debug-Buy"] = org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.DEBUG
+        xcodeConfigurationToNativeBuildType["Release-Buy"] = org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.RELEASE
+        xcodeConfigurationToNativeBuildType["Debug-Sell"] = org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.DEBUG
+        xcodeConfigurationToNativeBuildType["Release-Sell"] = org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.RELEASE
     }
 
     sourceSets {
@@ -66,16 +85,25 @@ kotlin {
         }
 
         // Create and configure shared iOS source set
-        // iOS builds include buyMain for navigation and buy-specific features
         val iosMain by creating {
             dependsOn(commonMain.get())
-            dependsOn(buyMain)
         }
 
-        // Link iOS target source sets to iosMain
-        iosX64Main.get().dependsOn(iosMain)
-        iosArm64Main.get().dependsOn(iosMain)
-        iosSimulatorArm64Main.get().dependsOn(iosMain)
+        // Link iOS target source sets to flavor-specific source sets based on build variant
+        val flavorMain = if (isSellFlavor) sellMain else buyMain
+        
+        iosX64Main.get().apply {
+            dependsOn(iosMain)
+            dependsOn(flavorMain)
+        }
+        iosArm64Main.get().apply {
+            dependsOn(iosMain)
+            dependsOn(flavorMain)
+        }
+        iosSimulatorArm64Main.get().apply {
+            dependsOn(iosMain)
+            dependsOn(flavorMain)
+        }
 
         commonMain.dependencies {
             // Compose Multiplatform

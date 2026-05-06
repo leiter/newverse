@@ -34,7 +34,7 @@ import newverse.shared.generated.resources.logout_warning_title
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Warning dialog shown when a guest user attempts to logout.
+ * Warning dialog shown when a guest user attempts to log out.
  * Informs them that their data will be deleted and offers
  * the option to link their account instead.
  */

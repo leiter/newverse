@@ -197,7 +197,7 @@ internal fun BuyAppViewModel.addMainScreenToCart() {
 
     // Check if item already exists in basket
     val basketItems = basketRepository.observeBasket().value
-    val existingItem = basketItems.find { it.id == selectedArticle.id || it.productId == selectedArticle.id }
+    val existingItem = basketItems.find { it.productId == selectedArticle.id }
 
     if (existingItem != null) {
         // Update existing item quantity

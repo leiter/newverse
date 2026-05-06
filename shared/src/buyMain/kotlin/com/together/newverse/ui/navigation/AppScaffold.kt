@@ -52,18 +52,6 @@ import org.koin.compose.viewmodel.koinViewModel
  * - Top app bar with menu button
  * - Navigation graph
  */
-/**
- * Platform-specific actions that need to be handled by the platform layer
- */
-sealed interface PlatformAction {
-    data object GoogleSignIn : PlatformAction
-    data object TwitterSignIn : PlatformAction
-    data object AppleSignIn : PlatformAction
-    data object GoogleSignOut : PlatformAction
-    data object ScanQrCode : PlatformAction
-    data class ShareText(val text: String) : PlatformAction
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold(
@@ -339,7 +327,8 @@ fun AppScaffold(
                         currentRoute.startsWith(NavRoutes.Buy.ProductDetail.route) ||
                         currentRoute == NavRoutes.Buy.BuyerContacts.route ||
                         currentRoute == NavRoutes.Buy.AddBuyerContact.route ||
-                        currentRoute.startsWith(NavRoutes.Buy.ConversationDetail.route.substringBefore("{"))
+                        currentRoute.startsWith(NavRoutes.Buy.ConversationDetail.route.substringBefore("{")) ||
+                        currentRoute == NavRoutes.Buy.Favorites.route
 
                     if (isDetailScreen) {
                         IconButton(
