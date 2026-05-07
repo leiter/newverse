@@ -36,7 +36,9 @@ fun MainViewController(): UIViewController {
 fun MainViewControllerWithCallback(
     onGoogleSignInRequested: () -> Unit,
     onAppleSignInRequested: () -> Unit,
-    onTwitterSignInRequested: () -> Unit = {}
+    onTwitterSignInRequested: () -> Unit = {},
+    onScanQrCodeRequested: () -> Unit = {},
+    onShareRequested: (String) -> Unit = {}
 ): UIViewController {
     return ComposeUIViewController {
         NewverseTheme {
@@ -47,10 +49,9 @@ fun MainViewControllerWithCallback(
                         is PlatformAction.GoogleSignIn -> onGoogleSignInRequested()
                         is PlatformAction.AppleSignIn -> onAppleSignInRequested()
                         is PlatformAction.TwitterSignIn -> onTwitterSignInRequested()
-                        else -> {
-                            // Other actions like ShareText or ScanQrCode 
-                            // will need additional callbacks in the future
-                        }
+                        is PlatformAction.ScanQrCode -> onScanQrCodeRequested()
+                        is PlatformAction.ShareText -> onShareRequested(action.text)
+                        is PlatformAction.GoogleSignOut -> { /* handled by Kotlin layer */ }
                     }
                 }
             )

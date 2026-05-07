@@ -2,6 +2,7 @@ import SwiftUI
 import shared
 import FirebaseCore
 import FirebaseDatabase
+import GoogleSignIn
 
 @main
 struct NewverseApp: App {
@@ -15,6 +16,12 @@ struct NewverseApp: App {
         Database.database().isPersistenceEnabled = true
         print("🔥 NewverseApp: Firebase persistence enabled")
 
+        // Configure Google Sign-In with the Firebase client ID
+        if let clientID = FirebaseApp.app()?.options.clientID {
+            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+            print("🔐 NewverseApp: Google Sign-In configured")
+        }
+
         // Initialize GitLive Firebase SDK
         GitLiveFirebaseInit.shared.initialize()
 
@@ -26,7 +33,9 @@ struct NewverseApp: App {
         WindowGroup {
             ContentView()
                 .onOpenURL { url in
-                    // Forward deep links (newverse://) from iOS into the Kotlin/Compose layer
+                    // Let Google Sign-In handle its own OAuth redirect first
+                    if GIDSignIn.sharedInstance.handle(url) { return }
+                    // Forward remaining deep links (newverse://) into the Kotlin/Compose layer
                     MainViewControllerKt.handleDeepLinkUrl(url: url.absoluteString)
                 }
         }

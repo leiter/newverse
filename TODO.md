@@ -7,20 +7,29 @@
 The following actions are defined in `PlatformAction` but are not yet implemented in the native iOS layer.
 
 ### 1. QR Code Scanning
-**File:** `shared/src/iosBuy/kotlin/com/together/newverse/MainViewController.kt`  
-**Status:** ❌ Pending  
+**File:** `shared/src/iosMain/kotlin/com/together/newverse/MainViewController.kt`  
+**Status:** ✅ Fixed (2026-05-07)  
 **Description:** Triggered from `CustomerProfileScreenModern` to scan seller QR codes.  
-**Task:**
-- [ ] Add `onScanQrCodeRequested` callback to `MainViewControllerWithCallback`.
-- [ ] Implement native camera scanning in `ContentView.swift`.
+**Implementation:**
+- Added `onScanQrCodeRequested` callback to `MainViewControllerWithCallback`.
+- Implemented `QrScannerViewController` (AVFoundation) in `ContentView.swift`; scanned value is forwarded via `handleDeepLinkUrl`.
 
 ### 2. Native Sharing
-**File:** `shared/src/iosBuy/kotlin/com/together/newverse/MainViewController.kt`  
-**Status:** ❌ Pending  
+**File:** `shared/src/iosMain/kotlin/com/together/newverse/MainViewController.kt`  
+**Status:** ✅ Fixed (2026-05-07)  
 **Description:** Triggered from `AddBuyerContactScreen` to share deep link invitations.  
-**Task:**
-- [ ] Add `onShareRequested(text: String)` callback to `MainViewControllerWithCallback`.
-- [ ] Implement `UIActivityViewController` in `ContentView.swift`.
+**Implementation:**
+- Added `onShareRequested(text: String)` callback to `MainViewControllerWithCallback`.
+- Implemented `UIActivityViewController` in `ContentView.swift` with iPad popover support.
+
+### 3. Google Sign-In on iOS
+**Files:** `iosApp/iosApp/NewverseApp.swift`, `iosApp/iosApp/ContentView.swift`  
+**Status:** ✅ Fixed (2026-05-07)  
+**Description:** Google Sign-In returned an immediate error on iOS because `handleGoogleSignIn()` was a stub.  
+**Implementation:**
+- Added `GIDSignIn` configuration in `NewverseApp.init` using the Firebase `clientID`.
+- Replaced the stub with a real `GIDSignIn.sharedInstance.signIn(withPresenting:)` call.
+- Added `GIDSignIn.sharedInstance.handle(url)` in `.onOpenURL` before forwarding deep links.
 
 ---
 
@@ -41,3 +50,5 @@ The following actions are defined in `PlatformAction` but are not yet implemente
 - Shared `PlatformAction` interface in `commonMain` to harmonize native actions.
 - Configured `shared/build.gradle.kts` to dynamically link iOS targets to the correct flavor (`buyMain`/`sellMain`) and ensure `iosMain` is correctly included in the dependency chain.
 - This allows a common `MainViewController.kt` to drive different flavor variants on iOS.
+
+

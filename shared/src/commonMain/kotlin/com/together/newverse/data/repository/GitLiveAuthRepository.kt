@@ -205,11 +205,11 @@ class GitLiveAuthRepository : AuthRepository {
     /**
      * Sign in with Google.
      */
-    override suspend fun signInWithGoogle(idToken: String): Result<String> {
+    override suspend fun signInWithGoogle(idToken: String, accessToken: String?): Result<String> {
         return try {
             println("🔐 GitLiveAuthRepository.signInWithGoogle: Authenticating with Google")
 
-            val credential = GoogleAuthProvider.credential(idToken, null)
+            val credential = GoogleAuthProvider.credential(idToken, accessToken)
             val authResult = auth.signInWithCredential(credential)
             val user = authResult.user
 

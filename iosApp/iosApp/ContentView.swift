@@ -1,5 +1,7 @@
 import SwiftUI
 import shared
+import GoogleSignIn
+import AVFoundation
 
 struct ContentView: View {
     var body: some View {
@@ -23,6 +25,12 @@ struct ComposeView: UIViewControllerRepresentable {
             },
             onTwitterSignInRequested: {
                 print("Twitter Sign-In not yet implemented on iOS")
+            },
+            onScanQrCodeRequested: {
+                context.coordinator.handleScanQrCode()
+            },
+            onShareRequested: { text in
+                context.coordinator.handleShare(text: text)
             }
         )
 
@@ -41,8 +49,9 @@ struct ComposeView: UIViewControllerRepresentable {
         // Subscribe to keyboard notifications
         context.coordinator.setupKeyboardObservers()
 
-        // Store reference to Apple Sign-In helper
+        // Store references needed for presenting sheets
         context.coordinator.appleSignInHelper = appleSignInHelper
+        context.coordinator.rootViewController = controller
 
         return controller
     }
@@ -56,6 +65,7 @@ struct ComposeView: UIViewControllerRepresentable {
     class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private var isKeyboardVisible = false
         var appleSignInHelper: NativeAppleSignInHelper?
+        weak var rootViewController: UIViewController?
 
         func setupKeyboardObservers() {
             NotificationCenter.default.addObserver(
@@ -100,9 +110,55 @@ struct ComposeView: UIViewControllerRepresentable {
         /// Handles Google Sign-In request from Kotlin
         func handleGoogleSignIn() {
             print("Google Sign-In requested from Kotlin")
-            // TODO: Implement Google Sign-In using GoogleSignIn SDK
-            // For now, notify Kotlin that it's not implemented
-            GoogleSignInHelper.companion.shared.onSignInError(errorMessage: "Google Sign-In not yet implemented on iOS")
+            guard let vc = rootViewController else {
+                GoogleSignInHelper.companion.shared.onSignInError(errorMessage: "No root view controller available")
+                return
+            }
+            GIDSignIn.sharedInstance.signIn(withPresenting: vc) { result, error in
+                if let error = error {
+                    let nsError = error as NSError
+                    if nsError.domain == GIDSignInError.errorDomain,
+                       nsError.code == GIDSignInError.canceled.rawValue {
+                        GoogleSignInHelper.companion.shared.onSignInCancelled()
+                    } else {
+                        GoogleSignInHelper.companion.shared.onSignInError(errorMessage: error.localizedDescription)
+                    }
+                    return
+                }
+                guard let idToken = result?.user.idToken?.tokenString,
+                      let accessToken = result?.user.accessToken.tokenString else {
+                    GoogleSignInHelper.companion.shared.onSignInError(errorMessage: "No ID token or access token received from Google")
+                    return
+                }
+                print("Google Sign-In succeeded")
+                GoogleSignInHelper.companion.shared.onSignInSuccess(idToken: idToken, accessToken: accessToken)
+            }
+        }
+
+        /// Handles QR code scan request from Kotlin
+        func handleScanQrCode() {
+            print("QR code scan requested from Kotlin")
+            guard let vc = rootViewController else { return }
+            let scannerVC = QrScannerViewController { [weak self] scannedValue in
+                vc.dismiss(animated: true)
+                MainViewControllerKt.handleDeepLinkUrl(url: scannedValue)
+            }
+            scannerVC.modalPresentationStyle = .fullScreen
+            vc.present(scannerVC, animated: true)
+        }
+
+        /// Handles native share sheet request from Kotlin
+        func handleShare(text: String) {
+            print("Share requested from Kotlin: \(text)")
+            guard let vc = rootViewController else { return }
+            let activityVC = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+            // iPad requires a sourceView/sourceRect for the popover
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = vc.view
+                popover.sourceRect = CGRect(x: vc.view.bounds.midX, y: vc.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            vc.present(activityVC, animated: true)
         }
 
         /// Handles Apple Sign-In request from Kotlin
@@ -168,5 +224,82 @@ struct ComposeView: UIViewControllerRepresentable {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+    }
+}
+
+// MARK: - QR Code Scanner
+
+class QrScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
+    private let onResult: (String) -> Void
+    private var captureSession: AVCaptureSession?
+
+    init(onResult: @escaping (String) -> Void) {
+        self.onResult = onResult
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+        setupCamera()
+        addCancelButton()
+    }
+
+    private func setupCamera() {
+        guard let device = AVCaptureDevice.default(for: .video),
+              let input = try? AVCaptureDeviceInput(device: device) else {
+            dismiss(animated: true)
+            return
+        }
+        let session = AVCaptureSession()
+        session.addInput(input)
+
+        let metadataOutput = AVCaptureMetadataOutput()
+        session.addOutput(metadataOutput)
+        metadataOutput.setMetadataObjectsDelegate(self, queue: .main)
+        metadataOutput.metadataObjectTypes = [.qr]
+
+        let preview = AVCaptureVideoPreviewLayer(session: session)
+        preview.frame = view.layer.bounds
+        preview.videoGravity = .resizeAspectFill
+        view.layer.addSublayer(preview)
+
+        captureSession = session
+        DispatchQueue.global(qos: .userInitiated).async { session.startRunning() }
+    }
+
+    private func addCancelButton() {
+        let button = UIButton(type: .system)
+        button.setTitle("Abbrechen", for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 17)
+        button.tintColor = .white
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+        view.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            button.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24)
+        ])
+    }
+
+    @objc private func cancelTapped() {
+        captureSession?.stopRunning()
+        dismiss(animated: true)
+    }
+
+    func metadataOutput(_ output: AVCaptureMetadataOutput,
+                        didOutput metadataObjects: [AVMetadataObject],
+                        from connection: AVCaptureConnection) {
+        guard let object = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
+              let value = object.stringValue else { return }
+        captureSession?.stopRunning()
+        onResult(value)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        captureSession?.stopRunning()
     }
 }

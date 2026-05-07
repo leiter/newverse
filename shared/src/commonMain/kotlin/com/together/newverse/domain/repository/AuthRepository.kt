@@ -78,7 +78,7 @@ interface AuthRepository {
      * @param idToken Google ID token from Google Sign-In
      * @return User ID or error
      */
-    suspend fun signInWithGoogle(idToken: String): Result<String>
+    suspend fun signInWithGoogle(idToken: String, accessToken: String? = null): Result<String>
 
     /**
      * Sign in with Twitter

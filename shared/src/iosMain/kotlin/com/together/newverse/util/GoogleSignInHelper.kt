@@ -6,6 +6,7 @@ import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import com.together.newverse.util.GoogleSignInState
 
 /**
  * iOS Google Sign-In Helper
@@ -53,8 +54,9 @@ class GoogleSignInHelper {
      *
      * @param idToken The ID token from Google
      */
-    fun onSignInSuccess(idToken: String) {
+    fun onSignInSuccess(idToken: String, accessToken: String) {
         println("Google Sign-In (iOS): Sign-in success callback received")
+        GoogleSignInState.notifySignInComplete(idToken, accessToken)
         signInCompletion?.invoke(Result.success(idToken))
         signInCompletion = null
     }

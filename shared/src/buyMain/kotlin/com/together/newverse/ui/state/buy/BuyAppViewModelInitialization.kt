@@ -10,6 +10,7 @@ import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import com.together.newverse.ui.state.core.AuthState
 import com.together.newverse.util.AppleSignInState
+import com.together.newverse.util.GoogleSignInState
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -535,6 +536,28 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
             } else {
                 println("[NV_BuyAppVM] observeAppleSignInCompletion: Warning - no current user found after Apple Sign-In")
             }
+        }
+    }
+}
+
+/**
+ * Observes Google Sign-In ID token emitted by GoogleSignInState (iOS only path).
+ * Calls signInWithGoogle(), then resumes app initialization on success.
+ * Android handles this directly in BuyMainActivity and does not emit to GoogleSignInState.
+ */
+internal fun BuyAppViewModel.observeGoogleSignInCompletion() {
+    viewModelScope.launch {
+        GoogleSignInState.signInCompleted.collect { tokens ->
+            println("[NV_BuyAppVM] observeGoogleSignInCompletion: Received tokens, signing in with Firebase")
+            authRepository.signInWithGoogle(tokens.idToken, tokens.accessToken)
+                .onSuccess { userId ->
+                    println("[NV_BuyAppVM] observeGoogleSignInCompletion: Firebase sign-in success, userId=$userId")
+                    resumeInitializationAfterAuth()
+                }
+                .onFailure { error ->
+                    println("[NV_BuyAppVM] observeGoogleSignInCompletion: Firebase sign-in failed - ${error.message}")
+                    showSnackBar(error.message ?: "Google Sign-In failed", com.together.newverse.ui.state.SnackbarType.ERROR)
+                }
         }
     }
 }
