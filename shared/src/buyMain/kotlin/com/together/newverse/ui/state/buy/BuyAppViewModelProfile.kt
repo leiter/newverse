@@ -107,20 +107,46 @@ internal fun BuyAppViewModel.loadOrderHistory() {
         }
 
         try {
-            // In demo mode, load orders from local storage instead of Firebase
+            // In demo mode, load orders from both local storage AND Firebase demo_orders
             if (_state.value.isDemoMode) {
-                val demoOrders = sellerConfig.loadDemoOrders().map { order ->
+                // 1. Get local orders
+                val localOrders = sellerConfig.loadDemoOrders().map { order ->
                     order.transitionStatusIfNeeded() ?: order
                 }
-                println("✅ BuyAppViewModel.loadOrderHistory: Loaded ${demoOrders.size} demo orders from local storage")
-                _state.update { current ->
-                    current.copy(
-                        orderHistory = current.orderHistory.copy(
-                            isLoading = false,
-                            items = demoOrders,
-                            error = null
+
+                // 2. Get Firebase demo orders
+                val profileResult = profileRepository.getBuyerProfile()
+                val profile = profileResult.getOrNull()
+
+                if (profile != null && profile.placedOrderIds.isNotEmpty()) {
+                    // Observe combined orders reactively
+                    orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds, isDemo = true)
+                        .collect { firebaseOrders ->
+                            val combinedOrders = (localOrders + firebaseOrders)
+                                .distinctBy { it.id }
+                                .sortedByDescending { it.createdDate }
+
+                            _state.update { current ->
+                                current.copy(
+                                    orderHistory = current.orderHistory.copy(
+                                        isLoading = false,
+                                        items = combinedOrders,
+                                        error = null
+                                    )
+                                )
+                            }
+                        }
+                } else {
+                    println("✅ BuyAppViewModel.loadOrderHistory: Loaded ${localOrders.size} local demo orders")
+                    _state.update { current ->
+                        current.copy(
+                            orderHistory = current.orderHistory.copy(
+                                isLoading = false,
+                                items = localOrders.sortedByDescending { it.createdDate },
+                                error = null
+                            )
                         )
-                    )
+                    }
                 }
                 return@launch
             }

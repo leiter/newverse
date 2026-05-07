@@ -40,7 +40,7 @@ class BuyerSellerConfig(
     }
 
     companion object {
-        const val DEMO_FIREBASE_WRITE_LIMIT = 3
+        const val DEMO_FIREBASE_WRITE_LIMIT = 2
     }
 
     override val sellerId: String
@@ -85,6 +85,23 @@ class BuyerSellerConfig(
 
     override fun recordFirebaseDemoWrite() {
         demoStorage.setFirebaseWriteCount(demoStorage.getFirebaseWriteCount() + 1)
+    }
+
+    override fun isDemoLocalMode(): Boolean =
+        demoStorage.getFirebaseWriteCount() > DEMO_FIREBASE_WRITE_LIMIT
+
+    override fun markDemoLocalMode() {
+        demoStorage.setFirebaseWriteCount(DEMO_FIREBASE_WRITE_LIMIT + 1)
+    }
+
+    override fun removeDemoOrder(orderId: String) {
+        val existing = loadDemoDtos()
+        val updated = existing.filter { it.id != orderId }
+        demoStorage.setDemoOrdersJson(json.encodeToString(updated))
+    }
+
+    override fun resetDemoOrderState() {
+        demoStorage.setFirebaseWriteCount(0)
     }
 
     private fun loadDemoDtos(): List<DemoOrderDto> {

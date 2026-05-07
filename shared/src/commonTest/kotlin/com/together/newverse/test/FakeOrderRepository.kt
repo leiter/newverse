@@ -106,7 +106,8 @@ class FakeOrderRepository : OrderRepository {
     override suspend fun cancelOrder(
         sellerId: String,
         date: String,
-        orderId: String
+        orderId: String,
+        isDemo: Boolean
     ): Result<Boolean> {
         val currentOrders = _ordersFlow.value.toMutableList()
         val index = currentOrders.indexOfFirst { it.id == orderId }
@@ -141,7 +142,8 @@ class FakeOrderRepository : OrderRepository {
     override suspend fun hideOrderForBuyer(
         sellerId: String,
         date: String,
-        orderId: String
+        orderId: String,
+        isDemo: Boolean
     ): Result<Boolean> {
         if (shouldFailHideOrder) {
             return Result.failure(Exception(failureMessage))
@@ -197,11 +199,16 @@ class FakeOrderRepository : OrderRepository {
         return Result.success(0)
     }
 
+    override suspend fun deleteDemoOrders(sellerId: String, dateToOrderId: Map<String, String>): Result<Unit> {
+        return Result.success(Unit)
+    }
+
     override suspend fun updateOrderStatus(
         sellerId: String,
         date: String,
         orderId: String,
-        status: OrderStatus
+        status: OrderStatus,
+        isDemo: Boolean
     ): Result<Unit> {
         if (shouldFailUpdateStatus) {
             return Result.failure(Exception(failureMessage))

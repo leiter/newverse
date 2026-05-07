@@ -209,9 +209,39 @@ internal fun BuyAppViewModel.loadOpenOrderAfterAuth() {
 
                 println("🛒 BuyAppViewModel.loadOpenOrderAfterAuth: Found ${placedOrderIds.size} placed orders")
 
-                // Get the most recent editable order
+                val isDemo = _state.value.isDemoMode
                 val sellerId = sellerConfig.sellerId
-                val orderResult = orderRepository.getOpenEditableOrder(sellerId, placedOrderIds, isDemo = sellerConfig.isDemoMode)
+
+                // Check local first if in demo mode
+                if (isDemo) {
+                    val localOrder = sellerConfig.loadDemoOrders().find { it.canEdit() }
+                    if (localOrder != null) {
+                        println("✅ BuyAppViewModel.loadOpenOrderAfterAuth: Loaded editable LOCAL order - orderId=${localOrder.id}")
+                        val dateKey = formatDateKey(localOrder.pickUpDate)
+                        basketRepository.loadOrderItems(localOrder.articles, localOrder.id, dateKey)
+                        _state.update { current ->
+                            current.copy(
+                                basket = current.basket.copy(
+                                    currentOrderId = localOrder.id,
+                                    currentOrderDate = dateKey
+                                )
+                            )
+                        }
+                        return@onSuccess
+                    }
+                }
+
+                // Get the most recent editable order from Firebase
+                var orderResult = orderRepository.getOpenEditableOrder(sellerId, placedOrderIds, isDemo = isDemo)
+
+                // FALLBACK: If not found and access status isn't confirmed, try the other trunk
+                if (orderResult.getOrNull() == null && !_state.value.isAccessStatusLoaded) {
+                    println("🛒 BuyAppViewModel.loadOpenOrderAfterAuth: Not found in primary trunk, trying other trunk...")
+                    val altResult = orderRepository.getOpenEditableOrder(sellerId, placedOrderIds, isDemo = !isDemo)
+                    if (altResult.isSuccess && altResult.getOrNull() != null) {
+                        orderResult = altResult
+                    }
+                }
 
                 orderResult.onSuccess { order ->
                     if (order != null) {
@@ -400,12 +430,63 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
 
             println("📦 loadCurrentOrder: Found ${placedOrderIds.size} placed orders, looking for upcoming order...")
 
-            // Get the most recent upcoming order (not just editable).
             // Use state.isDemoMode, NOT sellerConfig.isDemoMode — the seller config always
             // reports isDemoMode=true because demoSellerId == real sellerId, which would
             // route all fetches to demo_orders/ and miss real Firebase orders.
+            val isDemo = _state.value.isDemoMode
             val sellerId = sellerConfig.sellerId
-            val orderResult = orderRepository.getUpcomingOrder(sellerId, placedOrderIds, isDemo = _state.value.isDemoMode)
+
+            // In demo mode, check local storage first (post-migration orders)
+            if (isDemo) {
+                val localOrder = sellerConfig.loadDemoOrders()
+                    .filter { it.pickUpDate > Clock.System.now().toEpochMilliseconds() }
+                    .maxByOrNull { it.createdDate }
+
+                if (localOrder != null) {
+                    println("✅ loadCurrentOrder: Found upcoming LOCAL demo order - orderId=${localOrder.id}")
+                    val dateKey = formatDateKey(localOrder.pickUpDate)
+                    val canEdit = localOrder.canEdit()
+                    basketRepository.loadOrderItems(localOrder.articles, localOrder.id, dateKey)
+
+                    _state.update { current ->
+                        current.copy(
+                            basket = current.basket.copy(
+                                currentOrderId = localOrder.id,
+                                currentOrderDate = dateKey
+                            ),
+                            mainScreen = current.mainScreen.copy(
+                                canEditOrder = canEdit
+                            ),
+                            basketScreen = current.basketScreen.copy(
+                                orderId = localOrder.id,
+                                orderDate = dateKey,
+                                pickupDate = localOrder.pickUpDate,
+                                createdDate = localOrder.createdDate,
+                                isEditMode = false,
+                                canEdit = canEdit,
+                                isLoadingOrder = false,
+                                items = localOrder.articles,
+                                total = localOrder.articles.sumOf { it.price * it.amountCount },
+                                originalOrderItems = localOrder.articles,
+                                hasChanges = false
+                            )
+                        )
+                    }
+                    return@onSuccess
+                }
+                println("ℹ️ loadCurrentOrder: No upcoming LOCAL demo orders, checking Firebase...")
+            }
+
+            val orderResultPrimary = orderRepository.getUpcomingOrder(sellerId, placedOrderIds, isDemo = isDemo)
+            
+            // FALLBACK: If not found and access status isn't confirmed, try the other trunk
+            val orderResult = if (orderResultPrimary.getOrNull() == null && !_state.value.isAccessStatusLoaded) {
+                println("📦 loadCurrentOrder: Not found in primary trunk, trying other trunk...")
+                val altResult = orderRepository.getUpcomingOrder(sellerId, placedOrderIds, isDemo = !isDemo)
+                if (altResult.isSuccess && altResult.getOrNull() != null) altResult else orderResultPrimary
+            } else {
+                orderResultPrimary
+            }
 
             orderResult.onSuccess { loadedOrder ->
                 if (loadedOrder != null) {
@@ -418,7 +499,7 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
                         println("⏰ loadCurrentOrder: Order pickup date has passed, skipping...")
                         // Transition to COMPLETED and update Firebase
                         val dateKey = formatDateKey(loadedOrder.pickUpDate)
-                        orderRepository.updateOrderStatus(sellerId, dateKey, loadedOrder.id, com.together.newverse.domain.model.OrderStatus.COMPLETED)
+                        orderRepository.updateOrderStatus(sellerId, dateKey, loadedOrder.id, com.together.newverse.domain.model.OrderStatus.COMPLETED, isDemo = isDemo)
                         return@onSuccess
                     }
 
@@ -427,7 +508,7 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
                         println("🔄 loadCurrentOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
                         // Update Firebase with new status
                         val dateKey = formatDateKey(updatedOrder.pickUpDate)
-                        orderRepository.updateOrderStatus(sellerId, dateKey, updatedOrder.id, updatedOrder.status)
+                        orderRepository.updateOrderStatus(sellerId, dateKey, updatedOrder.id, updatedOrder.status, isDemo = isDemo)
 
                         // If order transitioned to COMPLETED, don't load it
                         if (updatedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {

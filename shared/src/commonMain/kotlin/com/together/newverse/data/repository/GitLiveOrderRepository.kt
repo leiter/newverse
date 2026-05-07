@@ -124,7 +124,7 @@ class GitLiveOrderRepository(
                             if (orderSnapshot.exists) {
                                 val order = mapSnapshotToOrder(orderSnapshot)
                                 if (order != null && !order.hiddenByBuyer) {
-                                    orders.add(order)
+                                    orders.add(order.copy(isDemoOrder = isDemo))
                                 }
                             }
                         }
@@ -182,8 +182,9 @@ class GitLiveOrderRepository(
                     if (snapshot.exists) {
                         val order = mapSnapshotToOrder(snapshot)
                         if (order != null) {
-                            orders.add(order)
-                            ordersCache[orderId] = order
+                            val finalOrder = order.copy(isDemoOrder = isDemo)
+                            orders.add(finalOrder)
+                            ordersCache[orderId] = finalOrder
                         }
                     }
                 } catch (e: Exception) {
@@ -298,7 +299,7 @@ class GitLiveOrderRepository(
             val orderMap = orderToMap(order)
 
             // Save to GitLive Firebase using the existing order ID
-            val orderRef = ordersRootRef.child(targetSellerId).child(dateString).child(order.id)
+            val orderRef = rootRef(order.isDemoOrder).child(targetSellerId).child(dateString).child(order.id)
             orderRef.setValue(orderMap)
 
             // Update cache
@@ -319,10 +320,12 @@ class GitLiveOrderRepository(
     override suspend fun cancelOrder(
         sellerId: String,
         date: String,
-        orderId: String
+        orderId: String,
+        isDemo: Boolean
     ): Result<Boolean> {
         return try {
-            val path = "orders/$sellerId/$date/$orderId"
+            val rootName = if (isDemo) "demo_orders" else "orders"
+            val path = "$rootName/$sellerId/$date/$orderId"
             println("🔐 GitLiveOrderRepository.cancelOrder: START")
             println("🔐 GitLiveOrderRepository.cancelOrder: sellerId=$sellerId")
             println("🔐 GitLiveOrderRepository.cancelOrder: date=$date")
@@ -330,7 +333,7 @@ class GitLiveOrderRepository(
             println("🔐 GitLiveOrderRepository.cancelOrder: Full path=$path")
 
             // Fetch the order from GitLive Firebase
-            val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId)
+            val orderRef = rootRef(isDemo).child(sellerId).child(date).child(orderId)
             val snapshot = orderRef.valueEvents.first()
             println("🔐 GitLiveOrderRepository.cancelOrder: snapshot.exists=${snapshot.exists}")
 
@@ -564,7 +567,8 @@ class GitLiveOrderRepository(
                             OrderStatus.DRAFT
                         },
                         hiddenBySeller = value["hiddenBySeller"] as? Boolean == true,
-                        hiddenByBuyer = value["hiddenByBuyer"] as? Boolean == true
+                        hiddenByBuyer = value["hiddenByBuyer"] as? Boolean == true,
+                        isDemoOrder = value["isDemoOrder"] as? Boolean ?: false
                     )
                 } catch (e: Exception) {
                     println("❌ Error mapping order snapshot: ${e.message}")
@@ -604,7 +608,8 @@ class GitLiveOrderRepository(
             },
             "status" to order.status.name,
             "hiddenBySeller" to order.hiddenBySeller,
-            "hiddenByBuyer" to order.hiddenByBuyer
+            "hiddenByBuyer" to order.hiddenByBuyer,
+            "isDemoOrder" to order.isDemoOrder
         )
     }
 
@@ -624,11 +629,16 @@ class GitLiveOrderRepository(
         }
     }
 
-    override suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String): Result<Boolean> {
+    override suspend fun hideOrderForBuyer(
+        sellerId: String,
+        date: String,
+        orderId: String,
+        isDemo: Boolean
+    ): Result<Boolean> {
         return try {
-            println("🔐 GitLiveOrderRepository.hideOrderForBuyer: START - orderId=$orderId")
+            println("🔐 GitLiveOrderRepository.hideOrderForBuyer: START - orderId=$orderId, isDemo=$isDemo")
 
-            val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId).child("hiddenByBuyer")
+            val orderRef = rootRef(isDemo).child(sellerId).child(date).child(orderId).child("hiddenByBuyer")
             orderRef.setValue(true)
 
             println("✅ GitLiveOrderRepository.hideOrderForBuyer: Success")
@@ -647,12 +657,13 @@ class GitLiveOrderRepository(
         sellerId: String,
         date: String,
         orderId: String,
-        status: OrderStatus
+        status: OrderStatus,
+        isDemo: Boolean
     ): Result<Unit> {
         return try {
-            println("🔐 GitLiveOrderRepository.updateOrderStatus: START - orderId=$orderId, newStatus=$status")
+            println("🔐 GitLiveOrderRepository.updateOrderStatus: START - orderId=$orderId, newStatus=$status, isDemo=$isDemo")
 
-            val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId).child("status")
+            val orderRef = rootRef(isDemo).child(sellerId).child(date).child(orderId).child("status")
             orderRef.setValue(status.name)
 
             // Update cache if order exists
@@ -716,6 +727,24 @@ class GitLiveOrderRepository(
 
         } catch (e: Exception) {
             println("❌ GitLiveOrderRepository.deleteOldDemoOrders: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Delete specific demo orders from Firebase demo_orders path.
+     */
+    override suspend fun deleteDemoOrders(sellerId: String, dateToOrderId: Map<String, String>): Result<Unit> {
+        return try {
+            println("🔐 GitLiveOrderRepository.deleteDemoOrders: Deleting ${dateToOrderId.size} orders for sellerId=$sellerId")
+            dateToOrderId.forEach { (date, orderId) ->
+                demoOrdersRootRef.child(sellerId).child(date).child(orderId).removeValue()
+                println("🗑️ GitLiveOrderRepository.deleteDemoOrders: Deleted $date/$orderId")
+            }
+            println("✅ GitLiveOrderRepository.deleteDemoOrders: Success")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("❌ GitLiveOrderRepository.deleteDemoOrders: Error - ${e.message}")
             Result.failure(e)
         }
     }

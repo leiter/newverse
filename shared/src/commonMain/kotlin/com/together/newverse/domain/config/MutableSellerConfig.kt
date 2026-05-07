@@ -40,4 +40,16 @@ interface MutableSellerConfig : SellerConfig {
 
     /** Increment the lifetime Firebase demo-write counter. Call only after a successful Firebase write. */
     fun recordFirebaseDemoWrite()
+
+    /** True once the 3rd demo order triggers migration — all subsequent orders are local-only. */
+    fun isDemoLocalMode(): Boolean
+
+    /** Mark that migration to local-only has completed. Sets the counter past the Firebase limit. */
+    fun markDemoLocalMode()
+
+    /** Remove a single demo order from local storage by order ID (used for cancel). */
+    fun removeDemoOrder(orderId: String)
+
+    /** Reset the demo order state (counter + local-mode flag) for a fresh demo session. */
+    fun resetDemoOrderState()
 }

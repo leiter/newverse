@@ -10,6 +10,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -72,16 +73,24 @@ val BuyAppViewModel.profileStateFlow: StateFlow<AuthAwareState<BuyerProfile>>
 @OptIn(ExperimentalCoroutinesApi::class)
 val BuyAppViewModel.orderHistoryFlow: StateFlow<AuthAwareState<List<Order>>>
     get() = authFlowCoordinator.whenAuthenticated { _ ->
-        // First get profile to get order IDs, then observe orders
-        profileRepository.observeBuyerProfile()
-            .filterNotNull()
-            .flatMapLatest { profile ->
-                if (profile.placedOrderIds.isEmpty()) {
-                    flowOf(emptyList())
-                } else {
-                    orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds, isDemo = sellerConfig.isDemoMode)
+        // Reactively update when isDemoMode changes to ensure we look in the right trunk
+        state.map { it.isDemoMode }.distinctUntilChanged().flatMapLatest { isDemo ->
+            profileRepository.observeBuyerProfile()
+                .flatMapLatest { profile ->
+                    val localOrders = if (isDemo) sellerConfig.loadDemoOrders() else emptyList()
+                    val firebaseOrdersFlow = if (profile != null && profile.placedOrderIds.isNotEmpty()) {
+                        orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds, isDemo = isDemo)
+                    } else {
+                        flowOf(emptyList())
+                    }
+
+                    firebaseOrdersFlow.map { firebaseOrders ->
+                        (localOrders + firebaseOrders)
+                            .distinctBy { it.id }
+                            .sortedByDescending { it.createdDate }
+                    }
                 }
-            }
+        }
     }.stateIn(
         scope = scope,
         started = SharingStarted.Lazily,
@@ -102,17 +111,21 @@ data class BuyerDashboardData(
 @OptIn(ExperimentalCoroutinesApi::class)
 val BuyAppViewModel.dashboardFlow: StateFlow<AuthAwareState<BuyerDashboardData>>
     get() = authFlowCoordinator.whenAuthenticated { _ ->
+        val isDemoFlow = state.map { it.isDemoMode }.distinctUntilChanged()
+        
         combine(
             profileRepository.observeBuyerProfile().filterNotNull(),
-            profileRepository.observeBuyerProfile()
-                .filterNotNull()
-                .flatMapLatest { profile ->
-                    if (profile.placedOrderIds.isEmpty()) {
-                        flowOf(emptyList())
-                    } else {
-                        orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds, isDemo = sellerConfig.isDemoMode)
+            isDemoFlow.flatMapLatest { isDemo ->
+                profileRepository.observeBuyerProfile()
+                    .filterNotNull()
+                    .flatMapLatest { profile ->
+                        if (profile.placedOrderIds.isEmpty()) {
+                            flowOf(emptyList())
+                        } else {
+                            orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds, isDemo = isDemo)
+                        }
                     }
-                }
+            }
         ) { profile, orders ->
             BuyerDashboardData(
                 profile = profile,

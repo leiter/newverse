@@ -52,9 +52,10 @@ interface OrderRepository {
      * @param sellerId The seller's ID
      * @param date The order date
      * @param orderId The order ID
+     * @param isDemo Whether to read from demo_orders path
      * @return Success or failure result
      */
-    suspend fun cancelOrder(sellerId: String, date: String, orderId: String): Result<Boolean>
+    suspend fun cancelOrder(sellerId: String, date: String, orderId: String, isDemo: Boolean = false): Result<Boolean>
 
     /**
      * Hide an order from seller's view
@@ -70,9 +71,10 @@ interface OrderRepository {
      * @param sellerId The seller's ID
      * @param date The order date
      * @param orderId The order ID
+     * @param isDemo Whether to read from demo_orders path
      * @return Success or failure result
      */
-    suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String): Result<Boolean>
+    suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String, isDemo: Boolean = false): Result<Boolean>
 
     /**
      * Load a specific order
@@ -111,12 +113,21 @@ interface OrderRepository {
     suspend fun deleteOldDemoOrders(sellerId: String): Result<Int>
 
     /**
+     * Delete specific demo orders from Firebase demo_orders path (used during local migration).
+     * @param sellerId The seller's ID
+     * @param dateToOrderId Map of date (yyyyMMdd) to orderId to delete
+     * @return Success or failure result
+     */
+    suspend fun deleteDemoOrders(sellerId: String, dateToOrderId: Map<String, String>): Result<Unit>
+
+    /**
      * Update only the status of an order (lightweight update for status transitions)
      * @param sellerId The seller's ID
      * @param date The order date (yyyyMMdd format)
      * @param orderId The order ID
      * @param status The new status
+     * @param isDemo Whether to read from demo_orders path
      * @return Success or failure result
      */
-    suspend fun updateOrderStatus(sellerId: String, date: String, orderId: String, status: OrderStatus): Result<Unit>
+    suspend fun updateOrderStatus(sellerId: String, date: String, orderId: String, status: OrderStatus, isDemo: Boolean = false): Result<Unit>
 }

@@ -238,10 +238,15 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 val (orderId, orderDate) = loadedOrderInfo
                 bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order already loaded - orderId=$orderId, date=$orderDate")
 
-                val result = if (sellerConfig.isDemoMode) {
+                val isDemo = _state.value.isDemoMode
+                val result = if (isDemo) {
                     val demoOrder = sellerConfig.loadDemoOrders().find { it.id == orderId }
-                    if (demoOrder != null) Result.success(demoOrder)
-                    else Result.failure(Exception("Demo order not found"))
+                    if (demoOrder != null) {
+                        Result.success(demoOrder)
+                    } else {
+                        val orderPath = "demo_orders/${sellerConfig.sellerId}/$orderDate/$orderId"
+                        orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
+                    }
                 } else {
                     val orderPath = "orders/${sellerConfig.sellerId}/$orderDate/$orderId"
                     orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
@@ -269,10 +274,9 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                     val pickupInstant = Instant.fromEpochMilliseconds(loadedOrder.pickUpDate)
                     if (now > pickupInstant) {
                         bLog("⏰ BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Pickup date has passed, transitioning to COMPLETED and clearing basket")
-                        // Update Firebase with COMPLETED status (skip in demo mode)
-                        if (!sellerConfig.isDemoMode) {
-                            orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, com.together.newverse.domain.model.OrderStatus.COMPLETED)
-                        }
+                        // Update Firebase with COMPLETED status
+                        orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, com.together.newverse.domain.model.OrderStatus.COMPLETED, isDemo = isDemo)
+
                         basketRepository.clearBasket()
                         // Clear basket state
                         _state.update { current ->
@@ -289,10 +293,8 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                     // Apply status transition if needed (PLACED->LOCKED)
                     val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
                         bLog("🔄 basketScreenLoadMostRecentEditableOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
-                        // Update Firebase with new status (skip in demo mode)
-                        if (!sellerConfig.isDemoMode) {
-                            orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, updatedOrder.status)
-                        }
+                        // Update Firebase with new status
+                        orderRepository.updateOrderStatus(sellerConfig.sellerId, orderDate, orderId, updatedOrder.status, isDemo = isDemo)
 
                         // If transitioned to COMPLETED, clear basket
                         if (updatedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
@@ -351,16 +353,39 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
             // so use state.isDemoMode to distinguish demo (local) from real (Firebase) orders.
             val isDemo = _state.value.isDemoMode
 
-            // In demo mode, find the most recent editable order from local storage
+            // In demo mode, find the most recent editable order
             if (isDemo) {
+                // 1. Try local storage first (post-migration orders)
                 val demoOrder = sellerConfig.loadDemoOrders()
-                    .firstOrNull { it.canEdit() }
+                    .filter { it.canEdit() }
+                    .maxByOrNull { it.createdDate }
+
                 if (demoOrder != null) {
                     val dateKey = basketScreenFormatDateKey(demoOrder.pickUpDate)
                     basketScreenLoadOrder(demoOrder.id, dateKey)
-                } else {
-                    bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: No editable demo orders")
+                    return@launch
                 }
+
+                // 2. Fall back to Firebase demo_orders (pre-migration orders)
+                bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: No local demo order, checking Firebase")
+                val profileResult = profileRepository.getBuyerProfile()
+                val buyerProfile = profileResult.getOrNull()
+
+                if (buyerProfile != null && buyerProfile.placedOrderIds.isNotEmpty()) {
+                    val orderResult = orderRepository.getOpenEditableOrder(
+                        sellerConfig.sellerId,
+                        buyerProfile.placedOrderIds,
+                        isDemo = true
+                    )
+                    val firebaseOrder = orderResult.getOrNull()
+                    if (firebaseOrder != null) {
+                        val dateKey = basketScreenFormatDateKey(firebaseOrder.pickUpDate)
+                        basketScreenLoadOrder(firebaseOrder.id, dateKey)
+                        return@launch
+                    }
+                }
+
+                bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: No editable demo orders found anywhere")
                 return@launch
             }
 
@@ -476,36 +501,48 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
 
             // Check if there's an existing order for this pickup date - merge if so
             val dateKey = basketScreenFormatDateKey(selectedDate)
-            val existingOrderId = buyerProfile.placedOrderIds[dateKey]
+            val isDemo = _state.value.isDemoMode
 
-            if (existingOrderId != null) {
-                val existingOrderPath = "orders/${sellerConfig.sellerId}/$dateKey/$existingOrderId"
-                val existingOrder = orderRepository
-                    .loadOrder(sellerConfig.sellerId, existingOrderId, existingOrderPath)
-                    .getOrElse { error ->
-                        // Stale reference (deleted / wrong path) — fall through and place a new order.
-                        bLog("⚠️ basketScreenCheckout: Stale order reference $existingOrderId for $dateKey, proceeding with new order: ${error.message}")
-                        null
-                    }
-                if (existingOrder != null) {
-                    if (!existingOrder.canEdit()) {
-                        setBasketError("Bestehende Bestellung für diesen Termin kann nicht mehr bearbeitet werden (Frist abgelaufen)")
-                        return@launch
-                    }
+            val existingOrder = if (isDemo) {
+                // 1. Check local demo orders
+                val localMatch = sellerConfig.loadDemoOrders().find { basketScreenFormatDateKey(it.pickUpDate) == dateKey }
+                if (localMatch != null) {
+                    localMatch
+                } else {
+                    // 2. Check Firebase demo orders
+                    val firebaseOrderId = buyerProfile.placedOrderIds[dateKey]
+                    if (firebaseOrderId != null) {
+                        val path = "demo_orders/${sellerConfig.sellerId}/$dateKey/$firebaseOrderId"
+                        orderRepository.loadOrder(sellerConfig.sellerId, firebaseOrderId, path).getOrNull()
+                    } else null
+                }
+            } else {
+                // Production: check Firebase orders/
+                val firebaseOrderId = buyerProfile.placedOrderIds[dateKey]
+                if (firebaseOrderId != null) {
+                    val path = "orders/${sellerConfig.sellerId}/$dateKey/$firebaseOrderId"
+                    orderRepository.loadOrder(sellerConfig.sellerId, firebaseOrderId, path).getOrNull()
+                } else null
+            }
 
-                    val conflicts = basketScreenCalculateMergeConflicts(items, existingOrder.articles)
-                    _state.update { current ->
-                        current.copy(
-                            basketScreen = current.basketScreen.copy(
-                                isCheckingOut = false,
-                                showMergeDialog = true,
-                                existingOrderForMerge = existingOrder,
-                                mergeConflicts = conflicts
-                            )
-                        )
-                    }
+            if (existingOrder != null) {
+                if (!existingOrder.canEdit()) {
+                    setBasketError("Bestehende Bestellung für diesen Termin kann nicht mehr bearbeitet werden (Frist abgelaufen)")
                     return@launch
                 }
+
+                val conflicts = basketScreenCalculateMergeConflicts(items, existingOrder.articles)
+                _state.update { current ->
+                    current.copy(
+                        basketScreen = current.basketScreen.copy(
+                            isCheckingOut = false,
+                            showMergeDialog = true,
+                            existingOrderForMerge = existingOrder,
+                            mergeConflicts = conflicts
+                        )
+                    )
+                }
+                return@launch
             }
 
             val order = Order(
@@ -519,27 +556,27 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 isDemoOrder = _state.value.isDemoMode
             )
 
-            // Demo mode: capture the first N demo orders in Firebase (under demo_orders/)
-            // so we can see what people initially order, then fall back to local-only
-            // persistence for any further demo orders to bound Firebase writes.
-            val isDemo = _state.value.isDemoMode
-            val result = if (isDemo) {
-                if (sellerConfig.firebaseDemoWritesRemaining() > 0) {
-                    // placeOrder() routes to demo_orders/ via order.isDemoOrder = true
-                    // and updates buyerProfile.placedOrderIds.
-                    orderRepository.placeOrder(order).onSuccess {
-                        sellerConfig.recordFirebaseDemoWrite()
-                    }
-                } else {
-                    val demoOrder = order.copy(id = "demo_${Clock.System.now().toEpochMilliseconds()}")
-                    Result.success(demoOrder)
-                }
-            } else {
+            // Demo mode routing:
+            //   Orders 1 & 2 → Firebase demo_orders/ (for seller observability)
+            //   Order 3       → migration: pull 1 & 2 from Firebase to local, delete from Firebase
+            //   Orders 4+     → local-only (already in local mode post-migration)
+            var handledByMigration = false
+            val result = if (!isDemo) {
                 orderRepository.placeOrder(order)
+            } else if (sellerConfig.firebaseDemoWritesRemaining() > 0) {
+                orderRepository.placeOrder(order).also { r ->
+                    r.onSuccess { sellerConfig.recordFirebaseDemoWrite() }
+                }
+            } else if (sellerConfig.isDemoLocalMode()) {
+                // Post-migration: local-only
+                Result.success(order.copy(id = "demo_${Clock.System.now().toEpochMilliseconds()}"))
+            } else {
+                // 3rd order: trigger atomic migration
+                handledByMigration = true
+                performDemoMigration(order)
             }
             result.onSuccess { placedOrder ->
-                // Persist demo order locally regardless of whether it was also written to Firebase.
-                if (isDemo) {
+                if (isDemo && !handledByMigration) {
                     sellerConfig.saveDemoOrder(placedOrder)
                     loadOrderHistory()
                 }
@@ -605,10 +642,17 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
         }
 
         try {
-            val result = if (sellerConfig.isDemoMode) {
-                val demoOrder = sellerConfig.loadDemoOrders().find { it.id == orderId }
-                if (demoOrder != null) Result.success(demoOrder)
-                else Result.failure(Exception("Demo order not found"))
+            val isDemo = _state.value.isDemoMode
+            val result = if (isDemo) {
+                // Try local first
+                val localOrder = sellerConfig.loadDemoOrders().find { it.id == orderId }
+                if (localOrder != null) {
+                    Result.success(localOrder)
+                } else {
+                    // Fall back to Firebase demo_orders
+                    val orderPath = "demo_orders/${sellerConfig.sellerId}/$date/$orderId"
+                    orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
+                }
             } else {
                 val orderPath = "orders/${sellerConfig.sellerId}/$date/$orderId"
                 orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
@@ -618,11 +662,9 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                 // Apply status transition if needed (PLACED->LOCKED or LOCKED->COMPLETED)
                 val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
                     bLog("🔄 basketScreenLoadOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
-                    // Update Firebase with new status (skip in demo mode)
-                    if (!sellerConfig.isDemoMode) {
-                        viewModelScope.launch {
-                            orderRepository.updateOrderStatus(sellerConfig.sellerId, date, orderId, updatedOrder.status)
-                        }
+                    // Update Firebase with new status
+                    viewModelScope.launch {
+                        orderRepository.updateOrderStatus(sellerConfig.sellerId, date, orderId, updatedOrder.status, isDemo = isDemo)
                     }
                     updatedOrder
                 } ?: loadedOrder
@@ -747,6 +789,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
             }
 
             val buyerProfile = getBuyerProfileOrFallback(currentUserId)
+            val isDemo = _state.value.isDemoMode
 
             val updatedOrder = Order(
                 id = orderId,
@@ -756,13 +799,19 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                 marketId = "",
                 pickUpDate = pickupDate,
                 message = "",
-                articles = items
+                articles = items,
+                isDemoOrder = isDemo
             )
 
-            val result = if (_state.value.isDemoMode) {
-                runCatching {
-                    sellerConfig.updateDemoOrder(updatedOrder)
-                    loadOrderHistory()
+            val result = if (isDemo) {
+                if (orderId.startsWith("demo_")) {
+                    runCatching {
+                        sellerConfig.updateDemoOrder(updatedOrder)
+                        loadOrderHistory()
+                    }
+                } else {
+                    // Firebase demo order
+                    orderRepository.updateOrder(updatedOrder)
                 }
             } else {
                 orderRepository.updateOrder(updatedOrder)
@@ -819,11 +868,20 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
                 return@launch
             }
 
-            bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: Calling orderRepository.cancelOrder")
+            bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: Calling cancelOrder")
             bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: sellerId=${sellerConfig.sellerId}")
             bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: orderDate=$orderDate")
             bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: orderId=$orderId")
-            val result = orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId)
+            val isDemo = _state.value.isDemoMode
+            val result = if (isDemo) {
+                if (orderId.startsWith("demo_")) {
+                    runCatching { sellerConfig.removeDemoOrder(orderId) }.map { true }
+                } else {
+                    orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId, isDemo = true)
+                }
+            } else {
+                orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId, isDemo = false)
+            }
 
             if (result.isSuccess) {
                 bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: Cancel SUCCESS, clearing basket")
@@ -1225,6 +1283,47 @@ internal fun BuyAppViewModel.basketScreenConfirmMerge() {
         } catch (e: Exception) {
             setBasketError("Ein Fehler ist aufgetreten: ${e.message}")
         }
+    }
+}
+
+/**
+ * Atomic migration: when the 3rd demo order is placed, fetch the 2 prior Firebase demo orders,
+ * save all 3 locally, mark local mode, then delete the Firebase copies.
+ *
+ * Failure before [sellerConfig.markDemoLocalMode] leaves no side effects — caller surfaces error
+ * and user can retry. Post-marking, Firebase delete is best-effort (local data is safe).
+ */
+internal suspend fun BuyAppViewModel.performDemoMigration(newOrder: Order): Result<Order> {
+    return try {
+        println("🛒 performDemoMigration: START")
+        val buyerProfile = profileRepository.getBuyerProfile().getOrThrow()
+
+        // Assign a stable local ID to the new order before any side effects
+        val localOrder = newOrder.copy(id = "demo_${Clock.System.now().toEpochMilliseconds()}")
+
+        // Save new order locally (existing orders 1 & 2 were already persisted in onSuccess)
+        sellerConfig.saveDemoOrder(localOrder)
+
+        // Mark fully-local mode — subsequent orders skip Firebase entirely
+        sellerConfig.markDemoLocalMode()
+        println("🛒 performDemoMigration: Saved order 3 locally, marked local mode")
+
+        // Delete the 2 prior Firebase copies (best-effort — local data is already safe)
+        if (buyerProfile.placedOrderIds.isNotEmpty()) {
+            orderRepository.deleteDemoOrders(sellerConfig.sellerId, buyerProfile.placedOrderIds)
+                .onFailure { e ->
+                    println("⚠️ performDemoMigration: Firebase delete failed (non-fatal): ${e.message}")
+                }
+            // Remove Firebase-tracked IDs from buyer profile so the observer doesn't refetch them
+            profileRepository.saveBuyerProfile(buyerProfile.copy(placedOrderIds = emptyMap()))
+        }
+
+        loadOrderHistory()
+        println("✅ performDemoMigration: Complete — 2 prior orders local, 1 new local order placed")
+        Result.success(localOrder)
+    } catch (e: Exception) {
+        println("❌ performDemoMigration: Failed — ${e.message}")
+        Result.failure(e)
     }
 }
 

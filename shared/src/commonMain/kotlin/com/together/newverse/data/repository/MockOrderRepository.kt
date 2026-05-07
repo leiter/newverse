@@ -72,7 +72,7 @@ class MockOrderRepository : OrderRepository {
         }
     }
 
-    override suspend fun cancelOrder(sellerId: String, date: String, orderId: String): Result<Boolean> {
+    override suspend fun cancelOrder(sellerId: String, date: String, orderId: String, isDemo: Boolean): Result<Boolean> {
         return try {
             delay(300)
             val currentOrders = _orders.value.toMutableList()
@@ -167,7 +167,7 @@ class MockOrderRepository : OrderRepository {
         }
     }
 
-    override suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String): Result<Boolean> {
+    override suspend fun hideOrderForBuyer(sellerId: String, date: String, orderId: String, isDemo: Boolean): Result<Boolean> {
         return try {
             delay(300)
             val currentOrders = _orders.value.toMutableList()
@@ -189,11 +189,16 @@ class MockOrderRepository : OrderRepository {
         return Result.success(0)
     }
 
+    override suspend fun deleteDemoOrders(sellerId: String, dateToOrderId: Map<String, String>): Result<Unit> {
+        return Result.success(Unit)
+    }
+
     override suspend fun updateOrderStatus(
         sellerId: String,
         date: String,
         orderId: String,
-        status: OrderStatus
+        status: OrderStatus,
+        isDemo: Boolean
     ): Result<Unit> {
         return try {
             delay(100)

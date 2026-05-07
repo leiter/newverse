@@ -752,6 +752,10 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
                 }
             }
 
+            // Start observing access status if we have a stored UUID
+            // Called before loadCurrentOrder so isDemoMode is as accurate as possible
+            startObservingAccessStatus()
+
             // Load current order
             _state.update { current ->
                 current.copy(
@@ -772,9 +776,6 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             }
             loadProducts()
             loadMainScreenArticles()
-
-            // Start observing access status if we have a stored UUID
-            startObservingAccessStatus()
 
             // Load persisted demo orders on startup
             if (sellerConfig.isDemoMode) {

@@ -80,9 +80,15 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
                 println("[NV_Access] observeAccessStatus: status=$status uuid=$uuid")
                 val wasDemoMode = _state.value.isDemoMode
                 _state.update { it.copy(accessStatus = status, isAccessStatusLoaded = true) }
-                // Clean up demo orders when access is approved
-                if (wasDemoMode && status == AccessStatus.APPROVED) {
-                    sellerConfig.clearDemoOrders()
+                when {
+                    wasDemoMode && status == AccessStatus.APPROVED -> {
+                        // Demo → Production: migrate local demo orders to Firebase orders/
+                        migrateLocalDemoOrdersToProduction()
+                    }
+                    !wasDemoMode && status != AccessStatus.APPROVED -> {
+                        // Production → Demo: reset counter so the 2-Firebase-order rule applies again
+                        sellerConfig.resetDemoOrderState()
+                    }
                 }
             }
     }
@@ -164,6 +170,38 @@ internal fun BuyAppViewModel.dismissProfileIncompleteDialog() {
 /**
  * Retry connecting with a previously stored pending token after profile is completed.
  */
+/**
+ * Migrate all locally stored demo orders to the production Firebase orders/ path.
+ * Called when a buyer transitions from demo mode to APPROVED status.
+ * Clears local demo storage and resets the demo counter after successful upload.
+ */
+internal fun BuyAppViewModel.migrateLocalDemoOrdersToProduction() {
+    viewModelScope.launch {
+        val localOrders = sellerConfig.loadDemoOrders()
+        if (localOrders.isEmpty()) {
+            sellerConfig.clearDemoOrders()
+            sellerConfig.resetDemoOrderState()
+            return@launch
+        }
+        println("[NV_Access] migrateLocalDemoOrdersToProduction: Migrating ${localOrders.size} orders to production Firebase")
+        var migratedCount = 0
+        for (demoOrder in localOrders) {
+            orderRepository.placeOrder(demoOrder.copy(isDemoOrder = false))
+                .onSuccess {
+                    migratedCount++
+                    println("[NV_Access] migrateLocalDemoOrdersToProduction: Migrated order ${demoOrder.id}")
+                }
+                .onFailure { e ->
+                    println("[NV_Access] migrateLocalDemoOrdersToProduction: Failed for ${demoOrder.id}: ${e.message}")
+                }
+        }
+        sellerConfig.clearDemoOrders()
+        sellerConfig.resetDemoOrderState()
+        loadOrderHistory()
+        println("[NV_Access] migrateLocalDemoOrdersToProduction: Done — $migratedCount/${localOrders.size} migrated")
+    }
+}
+
 internal fun BuyAppViewModel.retryPendingConnection() {
     val pending = _state.value.pendingConnectToken
     _state.update { it.copy(
