@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +38,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Order
+import com.together.newverse.ui.state.BuyAction
+import com.together.newverse.ui.state.BuyProfileAction
+import com.together.newverse.ui.state.OrderHistoryScreenState
 import com.together.newverse.ui.state.core.AsyncStateContent
 import com.together.newverse.ui.state.toAsyncState
 import com.together.newverse.util.formatPrice
@@ -46,16 +52,26 @@ import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun OrderHistoryScreen(
-    orderHistoryState: com.together.newverse.ui.state.OrderHistoryScreenState,
-    onAction: (com.together.newverse.ui.state.BuyAction) -> Unit = {},
+    orderHistoryState: OrderHistoryScreenState,
+    showMergeDialog: Boolean,
+    tappedOrder: Order?,
+    onAction: (BuyAction) -> Unit = {},
     onBackClick: () -> Unit = {},
     onOrderClick: (orderId: String, orderDate: String) -> Unit = { _, _ -> },
-    onRetry: () -> Unit = { onAction(com.together.newverse.ui.state.BuyProfileAction.LoadOrderHistory) }
+    onRetry: () -> Unit = { onAction(BuyProfileAction.LoadOrderHistory) }
 ) {
     // Load order history when screen opens
     androidx.compose.runtime.LaunchedEffect(Unit) {
         println("📋 OrderHistoryScreen: Triggering loadOrderHistory")
-        onAction(com.together.newverse.ui.state.BuyProfileAction.LoadOrderHistory)
+        onAction(BuyProfileAction.LoadOrderHistory)
+    }
+
+    if (showMergeDialog && tappedOrder != null) {
+        OrderHistoryMergeDialog(
+            onMerge = { onAction(BuyProfileAction.MergeHistoryOrder) },
+            onDiscard = { onAction(BuyProfileAction.DiscardAndLoadHistoryOrder) },
+            onCancel = { onAction(BuyProfileAction.HideHistoryMergeDialog) }
+        )
     }
 
     Box(
@@ -114,7 +130,7 @@ fun OrderHistoryScreen(
                             color = MaterialTheme.colorScheme.error
                         )
                         if (retryable) {
-                            androidx.compose.material3.Button(onClick = onRetry) {
+                            Button(onClick = onRetry) {
                                 Text("Erneut versuchen")
                             }
                         }
@@ -181,10 +197,7 @@ fun OrderHistoryScreen(
                     items(sortedOrders) { order ->
                         OrderHistoryCard(
                             order = order,
-                            onClick = {
-                                val dateKey = formatDateKey(order.pickUpDate)
-                                onOrderClick(order.id, dateKey)
-                            }
+                            onClick = { onAction(BuyProfileAction.HistoryOrderTapped(order)) }
                         )
                     }
                 }
@@ -336,6 +349,32 @@ private fun OrderHistoryCard(
             }
         }
     }
+}
+
+@Composable
+private fun OrderHistoryMergeDialog(
+    onMerge: () -> Unit,
+    onDiscard: () -> Unit,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Konflikt") },
+        text = { Text("Sie haben einen nicht leeren Warenkorb. Möchten Sie den Inhalt zusammenführen oder den aktuellen Warenkorb verwerfen und die alte Bestellung laden?") },
+        confirmButton = {
+            Button(onClick = onMerge) {
+                Text("Zusammenführen")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDiscard) {
+                Text("Verwerfen")
+            }
+            TextButton(onClick = onCancel) {
+                Text("Abbrechen")
+            }
+        }
+    )
 }
 
 /**

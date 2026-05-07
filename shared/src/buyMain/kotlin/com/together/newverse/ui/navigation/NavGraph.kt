@@ -1,6 +1,7 @@
 package com.together.newverse.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,6 +20,7 @@ import com.together.newverse.ui.screens.buy.ProductDetailScreen
 import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.BuyAppState
 import com.together.newverse.ui.state.BuyAction
+import com.together.newverse.ui.state.BuyNavigationAction
 import com.together.newverse.ui.state.UserState
 
 /**
@@ -36,8 +38,16 @@ fun NavGraph(
     appState: BuyAppState,
     onAction: (BuyAction) -> Unit,
     onPlatformAction: (PlatformAction) -> Unit = {},
-    startDestination: String = NavRoutes.Home.route,
+        startDestination: String = NavRoutes.Home.route,
 ) {
+    // Handle pending navigation events
+    appState.navigation.pendingRoute?.let {
+        LaunchedEffect(it) {
+            navController.navigate(it.route)
+            onAction(BuyNavigationAction.ClearPendingNavigation)
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -128,12 +138,10 @@ fun NavGraph(
         composable(NavRoutes.Buy.OrderHistory.route) {
             OrderHistoryScreen(
                 orderHistoryState = appState.orderHistory,
+                showMergeDialog = appState.showHistoryMergeDialog,
+                tappedOrder = appState.tappedHistoryOrder,
                 onAction = onAction,
-                onBackClick = { navController.popBackStack() },
-                onOrderClick = { orderId, orderDate ->
-                    // Navigate to basket screen with order details
-                    navController.navigate(NavRoutes.Buy.Basket.createRoute(orderId, orderDate))
-                }
+                onBackClick = { navController.popBackStack() }
             )
         }
 

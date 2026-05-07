@@ -2,6 +2,7 @@ package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
+import com.together.newverse.domain.model.Order
 
 /**
  * Flattened state for Buy/Customer flavor.
@@ -50,7 +51,14 @@ data class BuyAppState(
 
     // Messaging
     val messaging: MessagingScreenState = MessagingScreenState(),
-    val unreadMessageCount: Int = 0,
+        val unreadMessageCount: Int = 0,
+
+    // Merge dialog for past orders
+    val showHistoryMergeDialog: Boolean = false,
+        val tappedHistoryOrder: Order? = null,
+
+    // Navigation trigger for after loading an order
+    val navigateToBasketAfterLoad: Boolean = false,
 
     // Profile completeness
     val showProfileIncompleteDialog: Boolean = false,

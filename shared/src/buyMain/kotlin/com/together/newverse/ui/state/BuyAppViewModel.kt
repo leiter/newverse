@@ -14,6 +14,7 @@ import com.together.newverse.domain.repository.InvitationRepository
 import com.together.newverse.domain.repository.MessageRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
+import com.together.newverse.ui.state.buy.clearPendingNavigation
 import com.together.newverse.ui.state.buy.closeDrawer
 import com.together.newverse.ui.state.buy.continueAsGuest
 import com.together.newverse.ui.state.buy.handleAccountAction
@@ -48,6 +49,10 @@ import com.together.newverse.ui.state.buy.sendPasswordResetEmail
 import com.together.newverse.ui.state.buy.setAuthMode
 import com.together.newverse.ui.state.buy.showBottomSheet
 import com.together.newverse.ui.state.buy.showPasswordResetDialog
+import com.together.newverse.ui.state.buy.handleHistoryOrderTap
+import com.together.newverse.ui.state.buy.mergeHistoryOrder
+import com.together.newverse.ui.state.buy.discardAndLoadHistoryOrder
+import com.together.newverse.ui.state.buy.hideHistoryMergeDialog
 import com.together.newverse.ui.state.core.AuthFlowCoordinator
 import com.together.newverse.ui.state.core.BaseAppViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -203,8 +208,9 @@ class BuyAppViewModel(
         when (action) {
             is BuyNavigationAction.NavigateTo -> navigateTo(action.route)
             is BuyNavigationAction.NavigateBack -> navigateBack()
-            is BuyNavigationAction.OpenDrawer -> openDrawer()
+                        is BuyNavigationAction.OpenDrawer -> openDrawer()
             is BuyNavigationAction.CloseDrawer -> closeDrawer()
+            is BuyNavigationAction.ClearPendingNavigation -> clearPendingNavigation()
         }
     }
 
@@ -275,7 +281,11 @@ class BuyAppViewModel(
             is BuyProfileAction.LoadCustomerProfile -> loadCustomerProfile()
             is BuyProfileAction.LoadOrderHistory -> loadOrderHistory()
             is BuyProfileAction.RefreshCustomerProfile -> refreshCustomerProfile()
-            is BuyProfileAction.SaveBuyerProfile -> saveBuyerProfile(action.displayName, action.email, action.phone)
+                                                is BuyProfileAction.SaveBuyerProfile -> saveBuyerProfile(action.displayName, action.email, action.phone)
+            is BuyProfileAction.HistoryOrderTapped -> handleHistoryOrderTap(action.order)
+            is BuyProfileAction.MergeHistoryOrder -> mergeHistoryOrder()
+            is BuyProfileAction.DiscardAndLoadHistoryOrder -> discardAndLoadHistoryOrder()
+            is BuyProfileAction.HideHistoryMergeDialog -> hideHistoryMergeDialog()
         }
     }
 

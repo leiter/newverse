@@ -10,6 +10,7 @@ import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.MergeConflict
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
+import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.BuyBasketScreenAction
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.delay
@@ -684,7 +685,7 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                 val hasChanges = basketScreenCheckIfHasChanges(finalBasketItems, order.articles)
 
                 _state.update { current ->
-                    current.copy(
+                    var newState = current.copy(
                         basketScreen = current.basketScreen.copy(
                             orderId = orderId,
                             orderDate = date,
@@ -699,6 +700,14 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                             hasChanges = hasChanges
                         )
                     )
+
+                    if (current.navigateToBasketAfterLoad) {
+                        newState = newState.copy(
+                            navigation = newState.navigation.copy(pendingRoute = NavRoutes.Buy.Basket),
+                            navigateToBasketAfterLoad = false
+                        )
+                    }
+                    newState
                 }
             }.onFailure { error ->
                 // Clear loaded order info since loading failed

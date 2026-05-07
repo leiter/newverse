@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.navigation.NavRoutes
 
@@ -15,7 +16,8 @@ sealed interface BuyNavigationAction : BuyAction {
     data class NavigateTo(val route: NavRoutes) : BuyNavigationAction
     data object NavigateBack : BuyNavigationAction
     data object OpenDrawer : BuyNavigationAction
-    data object CloseDrawer : BuyNavigationAction
+        data object CloseDrawer : BuyNavigationAction
+    data object ClearPendingNavigation : BuyNavigationAction
 }
 
 // ===== User/Auth Actions =====
@@ -103,7 +105,11 @@ sealed interface BuyProfileAction : BuyAction {
         val displayName: String,
         val email: String,
         val phone: String
-    ) : BuyProfileAction
+        ) : BuyProfileAction
+    data class HistoryOrderTapped(val order: Order) : BuyProfileAction
+    data object MergeHistoryOrder : BuyProfileAction
+    data object DiscardAndLoadHistoryOrder : BuyProfileAction
+    data object HideHistoryMergeDialog : BuyProfileAction
 }
 
 // ===== Main Screen Actions =====

@@ -171,7 +171,8 @@ data class NavigationState(
     val currentRoute: NavRoutes = NavRoutes.Home,
     val previousRoute: NavRoutes? = null,
     val isDrawerOpen: Boolean = false,
-    val backStack: List<NavRoutes> = listOf(NavRoutes.Home)
+    val backStack: List<NavRoutes> = listOf(NavRoutes.Home),
+    val pendingRoute: NavRoutes? = null
 )
 
 // ===== UI State =====
