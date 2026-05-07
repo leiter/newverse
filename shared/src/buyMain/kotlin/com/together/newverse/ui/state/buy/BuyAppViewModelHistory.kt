@@ -42,28 +42,41 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
         }
 
     viewModelScope.launch {
+        // This is now a new draft basket.
         basketRepository.clearBasket()
         mergedItems.forEach { basketRepository.addItem(it) }
-        hideHistoryMergeDialog()
-        // Set flag to navigate after loading
-        _state.update { it.copy(navigateToBasketAfterLoad = true) }
-        // Navigate to basket screen to select a new date
-        val dateKey = formatDateKey(tappedOrder.pickUpDate)
-        handleBasketScreenAction(BuyBasketScreenAction.LoadOrder(tappedOrder.id, dateKey))
+
+        // Hide the dialog, clear old order state, and trigger navigation
+        _state.update {
+            it.copy(
+                showHistoryMergeDialog = false,
+                tappedHistoryOrder = null,
+                basketScreen = it.basketScreen.copy(
+                    orderId = null,
+                    orderDate = null,
+                    pickupDate = null,
+                    createdDate = null,
+                    isEditMode = false,
+                    canEdit = true,
+                    originalOrderItems = emptyList(),
+                    hasChanges = false, // It's a new draft
+                    selectedPickupDate = null // Force user to pick a new date
+                ),
+                navigation = it.navigation.copy(pendingRoute = NavRoutes.Buy.Basket)
+            )
+        }
     }
 }
 
 internal fun BuyAppViewModel.discardAndLoadHistoryOrder() {
     val tappedOrder = _state.value.tappedHistoryOrder ?: return
     viewModelScope.launch {
-        basketRepository.clearBasket()
-        tappedOrder.articles.forEach { basketRepository.addItem(it) }
         hideHistoryMergeDialog()
         // Set flag to navigate after loading
         _state.update { it.copy(navigateToBasketAfterLoad = true) }
-        // Navigate to basket screen to select a new date
+        // Let LoadOrder handle clearing the basket and loading the new one.
         val dateKey = formatDateKey(tappedOrder.pickUpDate)
-        handleBasketScreenAction(BuyBasketScreenAction.LoadOrder(tappedOrder.id, dateKey))
+        handleBasketScreenAction(BuyBasketScreenAction.LoadOrder(tappedOrder.id, dateKey, forceLoad = true))
     }
 }
 

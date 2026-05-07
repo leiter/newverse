@@ -160,7 +160,7 @@ sealed interface BuyBasketScreenAction : BuyAction {
     data class UpdateItemQuantity(val productId: String, val newQuantity: Double) : BuyBasketScreenAction
     data object ClearBasket : BuyBasketScreenAction
     data object Checkout : BuyBasketScreenAction
-    data class LoadOrder(val orderId: String, val date: String) : BuyBasketScreenAction
+        data class LoadOrder(val orderId: String, val date: String, val forceLoad: Boolean = false) : BuyBasketScreenAction
     data object UpdateOrder : BuyBasketScreenAction
     data object EnableEditing : BuyBasketScreenAction
     data object ResetOrderState : BuyBasketScreenAction
