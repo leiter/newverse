@@ -39,6 +39,7 @@ import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
 import com.together.newverse.util.OrderDateUtils
+import com.together.newverse.util.OrderWindowStatus
 import com.together.newverse.util.formatPrice
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -49,6 +50,7 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import com.together.newverse.util.formatString
+import kotlinx.datetime.DayOfWeek
 
 /**
  * Basket Screen - Now receives state and callbacks from parent
@@ -150,14 +152,22 @@ fun BasketContent(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp)
     ) {
         // Order information card (for existing orders)
-        if (state.orderId != null && state.pickupDate != null) {
+        if (state.orderId != null && state.pickupDate != null && state.createdDate != null) {
             item {
+                val orderStatus = OrderDateUtils.getOrderWindowStatus(
+                    Instant.fromEpochMilliseconds(state.pickupDate)
+                )
                 OrderInfoCard(
                     orderId = state.orderId,
                     pickupDate = state.pickupDate,
-                    createdDate = state.createdDate ?: 0L,
+                    createdDate = state.createdDate,
                     canEdit = state.canEdit,
-                    hasChanges = state.hasChanges
+                    hasChanges = state.hasChanges,
+                    orderStatus = orderStatus,
+                    onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
+                    onUpdateOrder = { onAction(BuyBasketScreenAction.UpdateOrder) },
+                    onCancelOrder = { onAction(BuyBasketScreenAction.CancelOrder) },
+                    onShowReorderDatePicker = { onAction(BuyBasketScreenAction.ShowReorderDatePicker) }
                 )
             }
         }
@@ -241,25 +251,25 @@ fun BasketContent(
         state.orderError?.let { error ->
             //todo you can do better
             if(!error.endsWith("Demo order not found"))
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "✗ $error",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
                         )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "✗ $error",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                     }
                 }
-            }
         }
 
         // Pickup date selector (for new orders)
@@ -313,7 +323,7 @@ fun BasketContent(
                     price = item.price,
                     unit = item.unit,
                     quantity = item.amountCount,
-                    canEdit = state.canEdit,
+                    canEdit = state.isEditMode || state.orderId == null,
                     onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) }
                 )
             }
@@ -353,108 +363,16 @@ fun BasketContent(
             }
 
             // Action buttons
-            item {
-                BasketActionButtons(
-                    state = state,
-                    onAction = onAction
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BasketActionButtons(
-    state: BasketScreenState,
-    onAction: (BuyBasketScreenAction) -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        if (state.orderId != null) {
-            // Viewing an existing order
-            if (state.canEdit) {
-                // Show update button - disabled if no changes
-                Button(
-                    onClick = { onAction(BuyBasketScreenAction.UpdateOrder) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = state.hasChanges && state.items.isNotEmpty() && !state.isCheckingOut && !state.isCancelling
-                ) {
-                    if (state.isCheckingOut) {
-                        Text(stringResource(Res.string.basket_checkout_processing))
-                    } else if (state.hasChanges) {
-                        Text(stringResource(Res.string.basket_update_order))
-                    } else {
-                        Text(stringResource(Res.string.basket_no_changes))
-                    }
-                }
-
-                // Show cancel button
-                OutlinedButton(
-                    onClick = { onAction(BuyBasketScreenAction.CancelOrder) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.isCheckingOut && !state.isCancelling && !state.isReordering,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    if (state.isCancelling) {
-                        Text(stringResource(Res.string.basket_cancelling))
-                    } else {
-                        Text(stringResource(Res.string.basket_cancel_order))
-                    }
-                }
-            } else {
-                // Cannot edit anymore
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.basket_edit_disabled),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            text = stringResource(Res.string.basket_edit_deadline_reason),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                }
-
-                // Show reorder button only when pickup date is in the past
-                val currentTime = Clock.System.now().toEpochMilliseconds()
-                val isPickupDateInPast = state.pickupDate?.let { it < currentTime } == true
-                if (isPickupDateInPast) {
-                    OutlinedButton(
-                        onClick = { onAction(BuyBasketScreenAction.ShowReorderDatePicker) },
+            if (state.orderId == null) {
+                item {
+                    Button(
+                        onClick = { onAction(BuyBasketScreenAction.Checkout) },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.isReordering && state.items.isNotEmpty()
+                        enabled = state.items.isNotEmpty() && !state.isCheckingOut
                     ) {
-                        if (state.isReordering) {
-                            Text(stringResource(Res.string.basket_creating_order))
-                        } else {
-                            Text(stringResource(Res.string.basket_reorder))
-                        }
+                        Text(if (state.isCheckingOut) stringResource(Res.string.basket_checkout_processing) else stringResource(Res.string.basket_checkout_proceed))
                     }
                 }
-            }
-        } else {
-            // New order - show checkout button
-            Button(
-                onClick = { onAction(BuyBasketScreenAction.Checkout) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = state.items.isNotEmpty() && !state.isCheckingOut
-            ) {
-                Text(if (state.isCheckingOut) stringResource(Res.string.basket_checkout_processing) else stringResource(Res.string.basket_checkout_proceed))
             }
         }
     }
@@ -528,15 +446,19 @@ private fun BasketItemCard(
 }
 
 @Composable
-private fun OrderInfoCard(
+internal fun OrderInfoCard(
     orderId: String,
     pickupDate: Long,
     createdDate: Long,
     canEdit: Boolean,
-    hasChanges: Boolean
+    hasChanges: Boolean,
+    orderStatus: OrderWindowStatus,
+    onEnableEditing: () -> Unit,
+    onUpdateOrder: () -> Unit,
+    onCancelOrder: () -> Unit,
+    onShowReorderDatePicker: () -> Unit
 ) {
-    // Format dates
-    val pickupDateFormatted = formatDate(pickupDate)
+    val pickupDateFormatted = formatDate(pickupDate, "EEEE, dd.MM.yyyy")
     val createdDateFormatted = formatDate(createdDate)
     val daysUntilPickup = getDaysUntilPickup(pickupDate)
 
@@ -642,7 +564,7 @@ private fun OrderInfoCard(
             }
 
             // Edit deadline warning
-            if (canEdit) {
+            if (orderStatus == OrderWindowStatus.OPEN) {
                 Spacer(modifier = Modifier.height(8.dp))
                 val editDeadline = OrderDateUtils.calculateEditDeadline(Instant.fromEpochMilliseconds(pickupDate))
                 val editDeadlineDate = formatDate(editDeadline.toEpochMilliseconds())
@@ -658,15 +580,51 @@ private fun OrderInfoCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                    )
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = stringResource(Res.string.basket_unsaved_changes),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.padding(8.dp)
+                        text = stringResource(Res.string.basket_unsaved_changes_message),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(12.dp)
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+            ) {
+                when (orderStatus) {
+                    OrderWindowStatus.OPEN -> {
+                        if (hasChanges) {
+                            Button(onClick = onUpdateOrder) {
+                                Text(stringResource(Res.string.basket_update_order))
+                            }
+                        } else {
+                            OutlinedButton(onClick = onEnableEditing) {
+                                Text(stringResource(Res.string.basket_edit_order))
+                            }
+                            OutlinedButton(onClick = onCancelOrder) {
+                                Text(stringResource(Res.string.basket_cancel_order))
+                            }
+                        }
+                    }
+                    OrderWindowStatus.DEADLINE_PASSED -> {
+                        Button(onClick = {}, enabled = false) {
+                            Text(stringResource(Res.string.basket_no_changes))
+                        }
+                    }
+                    OrderWindowStatus.PICKUP_PASSED -> {
+                        Button(onClick = onShowReorderDatePicker) {
+                            Text(stringResource(Res.string.basket_reorder))
+                        }
+                    }
                 }
             }
         }
@@ -676,14 +634,37 @@ private fun OrderInfoCard(
 /**
  * Helper function to format date
  */
-private fun formatDate(timestamp: Long): String {
+@Composable
+private fun formatDate(timestamp: Long, pattern: String = "dd.MM.yyyy"): String {
     val instant = Instant.fromEpochMilliseconds(timestamp)
     val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val day = dateTime.day.toString().padStart(2, '0')
-    val month = dateTime.month.number.toString().padStart(2, '0')
-    val year = dateTime.year
-    return "$day.$month.$year"
+
+    // Basic formatting, consider a date formatting library for more complex needs
+    return when (pattern) {
+        "EEEE, dd.MM.yyyy" -> {
+            val dayOfWeek = when (dateTime.dayOfWeek) {
+                DayOfWeek.MONDAY -> stringResource(Res.string.day_monday)
+                DayOfWeek.TUESDAY -> stringResource(Res.string.day_tuesday)
+                DayOfWeek.WEDNESDAY -> stringResource(Res.string.day_wednesday)
+                DayOfWeek.THURSDAY -> stringResource(Res.string.day_thursday)
+                DayOfWeek.FRIDAY -> stringResource(Res.string.day_friday)
+                DayOfWeek.SATURDAY -> stringResource(Res.string.day_saturday)
+                DayOfWeek.SUNDAY -> stringResource(Res.string.day_sunday)
+            }
+            val day = dateTime.dayOfMonth.toString().padStart(2, '0')
+            val month = dateTime.monthNumber.toString().padStart(2, '0')
+            val year = dateTime.year
+            "$dayOfWeek, $day.$month.$year"
+        }
+        else -> {
+            val day = dateTime.dayOfMonth.toString().padStart(2, '0')
+            val month = dateTime.monthNumber.toString().padStart(2, '0')
+            val year = dateTime.year
+            "$day.$month.$year"
+        }
+    }
 }
+
 
 /**
  * Helper function to get days until pickup (calendar days, not hours)

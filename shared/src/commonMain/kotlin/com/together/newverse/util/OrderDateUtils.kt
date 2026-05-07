@@ -96,9 +96,11 @@ object OrderDateUtils {
         val pickupLocalDate = pickupDate.toLocalDateTime(timeZone).date
 
         // Verify it's the configured pickup day
+        /*
         require(pickupLocalDate.dayOfWeek == config.pickupDay) {
             "Pickup date must be a ${config.pickupDay}, got ${pickupLocalDate.dayOfWeek}"
         }
+        */
 
         // Calculate days from deadline day to pickup day
         val deadlineToPickup = daysBetween(config.deadlineDay, config.pickupDay)

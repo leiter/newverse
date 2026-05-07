@@ -210,6 +210,7 @@
     <string name="basket_edit_deadline_reason">(less than 3 days until pickup)</string>
     <string name="basket_creating_order">Creating new order...</string>
     <string name="basket_reorder">Reorder with different date</string>
+    <string name="basket_edit_order">Edit Order</string>
     <string name="basket_order_modified">Order (modified)</string>
     <string name="basket_order_details">Order Details</string>
     <string name="basket_pickup">Pickup:</string>
@@ -221,6 +222,7 @@
     <string name="basket_created">Created:</string>
     <string name="basket_editable_until">Editable until: %s</string>
     <string name="basket_unsaved_changes">⚠ You have unsaved changes</string>
+    <string name="basket_unsaved_changes_message">You have unsaved changes. Tap \'Update Order\' to save them.</string>
     <string name="basket_pickup_date">Pickup Date</string>
     <string name="basket_orderable_until">Order by: %s</string>
     <string name="basket_select_date">Select Date</string>

@@ -1298,10 +1298,26 @@ internal suspend fun BuyAppViewModel.performDemoMigration(newOrder: Order): Resu
         println("🛒 performDemoMigration: START")
         val buyerProfile = profileRepository.getBuyerProfile().getOrThrow()
 
+        // Fetch the two existing demo orders from Firebase
+        val existingOrdersResult = orderRepository.getBuyerOrders(
+            sellerId = sellerConfig.sellerId,
+            placedOrderIds = buyerProfile.placedOrderIds,
+            isDemo = true
+        )
+
+        existingOrdersResult.onSuccess { existingOrders ->
+            // Save existing orders locally
+            existingOrders.forEach { sellerConfig.saveDemoOrder(it) }
+            println("🛒 performDemoMigration: Saved ${existingOrders.size} existing demo orders locally")
+        }.onFailure {
+            println("❌ performDemoMigration: Failed to fetch existing demo orders — ${it.message}")
+            return Result.failure(it)
+        }
+
         // Assign a stable local ID to the new order before any side effects
         val localOrder = newOrder.copy(id = "demo_${Clock.System.now().toEpochMilliseconds()}")
 
-        // Save new order locally (existing orders 1 & 2 were already persisted in onSuccess)
+        // Save new order locally
         sellerConfig.saveDemoOrder(localOrder)
 
         // Mark fully-local mode — subsequent orders skip Firebase entirely

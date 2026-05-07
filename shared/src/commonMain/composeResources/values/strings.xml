@@ -221,6 +221,7 @@
     <string name="basket_edit_deadline_reason">(weniger als 3 Tage bis Abholung)</string>
     <string name="basket_creating_order">Erstelle neue Bestellung...</string>
     <string name="basket_reorder">Neu bestellen mit anderem Datum</string>
+    <string name="basket_edit_order">Bestellung bearbeiten</string>
     <string name="basket_order_modified">Bestellung (geändert)</string>
     <string name="basket_order_details">Bestelldetails</string>
     <string name="basket_pickup">Abholung:</string>
@@ -232,6 +233,7 @@
     <string name="basket_created">Erstellt:</string>
     <string name="basket_editable_until">Bearbeitbar bis: %s</string>
     <string name="basket_unsaved_changes">⚠ Sie haben ungespeicherte Änderungen</string>
+    <string name="basket_unsaved_changes_message">Sie haben nicht gespeicherte Änderungen. Tippen Sie auf \'Bestellung aktualisieren\', um sie zu speichern.</string>
     <string name="basket_pickup_date">Abholdatum</string>
     <string name="basket_orderable_until">Bestellbar bis: %s</string>
     <string name="basket_select_date">Datum auswählen</string>
