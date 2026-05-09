@@ -288,26 +288,26 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Twitter Sign-In Button
-        OutlinedButton(
-            onClick = onLoginWithTwitter,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            enabled = !authState.isLoading,
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
-            // Twitter logo placeholder
-            Text(
-                text = stringResource(Res.string.login_twitter_icon),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = 12.dp)
-            )
-            Text(stringResource(Res.string.login_sign_in_twitter), style = MaterialTheme.typography.labelLarge)
-        }
+//        // Twitter Sign-In Button
+//        OutlinedButton(
+//            onClick = onLoginWithTwitter,
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(56.dp),
+//            enabled = !authState.isLoading,
+//            colors = ButtonDefaults.outlinedButtonColors(
+//                containerColor = MaterialTheme.colorScheme.surface
+//            )
+//        ) {
+//            // Twitter logo placeholder
+//            Text(
+//                text = stringResource(Res.string.login_twitter_icon),
+//                style = MaterialTheme.typography.titleLarge,
+//                color = MaterialTheme.colorScheme.primary,
+//                modifier = Modifier.padding(end = 12.dp)
+//            )
+//            Text(stringResource(Res.string.login_sign_in_twitter), style = MaterialTheme.typography.labelLarge)
+//        }
 
         // Apple Sign-In Button (iOS only)
         if (Platform.getCurrentPlatform() == Platform.IOS) {
