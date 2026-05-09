@@ -1,184 +1,86 @@
-# Newverse Development TODO
+# Newverse Feature Status
 
-**Last Updated:** 2026-03-25
+**Last Updated:** 2024-10-27
 
-## Current Status
+*Note: This file replaces the previous TODO.md. The TODO.md file in the root directory is now obsolete and should be deleted.*
 
-| Area | Status | Details |
-|------|--------|---------|
-| Android Buy App | Production Ready | All core features working |
-| Android Sell App | Production Ready | All core features working |
-| iOS Apps | Production Ready | Platform implementations complete |
-| Unit Tests | Complete | 234 tests passing |
-| ViewModel Architecture | Refactored | Extension function pattern |
+This document outlines the current implementation status of core features and a roadmap for future development.
 
 ---
 
-## Priority 1: iOS Platform Completion - COMPLETE
+## Implemented Features
 
-### 1.1 iOS Image Picker - COMPLETE
-**File:** `shared/src/iosMain/.../util/ImagePicker.kt`
-**Status:** ✅ Implemented
+### Core Infrastructure
+- ✅ Kotlin Multiplatform setup with Android & iOS targets
+- ✅ Compose Multiplatform for shared UI
+- ✅ Koin for dependency injection
+- ✅ MVVM architecture with refactored ViewModels
+- ✅ Clean Architecture principles
+- ✅ Complete Material3 theme system (light/dark themes)
+- ✅ Type-safe, flavor-aware navigation system with modal drawer
 
-**Implementation:**
-- `pickImage()` using `UIImagePickerController` with `.photoLibrary` source
-- `takePhoto()` using `UIImagePickerController` with `.camera` source
-- Image resizing to max 1920x1920 with aspect ratio preservation
-- JPEG compression at 0.8 quality
+### iOS Platform Features
+- ✅ Image Picker (photo library and camera)
+- ✅ Google Sign-In
+- ✅ Document Picker
+- ✅ Native Sharing
+- ✅ QR Code Scanning
 
-### 1.2 iOS Google Sign-In - COMPLETE
-**File:** `shared/src/iosMain/.../util/GoogleSignInHelper.kt`
-**Status:** ✅ Implemented
+### Buyer Features (Buy App)
+- ✅ User authentication (Google, Apple, Email, Anonymous)
+- ✅ Product browsing and real-time search
+- ✅ Product detail view
+- ✅ Shopping basket and checkout flow
+- ✅ Order editing with deadlines
+- ✅ Merge conflict resolution for existing orders
+- ✅ Order history
+- ✅ Favorites persistence
+- ✅ Password reset flow
 
-**Implementation:**
-- Kotlin interface with Swift callback pattern
-- `signIn()`, `onSignInSuccess()`, `onSignInError()`, `onSignInCancelled()`
-- Suspending `signInSuspend()` for coroutine usage
-- Singleton `GoogleSignInHelper.shared` for Swift interop
-
-### 1.3 iOS Document Picker - COMPLETE
-**File:** `shared/src/iosMain/.../util/DocumentPicker.kt`
-**Status:** ✅ Implemented
-
-**Implementation:**
-- `UIDocumentPickerViewController` with text file types
-- Security-scoped resource access for sandboxed files
-- Returns content as String with filename
-
-### 1.4 iOS Platform Actions
-**File:** `shared/src/iosMain/.../MainViewController.kt`
-**Status:** Partial - wire up remaining platform actions as needed
-
----
-
-## Priority 2: Core Feature Gaps - COMPLETE
-
-### 2.1 Product Search (Buy App) - COMPLETE
-**Status:** ✅ Implemented
-
-**Implementation:**
-- [x] Search bar UI in MainScreenModern
-- [x] Real-time filtering by product name, searchTerms, category
-- [x] Case-insensitive matching
-- [x] Clear search button
-- [x] "No results" empty state
-
-**Files modified:**
-- `BuyAppViewModelMainScreen.kt` - Added `updateSearchQuery()` action handler
-- `UnifiedAppState.kt` - Added `searchQuery` state and filtering logic
-- `MainScreenModern.kt` - Added search bar UI
-
-### 2.2 Product Detail View - COMPLETE
-**Status:** ✅ Implemented
-
-**Implementation:**
-- [x] Created `ProductDetailScreen.kt` with full product info
-- [x] Large product image with AsyncImage
-- [x] Product name, price, unit, category, description
-- [x] Quantity selector with +/- buttons and text input
-- [x] Add to cart / Update cart button
-- [x] Favorite toggle in app bar
-- [x] Navigation route `NavRoutes.Buy.ProductDetail`
-
-### 2.3 Revenue Calculation (Sell App) - COMPLETE
-**File:** `OverviewViewModel.kt`
-**Status:** ✅ Implemented
-
-**Implementation:**
-- `calculateTotalRevenue()` sums all COMPLETED and LOCKED orders
-- Revenue displayed as StatCard in OverviewScreen
-- Formatted as currency using `formatPrice()`
+### Seller Features (Sell App)
+- ✅ User authentication
+- ✅ Product and order overview with revenue calculation
+- ✅ Market management (CRUD operations for market locations)
+- ✅ Customer management (approve, block, unblock buyers)
+- ✅ QR code / deep link based invitations for buyers
 
 ---
 
-## Priority 3: User Experience Improvements
+## Roadmap & Future Work
 
-### 3.1 Push Notifications
-**Status:** UI exists, not implemented
+The following features are planned but not yet implemented, or are only partially complete.
 
-**Tasks:**
-- [ ] Set up Firebase Cloud Messaging (FCM)
-- [ ] Buyer notifications: order status, pickup reminders
-- [ ] Seller notifications: new orders, deadline approaching
+### High Priority: User Experience
+- **Push Notifications**
+  - **Status:** Not Implemented
+  - **Tasks:**
+    - Set up Firebase Cloud Messaging (FCM) for Android and iOS.
+    - Implement notifications for order status changes (buyer) and new orders (seller).
 
-### 3.2 Error Handling Standardization
-**Issue:** Inconsistent error display across screens
+- **Pull-to-Refresh**
+  - **Status:** Not Implemented
+  - **Tasks:**
+    - Add pull-to-refresh functionality to the Order History screen.
+    - Add pull-to-refresh to the main Products list screen.
 
-**Tasks:**
-- [ ] Create unified error composable
-- [ ] Standardize error state in ViewModels
-- [ ] Add retry mechanisms
+- **Error Handling Standardization**
+  - **Status:** Partially Implemented
+  - **Issue:** Error display is inconsistent across different screens.
+  - **Tasks:**
+    - Create a unified error component (e.g., a full-screen error message with a retry button).
+    - Standardize all ViewModels to use a single error state pattern (e.g., `AsyncState.Error` or a global dialog).
 
-### 3.3 Pull-to-Refresh
-**Status:** Mentioned in TODOs
+### Medium Priority: Business Features
+- **Promo Codes (Buy App)**
+  - **Status:** Stubbed
+  - **Description:** The UI action and state holders exist, but the logic is not implemented.
+  - **Tasks:**
+    - Design and implement a data model for promo codes.
+    - Add validation logic in the `BuyAppViewModel`.
+    - Apply discounts to the order total during checkout.
 
-**Tasks:**
-- [ ] Add SwipeRefresh to Order History
-- [ ] Add SwipeRefresh to Products list
-
----
-
-## Priority 4: Business Features
-
-### 4.1 Market Management (Sell App)
-**Status:** UI exists, save incomplete
-
-**Tasks:**
-- [ ] Implement market CRUD operations
-- [ ] Save delivery days to profile
-- [ ] Validate business hours
-
-### 4.2 Promo Codes (Buy App)
-**Status:** Stubbed
-
-**Tasks:**
-- [ ] Design promo code data model
-- [ ] Add validation logic
-- [ ] Apply discount to order total
-
-### 4.3 Twitter Sign-In
-**Status:** Button exists, functionality stubbed
-**Priority:** Low - evaluate if needed for target audience
-
----
-
-## Completed Items
-
-- [x] BuyAppViewModel refactoring (77% size reduction)
-- [x] Unit test coverage (234 tests)
-- [x] Apple Sign-In implementation
-- [x] Email linking for guest accounts
-- [x] Auto-login and display name detection
-- [x] Favorites persistence
-- [x] Password reset flow
-- [x] Order editing with deadlines
-- [x] Merge conflict resolution
-- [x] iOS Image Picker (UIImagePickerController with photo library + camera)
-- [x] iOS Google Sign-In (Kotlin/Swift interop pattern)
-- [x] iOS Document Picker (UIDocumentPickerViewController)
-- [x] Product Search (Buy App) - real-time filtering
-- [x] Product Detail View - dedicated screen with full info
-- [x] Revenue Calculation (Sell App) - StatCard in overview
-- [x] TestFlight upload (2026-02-06)
-- [x] Buy/sell code generalization — flavor source set separation (6 phases, generalize branch)
-- [x] Buyer display name resolution in seller app (QR-Link enrichment loop)
-- [x] acquirePrice field added to Product/Article/Firebase (BNN position 35)
-- [x] Markup factor + tax rate pricing calculation in product creation form
-
----
-
-## Recommended Next Steps
-
-### If focusing on user experience:
-1. Push Notifications - FCM for order updates
-2. Pull-to-Refresh - Order History and Products list
-3. Error handling standardization
-
-### If focusing on business features:
-1. Market Management (Sell App) - CRUD operations
-2. Promo Codes (Buy App) - discount system
-
-### If focusing on code quality:
-1. SellAppViewModel refactoring (similar to BuyAppViewModel)
-2. Integration tests for critical flows
-3. Twitter Sign-In (low priority)
+### Low Priority & On Hold
+- **Twitter Sign-In**
+  - **Status:** Stubbed
+  - **Description:** The UI button exists and is wired up to the ViewModel, but the native platform implementation is missing on both Android and iOS.
+  - **Priority:** Low - needs evaluation of whether it's required for the target audience.

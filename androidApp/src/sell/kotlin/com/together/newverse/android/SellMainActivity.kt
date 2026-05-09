@@ -189,6 +189,18 @@ class SellMainActivity : ComponentActivity() {
                         Log.d("SellMainActivity", "Handling TwitterSignIn action")
                         // TODO: Implement Twitter sign-in
                     }
+                    is PlatformAction.AppleSignIn -> {
+                        Log.d("SellMainActivity", "Handling AppleSignIn action")
+                        // Apple Sign-In handled via Firebase
+                    }
+                    is PlatformAction.ScanQrCode -> {
+                        Log.d("SellMainActivity", "Handling ScanQrCode action")
+                        // Sell app does not scan QR codes
+                    }
+                    is PlatformAction.ShareText -> {
+                        Log.d("SellMainActivity", "Handling ShareText action: ${action.text}")
+                        // Sell app does not share text
+                    }
                 }
             },
             notificationPlatformContent = {

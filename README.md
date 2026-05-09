@@ -74,50 +74,25 @@ The project follows **Clean Architecture** principles with **MVVM** pattern:
   - Platform-specific implementations
   - Expect/actual pattern for platform APIs
 
-## Features Implemented
+## Key Features
 
-- ✅ Kotlin Multiplatform setup with Android & iOS targets
-- ✅ Compose Multiplatform for shared UI
-- ✅ Koin dependency injection
-- ✅ MVVM architecture with ViewModels
-- ✅ StateFlow for reactive UI state
-- ✅ Platform-specific implementations (expect/actual)
-- ✅ Sample screen demonstrating the setup
-- ✅ **Material3 theme system migrated from Universe project**
-  - Light & dark theme support
-  - Brand colors (teal/green primary)
-  - Complete typography scale
-  - Consistent shape system
-- ✅ **Complete navigation system with drawer**
-  - 11 dummy screens mapped from Universe fragments
-  - Modal navigation drawer with categorized menu
-  - Type-safe navigation with sealed classes
-  - State preservation and back stack management
-  - Dynamic screen titles
+- **Cross-Platform:** Single codebase for Android and iOS using Kotlin Multiplatform.
+- **Shared UI:** Jetpack Compose for building the UI for both platforms.
+- **Modern Architecture:** Follows Clean Architecture and MVVM principles.
+- **Dependency Injection:** Koin for managing dependencies.
+- **Product Flavors:** Supports `buy` and `sell` flavors for different user-facing apps.
+- **Authentication:** Robust authentication system supporting Google, Apple, Email, and anonymous sign-in.
+- **Rich Feature Set:** Includes product management, order processing, customer management, and more.
 
-## Next Steps
+For a detailed breakdown of feature implementation status, see [doc/TODO.md](doc/TODO.md).
 
-### Migration from Universe Project
+## Roadmap
 
-1. **Business Logic Migration**
-   - Move repositories from `universe/app/src/main/java/com/together/repository/`
-   - Adapt to KMP structure in `shared/src/commonMain/kotlin/domain/`
+The project is under active development. Key areas for future work include:
+- Push Notifications
+- Standardization of error handling
 
-2. **UI Components**
-   - Convert Android Views to Compose Multiplatform
-   - Migrate from `universe/app/src/main/java/com/together/` UI classes
-
-3. **Dependency Injection**
-   - Replace Hilt with Koin modules
-   - Organize by feature in `shared/src/commonMain/kotlin/di/`
-
-4. **Firebase Integration**
-   - Use KMP-compatible Firebase libraries
-   - Set up platform-specific configurations
-
-5. **Add Product Flavors**
-   - Similar to universe (buy/sell)
-   - Configure in Android module
+For more details, please refer to the [feature status document](doc/TODO.md).
 
 ## Theme System
 
