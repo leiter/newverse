@@ -60,6 +60,9 @@ data class BuyAppState(
     // Navigation trigger for navigating to the basket as a top-level destination
     val navigateToBasketAsTopLevel: Boolean = false,
 
+    // Scroll trigger for access card on profile screen
+    val triggerScrollToAccessInProfile: Boolean = false,
+
     // Profile completeness
     val showProfileIncompleteDialog: Boolean = false,
     val pendingConnectToken: Pair<String, String>? = null, // (sellerId, token) awaiting profile completion

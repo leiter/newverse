@@ -19,6 +19,8 @@ sealed interface BuyNavigationAction : BuyAction {
     data object CloseDrawer : BuyNavigationAction
     data object ClearPendingNavigation : BuyNavigationAction
     data object NavigationToBasketHandled : BuyNavigationAction
+    data object TriggerScrollToAccessInProfile : BuyNavigationAction
+    data object ScrollToAccessInProfileHandled : BuyNavigationAction
 }
 
 // ===== User/Auth Actions =====

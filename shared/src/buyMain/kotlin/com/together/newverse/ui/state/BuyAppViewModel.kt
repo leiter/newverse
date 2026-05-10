@@ -53,6 +53,7 @@ import com.together.newverse.ui.state.buy.handleHistoryOrderTap
 import com.together.newverse.ui.state.buy.mergeHistoryOrder
 import com.together.newverse.ui.state.buy.discardAndLoadHistoryOrder
 import com.together.newverse.ui.state.buy.hideHistoryMergeDialog
+import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.core.AuthFlowCoordinator
 import com.together.newverse.ui.state.core.BaseAppViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -208,10 +209,12 @@ class BuyAppViewModel(
         when (action) {
             is BuyNavigationAction.NavigateTo -> navigateTo(action.route)
             is BuyNavigationAction.NavigateBack -> navigateBack()
-                        is BuyNavigationAction.OpenDrawer -> openDrawer()
+            is BuyNavigationAction.OpenDrawer -> openDrawer()
             is BuyNavigationAction.CloseDrawer -> closeDrawer()
             is BuyNavigationAction.ClearPendingNavigation -> clearPendingNavigation()
             is BuyNavigationAction.NavigationToBasketHandled -> _state.update { it.copy(navigateToBasketAsTopLevel = false) }
+            is BuyNavigationAction.TriggerScrollToAccessInProfile -> _state.update { it.copy(triggerScrollToAccessInProfile = true) }
+            is BuyNavigationAction.ScrollToAccessInProfileHandled -> _state.update { it.copy(triggerScrollToAccessInProfile = false) }
         }
     }
 

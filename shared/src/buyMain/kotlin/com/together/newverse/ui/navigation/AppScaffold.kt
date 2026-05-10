@@ -195,6 +195,19 @@ fun AppScaffold(
     val focusManager = LocalFocusManager.current
     val keyboardManager = rememberKeyboardManager()
 
+    // Observe trigger to navigate to Profile and scroll to the access card
+    LaunchedEffect(appState.triggerScrollToAccessInProfile) {
+        if (appState.triggerScrollToAccessInProfile) {
+            // Perform top-level navigation to profile
+            navController.navigate(NavRoutes.Buy.Profile.route) {
+                popUpTo(NavRoutes.Home.route) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            // The reset is now handled by the CustomerProfileScreenModern
+        }
+    }
+
     // Observe top-level navigation trigger for the basket
     LaunchedEffect(appState.navigateToBasketAsTopLevel) {
         if (appState.navigateToBasketAsTopLevel) {

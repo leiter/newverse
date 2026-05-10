@@ -65,8 +65,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -171,6 +176,7 @@ fun CustomerProfileScreenModern(
     showConnectionConfirmDialog: ConnectionConfirmation? = null,
     onScanQrCode: () -> Unit = {},
     showProfileIncompleteDialog: Boolean = false,
+    triggerScrollToAccess: Boolean = false,
     profileViewModel: CustomerProfileViewModel = koinViewModel()
 ) {
     val profile = state.profile
@@ -197,6 +203,8 @@ fun CustomerProfileScreenModern(
     var showSaveDialog by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
     // Logout Warning Dialog
     if (state.showLogoutWarningDialog) {
@@ -277,10 +285,15 @@ fun CustomerProfileScreenModern(
         )
     }
 
-    // Load profile when screen is first displayed
-    LaunchedEffect(Unit) {
-        println("👤 CustomerProfileScreen: Loading customer profile")
-        onAction(com.together.newverse.ui.state.BuyProfileAction.LoadCustomerProfile)
+    // Scroll to access card if requested, then reset the trigger
+    LaunchedEffect(triggerScrollToAccess) {
+        if (triggerScrollToAccess) {
+            coroutineScope.launch {
+                delay(300) // Allow time for layout after navigation
+                bringIntoViewRequester.bringIntoView()
+                onAction(com.together.newverse.ui.state.BuyNavigationAction.ScrollToAccessInProfileHandled)
+            }
+        }
     }
 
     // Initialize FormState when profile loads
@@ -378,15 +391,17 @@ fun CustomerProfileScreenModern(
                     )
 
                     // Access Status Card
-                    AccessStatusCard(
-                        accessStatus = accessStatus,
-                        buyerUUID = buyerUUID,
-                        isRequestingAccess = isRequestingAccess,
-                        onRequestAccess = {
-                            onAction(com.together.newverse.ui.state.BuySellerAction.RequestAccess)
-                        },
-                        onScanQrCode = onScanQrCode
-                    )
+                    Box(modifier = Modifier.bringIntoViewRequester(bringIntoViewRequester)) {
+                        AccessStatusCard(
+                            accessStatus = accessStatus,
+                            buyerUUID = buyerUUID,
+                            isRequestingAccess = isRequestingAccess,
+                            onRequestAccess = {
+                                onAction(com.together.newverse.ui.state.BuySellerAction.RequestAccess)
+                            },
+                            onScanQrCode = onScanQrCode
+                        )
+                    }
 
                     // Notification Settings Card - temporarily hidden
                     // NotificationSettingsCard(
@@ -401,22 +416,22 @@ fun CustomerProfileScreenModern(
                     // MembershipCard()
 
                     // Login Status Card - shows guest warning or authenticated status
-                    LoginStatusCard(
-                        isAnonymous = isAnonymous,
-                        userEmail = userEmail ?: email.ifEmpty { null },
-                        authProvider = authProvider,
-                        isLinkingAccount = state.isLinkingAccount,
-                        onLinkWithGoogle = { onAction(BuyAccountAction.ShowLinkAccountDialog) },
-                        onLinkWithEmail = { onAction(BuyAccountAction.ShowLinkAccountDialog) },
-                        onLogout = {
-                            if (isAnonymous) {
-                                onAction(BuyAccountAction.ShowLogoutWarning)
-                            } else {
-                                onAction(com.together.newverse.ui.state.BuyUserAction.Logout)
-                            }
-                        },
-                        onDeleteAccount = { onAction(BuyAccountAction.ShowDeleteAccountDialog) }
-                    )
+//                    LoginStatusCard(
+//                        isAnonymous = isAnonymous,
+//                        userEmail = userEmail ?: email.ifEmpty { null },
+//                        authProvider = authProvider,
+//                        isLinkingAccount = state.isLinkingAccount,
+//                        onLinkWithGoogle = { onAction(BuyAccountAction.ShowLinkAccountDialog) },
+//                        onLinkWithEmail = { onAction(BuyAccountAction.ShowLinkAccountDialog) },
+//                        onLogout = {
+//                            if (isAnonymous) {
+//                                onAction(BuyAccountAction.ShowLogoutWarning)
+//                            } else {
+//                                onAction(com.together.newverse.ui.state.BuyUserAction.Logout)
+//                            }
+//                        },
+//                        onDeleteAccount = { onAction(BuyAccountAction.ShowDeleteAccountDialog) }
+//                    )
 
                     // Quick Actions
                     if (!isEditing) {

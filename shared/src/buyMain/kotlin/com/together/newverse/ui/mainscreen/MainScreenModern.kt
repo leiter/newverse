@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyMainScreenAction
+import com.together.newverse.ui.state.BuyNavigationAction
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.demo_banner_complete_profile
 import newverse.shared.generated.resources.demo_banner_profile_incomplete
@@ -62,7 +63,6 @@ fun MainScreenModern(
     onAction: (BuyAction) -> Unit,
     isDemoMode: Boolean = false,
     isProfileIncomplete: Boolean = false,
-    onNavigateToProfile: () -> Unit = {},
     onNavigateToProductDetail: (String) -> Unit = {}
 ) {
     MainScreenModernContent(
@@ -70,7 +70,6 @@ fun MainScreenModern(
         onAction = onAction,
         isDemoMode = isDemoMode,
         isProfileIncomplete = isProfileIncomplete,
-        onNavigateToProfile = onNavigateToProfile,
         onNavigateToProductDetail = onNavigateToProductDetail,
     )
 }
@@ -128,7 +127,6 @@ private fun MainScreenModernContent(
     onAction: (BuyAction) -> Unit,
     isDemoMode: Boolean,
     isProfileIncomplete: Boolean,
-    onNavigateToProfile: () -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
 ) {
     val products = state.filteredArticles
@@ -164,7 +162,7 @@ private fun MainScreenModernContent(
             if (isDemoMode) {
                 DemoModeBanner(
                     isProfileIncomplete = isProfileIncomplete,
-                    onRequestAccessClick = onNavigateToProfile
+                    onRequestAccessClick = { onAction(BuyNavigationAction.TriggerScrollToAccessInProfile) }
                 )
             }
             LazyColumn(

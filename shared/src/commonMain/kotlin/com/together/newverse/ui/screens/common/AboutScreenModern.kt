@@ -444,7 +444,7 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
 
             OutlinedButton(
                 onClick = {
-                    uriHandler.openUri("https://fitbytracking.web.app/")
+                    uriHandler.openUri("https://leiter.github.io/newverse/privacy.html")
                 },
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = FabGreen
