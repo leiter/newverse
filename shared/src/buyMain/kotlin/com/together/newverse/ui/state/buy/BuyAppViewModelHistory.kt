@@ -33,38 +33,24 @@ internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
 internal fun BuyAppViewModel.mergeHistoryOrder() {
     val state = _state.value
     val tappedOrder = state.tappedHistoryOrder ?: return
-    val currentBasket = basketRepository.observeBasket().value
+    val currentBasketItems = basketRepository.observeBasket().value
 
-    val mergedItems = (currentBasket + tappedOrder.articles)
-        .groupBy { it.productId }
-        .map { (_, items) ->
-            items.first().copy(amountCount = items.sumOf { it.amountCount })
-        }
+    // Use the existing, robust merge conflict logic
+    val conflicts = basketScreenCalculateMergeConflicts(currentBasketItems, tappedOrder.articles)
 
-    viewModelScope.launch {
-        // This is now a new draft basket.
-        basketRepository.clearBasket()
-        mergedItems.forEach { basketRepository.addItem(it) }
-
-        // Hide the dialog, clear old order state, and trigger navigation
-        _state.update {
-            it.copy(
-                showHistoryMergeDialog = false,
-                tappedHistoryOrder = null,
-                basketScreen = it.basketScreen.copy(
-                    orderId = null,
-                    orderDate = null,
-                    pickupDate = null,
-                    createdDate = null,
-                    isEditMode = false,
-                    canEdit = true,
-                    originalOrderItems = emptyList(),
-                    hasChanges = false, // It's a new draft
-                    selectedPickupDate = null // Force user to pick a new date
-                ),
-                navigation = it.navigation.copy(pendingRoute = NavRoutes.Buy.Basket)
-            )
-        }
+    // Hide the old dialog and show the new one by updating the basket screen state
+    _state.update {
+        it.copy(
+            showHistoryMergeDialog = false,
+            tappedHistoryOrder = null,
+            basketScreen = it.basketScreen.copy(
+                showMergeDialog = true,
+                existingOrderForMerge = tappedOrder,
+                mergeConflicts = conflicts
+            ),
+            // Navigate to the basket screen to show the merge dialog
+            navigation = it.navigation.copy(pendingRoute = NavRoutes.Buy.Basket)
+        )
     }
 }
 
