@@ -444,7 +444,7 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
 
             OutlinedButton(
                 onClick = {
-                    uriHandler.openUri("https://leiter.github.io/newverse/privacy.html")
+                    uriHandler.openUri("https://leiter.github.io/newverse/de/privacy.html")
                 },
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = FabGreen
