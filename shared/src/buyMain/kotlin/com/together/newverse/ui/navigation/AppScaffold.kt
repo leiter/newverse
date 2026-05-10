@@ -195,6 +195,18 @@ fun AppScaffold(
     val focusManager = LocalFocusManager.current
     val keyboardManager = rememberKeyboardManager()
 
+    // Observe top-level navigation trigger for the basket
+    LaunchedEffect(appState.navigateToBasketAsTopLevel) {
+        if (appState.navigateToBasketAsTopLevel) {
+            navController.navigate(NavRoutes.Buy.Basket.route) {
+                popUpTo(NavRoutes.Home.route) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            viewModel.dispatch(com.together.newverse.ui.state.BuyNavigationAction.NavigationToBasketHandled)
+        }
+    }
+
     // Observe snackbar state changes from ViewModel
     LaunchedEffect(appState.ui.snackbar) {
         appState.ui.snackbar?.let { snackbar ->

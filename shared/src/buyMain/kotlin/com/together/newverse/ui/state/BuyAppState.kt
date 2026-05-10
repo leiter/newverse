@@ -55,10 +55,10 @@ data class BuyAppState(
 
     // Merge dialog for past orders
     val showHistoryMergeDialog: Boolean = false,
-        val tappedHistoryOrder: Order? = null,
+    val tappedHistoryOrder: Order? = null,
 
-    // Navigation trigger for after loading an order
-    val navigateToBasketAfterLoad: Boolean = false,
+    // Navigation trigger for navigating to the basket as a top-level destination
+    val navigateToBasketAsTopLevel: Boolean = false,
 
     // Profile completeness
     val showProfileIncompleteDialog: Boolean = false,

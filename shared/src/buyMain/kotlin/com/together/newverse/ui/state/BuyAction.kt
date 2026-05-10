@@ -16,8 +16,9 @@ sealed interface BuyNavigationAction : BuyAction {
     data class NavigateTo(val route: NavRoutes) : BuyNavigationAction
     data object NavigateBack : BuyNavigationAction
     data object OpenDrawer : BuyNavigationAction
-        data object CloseDrawer : BuyNavigationAction
+    data object CloseDrawer : BuyNavigationAction
     data object ClearPendingNavigation : BuyNavigationAction
+    data object NavigationToBasketHandled : BuyNavigationAction
 }
 
 // ===== User/Auth Actions =====

@@ -211,6 +211,7 @@ class BuyAppViewModel(
                         is BuyNavigationAction.OpenDrawer -> openDrawer()
             is BuyNavigationAction.CloseDrawer -> closeDrawer()
             is BuyNavigationAction.ClearPendingNavigation -> clearPendingNavigation()
+            is BuyNavigationAction.NavigationToBasketHandled -> _state.update { it.copy(navigateToBasketAsTopLevel = false) }
         }
     }
 

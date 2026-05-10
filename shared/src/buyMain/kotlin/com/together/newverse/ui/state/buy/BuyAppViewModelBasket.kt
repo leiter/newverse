@@ -685,7 +685,7 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                 val hasChanges = basketScreenCheckIfHasChanges(finalBasketItems, order.articles)
 
                 _state.update { current ->
-                    var newState = current.copy(
+                    current.copy(
                         basketScreen = current.basketScreen.copy(
                             orderId = orderId,
                             orderDate = date,
@@ -700,14 +700,6 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                             hasChanges = hasChanges
                         )
                     )
-
-                    if (current.navigateToBasketAfterLoad) {
-                        newState = newState.copy(
-                            navigation = newState.navigation.copy(pendingRoute = NavRoutes.Buy.Basket),
-                            navigateToBasketAfterLoad = false
-                        )
-                    }
-                    newState
                 }
             }.onFailure { error ->
                 // Clear loaded order info since loading failed

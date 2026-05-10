@@ -21,12 +21,12 @@ internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
             )
         }
     } else {
-        // Set flag to navigate after loading
-        _state.update { it.copy(navigateToBasketAfterLoad = true) }
+        // Set flag to navigate, which will be observed by the AppScaffold
+        _state.update { it.copy(navigateToBasketAsTopLevel = true) }
 
         // Load the order into the basket
         val dateKey = formatDateKey(order.pickUpDate)
-        handleBasketScreenAction(BuyBasketScreenAction.LoadOrder(order.id, dateKey))
+        handleBasketScreenAction(BuyBasketScreenAction.LoadOrder(order.id, dateKey, forceLoad = true))
     }
 }
 
@@ -38,7 +38,7 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
     // Use the existing, robust merge conflict logic
     val conflicts = basketScreenCalculateMergeConflicts(currentBasketItems, tappedOrder.articles)
 
-    // Hide the old dialog and show the new one by updating the basket screen state
+    // Hide the old dialog and update basket screen state to show the new one
     _state.update {
         it.copy(
             showHistoryMergeDialog = false,
@@ -48,8 +48,8 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
                 existingOrderForMerge = tappedOrder,
                 mergeConflicts = conflicts
             ),
-            // Navigate to the basket screen to show the merge dialog
-            navigation = it.navigation.copy(pendingRoute = NavRoutes.Buy.Basket)
+            // Set flag to navigate, which will be observed by the AppScaffold
+            navigateToBasketAsTopLevel = true
         )
     }
 }
@@ -58,8 +58,8 @@ internal fun BuyAppViewModel.discardAndLoadHistoryOrder() {
     val tappedOrder = _state.value.tappedHistoryOrder ?: return
     viewModelScope.launch {
         hideHistoryMergeDialog()
-        // Set flag to navigate after loading
-        _state.update { it.copy(navigateToBasketAfterLoad = true) }
+        // Set flag to navigate, which will be observed by the AppScaffold
+        _state.update { it.copy(navigateToBasketAsTopLevel = true) }
         // Let LoadOrder handle clearing the basket and loading the new one.
         val dateKey = formatDateKey(tappedOrder.pickUpDate)
         handleBasketScreenAction(BuyBasketScreenAction.LoadOrder(tappedOrder.id, dateKey, forceLoad = true))

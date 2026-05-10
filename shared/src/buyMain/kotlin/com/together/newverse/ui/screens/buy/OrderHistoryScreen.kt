@@ -55,10 +55,9 @@ fun OrderHistoryScreen(
     orderHistoryState: OrderHistoryScreenState,
     showMergeDialog: Boolean,
     tappedOrder: Order?,
-    onAction: (BuyAction) -> Unit = {},
-    onBackClick: () -> Unit = {},
-    onOrderClick: (orderId: String, orderDate: String) -> Unit = { _, _ -> },
-    onRetry: () -> Unit = { onAction(BuyProfileAction.LoadOrderHistory) }
+    onAction: (BuyAction) -> Unit,
+    onNavigateToBasket: () -> Unit,
+    onRetry: () -> Unit
 ) {
     // Load order history when screen opens
     androidx.compose.runtime.LaunchedEffect(Unit) {

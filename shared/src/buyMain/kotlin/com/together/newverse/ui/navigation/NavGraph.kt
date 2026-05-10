@@ -141,7 +141,14 @@ fun NavGraph(
                 showMergeDialog = appState.showHistoryMergeDialog,
                 tappedOrder = appState.tappedHistoryOrder,
                 onAction = onAction,
-                onBackClick = { navController.popBackStack() }
+                onNavigateToBasket = {
+                    navController.navigate(NavRoutes.Buy.Basket.route) {
+                        popUpTo(NavRoutes.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onRetry = { onAction(com.together.newverse.ui.state.BuyProfileAction.LoadOrderHistory) }
             )
         }
 
