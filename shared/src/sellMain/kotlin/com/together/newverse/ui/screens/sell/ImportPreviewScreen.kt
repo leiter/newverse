@@ -13,6 +13,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Product
 import com.together.newverse.util.formatPrice
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Screen for previewing and selecting products to import from BNN file
@@ -30,7 +33,7 @@ fun ImportPreviewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Import Vorschau") },
+                title = { Text(stringResource(Res.string.import_preview_title)) },
                 actions = {
                     // Select All / Deselect All toggle
                     TextButton(
@@ -43,8 +46,8 @@ fun ImportPreviewScreen(
                         }
                     ) {
                         Text(
-                            if (selectedProducts.size == products.size) "Keine auswählen"
-                            else "Alle auswählen"
+                            if (selectedProducts.size == products.size) stringResource(Res.string.import_select_none)
+                            else stringResource(Res.string.import_select_all)
                         )
                     }
                 }
@@ -65,7 +68,7 @@ fun ImportPreviewScreen(
                         modifier = Modifier.weight(1f),
                         enabled = !isImporting
                     ) {
-                        Text("Abbrechen")
+                        Text(stringResource(Res.string.button_cancel))
                     }
                     Button(
                         onClick = { onImportSelected(selectedProducts.toList()) },
@@ -85,7 +88,7 @@ fun ImportPreviewScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("${selectedProducts.size} importieren")
+                            Text(stringResource(Res.string.import_count_button, selectedProducts.size))
                         }
                     }
                 }
@@ -119,7 +122,7 @@ fun ImportPreviewScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "Produkte gefunden",
+                            text = stringResource(Res.string.import_products_found_label),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -131,7 +134,7 @@ fun ImportPreviewScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "ausgewählt",
+                            text = stringResource(Res.string.import_selected_label),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )

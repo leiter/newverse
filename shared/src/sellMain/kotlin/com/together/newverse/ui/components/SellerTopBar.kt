@@ -23,15 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.together.newverse.ui.navigation.NavRoutes
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.topbar_change_availability
-import newverse.shared.generated.resources.topbar_import_products
-import newverse.shared.generated.resources.topbar_new_product
-import newverse.shared.generated.resources.topbar_notifications
-import newverse.shared.generated.resources.topbar_orders
-import newverse.shared.generated.resources.topbar_profile
-import newverse.shared.generated.resources.topbar_select_delete
-import newverse.shared.generated.resources.topbar_seller
-import newverse.shared.generated.resources.topbar_sortiment
+import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -95,14 +87,14 @@ fun SellerTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Auswahl abbrechen"
+                        contentDescription = stringResource(Res.string.cd_cancel_selection)
                     )
                 }
             } else if (shouldShowBackButton(currentRoute)) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Zurück"
+                        contentDescription = stringResource(Res.string.back)
                     )
                 }
             }
@@ -121,7 +113,7 @@ fun SellerTopBar(
                         IconButton(onClick = onNavigateToOrders) {
                             Icon(
                                 imageVector = Icons.Default.ShoppingCart,
-                                contentDescription = "Bestellungen"
+                                contentDescription = stringResource(Res.string.topbar_orders)
                             )
                         }
                     }
@@ -132,7 +124,7 @@ fun SellerTopBar(
                     IconButton(onClick = onRefresh) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Aktualisieren"
+                            contentDescription = stringResource(Res.string.button_update)
                         )
                     }
 
@@ -140,7 +132,7 @@ fun SellerTopBar(
                         IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Mehr Optionen"
+                                contentDescription = stringResource(Res.string.cd_more_options)
                             )
                         }
 

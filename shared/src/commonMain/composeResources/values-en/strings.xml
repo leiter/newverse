@@ -675,4 +675,68 @@
     <string name="dialog_button_dismiss">Dismiss</string>
     <string name="dialog_error_title">Error</string>
 
+    <!-- ========================================= -->
+    <!-- ORDER HISTORY SCREEN (BUY MODULE) -->
+    <!-- ========================================= -->
+    <string name="order_history_loading">Loading orders...</string>
+    <string name="order_history_empty_title">No Orders</string>
+    <string name="order_history_empty_subtitle">You haven\'t placed any orders yet</string>
+    <string name="order_history_count_single">1 order</string>
+    <string name="order_history_count_plural">%d orders</string>
+    <string name="order_history_created_date">Created: %s</string>
+    <string name="order_history_pickup_date">Pickup: %s</string>
+    <string name="order_history_in_day">(in 1 day)</string>
+    <string name="order_history_in_days">(in %d days)</string>
+    <string name="order_status_picked_up">Picked up</string>
+    <string name="order_status_soon">Soon</string>
+    <string name="order_status_editable">Editable</string>
+    <string name="order_status_scheduled">Scheduled</string>
+    <string name="order_history_merge_title">Conflict</string>
+    <string name="order_history_merge_message">You have a non-empty basket. Would you like to merge the contents or discard your current basket and load the old order?</string>
+    <string name="label_total_plain">Total</string>
+
+    <!-- ========================================= -->
+    <!-- IMPORT PREVIEW SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="import_preview_title">Import Preview</string>
+    <string name="import_select_none">Select none</string>
+    <string name="import_select_all">Select all</string>
+    <string name="import_count_button">Import %d</string>
+    <string name="import_products_found_label">products found</string>
+    <string name="import_selected_label">selected</string>
+
+    <!-- ========================================= -->
+    <!-- BUYER MANAGEMENT (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="approved_buyers_title">Approved Buyers</string>
+    <string name="approved_buyers_empty">No approved buyers yet</string>
+    <string name="blocked_buyers_title">Blocked Buyers</string>
+    <string name="buyer_link_card_title">Generate Buyer Link</string>
+    <string name="buyer_link_card_description">Share this link with a buyer to give them access to your store.</string>
+    <string name="buyer_link_generate_button">Generate new link</string>
+    <string name="buyer_link_copied">Copied!</string>
+    <string name="buyer_link_copy">Copy</string>
+    <string name="buyer_link_clear">Clear</string>
+
+    <!-- ========================================= -->
+    <!-- COMMON LABELS (ADDITIONAL) -->
+    <!-- ========================================= -->
+    <string name="label_id">ID</string>
+
+    <!-- ========================================= -->
+    <!-- CONTENT DESCRIPTIONS (ACCESSIBILITY) -->
+    <!-- ========================================= -->
+    <string name="cd_cancel_changes">Cancel changes</string>
+    <string name="cd_image_error">Error loading image</string>
+    <string name="cd_image_placeholder">Placeholder image</string>
+    <string name="cd_no_image">No image</string>
+    <string name="cd_cancel_selection">Cancel selection</string>
+    <string name="cd_more_options">More options</string>
+    <string name="cd_qr_code">QR Code</string>
+    <string name="cd_clear_input">Clear input</string>
+    <string name="cd_info">Info</string>
+    <string name="cd_clear_quantity">Clear quantity</string>
+    <string name="cd_add">Add</string>
+    <string name="cd_message">Message</string>
+
 </resources>

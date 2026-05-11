@@ -39,7 +39,7 @@ import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.ui.state.DeepLinkRouter
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.app_name
+import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -364,7 +364,7 @@ fun AppScaffold(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
+                                contentDescription = stringResource(Res.string.back)
                             )
                         }
                     }
@@ -379,7 +379,7 @@ fun AppScaffold(
                         }) {
                             Icon(
                                 imageVector = Icons.Default.Contacts,
-                                contentDescription = "Contacts",
+                                contentDescription = stringResource(Res.string.contacts_title),
                                 tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
@@ -394,7 +394,7 @@ fun AppScaffold(
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.Email,
-                                    contentDescription = "Messages",
+                                    contentDescription = stringResource(Res.string.nav_messages),
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
@@ -422,7 +422,7 @@ fun AppScaffold(
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.Email,
-                                    contentDescription = "Messages",
+                                    contentDescription = stringResource(Res.string.nav_messages),
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }

@@ -58,15 +58,7 @@ import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.place_holder_landscape
-import newverse.shared.generated.resources.products_detail_add_to_cart
-import newverse.shared.generated.resources.products_detail_category
-import newverse.shared.generated.resources.products_detail_description
-import newverse.shared.generated.resources.products_detail_not_found
-import newverse.shared.generated.resources.products_detail_quantity
-import newverse.shared.generated.resources.products_detail_remove_from_cart
-import newverse.shared.generated.resources.products_detail_title
-import newverse.shared.generated.resources.products_detail_update_cart
+import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -146,7 +138,7 @@ fun ProductDetailScreen(
                     error = {
                         Image(
                             painter = painterResource(Res.drawable.place_holder_landscape),
-                            contentDescription = "Placeholder",
+                            contentDescription = stringResource(Res.string.cd_image_placeholder),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
@@ -155,7 +147,7 @@ fun ProductDetailScreen(
             } else {
                 Image(
                     painter = painterResource(Res.drawable.place_holder_landscape),
-                    contentDescription = "Placeholder",
+                    contentDescription = stringResource(Res.string.cd_image_placeholder),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )

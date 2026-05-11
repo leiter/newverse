@@ -34,10 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.components.QrCodeImage
 import com.together.newverse.ui.navigation.PlatformAction
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.contacts_add
-import newverse.shared.generated.resources.contacts_enter_id
-import newverse.shared.generated.resources.contacts_share
-import newverse.shared.generated.resources.contacts_your_id
+import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -130,7 +127,7 @@ fun AddBuyerContactScreen(
                     OutlinedTextField(
                         value = contactIdInput,
                         onValueChange = { contactIdInput = it },
-                        label = { Text("ID") },
+                        label = { Text(stringResource(Res.string.label_id)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -138,7 +135,7 @@ fun AddBuyerContactScreen(
                     OutlinedTextField(
                         value = contactNameInput,
                         onValueChange = { contactNameInput = it },
-                        label = { Text("Name") },
+                        label = { Text(stringResource(Res.string.label_name)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )

@@ -114,7 +114,7 @@ fun RegisterScreen(
                     IconButton(onClick = onNavigateToLogin) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(Res.string.back)
                         )
                     }
                 },

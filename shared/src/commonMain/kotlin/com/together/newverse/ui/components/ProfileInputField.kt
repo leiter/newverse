@@ -12,6 +12,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.theme.FabGreen
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ProfileInputField(
@@ -89,7 +92,7 @@ fun ProfileInputField(
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
-                contentDescription = "Clear",
+                contentDescription = stringResource(Res.string.cd_clear_input),
                 tint = FabGreen,
                 modifier = Modifier.size(32.dp)
             )

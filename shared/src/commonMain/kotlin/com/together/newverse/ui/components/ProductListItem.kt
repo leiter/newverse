@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.place_holder_landscape
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -78,7 +79,7 @@ fun ProductListItem(
                         // Show portrait placeholder on error
                         androidx.compose.foundation.Image(
                             painter = painterResource(Res.drawable.place_holder_landscape),
-                            contentDescription = "Error loading image",
+                            contentDescription = stringResource(Res.string.cd_image_error),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
@@ -89,7 +90,7 @@ fun ProductListItem(
                 // Placeholder when no image
                 androidx.compose.foundation.Image(
                     painter = painterResource(Res.drawable.place_holder_landscape),
-                    contentDescription = "No image",
+                    contentDescription = stringResource(Res.string.cd_no_image),
                     modifier = Modifier
                         .size(56.dp)
                         .clip(RoundedCornerShape(8.dp)),

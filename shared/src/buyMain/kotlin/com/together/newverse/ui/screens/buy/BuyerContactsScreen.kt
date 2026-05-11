@@ -33,8 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.BuyerContact
 import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.contacts_add
-import newverse.shared.generated.resources.contacts_empty
+import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -156,14 +155,14 @@ private fun ContactRow(
                 IconButton(onClick = onMessage) {
                     Icon(
                         Icons.AutoMirrored.Filled.Message,
-                        contentDescription = "Message",
+                        contentDescription = stringResource(Res.string.cd_message),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 IconButton(onClick = onRemove) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "Remove",
+                        contentDescription = stringResource(Res.string.button_remove),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }

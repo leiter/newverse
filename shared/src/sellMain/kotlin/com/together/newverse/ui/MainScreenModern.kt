@@ -72,7 +72,8 @@ import com.together.newverse.ui.state.SellAction
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.place_holder_landscape
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.painterResource
 
 /**
@@ -527,7 +528,7 @@ private fun HeroProductCard(
                         ) {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Cancel changes",
+                                contentDescription = stringResource(Res.string.cd_cancel_changes),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -648,7 +649,7 @@ private fun ModernProductCard(
                             // Show portrait placeholder on error
                             androidx.compose.foundation.Image(
                                 painter = painterResource(Res.drawable.place_holder_landscape),
-                                contentDescription = "Error loading image",
+                                contentDescription = stringResource(Res.string.cd_image_error),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )

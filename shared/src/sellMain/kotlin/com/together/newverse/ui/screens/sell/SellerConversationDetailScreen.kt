@@ -29,6 +29,9 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.components.MessageBubble
 import com.together.newverse.ui.components.MessageInput
 import com.together.newverse.ui.state.core.AsyncState
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +67,7 @@ fun SellerConversationDetailScreen(
                 title = { Text(otherParticipantName.ifEmpty { "Conversation" }) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 }
             )

@@ -44,6 +44,9 @@ import com.together.newverse.ui.state.OrderHistoryScreenState
 import com.together.newverse.ui.state.core.AsyncStateContent
 import com.together.newverse.ui.state.toAsyncState
 import com.together.newverse.util.formatPrice
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
@@ -106,7 +109,7 @@ fun OrderHistoryScreen(
                     ) {
                         CircularProgressIndicator()
                         Text(
-                            text = "Bestellungen werden geladen...",
+                            text = stringResource(Res.string.order_history_loading),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -130,7 +133,7 @@ fun OrderHistoryScreen(
                         )
                         if (retryable) {
                             Button(onClick = onRetry) {
-                                Text("Erneut versuchen")
+                                Text(stringResource(Res.string.button_retry))
                             }
                         }
                     }
@@ -165,13 +168,13 @@ fun OrderHistoryScreen(
                             )
                         }
                         Text(
-                            text = "Keine Bestellungen",
+                            text = stringResource(Res.string.order_history_empty_title),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Sie haben noch keine Bestellungen aufgegeben",
+                            text = stringResource(Res.string.order_history_empty_subtitle),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -186,7 +189,7 @@ fun OrderHistoryScreen(
                 ) {
                     item {
                         Text(
-                            text = "${sortedOrders.size} ${if (sortedOrders.size == 1) "Bestellung" else "Bestellungen"}",
+                            text = if (sortedOrders.size == 1) stringResource(Res.string.order_history_count_single) else stringResource(Res.string.order_history_count_plural, sortedOrders.size),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -245,13 +248,13 @@ private fun OrderHistoryCard(
             ) {
                 Column {
                     Text(
-                        text = "Bestellung #${order.id.takeLast(8)}",
+                        text = stringResource(Res.string.format_order_id, order.id.takeLast(8)),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Erstellt: $createdDate",
+                        text = stringResource(Res.string.order_history_created_date, createdDate),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -269,11 +272,11 @@ private fun OrderHistoryCard(
                 ) {
                     Text(
                         text = when {
-                            daysUntilPickup < 0 -> "Abgeholt"
-                            daysUntilPickup == 0L -> "Heute"
-                            daysUntilPickup == 1L -> "Morgen"
-                            daysUntilPickup <= 3 -> "Bald"
-                            else -> if (canEdit) "Bearbeitbar" else "Geplant"
+                            daysUntilPickup < 0 -> stringResource(Res.string.order_status_picked_up)
+                            daysUntilPickup == 0L -> stringResource(Res.string.basket_today)
+                            daysUntilPickup == 1L -> stringResource(Res.string.basket_tomorrow)
+                            daysUntilPickup <= 3 -> stringResource(Res.string.order_status_soon)
+                            else -> if (canEdit) stringResource(Res.string.order_status_editable) else stringResource(Res.string.order_status_scheduled)
                         },
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
@@ -302,14 +305,14 @@ private fun OrderHistoryCard(
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = "Abholung: $pickupDate",
+                    text = stringResource(Res.string.order_history_pickup_date, pickupDate),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 if (daysUntilPickup > 0) {
                     Text(
-                        text = "(in $daysUntilPickup ${if (daysUntilPickup == 1L) "Tag" else "Tagen"})",
+                        text = if (daysUntilPickup == 1L) stringResource(Res.string.order_history_in_day) else stringResource(Res.string.order_history_in_days, daysUntilPickup),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -326,7 +329,7 @@ private fun OrderHistoryCard(
             ) {
                 Column {
                     Text(
-                        text = "$itemCount ${if (itemCount == 1) "Artikel" else "Artikel"}",
+                        text = stringResource(Res.string.format_item_count, itemCount),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -334,7 +337,7 @@ private fun OrderHistoryCard(
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "Gesamt",
+                        text = stringResource(Res.string.label_total_plain),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -358,19 +361,19 @@ private fun OrderHistoryMergeDialog(
 ) {
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Konflikt") },
-        text = { Text("Sie haben einen nicht leeren Warenkorb. Möchten Sie den Inhalt zusammenführen oder den aktuellen Warenkorb verwerfen und die alte Bestellung laden?") },
+        title = { Text(stringResource(Res.string.order_history_merge_title)) },
+        text = { Text(stringResource(Res.string.order_history_merge_message)) },
         confirmButton = {
             Button(onClick = onMerge) {
-                Text("Zusammenführen")
+                Text(stringResource(Res.string.basket_merge_confirm))
             }
         },
         dismissButton = {
             TextButton(onClick = onDiscard) {
-                Text("Verwerfen")
+                Text(stringResource(Res.string.basket_draft_discard_continue))
             }
             TextButton(onClick = onCancel) {
-                Text("Abbrechen")
+                Text(stringResource(Res.string.button_cancel))
             }
         }
     )

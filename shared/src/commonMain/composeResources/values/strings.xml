@@ -727,4 +727,68 @@
     <string name="dialog_button_dismiss">Schließen</string>
     <string name="dialog_error_title">Fehler</string>
 
+    <!-- ========================================= -->
+    <!-- ORDER HISTORY SCREEN (BUY MODULE) -->
+    <!-- ========================================= -->
+    <string name="order_history_loading">Bestellungen werden geladen...</string>
+    <string name="order_history_empty_title">Keine Bestellungen</string>
+    <string name="order_history_empty_subtitle">Sie haben noch keine Bestellungen aufgegeben</string>
+    <string name="order_history_count_single">1 Bestellung</string>
+    <string name="order_history_count_plural">%d Bestellungen</string>
+    <string name="order_history_created_date">Erstellt: %s</string>
+    <string name="order_history_pickup_date">Abholung: %s</string>
+    <string name="order_history_in_day">(in 1 Tag)</string>
+    <string name="order_history_in_days">(in %d Tagen)</string>
+    <string name="order_status_picked_up">Abgeholt</string>
+    <string name="order_status_soon">Bald</string>
+    <string name="order_status_editable">Bearbeitbar</string>
+    <string name="order_status_scheduled">Geplant</string>
+    <string name="order_history_merge_title">Konflikt</string>
+    <string name="order_history_merge_message">Sie haben einen nicht leeren Warenkorb. Möchten Sie den Inhalt zusammenführen oder den aktuellen Warenkorb verwerfen und die alte Bestellung laden?</string>
+    <string name="label_total_plain">Gesamt</string>
+
+    <!-- ========================================= -->
+    <!-- IMPORT PREVIEW SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="import_preview_title">Import Vorschau</string>
+    <string name="import_select_none">Keine auswählen</string>
+    <string name="import_select_all">Alle auswählen</string>
+    <string name="import_count_button">%d importieren</string>
+    <string name="import_products_found_label">Produkte gefunden</string>
+    <string name="import_selected_label">ausgewählt</string>
+
+    <!-- ========================================= -->
+    <!-- BUYER MANAGEMENT (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="approved_buyers_title">Zugelassene Käufer</string>
+    <string name="approved_buyers_empty">Noch keine zugelassenen Käufer</string>
+    <string name="blocked_buyers_title">Blockierte Käufer</string>
+    <string name="buyer_link_card_title">Käufer-Link erstellen</string>
+    <string name="buyer_link_card_description">Teile diesen Link mit einem Käufer, um ihm Zugang zu deinem Shop zu geben.</string>
+    <string name="buyer_link_generate_button">Neuen Link erstellen</string>
+    <string name="buyer_link_copied">Kopiert!</string>
+    <string name="buyer_link_copy">Kopieren</string>
+    <string name="buyer_link_clear">Löschen</string>
+
+    <!-- ========================================= -->
+    <!-- COMMON LABELS (ADDITIONAL) -->
+    <!-- ========================================= -->
+    <string name="label_id">ID</string>
+
+    <!-- ========================================= -->
+    <!-- CONTENT DESCRIPTIONS (ACCESSIBILITY) -->
+    <!-- ========================================= -->
+    <string name="cd_cancel_changes">Änderungen abbrechen</string>
+    <string name="cd_image_error">Bild konnte nicht geladen werden</string>
+    <string name="cd_image_placeholder">Platzhalterbild</string>
+    <string name="cd_no_image">Kein Bild</string>
+    <string name="cd_cancel_selection">Auswahl abbrechen</string>
+    <string name="cd_more_options">Mehr Optionen</string>
+    <string name="cd_qr_code">QR-Code</string>
+    <string name="cd_clear_input">Eingabe löschen</string>
+    <string name="cd_info">Info</string>
+    <string name="cd_clear_quantity">Menge löschen</string>
+    <string name="cd_add">Hinzufügen</string>
+    <string name="cd_message">Nachricht</string>
+
 </resources>

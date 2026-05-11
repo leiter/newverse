@@ -24,6 +24,9 @@ import coil3.compose.AsyncImage
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
 import com.together.newverse.util.formatPrice
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ProductDetailCard(
@@ -91,7 +94,7 @@ fun ProductDetailCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Star,
-                                contentDescription = "Error loading image",
+                                contentDescription = stringResource(Res.string.cd_image_error),
                                 modifier = Modifier.size(64.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                             )
@@ -111,7 +114,7 @@ fun ProductDetailCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Star,
-                        contentDescription = "No image",
+                        contentDescription = stringResource(Res.string.cd_no_image),
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     )
@@ -127,7 +130,7 @@ fun ProductDetailCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Info,
-                    contentDescription = "Info",
+                    contentDescription = stringResource(Res.string.cd_info),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -173,7 +176,7 @@ fun ProductDetailCard(
                         ) {
                             Column {
                                 Text(
-                                    text = "Menge",
+                                    text = stringResource(Res.string.products_detail_quantity),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -188,7 +191,7 @@ fun ProductDetailCard(
                             IconButton(onClick = { onQuantityChange(0) }) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear quantity",
+                                    contentDescription = stringResource(Res.string.cd_clear_quantity),
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
@@ -209,7 +212,7 @@ fun ProductDetailCard(
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = "Preis",
+                                text = stringResource(Res.string.label_price),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -237,7 +240,7 @@ fun ProductDetailCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
-                                contentDescription = "Add",
+                                contentDescription = stringResource(Res.string.cd_add),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(32.dp)
                             )
@@ -261,7 +264,7 @@ fun ProductDetailCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ShoppingCart,
-                            contentDescription = "Add to cart",
+                            contentDescription = stringResource(Res.string.products_detail_add_to_cart),
                             modifier = Modifier.size(32.dp)
                         )
                     }

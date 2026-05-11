@@ -278,10 +278,10 @@ fun SellerProfileScreen(
 
                     // Approved Buyers Card
                     BuyerListCard(
-                        title = "Approved Buyers",
+                        title = stringResource(Res.string.approved_buyers_title),
                         buyers = customerState.approvedBuyers,
-                        emptyText = "No approved buyers yet",
-                        actionLabel = "Block",
+                        emptyText = stringResource(Res.string.approved_buyers_empty),
+                        actionLabel = stringResource(Res.string.customer_management_block),
                         actionColor = MaterialTheme.colorScheme.error,
                         onAction = onBlockApprovedBuyer
                     )
@@ -289,7 +289,7 @@ fun SellerProfileScreen(
                     // Blocked Buyers Card
                     if (customerState.blockedBuyers.isNotEmpty()) {
                         BuyerListCard(
-                            title = "Blocked Buyers",
+                            title = stringResource(Res.string.blocked_buyers_title),
                             buyers = customerState.blockedBuyers,
                             emptyText = "",
                             actionLabel = stringResource(Res.string.customer_management_unblock),
@@ -652,6 +652,9 @@ private fun MarketEditDialog(
     var showDayPicker by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
 
+    val errorFillAll = stringResource(Res.string.market_validation_fill_all)
+    val errorTimeOrder = stringResource(Res.string.market_validation_time)
+
     val days = listOf(
         stringResource(Res.string.day_monday) to 0,
         stringResource(Res.string.day_tuesday) to 1,
@@ -803,10 +806,10 @@ private fun MarketEditDialog(
                         name.isBlank() || street.isBlank() || houseNumber.isBlank() ||
                         zipCode.isBlank() || city.isBlank() || dayOfWeek.isBlank() ||
                         begin.isBlank() || end.isBlank() -> {
-                            validationError = "Alle Felder müssen ausgefüllt werden"
+                            validationError = errorFillAll
                         }
                         begin >= end -> {
-                            validationError = "Der Beginn muss vor dem Ende liegen"
+                            validationError = errorTimeOrder
                         }
                         else -> {
                             val newMarket = Market(
@@ -906,11 +909,11 @@ private fun GenerateBuyerLinkCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Generate Buyer Link",
+                text = stringResource(Res.string.buyer_link_card_title),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Share this link with a buyer to give them access to your store.",
+                text = stringResource(Res.string.buyer_link_card_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -918,7 +921,7 @@ private fun GenerateBuyerLinkCard(
                 onClick = onGenerateLink,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Generate new link")
+                Text(stringResource(Res.string.buyer_link_generate_button))
             }
             if (generatedLink != null) {
                 Column(
@@ -944,13 +947,13 @@ private fun GenerateBuyerLinkCard(
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(if (copied) "Copied!" else "Copy")
+                            Text(if (copied) stringResource(Res.string.buyer_link_copied) else stringResource(Res.string.buyer_link_copy))
                         }
                         OutlinedButton(
                             onClick = { onClearLink() },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Clear")
+                            Text(stringResource(Res.string.buyer_link_clear))
                         }
                     }
                 }

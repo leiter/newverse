@@ -32,7 +32,8 @@ import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.place_holder_landscape
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -86,7 +87,7 @@ internal fun ModernProductCard(
                         ) {
                             Image(
                                 painter = painterResource(Res.drawable.place_holder_landscape),
-                                contentDescription = "Error loading image",
+                                contentDescription = stringResource(Res.string.cd_image_error),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
@@ -98,7 +99,7 @@ internal fun ModernProductCard(
                 // Placeholder image when no image URL
                 Image(
                     painter = painterResource(Res.drawable.place_holder_landscape),
-                    contentDescription = "Placeholder",
+                    contentDescription = stringResource(Res.string.cd_image_placeholder),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp)

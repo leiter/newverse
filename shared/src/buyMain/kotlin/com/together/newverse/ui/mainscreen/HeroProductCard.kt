@@ -63,7 +63,8 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.place_holder_landscape
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -168,7 +169,7 @@ internal fun HeroProductCard(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Info,
-                                        contentDescription = "Produktdetails",
+                                        contentDescription = stringResource(Res.string.products_detail_title),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -249,7 +250,7 @@ internal fun HeroProductCard(
                                         ) {
                                             Image(
                                                 painter = painterResource(Res.drawable.place_holder_landscape),
-                                                contentDescription = "Placeholder",
+                                                contentDescription = stringResource(Res.string.cd_image_placeholder),
                                                 modifier = Modifier.fillMaxSize(),
                                                 contentScale = ContentScale.Crop
                                             )
@@ -260,7 +261,7 @@ internal fun HeroProductCard(
                                 // Placeholder when no image URL
                                 Image(
                                     painter = painterResource(Res.drawable.place_holder_landscape),
-                                    contentDescription = "Placeholder",
+                                    contentDescription = stringResource(Res.string.cd_image_placeholder),
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
@@ -467,7 +468,7 @@ internal fun HeroProductCard(
                             ) {
                                 Icon(
                                     Icons.Default.Close,
-                                    contentDescription = "Cancel changes",
+                                    contentDescription = stringResource(Res.string.cd_cancel_changes),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }

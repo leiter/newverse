@@ -11,6 +11,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 actual fun QrCodeImage(
@@ -25,7 +28,7 @@ actual fun QrCodeImage(
     if (bitmap != null) {
         Image(
             bitmap = bitmap.asImageBitmap(),
-            contentDescription = "QR Code",
+            contentDescription = stringResource(Res.string.cd_qr_code),
             modifier = modifier.size(sizeDp.dp)
         )
     }
