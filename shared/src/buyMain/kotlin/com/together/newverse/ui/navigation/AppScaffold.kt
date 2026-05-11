@@ -1,12 +1,18 @@
 package com.together.newverse.ui.navigation
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Badge
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,8 +28,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -384,62 +394,96 @@ fun AppScaffold(
                             )
                         }
                     }
-                    // Show email icon on Profile screen
-                    if (currentRoute == NavRoutes.Buy.Profile.route) {
+                    // Show more menu (Call/Email) on Profile and Home screens
+                    if (currentRoute == NavRoutes.Buy.Profile.route || currentRoute == NavRoutes.Home.route) {
+                        val uriHandler = LocalUriHandler.current
+                        var showContactMenu by remember { mutableStateOf(false) }
+                        val phone = stringResource(Res.string.about_phone).filter { it.isDigit() || it == '+' }
+                        val email = stringResource(Res.string.about_email)
+
                         Box(modifier = Modifier.padding(end = 8.dp)) {
-                            IconButton(onClick = {
-                                navController.navigate(NavRoutes.Buy.Messages.route) {
-                                    launchSingleTop = true
-                                }
-                            }) {
+                            IconButton(onClick = { showContactMenu = true }) {
                                 Icon(
-                                    imageVector = Icons.Default.Email,
-                                    contentDescription = stringResource(Res.string.nav_messages),
-                                    tint = MaterialTheme.colorScheme.onPrimary
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "Kontakt",
+                                    tint = MaterialTheme.colorScheme.onSecondary
                                 )
                             }
-                            if (appState.unreadMessageCount > 0) {
-                                Badge(
-                                    containerColor = MaterialTheme.colorScheme.tertiary,
-                                    contentColor = MaterialTheme.colorScheme.onTertiary,
-                                    modifier = Modifier.align(Alignment.TopEnd)
-                                ) {
-                                    Text(
-                                        text = appState.unreadMessageCount.toString(),
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
+
+                            DropdownMenu(
+                                expanded = showContactMenu,
+                                onDismissRequest = { showContactMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Email,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Text("E-Mail")
+                                        }
+                                    },
+                                    onClick = {
+                                        uriHandler.openUri("mailto:$email")
+                                        showContactMenu = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Phone,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.tertiary
+                                            )
+                                            Text("Anrufen")
+                                        }
+                                    },
+                                    onClick = {
+                                        uriHandler.openUri("tel:$phone")
+                                        showContactMenu = false
+                                    }
+                                )
                             }
                         }
                     }
-                    // Show messages icon on Home screen
-                    if (currentRoute == NavRoutes.Home.route) {
-                        Box(modifier = Modifier.padding(end = 8.dp)) {
-                            IconButton(onClick = {
-                                navController.navigate(NavRoutes.Buy.Messages.route) {
-                                    launchSingleTop = true
-                                }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Email,
-                                    contentDescription = stringResource(Res.string.nav_messages),
-                                    tint = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
-                            if (appState.unreadMessageCount > 0) {
-                                Badge(
-                                    containerColor = MaterialTheme.colorScheme.tertiary,
-                                    contentColor = MaterialTheme.colorScheme.onTertiary,
-                                    modifier = Modifier.align(Alignment.TopEnd)
-                                ) {
-                                    Text(
-                                        text = appState.unreadMessageCount.toString(),
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                            }
-                        }
-                    }
+
+                    // [KEPT AS REMINDER] — Message icon navigating to Messages screen
+                    // if (currentRoute == NavRoutes.Buy.Profile.route || currentRoute == NavRoutes.Home.route) {
+                    //     Box(modifier = Modifier.padding(end = 8.dp)) {
+                    //         IconButton(onClick = {
+                    //             navController.navigate(NavRoutes.Buy.Messages.route) {
+                    //                 launchSingleTop = true
+                    //             }
+                    //         }) {
+                    //             Icon(
+                    //                 imageVector = Icons.Default.Email,
+                    //                 contentDescription = stringResource(Res.string.nav_messages),
+                    //                 tint = MaterialTheme.colorScheme.onPrimary
+                    //             )
+                    //         }
+                    //         if (appState.unreadMessageCount > 0) {
+                    //             Badge(
+                    //                 containerColor = MaterialTheme.colorScheme.tertiary,
+                    //                 contentColor = MaterialTheme.colorScheme.onTertiary,
+                    //                 modifier = Modifier.align(Alignment.TopEnd)
+                    //             ) {
+                    //                 Text(
+                    //                     text = appState.unreadMessageCount.toString(),
+                    //                     style = MaterialTheme.typography.labelSmall
+                    //                 )
+                    //             }
+                    //         }
+                    //     }
+                    // }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.secondary,

@@ -176,41 +176,41 @@ fun BasketScreenCheckingOutPreview() {
 
 // ===== Customer Profile Previews =====
 
-@Preview(name = "Customer Profile Screen", showBackground = true)
-@Composable
-fun CustomerProfileScreenPreview() {
-    NewverseTheme {
-        Surface {
-            CustomerProfileScreenModern(
-                state = PreviewData.sampleCustomerProfileState,
-                onAction = {}
-            )
-        }
-    }
-}
-
-@Preview(name = "Customer Profile Screen - Loading", showBackground = true)
-@Composable
-fun CustomerProfileScreenLoadingPreview() {
-    NewverseTheme {
-        Surface {
-            CustomerProfileScreenModern(
-                state = PreviewData.sampleCustomerProfileStateLoading,
-                onAction = {}
-            )
-        }
-    }
-}
-
-@Preview(name = "Customer Profile Screen - Empty", showBackground = true)
-@Composable
-fun CustomerProfileScreenEmptyPreview() {
-    NewverseTheme {
-        Surface {
-            CustomerProfileScreenModern(
-                state = PreviewData.sampleCustomerProfileStateEmpty,
-                onAction = {}
-            )
-        }
-    }
-}
+//@Preview(name = "Customer Profile Screen", showBackground = true)
+//@Composable
+//fun CustomerProfileScreenPreview() {
+//    NewverseTheme {
+//        Surface {
+//            CustomerProfileScreenModern(
+//                state = PreviewData.sampleCustomerProfileState,
+//                onAction = {}
+//            )
+//        }
+//    }
+//}
+//
+//@Preview(name = "Customer Profile Screen - Loading", showBackground = true)
+//@Composable
+//fun CustomerProfileScreenLoadingPreview() {
+//    NewverseTheme {
+//        Surface {
+//            CustomerProfileScreenModern(
+//                state = PreviewData.sampleCustomerProfileStateLoading,
+//                onAction = {}
+//            )
+//        }
+//    }
+//}
+//
+//@Preview(name = "Customer Profile Screen - Empty", showBackground = true)
+//@Composable
+//fun CustomerProfileScreenEmptyPreview() {
+//    NewverseTheme {
+//        Surface {
+//            CustomerProfileScreenModern(
+//                state = PreviewData.sampleCustomerProfileStateEmpty,
+//                onAction = {}
+//            )
+//        }
+//    }
+//}
