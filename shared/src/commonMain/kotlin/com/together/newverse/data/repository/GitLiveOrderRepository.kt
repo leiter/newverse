@@ -134,7 +134,12 @@ class GitLiveOrderRepository(
                 }
 
                 println("🔐 GitLiveOrderRepository.observeBuyerOrders: Emitting ${orders.size} orders")
-                emit(orders)
+                // For non-demo users, filter out any orders that were marked as demo orders.
+                if (!isDemo) {
+                    emit(orders.filter { it.status != OrderStatus.DEMO_ORDER })
+                } else {
+                    emit(orders)
+                }
             }
         } catch (e: Exception) {
             println("❌ GitLiveOrderRepository.observeBuyerOrders: Error - ${e.message}")
@@ -192,8 +197,14 @@ class GitLiveOrderRepository(
                 }
             }
 
-            println("✅ GitLiveOrderRepository.getBuyerOrders: Found ${orders.size} orders")
-            Result.success(orders)
+            val finalOrders = if (!isDemo) {
+                orders.filter { it.status != OrderStatus.DEMO_ORDER }
+            } else {
+                orders
+            }
+
+            println("✅ GitLiveOrderRepository.getBuyerOrders: Found ${finalOrders.size} orders after filtering")
+            Result.success(finalOrders)
 
         } catch (e: Exception) {
             println("❌ GitLiveOrderRepository.getBuyerOrders: Error - ${e.message}")

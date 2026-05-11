@@ -32,7 +32,13 @@ enum class OrderStatus {
     /**
      * Order was cancelled by user or system
      */
-    CANCELLED
+    CANCELLED,
+
+    /**
+     * A temporary order created by a demo/anonymous user.
+     * These orders are filtered out once the user signs up.
+     */
+    DEMO_ORDER
 }
 
 /**

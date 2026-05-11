@@ -10,7 +10,6 @@ import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.MergeConflict
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
-import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.BuyBasketScreenAction
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.delay
@@ -614,7 +613,8 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 pickUpDate = selectedDate,
                 message = "",
                 articles = items,
-                isDemoOrder = _state.value.isDemoMode
+                isDemoOrder = _state.value.isDemoMode,
+                status = if (_state.value.isDemoMode) com.together.newverse.domain.model.OrderStatus.DEMO_ORDER else com.together.newverse.domain.model.OrderStatus.PLACED
             )
 
             // Demo mode routing:

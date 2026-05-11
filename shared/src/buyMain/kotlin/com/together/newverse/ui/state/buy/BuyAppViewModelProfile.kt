@@ -161,7 +161,11 @@ internal fun BuyAppViewModel.loadOrderHistory() {
 
             if (profile != null && profile.placedOrderIds.isNotEmpty()) {
                 // Observe orders reactively using the placedOrderIds from profile
-                orderRepository.observeBuyerOrders("", profile.placedOrderIds, isDemo = sellerConfig.isDemoMode)
+                orderRepository.observeBuyerOrders(
+                    sellerId = sellerConfig.sellerId,
+                    placedOrderIds = profile.placedOrderIds,
+                    isDemo = _state.value.isDemoMode
+                )
                     .catch { e ->
                         println("❌ BuyAppViewModel.loadOrderHistory: Error - ${e.message}")
                         _state.update { current ->

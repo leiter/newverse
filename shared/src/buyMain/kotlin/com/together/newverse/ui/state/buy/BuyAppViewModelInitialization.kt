@@ -630,6 +630,7 @@ internal fun BuyAppViewModel.observeGoogleSignInCompletion() {
     viewModelScope.launch {
         GoogleSignInState.signInCompleted.collect { tokens ->
             println("[NV_BuyAppVM] observeGoogleSignInCompletion: Received tokens, signing in with Firebase")
+
             authRepository.signInWithGoogle(tokens.idToken, tokens.accessToken)
                 .onSuccess { userId ->
                     println("[NV_BuyAppVM] observeGoogleSignInCompletion: Firebase sign-in success, userId=$userId")

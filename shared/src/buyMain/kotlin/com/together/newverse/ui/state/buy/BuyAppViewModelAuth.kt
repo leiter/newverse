@@ -425,17 +425,19 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
             )
         }
 
+        // Get profile BEFORE linking to capture its state as an anonymous user.
+        val anonymousProfile = profileRepository.getBuyerProfile().getOrNull()
+
         // Attempt to link the account
         authRepository.linkWithEmail(email, password)
             .onSuccess { userId ->
                 println("✅ BuyAppViewModel.linkWithEmail: Success - userId=$userId")
 
-                // Get current profile to update email
-                val currentProfile = _state.value.customerProfile.profile
-
-                // Update profile with the linked email if profile exists
-                if (currentProfile != null) {
-                    val updatedProfile = currentProfile.copy(emailAddress = email)
+                // Update profile with the linked email.
+                val updatedProfile = (anonymousProfile ?: _state.value.customerProfile.profile)?.copy(
+                    emailAddress = email
+                )
+                if (updatedProfile != null) {
                     profileRepository.saveBuyerProfile(updatedProfile)
                 }
 
@@ -456,7 +458,7 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
                     } else {
                         UserState.LoggedIn(
                             id = userId,
-                            name = currentProfile?.displayName ?: "",
+                            name = updatedProfile?.displayName ?: "",
                             email = email,
                             role = UserRole.CUSTOMER
                         )
@@ -472,7 +474,7 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
                             emailLinkingPassword = "",
                             emailLinkingConfirmPassword = "",
                             emailLinkingError = null,
-                            profile = currentProfile?.copy(emailAddress = email)
+                            profile = updatedProfile
                         )
                     )
                 }
@@ -495,7 +497,6 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
             }
     }
 }
-
 internal fun BuyAppViewModel.showEmailLinkingDialog() {
     _state.update { current ->
         current.copy(
