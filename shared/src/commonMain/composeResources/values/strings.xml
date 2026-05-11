@@ -285,7 +285,11 @@
     <string name="section_delivery_preferences">Gemüsedate</string>
     <string name="label_marketplace">Marktplatz</string>
     <string name="label_pickup_time">Abholzeit</string>
+    <string name="label_pickup_time_hint">Gültig von 7:00 - 18:00 Uhr (Format: HH:mm)</string>
     <string name="pickup_time_format">%s Uhr</string>
+    <string name="pickup_time_empty">Bitte geben Sie eine Abholzeit an</string>
+    <string name="pickup_time_invalid_format">Ungültiges Format. Verwenden Sie HH:mm (z.B. 14:30)</string>
+    <string name="pickup_time_outside_hours">Abholzeit muss zwischen 7:00 und 18:00 liegen</string>
     <string name="default_market">Ökomarkt im Hansaviertel</string>
 
     <!-- Notification Settings Section -->

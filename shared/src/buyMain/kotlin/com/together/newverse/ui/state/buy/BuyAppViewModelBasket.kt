@@ -420,12 +420,72 @@ internal fun BuyAppViewModel.basketScreenAddItem(item: OrderedProduct) {
 internal fun BuyAppViewModel.basketScreenRemoveItem(productId: String) {
     viewModelScope.launch {
         basketRepository.removeItem(productId)
+
+        val basketState = _state.value.basketScreen
+        val isPlacedOrder = basketState.orderId != null
+        val isNowEmpty = basketRepository.observeBasket().value.isEmpty()
+
+        // If the last item of a placed, editable order is removed, cancel it and reset to a fresh draft.
+        if (isPlacedOrder && isNowEmpty) {
+            bLog("🛒 basketScreenRemoveItem: Last item removed from placed order, resetting to empty draft.")
+            basketScreenResetToEmptyDraft()
+        }
     }
 }
 
 internal fun BuyAppViewModel.basketScreenUpdateQuantity(productId: String, newQuantity: Double) {
     viewModelScope.launch {
         basketRepository.updateQuantity(productId, newQuantity)
+    }
+}
+
+/**
+ * Resets the basket to a clean, empty draft state.
+ * This is used when a placed order becomes empty, effectively cancelling it.
+ */
+private fun BuyAppViewModel.basketScreenResetToEmptyDraft() {
+    viewModelScope.launch {
+        val basketState = _state.value.basketScreen
+        val orderId = basketState.orderId
+        val orderDate = basketState.orderDate
+
+        // If it was a real order, remove it from the backend
+        if (orderId != null && orderDate != null) {
+            val isDemo = _state.value.isDemoMode
+            val result = if (isDemo) {
+                if (orderId.startsWith("demo_")) {
+                    runCatching { sellerConfig.removeDemoOrder(orderId) }.map { true }
+                } else {
+                    orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId, isDemo = true)
+                }
+            } else {
+                orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId, isDemo = false)
+            }
+
+            if (result.isSuccess) {
+                removePlacedOrderIdReference(orderId)
+                bLog("✅ basketScreenResetToEmptyDraft: Placed order $orderId cancelled successfully.")
+            } else {
+                bLog("❌ basketScreenResetToEmptyDraft: Failed to cancel placed order $orderId: ${result.exceptionOrNull()?.message}")
+                // Don't block UI reset even if backend fails. The order will be orphaned but user can proceed.
+            }
+        }
+
+        // Clear the local basket and reset the UI state
+        basketRepository.clearBasket()
+        val availableDates = _state.value.basketScreen.availablePickupDates
+        _state.update { current ->
+            current.copy(
+                basket = current.basket.copy(
+                    currentOrderId = null,
+                    currentOrderDate = null
+                ),
+                basketScreen = BasketScreenState(
+                    availablePickupDates = availableDates
+                )
+            )
+        }
+        bLog("🔄 basketScreenResetToEmptyDraft: Basket state has been reset to a new empty draft.")
     }
 }
 

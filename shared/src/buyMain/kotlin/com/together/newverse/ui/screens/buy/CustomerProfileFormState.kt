@@ -35,6 +35,12 @@ object ProfileValidation {
     const val FIELD_DISPLAY_NAME = "displayName"
     const val FIELD_EMAIL = "email"
     const val FIELD_PHONE = "phone"
+    const val FIELD_PICKUP_TIME = "pickupTime"
+
+    // Time window constraints
+    const val MIN_HOUR = 7
+    const val MAX_HOUR = 18
+    const val TIME_FORMAT = "HH:mm"
 
     /**
      * Validates all profile form fields and returns a map of field errors.
@@ -84,5 +90,38 @@ object ProfileValidation {
     fun hasValidPhoneChars(phone: String): Boolean {
         if (phone.isEmpty()) return true
         return phone.all { it.isDigit() || it.isWhitespace() || it == '+' || it == '-' || it == '(' || it == ')' }
+    }
+
+    /**
+     * Validates pickup time format (HH:mm).
+     * Returns true if format is valid, false otherwise.
+     */
+    fun isValidTimeFormat(time: String): Boolean {
+        if (time.isEmpty()) return false
+        val timeRegex = Regex("^([0-1][0-9]|2[0-3]):[0-5][0-9]$")
+        return timeRegex.matches(time)
+    }
+
+    /**
+     * Validates if time is within business hours (7:00 - 18:00).
+     * Should only be called after format validation.
+     */
+    fun isTimeInBusinessHours(time: String): Boolean {
+        if (!isValidTimeFormat(time)) return false
+        val parts = time.split(":")
+        val hour = parts[0].toIntOrNull() ?: return false
+        return hour in MIN_HOUR..MAX_HOUR
+    }
+
+    /**
+     * Gets a user-friendly error message for invalid pickup time.
+     */
+    fun getPickupTimeErrorMessage(time: String): String? {
+        return when {
+            time.isEmpty() -> "pickup_time_empty"
+            !isValidTimeFormat(time) -> "pickup_time_invalid_format"
+            !isTimeInBusinessHours(time) -> "pickup_time_outside_hours"
+            else -> null
+        }
     }
 }

@@ -10,47 +10,43 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.launch
 
 internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
-    val isOutdated = getDaysUntilPickup(order.pickUpDate) < 0
     val isBasketEmpty = basketRepository.observeBasket().value.isEmpty()
 
-    if (isOutdated && !isBasketEmpty) {
+    if (isBasketEmpty) {
+        // Basket is empty, so load the tapped order. If it's outdated, it will be treated as a new draft.
+        _state.update { it.copy(navigateToBasketAsTopLevel = true) }
+        val dateKey = formatDateKey(order.pickUpDate)
+        handleBasketScreenAction(BuyBasketScreenAction.LoadOrder(order.id, dateKey, forceLoad = true))
+    } else {
+        // Basket is not empty, so always show the merge dialog.
         _state.update {
             it.copy(
                 showHistoryMergeDialog = true,
                 tappedHistoryOrder = order
             )
         }
-    } else {
-        // Set flag to navigate, which will be observed by the AppScaffold
-        _state.update { it.copy(navigateToBasketAsTopLevel = true) }
-
-        // Load the order into the basket
-        val dateKey = formatDateKey(order.pickUpDate)
-        handleBasketScreenAction(BuyBasketScreenAction.LoadOrder(order.id, dateKey, forceLoad = true))
     }
 }
 
 internal fun BuyAppViewModel.mergeHistoryOrder() {
-    val state = _state.value
-    val tappedOrder = state.tappedHistoryOrder ?: return
-    val currentBasketItems = basketRepository.observeBasket().value
+    viewModelScope.launch {
+        val tappedOrder = _state.value.tappedHistoryOrder ?: return@launch
+        val currentBasketItems = basketRepository.observeBasket().value
 
-    // Use the existing, robust merge conflict logic
-    val conflicts = basketScreenCalculateMergeConflicts(currentBasketItems, tappedOrder.articles)
+        // Combine items from the current basket and the old order, summing quantities for duplicates.
+        val mergedItems = (currentBasketItems + tappedOrder.articles)
+            .groupBy { it.productId }
+            .map { (_, items) ->
+                items.first().copy(amountCount = items.sumOf { it.amountCount })
+            }
 
-    // Hide the old dialog and update basket screen state to show the new one
-    _state.update {
-        it.copy(
-            showHistoryMergeDialog = false,
-            tappedHistoryOrder = null,
-            basketScreen = it.basketScreen.copy(
-                showMergeDialog = true,
-                existingOrderForMerge = tappedOrder,
-                mergeConflicts = conflicts
-            ),
-            // Set flag to navigate, which will be observed by the AppScaffold
-            navigateToBasketAsTopLevel = true
-        )
+        // Update the basket repository with the new merged list.
+        basketRepository.clearBasket()
+        mergedItems.forEach { basketRepository.addItem(it) }
+
+        // Hide the dialog and trigger navigation to the basket, preserving the current order context.
+        hideHistoryMergeDialog()
+        _state.update { it.copy(navigateToBasketAsTopLevel = true) }
     }
 }
 

@@ -88,9 +88,9 @@ import com.together.newverse.ui.screens.buy.components.ConnectionConfirmDialog
 import com.together.newverse.ui.screens.buy.components.DeleteAccountDialog
 import com.together.newverse.ui.screens.buy.components.EmailLinkingDialog
 import com.together.newverse.ui.screens.buy.components.LinkAccountDialog
-import com.together.newverse.ui.screens.buy.components.LoginStatusCard
 import com.together.newverse.ui.screens.buy.components.LogoutWarningDialog
 import com.together.newverse.ui.screens.buy.components.PendingInvitationsCard
+import com.together.newverse.ui.screens.buy.components.TimePickerField
 import com.together.newverse.ui.state.ConnectionConfirmation
 import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.BuyAccountAction
@@ -123,6 +123,10 @@ import newverse.shared.generated.resources.label_email
 import newverse.shared.generated.resources.label_marketplace
 import newverse.shared.generated.resources.label_phone
 import newverse.shared.generated.resources.label_pickup_time
+import newverse.shared.generated.resources.label_pickup_time_hint
+import newverse.shared.generated.resources.pickup_time_empty
+import newverse.shared.generated.resources.pickup_time_invalid_format
+import newverse.shared.generated.resources.pickup_time_outside_hours
 import newverse.shared.generated.resources.membership_discount
 import newverse.shared.generated.resources.membership_regular
 import newverse.shared.generated.resources.notification_newsletter
@@ -194,6 +198,7 @@ fun CustomerProfileScreenModern(
     // Gemüsedate edit state
     val isEditingPickupTime by profileViewModel.isEditingPickupTime.collectAsState()
     val pickupTime by profileViewModel.pickupTime.collectAsState()
+    val pickupTimeError by profileViewModel.pickupTimeError.collectAsState()
     val isSelfPickup by profileViewModel.isSelfPickup.collectAsState()
 
     // Other local state that's not part of the form
@@ -370,6 +375,7 @@ fun CustomerProfileScreenModern(
                     // Gemüsedate Card
                     GemusedateCard(
                         pickupTime = pickupTime,
+                        pickupTimeError = pickupTimeError,
                         isSelfPickup = isSelfPickup,
                         isEditing = isEditingPickupTime,
                         onEditClick = { profileViewModel.startEditingPickupTime() },
@@ -402,36 +408,6 @@ fun CustomerProfileScreenModern(
                             onScanQrCode = onScanQrCode
                         )
                     }
-
-                    // Notification Settings Card - temporarily hidden
-                    // NotificationSettingsCard(
-                    //     notificationsEnabled = notificationsEnabled,
-                    //     newsletterEnabled = newsletterEnabled,
-                    //     isEditing = isEditing,
-                    //     onNotificationToggle = { notificationsEnabled = it },
-                    //     onNewsletterToggle = { newsletterEnabled = it }
-                    // )
-
-                    // Membership Card - temporarily hidden
-                    // MembershipCard()
-
-                    // Login Status Card - shows guest warning or authenticated status
-//                    LoginStatusCard(
-//                        isAnonymous = isAnonymous,
-//                        userEmail = userEmail ?: email.ifEmpty { null },
-//                        authProvider = authProvider,
-//                        isLinkingAccount = state.isLinkingAccount,
-//                        onLinkWithGoogle = { onAction(BuyAccountAction.ShowLinkAccountDialog) },
-//                        onLinkWithEmail = { onAction(BuyAccountAction.ShowLinkAccountDialog) },
-//                        onLogout = {
-//                            if (isAnonymous) {
-//                                onAction(BuyAccountAction.ShowLogoutWarning)
-//                            } else {
-//                                onAction(com.together.newverse.ui.state.BuyUserAction.Logout)
-//                            }
-//                        },
-//                        onDeleteAccount = { onAction(BuyAccountAction.ShowDeleteAccountDialog) }
-//                    )
 
                     // Quick Actions
                     if (!isEditing) {
@@ -628,6 +604,8 @@ private fun PersonalInfoCard(
     onSaveClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
+    var isAddressExpanded by remember { mutableStateOf(false) }
+
     // Validation states - use ProfileValidation for real-time validation
     val isEmailValid = ProfileValidation.isValidEmail(email)
     val hasValidPhoneCharacters = ProfileValidation.hasValidPhoneChars(phone)
@@ -677,79 +655,101 @@ private fun PersonalInfoCard(
                 )
 
                 if (!isEditing) {
-                    IconButton(
-                        onClick = onEditClick,
-                        modifier = Modifier.size(40.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { isAddressExpanded = !isAddressExpanded }
                     ) {
                         Icon(
-                            Icons.Default.Edit,
-                            contentDescription = stringResource(Res.string.button_edit),
+                            if (isAddressExpanded) Icons.Default.ArrowDropDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "Toggle address visibility",
                             tint = MaterialTheme.colorScheme.primary
                         )
+                        IconButton(
+                            onClick = onEditClick,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = stringResource(Res.string.button_edit),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            // Collapsible content
+            Column(modifier = Modifier.animateContentSize(animationSpec = spring())) {
+                if (isAddressExpanded || isEditing) {
+                    Spacer(modifier = Modifier.height(20.dp))
 
-            ModernTextField(
-                value = displayName,
-                onValueChange = onDisplayNameChange,
-                label = stringResource(Res.string.label_display_name),
-                leadingIcon = Icons.Default.Person,
-                enabled = isEditing && !isSubmitting,
-                isValid = displayName.isNotEmpty()
-            )
+                    ModernTextField(
+                        value = displayName,
+                        onValueChange = onDisplayNameChange,
+                        label = stringResource(Res.string.label_display_name),
+                        leadingIcon = Icons.Default.Person,
+                        enabled = isEditing && !isSubmitting,
+                        isValid = displayName.isNotEmpty()
+                    )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            ModernTextField(
-                value = email,
-                onValueChange = onEmailChange,
-                label = stringResource(Res.string.label_email),
-                leadingIcon = Icons.Default.Email,
-                enabled = isEditing && !isSubmitting,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                isValid = isEmailValid,
-                errorMessage = resolvedEmailError
-            )
+                    ModernTextField(
+                        value = email,
+                        onValueChange = onEmailChange,
+                        label = stringResource(Res.string.label_email),
+                        leadingIcon = Icons.Default.Email,
+                        enabled = isEditing && !isSubmitting,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        isValid = isEmailValid,
+                        errorMessage = resolvedEmailError
+                    )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            ModernTextField(
-                value = phone,
-                onValueChange = onPhoneChange,
-                label = stringResource(Res.string.label_phone),
-                leadingIcon = Icons.Default.Phone,
-                enabled = isEditing && !isSubmitting,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                isValid = isPhoneValid,
-                errorMessage = resolvedPhoneError
-            )
+                    ModernTextField(
+                        value = phone,
+                        onValueChange = onPhoneChange,
+                        label = stringResource(Res.string.label_phone),
+                        leadingIcon = Icons.Default.Phone,
+                        enabled = isEditing && !isSubmitting,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        isValid = isPhoneValid,
+                        errorMessage = resolvedPhoneError
+                    )
 
-            // Address fields — only shown when NOT self-pickup
-            if (!isSelfPickup) {
-                Spacer(modifier = Modifier.height(16.dp))
+                    if (isSelfPickup && !isEditing) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Adressangabe optional für Selbstabholer",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
 
-                ModernTextField(
-                    value = street,
-                    onValueChange = onStreetChange,
-                    label = stringResource(Res.string.label_street),
-                    leadingIcon = Icons.Default.LocationOn,
-                    enabled = isEditing && !isSubmitting,
-                    isValid = true
-                )
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    ModernTextField(
+                        value = street,
+                        onValueChange = onStreetChange,
+                        label = stringResource(Res.string.label_street),
+                        leadingIcon = Icons.Default.LocationOn,
+                        enabled = isEditing && !isSubmitting,
+                        isValid = true
+                    )
 
-                ModernTextField(
-                    value = houseNumber,
-                    onValueChange = onHouseNumberChange,
-                    label = stringResource(Res.string.label_house_number),
-                    leadingIcon = Icons.Default.LocationOn,
-                    enabled = isEditing && !isSubmitting,
-                    isValid = true
-                )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    ModernTextField(
+                        value = houseNumber,
+                        onValueChange = onHouseNumberChange,
+                        label = stringResource(Res.string.label_house_number),
+                        leadingIcon = Icons.Outlined.LocationOn,
+                        enabled = isEditing && !isSubmitting,
+                        isValid = true
+                    )
+                }
             }
 
             // Save and Cancel Buttons (only show when editing)
@@ -797,6 +797,7 @@ private fun PersonalInfoCard(
 @Composable
 private fun GemusedateCard(
     pickupTime: String,
+    pickupTimeError: String?,
     isSelfPickup: Boolean,
     isEditing: Boolean,
     onEditClick: () -> Unit,
@@ -846,13 +847,26 @@ private fun GemusedateCard(
 
             // Pickup Time
             if (isEditing) {
-                ModernTextField(
+                val isPickupTimeValid = ProfileValidation.isTimeInBusinessHours(pickupTime)
+                val errorMessage = when {
+                    pickupTimeError != null -> when (pickupTimeError) {
+                        "pickup_time_empty" -> stringResource(Res.string.pickup_time_empty)
+                        "pickup_time_invalid_format" -> stringResource(Res.string.pickup_time_invalid_format)
+                        "pickup_time_outside_hours" -> stringResource(Res.string.pickup_time_outside_hours)
+                        else -> null
+                    }
+                    else -> null
+                }
+
+                TimePickerField(
                     value = pickupTime,
                     onValueChange = onPickupTimeChange,
                     label = stringResource(Res.string.label_pickup_time),
+                    hint = stringResource(Res.string.label_pickup_time_hint),
                     leadingIcon = Icons.Default.DateRange,
                     enabled = true,
-                    isValid = pickupTime.isNotEmpty()
+                    isValid = isPickupTimeValid,
+                    errorMessage = errorMessage
                 )
             } else {
                 Surface(
@@ -926,6 +940,8 @@ private fun GemusedateCard(
             if (isEditing) {
                 Spacer(modifier = Modifier.height(20.dp))
 
+                val canSavePickupTime = ProfileValidation.isTimeInBusinessHours(pickupTime)
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -943,8 +959,10 @@ private fun GemusedateCard(
                     Button(
                         onClick = onSaveClick,
                         modifier = Modifier.weight(1f),
+                        enabled = canSavePickupTime,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiary
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            disabledContainerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.38f)
                         )
                     ) {
                         Icon(
@@ -961,179 +979,7 @@ private fun GemusedateCard(
     }
 }
 
-@Composable
-private fun NotificationSettingsCard(
-    notificationsEnabled: Boolean,
-    newsletterEnabled: Boolean,
-    isEditing: Boolean,
-    onNotificationToggle: (Boolean) -> Unit,
-    onNewsletterToggle: (Boolean) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            SectionHeader(
-                icon = Icons.Default.Notifications,
-                title = stringResource(Res.string.section_notifications),
-                iconColor = MaterialTheme.colorScheme.secondary
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Order Notifications
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Notifications,
-                        contentDescription = null,
-                        tint = if (notificationsEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Column {
-                        Text(
-                            text = stringResource(Res.string.notification_order_updates),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(Res.string.notification_push_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Switch(
-                    checked = notificationsEnabled,
-                    onCheckedChange = onNotificationToggle,
-                    enabled = isEditing,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.surface,
-                        checkedTrackColor = MaterialTheme.colorScheme.tertiary
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Newsletter
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Email,
-                        contentDescription = null,
-                        tint = if (newsletterEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Column {
-                        Text(
-                            text = stringResource(Res.string.notification_newsletter),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(Res.string.notification_newsletter_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Switch(
-                    checked = newsletterEnabled,
-                    onCheckedChange = onNewsletterToggle,
-                    enabled = isEditing,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.surface,
-                        checkedTrackColor = MaterialTheme.colorScheme.tertiary
-                    )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MembershipCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp)
-                    )
-                }
-
-                Column {
-                    Text(
-                        text = stringResource(Res.string.membership_regular),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = stringResource(Res.string.membership_discount),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Icon(
-                Icons.AutoMirrored.Default.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
-}
+// ... (rest of the file is unchanged) ...
 
 @Composable
 private fun QuickActionsCard(

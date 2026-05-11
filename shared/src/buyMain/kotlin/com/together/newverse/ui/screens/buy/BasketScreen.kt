@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Order
@@ -297,7 +298,9 @@ fun BasketContent(
                     ) {
                         Text(
                             text = stringResource(Res.string.basket_empty_title),
+                            modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Spacer(modifier = Modifier.height(8.dp))

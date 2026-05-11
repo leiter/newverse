@@ -41,6 +41,9 @@ class CustomerProfileViewModel(
     private val _pickupTime = MutableStateFlow("")
     val pickupTime: StateFlow<String> = _pickupTime.asStateFlow()
 
+    private val _pickupTimeError = MutableStateFlow<String?>(null)
+    val pickupTimeError: StateFlow<String?> = _pickupTimeError.asStateFlow()
+
     private val _isSelfPickup = MutableStateFlow(false)
     val isSelfPickup: StateFlow<Boolean> = _isSelfPickup.asStateFlow()
 
@@ -132,18 +135,34 @@ class CustomerProfileViewModel(
             _pickupTime.value = it.defaultPickUpTime.ifEmpty { "15:45" }
             _isSelfPickup.value = it.isSelfPickup
         }
+        _pickupTimeError.value = null
         _isEditingPickupTime.value = false
     }
 
     fun onPickupTimeChange(value: String) {
         _pickupTime.value = value
+        validatePickupTime(value)
     }
 
     fun onSelfPickupToggle(value: Boolean) {
         _isSelfPickup.value = value
     }
 
+    private fun validatePickupTime(time: String) {
+        val error = ProfileValidation.getPickupTimeErrorMessage(time)
+        _pickupTimeError.value = error
+    }
+
+    fun isPickupTimeValid(): Boolean {
+        return ProfileValidation.isTimeInBusinessHours(_pickupTime.value)
+    }
+
     fun savePickupTime() {
+        if (!isPickupTimeValid()) {
+            validatePickupTime(_pickupTime.value)
+            return
+        }
+
         val profile = currentProfile ?: return
         viewModelScope.launch {
             val updatedProfile = profile.copy(
@@ -153,6 +172,7 @@ class CustomerProfileViewModel(
             profileRepository.saveBuyerProfile(updatedProfile)
                 .onSuccess {
                     currentProfile = it
+                    _pickupTimeError.value = null
                     _isEditingPickupTime.value = false
                 }
                 .onFailure { /* keep editing open on failure */ }
