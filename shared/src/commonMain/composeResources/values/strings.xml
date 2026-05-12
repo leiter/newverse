@@ -226,6 +226,7 @@
     <string name="basket_creating_order">Erstelle neue Bestellung...</string>
     <string name="basket_reorder">Neu bestellen mit anderem Datum</string>
     <string name="basket_edit_order">Bestellung bearbeiten</string>
+    <string name="basket_finish_editing">Bearbeiten beenden</string>
     <string name="basket_order_modified">Bestellung (geändert)</string>
     <string name="basket_order_details">Bestelldetails</string>
     <string name="basket_pickup">Abholung:</string>

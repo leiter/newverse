@@ -113,6 +113,7 @@ internal fun BuyAppViewModel.handleBasketScreenAction(action: BuyBasketScreenAct
         is BuyBasketScreenAction.LoadOrder -> basketScreenLoadOrder(action.orderId, action.date, forceLoad = true)
         BuyBasketScreenAction.UpdateOrder -> basketScreenUpdateOrder()
         BuyBasketScreenAction.EnableEditing -> basketScreenEnableEditing()
+        BuyBasketScreenAction.DisableEditing -> _state.update { it.copy(basketScreen = it.basketScreen.copy(isEditMode = false)) }
         BuyBasketScreenAction.ResetOrderState -> basketScreenResetOrderState()
         BuyBasketScreenAction.ShowDatePicker -> basketScreenShowDatePicker()
         BuyBasketScreenAction.HideDatePicker -> basketScreenHideDatePicker()

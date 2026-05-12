@@ -173,7 +173,9 @@ fun BasketContent(
                     canEdit = state.canEdit,
                     hasChanges = state.hasChanges,
                     orderStatus = orderStatus,
+                    isEditMode = state.isEditMode,
                     onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
+                    onDisableEditing = { onAction(BuyBasketScreenAction.DisableEditing) },
                     onUpdateOrder = { onAction(BuyBasketScreenAction.UpdateOrder) },
                     onCancelOrder = { onAction(BuyBasketScreenAction.ShowCancelConfirmDialog) },
                     onShowReorderDatePicker = { onAction(BuyBasketScreenAction.ShowReorderDatePicker) }
@@ -464,7 +466,9 @@ internal fun OrderInfoCard(
     canEdit: Boolean,
     hasChanges: Boolean,
     orderStatus: OrderWindowStatus,
+    isEditMode: Boolean,
     onEnableEditing: () -> Unit,
+    onDisableEditing: () -> Unit,
     onUpdateOrder: () -> Unit,
     onCancelOrder: () -> Unit,
     onShowReorderDatePicker: () -> Unit
@@ -623,10 +627,10 @@ internal fun OrderInfoCard(
                             }
                         } else {
                             OutlinedButton(
-                                onClick = onEnableEditing,
+                                onClick = if (isEditMode) onDisableEditing else onEnableEditing,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(stringResource(Res.string.basket_edit_order))
+                                Text(if (isEditMode) stringResource(Res.string.basket_finish_editing) else stringResource(Res.string.basket_edit_order))
                             }
                             OutlinedButton(
                                 onClick = onCancelOrder,

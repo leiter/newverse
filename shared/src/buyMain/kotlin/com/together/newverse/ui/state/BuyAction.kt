@@ -166,6 +166,7 @@ sealed interface BuyBasketScreenAction : BuyAction {
         data class LoadOrder(val orderId: String, val date: String, val forceLoad: Boolean = false) : BuyBasketScreenAction
     data object UpdateOrder : BuyBasketScreenAction
     data object EnableEditing : BuyBasketScreenAction
+    data object DisableEditing : BuyBasketScreenAction
     data object ResetOrderState : BuyBasketScreenAction
     data object ShowDatePicker : BuyBasketScreenAction
     data object HideDatePicker : BuyBasketScreenAction
