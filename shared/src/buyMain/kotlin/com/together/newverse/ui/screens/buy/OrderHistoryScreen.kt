@@ -44,6 +44,7 @@ import com.together.newverse.ui.state.OrderHistoryScreenState
 import com.together.newverse.ui.state.core.AsyncStateContent
 import com.together.newverse.ui.state.toAsyncState
 import com.together.newverse.util.formatPrice
+import com.together.newverse.util.formatString
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -189,7 +190,7 @@ fun OrderHistoryScreen(
                 ) {
                     item {
                         Text(
-                            text = if (sortedOrders.size == 1) stringResource(Res.string.order_history_count_single) else stringResource(Res.string.order_history_count_plural, sortedOrders.size),
+                            text = if (sortedOrders.size == 1) stringResource(Res.string.order_history_count_single) else formatString(stringResource(Res.string.order_history_count_plural), sortedOrders.size),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -248,13 +249,13 @@ private fun OrderHistoryCard(
             ) {
                 Column {
                     Text(
-                        text = stringResource(Res.string.format_order_id, order.id.takeLast(8)),
+                        text = formatString(stringResource(Res.string.format_order_id), order.id.takeLast(8)),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = stringResource(Res.string.order_history_created_date, createdDate),
+                        text = formatString(stringResource(Res.string.order_history_created_date), createdDate),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -305,14 +306,14 @@ private fun OrderHistoryCard(
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = stringResource(Res.string.order_history_pickup_date, pickupDate),
+                    text = formatString(stringResource(Res.string.order_history_pickup_date), pickupDate),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 if (daysUntilPickup > 0) {
                     Text(
-                        text = if (daysUntilPickup == 1L) stringResource(Res.string.order_history_in_day) else stringResource(Res.string.order_history_in_days, daysUntilPickup),
+                        text = if (daysUntilPickup == 1L) stringResource(Res.string.order_history_in_day) else formatString(stringResource(Res.string.order_history_in_days), daysUntilPickup),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -329,7 +330,7 @@ private fun OrderHistoryCard(
             ) {
                 Column {
                     Text(
-                        text = stringResource(Res.string.format_item_count, itemCount),
+                        text = formatString(stringResource(Res.string.format_item_count), itemCount),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
