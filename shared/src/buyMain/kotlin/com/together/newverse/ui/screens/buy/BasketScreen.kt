@@ -144,6 +144,14 @@ fun BasketContent(
         )
     }
 
+    // Cancel order confirmation dialog
+    if (state.showCancelConfirmDialog) {
+        CancelOrderDialog(
+            onConfirm = { onAction(BuyBasketScreenAction.CancelOrder) },
+            onDismiss = { onAction(BuyBasketScreenAction.HideCancelConfirmDialog) }
+        )
+    }
+
     // Single scrollable LazyColumn for all content
     LazyColumn(
         modifier = Modifier
@@ -167,7 +175,7 @@ fun BasketContent(
                     orderStatus = orderStatus,
                     onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
                     onUpdateOrder = { onAction(BuyBasketScreenAction.UpdateOrder) },
-                    onCancelOrder = { onAction(BuyBasketScreenAction.CancelOrder) },
+                    onCancelOrder = { onAction(BuyBasketScreenAction.ShowCancelConfirmDialog) },
                     onShowReorderDatePicker = { onAction(BuyBasketScreenAction.ShowReorderDatePicker) }
                 )
             }
@@ -599,32 +607,49 @@ internal fun OrderInfoCard(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Action Buttons
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.End
             ) {
                 when (orderStatus) {
                     OrderWindowStatus.OPEN -> {
                         if (hasChanges) {
-                            Button(onClick = onUpdateOrder) {
+                            Button(
+                                onClick = onUpdateOrder,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
                                 Text(stringResource(Res.string.basket_update_order))
                             }
                         } else {
-                            OutlinedButton(onClick = onEnableEditing) {
+                            OutlinedButton(
+                                onClick = onEnableEditing,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
                                 Text(stringResource(Res.string.basket_edit_order))
                             }
-                            OutlinedButton(onClick = onCancelOrder) {
+                            OutlinedButton(
+                                onClick = onCancelOrder,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
                                 Text(stringResource(Res.string.basket_cancel_order))
                             }
                         }
                     }
                     OrderWindowStatus.DEADLINE_PASSED -> {
-                        Button(onClick = {}, enabled = false) {
+                        Button(
+                            onClick = {},
+                            enabled = false,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text(stringResource(Res.string.basket_no_changes))
                         }
                     }
                     OrderWindowStatus.PICKUP_PASSED -> {
-                        Button(onClick = onShowReorderDatePicker) {
+                        Button(
+                            onClick = onShowReorderDatePicker,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text(stringResource(Res.string.basket_reorder))
                         }
                     }
@@ -827,6 +852,36 @@ fun DatePickerDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.button_cancel))
+            }
+        }
+    )
+}
+
+/**
+ * Cancel Order Confirmation Dialog
+ */
+@Composable
+private fun CancelOrderDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.basket_cancel_confirm_title)) },
+        text = { Text(stringResource(Res.string.basket_cancel_confirm_message)) },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text(stringResource(Res.string.basket_cancel_confirm_button))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.button_dismiss))
             }
         }
     )

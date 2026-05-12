@@ -181,4 +181,8 @@ sealed interface BuyBasketScreenAction : BuyAction {
     data object HideDraftWarningDialog : BuyBasketScreenAction
     data object SaveDraftAndLoadOrder : BuyBasketScreenAction
     data object DiscardDraftAndLoadOrder : BuyBasketScreenAction
+
+    // Cancel confirmation dialog
+    data object ShowCancelConfirmDialog : BuyBasketScreenAction
+    data object HideCancelConfirmDialog : BuyBasketScreenAction
 }

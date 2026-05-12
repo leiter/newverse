@@ -217,6 +217,10 @@
     <string name="basket_no_changes">Keine Änderungen</string>
     <string name="basket_cancelling">Storniere...</string>
     <string name="basket_cancel_order">Bestellung stornieren</string>
+    <string name="basket_cancel_confirm_title">Bestellung stornieren?</string>
+    <string name="basket_cancel_confirm_message">Möchten Sie diese Bestellung wirklich stornieren? Diese Aktion kann nicht rückgängig gemacht werden.</string>
+    <string name="basket_cancel_confirm_button">Ja, stornieren</string>
+    <string name="button_dismiss">Abbrechen</string>
     <string name="basket_edit_disabled">Bearbeitung nicht mehr möglich</string>
     <string name="basket_edit_deadline_reason">(weniger als 3 Tage bis Abholung)</string>
     <string name="basket_creating_order">Erstelle neue Bestellung...</string>

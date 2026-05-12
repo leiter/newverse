@@ -128,6 +128,8 @@ internal fun BuyAppViewModel.handleBasketScreenAction(action: BuyBasketScreenAct
         BuyBasketScreenAction.HideDraftWarningDialog -> basketScreenHideDraftWarningDialog()
         BuyBasketScreenAction.SaveDraftAndLoadOrder -> basketScreenSaveDraftAndLoadOrder()
         BuyBasketScreenAction.DiscardDraftAndLoadOrder -> basketScreenDiscardDraftAndLoadOrder()
+        BuyBasketScreenAction.ShowCancelConfirmDialog -> _state.update { it.copy(basketScreen = it.basketScreen.copy(showCancelConfirmDialog = true)) }
+        BuyBasketScreenAction.HideCancelConfirmDialog -> _state.update { it.copy(basketScreen = it.basketScreen.copy(showCancelConfirmDialog = false)) }
     }
 }
 
@@ -907,7 +909,8 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
                 basketScreen = current.basketScreen.copy(
                     isCancelling = true,
                     orderError = null,
-                    cancelSuccess = false
+                    cancelSuccess = false,
+                    showCancelConfirmDialog = false
                 )
             )
         }
@@ -920,12 +923,14 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
 
             if (orderId == null || orderDate == null || pickupDate == null) {
                 setBasketError("Bestellinformationen fehlen")
+                _state.update { it.copy(basketScreen = it.basketScreen.copy(isCancelling = false)) }
                 return@launch
             }
 
             val canEdit = OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
             if (!canEdit) {
                 setBasketError("Stornierung nicht mehr möglich (Frist: Dienstag 23:59)")
+                _state.update { it.copy(basketScreen = it.basketScreen.copy(isCancelling = false)) }
                 return@launch
             }
 
@@ -962,7 +967,8 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
                         ),
                         basketScreen = BasketScreenState(
                             cancelSuccess = true,
-                            availablePickupDates = availableDates
+                            availablePickupDates = availableDates,
+                            isCancelling = false
                         )
                     )
                 }
@@ -987,7 +993,8 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
                                 currentOrderDate = null
                             ),
                             basketScreen = BasketScreenState(
-                                availablePickupDates = availableDates
+                                availablePickupDates = availableDates,
+                                isCancelling = false
                             )
                         )
                     }

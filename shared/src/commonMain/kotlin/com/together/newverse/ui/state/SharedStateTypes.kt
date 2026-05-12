@@ -363,7 +363,8 @@ data class BasketScreenState(
     val showDraftWarningDialog: Boolean = false,
     val draftItemCount: Int = 0,
     val pendingOrderIdForLoad: String? = null,
-    val pendingOrderDateForLoad: String? = null
+    val pendingOrderDateForLoad: String? = null,
+    val showCancelConfirmDialog: Boolean = false
 ) : ScreenState
 
 // ===== Customer Profile Screen State =====
