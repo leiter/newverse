@@ -104,6 +104,7 @@ android {
             applicationIdSuffix = ".buy"
             versionCode = appVersionCode
             versionNameSuffix = "-buy"
+            matchingFallbacks += "buy"
         }
 
         create("sell") {
@@ -111,6 +112,7 @@ android {
             applicationIdSuffix = ".sell"
             versionCode = appVersionCode
             versionNameSuffix = "-sell"
+            matchingFallbacks += "sell"
         }
     }
 }

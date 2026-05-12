@@ -640,7 +640,7 @@ internal fun OrderInfoCard(
 @Composable
 private fun formatDate(timestamp: Long, pattern: String = "dd.MM.yyyy"): String {
     val instant = Instant.fromEpochMilliseconds(timestamp)
-    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    val dateTime = instant.toLocalDateTime(TimeZone.of("Europe/Berlin"))
 
     // Basic formatting, consider a date formatting library for more complex needs
     return when (pattern) {
@@ -676,8 +676,11 @@ private fun getDaysUntilPickup(pickupDate: Long): Long {
     val now = Clock.System.now()
     val pickupInstant = Instant.fromEpochMilliseconds(pickupDate)
 
-    val todayDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val pickupLocalDate = pickupInstant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+    // Define a consistent timezone for calculations
+    val timezone = TimeZone.of("Europe/Berlin")
+
+    val todayDate = now.toLocalDateTime(timezone).date
+    val pickupLocalDate = pickupInstant.toLocalDateTime(timezone).date
 
     return (pickupLocalDate.toEpochDays() - todayDate.toEpochDays()).toLong()
 }

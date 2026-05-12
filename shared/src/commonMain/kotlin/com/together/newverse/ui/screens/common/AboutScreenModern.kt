@@ -51,7 +51,6 @@ import com.together.newverse.ui.theme.FabGreen
 import com.together.newverse.ui.theme.Gray600
 import com.together.newverse.ui.theme.InfoBlue
 import com.together.newverse.ui.theme.LeafGreen
-import com.together.newverse.ui.theme.OrganicBeige
 import com.together.newverse.ui.theme.SuccessGreen
 import com.together.newverse.ui.theme.White
 import newverse.shared.generated.resources.Res
@@ -179,7 +178,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = OrganicBeige.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
