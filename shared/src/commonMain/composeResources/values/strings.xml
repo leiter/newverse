@@ -238,7 +238,7 @@
     <string name="basket_created">Erstellt:</string>
     <string name="basket_editable_until">Bearbeitbar bis: %s</string>
     <string name="basket_unsaved_changes">⚠ Sie haben ungespeicherte Änderungen</string>
-    <string name="basket_unsaved_changes_message">Sie haben nicht gespeicherte Änderungen. Tippen Sie auf \'Bestellung aktualisieren\', um sie zu speichern.</string>
+    <string name="basket_unsaved_changes_message">Sie haben nicht gespeicherte Änderungen. Tippen Sie auf 'Bestellung aktualisieren', um sie zu speichern.</string>
     <string name="basket_pickup_date">Abholdatum</string>
     <string name="basket_orderable_until">Bestellbar bis: %s</string>
     <string name="basket_select_date">Datum auswählen</string>

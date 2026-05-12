@@ -153,7 +153,8 @@ internal fun BuyAppViewModel.observeBasketScreenItems() {
                     basketScreen = current.basketScreen.copy(
                         items = items,
                         total = basketRepository.getTotal(),
-                        hasChanges = hasChanges
+                        hasChanges = hasChanges,
+                        orderSuccess = false // Hide success message on any change
                     )
                 )
             }
