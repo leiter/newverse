@@ -45,6 +45,7 @@ import androidx.navigation.compose.rememberNavController
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.util.rememberKeyboardManager
+import com.together.newverse.util.formatPrice
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.ui.state.DeepLinkRouter
@@ -278,7 +279,7 @@ fun AppScaffold(
 
     // Get screen title based on current route
     val defaultAppName = stringResource(Res.string.app_name)
-    val screenTitle = remember(currentRoute) {
+    val screenTitle = remember(currentRoute, appState.basketScreen.total) {
         NavRoutes.getAllRoutes()
             .find { route ->
                 // Match routes with or without query parameters
@@ -286,7 +287,12 @@ fun AppScaffold(
             }
     }
     val displayTitle = screenTitle?.let {
-        stringResource(NavRoutes.getDisplayNameRes(it))
+        val baseTitle = stringResource(NavRoutes.getDisplayNameRes(it))
+        if (it.route.startsWith(NavRoutes.Buy.Basket.route) && appState.basketScreen.total > 0) {
+            "$baseTitle: ${appState.basketScreen.total.formatPrice()} €"
+        } else {
+            baseTitle
+        }
     } ?: defaultAppName
 
     // Scroll behavior for collapsing toolbar (only for Home screen)

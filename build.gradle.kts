@@ -9,7 +9,7 @@ plugins {
     id("com.android.library").version("8.13.2").apply(false)
 
     // Compose
-    id("org.jetbrains.compose").version("1.9.3").apply(false)
+    id("org.jetbrains.compose").version("1.10.3").apply(false)
 
     // Google Services
     id("com.google.gms.google-services").version("4.4.2").apply(false)
