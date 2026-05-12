@@ -12,7 +12,7 @@ val LeafGreen = Color(0xFF66BB6A)    // Fresh leaf green for highlights
 val Orange = Color(0xFFFF6F00)       // Vibrant orange for CTAs
 val SoftOrange = Color(0xFFFFB74D)   // Softer orange for badges
 val BrownAccent = Color(0xFF6D4C41)  // Refined brown
-
+val BrandOrange = Color(0xFFFA9C4D)
 // Background Colors - Organic & Earthy
 val OrganicBeige = Color(0xFFF5E6D3)     // Warm organic beige
 val LightCream = Color(0xFFFFF8E1)       // Cream for light backgrounds

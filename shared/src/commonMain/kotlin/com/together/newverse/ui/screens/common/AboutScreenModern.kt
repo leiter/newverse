@@ -1,5 +1,6 @@
 package com.together.newverse.ui.screens.common
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.together.newverse.ui.theme.BrandOrange
 import com.together.newverse.ui.theme.BrownAccent
 import com.together.newverse.ui.theme.ErrorRed
 import com.together.newverse.ui.theme.FabGreen
@@ -54,7 +56,28 @@ import com.together.newverse.ui.theme.LeafGreen
 import com.together.newverse.ui.theme.SuccessGreen
 import com.together.newverse.ui.theme.White
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.*
+import newverse.shared.generated.resources.about_contact_title
+import newverse.shared.generated.resources.about_email
+import newverse.shared.generated.resources.about_impressum_address
+import newverse.shared.generated.resources.about_impressum_address_label
+import newverse.shared.generated.resources.about_impressum_owner_label
+import newverse.shared.generated.resources.about_impressum_owner_name
+import newverse.shared.generated.resources.about_impressum_represented_label
+import newverse.shared.generated.resources.about_impressum_represented_name
+import newverse.shared.generated.resources.about_impressum_title
+import newverse.shared.generated.resources.about_location
+import newverse.shared.generated.resources.about_mission_text
+import newverse.shared.generated.resources.about_mission_title
+import newverse.shared.generated.resources.about_phone
+import newverse.shared.generated.resources.about_privacy_button
+import newverse.shared.generated.resources.about_privacy_description
+import newverse.shared.generated.resources.about_privacy_intro
+import newverse.shared.generated.resources.about_privacy_title
+import newverse.shared.generated.resources.app_established
+import newverse.shared.generated.resources.app_icon
+import newverse.shared.generated.resources.app_name
+import newverse.shared.generated.resources.app_tagline_full
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -127,18 +150,16 @@ private fun HeroSection() {
             // Logo/Icon
             Surface(
                 shape = CircleShape,
-                color = LeafGreen,
+                color = BrandOrange,
                 modifier = Modifier.size(80.dp)
             ) {
-                Icon(
-                    Icons.Default.Favorite,
+                Image(
+                    painter = painterResource(Res.drawable.app_icon),
                     contentDescription = null,
-                    tint = White,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(20.dp)
+                    modifier = Modifier.fillMaxSize()
                 )
             }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
