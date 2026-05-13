@@ -5,6 +5,7 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.model.prepareForReorder
 import com.together.newverse.ui.state.BasketScreenState
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.MergeConflict
@@ -428,10 +429,23 @@ internal fun BuyAppViewModel.basketScreenRemoveItem(productId: String) {
         val isPlacedOrder = basketState.orderId != null
         val isNowEmpty = basketRepository.observeBasket().value.isEmpty()
 
-        // If the last item of a placed, editable order is removed, cancel it and reset to a fresh draft.
-        if (isPlacedOrder && isNowEmpty) {
-            bLog("🛒 basketScreenRemoveItem: Last item removed from placed order, resetting to empty draft.")
-            basketScreenResetToEmptyDraft()
+        when {
+            isPlacedOrder && isNowEmpty -> {
+                bLog("🛒 basketScreenRemoveItem: Last item removed from placed order, resetting to empty draft.")
+                basketScreenResetToEmptyDraft()
+            }
+            !isPlacedOrder && isNowEmpty -> {
+                bLog("🛒 basketScreenRemoveItem: Last item removed from draft basket, clearing draft immediately.")
+                draftSaveJob?.cancel()
+                if (!_state.value.isDemoMode) {
+                    try {
+                        profileRepository.clearDraftBasket()
+                    } catch (e: Exception) {
+                        bLog("⚠️ basketScreenRemoveItem: Failed to clear draft from profile: ${e.message}")
+                    }
+                }
+                basketRepository.clearBasket()
+            }
         }
     }
 }
@@ -489,6 +503,46 @@ private fun BuyAppViewModel.basketScreenResetToEmptyDraft() {
             )
         }
         bLog("🔄 basketScreenResetToEmptyDraft: Basket state has been reset to a new empty draft.")
+    }
+}
+
+internal fun BuyAppViewModel.basketScreenLoadHistoryOrderAsReorder(order: Order) {
+    viewModelScope.launch {
+        val currentUserId = authRepository.getCurrentUserId() ?: return@launch
+        val freshProfile = getBuyerProfileOrFallback(currentUserId)
+        val currentArticles = _state.value.mainScreen.articles
+
+        val draftOrder = order.prepareForReorder(
+            freshBuyerProfile = freshProfile,
+            isDemoOrder = _state.value.isDemoMode
+        )
+
+        val correctedArticles = draftOrder.articles.map { item ->
+            val article = currentArticles.find { it.id == item.productId }
+            if (article != null && article.available) {
+                item.copy(price = article.price, productName = article.productName, unit = article.unit)
+            } else item
+        }
+
+        basketRepository.clearBasket()
+        for (item in correctedArticles) { basketRepository.addItem(item) }
+
+        val availableDates = _state.value.basketScreen.availablePickupDates
+        _state.update { current ->
+            current.copy(
+                basket = current.basket.copy(
+                    currentOrderId = null,
+                    currentOrderDate = null
+                ),
+                basketScreen = BasketScreenState(
+                    items = correctedArticles,
+                    total = correctedArticles.sumOf { it.price * it.amountCount },
+                    availablePickupDates = availableDates,
+                    canEdit = true
+                )
+            )
+        }
+        bLog("🛒 basketScreenLoadHistoryOrderAsReorder: Loaded ${correctedArticles.size} articles as new draft")
     }
 }
 

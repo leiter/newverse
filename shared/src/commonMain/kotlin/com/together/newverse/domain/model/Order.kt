@@ -159,3 +159,19 @@ data class Order(
         }
     }
 }
+
+/**
+ * Creates a fresh local draft from a historical order, ready to be edited and placed.
+ * Articles are preserved as-is; price correction happens in the ViewModel using the current catalog.
+ */
+fun Order.prepareForReorder(
+    freshBuyerProfile: BuyerProfile,
+    isDemoOrder: Boolean = false
+): Order = copy(
+    id = "",
+    buyerProfile = freshBuyerProfile.copy(draftBasket = null),
+    createdDate = Clock.System.now().toEpochMilliseconds(),
+    pickUpDate = 0L,
+    status = OrderStatus.DRAFT,
+    isDemoOrder = isDemoOrder
+)

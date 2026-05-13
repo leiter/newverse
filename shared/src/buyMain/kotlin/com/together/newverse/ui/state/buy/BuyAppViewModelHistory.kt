@@ -13,10 +13,8 @@ internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
     val isBasketEmpty = basketRepository.observeBasket().value.isEmpty()
 
     if (isBasketEmpty) {
-        // Basket is empty, so load the tapped order. If it's outdated, it will be treated as a new draft.
         _state.update { it.copy(navigateToBasketAsTopLevel = true) }
-        val dateKey = formatDateKey(order.pickUpDate)
-        handleBasketScreenAction(BuyBasketScreenAction.LoadOrder(order.id, dateKey, forceLoad = true))
+        basketScreenLoadHistoryOrderAsReorder(order)
     } else {
         // Basket is not empty, so always show the merge dialog.
         _state.update {
