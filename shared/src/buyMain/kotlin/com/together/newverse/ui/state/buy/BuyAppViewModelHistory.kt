@@ -29,12 +29,29 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
     viewModelScope.launch {
         val tappedOrder = _state.value.tappedHistoryOrder ?: return@launch
         val currentBasketItems = basketRepository.observeBasket().value
+        val currentArticles = _state.value.mainScreen.articles
 
-        // Combine items from the current basket and the old order, summing quantities for duplicates.
+        // Combine items, summing quantities and correcting prices.
         val mergedItems = (currentBasketItems + tappedOrder.articles)
             .groupBy { it.productId }
-            .map { (_, items) ->
-                items.first().copy(amountCount = items.sumOf { it.amountCount })
+            .map { (productId, items) ->
+                val currentArticle = currentArticles.find { it.id == productId }
+                val representativeItem = items.first()
+
+                if (currentArticle != null && currentArticle.available) {
+                    // If article exists and is available, use its current data
+                    representativeItem.copy(
+                        amountCount = items.sumOf { it.amountCount },
+                        price = currentArticle.price,
+                        productName = currentArticle.productName,
+                        unit = currentArticle.unit
+                    )
+                } else {
+                    // Otherwise, just sum the quantity but keep existing data
+                    representativeItem.copy(
+                        amountCount = items.sumOf { it.amountCount }
+                    )
+                }
             }
 
         // Update the basket repository with the new merged list.

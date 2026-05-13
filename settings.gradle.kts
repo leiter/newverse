@@ -20,4 +20,4 @@ dependencyResolutionManagement {
 
 include(":androidApp")
 include(":shared")
-include(":build_logic")
+include(":build-logic")
