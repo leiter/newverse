@@ -12,6 +12,7 @@ import com.together.newverse.ui.state.MergeConflict
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
+import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
@@ -542,6 +543,7 @@ internal fun BuyAppViewModel.basketScreenLoadHistoryOrderAsReorder(order: Order)
                 )
             )
         }
+        navigateTo(NavRoutes.Buy.Basket)
         bLog("🛒 basketScreenLoadHistoryOrderAsReorder: Loaded ${correctedArticles.size} articles as new draft")
     }
 }

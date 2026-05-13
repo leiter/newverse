@@ -13,7 +13,6 @@ internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
     val isBasketEmpty = basketRepository.observeBasket().value.isEmpty()
 
     if (isBasketEmpty) {
-        _state.update { it.copy(navigateToBasketAsTopLevel = true) }
         basketScreenLoadHistoryOrderAsReorder(order)
     } else {
         // Basket is not empty, so always show the merge dialog.
