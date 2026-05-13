@@ -525,6 +525,9 @@ internal fun BuyAppViewModel.basketScreenLoadHistoryOrderAsReorder(order: Order)
             } else item
         }
 
+        if (!_state.value.isDemoMode) {
+            try { profileRepository.clearDraftBasket() } catch (_: Exception) {}
+        }
         basketRepository.clearBasket()
         for (item in correctedArticles) { basketRepository.addItem(item) }
 

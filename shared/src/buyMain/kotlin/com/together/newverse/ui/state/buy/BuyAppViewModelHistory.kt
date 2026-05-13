@@ -49,14 +49,8 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
 
 internal fun BuyAppViewModel.discardAndLoadHistoryOrder() {
     val tappedOrder = _state.value.tappedHistoryOrder ?: return
-    viewModelScope.launch {
-        hideHistoryMergeDialog()
-        // Set flag to navigate, which will be observed by the AppScaffold
-        _state.update { it.copy(navigateToBasketAsTopLevel = true) }
-        // Let LoadOrder handle clearing the basket and loading the new one.
-        val dateKey = formatDateKey(tappedOrder.pickUpDate)
-        handleBasketScreenAction(BuyBasketScreenAction.LoadOrder(tappedOrder.id, dateKey, forceLoad = true))
-    }
+    hideHistoryMergeDialog()
+    basketScreenLoadHistoryOrderAsReorder(tappedOrder)
 }
 
 internal fun BuyAppViewModel.hideHistoryMergeDialog() {

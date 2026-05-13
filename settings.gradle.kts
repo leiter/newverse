@@ -1,5 +1,8 @@
 rootProject.name = "Newverse"
 
+
+include(":build-logic")
+
 pluginManagement {
     repositories {
         google()
@@ -17,3 +20,4 @@ dependencyResolutionManagement {
 
 include(":androidApp")
 include(":shared")
+include(":build_logic")
