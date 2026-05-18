@@ -6,6 +6,7 @@ import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.prepareForReorder
+import com.together.newverse.ui.state.BasketMergeMode
 import com.together.newverse.ui.state.BasketScreenState
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.MergeConflict
@@ -1311,6 +1312,10 @@ internal fun BuyAppViewModel.basketScreenResolveMergeConflict(productId: String,
 }
 
 internal fun BuyAppViewModel.basketScreenConfirmMerge() {
+    if (_state.value.basketScreen.mergeMode == BasketMergeMode.HISTORY_REORDER) {
+        confirmHistoryMergeIntoDraft()
+        return
+    }
     viewModelScope.launch {
         bLog("🔀 BuyAppViewModel.basketScreenConfirmMerge: START")
         _state.update { current ->
@@ -1576,4 +1581,61 @@ internal fun BuyAppViewModel.basketScreenShowDraftWarningIfNeeded(orderId: Strin
         return true
     }
     return false
+}
+
+internal fun BuyAppViewModel.confirmHistoryMergeIntoDraft() {
+    viewModelScope.launch {
+        bLog("🔀 confirmHistoryMergeIntoDraft: START")
+        _state.update { current ->
+            current.copy(basketScreen = current.basketScreen.copy(isMerging = true))
+        }
+        try {
+            val basketState = _state.value.basketScreen
+            val historicOrder = basketState.existingOrderForMerge
+            if (historicOrder == null) {
+                setBasketError("Keine bestehende Bestellung zum Zusammenführen")
+                return@launch
+            }
+            val historicItems = historicOrder.articles
+            val draftItems = basketState.items
+            val currentArticles = _state.value.mainScreen.articles
+
+            val mergedRaw = mergeItemsWithResolutions(
+                historicItems = historicItems,
+                draftItems = draftItems,
+                conflicts = basketState.mergeConflicts
+            )
+            val merged = mergedRaw.map { correctArticleData(it, currentArticles) }
+
+            basketRepository.clearBasket()
+            for (item in merged) basketRepository.addItem(item)
+
+            // Preserve any in-progress placed order so the basket screen continues to show
+            // "Update Order" rather than reverting to the checkout/order CTA.
+            val hasPlacedOrder = basketState.orderId != null
+            val hasChanges = if (hasPlacedOrder)
+                basketScreenCheckIfHasChanges(merged, basketState.originalOrderItems) else false
+
+            _state.update { current ->
+                current.copy(
+                    basketScreen = current.basketScreen.copy(
+                        items = merged,
+                        total = merged.sumOf { it.price * it.amountCount },
+                        showMergeDialog = false,
+                        existingOrderForMerge = null,
+                        mergeConflicts = emptyList(),
+                        isMerging = false,
+                        mergeMode = BasketMergeMode.CHECKOUT_EXISTING_ORDER,
+                        hasChanges = hasChanges
+                    )
+                )
+            }
+            bLog("🔀 confirmHistoryMergeIntoDraft: ${merged.size} items written; placedOrder=$hasPlacedOrder")
+        } catch (e: Exception) {
+            setBasketError("Zusammenführung fehlgeschlagen: ${e.message}")
+            _state.update { current ->
+                current.copy(basketScreen = current.basketScreen.copy(isMerging = false))
+            }
+        }
+    }
 }

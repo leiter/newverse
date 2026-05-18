@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Order
 import com.together.newverse.ui.state.BasketScreenState
+import com.together.newverse.ui.state.BasketMergeMode
 import com.together.newverse.ui.state.MergeConflict
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
@@ -122,9 +123,15 @@ fun BasketContent(
     }
 
     if (state.showMergeDialog && state.existingOrderForMerge != null) {
+        val visibleConflicts = when (state.mergeMode) {
+            BasketMergeMode.HISTORY_REORDER -> state.mergeConflicts.filter {
+                it.conflictType == MergeConflictType.QUANTITY_CHANGED
+            }
+            BasketMergeMode.CHECKOUT_EXISTING_ORDER -> state.mergeConflicts
+        }
         OrderMergeDialog(
             existingOrder = state.existingOrderForMerge,
-            conflicts = state.mergeConflicts,
+            conflicts = visibleConflicts,
             isMerging = state.isMerging,
             onResolveConflict = { productId, resolution ->
                 onAction(BuyBasketScreenAction.ResolveMergeConflict(productId, resolution))

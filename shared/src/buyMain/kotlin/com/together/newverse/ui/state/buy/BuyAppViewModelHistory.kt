@@ -1,9 +1,13 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.ui.state.BasketMergeMode
 import com.together.newverse.ui.state.BuyAppViewModel
-import com.together.newverse.ui.state.BuyBasketScreenAction
+import com.together.newverse.ui.state.MergeConflictType
+import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.navigation.NavRoutes
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.toLocalDateTime
@@ -31,36 +35,60 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
         val currentBasketItems = basketRepository.observeBasket().value
         val currentArticles = _state.value.mainScreen.articles
 
-        // Combine items, summing quantities and correcting prices.
-        val mergedItems = (currentBasketItems + tappedOrder.articles)
-            .groupBy { it.productId }
-            .map { (productId, items) ->
-                val currentArticle = currentArticles.find { it.id == productId }
-                val representativeItem = items.first()
+        val historicItems = tappedOrder.articles.map { correctArticleData(it, currentArticles) }
+        val draftItems = currentBasketItems.map { correctArticleData(it, currentArticles) }
 
-                if (currentArticle != null && currentArticle.available) {
-                    // If article exists and is available, use its current data
-                    representativeItem.copy(
-                        amountCount = items.sumOf { it.amountCount },
-                        price = currentArticle.price,
-                        productName = currentArticle.productName,
-                        unit = currentArticle.unit
+        val conflicts = basketScreenCalculateMergeConflicts(
+            newItems = draftItems,
+            existingItems = historicItems
+        )
+        val hasQuantityConflict = conflicts.any { it.conflictType == MergeConflictType.QUANTITY_CHANGED }
+
+        if (!hasQuantityConflict) {
+            val mergedItems = mergeItemsWithResolutions(
+                historicItems = historicItems,
+                draftItems = draftItems,
+                conflicts = conflicts
+            )
+            basketRepository.clearBasket()
+            for (item in mergedItems) basketRepository.addItem(item)
+
+            // If there is already a placed order loaded for this pickup date, keep its
+            // metadata so the basket screen continues to offer "Update Order".
+            val basketState = _state.value.basketScreen
+            val hasPlacedOrder = basketState.orderId != null
+            val hasChanges = if (hasPlacedOrder)
+                basketScreenCheckIfHasChanges(mergedItems, basketState.originalOrderItems) else false
+
+            _state.update { current ->
+                current.copy(
+                    showHistoryMergeDialog = false,
+                    tappedHistoryOrder = null,
+                    basketScreen = current.basketScreen.copy(
+                        items = mergedItems,
+                        total = mergedItems.sumOf { it.price * it.amountCount },
+                        hasChanges = hasChanges
                     )
-                } else {
-                    // Otherwise, just sum the quantity but keep existing data
-                    representativeItem.copy(
-                        amountCount = items.sumOf { it.amountCount }
-                    )
-                }
+                )
             }
-
-        // Update the basket repository with the new merged list.
-        basketRepository.clearBasket()
-        mergedItems.forEach { basketRepository.addItem(it) }
-
-        // Hide the dialog and trigger navigation to the basket, preserving the current order context.
-        hideHistoryMergeDialog()
-        _state.update { it.copy(navigateToBasketAsTopLevel = true) }
+            navigateTo(NavRoutes.Buy.Basket)
+        } else {
+            _state.update { current ->
+                current.copy(
+                    showHistoryMergeDialog = false,
+                    tappedHistoryOrder = null,
+                    basketScreen = current.basketScreen.copy(
+                        items = draftItems,
+                        showMergeDialog = true,
+                        mergeConflicts = conflicts,
+                        existingOrderForMerge = tappedOrder.copy(articles = historicItems),
+                        isMerging = false,
+                        mergeMode = BasketMergeMode.HISTORY_REORDER
+                    )
+                )
+            }
+            navigateTo(NavRoutes.Buy.Basket)
+        }
     }
 }
 
@@ -77,6 +105,52 @@ internal fun BuyAppViewModel.hideHistoryMergeDialog() {
             tappedHistoryOrder = null
         )
     }
+}
+
+internal fun correctArticleData(item: OrderedProduct, currentArticles: List<Article>): OrderedProduct {
+    val article = currentArticles.find { it.id == item.productId }
+    return if (article != null && article.available) {
+        item.copy(
+            price = article.price,
+            productName = article.productName,
+            unit = article.unit
+        )
+    } else item
+}
+
+internal fun mergeItemsWithResolutions(
+    historicItems: List<OrderedProduct>,
+    draftItems: List<OrderedProduct>,
+    conflicts: List<com.together.newverse.ui.state.MergeConflict>
+): List<OrderedProduct> {
+    val merged = mutableListOf<OrderedProduct>()
+    val processedIds = mutableSetOf<String>()
+
+    for (historic in historicItems) {
+        val draft = draftItems.find { it.productId == historic.productId }
+        val conflict = conflicts.find { it.productId == historic.productId }
+
+        val finalItem = when {
+            conflict != null -> when (conflict.resolution) {
+                MergeResolution.ADD -> historic.copy(
+                    amountCount = historic.amountCount + (draft?.amountCount ?: 0.0),
+                    price = draft?.price ?: historic.price
+                )
+                MergeResolution.KEEP_EXISTING -> historic
+                MergeResolution.USE_NEW -> draft ?: historic
+                MergeResolution.UNDECIDED -> historic
+            }
+            draft != null -> draft // same productId, same qty — single copy
+            else -> historic
+        }
+        merged.add(finalItem)
+        processedIds.add(historic.productId)
+    }
+
+    for (draft in draftItems) {
+        if (draft.productId !in processedIds) merged.add(draft)
+    }
+    return merged
 }
 
 private fun getDaysUntilPickup(pickupDate: Long): Long {

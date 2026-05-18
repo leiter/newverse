@@ -319,6 +319,11 @@ enum class MergeConflictType {
     ITEM_REMOVED
 }
 
+enum class BasketMergeMode {
+    CHECKOUT_EXISTING_ORDER,
+    HISTORY_REORDER
+}
+
 data class MergeConflict(
     val productId: String,
     val productName: String,
@@ -360,6 +365,7 @@ data class BasketScreenState(
     val existingOrderForMerge: Order? = null,
     val mergeConflicts: List<MergeConflict> = emptyList(),
     val isMerging: Boolean = false,
+    val mergeMode: BasketMergeMode = BasketMergeMode.CHECKOUT_EXISTING_ORDER,
     val showDraftWarningDialog: Boolean = false,
     val draftItemCount: Int = 0,
     val pendingOrderIdForLoad: String? = null,
