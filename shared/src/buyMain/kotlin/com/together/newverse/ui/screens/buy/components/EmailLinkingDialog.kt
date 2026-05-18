@@ -77,7 +77,7 @@ fun EmailLinkingDialog(
     val errorPasswordLength = stringResource(Res.string.error_password_length)
     val errorPasswordNoNumber = stringResource(Res.string.error_password_no_number)
     val errorPasswordNoLetter = stringResource(Res.string.error_password_no_letter)
-    val errorConfirmPassword = stringResource(Res.string.error_confirm_password)
+    stringResource(Res.string.error_confirm_password)
     val errorPasswordsMismatch = stringResource(Res.string.error_passwords_mismatch)
 
     // Local validation state

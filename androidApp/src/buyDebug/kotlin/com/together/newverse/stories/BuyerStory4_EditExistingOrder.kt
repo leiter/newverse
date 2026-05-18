@@ -154,7 +154,7 @@ suspend fun runBuyerStory4_EditExistingOrder(
     println("-".repeat(80))
 
     calendar.timeInMillis = pickupDate
-    val pickupDay = calendar.get(Calendar.DAY_OF_MONTH)
+    calendar.get(Calendar.DAY_OF_MONTH)
 
     // Edit deadline is Tuesday 23:59 before Thursday pickup (3 days)
     calendar.timeInMillis = pickupDate

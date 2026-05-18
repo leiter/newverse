@@ -535,9 +535,7 @@ class GitLiveOrderRepository(
      */
     private fun mapSnapshotToOrder(snapshot: DataSnapshot): Order? {
         val orderId = snapshot.key ?: return null
-        val value = snapshot.value
-
-        return when (value) {
+        return when (val value = snapshot.value) {
             is Map<*, *> -> {
                 try {
                     // Map articles
@@ -708,7 +706,7 @@ class GitLiveOrderRepository(
 
             val now = Clock.System.now()
             val timezone = TimeZone.currentSystemDefault()
-            val nowLocal = now.toLocalDateTime(timezone)
+            now.toLocalDateTime(timezone)
             // Cutoff: 1 month ago (approximate: 30 days)
             val cutoffMillis = now.toEpochMilliseconds() - (30L * 24 * 60 * 60 * 1000)
 
@@ -720,7 +718,7 @@ class GitLiveOrderRepository(
                         val year = dateKey.substring(0, 4).toInt()
                         val month = dateKey.substring(4, 6).toInt()
                         val day = dateKey.substring(6, 8).toInt()
-                        val localDate = kotlinx.datetime.LocalDate(year, month, day)
+                        val localDate = LocalDate(year, month, day)
                         val dateMillis = localDate.atStartOfDayIn(timezone).toEpochMilliseconds()
                         if (dateMillis < cutoffMillis) {
                             sellerDemoRef.child(dateKey).removeValue()

@@ -417,10 +417,8 @@ class GitLiveProfileRepository(
     // Helper functions to map Firebase data
 
     private fun mapSnapshotToBuyerProfile(userId: String, snapshot: DataSnapshot): BuyerProfile {
-        val value = snapshot.value
-
         // Handle different data types from Firebase
-        return when (value) {
+        return when (val value = snapshot.value) {
             is Map<*, *> -> {
                 // Parse draft basket if exists
                 val draftBasketData = value["draftBasket"] as? Map<*, *>
@@ -479,13 +477,10 @@ class GitLiveProfileRepository(
     }
 
     private fun mapSnapshotToSellerProfile(sellerId: String, snapshot: DataSnapshot): SellerProfile {
-        val value = snapshot.value
-
-        return when (value) {
+        return when (val value = snapshot.value) {
             is Map<*, *> -> {
                 // Deserialize markets
-                val marketsData = value["markets"]
-                val markets = when (marketsData) {
+                val markets = when (val marketsData = value["markets"]) {
                     is List<*> -> marketsData.mapNotNull { marketData ->
                         when (marketData) {
                             is Map<*, *> -> Market(

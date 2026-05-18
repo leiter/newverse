@@ -358,8 +358,7 @@ class AuthFlowCoordinator(
      * Returns Result.failure if not authenticated.
      */
     suspend fun <T> withAuthSuspend(block: suspend (userId: String) -> T): Result<T> {
-        val currentAuth = _authState.value
-        return when (currentAuth) {
+        return when (val currentAuth = _authState.value) {
             is AuthState.Authenticated -> runCatching { block(currentAuth.userId) }
             is AuthState.NotAuthenticated -> Result.failure(
                 IllegalStateException("User is not authenticated")

@@ -288,9 +288,7 @@ class GitLiveArticleRepository(
      */
     private fun mapSnapshotToArticle(snapshot: DataSnapshot): Article? {
         val articleId = snapshot.key ?: return null
-        val value = snapshot.value
-
-        return when (value) {
+        return when (val value = snapshot.value) {
             is Map<*, *> -> {
                 Article(
                     id = articleId,

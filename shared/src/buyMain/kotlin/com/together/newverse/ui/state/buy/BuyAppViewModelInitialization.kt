@@ -116,7 +116,7 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
 
         authFlowCoordinator.authState.collect { authState ->
             println("[NV_BuyAppVM] observeAuthStateChanges: Collected authState=$authState (previous=$previousAuthState)")
-            val previousUserState = _state.value.user
+            _state.value.user
 
             // Update state with new auth info
             _state.update { current ->

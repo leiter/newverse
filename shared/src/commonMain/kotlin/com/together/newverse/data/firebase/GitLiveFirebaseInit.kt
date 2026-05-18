@@ -57,7 +57,7 @@ object GitLiveFirebaseInit {
     private fun initializeAuth() {
         try {
             val auth = Firebase.auth
-            println("🔥 GitLiveFirebaseInit: Auth initialized")
+            println("🔥 GitLiveFirebaseInit: Auth initialized ${auth.currentUser}")
 
             // Set auth settings if needed
             // auth.useEmulator("localhost", 9099) // For testing with emulator
@@ -73,7 +73,7 @@ object GitLiveFirebaseInit {
     private fun initializeDatabase() {
         try {
             val database = Firebase.database
-            println("🔥 GitLiveFirebaseInit: Database initialized")
+            println("🔥 GitLiveFirebaseInit: Database initialized ${database.reference()}")
 
             // Persistence is enabled at platform level (NewverseApp.kt / NewverseApp.swift)
             // GitLive SDK uses the underlying Firebase persistence automatically

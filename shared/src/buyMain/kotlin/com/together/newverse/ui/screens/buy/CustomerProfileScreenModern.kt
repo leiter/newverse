@@ -197,8 +197,6 @@ fun CustomerProfileScreenModern(
     val isSelfPickup by profileViewModel.isSelfPickup.collectAsState()
 
     // Other local state that's not part of the form
-    var notificationsEnabled by remember { mutableStateOf(true) }
-    var newsletterEnabled by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
 
@@ -264,8 +262,8 @@ fun CustomerProfileScreenModern(
     if (showConnectionConfirmDialog != null) {
         ConnectionConfirmDialog(
             confirmation = showConnectionConfirmDialog,
-            onConfirm = { onAction(com.together.newverse.ui.state.BuySellerAction.ConfirmConnection) },
-            onDismiss = { onAction(com.together.newverse.ui.state.BuySellerAction.DismissConnectionDialog) }
+            onConfirm = { onAction(BuySellerAction.ConfirmConnection) },
+            onDismiss = { onAction(BuySellerAction.DismissConnectionDialog) }
         )
     }
 
@@ -384,10 +382,10 @@ fun CustomerProfileScreenModern(
                     PendingInvitationsCard(
                         invitations = pendingInvitations,
                         onAccept = { invitationId ->
-                            onAction(com.together.newverse.ui.state.BuySellerAction.AcceptPendingInvitation(invitationId))
+                            onAction(BuySellerAction.AcceptPendingInvitation(invitationId))
                         },
                         onReject = { invitationId ->
-                            onAction(com.together.newverse.ui.state.BuySellerAction.RejectPendingInvitation(invitationId))
+                            onAction(BuySellerAction.RejectPendingInvitation(invitationId))
                         }
                     )
 
@@ -398,7 +396,7 @@ fun CustomerProfileScreenModern(
                             buyerUUID = buyerUUID,
                             isRequestingAccess = isRequestingAccess,
                             onRequestAccess = {
-                                onAction(com.together.newverse.ui.state.BuySellerAction.RequestAccess)
+                                onAction(BuySellerAction.RequestAccess)
                             },
                             onScanQrCode = onScanQrCode
                         )

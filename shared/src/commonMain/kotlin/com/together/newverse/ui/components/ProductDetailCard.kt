@@ -78,7 +78,7 @@ fun ProductDetailCard(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            androidx.compose.material3.CircularProgressIndicator(
+                            CircularProgressIndicator(
                                 modifier = Modifier.size(48.dp),
                                 color = MaterialTheme.colorScheme.primary
                             )
