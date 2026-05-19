@@ -14,12 +14,31 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.launch
 
 internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
+    val daysUntilPickup = getDaysUntilPickup(order.pickUpDate)
+    val isOutstandingOrder = daysUntilPickup >= 0
+
+    // For outstanding orders (pickup not defined or in the future), load directly into basket
+    // without merge/edit options. Clear existing basket and load as fresh draft.
+    if (isOutstandingOrder) {
+        viewModelScope.launch {
+            basketRepository.clearBasket()
+            val currentArticles = _state.value.mainScreen.articles
+            val correctedItems = order.articles.map { correctArticleData(it, currentArticles) }
+            for (item in correctedItems) {
+                basketRepository.addItem(item)
+            }
+            navigateTo(NavRoutes.Buy.Basket)
+        }
+        return
+    }
+
+    // For past orders, use original logic (reorder or merge)
     val isBasketEmpty = basketRepository.observeBasket().value.isEmpty()
 
     if (isBasketEmpty) {
         basketScreenLoadHistoryOrderAsReorder(order)
     } else {
-        // Basket is not empty, so always show the merge dialog.
+        // Basket is not empty, so show the merge dialog.
         _state.update {
             it.copy(
                 showHistoryMergeDialog = true,

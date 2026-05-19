@@ -3,6 +3,7 @@ package com.together.newverse.ui.navigation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,13 +34,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.History
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.together.newverse.domain.repository.BasketRepository
@@ -286,13 +296,11 @@ fun AppScaffold(
                 currentRoute == route.route || currentRoute.startsWith(route.route + "?")
             }
     }
+    val isBasketScreen = screenTitle?.route?.startsWith(NavRoutes.Buy.Basket.route) ?: false
     val displayTitle = screenTitle?.let {
         val baseTitle = stringResource(NavRoutes.getDisplayNameRes(it))
-        if (it.route.startsWith(NavRoutes.Buy.Basket.route) && appState.basketScreen.total > 0) {
-            "$baseTitle: ${appState.basketScreen.total.formatPrice()} €"
-        } else {
-            baseTitle
-        }
+        // For basket screen, title is handled separately in TopAppBar with custom Row layout
+        baseTitle
     } ?: defaultAppName
 
     // Scroll behavior for collapsing toolbar (only for Home screen)
@@ -357,7 +365,34 @@ fun AppScaffold(
         },
         topBar = {
             TopAppBar(
-                title = { Text(displayTitle) },
+                title = {
+                    if (isBasketScreen) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.nav_shopping_basket) +  " (${appState.basketScreen.items.size}) ",
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = buildAnnotatedString {
+                                    withStyle(style = SpanStyle(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondary,
+                                        fontSize = 16.sp
+                                    )) {
+                                        append("${appState.basketScreen.total.formatPrice()} €")
+                                    }
+                                },
+                            )
+                            Spacer(Modifier.width(12.dp))
+                        }
+                    } else {
+                        Text(displayTitle)
+                    }
+                },
                 navigationIcon = {
                     // Show back arrow for detail screens that aren't main bottom nav tabs
                     val isDetailScreen = currentRoute == NavRoutes.Buy.OrderHistory.route ||
@@ -386,6 +421,20 @@ fun AppScaffold(
                     }
                 },
                 actions = {
+                    // Show history icon on Basket screen
+                    if (isBasketScreen) {
+                        IconButton(onClick = {
+                            navController.navigate(NavRoutes.Buy.OrderHistory.route) {
+                                launchSingleTop = true
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Default.List,
+                                contentDescription = stringResource(Res.string.nav_shopping_basket),
+                                tint = MaterialTheme.colorScheme.onSecondary
+                            )
+                        }
+                    }
                     // Show contacts icon on Messages screen
                     if (currentRoute == NavRoutes.Buy.Messages.route) {
                         IconButton(onClick = {
