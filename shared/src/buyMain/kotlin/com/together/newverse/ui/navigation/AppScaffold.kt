@@ -1,17 +1,20 @@
 package com.together.newverse.ui.navigation
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.Badge
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,35 +35,34 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.History
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.ui.screens.SplashScreen
-import com.together.newverse.util.rememberKeyboardManager
-import com.together.newverse.util.formatPrice
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.ui.state.DeepLinkRouter
+import com.together.newverse.util.formatPrice
+import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.*
+import newverse.shared.generated.resources.about_email
+import newverse.shared.generated.resources.about_phone
+import newverse.shared.generated.resources.app_name
+import newverse.shared.generated.resources.back
+import newverse.shared.generated.resources.contacts_title
+import newverse.shared.generated.resources.nav_shopping_basket
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -232,10 +234,13 @@ fun AppScaffold(
     // Observe top-level navigation trigger for the basket
     LaunchedEffect(appState.navigateToBasketAsTopLevel) {
         if (appState.navigateToBasketAsTopLevel) {
+            // Pop back stack to remove OrderHistoryScreen entirely before navigating
+            while (navController.previousBackStackEntry != null &&
+                   navController.currentBackStackEntry?.destination?.route != NavRoutes.Home.route) {
+                navController.popBackStack()
+            }
             navController.navigate(NavRoutes.Buy.Basket.route) {
-                popUpTo(NavRoutes.Home.route) { saveState = true }
                 launchSingleTop = true
-                restoreState = true
             }
             viewModel.dispatch(com.together.newverse.ui.state.BuyNavigationAction.NavigationToBasketHandled)
         }

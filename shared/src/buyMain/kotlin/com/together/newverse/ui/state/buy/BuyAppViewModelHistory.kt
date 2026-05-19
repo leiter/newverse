@@ -27,7 +27,13 @@ internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
             for (item in correctedItems) {
                 basketRepository.addItem(item)
             }
-            navigateTo(NavRoutes.Buy.Basket)
+            _state.update {
+                it.copy(
+                    navigateToBasketAsTopLevel = true,
+                    showHistoryMergeDialog = false,
+                    tappedHistoryOrder = null
+                )
+            }
         }
         return
     }
@@ -81,8 +87,10 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
 
             _state.update { current ->
                 current.copy(
+                    navigateToBasketAsTopLevel = true,
                     showHistoryMergeDialog = false,
                     tappedHistoryOrder = null,
+                    orderHistory = current.orderHistory, // Keep existing state
                     basketScreen = current.basketScreen.copy(
                         items = mergedItems,
                         total = mergedItems.sumOf { it.price * it.amountCount },
@@ -90,10 +98,10 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
                     )
                 )
             }
-            navigateTo(NavRoutes.Buy.Basket)
         } else {
             _state.update { current ->
                 current.copy(
+                    navigateToBasketAsTopLevel = true,
                     showHistoryMergeDialog = false,
                     tappedHistoryOrder = null,
                     basketScreen = current.basketScreen.copy(
@@ -106,7 +114,6 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
                     )
                 )
             }
-            navigateTo(NavRoutes.Buy.Basket)
         }
     }
 }
