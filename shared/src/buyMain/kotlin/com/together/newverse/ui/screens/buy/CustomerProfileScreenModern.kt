@@ -38,9 +38,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.automirrored.rounded.ContactSupport
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ContactSupport
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.AlertDialog
@@ -77,6 +75,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -649,17 +648,18 @@ private fun PersonalInfoCard(
                 SectionHeader(
                     icon = Icons.Default.Person,
                     title = stringResource(Res.string.section_personal_info),
-                    iconColor = MaterialTheme.colorScheme.primary
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { isAddressExpanded = !isAddressExpanded }.weight(0.7f)
                 )
 
                 if (!isEditing) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { isAddressExpanded = !isAddressExpanded }
                     ) {
                         Icon(
                             if (isAddressExpanded) Icons.Default.ArrowDropDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = "Toggle address visibility",
+                            modifier = Modifier.clickable { isAddressExpanded = !isAddressExpanded },
                             tint = MaterialTheme.colorScheme.primary
                         )
                         IconButton(
@@ -760,7 +760,10 @@ private fun PersonalInfoCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
-                        onClick = onCancelClick,
+                        onClick = {
+                            onCancelClick()
+                            isAddressExpanded = false
+                        },
                         modifier = Modifier.weight(1f),
                         enabled = !isSubmitting,
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -825,7 +828,7 @@ private fun GemusedateCard(
                 SectionHeader(
                     icon = Icons.Default.DateRange,
                     title = stringResource(Res.string.section_delivery_preferences),
-                    iconColor = MaterialTheme.colorScheme.tertiary
+                    iconColor = MaterialTheme.colorScheme.tertiary,
                 )
 
                 if (!isEditing) {
@@ -1327,11 +1330,13 @@ private fun SaveConfirmationDialog(
 private fun SectionHeader(
     icon: ImageVector,
     title: String,
-    iconColor: Color
+    iconColor: Color,
+    modifier: Modifier = Modifier
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier
     ) {
         Surface(
             shape = CircleShape,
