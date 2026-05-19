@@ -135,6 +135,8 @@ import newverse.shared.generated.resources.label_pickup_time_hint
 import newverse.shared.generated.resources.label_self_pickup
 import newverse.shared.generated.resources.label_self_pickup_hint
 import newverse.shared.generated.resources.label_street
+import newverse.shared.generated.resources.mode_demo
+import newverse.shared.generated.resources.mode_production
 import newverse.shared.generated.resources.payment_cash_only_info
 import newverse.shared.generated.resources.pickup_time_empty
 import newverse.shared.generated.resources.pickup_time_format
@@ -377,6 +379,9 @@ fun CustomerProfileScreenModern(
                         onPickupTimeChange = { profileViewModel.onPickupTimeChange(it) },
                         onSelfPickupToggle = { profileViewModel.onSelfPickupToggle(it) }
                     )
+
+                    // Demo Mode Card
+                    DemoModeCard(isDemoMode = isDemoMode)
 
                     // Pending Invitations Card
                     PendingInvitationsCard(
@@ -967,6 +972,55 @@ private fun GemusedateCard(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(stringResource(Res.string.button_save))
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DemoModeCard(isDemoMode: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            val modeText = if (isDemoMode) {
+                stringResource(Res.string.mode_demo)
+            } else {
+                stringResource(Res.string.mode_production)
+            }
+
+            val modeColor = if (isDemoMode) {
+                MaterialTheme.colorScheme.secondary
+            } else {
+                MaterialTheme.colorScheme.primary
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    if (isDemoMode) Icons.Default.Info else Icons.Default.Check,
+                    contentDescription = null,
+                    tint = modeColor,
+                    modifier = Modifier.size(24.dp)
+                )
+                Column {
+                    Text(
+                        text = modeText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = modeColor
+                    )
                 }
             }
         }

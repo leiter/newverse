@@ -800,4 +800,10 @@
     <string name="cd_add">Hinzufügen</string>
     <string name="cd_message">Nachricht</string>
 
+    <!-- ========================================= -->
+    <!-- DEMO MODE INDICATORS -->
+    <!-- ========================================= -->
+    <string name="mode_demo">Einkaufsdemo</string>
+    <string name="mode_production">Wirklich Bestellen</string>
+
 </resources>
