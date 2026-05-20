@@ -6,6 +6,7 @@ import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.ErrorState
 import com.together.newverse.ui.state.ErrorType
 import com.together.newverse.ui.state.InitializationStep
+import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import com.together.newverse.ui.state.core.AuthState
@@ -14,10 +15,14 @@ import com.together.newverse.util.GoogleSignInState
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.error_no_internet
+import org.jetbrains.compose.resources.getString
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -600,22 +605,77 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
         AppleSignInState.authCompleted.collect {
             println("[NV_BuyAppVM] observeAppleSignInCompletion: Apple Sign-In complete, refreshing auth state")
 
-            // Refresh auth state in coordinator
-            authFlowCoordinator.refreshUserInfo()
+            // Set loading state
+            _state.update { current ->
+                current.copy(
+                    auth = current.auth.copy(
+                        isLoading = true,
+                        error = null
+                    )
+                )
+            }
 
-            // Manually trigger initialization flow since authStateChanged might not fire
-            val currentUserId = authRepository.getCurrentUserId()
-            if (currentUserId != null) {
-                println("[NV_BuyAppVM] observeAppleSignInCompletion: User authenticated, triggering initialization")
-                val userInfo = authRepository.getCurrentUserInfo()
-                if (userInfo != null) {
-                    resumeInitializationAfterAuth(userInfo)
-                } else {
-                    println("[NV_BuyAppVM] observeAppleSignInCompletion: No user info available, using basic initialization")
-                    resumeInitializationAfterAuth()
+            try {
+                // Refresh auth state in coordinator with timeout (10 seconds)
+                val refreshResult = withTimeoutOrNull(10_000L) {
+                    authFlowCoordinator.refreshUserInfo()
                 }
-            } else {
-                println("[NV_BuyAppVM] observeAppleSignInCompletion: Warning - no current user found after Apple Sign-In")
+
+                if (refreshResult == null) {
+                    // Timed out
+                    val errorMessage = getString(Res.string.error_no_internet)
+                    println("⏱️ Apple Sign-In auth refresh timeout")
+                    _state.update { current ->
+                        current.copy(
+                            auth = current.auth.copy(
+                                isLoading = false,
+                                error = errorMessage
+                            )
+                        )
+                    }
+                    showSnackBar(errorMessage, SnackbarType.ERROR)
+                    return@collect
+                }
+
+                // Manually trigger initialization flow since authStateChanged might not fire
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId != null) {
+                    println("[NV_BuyAppVM] observeAppleSignInCompletion: User authenticated, triggering initialization")
+                    _state.update { current ->
+                        current.copy(auth = current.auth.copy(isLoading = false, error = null))
+                    }
+                    val userInfo = authRepository.getCurrentUserInfo()
+                    if (userInfo != null) {
+                        resumeInitializationAfterAuth(userInfo)
+                    } else {
+                        println("[NV_BuyAppVM] observeAppleSignInCompletion: No user info available, using basic initialization")
+                        resumeInitializationAfterAuth()
+                    }
+                } else {
+                    println("[NV_BuyAppVM] observeAppleSignInCompletion: Warning - no current user found after Apple Sign-In")
+                    val errorMessage = "Apple Sign-In failed: No user authenticated"
+                    _state.update { current ->
+                        current.copy(
+                            auth = current.auth.copy(
+                                isLoading = false,
+                                error = errorMessage
+                            )
+                        )
+                    }
+                    showSnackBar(errorMessage, SnackbarType.ERROR)
+                }
+            } catch (e: Exception) {
+                println("[NV_BuyAppVM] observeAppleSignInCompletion: Error - ${e.message}")
+                val errorMessage = e.message ?: "Apple Sign-In failed"
+                _state.update { current ->
+                    current.copy(
+                        auth = current.auth.copy(
+                            isLoading = false,
+                            error = errorMessage
+                        )
+                    )
+                }
+                showSnackBar(errorMessage, SnackbarType.ERROR)
             }
         }
     }
@@ -631,14 +691,67 @@ internal fun BuyAppViewModel.observeGoogleSignInCompletion() {
         GoogleSignInState.signInCompleted.collect { tokens ->
             println("[NV_BuyAppVM] observeGoogleSignInCompletion: Received tokens, signing in with Firebase")
 
-            authRepository.signInWithGoogle(tokens.idToken, tokens.accessToken)
+            // Set loading state
+            _state.update { current ->
+                current.copy(
+                    auth = current.auth.copy(
+                        isLoading = true,
+                        error = null
+                    )
+                )
+            }
+
+            // Attempt Google sign-in with timeout (15 seconds)
+            val result = withTimeoutOrNull(15_000L) {
+                authRepository.signInWithGoogle(tokens.idToken, tokens.accessToken)
+            }
+
+            if (result == null) {
+                // Timed out — no internet or server unreachable
+                val errorMessage = getString(Res.string.error_no_internet)
+                println("⏱️ Google Sign-In timeout - treating as network error")
+                _state.update { current ->
+                    current.copy(
+                        auth = current.auth.copy(
+                            isLoading = false,
+                            error = errorMessage
+                        )
+                    )
+                }
+                showSnackBar(errorMessage, SnackbarType.ERROR)
+                return@collect
+            }
+
+            result
                 .onSuccess { userId ->
                     println("[NV_BuyAppVM] observeGoogleSignInCompletion: Firebase sign-in success, userId=$userId")
+                    _state.update { current ->
+                        current.copy(auth = current.auth.copy(isLoading = false, error = null))
+                    }
                     resumeInitializationAfterAuth()
                 }
                 .onFailure { error ->
                     println("[NV_BuyAppVM] observeGoogleSignInCompletion: Firebase sign-in failed - ${error.message}")
-                    showSnackBar(error.message ?: "Google Sign-In failed", com.together.newverse.ui.state.SnackbarType.ERROR)
+                    // Parse error message for user-friendly display
+                    val errorMessage = when {
+                        error.message?.contains("Network", true) == true ||
+                        error.message?.contains("Unable to resolve host", true) == true ||
+                        error.message?.contains("No address associated", true) == true ||
+                        error.message?.contains("failed to connect", true) == true ||
+                        error.message?.contains("timeout", true) == true ||
+                        error.message?.contains("UnknownHostException", true) == true ->
+                            getString(Res.string.error_no_internet)
+                        else -> error.message ?: "Google Sign-In failed"
+                    }
+                    _state.update { current ->
+                        current.copy(
+                            auth = current.auth.copy(
+                                isLoading = false,
+                                error = errorMessage
+                            )
+                        )
+                    }
+                    showSnackBar(errorMessage, SnackbarType.ERROR)
                 }
         }
     }

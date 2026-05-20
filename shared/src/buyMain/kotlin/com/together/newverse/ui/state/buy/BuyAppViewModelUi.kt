@@ -127,3 +127,19 @@ internal fun BuyAppViewModel.setAuthMode(mode: AuthMode) {
         )
     }
 }
+
+/**
+ * Set auth error message to be displayed on login screen
+ * Error persists until user dismisses it or tries again
+ */
+internal fun BuyAppViewModel.setAuthError(error: String) {
+    _state.update { current ->
+        current.copy(
+            auth = current.auth.copy(
+                error = error,
+                isLoading = false,
+                isSuccess = false  // Ensure success state is cleared
+            )
+        )
+    }
+}

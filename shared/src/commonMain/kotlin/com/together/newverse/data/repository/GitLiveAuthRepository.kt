@@ -364,6 +364,7 @@ class GitLiveAuthRepository : AuthRepository {
             exception.message?.contains("WRONG_PASSWORD") == true -> "Incorrect password"
             exception.message?.contains("TOO_MANY_REQUESTS") == true -> "Too many failed attempts. Please try again later"
             exception.message?.contains("NETWORK_ERROR") == true -> "Network error. Please check your connection"
+            exception.message?.contains("NETWORK_REQUEST_FAILED") == true -> "Network error. Please check your connection"
             exception.message?.contains("OPERATION_NOT_ALLOWED") == true -> "This sign-in method is not enabled"
             else -> exception.message ?: "$operation failed"
         }

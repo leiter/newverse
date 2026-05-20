@@ -47,6 +47,7 @@ import com.together.newverse.ui.state.buy.register
 import com.together.newverse.ui.state.buy.saveBuyerProfile
 import com.together.newverse.ui.state.buy.sendPasswordResetEmail
 import com.together.newverse.ui.state.buy.setAuthMode
+import com.together.newverse.ui.state.buy.setAuthError
 import com.together.newverse.ui.state.buy.showBottomSheet
 import com.together.newverse.ui.state.buy.showPasswordResetDialog
 import com.together.newverse.ui.state.buy.handleHistoryOrderTap
@@ -273,6 +274,7 @@ class BuyAppViewModel(
             is BuyUiAction.ShowPasswordResetDialog -> showPasswordResetDialog()
             is BuyUiAction.HidePasswordResetDialog -> hidePasswordResetDialog()
             is BuyUiAction.SetAuthMode -> setAuthMode(action.mode)
+            is BuyUiAction.SetAuthError -> setAuthError(action.error)
         }
     }
 

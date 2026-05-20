@@ -93,6 +93,7 @@ sealed interface BuyUiAction : BuyAction {
     data object ShowPasswordResetDialog : BuyUiAction
     data object HidePasswordResetDialog : BuyUiAction
     data class SetAuthMode(val mode: AuthMode) : BuyUiAction
+    data class SetAuthError(val error: String) : BuyUiAction
 }
 
 // ===== Profile Actions =====

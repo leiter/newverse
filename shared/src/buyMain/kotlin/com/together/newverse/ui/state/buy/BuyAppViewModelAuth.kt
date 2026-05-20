@@ -14,6 +14,7 @@ import com.together.newverse.ui.state.UserState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.account_deleted_success
 import newverse.shared.generated.resources.account_deleted_with_cancellations
@@ -67,10 +68,32 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
             )
         }
 
-        // Attempt sign in
-        authRepository.signInWithEmail(email, password)
+        // Attempt sign in with timeout (15 seconds) to prevent hanging on network issues
+        val result = withTimeoutOrNull(15_000L) {
+            authRepository.signInWithEmail(email, password)
+        }
+
+        if (result == null) {
+            // Timed out — no internet or server unreachable
+            val errorMessage = getString(Res.string.error_no_internet)
+            println("⏱️ Login timeout - treating as network error")
+            showSnackBar(errorMessage, SnackbarType.ERROR)
+            _state.update { current ->
+                current.copy(
+                    auth = current.auth.copy(
+                        isLoading = false,
+                        error = errorMessage,
+                        isSuccess = false
+                    )
+                )
+            }
+            return@launch
+        }
+
+        result
             .onSuccess { userId ->
-                println("✅ Buy App Login Success: userId=$userId")
+                println("✅ [LOGIN SUCCESS] Buy App Login Success: userId=$userId")
+                println("📋 [LOGIN STATE] Setting isLoading=false, error=null")
 
                 // Clear auth screen loading state
                 _state.update { current ->
@@ -93,6 +116,7 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
                 println("🎯 Login complete - resuming initialization")
             }
             .onFailure { error ->
+                println("❌ [LOGIN ERROR] Login failed: ${error.message}")
                 // Parse error message for user-friendly display
                 val errorMessage = when {
                     error.message?.contains("No account found", true) == true ->
@@ -101,7 +125,12 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
                         getString(Res.string.error_wrong_password)
                     error.message?.contains("Invalid email", true) == true ->
                         getString(Res.string.error_email_invalid)
-                    error.message?.contains("Network", true) == true ->
+                    error.message?.contains("Network", true) == true ||
+                    error.message?.contains("Unable to resolve host", true) == true ||
+                    error.message?.contains("No address associated", true) == true ||
+                    error.message?.contains("failed to connect", true) == true ||
+                    error.message?.contains("timeout", true) == true ||
+                    error.message?.contains("UnknownHostException", true) == true ->
                         getString(Res.string.error_no_internet)
                     error.message?.contains("too many", true) == true ->
                         getString(Res.string.error_too_many_attempts)
@@ -673,7 +702,27 @@ internal fun BuyAppViewModel.continueAsGuest() {
             )
         }
 
-        authRepository.signInAnonymously().fold(
+        // Attempt guest sign-in with timeout (15 seconds) to prevent hanging on network issues
+        val result = withTimeoutOrNull(15_000L) {
+            authRepository.signInAnonymously()
+        }
+
+        if (result == null) {
+            // Timed out — no internet or server unreachable
+            val errorMessage = getString(Res.string.error_no_internet)
+            println("⏱️ Guest sign-in timeout - treating as network error")
+            _state.update { current ->
+                current.copy(
+                    auth = current.auth.copy(
+                        isLoading = false,
+                        error = errorMessage
+                    )
+                )
+            }
+            return@launch
+        }
+
+        result.fold(
             onSuccess = { userId ->
                 println("✅ Buy App: Guest sign-in successful, user ID: $userId")
                 _state.update { current ->
@@ -689,11 +738,22 @@ internal fun BuyAppViewModel.continueAsGuest() {
             },
             onFailure = { error ->
                 println("❌ Buy App: Guest sign-in failed - ${error.message}")
+                // Parse error message for user-friendly display
+                val errorMessage = when {
+                    error.message?.contains("Network", true) == true ||
+                    error.message?.contains("Unable to resolve host", true) == true ||
+                    error.message?.contains("No address associated", true) == true ||
+                    error.message?.contains("failed to connect", true) == true ||
+                    error.message?.contains("timeout", true) == true ||
+                    error.message?.contains("UnknownHostException", true) == true ->
+                        getString(Res.string.error_no_internet)
+                    else -> error.message ?: "Failed to continue as guest"
+                }
                 _state.update { current ->
                     current.copy(
                         auth = current.auth.copy(
                             isLoading = false,
-                            error = error.message ?: "Failed to continue as guest"
+                            error = errorMessage
                         )
                     )
                 }
@@ -827,8 +887,29 @@ internal fun BuyAppViewModel.register(email: String, password: String, name: Str
             )
         }
 
-        // Attempt sign up
-        authRepository.signUpWithEmail(email, password)
+        // Attempt sign up with timeout (15 seconds) to prevent hanging on network issues
+        val result = withTimeoutOrNull(15_000L) {
+            authRepository.signUpWithEmail(email, password)
+        }
+
+        if (result == null) {
+            // Timed out — no internet or server unreachable
+            val errorMessage = getString(Res.string.error_no_internet)
+            println("⏱️ Registration timeout - treating as network error")
+            showSnackBar(errorMessage, SnackbarType.ERROR)
+            _state.update { current ->
+                current.copy(
+                    auth = current.auth.copy(
+                        isLoading = false,
+                        error = errorMessage,
+                        isSuccess = false
+                    )
+                )
+            }
+            return@launch
+        }
+
+        result
             .onSuccess { userId ->
                 // Update user state with name
                 _state.update { current ->
@@ -863,7 +944,12 @@ internal fun BuyAppViewModel.register(email: String, password: String, name: Str
                         getString(Res.string.error_weak_password)
                     error.message?.contains("invalid-email") == true ->
                         getString(Res.string.error_email_invalid)
-                    error.message?.contains("network") == true ->
+                    error.message?.contains("Network", true) == true ||
+                    error.message?.contains("Unable to resolve host", true) == true ||
+                    error.message?.contains("No address associated", true) == true ||
+                    error.message?.contains("failed to connect", true) == true ||
+                    error.message?.contains("timeout", true) == true ||
+                    error.message?.contains("UnknownHostException", true) == true ->
                         getString(Res.string.error_no_internet)
                     else ->
                         getString(Res.string.error_registration_failed)

@@ -247,9 +247,25 @@ class BuyMainActivity : ComponentActivity() {
                                 .onFailure { error ->
                                     Log.e("BuyMainActivity", "Failed to sign in with Google: ${error.message}")
 
-                                    // Show error message
+                                    // Parse error message for user-friendly display
+                                    val errorMessage = when {
+                                        error.message?.contains("Network", true) == true ||
+                                        error.message?.contains("Unable to resolve host", true) == true ||
+                                        error.message?.contains("No address associated", true) == true ||
+                                        error.message?.contains("failed to connect", true) == true ||
+                                        error.message?.contains("timeout", true) == true ||
+                                        error.message?.contains("UnknownHostException", true) == true ||
+                                        error.message?.contains("NETWORK", true) == true ->
+                                            "Keine Internetverbindung. Bitte prüfe deine Netzwerkverbindung."
+                                        else -> "Sign in failed: ${error.message}"
+                                    }
+
+                                    // Set auth error state to show in LoginScreen error card
+                                    viewModel.dispatch(BuyUiAction.SetAuthError(errorMessage))
+
+                                    // Also show snackbar for redundancy
                                     viewModel.dispatch(BuyUiAction.ShowSnackbar(
-                                        message = "Sign in failed: ${error.message}",
+                                        message = errorMessage,
                                         type = SnackbarType.ERROR
                                     ))
                                 }

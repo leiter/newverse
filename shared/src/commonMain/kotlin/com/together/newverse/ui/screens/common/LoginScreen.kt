@@ -160,6 +160,30 @@ fun LoginScreen(
             modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
         )
 
+        // Error Message Display
+        authState.error?.let { errorMessage ->
+            println("🔴 [LoginScreen] Displaying error: $errorMessage")
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        } ?: run {
+            println("🟡 [LoginScreen] No error in authState (authState.error=${authState.error})")
+        }
+
+
+
         // Email Field
         OutlinedTextField(
             value = email,
@@ -364,24 +388,6 @@ fun LoginScreen(
                 enabled = !authState.isLoading
             ) {
                 Text(stringResource(Res.string.login_sign_up_link))
-            }
-        }
-
-        // Error Message Display
-        authState.error?.let { errorMessage ->
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium
-                )
             }
         }
 
