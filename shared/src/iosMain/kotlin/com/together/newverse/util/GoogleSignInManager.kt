@@ -10,9 +10,9 @@ actual object GoogleSignInManager {
      */
     actual fun clearCachedAccount() {
         try {
-            println("[GoogleSignInManager] Clearing cached Google account on iOS")
-            GoogleSignInHelper.shared.signOut()
-            println("[GoogleSignInManager] Successfully cleared Google account")
+            println("[GoogleSignInManager] 🗑️ Clearing cached Google account on iOS")
+            GoogleSignInHelper.shared.clearCachedAccount()
+            println("[GoogleSignInManager] ✅ Successfully initiated Google account cache clear")
         } catch (e: Exception) {
             println("[GoogleSignInManager] Failed to clear Google account: ${e.message}")
         }

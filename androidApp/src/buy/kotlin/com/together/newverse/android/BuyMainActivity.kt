@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.together.newverse.util.initializeImageLoader
 import com.together.newverse.domain.repository.AuthRepository
@@ -210,7 +211,11 @@ class BuyMainActivity : ComponentActivity() {
     @Composable
     private fun AppScaffoldWithGoogleSignIn() {
         val context = LocalContext.current
-        val googleSignInHelper = GoogleSignInHelper(context, webClientId)
+        // Keep GoogleSignInHelper stable across recompositions using remember
+        val googleSignInHelper = remember {
+            Log.d("BuyMainActivity", "📱 Creating GoogleSignInHelper instance")
+            GoogleSignInHelper(context, webClientId)
+        }
         val viewModel = koinViewModel<BuyAppViewModel>()
 
         // Register for Google Sign-In activity result
@@ -246,13 +251,14 @@ class BuyMainActivity : ComponentActivity() {
                                     viewModel.dispatch(BuyNavigationAction.NavigateTo(NavRoutes.Home))
                                 }
                                 .onFailure { error ->
-                                    Log.e("BuyMainActivity", "Failed to sign in with Google: ${error.message}")
+                                    Log.e("BuyMainActivity", "❌ Failed to sign in with Google: ${error.message}")
 
                                     // Strategy 2: Clear the cached account on failure
                                     // This ensures that on retry, the account picker appears fresh
                                     try {
-                                        Log.d("BuyMainActivity", "Clearing cached Google account after sign-in failure")
-                                        googleSignInHelper.signOut()
+                                        Log.d("BuyMainActivity", "🗑️ Clearing cached Google account after sign-in failure")
+                                        googleSignInHelper.clearCachedAccount()
+                                        Log.d("BuyMainActivity", "✅ Google account cache cleared")
                                     } catch (e: Exception) {
                                         Log.e("BuyMainActivity", "Failed to clear Google account: ${e.message}", e)
                                     }
@@ -303,8 +309,11 @@ class BuyMainActivity : ComponentActivity() {
                         Log.d("BuyMainActivity", "Handling GoogleSignIn action")
 
                         // Strategy 1: Check internet before showing account picker
-                        if (!NetworkConnectivity.isConnected(context)) {
-                            Log.d("BuyMainActivity", "No internet connection - failing early")
+                        val isConnected = NetworkConnectivity.isConnected(context)
+                        Log.d("BuyMainActivity", "🌐 NetworkConnectivity.isConnected() = $isConnected")
+
+                        if (!isConnected) {
+                            Log.d("BuyMainActivity", "❌ No internet connection - failing early")
                             val errorMessage = "Keine Internetverbindung. Bitte prüfe deine Netzwerkverbindung."
                             viewModel.dispatch(BuyUiAction.SetAuthError(errorMessage))
                             viewModel.dispatch(BuyUiAction.ShowSnackbar(
@@ -313,6 +322,7 @@ class BuyMainActivity : ComponentActivity() {
                             ))
                         } else {
                             try {
+                                Log.d("BuyMainActivity", "✅ Internet connected - launching Google Sign-In")
                                 val signInIntent = googleSignInHelper.getSignInIntent()
                                 googleSignInLauncher.launch(signInIntent)
                             } catch (e: Exception) {

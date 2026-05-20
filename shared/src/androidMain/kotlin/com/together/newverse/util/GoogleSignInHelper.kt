@@ -83,10 +83,37 @@ class GoogleSignInHelper(
     }
 
     /**
-     * Sign out from Google
+     * Sign out from Google (asynchronous)
+     * This clears the cached account
      */
     fun signOut() {
+        println("🔐 GoogleSignInHelper.signOut(): Clearing cached account...")
         googleSignInClient.signOut()
+            .addOnCompleteListener {
+                println("🔐 GoogleSignInHelper.signOut(): Completed")
+            }
+            .addOnFailureListener { e ->
+                println("❌ GoogleSignInHelper.signOut(): Failed - ${e.message}")
+            }
+    }
+
+    /**
+     * Synchronously clear the cached account without signing out of Google
+     */
+    fun clearCachedAccount() {
+        println("🔐 GoogleSignInHelper.clearCachedAccount(): Clearing cached account...")
+        try {
+            // Call signOut synchronously to clear the cache
+            val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+            if (lastAccount != null) {
+                println("🔐 GoogleSignInHelper.clearCachedAccount(): Found cached account, signing out...")
+                signOut()
+            } else {
+                println("🔐 GoogleSignInHelper.clearCachedAccount(): No cached account found")
+            }
+        } catch (e: Exception) {
+            println("❌ GoogleSignInHelper.clearCachedAccount(): Exception - ${e.message}")
+        }
     }
 
     /**

@@ -12,13 +12,34 @@ object NetworkConnectivity {
      * Check if device has active internet connection
      */
     fun isConnected(context: Context): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-            ?: return false
+        try {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            if (connectivityManager == null) {
+                println("🌐 [NetworkConnectivity] No ConnectivityManager available")
+                return false
+            }
 
-        val network = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+            val network = connectivityManager.activeNetwork
+            if (network == null) {
+                println("🌐 [NetworkConnectivity] No active network")
+                return false
+            }
 
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-               capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            val capabilities = connectivityManager.getNetworkCapabilities(network)
+            if (capabilities == null) {
+                println("🌐 [NetworkConnectivity] No capabilities for active network")
+                return false
+            }
+
+            val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            val isValidated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+
+            println("🌐 [NetworkConnectivity] hasInternet=$hasInternet, isValidated=$isValidated")
+
+            return hasInternet && isValidated
+        } catch (e: Exception) {
+            println("🌐 [NetworkConnectivity] Exception: ${e.message}")
+            return false
+        }
     }
 }

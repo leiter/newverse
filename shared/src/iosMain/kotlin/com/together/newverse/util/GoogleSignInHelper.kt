@@ -106,6 +106,16 @@ class GoogleSignInHelper {
     }
 
     /**
+     * Clear cached account without fully signing out
+     * Note: The actual clearing is handled by Swift layer.
+     */
+    fun clearCachedAccount() {
+        println("Google Sign-In (iOS): Clear cached account requested")
+        // This triggers signOut on the Swift side to clear the cached account
+        signOut()
+    }
+
+    /**
      * Check if user is currently signed in to Google.
      * Note: The actual check is handled by Swift layer.
      */

@@ -17,15 +17,15 @@ actual object GoogleSignInManager : KoinComponent {
      */
     actual fun clearCachedAccount() {
         try {
-            Log.d("GoogleSignInManager", "Clearing cached Google account on Android")
+            Log.d("GoogleSignInManager", "🗑️ Clearing cached Google account on Android")
             val context = application.applicationContext
 
-            // Create a temporary GoogleSignInHelper to access the sign-out method
+            // Create a temporary GoogleSignInHelper to access the clear method
             val webClientId = "352833414422-4qt81mifve0h0v5pu1em0tnarjmq0j7j.apps.googleusercontent.com"
             val helper = GoogleSignInHelper(context, webClientId)
-            helper.signOut()
+            helper.clearCachedAccount()
 
-            Log.d("GoogleSignInManager", "Successfully cleared Google account")
+            Log.d("GoogleSignInManager", "✅ Successfully initiated Google account cache clear")
         } catch (e: Exception) {
             Log.e("GoogleSignInManager", "Failed to clear Google account: ${e.message}", e)
         }
