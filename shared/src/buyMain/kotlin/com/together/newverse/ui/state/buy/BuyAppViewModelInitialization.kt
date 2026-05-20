@@ -11,6 +11,7 @@ import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import com.together.newverse.ui.state.core.AuthState
 import com.together.newverse.util.AppleSignInState
+import com.together.newverse.util.GoogleSignInManager
 import com.together.newverse.util.GoogleSignInState
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.flow.update
@@ -710,6 +711,11 @@ internal fun BuyAppViewModel.observeGoogleSignInCompletion() {
                 // Timed out — no internet or server unreachable
                 val errorMessage = getString(Res.string.error_no_internet)
                 println("⏱️ Google Sign-In timeout - treating as network error")
+
+                // Strategy 2: Clear cached account on failure
+                println("[NV_BuyAppVM] Clearing cached Google account after timeout")
+                GoogleSignInManager.clearCachedAccount()
+
                 _state.update { current ->
                     current.copy(
                         auth = current.auth.copy(
@@ -732,6 +738,11 @@ internal fun BuyAppViewModel.observeGoogleSignInCompletion() {
                 }
                 .onFailure { error ->
                     println("[NV_BuyAppVM] observeGoogleSignInCompletion: Firebase sign-in failed - ${error.message}")
+
+                    // Strategy 2: Clear cached account on failure
+                    println("[NV_BuyAppVM] Clearing cached Google account after sign-in failure")
+                    GoogleSignInManager.clearCachedAccount()
+
                     // Parse error message for user-friendly display
                     val errorMessage = when {
                         error.message?.contains("Network", true) == true ||

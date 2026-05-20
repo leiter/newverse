@@ -27,6 +27,7 @@ import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.GoogleSignInHelper
 import com.together.newverse.util.ImagePicker
 import com.together.newverse.util.LocalImagePicker
+import com.together.newverse.util.NetworkConnectivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -247,6 +248,15 @@ class BuyMainActivity : ComponentActivity() {
                                 .onFailure { error ->
                                     Log.e("BuyMainActivity", "Failed to sign in with Google: ${error.message}")
 
+                                    // Strategy 2: Clear the cached account on failure
+                                    // This ensures that on retry, the account picker appears fresh
+                                    try {
+                                        Log.d("BuyMainActivity", "Clearing cached Google account after sign-in failure")
+                                        googleSignInHelper.signOut()
+                                    } catch (e: Exception) {
+                                        Log.e("BuyMainActivity", "Failed to clear Google account: ${e.message}", e)
+                                    }
+
                                     // Parse error message for user-friendly display
                                     val errorMessage = when {
                                         error.message?.contains("Network", true) == true ||
@@ -290,13 +300,24 @@ class BuyMainActivity : ComponentActivity() {
             onPlatformAction = { action ->
                 when (action) {
                     is PlatformAction.GoogleSignIn -> {
-                        try {
-                            Log.d("BuyMainActivity", "Handling GoogleSignIn action")
+                        Log.d("BuyMainActivity", "Handling GoogleSignIn action")
 
-                            val signInIntent = googleSignInHelper.getSignInIntent()
-                            googleSignInLauncher.launch(signInIntent)
-                        } catch (e: Exception) {
-                            Log.e("BuyMainActivity", "Exception launching Google Sign-In: ${e.message}", e)
+                        // Strategy 1: Check internet before showing account picker
+                        if (!NetworkConnectivity.isConnected(context)) {
+                            Log.d("BuyMainActivity", "No internet connection - failing early")
+                            val errorMessage = "Keine Internetverbindung. Bitte prüfe deine Netzwerkverbindung."
+                            viewModel.dispatch(BuyUiAction.SetAuthError(errorMessage))
+                            viewModel.dispatch(BuyUiAction.ShowSnackbar(
+                                message = errorMessage,
+                                type = SnackbarType.ERROR
+                            ))
+                        } else {
+                            try {
+                                val signInIntent = googleSignInHelper.getSignInIntent()
+                                googleSignInLauncher.launch(signInIntent)
+                            } catch (e: Exception) {
+                                Log.e("BuyMainActivity", "Exception launching Google Sign-In: ${e.message}", e)
+                            }
                         }
                     }
                     is PlatformAction.GoogleSignOut -> {
