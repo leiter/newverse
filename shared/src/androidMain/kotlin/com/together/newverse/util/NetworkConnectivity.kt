@@ -1,8 +1,10 @@
 package com.together.newverse.util
 
+import android.Manifest
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import androidx.annotation.RequiresPermission
 
 /**
  * Check network connectivity status
@@ -11,6 +13,7 @@ object NetworkConnectivity {
     /**
      * Check if device has active internet connection
      */
+    @RequiresPermission(Manifest.permission.ACCESS_NETWORK_STATE)
     fun isConnected(context: Context): Boolean {
         try {
             val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
