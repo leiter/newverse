@@ -16,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.state.ProductFilter
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun CategoryChips(
@@ -24,10 +27,10 @@ internal fun CategoryChips(
     modifier: Modifier = Modifier,
 ) {
     val filterOptions = listOf(
-        ProductFilter.ALL to "Alle",
-        ProductFilter.FAVOURITES to "Favoriten",
-        ProductFilter.OBST to "Obst",
-        ProductFilter.GEMUESE to "Gemüse"
+        ProductFilter.ALL to stringResource(Res.string.filter_all),
+        ProductFilter.FAVOURITES to stringResource(Res.string.filter_favourites),
+        ProductFilter.OBST to stringResource(Res.string.filter_obst),
+        ProductFilter.GEMUESE to stringResource(Res.string.filter_gemuese)
     )
 
     LazyRow(

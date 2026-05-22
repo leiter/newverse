@@ -718,7 +718,7 @@ private fun getDaysUntilPickup(pickupDate: Long): Long {
     val todayDate = now.toLocalDateTime(timezone).date
     val pickupLocalDate = pickupInstant.toLocalDateTime(timezone).date
 
-    return (pickupLocalDate.toEpochDays() - todayDate.toEpochDays()).toLong()
+    return (pickupLocalDate.toEpochDays() - todayDate.toEpochDays())
 }
 
 // ===== Date Picker Components =====

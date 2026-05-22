@@ -423,7 +423,7 @@ fun ForcedLoginScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = authState.error ?: "",
+                                text = authState.error,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.padding(16.dp),
                                 style = MaterialTheme.typography.bodyMedium,

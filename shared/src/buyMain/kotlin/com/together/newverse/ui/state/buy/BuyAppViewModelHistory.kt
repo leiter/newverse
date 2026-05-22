@@ -8,10 +8,10 @@ import com.together.newverse.ui.state.BasketMergeMode
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
-import com.together.newverse.ui.navigation.NavRoutes
 import kotlinx.coroutines.flow.update
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.launch
+import kotlinx.datetime.number
+import kotlinx.datetime.toLocalDateTime
 
 internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
     val daysUntilPickup = getDaysUntilPickup(order.pickUpDate)
@@ -184,14 +184,14 @@ private fun getDaysUntilPickup(pickupDate: Long): Long {
     val pickupInstant = kotlin.time.Instant.fromEpochMilliseconds(pickupDate)
     val todayDate = now.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
     val pickupLocalDate = pickupInstant.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-    return (pickupLocalDate.toEpochDays() - todayDate.toEpochDays()).toLong()
+    return (pickupLocalDate.toEpochDays() - todayDate.toEpochDays())
 }
 
 private fun formatDateKey(timestamp: Long): String {
     val instant = kotlin.time.Instant.fromEpochMilliseconds(timestamp)
     val dateTime = instant.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
-    val day = dateTime.dayOfMonth.toString().padStart(2, '0')
-    val month = dateTime.monthNumber.toString().padStart(2, '0')
+    val day = dateTime.day.toString().padStart(2, '0')
+    val month = dateTime.month.number.toString().padStart(2, '0')
     val year = dateTime.year
     return "$year$month$day"
 }

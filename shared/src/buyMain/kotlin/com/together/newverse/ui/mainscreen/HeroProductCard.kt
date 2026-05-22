@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
+import com.together.newverse.ui.modifier.lockSizeAfterFirstMeasure
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
@@ -315,7 +316,9 @@ internal fun HeroProductCard(
 
                                 // Editable TextField for quantity with unit display
                                 Row(
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier
+                                        .lockSizeAfterFirstMeasure()
+                                        .weight(1f),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
