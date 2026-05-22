@@ -240,7 +240,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
             val phoneAnnotatedString = buildAnnotatedString {
                 pushStringAnnotation(
                     tag = "URL",
-                    annotation = "tel:017246237410"
+                    annotation = "tel:03020249477"
                 )
                 withStyle(
                     style = SpanStyle(
@@ -286,7 +286,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
             val emailAnnotatedString = buildAnnotatedString {
                 pushStringAnnotation(
                     tag = "URL",
-                    annotation = "mailto:bodenschaetze@posteo.de"
+                    annotation = "mailto:bodenschaetze@cutthecrap.link"
                 )
                 withStyle(
                     style = SpanStyle(

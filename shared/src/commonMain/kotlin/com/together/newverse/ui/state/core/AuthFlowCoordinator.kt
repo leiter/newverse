@@ -181,13 +181,18 @@ class AuthFlowCoordinator(
                     }
                 } else if (!initialCheckDone) {
                     // First null emission during startup — Firebase Auth may still be restoring
-                    // the persisted session from SharedPreferences. Wait briefly before declaring
-                    // NotAuthenticated, then re-check.
+                    // the persisted session. Wait once (longer duration) for Firebase to finish
+                    // initialization. Do NOT repeatedly check/poll as it may interfere with
+                    // Firebase's session restoration process.
                     initialCheckDone = true
                     println("[NV_AuthFlowCoordinator] observeAuthState: First null during init — waiting for Firebase to restore session...")
-                    delay(1500)
+
+                    // Wait 3 seconds for Firebase to finish initialization and session restore
+                    delay(3000L)
+
                     val restoredUserId = authRepository.getCurrentUserId()
-                    println("[NV_AuthFlowCoordinator] observeAuthState: After wait, getCurrentUserId=$restoredUserId")
+                    println("[NV_AuthFlowCoordinator] observeAuthState: After 3s wait, getCurrentUserId=$restoredUserId")
+
                     if (restoredUserId != null) {
                         val userInfo = authRepository.getCurrentUserInfo()
                         if (userInfo != null) {
