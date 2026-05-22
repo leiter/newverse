@@ -183,6 +183,14 @@
     <string name="error_signup_failed">Sign up failed</string>
 
     <!-- ========================================= -->
+    <!-- PRODUCT FILTERS (BUY MODULE) -->
+    <!-- ========================================= -->
+    <string name="filter_all">All</string>
+    <string name="filter_favourites">Favorites</string>
+    <string name="filter_obst">Fruit</string>
+    <string name="filter_gemuese">Vegetables</string>
+
+    <!-- ========================================= -->
     <!-- PRODUCTS SCREEN (BUY MODULE) -->
     <!-- ========================================= -->
     <string name="products_title">Browse Products</string>

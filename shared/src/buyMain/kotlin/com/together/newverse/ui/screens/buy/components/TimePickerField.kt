@@ -98,7 +98,7 @@ fun TimePickerField(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = if (value.isEmpty()) hint else value,
+                        text = value.ifEmpty { hint },
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (value.isEmpty())
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
