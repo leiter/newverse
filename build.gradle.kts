@@ -18,6 +18,7 @@ plugins {
     id("com.codingfeline.buildkonfig").version("0.15.2").apply(false)
 }
 
-tasks.register("clean", Delete::class) {
+// Configure clean task lazily — NodeJsRootPlugin registers it via BasePlugin when a JS target is present
+tasks.withType<Delete>().matching { it.name == "clean" }.configureEach {
     delete(rootProject.layout.buildDirectory)
 }

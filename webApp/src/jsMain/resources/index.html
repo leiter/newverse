@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newverse Buy</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; background: #fff; }
+    </style>
+</head>
+<body>
+
+<!-- Firebase Web SDK — fill in your project config from Firebase Console -->
+<!-- Project settings → General → Your apps → Web app → Config -->
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+    import 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+
+    // TODO: Replace with your Firebase project config from Firebase Console
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    initializeApp(firebaseConfig);
+</script>
+
+<script src="webApp.js"></script>
+
+</body>
+</html>

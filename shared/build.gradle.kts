@@ -31,6 +31,10 @@ kotlin {
         }
     }
 
+    js(IR) {
+        browser()
+    }
+
     cocoapods {
         noPodspec()
         summary = "Newverse KMP shared library"
@@ -103,6 +107,11 @@ kotlin {
         iosSimulatorArm64Main.get().apply {
             dependsOn(iosMain)
             dependsOn(flavorMain)
+        }
+
+        // JS target source set: always buy flavor (web v1 is buy-only)
+        jsMain.get().apply {
+            dependsOn(buyMain)
         }
 
         commonMain.dependencies {
@@ -187,6 +196,13 @@ kotlin {
 
             // Ktor HTTP client engine for Coil image loading
             implementation("io.ktor:ktor-client-darwin:3.3.0")
+        }
+
+        val jsMain by getting {
+            dependencies {
+                // JS HTTP client engine for Coil image loading
+                implementation("io.ktor:ktor-client-js:3.3.0")
+            }
         }
 
         commonTest.dependencies {
