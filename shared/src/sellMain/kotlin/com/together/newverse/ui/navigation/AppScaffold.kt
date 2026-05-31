@@ -32,8 +32,8 @@ import com.together.newverse.ui.state.SellUiAction
 import com.together.newverse.ui.state.SellUserAction
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.ui.screens.sell.OrdersViewModel
-import com.together.newverse.domain.model.isActive
-import com.together.newverse.domain.model.isFinalized
+import com.together.newverse.domain.model.OrderStatus
+import kotlin.time.Clock
 import com.together.newverse.util.DocumentPickerResult
 import com.together.newverse.util.LocalDocumentPicker
 import com.together.newverse.util.rememberKeyboardManager
@@ -63,8 +63,13 @@ fun AppScaffold(
 
     // Calculate pending orders count from orders state
     val pendingOrdersCount = when (val orders = ordersState) {
-        is AsyncState.Success -> orders.data.count {
-            it.status.isActive() && !it.status.isFinalized()
+        is AsyncState.Success -> {
+            val nowMs = Clock.System.now().toEpochMilliseconds()
+            orders.data.count { order ->
+                !order.isDemoOrder &&
+                (order.status == OrderStatus.PLACED || order.status == OrderStatus.LOCKED) &&
+                order.pickUpDate > nowMs
+            }
         }
         else -> 0
     }
