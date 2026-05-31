@@ -9,6 +9,7 @@ import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
 import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
+import kotlin.time.Clock
 import com.together.newverse.domain.model.Product
 import com.together.newverse.domain.model.toArticle
 import com.together.newverse.domain.repository.ArticleRepository
@@ -105,10 +106,8 @@ class OverviewViewModel(
                         // Don't fail the whole screen, just show 0 orders
                     }
                     .collect { orders ->
-                        // Store all orders for revenue calculation
                         allOrders = orders
-                        // Count only active orders (not completed, cancelled, or outdated)
-                        activeOrdersCount = orders.count { it.isActiveOrder() }
+                        activeOrdersCount = orders.count { isUpcomingPlacedOrder(it) }
                         println("📊 Active orders count: $activeOrdersCount (total: ${orders.size})")
 
                         // Update UI state with current data
@@ -132,19 +131,22 @@ class OverviewViewModel(
                 totalRevenue = calculateTotalRevenue(),
                 recentArticles = filteredArticles,
                 recentOrders = allOrders
-                    .filter { it.isActiveOrder() }
+                    .filter { isUpcomingPlacedOrder(it) }
                     .sortedByDescending { it.pickUpDate }
                     .take(5)
             )
         )
     }
 
-    /**
-     * Calculate total revenue from completed orders
-     */
+    private fun isUpcomingPlacedOrder(order: Order): Boolean {
+        if (order.isDemoOrder) return false
+        if (order.status != OrderStatus.PLACED && order.status != OrderStatus.LOCKED) return false
+        return order.pickUpDate > Clock.System.now().toEpochMilliseconds()
+    }
+
     private fun calculateTotalRevenue(): Double {
         return allOrders
-            .filter { it.status == OrderStatus.COMPLETED || it.status == OrderStatus.LOCKED }
+            .filter { isUpcomingPlacedOrder(it) }
             .flatMap { it.articles }
             .sumOf { it.getTotalPrice() }
     }
