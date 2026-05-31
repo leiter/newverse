@@ -8,6 +8,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.savedstate.read
+import com.together.newverse.ui.screens.sell.AbrechnungScreen
 import com.together.newverse.ui.screens.sell.CreateProductScreen
 import com.together.newverse.ui.screens.sell.ImportPreviewScreen
 import com.together.newverse.ui.screens.sell.ImportState
@@ -111,6 +112,10 @@ fun NavGraphBuilder.navGraph(
                 onNavigateToOrderDetail(orderId)
             }
         )
+    }
+
+    composable(NavRoutes.Sell.Abrechnung.route) {
+        AbrechnungScreen()
     }
 
     composable(

@@ -71,6 +71,7 @@ sealed class NavRoutes(val route: String) {
                 return "sell/conversation/$conversationId"
             }
         }
+        data object Abrechnung : Sell("sell/abrechnung")
     }
 
     companion object {
@@ -94,6 +95,7 @@ sealed class NavRoutes(val route: String) {
             // Sell routes
             Sell.Overview,
             Sell.Orders,
+            Sell.Abrechnung,
             Sell.Create,
             Sell.Profile,
             Sell.PickDay,
@@ -167,6 +169,7 @@ sealed class NavRoutes(val route: String) {
             Buy.AddBuyerContact -> Res.string.contacts_add
             Sell.Conversations -> Res.string.nav_messages
             Sell.ConversationDetail -> Res.string.nav_messages
+            Sell.Abrechnung -> Res.string.topbar_abrechnung
         }
 
         // Get category for grouping in drawer (returns StringResource)

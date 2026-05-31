@@ -814,4 +814,30 @@
     <string name="mode_demo">Einkaufsdemo</string>
     <string name="mode_production">Wirklich Bestellen</string>
 
+    <!-- ========================================= -->
+    <!-- ABRECHNUNG SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="bottomnav_abrechnung">Abrechnung</string>
+    <string name="topbar_abrechnung">Abrechnung</string>
+    <string name="abrechnung_tab_pickup">Nächste Abholung</string>
+    <string name="abrechnung_tab_period">Zeitraum</string>
+    <string name="abrechnung_pickup_date">Abholung am %s</string>
+    <string name="abrechnung_orders_count">%d Bestellung(en)</string>
+    <string name="abrechnung_customers_count">%d Kunde(n)</string>
+    <string name="abrechnung_no_orders">Keine aktiven Bestellungen für die nächste Abholung</string>
+    <string name="abrechnung_article_list">Bestellte Artikel</string>
+    <string name="abrechnung_financial_summary">Finanzielle Übersicht</string>
+    <string name="abrechnung_gross_total">Bruttoumsatz</string>
+    <string name="abrechnung_vat_7">davon MwSt. 7 %</string>
+    <string name="abrechnung_vat_19">davon MwSt. 19 %</string>
+    <string name="abrechnung_net_total">Nettoumsatz</string>
+    <string name="abrechnung_acquire_cost">Wareneinkauf (netto)</string>
+    <string name="abrechnung_gross_profit">Rohertrag</string>
+    <string name="abrechnung_period_week">7 Tage</string>
+    <string name="abrechnung_period_month">30 Tage</string>
+    <string name="abrechnung_period_all">Gesamt</string>
+    <string name="abrechnung_no_completed_orders">Keine abgeschlossenen Bestellungen im gewählten Zeitraum</string>
+    <string name="abrechnung_loading">Wird geladen…</string>
+    <string name="abrechnung_error">Fehler beim Laden der Abrechnungsdaten</string>
+
 </resources>

@@ -747,4 +747,30 @@
     <string name="cd_add">Add</string>
     <string name="cd_message">Message</string>
 
+    <!-- ========================================= -->
+    <!-- ABRECHNUNG SCREEN (SELL MODULE) -->
+    <!-- ========================================= -->
+    <string name="bottomnav_abrechnung">Settlement</string>
+    <string name="topbar_abrechnung">Settlement</string>
+    <string name="abrechnung_tab_pickup">Next Pickup</string>
+    <string name="abrechnung_tab_period">Period</string>
+    <string name="abrechnung_pickup_date">Pickup on %s</string>
+    <string name="abrechnung_orders_count">%d order(s)</string>
+    <string name="abrechnung_customers_count">%d customer(s)</string>
+    <string name="abrechnung_no_orders">No active orders for the next pickup</string>
+    <string name="abrechnung_article_list">Ordered Articles</string>
+    <string name="abrechnung_financial_summary">Financial Summary</string>
+    <string name="abrechnung_gross_total">Gross Revenue</string>
+    <string name="abrechnung_vat_7">incl. VAT 7 %</string>
+    <string name="abrechnung_vat_19">incl. VAT 19 %</string>
+    <string name="abrechnung_net_total">Net Revenue</string>
+    <string name="abrechnung_acquire_cost">Purchase Cost (net)</string>
+    <string name="abrechnung_gross_profit">Gross Profit</string>
+    <string name="abrechnung_period_week">7 days</string>
+    <string name="abrechnung_period_month">30 days</string>
+    <string name="abrechnung_period_all">All time</string>
+    <string name="abrechnung_no_completed_orders">No completed orders in the selected period</string>
+    <string name="abrechnung_loading">Loading…</string>
+    <string name="abrechnung_error">Error loading settlement data</string>
+
 </resources>

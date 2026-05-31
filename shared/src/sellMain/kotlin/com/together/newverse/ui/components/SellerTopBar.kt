@@ -53,6 +53,7 @@ fun SellerTopBar(
     val newProductTitle = stringResource(Res.string.topbar_new_product)
     val profileTitle = stringResource(Res.string.topbar_profile)
     val notificationsTitle = stringResource(Res.string.topbar_notifications)
+    val abrechnungTitle = stringResource(Res.string.topbar_abrechnung)
     val sellerTitle = stringResource(Res.string.topbar_seller)
     val selectDeleteTitle = stringResource(Res.string.topbar_select_delete)
     val changeAvailabilityTitle = stringResource(Res.string.topbar_change_availability)
@@ -71,6 +72,7 @@ fun SellerTopBar(
                         newProductTitle,
                         profileTitle,
                         notificationsTitle,
+                        abrechnungTitle,
                         sellerTitle
                     )
                 }
@@ -190,6 +192,7 @@ private fun getRouteTitle(
     newProductTitle: String,
     profileTitle: String,
     notificationsTitle: String,
+    abrechnungTitle: String,
     sellerTitle: String
 ): String {
     return when (route) {
@@ -198,10 +201,19 @@ private fun getRouteTitle(
         NavRoutes.Sell.Create.route -> newProductTitle
         NavRoutes.Sell.Profile.route -> profileTitle
         NavRoutes.Sell.NotificationSettings.route -> notificationsTitle
+        NavRoutes.Sell.Abrechnung.route -> abrechnungTitle
         else -> sellerTitle
     }
 }
 
+private val topLevelRoutes = setOf(
+    NavRoutes.Sell.Overview.route,
+    NavRoutes.Sell.Orders.route,
+    NavRoutes.Sell.Abrechnung.route,
+    NavRoutes.Sell.Create.route,
+    NavRoutes.Sell.Profile.route,
+)
+
 private fun shouldShowBackButton(route: String): Boolean {
-    return route != NavRoutes.Sell.Overview.route
+    return route !in topLevelRoutes
 }
