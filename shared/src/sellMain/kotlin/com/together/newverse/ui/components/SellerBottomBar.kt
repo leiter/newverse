@@ -22,15 +22,21 @@ import org.jetbrains.compose.resources.stringResource
 fun SellerBottomNavigationBar(
     currentRoute: String,
     onNavigate: (String) -> Unit,
+    pendingOrdersCount: Int = 0,
     pendingAccessRequestCount: Int = 0
 ) {
     NavigationBar {
         SellerBottomNavItems.forEach { item ->
             val label = stringResource(item.labelRes)
+            val badgeCount = when (item.route) {
+                NavRoutes.Sell.Orders.route -> pendingOrdersCount
+                NavRoutes.Sell.Profile.route -> pendingAccessRequestCount
+                else -> 0
+            }
             NavigationBarItem(
                 icon = {
-                    if (item.route == NavRoutes.Sell.Profile.route && pendingAccessRequestCount > 0) {
-                        BadgedBox(badge = { Badge { Text(pendingAccessRequestCount.toString()) } }) {
+                    if (badgeCount > 0) {
+                        BadgedBox(badge = { Badge { Text(badgeCount.toString()) } }) {
                             Icon(imageVector = item.icon, contentDescription = label)
                         }
                     } else {

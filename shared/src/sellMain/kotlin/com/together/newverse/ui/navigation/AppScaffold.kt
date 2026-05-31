@@ -219,6 +219,7 @@ fun AppScaffold(
         bottomBar = {
             SellerBottomNavigationBar(
                 currentRoute = currentRoute,
+                pendingOrdersCount = pendingOrdersCount,
                 pendingAccessRequestCount = state.pendingAccessRequestCount,
                 onNavigate = { route ->
                     navController.navigate(route) {
