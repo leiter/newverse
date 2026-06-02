@@ -798,6 +798,20 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             // Load user profile and update with auth provider info if available
             loadUserProfile(authUserInfo)
 
+            // Restore buyerUUID from Firebase profile if local storage is empty.
+            // On iOS, NSUserDefaults is wiped on uninstall/reinstall, so the UUID is lost
+            // locally even though it still exists in Firebase. Without it,
+            // startObservingAccessStatus() immediately marks the buyer as demo mode,
+            // causing loadCurrentOrder() to look in demo_orders/ and miss the real order.
+            val localUUID = buyerUUIDStorage?.get()
+            if (localUUID == null) {
+                val profileUUID = _state.value.customerProfile.profile?.buyerUUID
+                if (!profileUUID.isNullOrBlank()) {
+                    println("🔑 resumeInitializationAfterAuth: Restoring buyerUUID from Firebase profile after reinstall")
+                    buyerUUIDStorage?.set(profileUUID)
+                }
+            }
+
             // Load seller display name if connected to a seller
             val currentSellerId = sellerConfig.sellerId
             if (currentSellerId.isNotEmpty()) {

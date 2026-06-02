@@ -1,19 +1,9 @@
 package com.together.newverse.util
 
-import kotlinx.cinterop.ExperimentalForeignApi
-import platform.Network.nw_path_status_satisfied
-import platform.Network.nw_path_get_status
-import platform.Network.nw_monitor_create
-import platform.Network.nw_monitor_set_update_handler
-import platform.Network.nw_monitor_start
-import platform.Network.nw_release
-import platform.Network.nw_path_t
-
 /**
  * Check network connectivity status on iOS
  * Uses Network framework to monitor connection
  */
-@OptIn(ExperimentalForeignApi::class)
 object NetworkConnectivity {
     private var lastKnownStatus: Boolean = true
 
