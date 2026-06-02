@@ -108,6 +108,17 @@ class AppleSignInHelper {
         }
     }
 
+    /**
+     * Clear any cached Apple Sign-In state
+     * Note: The actual credential caching is handled by native iOS framework
+     * This is a hook for clearing Kotlin-side state if needed
+     */
+    fun clearCachedState() {
+        println("Apple Sign-In (iOS): Clearing cached state")
+        // Cancel any pending sign-in
+        signInCompletion = null
+    }
+
     companion object {
         // Singleton instance for Swift interop
         val shared = AppleSignInHelper()

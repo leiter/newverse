@@ -10,6 +10,7 @@ import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import com.together.newverse.ui.state.core.AuthState
+import com.together.newverse.util.AppleSignInManager
 import com.together.newverse.util.AppleSignInState
 import com.together.newverse.util.GoogleSignInManager
 import com.together.newverse.util.GoogleSignInState
@@ -623,9 +624,14 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
                 }
 
                 if (refreshResult == null) {
-                    // Timed out
+                    // Timed out — no internet or server unreachable
                     val errorMessage = getString(Res.string.error_no_internet)
-                    println("⏱️ Apple Sign-In auth refresh timeout")
+                    println("⏱️ Apple Sign-In timeout - treating as network error")
+
+                    // Strategy 2: Clear cached state on failure
+                    println("[NV_BuyAppVM] 🗑️ Clearing Apple Sign-In cached state after timeout")
+                    AppleSignInManager.clearCachedState()
+
                     _state.update { current ->
                         current.copy(
                             auth = current.auth.copy(
@@ -654,6 +660,11 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
                     }
                 } else {
                     println("[NV_BuyAppVM] observeAppleSignInCompletion: Warning - no current user found after Apple Sign-In")
+
+                    // Strategy 2: Clear cached state on failure
+                    println("[NV_BuyAppVM] 🗑️ Clearing Apple Sign-In cached state after auth failure")
+                    AppleSignInManager.clearCachedState()
+
                     val errorMessage = "Apple Sign-In failed: No user authenticated"
                     _state.update { current ->
                         current.copy(
@@ -666,8 +677,22 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
                     showSnackBar(errorMessage, SnackbarType.ERROR)
                 }
             } catch (e: Exception) {
-                println("[NV_BuyAppVM] observeAppleSignInCompletion: Error - ${e.message}")
-                val errorMessage = e.message ?: "Apple Sign-In failed"
+                println("[NV_BuyAppVM] observeAppleSignInCompletion: ❌ Error - ${e.message}")
+
+                // Strategy 2: Clear cached state on failure
+                println("[NV_BuyAppVM] 🗑️ Clearing Apple Sign-In cached state after exception")
+                AppleSignInManager.clearCachedState()
+
+                val errorMessage = when {
+                    e.message?.contains("Network", true) == true ||
+                    e.message?.contains("Unable to resolve host", true) == true ||
+                    e.message?.contains("No address associated", true) == true ||
+                    e.message?.contains("failed to connect", true) == true ||
+                    e.message?.contains("timeout", true) == true ||
+                    e.message?.contains("UnknownHostException", true) == true ->
+                        getString(Res.string.error_no_internet)
+                    else -> e.message ?: "Apple Sign-In failed"
+                }
                 _state.update { current ->
                     current.copy(
                         auth = current.auth.copy(

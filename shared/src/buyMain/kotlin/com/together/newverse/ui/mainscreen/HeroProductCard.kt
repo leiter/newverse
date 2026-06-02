@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -317,14 +316,13 @@ internal fun HeroProductCard(
                                 // Editable TextField for quantity with unit display
                                 Row(
                                     modifier = Modifier
-                                        .lockSizeAfterFirstMeasure()
                                         .weight(1f),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    val textFieldMaxWidth = if (isCompact) 56.dp else 80.dp
+                                    val textFieldWidth = if (isCompact) 48.dp else 56.dp
                                     Box(
-                                        modifier = Modifier.widthIn(min = 40.dp, max = textFieldMaxWidth),
+                                        modifier = Modifier.width(textFieldWidth),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         BasicTextField(

@@ -438,8 +438,14 @@ class GitLiveProfileRepository(
                     anonymous = value["anonymous"] as? Boolean == true,
                     defaultMarket = value["defaultMarket"] as? String ?: "",
                     defaultPickUpTime = value["defaultPickUpTime"] as? String ?: "",
-                    placedOrderIds = (value["placedOrderIds"] as? Map<String, String>) ?: emptyMap(),
-                    favouriteArticles = (value["favouriteArticles"] as? List<String>) ?: emptyList(),
+                    placedOrderIds = (value["placedOrderIds"] as? Map<*, *>)
+                        ?.entries?.mapNotNull { (k, v) ->
+                            val key = k?.toString() ?: return@mapNotNull null
+                            val id = v?.toString() ?: return@mapNotNull null
+                            key to id
+                        }?.toMap() ?: emptyMap(),
+                    favouriteArticles = (value["favouriteArticles"] as? List<*>)
+                        ?.mapNotNull { it?.toString() } ?: emptyList(),
                     draftBasket = draftBasket,
                     buyerUUID = uuid,
                     street = value["street"] as? String ?: "",
@@ -515,7 +521,7 @@ class GitLiveProfileRepository(
                     lng = value["lng"] as? String ?: "",
                     sellerId = value["sellerId"] as? String ?: sellerId,
                     markets = markets,
-                    urls = (value["urls"] as? List<String>) ?: emptyList(),
+                    urls = (value["urls"] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
                     knownClientIds = parseClientIds(value["knownClientIds"]),
                     blockedClientIds = parseClientMap(value["blockedClientIds"]),
                     approvedBuyerIds = parseClientMap(value["approvedBuyerIds"])
