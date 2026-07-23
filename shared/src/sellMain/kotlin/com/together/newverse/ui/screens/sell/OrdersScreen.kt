@@ -9,8 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -18,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.ui.adaptive.AdaptiveDefaults
+import com.together.newverse.ui.adaptive.LocalWindowWidthClass
+import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.ui.state.core.AsyncStateContent
 import kotlinx.coroutines.launch
@@ -41,6 +46,10 @@ fun OrdersScreen(
     val clearButtonLabel = stringResource(Res.string.demo_orders_clear_button)
     val clearResultLabel = stringResource(Res.string.demo_orders_clear_result)
     val clearNoneLabel = stringResource(Res.string.demo_orders_clear_none)
+
+    // On Expanded windows (tablet landscape) show list + detail side by side
+    val useTwoPane = LocalWindowWidthClass.current == WindowWidthClass.Expanded
+    var selectedOrderId by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -85,29 +94,70 @@ fun OrdersScreen(
                     }
                 }
             ) { orders ->
-                OrdersContent(
-                    orders = orders,
-                    onOrderClick = onOrderClick,
-                    onClearDemoOrders = {
-                        viewModel.clearOldDemoOrders(
-                            onSuccess = { count ->
-                                scope.launch {
-                                    val msg = if (count > 0) {
-                                        clearResultLabel.replace("%1\$d", count.toString())
-                                    } else {
-                                        clearNoneLabel
-                                    }
-                                    snackbarHostState.showSnackbar(msg)
+                val onClearDemoOrders: () -> Unit = {
+                    viewModel.clearOldDemoOrders(
+                        onSuccess = { count ->
+                            scope.launch {
+                                val msg = if (count > 0) {
+                                    clearResultLabel.replace("%1\$d", count.toString())
+                                } else {
+                                    clearNoneLabel
                                 }
-                            },
-                            onError = { error ->
-                                scope.launch { snackbarHostState.showSnackbar(error) }
+                                snackbarHostState.showSnackbar(msg)
                             }
-                        )
+                        },
+                        onError = { error ->
+                            scope.launch { snackbarHostState.showSnackbar(error) }
+                        }
+                    )
+                }
+
+                if (useTwoPane) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.weight(0.42f).fillMaxHeight()) {
+                            OrdersContent(
+                                orders = orders,
+                                onOrderClick = { selectedOrderId = it },
+                                onClearDemoOrders = onClearDemoOrders
+                            )
+                        }
+                        VerticalDivider()
+                        Box(modifier = Modifier.weight(0.58f).fillMaxHeight()) {
+                            val selected = selectedOrderId?.takeIf { id -> orders.any { it.id == id } }
+                            if (selected != null) {
+                                OrderDetailScreen(
+                                    orderId = selected,
+                                    onNavigateBack = { selectedOrderId = null },
+                                    viewModel = viewModel
+                                )
+                            } else {
+                                OrderDetailPlaceholder()
+                            }
+                        }
                     }
-                )
+                } else {
+                    OrdersContent(
+                        orders = orders,
+                        onOrderClick = onOrderClick,
+                        onClearDemoOrders = onClearDemoOrders
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun OrderDetailPlaceholder() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(Res.string.orders_select_prompt),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

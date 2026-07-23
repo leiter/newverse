@@ -2,14 +2,19 @@ package com.together.newverse.ui.screens.buy
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
@@ -40,6 +45,8 @@ import com.together.newverse.ui.state.MergeConflict
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
+import com.together.newverse.ui.adaptive.LocalWindowWidthClass
+import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.OrderWindowStatus
 import com.together.newverse.util.formatPrice
@@ -157,6 +164,13 @@ fun BasketContent(
             onConfirm = { onAction(BuyBasketScreenAction.CancelOrder) },
             onDismiss = { onAction(BuyBasketScreenAction.HideCancelConfirmDialog) }
         )
+    }
+
+    // On Expanded windows (tablet landscape) show items on the left and a
+    // fixed summary column (date, total, actions) on the right.
+    if (LocalWindowWidthClass.current == WindowWidthClass.Expanded) {
+        BasketTwoPane(state = state, onAction = onAction, onNavigateToOrders = onNavigateToOrders)
+        return
     }
 
     // Single scrollable LazyColumn for all content
@@ -394,6 +408,210 @@ fun BasketContent(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Tablet-landscape basket layout: scrollable items on the left, a fixed summary
+ * column (order info / pickup date, total, checkout actions) on the right.
+ * All pieces are the same composables used by the single-column phone layout.
+ */
+@Composable
+private fun BasketTwoPane(
+    state: BasketScreenState,
+    onAction: (BuyBasketScreenAction) -> Unit,
+    onNavigateToOrders: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // LEFT: status messages + items list
+        Column(modifier = Modifier.weight(0.58f).fillMaxHeight()) {
+            BasketStatusMessages(state)
+            if (state.items.isEmpty()) {
+                BasketEmptyCard(onNavigateToOrders = onNavigateToOrders)
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(state.items) { item ->
+                        BasketItemCard(
+                            productName = item.productName,
+                            price = item.price,
+                            unit = item.unit,
+                            quantity = item.amountCount,
+                            canEdit = state.isEditMode || state.orderId == null,
+                            onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) }
+                        )
+                    }
+                }
+            }
+        }
+
+        // RIGHT: fixed summary column
+        Column(
+            modifier = Modifier
+                .weight(0.42f)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            if (state.orderId != null && state.pickupDate != null && state.createdDate != null) {
+                val orderStatus = OrderDateUtils.getOrderWindowStatus(
+                    Instant.fromEpochMilliseconds(state.pickupDate)
+                )
+                OrderInfoCard(
+                    orderId = state.orderId,
+                    pickupDate = state.pickupDate,
+                    createdDate = state.createdDate,
+                    canEdit = state.canEdit,
+                    hasChanges = state.hasChanges,
+                    orderStatus = orderStatus,
+                    isEditMode = state.isEditMode,
+                    onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
+                    onDisableEditing = { onAction(BuyBasketScreenAction.DisableEditing) },
+                    onUpdateOrder = { onAction(BuyBasketScreenAction.UpdateOrder) },
+                    onCancelOrder = { onAction(BuyBasketScreenAction.ShowCancelConfirmDialog) },
+                    onShowReorderDatePicker = { onAction(BuyBasketScreenAction.ShowReorderDatePicker) }
+                )
+            } else if (state.orderId == null && state.items.isNotEmpty()) {
+                PickupDateSelector(
+                    selectedDate = state.selectedPickupDate,
+                    onShowPicker = { onAction(BuyBasketScreenAction.ShowDatePicker) }
+                )
+            }
+
+            if (state.items.isNotEmpty()) {
+                BasketTotalCard(total = state.total)
+            }
+
+            // Checkout only for new orders (existing-order actions live in OrderInfoCard)
+            if (state.orderId == null && state.items.isNotEmpty()) {
+                Button(
+                    onClick = { onAction(BuyBasketScreenAction.Checkout) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = state.items.isNotEmpty() && !state.isCheckingOut
+                ) {
+                    Text(if (state.isCheckingOut) stringResource(Res.string.basket_checkout_processing) else stringResource(Res.string.basket_checkout_proceed))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BasketStatusMessages(state: BasketScreenState) {
+    val message: String? = when {
+        state.orderSuccess -> if (state.orderId != null) stringResource(Res.string.basket_order_updated) else stringResource(Res.string.basket_order_placed)
+        state.cancelSuccess -> stringResource(Res.string.basket_order_cancelled)
+        state.reorderSuccess -> stringResource(Res.string.basket_order_copied)
+        else -> null
+    }
+    if (message != null) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            )
+        ) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+
+    state.orderError?.let { error ->
+        if (!error.endsWith("Demo order not found")) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Text(
+                    text = "✗ $error",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BasketEmptyCard(onNavigateToOrders: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = stringResource(Res.string.basket_empty_title),
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(Res.string.basket_empty_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedButton(onClick = onNavigateToOrders) {
+                Text(stringResource(Res.string.action_orders))
+            }
+        }
+    }
+}
+
+@Composable
+private fun BasketTotalCard(total: Double) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(Res.string.label_total),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Text(
+                text = "${total.formatPrice()} €",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

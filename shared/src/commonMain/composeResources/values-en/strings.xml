@@ -380,6 +380,7 @@
     <string name="orders_items_suffix"> items</string>
     <string name="orders_note_prefix">Note: </string>
     <string name="no_orders_message">No orders available</string>
+    <string name="orders_select_prompt">Select an order to see details</string>
     <string name="retry">Retry</string>
 
     <!-- Order Detail Screen -->
