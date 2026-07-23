@@ -224,6 +224,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // java.time (used by kotlinx-datetime) needs desugaring on API < 26
+        isCoreLibraryDesugaringEnabled = true
     }
 
     lint {
@@ -267,6 +269,10 @@ android {
             kotlin.srcDirs("src/testSell/kotlin")
         }
     }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
 
 // Detect the flavor from gradle tasks being executed
