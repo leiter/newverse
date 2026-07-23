@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.AuthScreenState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -131,6 +132,7 @@ fun RegisterScreen(
             .fillMaxSize()
             .padding(paddingValues)
             .padding(horizontal = 24.dp)
+            .constrainedContentWidth()
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

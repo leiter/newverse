@@ -40,6 +40,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.data.config.Platform
+import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.AuthScreenState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_leaf_icon
@@ -128,6 +129,7 @@ fun LoginScreen(
             .fillMaxSize()
             .systemBarsPadding()
             .padding(24.dp)
+            .constrainedContentWidth()
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

@@ -62,6 +62,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.AuthScreenState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.app_leaf_icon
@@ -186,7 +187,8 @@ fun ForcedLoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(24.dp)
+                .constrainedContentWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
