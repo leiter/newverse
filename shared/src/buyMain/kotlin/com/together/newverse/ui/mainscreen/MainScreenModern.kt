@@ -37,6 +37,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.adaptive.AdaptiveDefaults
+import com.together.newverse.ui.adaptive.LocalWindowWidthClass
+import com.together.newverse.ui.adaptive.WindowWidthClass
+import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyMainScreenAction
@@ -135,6 +139,12 @@ private fun MainScreenModernContent(
     val basketItems = state.basketItems
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Two product columns on phones, three on tablets (feed width is capped below)
+    val productColumns = when (LocalWindowWidthClass.current) {
+        WindowWidthClass.Compact -> 2
+        else -> 3
+    }
+
     // Show snackbar when order is not editable and user tries to modify
     LaunchedEffect(state.showNewOrderSnackbar) {
         if (state.showNewOrderSnackbar) {
@@ -166,7 +176,9 @@ private fun MainScreenModernContent(
                 )
             }
             LazyColumn(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .constrainedContentWidth(max = AdaptiveDefaults.FeedMaxWidth),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -258,14 +270,15 @@ private fun MainScreenModernContent(
 
                 // Show loading skeleton
                 if (state.isLoading && products.isEmpty()) {
-                    // Show skeleton product grid (6 items in 3 rows)
+                    // Show skeleton product grid (3 rows)
                     items(3) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            ProductCardSkeleton(modifier = Modifier.weight(1f))
-                            ProductCardSkeleton(modifier = Modifier.weight(1f))
+                            repeat(productColumns) {
+                                ProductCardSkeleton(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -306,12 +319,12 @@ private fun MainScreenModernContent(
                 }
 
                 // Product Grid
-                items(products.chunked(2)) { productPair ->
+                items(products.chunked(productColumns)) { productRow ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        productPair.forEach { product ->
+                        productRow.forEach { product ->
                             ModernProductCard(
                                 product = product,
                                 modifier = Modifier.weight(1f),
@@ -320,8 +333,8 @@ private fun MainScreenModernContent(
                                 }
                             )
                         }
-                        // Add empty box if odd number of products
-                        if (productPair.size == 1) {
+                        // Fill the last row with empty boxes so cards keep their width
+                        repeat(productColumns - productRow.size) {
                             Box(modifier = Modifier.weight(1f))
                         }
                     }

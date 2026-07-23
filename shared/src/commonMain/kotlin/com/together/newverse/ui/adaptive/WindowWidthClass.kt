@@ -61,6 +61,12 @@ object AdaptiveDefaults {
 
     /** Minimum item width for adaptive grids — yields 1 column on phones, 2+ on tablets. */
     val ListItemMinWidth = 300.dp
+
+    /** Maximum width for single-column row lists (e.g. contacts) on wide screens. */
+    val ListMaxWidth = 640.dp
+
+    /** Maximum width for feed-style screens (hero + product grid) on wide screens. */
+    val FeedMaxWidth = 960.dp
 }
 
 /**

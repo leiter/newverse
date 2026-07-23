@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.BuyerContact
+import com.together.newverse.ui.adaptive.AdaptiveDefaults
+import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -101,7 +103,11 @@ fun BuyerContactsScreen(
                             )
                         }
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .constrainedContentWidth(max = AdaptiveDefaults.ListMaxWidth)
+                        ) {
                             items(contacts, key = { it.userId }) { contact ->
                                 ContactRow(
                                     contact = contact,
