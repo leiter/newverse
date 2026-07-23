@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.adaptive.constrainedContentWidth
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -30,6 +31,7 @@ fun PickDayScreen() {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
+            .constrainedContentWidth()
     ) {
 //        Text(
 //            text = stringResource(Res.string.pick_day_title),

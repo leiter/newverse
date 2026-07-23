@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.ProductUnit
+import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.domain.model.TaxRate
 import com.together.newverse.ui.state.SellAction
 import com.together.newverse.ui.state.SellUiAction
@@ -151,7 +152,8 @@ fun CreateProductScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(16.dp)
+            .constrainedContentWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Image Section
