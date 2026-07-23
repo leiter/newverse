@@ -21,12 +21,12 @@ val appVersionCode = if (versionPropsFile.exists()) {
 
 android {
     namespace = "com.together.newverse.android"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.together"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 36
         versionCode = appVersionCode
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
