@@ -32,7 +32,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 defaultConfig {
                     applicationId = "com.together"
                     minSdk = 23
-                    targetSdk = 35
+                    targetSdk = 37
                     versionCode = appVersionCode
                     versionName = "1.0.0"
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
