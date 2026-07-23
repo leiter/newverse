@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.NotificationAction
 import com.together.newverse.ui.state.NotificationSettings
 
@@ -31,7 +32,8 @@ fun NotificationsScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(16.dp)
+            .constrainedContentWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Platform-specific content (e.g., Android notification service controls)
