@@ -1,6 +1,7 @@
 package com.together.newverse.ui.components
 
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
@@ -11,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.navigation.NavRoutes
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -60,7 +62,9 @@ fun SellerNavigationRail(
     pendingOrdersCount: Int = 0,
     pendingAccessRequestCount: Int = 0
 ) {
-    NavigationRail {
+    NavigationRail(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
+    ) {
         Spacer(Modifier.weight(1f))
         SellerBottomNavItems.forEach { item ->
             val label = stringResource(item.labelRes)
@@ -70,6 +74,7 @@ fun SellerNavigationRail(
                 else -> 0
             }
             NavigationRailItem(
+                modifier = Modifier.padding(horizontal = 12.dp),
                 icon = { SellerNavItemIcon(item = item, label = label, badgeCount = badgeCount) },
                 label = { Text(label) },
                 selected = currentRoute == item.route,
