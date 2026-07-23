@@ -8,11 +8,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -98,23 +101,12 @@ fun BuyerBottomNavigationBar(
                     } else {
                         Modifier
                     }
-                    if (badgeCount > 0) {
-                        BadgedBox(
-                            badge = { Badge { Text(badgeCount.toString()) } }
-                        ) {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = label,
-                                modifier = iconModifier
-                            )
-                        }
-                    } else {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = label,
-                            modifier = iconModifier
-                        )
-                    }
+                    BuyerNavItemIcon(
+                        item = item,
+                        label = label,
+                        badgeCount = badgeCount,
+                        modifier = iconModifier
+                    )
                 },
                 label = { Text(label) },
                 selected = isSelected,
@@ -123,5 +115,66 @@ fun BuyerBottomNavigationBar(
                 }
             )
         }
+    }
+}
+
+/**
+ * Side navigation rail shown instead of the bottom bar on Expanded windows
+ * (tablet landscape). Same items, routes and badges as the bottom bar.
+ */
+@Composable
+fun BuyerNavigationRail(
+    currentRoute: String,
+    basketItemCount: Int,
+    onNavigate: (String) -> Unit
+) {
+    NavigationRail {
+        Spacer(Modifier.weight(1f))
+        BuyerBottomNavItems.forEach { item ->
+            val label = stringResource(item.labelRes)
+            val isSelected = currentRoute == item.route ||
+                currentRoute.startsWith(item.route)
+
+            val badgeCount = when (item.route) {
+                NavRoutes.Buy.Basket.route -> basketItemCount
+                else -> 0
+            }
+
+            NavigationRailItem(
+                icon = { BuyerNavItemIcon(item = item, label = label, badgeCount = badgeCount) },
+                label = { Text(label) },
+                selected = isSelected,
+                onClick = {
+                    if (!isSelected) onNavigate(item.route)
+                }
+            )
+        }
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun BuyerNavItemIcon(
+    item: BuyerBottomNavItem,
+    label: String,
+    badgeCount: Int,
+    modifier: Modifier = Modifier
+) {
+    if (badgeCount > 0) {
+        BadgedBox(
+            badge = { Badge { Text(badgeCount.toString()) } }
+        ) {
+            Icon(
+                imageVector = item.icon,
+                contentDescription = label,
+                modifier = modifier
+            )
+        }
+    } else {
+        Icon(
+            imageVector = item.icon,
+            contentDescription = label,
+            modifier = modifier
+        )
     }
 }

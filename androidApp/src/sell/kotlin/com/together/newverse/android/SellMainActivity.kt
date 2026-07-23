@@ -1,5 +1,6 @@
 package com.together.newverse.android
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -54,6 +55,11 @@ class SellMainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Milestone 1: phones stay portrait-only; tablets (sw600dp+) may rotate freely
+        if (resources.configuration.smallestScreenWidthDp < 600) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
 
         setTheme(R.style.AppTheme)
 

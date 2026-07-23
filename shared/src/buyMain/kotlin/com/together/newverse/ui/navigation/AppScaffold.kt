@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -50,6 +51,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.together.newverse.domain.repository.BasketRepository
+import com.together.newverse.ui.adaptive.LocalWindowWidthClass
+import com.together.newverse.ui.adaptive.ProvideWindowWidthClass
+import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.BuySellerAction
@@ -75,10 +79,19 @@ import org.koin.compose.viewmodel.koinViewModel
  * - Top app bar with menu button
  * - Navigation graph
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold(
     onPlatformAction: (PlatformAction) -> Unit = {}
+) {
+    ProvideWindowWidthClass {
+        AppScaffoldContent(onPlatformAction)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppScaffoldContent(
+    onPlatformAction: (PlatformAction) -> Unit
 ) {
     // Get the app ViewModel (BuyAppViewModel in buy flavor, SellAppViewModel in sell flavor)
     val viewModel = koinViewModel<BuyAppViewModel>()
@@ -321,33 +334,38 @@ fun AppScaffold(
         currentRoute.startsWith(NavRoutes.Buy.Basket.route) ||
         currentRoute == NavRoutes.Buy.Profile.route
 
+    // On Expanded windows (tablet landscape) the tabs render as a side rail instead
+    val useNavRail = LocalWindowWidthClass.current == WindowWidthClass.Expanded
+
+    val onNavigateToTab: (String) -> Unit = { route ->
+        println("🔍 AppScaffold: onNavigate called, route=$route")
+        if (route == NavRoutes.Home.route) {
+            // For home (start destination), don't use saveState/restoreState
+            // This avoids iOS state restoration issues with the start destination
+            println("🔍 AppScaffold: Navigating to HOME with inclusive popUpTo")
+            navController.navigate(route) {
+                popUpTo(NavRoutes.Home.route) { inclusive = true }
+                launchSingleTop = true
+            }
+            println("🔍 AppScaffold: Navigation to HOME completed")
+        } else {
+            println("🔍 AppScaffold: Navigating to $route with saveState/restoreState")
+            navController.navigate(route) {
+                popUpTo(NavRoutes.Home.route) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            println("🔍 AppScaffold: Navigation to $route completed")
+        }
+    }
+
     Scaffold(
         bottomBar = {
-            if (showBottomBar) {
+            if (showBottomBar && !useNavRail) {
                 BuyerBottomNavigationBar(
                     currentRoute = currentRoute,
                     basketItemCount = basketItems.size,
-                    onNavigate = { route ->
-                        println("🔍 AppScaffold: onNavigate called, route=$route")
-                        if (route == NavRoutes.Home.route) {
-                            // For home (start destination), don't use saveState/restoreState
-                            // This avoids iOS state restoration issues with the start destination
-                            println("🔍 AppScaffold: Navigating to HOME with inclusive popUpTo")
-                            navController.navigate(route) {
-                                popUpTo(NavRoutes.Home.route) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                            println("🔍 AppScaffold: Navigation to HOME completed")
-                        } else {
-                            println("🔍 AppScaffold: Navigating to $route with saveState/restoreState")
-                            navController.navigate(route) {
-                                popUpTo(NavRoutes.Home.route) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                            println("🔍 AppScaffold: Navigation to $route completed")
-                        }
-                    }
+                    onNavigate = onNavigateToTab
                 )
             }
         },
@@ -554,16 +572,25 @@ fun AppScaffold(
             )
         }
     ) { paddingValues ->
-        Surface(
-            modifier = Modifier.padding(paddingValues),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            NavGraph(
-                navController = navController,
-                appState = appState,
-                onAction = { action -> viewModel.dispatch(action) },
-                onPlatformAction = onPlatformAction,
-            )
+        Row(modifier = Modifier.padding(paddingValues)) {
+            if (showBottomBar && useNavRail) {
+                BuyerNavigationRail(
+                    currentRoute = currentRoute,
+                    basketItemCount = basketItems.size,
+                    onNavigate = onNavigateToTab
+                )
+            }
+            Surface(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                NavGraph(
+                    navController = navController,
+                    appState = appState,
+                    onAction = { action -> viewModel.dispatch(action) },
+                    onPlatformAction = onPlatformAction,
+                )
+            }
         }
     }
 }

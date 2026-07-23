@@ -1,5 +1,6 @@
 package com.together.newverse.ui.components
 
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.together.newverse.ui.navigation.NavRoutes
 import newverse.shared.generated.resources.Res
@@ -34,15 +36,7 @@ fun SellerBottomNavigationBar(
                 else -> 0
             }
             NavigationBarItem(
-                icon = {
-                    if (badgeCount > 0) {
-                        BadgedBox(badge = { Badge { Text(badgeCount.toString()) } }) {
-                            Icon(imageVector = item.icon, contentDescription = label)
-                        }
-                    } else {
-                        Icon(imageVector = item.icon, contentDescription = label)
-                    }
-                },
+                icon = { SellerNavItemIcon(item = item, label = label, badgeCount = badgeCount) },
                 label = { Text(label) },
                 selected = currentRoute == item.route,
                 onClick = {
@@ -52,6 +46,56 @@ fun SellerBottomNavigationBar(
                 }
             )
         }
+    }
+}
+
+/**
+ * Side navigation rail shown instead of the bottom bar on Expanded windows
+ * (tablet landscape). Same items, routes and badges as the bottom bar.
+ */
+@Composable
+fun SellerNavigationRail(
+    currentRoute: String,
+    onNavigate: (String) -> Unit,
+    pendingOrdersCount: Int = 0,
+    pendingAccessRequestCount: Int = 0
+) {
+    NavigationRail {
+        Spacer(Modifier.weight(1f))
+        SellerBottomNavItems.forEach { item ->
+            val label = stringResource(item.labelRes)
+            val badgeCount = when (item.route) {
+                NavRoutes.Sell.Orders.route -> pendingOrdersCount
+                NavRoutes.Sell.Profile.route -> pendingAccessRequestCount
+                else -> 0
+            }
+            NavigationRailItem(
+                icon = { SellerNavItemIcon(item = item, label = label, badgeCount = badgeCount) },
+                label = { Text(label) },
+                selected = currentRoute == item.route,
+                onClick = {
+                    if (currentRoute != item.route) {
+                        onNavigate(item.route)
+                    }
+                }
+            )
+        }
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun SellerNavItemIcon(
+    item: BottomNavItem,
+    label: String,
+    badgeCount: Int
+) {
+    if (badgeCount > 0) {
+        BadgedBox(badge = { Badge { Text(badgeCount.toString()) } }) {
+            Icon(imageVector = item.icon, contentDescription = label)
+        }
+    } else {
+        Icon(imageVector = item.icon, contentDescription = label)
     }
 }
 
