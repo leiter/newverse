@@ -506,11 +506,11 @@
     <!-- Impressum Section -->
     <string name="about_impressum_title">Legal Notice</string>
     <string name="about_impressum_owner_label">Owner</string>
-    <string name="about_impressum_owner_name">Eric Dehn</string>
+    <string name="about_impressum_owner_name">Marco Leiter</string>
     <string name="about_impressum_address_label">Address</string>
-    <string name="about_impressum_address">Neue Gartenstraße\n15517 Fürstenwalde / Spree</string>
+    <string name="about_impressum_address">Rudeloffweg 10\n14195 Berlin</string>
     <string name="about_impressum_represented_label">Represented by</string>
-    <string name="about_impressum_represented_name">Eric Dehn</string>
+    <string name="about_impressum_represented_name">Marco Leiter</string>
 
     <!-- Privacy Section -->
     <string name="about_privacy_title">Privacy</string>
