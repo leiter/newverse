@@ -21,13 +21,13 @@ val appVersionCode = if (versionPropsFile.exists()) {
 
 android {
     namespace = "com.together.newverse.android"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.together"
         minSdk = 23
-        targetSdk = 35
-        versionCode = appVersionCode
+        targetSdk = 36
+        versionCode = 35 // Todo appVersionCode
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -40,6 +40,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // java.time (used by kotlinx-datetime) needs desugaring on API < 26
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlin {
@@ -102,7 +104,7 @@ android {
         create("buy") {
             dimension = "userType"
             applicationIdSuffix = ".buy"
-            versionCode = appVersionCode
+            versionCode = 35 //appVersionCode
             versionNameSuffix = "-buy"
             matchingFallbacks += "buy"
         }
@@ -119,6 +121,8 @@ android {
 
 dependencies {
     implementation(project(":shared"))
+
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 
     // Android Core
     implementation("androidx.core:core-ktx:1.15.0")

@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.components.QrCodeImage
 import com.together.newverse.ui.navigation.PlatformAction
 import newverse.shared.generated.resources.Res
@@ -54,6 +55,7 @@ fun AddBuyerContactScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
+            .constrainedContentWidth()
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)

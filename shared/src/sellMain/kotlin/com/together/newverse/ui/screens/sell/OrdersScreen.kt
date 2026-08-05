@@ -2,8 +2,9 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -16,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
+import com.together.newverse.ui.adaptive.AdaptiveDefaults
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.ui.state.core.AsyncStateContent
 import kotlinx.coroutines.launch
@@ -132,9 +134,11 @@ private fun OrdersContent(
             }
         } else {
             // Orders list
-            LazyColumn(
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = AdaptiveDefaults.ListItemMinWidth),
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(orders) { order ->
                     SellerOrderCard(

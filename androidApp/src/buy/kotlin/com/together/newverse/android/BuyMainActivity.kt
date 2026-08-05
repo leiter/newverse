@@ -1,6 +1,7 @@
 package com.together.newverse.android
 
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -56,6 +57,11 @@ class BuyMainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Milestone 1: phones stay portrait-only; tablets (sw600dp+) may rotate freely
+        if (resources.configuration.smallestScreenWidthDp < 600) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
 
         // Diagnostic: check native Firebase Auth state BEFORE anything else
         val nativeAuth = FirebaseAuth.getInstance()

@@ -1,6 +1,7 @@
 package com.together.newverse.ui.navigation
 
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -20,8 +21,12 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.together.newverse.ui.adaptive.LocalWindowWidthClass
+import com.together.newverse.ui.adaptive.ProvideWindowWidthClass
+import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.ui.components.AppDialog
 import com.together.newverse.ui.components.SellerBottomNavigationBar
+import com.together.newverse.ui.components.SellerNavigationRail
 import com.together.newverse.ui.components.SellerTopBar
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.state.NotificationAction
@@ -47,11 +52,21 @@ import org.koin.compose.viewmodel.koinViewModel
  * This file is in sellMain source set, so it's ONLY compiled for Sell flavor.
  */
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold(
     onPlatformAction: (PlatformAction) -> Unit = {},
     notificationPlatformContent: @Composable (() -> Unit)? = null
+) {
+    ProvideWindowWidthClass {
+        AppScaffoldContent(onPlatformAction, notificationPlatformContent)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppScaffoldContent(
+    onPlatformAction: (PlatformAction) -> Unit,
+    notificationPlatformContent: @Composable (() -> Unit)?
 ) {
     // Get the Sell-specific ViewModel
     val viewModel = koinViewModel<SellAppViewModel>()
@@ -168,6 +183,20 @@ fun AppScaffold(
     val documentPicker = LocalDocumentPicker.current
     val coroutineScope = rememberCoroutineScope()
 
+    // On Expanded windows (tablet landscape) the tabs render as a side rail instead
+    val useNavRail = LocalWindowWidthClass.current == WindowWidthClass.Expanded
+
+    val onNavigateToTab: (String) -> Unit = { route ->
+        navController.navigate(route) {
+            // Pop up to the start destination to avoid building up a large stack
+            popUpTo(NavRoutes.Sell.Overview.route) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     Scaffold(
         modifier = Modifier
             .pointerInput(Unit) {
@@ -222,63 +251,66 @@ fun AppScaffold(
             )
         },
         bottomBar = {
-            SellerBottomNavigationBar(
-                currentRoute = currentRoute,
-                pendingOrdersCount = pendingOrdersCount,
-                pendingAccessRequestCount = state.pendingAccessRequestCount,
-                onNavigate = { route ->
-                    navController.navigate(route) {
-                        // Pop up to the start destination to avoid building up a large stack
-                        popUpTo(NavRoutes.Sell.Overview.route) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
+            if (!useNavRail) {
+                SellerBottomNavigationBar(
+                    currentRoute = currentRoute,
+                    pendingOrdersCount = pendingOrdersCount,
+                    pendingAccessRequestCount = state.pendingAccessRequestCount,
+                    onNavigate = onNavigateToTab
+                )
+            }
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         }
     ) { innerPadding ->
-        // Navigation content
-        NavHost(
-            navController = navController,
-            startDestination = NavRoutes.Sell.Overview.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            navGraph(
+        // Navigation content, with side rail on Expanded windows
+        Row(modifier = Modifier.padding(innerPadding)) {
+            if (useNavRail) {
+                SellerNavigationRail(
+                    currentRoute = currentRoute,
+                    onNavigate = onNavigateToTab,
+                    pendingOrdersCount = pendingOrdersCount,
+                    pendingAccessRequestCount = state.pendingAccessRequestCount
+                )
+            }
+            NavHost(
                 navController = navController,
-                appState = state,
-                onAction = viewModel::dispatch,
-                sellAppViewModel = viewModel,
-                onNavigateToOrderDetail = { orderId ->
-                    navController.navigate(NavRoutes.Sell.OrderDetail.createRoute(orderId))
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onNavigateToNotificationSettings = {
-                    navController.navigate(NavRoutes.Sell.NotificationSettings.route)
-                },
-                onLogout = {
-                    viewModel.dispatch(SellUserAction.Logout)
-                },
-                notificationSettings = notificationSettings,
-                onNotificationAction = onNotificationAction,
-                notificationPlatformContent = notificationPlatformContent,
-                getSelectionMode = { isSelectionMode },
-                onSelectionModeChange = { isSelectionMode = it },
-                getAvailabilityMode = { isAvailabilityMode },
-                onAvailabilityModeChange = { isAvailabilityMode = it },
-                onNavigateToImportPreview = {
-                    navController.navigate(NavRoutes.Sell.ImportPreview.route)
-                },
-                onNavigateBackFromImport = {
-                    navController.popBackStack()
-                }
-            )
+                startDestination = NavRoutes.Sell.Overview.route,
+                modifier = Modifier.weight(1f)
+            ) {
+                navGraph(
+                    navController = navController,
+                    appState = state,
+                    onAction = viewModel::dispatch,
+                    sellAppViewModel = viewModel,
+                    onNavigateToOrderDetail = { orderId ->
+                        navController.navigate(NavRoutes.Sell.OrderDetail.createRoute(orderId))
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToNotificationSettings = {
+                        navController.navigate(NavRoutes.Sell.NotificationSettings.route)
+                    },
+                    onLogout = {
+                        viewModel.dispatch(SellUserAction.Logout)
+                    },
+                    notificationSettings = notificationSettings,
+                    onNotificationAction = onNotificationAction,
+                    notificationPlatformContent = notificationPlatformContent,
+                    getSelectionMode = { isSelectionMode },
+                    onSelectionModeChange = { isSelectionMode = it },
+                    getAvailabilityMode = { isAvailabilityMode },
+                    onAvailabilityModeChange = { isAvailabilityMode = it },
+                    onNavigateToImportPreview = {
+                        navController.navigate(NavRoutes.Sell.ImportPreview.route)
+                    },
+                    onNavigateBackFromImport = {
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
 
         // Show dialog if present

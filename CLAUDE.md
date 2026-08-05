@@ -8,14 +8,14 @@
 
 | Category | Technology |
 |----------|------------|
-| Language | Kotlin 2.0.21 (K2 compiler) |
-| UI | Compose Multiplatform 1.7.1 |
+| Language | Kotlin 2.3.0 (K2 compiler) |
+| UI | Compose Multiplatform 1.10.3 |
 | Architecture | MVVM + Repository Pattern |
-| DI | Koin 4.0.0 |
-| Async | Coroutines 1.9.0, StateFlow |
+| DI | Koin 4.1.0 |
+| Async | Coroutines 1.10.2, StateFlow |
 | Backend | Firebase (GitLive SDK for cross-platform) |
-| Images | Coil3 3.0.4 |
-| Navigation | Navigation Compose 2.8.0-alpha10 |
+| Images | Coil3 3.3.0 |
+| Navigation | Navigation Compose 2.9.1 |
 
 ## Project Structure
 

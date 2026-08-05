@@ -25,6 +25,7 @@ import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.SellerProfile
+import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.components.QrCodeImage
 import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
@@ -98,6 +99,7 @@ fun SellerProfileScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp)
+                        .constrainedContentWidth()
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {

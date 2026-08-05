@@ -12,8 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
+import com.together.newverse.ui.adaptive.AdaptiveDefaults
 import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyMainScreenAction
@@ -141,10 +143,12 @@ private fun FavoritesTab(
     if (articles.isEmpty()) {
         EmptyState(message = stringResource(Res.string.favorites_empty))
     } else {
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = AdaptiveDefaults.ListItemMinWidth),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(articles, key = { it.id }) { article ->
                 FavoriteProductCard(
@@ -165,10 +169,12 @@ private fun DiscoverTab(
     if (articles.isEmpty()) {
         EmptyState(message = stringResource(Res.string.favorites_discover_empty))
     } else {
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = AdaptiveDefaults.ListItemMinWidth),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(articles, key = { it.id }) { article ->
                 FavoriteProductCard(
