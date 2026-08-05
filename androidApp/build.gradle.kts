@@ -112,7 +112,7 @@ android {
         create("sell") {
             dimension = "userType"
             applicationIdSuffix = ".sell"
-            versionCode = appVersionCode
+            versionCode = 23 //appVersionCode
             versionNameSuffix = "-sell"
             matchingFallbacks += "sell"
         }
