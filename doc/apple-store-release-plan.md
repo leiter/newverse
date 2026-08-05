@@ -56,7 +56,7 @@ WO FINDEST DU UNS?
 Neue Gartenstraße, 15517 Fürstenwalde / Spree
 Jeden Donnerstag – frisch, regional, bio.
 
-Fragen? Erreichbar unter bodenschaetze@posteo.de oder 0172 - 46 23 741.
+Fragen? Erreichbar unter bodenschaetze@cutthecrap.link oder 030 - 20239477.
 
 Bodenschätze – weil gutes Essen aus der Region kommt.
 ```
@@ -109,7 +109,7 @@ WHERE TO FIND US:
 Neue Gartenstraße, 15517 Fürstenwalde / Spree
 Every Thursday – fresh, regional, organic.
 
-Questions? Reach us at bodenschaetze@posteo.de or +49 172 4623741.
+Questions? Reach us at bodenschaetze@cutthecrap.link or 030 - 20239477.
 
 Bodenschätze – because great food comes from the region.
 ```

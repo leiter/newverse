@@ -1,0 +1,12 @@
+No account is required to review this app. On the login screen, tap
+"Als Gast fortfahren" (Continue as guest) to access the full product
+catalogue, product details and the basket.
+
+The app is a pre-order tool for a weekly organic farmers market in
+Fürstenwalde/Spree, Germany. Customers browse products and pre-order
+them; pickup is always on Thursday at the market stall. Orders can be
+edited until Tuesday 23:59 before the pickup day. No payment is taken
+in the app -- customers pay at the stall on collection.
+
+The user interface is German only, as the app serves a single local
+market.
