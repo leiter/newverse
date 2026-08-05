@@ -1,1 +1,1 @@
-marktplatz,lokal,regional,einkaufen,frisch,produkte,bauernmarkt,händler,bestellung
+bio,regional,markt,frisch,gemüse,bauernmarkt,wochenmarkt,bestellen,abholen,ökomarkt

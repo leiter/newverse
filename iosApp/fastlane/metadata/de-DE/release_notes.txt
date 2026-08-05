@@ -1,1 +1,5 @@
-- Verbesserungen und Fehlerbehebungen
+Erste Version der Bodenschätze-App.
+
+• Produkte entdecken und vorbestellen
+• Donnerstags am Markt abholen
+• Kundenprofil und Bestellhistorie

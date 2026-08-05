@@ -1,1 +1,5 @@
-- Improvements and bug fixes
+First release of the Bodenschätze app.
+
+• Discover and pre-order products
+• Pick up every Thursday at the market
+• Customer profile and order history
