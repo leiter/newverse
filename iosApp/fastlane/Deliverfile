@@ -11,8 +11,8 @@ screenshots_path("./fastlane/screenshots")
 submit_for_review(false)
 automatic_release(false)
 
-# Skip screenshots upload if not provided
-skip_screenshots(true)
+# Upload screenshots from screenshots_path
+skip_screenshots(false)
 
 # App rating configuration (if needed)
 # app_rating_config_path("./fastlane/rating_config.json")
@@ -26,8 +26,8 @@ precheck_include_in_app_purchases(false)
 # Force upload without confirmation
 force(true)
 
-# Overwrite existing screenshots
-overwrite_screenshots(false)
+# Replace whatever is already on the version, so re-runs are idempotent
+overwrite_screenshots(true)
 
 # Run precheck before submit
 run_precheck_before_submit(true)

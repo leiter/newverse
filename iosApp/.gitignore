@@ -72,14 +72,15 @@ Dependencies/
 
 # fastlane
 #
-# It is recommended to not store the screenshots in the git repo.
-# Instead, use fastlane to re-generate the screenshots whenever they are needed.
-# For more information about the recommended setup visit:
+# fastlane's default advice is to regenerate screenshots rather than commit
+# them. We do commit them: they are captured by hand from the simulator (no
+# snapshot/UI-test automation exists here), so the repo is the only place they
+# are reproducible from.
 # https://docs.fastlane.tools/best-practices/source-control/#source-control
 
 fastlane/report.xml
 fastlane/Preview.html
-fastlane/screenshots/**/*.png
+fastlane/screenshots/screenshots.html
 fastlane/test_output
 
 # Code Injection
