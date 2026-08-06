@@ -11,12 +11,18 @@ platform :ios do
     )
   end
 
+  # The project has no scheme called "iosApp" -- only the two flavour schemes
+  # below, each with its own -Buy / -Sell build configurations. Naming a scheme
+  # that does not exist makes gym prompt for a choice, which loops forever when
+  # running non-interactively (CI, backgrounded shells).
+  BUY_SCHEME = "iosApp-Buy"
+
   desc "Run tests"
   lane :test do
     run_tests(
       workspace: "iosApp.xcworkspace",
-      scheme: "iosApp",
-      device: "iPhone 15"
+      scheme: BUY_SCHEME,
+      device: "iPhone 17"
     )
   end
 
@@ -25,8 +31,8 @@ platform :ios do
     bump_build
     build_app(
       workspace: "iosApp.xcworkspace",
-      scheme: "iosApp",
-      configuration: "Debug",
+      scheme: BUY_SCHEME,
+      configuration: "Debug-Buy",
       destination: "generic/platform=iOS Simulator",
       skip_archive: true,
       skip_codesigning: true
@@ -45,8 +51,8 @@ platform :ios do
     bump_build
     build_app(
       workspace: "iosApp.xcworkspace",
-      scheme: "iosApp",
-      configuration: "Release",
+      scheme: BUY_SCHEME,
+      configuration: "Release-Buy",
       export_method: "app-store",
       clean: true,
       export_options: {
