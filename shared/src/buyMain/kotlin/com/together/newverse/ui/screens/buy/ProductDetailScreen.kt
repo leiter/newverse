@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.ui.adaptive.LocalWindowWidthClass
+import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
@@ -103,337 +106,412 @@ fun ProductDetailScreen(
         mutableStateOf(formatQuantityForDisplay(quantity, isWeightBased))
     }
 
-    val keyboardManager = rememberKeyboardManager()
+    // On Expanded windows (tablet landscape) show image and details side by side
+    val isExpanded = LocalWindowWidthClass.current == WindowWidthClass.Expanded
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-    ) {
-        // Large Product Image with favourite button overlay
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(280.dp)
-        ) {
-            if (article.imageUrl.isNotEmpty()) {
-                SubcomposeAsyncImage(
-                    model = article.imageUrl,
-                    contentDescription = article.productName,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    loading = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(48.dp),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    },
-                    error = {
-                        Image(
-                            painter = painterResource(Res.drawable.place_holder_landscape),
-                            contentDescription = stringResource(Res.string.cd_image_placeholder),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                )
-            } else {
-                Image(
-                    painter = painterResource(Res.drawable.place_holder_landscape),
-                    contentDescription = stringResource(Res.string.cd_image_placeholder),
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+    if (isExpanded) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            ProductImageSection(
+                article = article,
+                isFavourite = isFavourite,
+                onToggleFavourite = onToggleFavourite,
+                modifier = Modifier.weight(1f).fillMaxHeight()
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                ProductDetailsColumn(
+                    article = article,
+                    isWeightBased = isWeightBased,
+                    isInBasket = isInBasket,
+                    originalQuantity = originalQuantity,
+                    quantity = quantity,
+                    quantityText = quantityText,
+                    onQuantityChange = { quantity = it },
+                    onQuantityTextChange = { quantityText = it },
+                    onAddToCart = onAddToCart,
+                    onRemoveFromCart = onRemoveFromCart
                 )
             }
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        ) {
+            ProductImageSection(
+                article = article,
+                isFavourite = isFavourite,
+                onToggleFavourite = onToggleFavourite,
+                modifier = Modifier.fillMaxWidth().height(280.dp)
+            )
+            ProductDetailsColumn(
+                article = article,
+                isWeightBased = isWeightBased,
+                isInBasket = isInBasket,
+                originalQuantity = originalQuantity,
+                quantity = quantity,
+                quantityText = quantityText,
+                onQuantityChange = { quantity = it },
+                onQuantityTextChange = { quantityText = it },
+                onAddToCart = onAddToCart,
+                onRemoveFromCart = onRemoveFromCart
+            )
+        }
+    }
+}
 
-            // Favourite button overlay (top-right of image)
-            IconButton(
-                onClick = { onToggleFavourite(article.id) },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        shape = RoundedCornerShape(50)
+/**
+ * Large product image with a favourite-toggle overlay.
+ * Caller controls sizing via [modifier] (full width on phones, half the row on tablets).
+ */
+@Composable
+private fun ProductImageSection(
+    article: Article,
+    isFavourite: Boolean,
+    onToggleFavourite: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        if (article.imageUrl.isNotEmpty()) {
+            SubcomposeAsyncImage(
+                model = article.imageUrl,
+                contentDescription = article.productName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                loading = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                error = {
+                    Image(
+                        painter = painterResource(Res.drawable.place_holder_landscape),
+                        contentDescription = stringResource(Res.string.cd_image_placeholder),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
-            ) {
-                Icon(
-                    imageVector = if (isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
-                    tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                }
+            )
+        } else {
+            Image(
+                painter = painterResource(Res.drawable.place_holder_landscape),
+                contentDescription = stringResource(Res.string.cd_image_placeholder),
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        // Favourite button overlay (top-right of image)
+        IconButton(
+            onClick = { onToggleFavourite(article.id) },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(8.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                    shape = RoundedCornerShape(50)
+                )
+        ) {
+            Icon(
+                imageVector = if (isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
+                tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+/**
+ * Product name, price, category, description, quantity selector and action buttons.
+ */
+@Composable
+private fun ProductDetailsColumn(
+    article: Article,
+    isWeightBased: Boolean,
+    isInBasket: Boolean,
+    originalQuantity: Double,
+    quantity: Double,
+    quantityText: String,
+    onQuantityChange: (Double) -> Unit,
+    onQuantityTextChange: (String) -> Unit,
+    onAddToCart: (Article, Double) -> Unit,
+    onRemoveFromCart: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val keyboardManager = rememberKeyboardManager()
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        // Product Name
+        Text(
+            text = article.productName,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Price
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "${article.price.formatPrice()}€ / ${article.unit}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            if (quantity > 0) {
+                Text(
+                    text = "=",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "${(article.price * quantity).formatPrice()}€",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
         }
 
-            // Product Details
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Category
+        if (article.category.isNotEmpty()) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                // Product Name
-                Text(
-                    text = article.productName,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Price
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${article.price.formatPrice()}€ / ${article.unit}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        text = stringResource(Res.string.products_detail_category) + ": ",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
+                    Text(
+                        text = article.category,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
 
-                    if (quantity > 0) {
+        // Description / Detail Info
+        if (article.detailInfo.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(Res.string.products_detail_description),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = article.detailInfo,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Quantity Selector
+        Text(
+            text = stringResource(Res.string.products_detail_quantity),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Minus button for piece-based products
+                if (!isWeightBased) {
+                    IconButton(
+                        onClick = {
+                            val newQuantity = (quantity - 1.0).coerceAtLeast(0.0)
+                            onQuantityChange(newQuantity)
+                            onQuantityTextChange(formatQuantityForDisplay(newQuantity, false))
+                        },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Text("-", style = MaterialTheme.typography.headlineMedium)
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(48.dp))
+                }
+
+                // Quantity Text Field
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        BasicTextField(
+                            value = quantityText,
+                            onValueChange = { newText ->
+                                var filtered = newText.filter { it.isDigit() || it == ',' || it == '.' }
+                                if (quantityText == "0" && filtered.length == 2) {
+                                    val nonZeroDigit = filtered.firstOrNull { it.isDigit() && it != '0' }
+                                    if (nonZeroDigit != null && filtered.count { it == '0' } == 1) {
+                                        filtered = nonZeroDigit.toString()
+                                    }
+                                }
+                                if (filtered.length > 1 && filtered.startsWith("0") && filtered.getOrNull(1)?.isDigit() == true) {
+                                    filtered = filtered.dropWhile { it == '0' }.ifEmpty { "0" }
+                                }
+                                if (filtered.count { it == ',' || it == '.' } <= 1) {
+                                    onQuantityTextChange(filtered)
+                                    onQuantityChange(filtered.replace(",", ".").toDoubleOrNull() ?: 0.0)
+                                }
+                            },
+                            textStyle = LocalTextStyle.current.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = if (isWeightBased) KeyboardType.Decimal else KeyboardType.Number,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { keyboardManager.hide() }
+                            ),
+                            singleLine = true,
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.width(80.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
                         Text(
-                            text = "=",
+                            text = article.unit,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text(
-                            text = "${(article.price * quantity).formatPrice()}€",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Category
-                if (article.category.isNotEmpty()) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        ),
-                        shape = RoundedCornerShape(8.dp)
+                // Plus button for piece-based products
+                if (!isWeightBased) {
+                    IconButton(
+                        onClick = {
+                            val newQuantity = quantity + 1.0
+                            onQuantityChange(newQuantity)
+                            onQuantityTextChange(formatQuantityForDisplay(newQuantity, false))
+                        },
+                        modifier = Modifier.size(48.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.products_detail_category) + ": ",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                            Text(
-                                text = article.category,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-                }
-
-                // Description / Detail Info
-                if (article.detailInfo.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = stringResource(Res.string.products_detail_description),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = article.detailInfo,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Quantity Selector
-                Text(
-                    text = stringResource(Res.string.products_detail_quantity),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Minus button for piece-based products
-                        if (!isWeightBased) {
-                            IconButton(
-                                onClick = {
-                                    val newQuantity = (quantity - 1.0).coerceAtLeast(0.0)
-                                    quantity = newQuantity
-                                    quantityText = formatQuantityForDisplay(newQuantity, false)
-                                },
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Text("-", style = MaterialTheme.typography.headlineMedium)
-                            }
-                        } else {
-                            Spacer(modifier = Modifier.width(48.dp))
-                        }
-
-                        // Quantity Text Field
-                        Box(
-                            modifier = Modifier.weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                BasicTextField(
-                                    value = quantityText,
-                                    onValueChange = { newText ->
-                                        var filtered = newText.filter { it.isDigit() || it == ',' || it == '.' }
-                                        if (quantityText == "0" && filtered.length == 2) {
-                                            val nonZeroDigit = filtered.firstOrNull { it.isDigit() && it != '0' }
-                                            if (nonZeroDigit != null && filtered.count { it == '0' } == 1) {
-                                                filtered = nonZeroDigit.toString()
-                                            }
-                                        }
-                                        if (filtered.length > 1 && filtered.startsWith("0") && filtered.getOrNull(1)?.isDigit() == true) {
-                                            filtered = filtered.dropWhile { it == '0' }.ifEmpty { "0" }
-                                        }
-                                        if (filtered.count { it == ',' || it == '.' } <= 1) {
-                                            quantityText = filtered
-                                            quantity = filtered.replace(",", ".").toDoubleOrNull() ?: 0.0
-                                        }
-                                    },
-                                    textStyle = LocalTextStyle.current.copy(
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontSize = MaterialTheme.typography.headlineSmall.fontSize,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center
-                                    ),
-                                    keyboardOptions = KeyboardOptions(
-                                        keyboardType = if (isWeightBased) KeyboardType.Decimal else KeyboardType.Number,
-                                        imeAction = ImeAction.Done
-                                    ),
-                                    keyboardActions = KeyboardActions(
-                                        onDone = { keyboardManager.hide() }
-                                    ),
-                                    singleLine = true,
-                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                    modifier = Modifier.width(80.dp)
-                                )
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                Text(
-                                    text = article.unit,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // Plus button for piece-based products
-                        if (!isWeightBased) {
-                            IconButton(
-                                onClick = {
-                                    val newQuantity = quantity + 1.0
-                                    quantity = newQuantity
-                                    quantityText = formatQuantityForDisplay(newQuantity, false)
-                                },
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp))
-                            }
-                        } else {
-                            Spacer(modifier = Modifier.width(48.dp))
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Action Buttons
-                if (isInBasket) {
-                    // Update / Remove buttons for items in basket
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Update button
-                        Button(
-                            onClick = { onAddToCart(article, quantity) },
-                            enabled = quantity != originalQuantity && quantity > 0,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(Res.string.products_detail_update_cart))
-                        }
-
-                        // Remove button
-                        OutlinedButton(
-                            onClick = { onRemoveFromCart(article.id) },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(Res.string.products_detail_remove_from_cart))
-                        }
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp))
                     }
                 } else {
-                    // Add to cart button for items not in basket
-                    Button(
-                        onClick = { onAddToCart(article, quantity) },
-                        enabled = quantity > 0,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(24.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = stringResource(Res.string.products_detail_add_to_cart),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
+                    Spacer(modifier = Modifier.width(48.dp))
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Action Buttons
+        if (isInBasket) {
+            // Update / Remove buttons for items in basket
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Update button
+                Button(
+                    onClick = { onAddToCart(article, quantity) },
+                    enabled = quantity != originalQuantity && quantity > 0,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(Res.string.products_detail_update_cart))
+                }
+
+                // Remove button
+                OutlinedButton(
+                    onClick = { onRemoveFromCart(article.id) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(Res.string.products_detail_remove_from_cart))
+                }
+            }
+        } else {
+            // Add to cart button for items not in basket
+            Button(
+                onClick = { onAddToCart(article, quantity) },
+                enabled = quantity > 0,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = stringResource(Res.string.products_detail_add_to_cart),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
 }
 
 /**

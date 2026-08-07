@@ -27,7 +27,7 @@ android {
         applicationId = "com.together"
         minSdk = 23
         targetSdk = 36
-        versionCode = 35 // Todo appVersionCode
+        versionCode = appVersionCode
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -104,7 +104,7 @@ android {
         create("buy") {
             dimension = "userType"
             applicationIdSuffix = ".buy"
-            versionCode = 35 //appVersionCode
+            versionCode = appVersionCode
             versionNameSuffix = "-buy"
             matchingFallbacks += "buy"
         }
@@ -112,7 +112,7 @@ android {
         create("sell") {
             dimension = "userType"
             applicationIdSuffix = ".sell"
-            versionCode = appVersionCode
+            versionCode = 23 //appVersionCode
             versionNameSuffix = "-sell"
             matchingFallbacks += "sell"
         }

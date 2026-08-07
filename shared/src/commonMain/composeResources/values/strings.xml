@@ -400,6 +400,7 @@
     <string name="orders_items_suffix"> Artikel</string>
     <string name="orders_note_prefix">Hinweis: </string>
     <string name="no_orders_message">Keine Bestellungen vorhanden</string>
+    <string name="orders_select_prompt">Wähle eine Bestellung aus, um Details zu sehen</string>
     <string name="retry">Wiederholen</string>
 
     <!-- Order Detail Screen -->
