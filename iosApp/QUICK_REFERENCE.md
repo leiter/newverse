@@ -68,7 +68,7 @@ bundle exec fastlane sync_certificates
 | `fastlane/Appfile` | App identifiers and team IDs |
 | `fastlane/Deliverfile` | App Store delivery settings |
 | `fastlane/metadata/` | App Store metadata (descriptions, keywords) |
-| `fastlane/AuthKey_M4S9AWXXL7.p8` | App Store Connect API key |
+| `fastlane/api_key.json.example` | Template for `fastlane run <action> api_key_path:` (copy to `api_key.json`, gitignored) |
 | `APP_STORE_METADATA.md` | All metadata ready for copy/paste |
 | `METADATA_UPLOAD_GUIDE.md` | Detailed metadata upload instructions |
 | `upload-metadata.sh` | Script to upload metadata |
@@ -146,8 +146,10 @@ bundle exec fastlane sync_certificates
 
 ## 🔐 Credentials Location
 
-- **API Key**: `fastlane/AuthKey_M4S9AWXXL7.p8`
-- **Key ID**: M4S9AWXXL7
+- **API Key**: `~/.appstoreconnect/private_keys/AuthKey_M4S9AWXXL7.p8` (outside the repo).
+  The lanes resolve it in this order: `$ASC_KEY_PATH` → `~/.appstoreconnect/private_keys/`
+  → `fastlane/` (gitignored fallback, for CI). Verify with `fastlane check_api_key`.
+- **Key ID**: M4S9AWXXL7 (override with `$ASC_KEY_ID` / `$ASC_ISSUER_ID`)
 - **Issuer ID**: e3c717d8-00fc-4ff7-8a05-65f96d2b1562
 - **Provisioning Profile**: BodenschaetzeBuy
 

@@ -15,6 +15,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## iOS
 
+### ios check_api_key
+
+```sh
+[bundle exec] fastlane ios check_api_key
+```
+
+Verify the App Store Connect API key resolves and authenticates
+
 ### ios test
 
 ```sh

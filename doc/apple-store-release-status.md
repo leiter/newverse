@@ -89,9 +89,14 @@ longest-lead item and should start first.
 
 ## To verify (not yet checked)
 
-- **`iosApp/fastlane/api_key.json` is tracked in git.** `AuthKey_*.p8` is correctly
-  gitignored (line 59), but the JSON was not inspected. Confirm it contains no private key
-  material before this branch goes anywhere public.
+- ~~**`iosApp/fastlane/api_key.json` is tracked in git.**~~ Checked 2026-08-17: it held only
+  the placeholder `REPLACE_WITH_BASE64_ENCODED_KEY_CONTENT`, so **no key material was ever
+  committed**. The file was broken anyway (its `key_id` `68DRP2Y8RW` did not match the
+  `AuthKey_M4S9AWXXL7.p8` the lanes use, and any base64 value there fails with
+  `invalid curve name` unless `is_key_content_base64` is also set). It is now untracked and
+  gitignored, with `api_key.json.example` as the template. The lanes resolve the `.p8` via
+  `$ASC_KEY_PATH` → `~/.appstoreconnect/private_keys/` → `fastlane/`; run
+  `fastlane check_api_key` to confirm.
 - **App Store Connect record** — whether the app entry exists, its name, and whether any
   build has been accepted. Not determinable from the repo.
 - **Runtime behaviour** — the iOS app has been compiled but not run. Two known code-level

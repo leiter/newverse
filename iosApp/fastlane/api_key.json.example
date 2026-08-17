@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Template for fastlane's --api_key_path / api_key_path: argument. Copy to api_key.json",
+    "(gitignored) and paste the real key. Only needed for one-off `fastlane run <action>`",
+    "invocations -- the lanes in the Fastfile build the key themselves from the .p8 and do",
+    "NOT read this file.",
+    "",
+    "key: the full PEM contents of AuthKey_<key_id>.p8, including the BEGIN/END lines, with",
+    "real newlines escaped as \\n. If you paste base64 instead, you must also set",
+    "\"is_key_content_base64\": true, or spaceship fails with 'invalid curve name'.",
+    "",
+    "Generate it from the .p8 without hand-editing:",
+    "  python3 -c 'import json;print(json.dumps({\"key_id\":\"M4S9AWXXL7\",\"issuer_id\":\"e3c717d8-00fc-4ff7-8a05-65f96d2b1562\",\"key\":open(\"'\"$HOME\"'/.appstoreconnect/private_keys/AuthKey_M4S9AWXXL7.p8\").read(),\"in_house\":False}))' > api_key.json"
+  ],
+  "key_id": "M4S9AWXXL7",
+  "issuer_id": "e3c717d8-00fc-4ff7-8a05-65f96d2b1562",
+  "key": "-----BEGIN PRIVATE KEY-----\nREPLACE_WITH_PEM_CONTENTS_OF_THE_P8\n-----END PRIVATE KEY-----\n",
+  "in_house": false
+}
