@@ -899,8 +899,20 @@ internal fun BuyAppViewModel.refreshAuthProvider() {
         }
         val linked = AuthProvider.allFromProviderIds(providerIds)
         val provider = linked.firstOrNull() ?: AuthProvider.ANONYMOUS
-        println("🔐 refreshAuthProvider: provider=$provider, linked=$linked")
-        _state.update { it.copy(authProvider = provider, linkedProviders = linked) }
+        val anonymous = try {
+            authRepository.isAnonymous()
+        } catch (e: Exception) {
+            println("⚠️ refreshAuthProvider: isAnonymous failed - ${e.message}")
+            false
+        }
+        println("🔐 refreshAuthProvider: provider=$provider, linked=$linked, anonymous=$anonymous")
+        _state.update {
+            it.copy(
+                authProvider = provider,
+                linkedProviders = linked,
+                isAnonymousUser = anonymous
+            )
+        }
     }
 }
 

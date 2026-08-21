@@ -17,6 +17,13 @@ data class BuyAppState(
     val authProvider: AuthProvider = AuthProvider.ANONYMOUS,
     /** Every provider linked to the account, for the profile badge. */
     val linkedProviders: List<AuthProvider> = emptyList(),
+    /**
+     * Whether the Firebase user is anonymous, read from the auth session.
+     *
+     * Defaults to false on purpose: until it resolves, a real account holder
+     * must not be shown the guest branch and its account-wiping button.
+     */
+    val isAnonymousUser: Boolean = false,
     val requiresLogin: Boolean = false,
 
     // Seller connection
@@ -94,6 +101,7 @@ data class BuyAppState(
 fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
     authProvider = AuthProvider.ANONYMOUS,
     linkedProviders = emptyList(),
+    isAnonymousUser = false,
     connectedSellerId = "",
     connectedSellerDisplayName = "",
     accessStatus = AccessStatus.NONE,

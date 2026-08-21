@@ -100,11 +100,12 @@ fun NavGraph(
                 appState.authProvider
             }
 
-            // Deliberately independent of authProvider, which resolves asynchronously
-            // from the auth session. Keying on it would briefly show a real account
-            // holder the guest branch - including the "your data will be deleted"
-            // logout warning - before the provider lands.
-            val isAnonymous = profile?.anonymous == true || userState !is UserState.LoggedIn
+            // From the auth session. BuyerProfile.anonymous is not usable here - it
+            // is never set to true anywhere - and an anonymous user is in
+            // UserState.LoggedIn like any other, so neither identifies a guest.
+            // isAnonymousUser defaults to false, so a real account holder is never
+            // shown the guest branch and its account-wiping button while it loads.
+            val isAnonymous = appState.isAnonymousUser || userState !is UserState.LoggedIn
 
             val userEmail = when (userState) {
                 is UserState.LoggedIn -> userState.email.ifEmpty { null }
