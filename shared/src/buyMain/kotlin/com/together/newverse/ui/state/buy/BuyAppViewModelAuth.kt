@@ -12,6 +12,7 @@ import com.together.newverse.ui.state.BuyAccountAction
 import com.together.newverse.domain.model.SellerEventType
 import com.together.newverse.util.AppleTokenRevoker
 import com.together.newverse.ui.state.AuthProvider
+import com.together.newverse.ui.state.AuthScreenState
 import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import kotlinx.coroutines.delay
@@ -259,6 +260,7 @@ internal fun BuyAppViewModel.logout() {
                         authProvider = AuthProvider.ANONYMOUS,
                         linkedProviders = emptyList(),
                         basket = BasketState(),
+                        auth = AuthScreenState(),
                         customerProfile = CustomerProfileScreenState(),
                         mainScreen = current.mainScreen.copy(
                             favouriteArticles = emptyList()
@@ -408,12 +410,20 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
             // Step 6: Clear all local state
             _state.update { current ->
                 current.copy(
-                    user = UserState.Guest,
+                    // NotAuthenticated, not Guest: the auth account is gone, and
+                    // only NotAuthenticated routes to the buy app's own login
+                    // screen with "continue as guest" on it. requiresLogin would
+                    // show the seller flavour's forced login instead, which offers
+                    // no way back in for a buyer.
+                    user = UserState.NotAuthenticated,
                     authProvider = AuthProvider.ANONYMOUS,
                     linkedProviders = emptyList(),
                     basket = BasketState(),
                     triggerGoogleSignOut = true,
-                    requiresLogin = true, // Show login screen
+                    requiresLogin = false,
+                    // The login screen is about to be shown; it must not carry
+                    // the deleted user's email, password or error in its fields.
+                    auth = AuthScreenState(),
                     customerProfile = CustomerProfileScreenState(),
                     mainScreen = current.mainScreen.copy(
                         favouriteArticles = emptyList()
@@ -710,12 +720,17 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
             // Reset state and hide dialog
             _state.update { current ->
                 current.copy(
-                    user = UserState.Guest,
+                    // See confirmGuestLogout: NotAuthenticated routes to the buy
+                    // login screen, requiresLogin to the seller forced login.
+                    user = UserState.NotAuthenticated,
                     authProvider = AuthProvider.ANONYMOUS,
                     linkedProviders = emptyList(),
                     basket = BasketState(),
                     triggerGoogleSignOut = true,
-                    requiresLogin = true,
+                    requiresLogin = false,
+                    // The login screen is about to be shown; it must not carry
+                    // the deleted user's email, password or error in its fields.
+                    auth = AuthScreenState(),
                     customerProfile = CustomerProfileScreenState(),
                     mainScreen = current.mainScreen.copy(
                         favouriteArticles = emptyList()
