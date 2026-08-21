@@ -62,7 +62,7 @@
       "$sellerId": {
         "$buyerUUID": {
           ".read": "auth != null && (auth.uid === $sellerId || data.child('authUID').val() === auth.uid)",
-          ".write": "auth != null && (auth.uid === $sellerId || (!data.exists() && newData.child('authUID').val() === auth.uid && newData.child('status').val() === 'PENDING' && newData.child('buyerUUID').val() === $buyerUUID) || (data.child('authUID').val() === auth.uid && !newData.exists()))"
+          ".write": "auth != null && (auth.uid === $sellerId || (newData.exists() && newData.child('authUID').val() === auth.uid && newData.child('status').val() === 'PENDING' && newData.child('buyerUUID').val() === $buyerUUID && (!data.exists() || (data.child('authUID').val() === auth.uid && data.child('status').val() !== 'BLOCKED'))) || (data.exists() && !newData.exists() && data.child('authUID').val() === auth.uid && data.child('status').val() !== 'BLOCKED'))"
         }
       }
     },
@@ -81,7 +81,7 @@
         ".write": "auth != null && auth.uid === $sellerId",
         "$buyerUUID": {
           ".read": "auth != null && data.child('authUID').val() === auth.uid",
-          ".write": "auth != null && ((!data.exists() && newData.child('authUID').val() === auth.uid && newData.child('buyerUUID').val() === $buyerUUID) || (data.child('authUID').val() === auth.uid && !newData.exists()))"
+          ".write": "auth != null && root.child('buyer_access_status').child($sellerId).child($buyerUUID).child('status').val() !== 'BLOCKED' && ((newData.exists() && newData.child('authUID').val() === auth.uid && newData.child('buyerUUID').val() === $buyerUUID && (!data.exists() || data.child('authUID').val() === auth.uid)) || (data.exists() && !newData.exists() && data.child('authUID').val() === auth.uid))"
         }
       }
     },

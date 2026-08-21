@@ -104,6 +104,43 @@ describe("access requests and approval", () => {
     await assertSucceeds(alice.ref(`access_requests/${SELLER}/${ALICE_UUID}`).remove());
   });
 
+  it("allows a buyer with an existing record to request access again", async () => {
+    // submitAccessRequest uses setValue, which overwrites. A buyer retrying
+    // after a lingering or rejected request must not be locked out.
+    await seed(env, async (db) => {
+      await db.ref(`access_requests/${SELLER}/${ALICE_UUID}`).set({
+        buyerUUID: ALICE_UUID, displayName: "Alice", requestedAt: 1, authUID: ALICE
+      });
+      await db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
+        status: "PENDING", updatedAt: 1, buyerUUID: ALICE_UUID, displayName: "Alice", authUID: ALICE
+      });
+    });
+    const alice = asUser(env, ALICE);
+    await assertSucceeds(alice.ref(`access_requests/${SELLER}/${ALICE_UUID}`).set({
+      buyerUUID: ALICE_UUID, displayName: "Alice", requestedAt: 2, authUID: ALICE
+    }));
+    await assertSucceeds(alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
+      status: "PENDING", updatedAt: 2, buyerUUID: ALICE_UUID, displayName: "Alice", authUID: ALICE
+    }));
+  });
+
+  it("denies a blocked buyer resetting themselves back to pending", async () => {
+    await seed(env, (db) =>
+      db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
+        status: "BLOCKED", updatedAt: 1, buyerUUID: ALICE_UUID, displayName: "Alice", authUID: ALICE
+      })
+    );
+    const alice = asUser(env, ALICE);
+    await assertFails(alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
+      status: "PENDING", updatedAt: 2, buyerUUID: ALICE_UUID, displayName: "Alice", authUID: ALICE
+    }));
+    // nor by deleting the block and starting over
+    await assertFails(alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).remove());
+    await assertFails(alice.ref(`access_requests/${SELLER}/${ALICE_UUID}`).set({
+      buyerUUID: ALICE_UUID, displayName: "Alice", requestedAt: 2, authUID: ALICE
+    }));
+  });
+
   it("allows a buyer to read their own access status", async () => {
     await seed(env, (db) =>
       db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
