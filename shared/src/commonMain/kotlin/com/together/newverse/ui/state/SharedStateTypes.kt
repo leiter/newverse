@@ -422,6 +422,30 @@ enum class AuthProvider {
      * For Compose UI, use the @Composable extension localizedDisplayName() instead
      * @see AuthProvider.localizedDisplayName
      */
+
+    companion object {
+        /**
+         * Map Firebase provider ids to a provider.
+         *
+         * Read these from the auth session (AuthRepository.getProviderIds), never
+         * from the user's email address: an Apple account carries a private relay
+         * address, and a Google account need not be a gmail.com one.
+         *
+         * An account can be linked to several providers; the first recognised one
+         * wins, which is the one the buyer signed in with in practice.
+         */
+        fun fromProviderIds(providerIds: List<String>): AuthProvider {
+            for (id in providerIds) {
+                when (id) {
+                    "apple.com" -> return APPLE
+                    "google.com" -> return GOOGLE
+                    "twitter.com" -> return TWITTER
+                    "password" -> return EMAIL
+                }
+            }
+            return ANONYMOUS
+        }
+    }
 }
 
 // ===== Main Screen State =====

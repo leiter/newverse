@@ -91,22 +91,20 @@ fun NavGraph(
             val userState = appState.user
             val profile = appState.customerProfile.profile
 
-            // Determine authProvider first
-            val authProvider = when {
-                profile?.anonymous == true -> AuthProvider.ANONYMOUS
-                userState is UserState.LoggedIn -> {
-                    // Determine provider from email pattern (simplified heuristic)
-                    when {
-                        userState.email.isEmpty() -> AuthProvider.ANONYMOUS
-                        userState.email.contains("@gmail.com") -> AuthProvider.GOOGLE
-                        else -> AuthProvider.EMAIL
-                    }
-                }
-                else -> AuthProvider.ANONYMOUS
+            // Resolved from the auth session by the ViewModel. It cannot be
+            // guessed from the email address: Apple issues private relay
+            // addresses, and a Google account need not be a gmail.com one.
+            val authProvider = if (profile?.anonymous == true) {
+                AuthProvider.ANONYMOUS
+            } else {
+                appState.authProvider
             }
 
-            // User is anonymous if authProvider is ANONYMOUS or userState is Guest
-            val isAnonymous = authProvider == AuthProvider.ANONYMOUS || userState is UserState.Guest
+            // Deliberately independent of authProvider, which resolves asynchronously
+            // from the auth session. Keying on it would briefly show a real account
+            // holder the guest branch - including the "your data will be deleted"
+            // logout warning - before the provider lands.
+            val isAnonymous = profile?.anonymous == true || userState !is UserState.LoggedIn
 
             val userEmail = when (userState) {
                 is UserState.LoggedIn -> userState.email.ifEmpty { null }

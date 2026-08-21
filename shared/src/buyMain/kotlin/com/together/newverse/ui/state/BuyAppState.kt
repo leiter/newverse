@@ -13,6 +13,8 @@ import com.together.newverse.domain.model.Order
 data class BuyAppState(
     // User state
     val user: UserState = UserState.Loading,
+    /** Resolved from the auth session, not from the email address. */
+    val authProvider: AuthProvider = AuthProvider.ANONYMOUS,
     val requiresLogin: Boolean = false,
 
     // Seller connection

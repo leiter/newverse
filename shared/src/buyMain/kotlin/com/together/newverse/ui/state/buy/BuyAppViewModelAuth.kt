@@ -11,6 +11,7 @@ import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.BuyAccountAction
 import com.together.newverse.domain.model.SellerEventType
 import com.together.newverse.util.AppleTokenRevoker
+import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import kotlinx.coroutines.delay
@@ -250,6 +251,7 @@ internal fun BuyAppViewModel.logout() {
                 _state.update { current ->
                     current.copy(
                         user = UserState.Guest,
+                        authProvider = AuthProvider.ANONYMOUS,
                         basket = BasketState(),
                         triggerGoogleSignOut = true
                     )
@@ -396,6 +398,7 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
             _state.update { current ->
                 current.copy(
                     user = UserState.Guest,
+                    authProvider = AuthProvider.ANONYMOUS,
                     basket = BasketState(),
                     triggerGoogleSignOut = true,
                     requiresLogin = true, // Show login screen
@@ -523,6 +526,9 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
                         )
                     )
                 }
+
+                // The account is no longer anonymous; re-resolve the provider
+                refreshAuthProvider()
 
                 // Record the upgrade in the seller's book keeping log
                 logSellerEvent(
@@ -692,6 +698,7 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
             _state.update { current ->
                 current.copy(
                     user = UserState.Guest,
+                    authProvider = AuthProvider.ANONYMOUS,
                     basket = BasketState(),
                     triggerGoogleSignOut = true,
                     requiresLogin = true,
@@ -875,6 +882,26 @@ internal suspend fun BuyAppViewModel.deleteAuthAccountOrSignOut(
     return reason
 }
 
+/**
+ * Resolve the auth provider from the session and publish it to state.
+ *
+ * The provider cannot be inferred from the email address: Apple issues private
+ * relay addresses, and a Google account need not use a gmail.com one. Reading
+ * providerData is the only reliable source.
+ */
+internal fun BuyAppViewModel.refreshAuthProvider() {
+    viewModelScope.launch {
+        val provider = try {
+            AuthProvider.fromProviderIds(authRepository.getProviderIds())
+        } catch (e: Exception) {
+            println("⚠️ refreshAuthProvider: Error - ${e.message}")
+            AuthProvider.ANONYMOUS
+        }
+        println("🔐 refreshAuthProvider: provider=$provider")
+        _state.update { it.copy(authProvider = provider) }
+    }
+}
+
 internal fun BuyAppViewModel.getCurrentUserId(): String? {
     return when (val user = _state.value.user) {
         is UserState.LoggedIn -> user.id
@@ -980,6 +1007,9 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
                 (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.setActiveUserId(userId)
                 println("🔑 Activated per-user storage for userId=$userId")
             }
+
+            // Publish which provider backs this session
+            refreshAuthProvider()
 
             // Set initializing state
             _state.update { current ->
