@@ -39,6 +39,14 @@ interface ProfileRepository {
     suspend fun getSellerProfile(sellerId: String = ""): Result<SellerProfile>
 
     /**
+     * Get only the seller's public display name.
+     *
+     * Buyers cannot read the whole seller profile - it holds the seller's client
+     * lists - so this reads the single public child instead.
+     */
+    suspend fun getSellerDisplayName(sellerId: String): Result<String>
+
+    /**
      * Save seller profile
      * @param profile The profile to save
      * @return Success or failure result

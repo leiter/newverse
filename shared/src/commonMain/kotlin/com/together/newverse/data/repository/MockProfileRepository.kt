@@ -53,6 +53,9 @@ class MockProfileRepository : ProfileRepository {
         }
     }
 
+    override suspend fun getSellerDisplayName(sellerId: String): Result<String> =
+        Result.success(PreviewData.sampleSellerProfile.displayName)
+
     override suspend fun getSellerProfile(sellerId: String): Result<SellerProfile> {
         return try {
             delay(300)

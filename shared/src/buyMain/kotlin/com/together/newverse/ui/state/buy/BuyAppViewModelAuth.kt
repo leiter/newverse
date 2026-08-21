@@ -970,14 +970,14 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             val currentSellerId = sellerConfig.sellerId
             if (currentSellerId.isNotEmpty()) {
                 try {
-                    val sellerDisplayName = profileRepository.getSellerProfile(currentSellerId)
-                        .getOrNull()?.displayName ?: ""
+                    val sellerDisplayName = profileRepository.getSellerDisplayName(currentSellerId)
+                        .getOrNull() ?: ""
                     _state.update { it.copy(
                         connectedSellerId = currentSellerId,
                         connectedSellerDisplayName = sellerDisplayName
                     )}
                 } catch (e: Exception) {
-                    println("[NV_BuyAppVM] resumeInitializationAfterAuth: getSellerProfile failed (non-fatal) - ${e.message}")
+                    println("[NV_BuyAppVM] resumeInitializationAfterAuth: getSellerDisplayName failed (non-fatal) - ${e.message}")
                 }
             }
 

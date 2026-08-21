@@ -100,6 +100,9 @@ class FakeProfileRepository : ProfileRepository {
         return Result.success(profile)
     }
 
+    override suspend fun getSellerDisplayName(sellerId: String): Result<String> =
+        Result.success(_sellerProfile.value?.displayName ?: "")
+
     override suspend fun getSellerProfile(sellerId: String): Result<SellerProfile> {
         if (shouldFailGetSellerProfile) {
             return Result.failure(Exception(failureMessage))

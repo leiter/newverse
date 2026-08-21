@@ -212,9 +212,9 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
 
             // Fetch seller display name
             val sellerDisplayName = try {
-                profileRepository.getSellerProfile(sellerId).getOrNull()?.displayName ?: ""
+                profileRepository.getSellerDisplayName(sellerId).getOrNull() ?: ""
             } catch (e: Exception) {
-                println("BuyAppViewModel.performConnection: getSellerProfile failed (non-fatal) - ${e.message}")
+                println("BuyAppViewModel.performConnection: getSellerDisplayName failed (non-fatal) - ${e.message}")
                 ""
             }
 

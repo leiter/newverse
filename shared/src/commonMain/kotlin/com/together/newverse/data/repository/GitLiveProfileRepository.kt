@@ -118,6 +118,22 @@ class GitLiveProfileRepository(
         }
     }
 
+    override suspend fun getSellerDisplayName(sellerId: String): Result<String> {
+        return try {
+            if (sellerId.isEmpty()) return Result.success("")
+            sellerProfileCache[sellerId]?.let { return Result.success(it.displayName) }
+
+            // Read the single public child: the buyer has no read access to the
+            // seller profile node itself, which carries the client lists.
+            val snapshot = sellersRef.child(sellerId).child("displayName").valueEvents.first()
+            val displayName = snapshot.value as? String ?: ""
+            Result.success(displayName)
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.getSellerDisplayName: Error - ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getSellerProfile(sellerId: String): Result<SellerProfile> {
         return try {
             println("🔐 GitLiveProfileRepository.getSellerProfile: START - sellerId=$sellerId")
@@ -676,7 +692,10 @@ class GitLiveProfileRepository(
             accessRequestsRef.child(sellerId).child(buyerUUID).setValue(mapOf(
                 "buyerUUID" to buyerUUID,
                 "displayName" to displayName,
-                "requestedAt" to now
+                "requestedAt" to now,
+                // The rules bind the request to its author through this field;
+                // buyerUUID is buyer-supplied and cannot be trusted for that.
+                "authUID" to authUID
             ))
             // Write initial status = PENDING, include authUID so the seller can resolve the buyer profile
             buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(

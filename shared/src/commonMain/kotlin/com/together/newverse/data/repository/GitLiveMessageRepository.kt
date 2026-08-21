@@ -114,14 +114,19 @@ class GitLiveMessageRepository : MessageRepository {
                 isRead = false
             )
 
-            // Write message
-            val msgRef = messagesRef.child(conversationId).child(messageId)
-            msgRef.child("id").setValue(messageId)
-            msgRef.child("senderId").setValue(senderId)
-            msgRef.child("senderName").setValue(senderName)
-            msgRef.child("text").setValue(text)
-            msgRef.child("timestamp").setValue(now)
-            msgRef.child("isRead").setValue(false)
+            // Write the message as a single map. The security rules only accept a
+            // message that arrives complete with its senderId; writing field by
+            // field would be rejected from the second field onwards.
+            messagesRef.child(conversationId).child(messageId).setValue(
+                mapOf(
+                    "id" to messageId,
+                    "senderId" to senderId,
+                    "senderName" to senderName,
+                    "text" to text,
+                    "timestamp" to now,
+                    "isRead" to false
+                )
+            )
 
             // Update conversation metadata
             val convRef = conversationsRef.child(conversationId)

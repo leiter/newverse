@@ -52,15 +52,20 @@ class GitLiveInvitationRepository(
                 sellerDisplayName = sellerDisplayName
             )
 
-            // Write invitation data
-            val ref = invitationsRef.child(id)
-            ref.child("id").setValue(id)
-            ref.child("sellerId").setValue(sellerId)
-            ref.child("buyerId").setValue(targetBuyerId)
-            ref.child("status").setValue(InvitationStatus.PENDING.name)
-            ref.child("createdAt").setValue(now)
-            ref.child("expiresAt").setValue(now + expiresInMillis)
-            ref.child("sellerDisplayName").setValue(sellerDisplayName)
+            // Write the invitation as a single map. The security rules only accept
+            // a new invitation that already carries its sellerId, so a field-by-field
+            // write would be rejected after the first field.
+            invitationsRef.child(id).setValue(
+                mapOf(
+                    "id" to id,
+                    "sellerId" to sellerId,
+                    "buyerId" to targetBuyerId,
+                    "status" to InvitationStatus.PENDING.name,
+                    "createdAt" to now,
+                    "expiresAt" to now + expiresInMillis,
+                    "sellerDisplayName" to sellerDisplayName
+                )
+            )
 
             // If targeted, add to buyer_invitations index
             if (targetBuyerId != null) {
