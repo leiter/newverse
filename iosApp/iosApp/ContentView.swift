@@ -51,6 +51,7 @@ struct ComposeView: UIViewControllerRepresentable {
 
         // Store references needed for presenting sheets
         context.coordinator.appleSignInHelper = appleSignInHelper
+        context.coordinator.registerAppleRevokeHandler()
         context.coordinator.rootViewController = controller
 
         return controller
@@ -159,6 +160,35 @@ struct ComposeView: UIViewControllerRepresentable {
                 popover.permittedArrowDirections = []
             }
             vc.present(activityVC, animated: true)
+        }
+
+        /// Registers the Apple token revocation handler that Kotlin calls when an
+        /// Apple-backed account is deleted.
+        ///
+        /// Apple requires the token to be revoked on account deletion (App Store
+        /// guideline 5.1.1(v)). This presents Apple's sign-in sheet again, because
+        /// the authorization code revocation needs is short lived and cannot be
+        /// captured at the original sign-in.
+        func registerAppleRevokeHandler() {
+            AppleRevokeBridge.shared.setHandler { [weak self] onSuccess, onError in
+                guard let helper = self?.appleSignInHelper else {
+                    onError("Apple Sign-In Helper not initialized")
+                    return
+                }
+                // Apple's sheet must be presented from the main thread.
+                DispatchQueue.main.async {
+                    helper.reauthenticateAndRevoke { result in
+                        switch result {
+                        case .success:
+                            print("Apple token revoked")
+                            onSuccess()
+                        case .failure(let error):
+                            print("Apple token revocation failed: \(error.localizedDescription)")
+                            onError(error.localizedDescription)
+                        }
+                    }
+                }
+            }
         }
 
         /// Handles Apple Sign-In request from Kotlin

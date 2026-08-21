@@ -10,6 +10,7 @@ import com.together.newverse.ui.state.InitializationStep
 import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.BuyAccountAction
 import com.together.newverse.domain.model.SellerEventType
+import com.together.newverse.util.AppleTokenRevoker
 import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import kotlinx.coroutines.delay
@@ -790,6 +791,40 @@ internal suspend fun BuyAppViewModel.logSellerEvent(
 }
 
 /**
+ * Revoke the Sign in with Apple token, when the account is backed by Apple.
+ *
+ * Apple issues the authorization code that revocation needs per authorization,
+ * and it expires within minutes, so this re-runs the Apple sign-in rather than
+ * reusing anything stored. That means the user sees Apple's sheet during
+ * deletion, which is expected and is what Apple's own guidance describes.
+ *
+ * A failure never blocks deletion - the user asked for their account to go, and
+ * refusing on a revoke error would trap them. It is returned so it can be
+ * recorded instead.
+ *
+ * @return null when nothing needed revoking or revocation succeeded, otherwise
+ *         the reason it failed.
+ */
+internal suspend fun BuyAppViewModel.revokeAppleTokenIfNeeded(
+    audit: BuyerAuditSnapshot
+): String? {
+    val isAppleAccount = authRepository.getProviderIds().any { it == "apple.com" }
+    if (!isAppleAccount) return null
+
+    if (!AppleTokenRevoker.isSupported) {
+        val reason = "Apple account, but this platform cannot revoke the token"
+        println("⚠️ revokeAppleTokenIfNeeded: $reason")
+        return reason
+    }
+
+    println("🍎 revokeAppleTokenIfNeeded: Revoking Apple token for ${audit.firebaseUserId}")
+    return AppleTokenRevoker.reauthenticateAndRevoke().fold(
+        onSuccess = { null },
+        onFailure = { e -> e.message ?: "Apple token revocation failed" }
+    )
+}
+
+/**
  * Delete the Firebase Auth account after the buyer's data has been removed.
  *
  * Auth deletion has to happen last, because deleting the buyer data requires an
@@ -803,6 +838,12 @@ internal suspend fun BuyAppViewModel.logSellerEvent(
 internal suspend fun BuyAppViewModel.deleteAuthAccountOrSignOut(
     audit: BuyerAuditSnapshot
 ): String? {
+    // Sign in with Apple requires the token to be revoked when the account is
+    // deleted (App Store guideline 5.1.1(v)). Revocation needs a signed-in user,
+    // so it happens first; the Apple re-authorisation it performs also refreshes
+    // the session, which is what usually makes the delete below succeed.
+    val revokeError = revokeAppleTokenIfNeeded(audit)
+
     authRepository.deleteAccount()
         .onSuccess {
             println("🔐 Deleted Firebase Auth account ${audit.firebaseUserId}")
@@ -824,7 +865,8 @@ internal suspend fun BuyAppViewModel.deleteAuthAccountOrSignOut(
     logSellerEvent(
         type = SellerEventType.ACCOUNT_DELETION_INCOMPLETE,
         audit = audit,
-        details = "Auth account $reason - uid ${audit.firebaseUserId} needs manual removal"
+        details = "Auth account $reason - uid ${audit.firebaseUserId} needs manual removal" +
+            (revokeError?.let { "; Apple token NOT revoked: $it" } ?: "")
     )
 
     // Data is already gone; make sure no signed-in session outlives it.

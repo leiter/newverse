@@ -79,6 +79,15 @@ class GitLiveAuthRepository : AuthRepository {
         return auth.currentUser?.uid
     }
 
+    override suspend fun getProviderIds(): List<String> {
+        return try {
+            auth.currentUser?.providerData?.map { it.providerId } ?: emptyList()
+        } catch (e: Exception) {
+            println("⚠️ GitLiveAuthRepository.getProviderIds: Error - ${e.message}")
+            emptyList()
+        }
+    }
+
     /**
      * Sign in with email and password.
      */

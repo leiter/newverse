@@ -36,6 +36,15 @@ interface AuthRepository {
     suspend fun getCurrentUserId(): String?
 
     /**
+     * Provider ids backing the current user, e.g. "apple.com", "google.com",
+     * "password". Read from the auth session; the UI's AuthProvider is only a
+     * heuristic on the email address and never reports Apple.
+     *
+     * Empty when unknown or unsupported.
+     */
+    suspend fun getProviderIds(): List<String> = emptyList()
+
+    /**
      * Sign in with email and password
      * @param email User's email
      * @param password User's password
