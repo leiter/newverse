@@ -1,5 +1,6 @@
 import AuthenticationServices
 import CryptoKit
+import FirebaseAuth
 import Foundation
 
 /// Helper class for handling Apple Sign-In on iOS.
@@ -10,6 +11,10 @@ class NativeAppleSignInHelper: NSObject {
     struct AppleSignInResult {
         let idToken: String
         let rawNonce: String
+        /// Single-use code for token revocation. Apple issues it per
+        /// authorization and it expires within minutes, so it is only good for
+        /// a revoke that happens immediately after this sign-in.
+        let authorizationCode: String?
         let fullName: PersonNameComponents?
         let email: String?
     }
@@ -37,6 +42,57 @@ class NativeAppleSignInHelper: NSObject {
         authorizationController.delegate = self
         authorizationController.presentationContextProvider = self
         authorizationController.performRequests()
+    }
+
+    /// Re-authenticates with Apple and revokes the token, for account deletion.
+    ///
+    /// Apple requires the token to be revoked when an account is deleted
+    /// (App Store guideline 5.1.1(v)). The authorization code that revocation
+    /// needs is issued per authorization and expires within minutes, so it
+    /// cannot be captured at the original sign-in and stored for later - the
+    /// sign-in has to be run again at deletion time. That same round trip also
+    /// clears Firebase's requires-recent-login requirement for the delete that
+    /// follows, which is why re-authentication and revocation are one step.
+    ///
+    /// Call this *before* deleting the account: revocation needs a signed-in
+    /// user. On success the caller should proceed to delete.
+    func reauthenticateAndRevoke(completion: @escaping (Result<Void, Error>) -> Void) {
+        signIn { result in
+            switch result {
+            case .failure(let error):
+                completion(.failure(error))
+
+            case .success(let appleResult):
+                guard let authorizationCode = appleResult.authorizationCode else {
+                    completion(.failure(AppleSignInError.missingAuthorizationCode))
+                    return
+                }
+                guard let user = Auth.auth().currentUser else {
+                    completion(.failure(AppleSignInError.notSignedIn))
+                    return
+                }
+
+                let credential = OAuthProvider.appleCredential(
+                    withIDToken: appleResult.idToken,
+                    rawNonce: appleResult.rawNonce,
+                    fullName: appleResult.fullName
+                )
+
+                user.reauthenticate(with: credential) { _, error in
+                    if let error = error {
+                        completion(.failure(error))
+                        return
+                    }
+                    Auth.auth().revokeToken(withAuthorizationCode: authorizationCode) { error in
+                        if let error = error {
+                            completion(.failure(error))
+                            return
+                        }
+                        completion(.success(()))
+                    }
+                }
+            }
+        }
     }
 
     /// Generates a random nonce string for security
@@ -93,9 +149,15 @@ extension NativeAppleSignInHelper: ASAuthorizationControllerDelegate {
             return
         }
 
+        // Optional on purpose: a missing code must not break sign-in, it only
+        // makes the revoke path unavailable for this authorization.
+        let authorizationCode = appleIDCredential.authorizationCode
+            .flatMap { String(data: $0, encoding: .utf8) }
+
         let result = AppleSignInResult(
             idToken: idTokenString,
             rawNonce: nonce,
+            authorizationCode: authorizationCode,
             fullName: appleIDCredential.fullName,
             email: appleIDCredential.email
         )
@@ -144,6 +206,8 @@ enum AppleSignInError: LocalizedError {
     case invalidCredential
     case invalidState
     case missingIdentityToken
+    case missingAuthorizationCode
+    case notSignedIn
     case unableToSerializeToken
     case userCancelled
     case authorizationFailed(String)
@@ -160,6 +224,10 @@ enum AppleSignInError: LocalizedError {
             return "Invalid state: Nonce was not set"
         case .missingIdentityToken:
             return "Missing identity token from Apple"
+        case .missingAuthorizationCode:
+            return "Apple did not return an authorization code, so the token cannot be revoked"
+        case .notSignedIn:
+            return "No signed-in user to revoke a token for"
         case .unableToSerializeToken:
             return "Unable to serialize token to string"
         case .userCancelled:
