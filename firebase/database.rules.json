@@ -95,11 +95,10 @@
       "$conversationId": {
         ".read": "auth != null && ($conversationId.beginsWith(auth.uid + '_') || $conversationId.endsWith('_' + auth.uid))",
         "$messageId": {
-          ".write": "auth != null && ($conversationId.beginsWith(auth.uid + '_') || $conversationId.endsWith('_' + auth.uid)) && (!data.exists() || data.child('senderId').val() === auth.uid)",
-          ".validate": "newData.hasChildren(['senderId', 'timestamp']) && newData.child('senderId').val() === auth.uid",
+          ".write": "auth != null && ($conversationId.beginsWith(auth.uid + '_') || $conversationId.endsWith('_' + auth.uid)) && (data.exists() ? data.child('senderId').val() === auth.uid : newData.hasChildren(['senderId', 'timestamp']) && newData.child('senderId').val() === auth.uid)",
           "isRead": {
             ".write": "auth != null && ($conversationId.beginsWith(auth.uid + '_') || $conversationId.endsWith('_' + auth.uid))",
-            ".validate": "newData.isBoolean()"
+            ".validate": "newData.isBoolean() && newData.parent().child('senderId').exists()"
           }
         }
       }

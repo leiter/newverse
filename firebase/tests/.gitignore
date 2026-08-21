@@ -1,0 +1,4 @@
+node_modules/
+.rules-baseline.json
+database-debug.log
+firebase-debug.log
