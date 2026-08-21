@@ -288,13 +288,21 @@ internal fun BuyAppViewModel.observeMainScreenBuyerProfile() {
 
             println("⭐ observeMainScreenBuyerProfile: profile=${profile != null}, newFavourites=${newFavourites.size}, currentFavourites=${currentFavourites.size}")
 
-            // Don't clear favourites if profile comes back with empty favourites but we had some before
-            // This prevents transient Firebase updates from clearing favourites
-            val favouritesToUse = if (newFavourites.isEmpty() && currentFavourites.isNotEmpty()) {
-                println("⭐ observeMainScreenBuyerProfile: Keeping existing favourites (new was empty)")
-                currentFavourites
-            } else {
-                newFavourites
+            // A transient Firebase update can arrive with empty favourites, so an
+            // empty list on its own is not taken as "the user cleared them".
+            // A null profile is different: there is no user, and holding on to
+            // the favourites there is what showed a signed-out user the previous
+            // one's marked products.
+            val favouritesToUse = when {
+                profile == null -> {
+                    println("⭐ observeMainScreenBuyerProfile: No profile - clearing favourites")
+                    emptyList()
+                }
+                newFavourites.isEmpty() && currentFavourites.isNotEmpty() -> {
+                    println("⭐ observeMainScreenBuyerProfile: Keeping existing favourites (new was empty)")
+                    currentFavourites
+                }
+                else -> newFavourites
             }
 
             // Update favourite articles
