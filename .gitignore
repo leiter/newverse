@@ -60,3 +60,6 @@ iosApp/fastlane/AuthKey_*.p8
 iosApp/fastlane/api_key.json
 debug.keystore
 plf.bnn
+firebase-debug.log
+database-debug.log
+.rules-baseline.json
