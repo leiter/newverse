@@ -340,7 +340,7 @@
 
     <!-- Logout Warning Dialog -->
     <string name="logout_warning_title">Data will be lost!</string>
-    <string name="logout_warning_message">As a guest, the following data will be deleted when you sign out:</string>
+    <string name="logout_warning_message">Deleting your guest account removes:</string>
     <string name="logout_warning_item_favorites">Favorites</string>
     <string name="logout_warning_item_profile">Profile information</string>
     <string name="logout_warning_item_basket">Shopping basket</string>

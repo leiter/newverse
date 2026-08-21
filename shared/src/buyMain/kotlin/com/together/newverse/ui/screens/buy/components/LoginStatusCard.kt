@@ -58,8 +58,9 @@ fun LoginStatusCard(
     authProvider: AuthProvider,
     authProviders: List<AuthProvider> = emptyList(),
     isLinkingAccount: Boolean = false,
-    onLinkWithGoogle: () -> Unit,
-    onLinkWithEmail: () -> Unit,
+    // Unused while account linking is hidden; kept so restoring it is a UI-only change.
+    @Suppress("UNUSED_PARAMETER") onLinkWithGoogle: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") onLinkWithEmail: () -> Unit,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit,
     modifier: Modifier = Modifier
@@ -95,11 +96,11 @@ fun LoginStatusCard(
 
             if (isAnonymous) {
                 // Guest user status
+                // For a guest, signing out *is* a full wipe - the anonymous
+                // account and everything on it goes - so the button says so.
                 GuestStatus(
                     isLinkingAccount = isLinkingAccount,
-                    onLinkWithGoogle = onLinkWithGoogle,
-                    onLinkWithEmail = onLinkWithEmail,
-                    onLogout = onLogout
+                    onDeleteGuestAccount = onLogout
                 )
             } else {
                 // Authenticated user status
@@ -117,9 +118,7 @@ fun LoginStatusCard(
 @Composable
 private fun GuestStatus(
     isLinkingAccount: Boolean,
-    onLinkWithGoogle: () -> Unit,
-    onLinkWithEmail: () -> Unit,
-    onLogout: () -> Unit
+    onDeleteGuestAccount: () -> Unit
 ) {
     // Warning status
     Row(
@@ -150,38 +149,16 @@ private fun GuestStatus(
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    // Link account buttons
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        OutlinedButton(
-            onClick = onLinkWithGoogle,
-            enabled = !isLinkingAccount,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(Res.string.action_link_google))
-        }
-
-        OutlinedButton(
-            onClick = onLinkWithEmail,
-            enabled = !isLinkingAccount,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(Res.string.action_link_email))
-        }
-    }
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    // Logout button
-    TextButton(
-        onClick = onLogout,
+    // Account linking is deliberately absent for now. The link dialogs and the
+    // actions behind them are still wired up in CustomerProfileScreenModern, so
+    // restoring the buttons here is all it takes to bring the option back.
+    OutlinedButton(
+        onClick = onDeleteGuestAccount,
         enabled = !isLinkingAccount,
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = stringResource(Res.string.action_logout),
+            text = stringResource(Res.string.action_delete_account),
             color = MaterialTheme.colorScheme.error
         )
     }

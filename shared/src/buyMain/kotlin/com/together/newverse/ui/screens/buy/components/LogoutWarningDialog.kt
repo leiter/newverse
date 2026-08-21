@@ -6,11 +6,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,27 +19,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.action_delete_account
 import newverse.shared.generated.resources.button_cancel
-import newverse.shared.generated.resources.logout_warning_confirm
 import newverse.shared.generated.resources.logout_warning_item_basket
 import newverse.shared.generated.resources.logout_warning_item_favorites
 import newverse.shared.generated.resources.logout_warning_item_profile
-import newverse.shared.generated.resources.logout_warning_link
 import newverse.shared.generated.resources.logout_warning_message
 import newverse.shared.generated.resources.logout_warning_orders_preserved
-import newverse.shared.generated.resources.logout_warning_prompt
 import newverse.shared.generated.resources.logout_warning_title
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * Warning dialog shown when a guest user attempts to log out.
- * Informs them that their data will be deleted and offers
- * the option to link their account instead.
+ * Informs them exactly what is deleted before they confirm.
+ *
+ * The "link your account instead" route is deliberately absent while account
+ * linking is hidden; without that, offering it here would put the option
+ * straight back.
  */
 @Composable
 fun LogoutWarningDialog(
     onDismiss: () -> Unit,
-    onLinkAccount: () -> Unit,
     onConfirmLogout: () -> Unit
 ) {
     AlertDialog(
@@ -83,33 +81,19 @@ fun LogoutWarningDialog(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Prompt to link account
-                Text(
-                    text = stringResource(Res.string.logout_warning_prompt),
-                    style = MaterialTheme.typography.bodyMedium
-                )
             }
         },
         confirmButton = {
-            Button(onClick = onLinkAccount) {
-                Text(stringResource(Res.string.logout_warning_link))
+            TextButton(onClick = onConfirmLogout) {
+                Text(
+                    text = stringResource(Res.string.action_delete_account),
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         },
         dismissButton = {
-            Row {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(Res.string.button_cancel))
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = onConfirmLogout) {
-                    Text(
-                        text = stringResource(Res.string.logout_warning_confirm),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.button_cancel))
             }
         }
     )

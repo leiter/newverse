@@ -212,10 +212,6 @@ fun CustomerProfileScreenModern(
     if (state.showLogoutWarningDialog) {
         LogoutWarningDialog(
             onDismiss = { onAction(BuyAccountAction.DismissLogoutWarning) },
-            onLinkAccount = {
-                onAction(BuyAccountAction.DismissLogoutWarning)
-                onAction(BuyAccountAction.ShowLinkAccountDialog)
-            },
             onConfirmLogout = { onAction(BuyAccountAction.ConfirmGuestLogout) }
         )
     }

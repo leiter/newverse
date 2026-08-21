@@ -360,7 +360,7 @@
 
     <!-- Logout Warning Dialog -->
     <string name="logout_warning_title">Daten gehen verloren!</string>
-    <string name="logout_warning_message">Als Gast werden bei der Abmeldung folgende Daten gelöscht:</string>
+    <string name="logout_warning_message">Als Gast werden beim Löschen des Kontos folgende Daten gelöscht:</string>
     <string name="logout_warning_item_favorites">Favoriten</string>
     <string name="logout_warning_item_profile">Profilangaben</string>
     <string name="logout_warning_item_basket">Warenkorb</string>
