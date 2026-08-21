@@ -61,6 +61,23 @@ class CustomerProfileViewModel(
     }
 
     /**
+     * Drop everything held for the current user.
+     *
+     * This ViewModel outlives a sign-out - it is scoped to the navigation entry,
+     * not the session - so without an explicit reset the next user sees the
+     * previous one's name, email and address in the form.
+     */
+    fun reset() {
+        currentProfile = null
+        _formState.value = formStateOf(ProfileFormData())
+        _isEditing.value = false
+        _isEditingPickupTime.value = false
+        _pickupTime.value = ""
+        _pickupTimeError.value = null
+        _isSelfPickup.value = false
+    }
+
+    /**
      * Start editing the profile.
      */
     fun startEditing() {

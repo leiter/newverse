@@ -118,6 +118,12 @@ class GitLiveProfileRepository(
         }
     }
 
+    override suspend fun clearCache() {
+        _buyerProfile.value = null
+        sellerProfileCache.clear()
+        println("🗑️ GitLiveProfileRepository.clearCache: Cleared cached profiles")
+    }
+
     override suspend fun getSellerDisplayName(sellerId: String): Result<String> {
         return try {
             if (sellerId.isEmpty()) return Result.success("")

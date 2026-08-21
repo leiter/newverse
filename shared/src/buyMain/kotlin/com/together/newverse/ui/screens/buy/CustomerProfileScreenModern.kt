@@ -298,10 +298,14 @@ fun CustomerProfileScreenModern(
         }
     }
 
-    // Initialize FormState when profile loads
+    // Follow the profile in both directions. Clearing on null matters as much as
+    // filling on load: this ViewModel survives a sign-out, so without the reset
+    // the next user is shown the previous one's name, email and address.
     LaunchedEffect(profile) {
-        profile?.let {
-            profileViewModel.initializeFromProfile(it)
+        if (profile != null) {
+            profileViewModel.initializeFromProfile(profile)
+        } else {
+            profileViewModel.reset()
         }
     }
 

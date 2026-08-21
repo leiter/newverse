@@ -247,13 +247,22 @@ internal fun BuyAppViewModel.logout() {
                 buyerUUIDStorage?.clearActiveUserId()
                 (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.clearActiveUser()
 
-                // Clear basket and other user-specific data
+                // Drop cached profiles; they outlive the session otherwise
+                profileRepository.clearCache()
+
+                // Clear basket and every other trace of the signed-out user.
+                // customerProfile and favourites are per-user: leaving them in
+                // place shows the next user the previous one's name and email.
                 _state.update { current ->
                     current.copy(
                         user = UserState.Guest,
                         authProvider = AuthProvider.ANONYMOUS,
                         linkedProviders = emptyList(),
                         basket = BasketState(),
+                        customerProfile = CustomerProfileScreenState(),
+                        mainScreen = current.mainScreen.copy(
+                            favouriteArticles = emptyList()
+                        ),
                         triggerGoogleSignOut = true
                     )
                 }
@@ -375,8 +384,9 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
                 println("🗑️ Deleted buyer profile for: $userId")
             }
 
-            // Step 2: Clear local basket
+            // Step 2: Clear local basket and cached profiles
             basketRepository.clearBasket()
+            profileRepository.clearCache()
             println("🗑️ Cleared local basket")
 
             // Step 3: Clear per-user storage
@@ -677,8 +687,9 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
                 }
             }
 
-            // Clear local basket
+            // Clear local basket and cached profiles
             basketRepository.clearBasket()
+            profileRepository.clearCache()
 
             // Clear per-user storage, same as the guest wipe
             buyerUUIDStorage?.clearActiveUserId()

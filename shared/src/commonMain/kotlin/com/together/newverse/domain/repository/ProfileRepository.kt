@@ -47,6 +47,15 @@ interface ProfileRepository {
     suspend fun getSellerDisplayName(sellerId: String): Result<String>
 
     /**
+     * Drop every cached profile.
+     *
+     * Must be called on sign-out: the caches outlive the session, so without
+     * this the next user is served the previous one's profile until Firebase
+     * answers.
+     */
+    suspend fun clearCache() {}
+
+    /**
      * Save seller profile
      * @param profile The profile to save
      * @return Success or failure result
