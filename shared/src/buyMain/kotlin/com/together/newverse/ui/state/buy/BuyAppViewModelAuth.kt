@@ -13,6 +13,7 @@ import com.together.newverse.domain.model.SellerEventType
 import com.together.newverse.util.AppleTokenRevoker
 import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.AuthScreenState
+import com.together.newverse.ui.state.clearedForSignOut
 import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import kotlinx.coroutines.delay
@@ -255,16 +256,8 @@ internal fun BuyAppViewModel.logout() {
                 // customerProfile and favourites are per-user: leaving them in
                 // place shows the next user the previous one's name and email.
                 _state.update { current ->
-                    current.copy(
+                    current.clearedForSignOut().copy(
                         user = UserState.Guest,
-                        authProvider = AuthProvider.ANONYMOUS,
-                        linkedProviders = emptyList(),
-                        basket = BasketState(),
-                        auth = AuthScreenState(),
-                        customerProfile = CustomerProfileScreenState(),
-                        mainScreen = current.mainScreen.copy(
-                            favouriteArticles = emptyList()
-                        ),
                         triggerGoogleSignOut = true
                     )
                 }
@@ -409,25 +402,14 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
 
             // Step 6: Clear all local state
             _state.update { current ->
-                current.copy(
-                    // NotAuthenticated, not Guest: the auth account is gone, and
-                    // only NotAuthenticated routes to the buy app's own login
-                    // screen with "continue as guest" on it. requiresLogin would
-                    // show the seller flavour's forced login instead, which offers
-                    // no way back in for a buyer.
+                // NotAuthenticated, not Guest: the auth account is gone, and only
+                // NotAuthenticated routes to the buy app's own login screen with
+                // "continue as guest" on it. requiresLogin would show the seller
+                // flavour's forced login, which offers no way back in for a buyer.
+                current.clearedForSignOut().copy(
                     user = UserState.NotAuthenticated,
-                    authProvider = AuthProvider.ANONYMOUS,
-                    linkedProviders = emptyList(),
-                    basket = BasketState(),
-                    triggerGoogleSignOut = true,
                     requiresLogin = false,
-                    // The login screen is about to be shown; it must not carry
-                    // the deleted user's email, password or error in its fields.
-                    auth = AuthScreenState(),
-                    customerProfile = CustomerProfileScreenState(),
-                    mainScreen = current.mainScreen.copy(
-                        favouriteArticles = emptyList()
-                    )
+                    triggerGoogleSignOut = true
                 )
             }
 
@@ -719,22 +701,11 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
 
             // Reset state and hide dialog
             _state.update { current ->
-                current.copy(
-                    // See confirmGuestLogout: NotAuthenticated routes to the buy
-                    // login screen, requiresLogin to the seller forced login.
+                // See confirmGuestLogout for why NotAuthenticated rather than Guest.
+                current.clearedForSignOut().copy(
                     user = UserState.NotAuthenticated,
-                    authProvider = AuthProvider.ANONYMOUS,
-                    linkedProviders = emptyList(),
-                    basket = BasketState(),
-                    triggerGoogleSignOut = true,
                     requiresLogin = false,
-                    // The login screen is about to be shown; it must not carry
-                    // the deleted user's email, password or error in its fields.
-                    auth = AuthScreenState(),
-                    customerProfile = CustomerProfileScreenState(),
-                    mainScreen = current.mainScreen.copy(
-                        favouriteArticles = emptyList()
-                    )
+                    triggerGoogleSignOut = true
                 )
             }
 

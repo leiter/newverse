@@ -79,6 +79,45 @@ data class BuyAppState(
 }
 
 /**
+ * Everything belonging to the signed-in buyer, cleared.
+ *
+ * Sign-out, the guest wipe and account deletion all need the same set. Keeping
+ * it in one place is deliberate: these three paths each used to clear a
+ * slightly different subset, and every difference between them showed the next
+ * user something of the previous one's - profile, favourites, order history,
+ * seller connection.
+ *
+ * Left alone on purpose: [user], [requiresLogin] and the sign-out triggers,
+ * which each caller sets to suit its flow, and the seller's catalogue in
+ * [mainScreen] and [products], which is not the buyer's data.
+ */
+fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
+    authProvider = AuthProvider.ANONYMOUS,
+    linkedProviders = emptyList(),
+    connectedSellerId = "",
+    connectedSellerDisplayName = "",
+    accessStatus = AccessStatus.NONE,
+    isAccessStatusLoaded = false,
+    isRequestingAccess = false,
+    pendingInvitations = emptyList(),
+    showConnectionConfirmDialog = null,
+    basket = BasketState(),
+    auth = AuthScreenState(),
+    basketScreen = BasketScreenState(),
+    customerProfile = CustomerProfileScreenState(),
+    orderHistory = OrderHistoryScreenState(),
+    messaging = MessagingScreenState(),
+    unreadMessageCount = 0,
+    mainScreen = mainScreen.copy(favouriteArticles = emptyList()),
+    showHistoryMergeDialog = false,
+    tappedHistoryOrder = null,
+    navigateToBasketAsTopLevel = false,
+    triggerScrollToAccessInProfile = false,
+    showProfileIncompleteDialog = false,
+    pendingConnectToken = null
+)
+
+/**
  * Data for the connection confirmation dialog.
  */
 data class ConnectionConfirmation(
