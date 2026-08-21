@@ -252,6 +252,7 @@ internal fun BuyAppViewModel.logout() {
                     current.copy(
                         user = UserState.Guest,
                         authProvider = AuthProvider.ANONYMOUS,
+                        linkedProviders = emptyList(),
                         basket = BasketState(),
                         triggerGoogleSignOut = true
                     )
@@ -399,6 +400,7 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
                 current.copy(
                     user = UserState.Guest,
                     authProvider = AuthProvider.ANONYMOUS,
+                    linkedProviders = emptyList(),
                     basket = BasketState(),
                     triggerGoogleSignOut = true,
                     requiresLogin = true, // Show login screen
@@ -699,6 +701,7 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
                 current.copy(
                     user = UserState.Guest,
                     authProvider = AuthProvider.ANONYMOUS,
+                    linkedProviders = emptyList(),
                     basket = BasketState(),
                     triggerGoogleSignOut = true,
                     requiresLogin = true,
@@ -891,14 +894,16 @@ internal suspend fun BuyAppViewModel.deleteAuthAccountOrSignOut(
  */
 internal fun BuyAppViewModel.refreshAuthProvider() {
     viewModelScope.launch {
-        val provider = try {
-            AuthProvider.fromProviderIds(authRepository.getProviderIds())
+        val providerIds = try {
+            authRepository.getProviderIds()
         } catch (e: Exception) {
             println("⚠️ refreshAuthProvider: Error - ${e.message}")
-            AuthProvider.ANONYMOUS
+            emptyList()
         }
-        println("🔐 refreshAuthProvider: provider=$provider")
-        _state.update { it.copy(authProvider = provider) }
+        val linked = AuthProvider.allFromProviderIds(providerIds)
+        val provider = linked.firstOrNull() ?: AuthProvider.ANONYMOUS
+        println("🔐 refreshAuthProvider: provider=$provider, linked=$linked")
+        _state.update { it.copy(authProvider = provider, linkedProviders = linked) }
     }
 }
 

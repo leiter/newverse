@@ -15,6 +15,8 @@ data class BuyAppState(
     val user: UserState = UserState.Loading,
     /** Resolved from the auth session, not from the email address. */
     val authProvider: AuthProvider = AuthProvider.ANONYMOUS,
+    /** Every provider linked to the account, for the profile badge. */
+    val linkedProviders: List<AuthProvider> = emptyList(),
     val requiresLogin: Boolean = false,
 
     // Seller connection

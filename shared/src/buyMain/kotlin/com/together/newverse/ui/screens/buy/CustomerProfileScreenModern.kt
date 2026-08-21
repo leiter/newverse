@@ -167,6 +167,7 @@ fun CustomerProfileScreenModern(
     onNavigateToFavorites: () -> Unit = {},
     isAnonymous: Boolean = true,
     authProvider: AuthProvider = AuthProvider.ANONYMOUS,
+    authProviders: List<AuthProvider> = emptyList(),
     userEmail: String? = null,
     connectedSellerId: String = "",
     connectedSellerDisplayName: String = "",
@@ -339,7 +340,8 @@ fun CustomerProfileScreenModern(
                         email = email.ifEmpty { stringResource(Res.string.profile_no_email) },
                         photoUrl = photoUrl,
                         isVerified = email.isNotEmpty(),
-                        authProvider = authProvider
+                        authProvider = authProvider,
+                        authProviders = authProviders
                     )
 
                     // Personal Information Card
@@ -413,6 +415,7 @@ fun CustomerProfileScreenModern(
                         isAnonymous = isAnonymous,
                         userEmail = userEmail ?: email.ifEmpty { null },
                         authProvider = authProvider,
+                        authProviders = authProviders,
                         isLinkingAccount = state.isLinkingAccount,
                         onLinkWithGoogle = { onAction(BuyAccountAction.ShowLinkAccountDialog) },
                         onLinkWithEmail = { onAction(BuyAccountAction.ShowLinkAccountDialog) },
@@ -472,7 +475,8 @@ private fun ProfileHeaderCard(
     email: String,
     photoUrl: String?,
     isVerified: Boolean,
-    authProvider: AuthProvider = AuthProvider.ANONYMOUS
+    authProvider: AuthProvider = AuthProvider.ANONYMOUS,
+    authProviders: List<AuthProvider> = emptyList()
 ) {
     Card(
         modifier = Modifier
@@ -565,35 +569,12 @@ private fun ProfileHeaderCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Auth status badge
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = when (authProvider) {
-                        AuthProvider.ANONYMOUS -> MaterialTheme.colorScheme.errorContainer
-                        AuthProvider.GOOGLE -> MaterialTheme.colorScheme.primaryContainer
-                        AuthProvider.EMAIL -> MaterialTheme.colorScheme.secondaryContainer
-                        AuthProvider.TWITTER -> MaterialTheme.colorScheme.tertiaryContainer
-                        AuthProvider.APPLE -> MaterialTheme.colorScheme.surfaceVariant
-                    }
-                ) {
-                    Text(
-                        text = when (authProvider) {
-                            AuthProvider.ANONYMOUS -> stringResource(Res.string.auth_provider_anonymous)
-                            AuthProvider.GOOGLE -> stringResource(Res.string.auth_provider_google)
-                            AuthProvider.EMAIL -> stringResource(Res.string.auth_provider_email)
-                            AuthProvider.TWITTER -> stringResource(Res.string.auth_provider_twitter)
-                            AuthProvider.APPLE -> stringResource(Res.string.auth_provider_apple)
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = when (authProvider) {
-                            AuthProvider.ANONYMOUS -> MaterialTheme.colorScheme.onErrorContainer
-                            AuthProvider.GOOGLE -> MaterialTheme.colorScheme.onPrimaryContainer
-                            AuthProvider.EMAIL -> MaterialTheme.colorScheme.onSecondaryContainer
-                            AuthProvider.TWITTER -> MaterialTheme.colorScheme.onTertiaryContainer
-                            AuthProvider.APPLE -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                    )
+                // Auth status badges - one per linked provider. An account can be
+                // backed by several (Apple plus a password, say); falls back to the
+                // single resolved provider while the list is still loading.
+                val badges = authProviders.ifEmpty { listOf(authProvider) }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    badges.forEach { provider -> AuthProviderBadge(provider) }
                 }
             }
         }
@@ -1554,5 +1535,38 @@ private fun AccessStatusCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AuthProviderBadge(provider: AuthProvider) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = when (provider) {
+            AuthProvider.ANONYMOUS -> MaterialTheme.colorScheme.errorContainer
+            AuthProvider.GOOGLE -> MaterialTheme.colorScheme.primaryContainer
+            AuthProvider.EMAIL -> MaterialTheme.colorScheme.secondaryContainer
+            AuthProvider.TWITTER -> MaterialTheme.colorScheme.tertiaryContainer
+            AuthProvider.APPLE -> MaterialTheme.colorScheme.surfaceVariant
+        }
+    ) {
+        Text(
+            text = when (provider) {
+                AuthProvider.ANONYMOUS -> stringResource(Res.string.auth_provider_anonymous)
+                AuthProvider.GOOGLE -> stringResource(Res.string.auth_provider_google)
+                AuthProvider.EMAIL -> stringResource(Res.string.auth_provider_email)
+                AuthProvider.TWITTER -> stringResource(Res.string.auth_provider_twitter)
+                AuthProvider.APPLE -> stringResource(Res.string.auth_provider_apple)
+            },
+            style = MaterialTheme.typography.labelMedium,
+            color = when (provider) {
+                AuthProvider.ANONYMOUS -> MaterialTheme.colorScheme.onErrorContainer
+                AuthProvider.GOOGLE -> MaterialTheme.colorScheme.onPrimaryContainer
+                AuthProvider.EMAIL -> MaterialTheme.colorScheme.onSecondaryContainer
+                AuthProvider.TWITTER -> MaterialTheme.colorScheme.onTertiaryContainer
+                AuthProvider.APPLE -> MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+        )
     }
 }

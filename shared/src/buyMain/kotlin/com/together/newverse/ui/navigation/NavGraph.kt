@@ -119,6 +119,7 @@ fun NavGraph(
                 onNavigateToFavorites = { navController.navigate(NavRoutes.Buy.Favorites.route) },
                 isAnonymous = isAnonymous,
                 authProvider = authProvider,
+                authProviders = appState.linkedProviders,
                 userEmail = userEmail,
                 connectedSellerId = appState.connectedSellerId,
                 connectedSellerDisplayName = appState.connectedSellerDisplayName,

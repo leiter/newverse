@@ -56,6 +56,7 @@ fun LoginStatusCard(
     isAnonymous: Boolean,
     userEmail: String?,
     authProvider: AuthProvider,
+    authProviders: List<AuthProvider> = emptyList(),
     isLinkingAccount: Boolean = false,
     onLinkWithGoogle: () -> Unit,
     onLinkWithEmail: () -> Unit,
@@ -104,7 +105,7 @@ fun LoginStatusCard(
                 // Authenticated user status
                 AuthenticatedStatus(
                     userEmail = userEmail,
-                    authProvider = authProvider,
+                    authProviders = authProviders.ifEmpty { listOf(authProvider) },
                     onLogout = onLogout,
                     onDeleteAccount = onDeleteAccount
                 )
@@ -189,7 +190,7 @@ private fun GuestStatus(
 @Composable
 private fun AuthenticatedStatus(
     userEmail: String?,
-    authProvider: AuthProvider,
+    authProviders: List<AuthProvider>,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit
 ) {
@@ -212,9 +213,13 @@ private fun AuthenticatedStatus(
 
     Spacer(modifier = Modifier.height(4.dp))
 
-    // Format: "Angemeldet mit Google" (Compose Resources doesn't support %s format)
+    // Format: "Angemeldet mit Google, Apple" (Compose Resources doesn't support %s
+    // format). An account can be linked to several providers, so all are listed.
+    // map is inline, so the @Composable call is legal inside it; joinToString's
+    // transform is not, which is why the two steps are separate.
+    val providerNames = authProviders.map { it.localizedDisplayName() }.joinToString(", ")
     val authenticatedText = stringResource(Res.string.account_status_authenticated)
-        .replace("%s", authProvider.localizedDisplayName())
+        .replace("%s", providerNames)
     Text(
         text = authenticatedText,
         style = MaterialTheme.typography.bodySmall,

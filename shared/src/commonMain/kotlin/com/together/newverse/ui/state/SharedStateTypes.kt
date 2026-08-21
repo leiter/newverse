@@ -434,6 +434,22 @@ enum class AuthProvider {
          * An account can be linked to several providers; the first recognised one
          * wins, which is the one the buyer signed in with in practice.
          */
+        /**
+         * Every provider linked to the account, in the order Firebase reports
+         * them. An account can be backed by several - Apple plus a password,
+         * say - and the profile badge shows all of them.
+         */
+        fun allFromProviderIds(providerIds: List<String>): List<AuthProvider> =
+            providerIds.mapNotNull { id ->
+                when (id) {
+                    "apple.com" -> APPLE
+                    "google.com" -> GOOGLE
+                    "twitter.com" -> TWITTER
+                    "password" -> EMAIL
+                    else -> null
+                }
+            }.distinct()
+
         fun fromProviderIds(providerIds: List<String>): AuthProvider {
             for (id in providerIds) {
                 when (id) {
