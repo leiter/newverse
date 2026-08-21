@@ -7,8 +7,10 @@ import com.together.newverse.ui.screens.sell.OrdersViewModel
 import com.together.newverse.ui.screens.sell.OverviewViewModel
 import com.together.newverse.data.repository.GitLiveInvitationRepository
 import com.together.newverse.data.repository.GitLiveMessageRepository
+import com.together.newverse.data.repository.GitLiveSellerEventRepository
 import com.together.newverse.domain.repository.InvitationRepository
 import com.together.newverse.domain.repository.MessageRepository
+import com.together.newverse.domain.repository.SellerEventRepository
 import com.together.newverse.ui.screens.sell.AbrechnungViewModel
 import com.together.newverse.ui.screens.sell.ConversationListViewModel
 import com.together.newverse.ui.screens.sell.SellerConversationDetailViewModel
@@ -40,6 +42,9 @@ val appModule = module {
 
     // Message repository
     single<MessageRepository> { GitLiveMessageRepository() }
+
+    // Seller book keeping event log
+    single<SellerEventRepository> { GitLiveSellerEventRepository() }
 
     // Sell-specific ViewModels
     viewModel { OverviewViewModel(get(), get(), get(), get()) }

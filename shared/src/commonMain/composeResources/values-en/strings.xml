@@ -366,6 +366,7 @@
     <string name="delete_account_message">Your profile will be deleted. Pending orders will be cancelled. Past orders will remain visible to the seller.</string>
     <string name="delete_account_confirm">Delete Account</string>
     <string name="account_deleted_success">Account deleted</string>
+    <string name="account_deletion_incomplete">Your data was deleted, but the account could not be fully removed. Please contact support.</string>
     <string name="account_deleted_with_cancellations">Account deleted. %d order(s) cancelled.</string>
 
     <!-- Guest Logout Success -->

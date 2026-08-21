@@ -6,11 +6,13 @@ import com.together.newverse.data.config.SellerIdStorage
 import com.together.newverse.data.repository.GitLiveBuyerContactRepository
 import com.together.newverse.data.repository.GitLiveInvitationRepository
 import com.together.newverse.data.repository.GitLiveMessageRepository
+import com.together.newverse.data.repository.GitLiveSellerEventRepository
 import com.together.newverse.domain.config.MutableSellerConfig
 import com.together.newverse.domain.config.SellerConfig
 import com.together.newverse.domain.repository.BuyerContactRepository
 import com.together.newverse.domain.repository.InvitationRepository
 import com.together.newverse.domain.repository.MessageRepository
+import com.together.newverse.domain.repository.SellerEventRepository
 import com.together.newverse.ui.screens.buy.BuyerContactsViewModel
 import com.together.newverse.ui.screens.buy.BuyerConversationViewModel
 import com.together.newverse.ui.screens.buy.CustomerProfileViewModel
@@ -33,6 +35,9 @@ val appModule = module {
     // Invitation repository
     single<InvitationRepository> { GitLiveInvitationRepository(get()) }
 
+    // Seller book keeping event log
+    single<SellerEventRepository> { GitLiveSellerEventRepository() }
+
     // Messaging repositories
     single<MessageRepository> { GitLiveMessageRepository() }
     single<BuyerContactRepository> { GitLiveBuyerContactRepository() }
@@ -49,7 +54,8 @@ val appModule = module {
             buyerUUIDStorage = get(),
             invitationRepository = get(),
             messageRepository = get(),
-            buyerContactRepository = get()
+            buyerContactRepository = get(),
+            sellerEventRepository = get()
         )
     }
 

@@ -58,6 +58,15 @@
         }
       }
     },
+    "seller_events": {
+      "$sellerId": {
+        ".read": "auth != null && auth.uid === $sellerId",
+        "$eventId": {
+          ".write": "auth != null && !data.exists() && newData.child('firebaseUserId').val() === auth.uid",
+          ".validate": "newData.hasChildren(['id', 'sellerId', 'type', 'buyerId', 'firebaseUserId', 'timestamp', 'timestampIso'])"
+        }
+      }
+    },
     "access_requests": {
       "$sellerId": {
         ".read": "auth != null && auth.uid === $sellerId",

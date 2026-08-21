@@ -9,6 +9,7 @@ import com.together.newverse.ui.state.CustomerProfileScreenState
 import com.together.newverse.ui.state.InitializationStep
 import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.BuyAccountAction
+import com.together.newverse.domain.model.SellerEventType
 import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import kotlinx.coroutines.delay
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.account_deleted_success
+import newverse.shared.generated.resources.account_deletion_incomplete
 import newverse.shared.generated.resources.account_deleted_with_cancellations
 import newverse.shared.generated.resources.error_email_in_use
 import newverse.shared.generated.resources.error_email_invalid
@@ -360,6 +362,9 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
 
             val userId = getCurrentUserId()
 
+            // Capture identity before anything is deleted - the seller's log needs it.
+            val audit = captureBuyerAudit(userId)
+
             // Step 1: Delete buyer profile from Firebase
             if (userId != null) {
                 profileRepository.deleteBuyerProfile(userId)
@@ -375,12 +380,18 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
             (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.clearActiveUser()
             println("🗑️ Cleared per-user storage")
 
-            // Step 4: Delete Firebase Auth account (this also signs out)
-            authRepository.deleteAccount()
-                .onSuccess { println("🔐 Deleted Firebase Auth account") }
-                .onFailure { e -> println("⚠️ Failed to delete auth account: ${e.message}") }
+            // Step 4: Record the wipe in the seller's book keeping log.
+            // Written before auth deletion, while the session can still write.
+            logSellerEvent(
+                type = SellerEventType.GUEST_DATA_DELETED,
+                audit = audit,
+                details = "Guest logged out; profile, basket and favourites deleted"
+            )
 
-            // Step 5: Clear all local state
+            // Step 5: Delete Firebase Auth account (this also signs out)
+            val deletionError = deleteAuthAccountOrSignOut(audit)
+
+            // Step 6: Clear all local state
             _state.update { current ->
                 current.copy(
                     user = UserState.Guest,
@@ -394,7 +405,11 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
                 )
             }
 
-            showSnackBar(getString(Res.string.logout_guest_success), SnackbarType.INFO)
+            if (deletionError == null) {
+                showSnackBar(getString(Res.string.logout_guest_success), SnackbarType.INFO)
+            } else {
+                showSnackBar(getString(Res.string.account_deletion_incomplete), SnackbarType.ERROR)
+            }
 
         } catch (e: Exception) {
             println("❌ Error during guest logout: ${e.message}")
@@ -508,6 +523,19 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
                     )
                 }
 
+                // Record the upgrade in the seller's book keeping log
+                logSellerEvent(
+                    type = SellerEventType.ACCOUNT_LINKED,
+                    audit = BuyerAuditSnapshot(
+                        buyerId = userId,
+                        firebaseUserId = userId,
+                        buyerUUID = updatedProfile?.buyerUUID ?: "",
+                        buyerName = updatedProfile?.displayName ?: "",
+                        buyerEmail = email
+                    ),
+                    details = "Guest upgraded to permanent account via email"
+                )
+
                 // Show success message
                 showSnackBar(getString(Res.string.link_account_success), SnackbarType.SUCCESS)
             }
@@ -610,6 +638,9 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
             val userId = getCurrentUserId()
             var cancelledOrderCount = 0
 
+            // Capture identity before anything is deleted - the seller's log needs it.
+            val audit = captureBuyerAudit(userId)
+
             if (userId != null) {
                 // Get buyer profile to access placedOrderIds
                 val profileResult = profileRepository.getBuyerProfile()
@@ -640,10 +671,21 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
             // Clear local basket
             basketRepository.clearBasket()
 
+            // Clear per-user storage, same as the guest wipe
+            buyerUUIDStorage?.clearActiveUserId()
+            (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.clearActiveUser()
+
+            // Record the deletion in the seller's book keeping log.
+            // Written before auth deletion, while the session can still write.
+            logSellerEvent(
+                type = SellerEventType.ACCOUNT_DELETED,
+                audit = audit,
+                cancelledOrderCount = cancelledOrderCount,
+                details = "Account deleted by buyer; past orders kept for seller records"
+            )
+
             // Delete Firebase Auth account (this also signs out)
-            authRepository.deleteAccount()
-                .onSuccess { println("🔐 Deleted Firebase Auth account for authenticated user") }
-                .onFailure { e -> println("⚠️ Failed to delete auth account: ${e.message}") }
+            val deletionError = deleteAuthAccountOrSignOut(audit)
 
             // Reset state and hide dialog
             _state.update { current ->
@@ -652,17 +694,24 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
                     basket = BasketState(),
                     triggerGoogleSignOut = true,
                     requiresLogin = true,
-                    customerProfile = CustomerProfileScreenState()
+                    customerProfile = CustomerProfileScreenState(),
+                    mainScreen = current.mainScreen.copy(
+                        favouriteArticles = emptyList()
+                    )
                 )
             }
 
             // Show success message with cancelled order count
-            val message = if (cancelledOrderCount > 0) {
-                getString(Res.string.account_deleted_with_cancellations, cancelledOrderCount)
+            if (deletionError != null) {
+                showSnackBar(getString(Res.string.account_deletion_incomplete), SnackbarType.ERROR)
             } else {
-                getString(Res.string.account_deleted_success)
+                val message = if (cancelledOrderCount > 0) {
+                    getString(Res.string.account_deleted_with_cancellations, cancelledOrderCount)
+                } else {
+                    getString(Res.string.account_deleted_success)
+                }
+                showSnackBar(message, SnackbarType.INFO)
             }
-            showSnackBar(message, SnackbarType.INFO)
 
         } catch (e: Exception) {
             // Hide loading and dialog on error
@@ -677,6 +726,111 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
             showSnackBar("Fehler beim Löschen: ${e.message}", SnackbarType.ERROR)
         }
     }
+}
+
+/**
+ * Buyer identity captured *before* a destructive operation, because the profile
+ * is deleted by the time the book keeping event is written.
+ */
+internal data class BuyerAuditSnapshot(
+    val buyerId: String = "",
+    /** Firebase Auth uid, read from the auth session rather than UI state. */
+    val firebaseUserId: String = "",
+    val buyerUUID: String = "",
+    val buyerName: String = "",
+    val buyerEmail: String = ""
+)
+
+/**
+ * Snapshot the buyer identity for the seller's event log.
+ * Falls back to whatever is in state when no profile could be loaded.
+ */
+internal suspend fun BuyAppViewModel.captureBuyerAudit(userId: String?): BuyerAuditSnapshot {
+    val profile = _state.value.customerProfile.profile
+    // The auth session is the authority on the uid; UI state can lag behind it.
+    val firebaseUserId = authRepository.getCurrentUserId() ?: userId ?: profile?.id ?: ""
+    return BuyerAuditSnapshot(
+        buyerId = userId ?: profile?.id ?: firebaseUserId,
+        firebaseUserId = firebaseUserId,
+        buyerUUID = profile?.buyerUUID ?: "",
+        buyerName = profile?.displayName ?: "",
+        buyerEmail = profile?.emailAddress ?: ""
+    )
+}
+
+/**
+ * Append a book keeping event to the seller's log.
+ * Failures are swallowed: logging must never break the operation it records.
+ */
+internal suspend fun BuyAppViewModel.logSellerEvent(
+    type: SellerEventType,
+    audit: BuyerAuditSnapshot,
+    cancelledOrderCount: Int = 0,
+    details: String = ""
+) {
+    val repository = sellerEventRepository ?: return
+    if (sellerConfig.isDemoMode) {
+        // Not connected to a real seller - there are no books to keep.
+        println("📒 logSellerEvent: Skipping ${type.name} (demo mode)")
+        return
+    }
+    repository.logEvent(
+        sellerId = sellerConfig.sellerId,
+        type = type,
+        buyerId = audit.buyerId,
+        firebaseUserId = audit.firebaseUserId,
+        buyerUUID = audit.buyerUUID,
+        buyerName = audit.buyerName,
+        buyerEmail = audit.buyerEmail,
+        cancelledOrderCount = cancelledOrderCount,
+        details = details
+    ).onFailure { e ->
+        println("⚠️ logSellerEvent: Could not record ${type.name} - ${e.message}")
+    }
+}
+
+/**
+ * Delete the Firebase Auth account after the buyer's data has been removed.
+ *
+ * Auth deletion has to happen last, because deleting the buyer data requires an
+ * authenticated session. If it fails anyway (Firebase demands a recent login for
+ * this operation), the account would be left behind holding no data. Rather than
+ * swallow that, we retry once, force a sign-out so no session survives on wiped
+ * data, and record the orphaned uid in the seller log so it can be cleaned up.
+ *
+ * @return null on success, or the error message when the account was orphaned.
+ */
+internal suspend fun BuyAppViewModel.deleteAuthAccountOrSignOut(
+    audit: BuyerAuditSnapshot
+): String? {
+    authRepository.deleteAccount()
+        .onSuccess {
+            println("🔐 Deleted Firebase Auth account ${audit.firebaseUserId}")
+            return null
+        }
+
+    // Retry once: transient network failures are the common case here.
+    val retry = authRepository.deleteAccount()
+    retry.onSuccess {
+        println("🔐 Deleted Firebase Auth account ${audit.firebaseUserId} (retry)")
+        return null
+    }
+
+    val reason = retry.exceptionOrNull()?.message ?: "Unknown error"
+    println("⚠️ Auth account ${audit.firebaseUserId} could not be deleted - $reason")
+
+    // Record the orphan while still authenticated: the append rule requires a
+    // session whose uid matches buyerId, so signing out first would block it.
+    logSellerEvent(
+        type = SellerEventType.ACCOUNT_DELETION_INCOMPLETE,
+        audit = audit,
+        details = "Auth account $reason - uid ${audit.firebaseUserId} needs manual removal"
+    )
+
+    // Data is already gone; make sure no signed-in session outlives it.
+    authRepository.signOut()
+
+    return reason
 }
 
 internal fun BuyAppViewModel.getCurrentUserId(): String? {

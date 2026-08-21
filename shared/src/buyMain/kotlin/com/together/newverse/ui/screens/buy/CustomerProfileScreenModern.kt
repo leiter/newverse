@@ -87,11 +87,13 @@ import com.together.newverse.ui.screens.buy.components.ConnectionConfirmDialog
 import com.together.newverse.ui.screens.buy.components.DeleteAccountDialog
 import com.together.newverse.ui.screens.buy.components.EmailLinkingDialog
 import com.together.newverse.ui.screens.buy.components.LinkAccountDialog
+import com.together.newverse.ui.screens.buy.components.LoginStatusCard
 import com.together.newverse.ui.screens.buy.components.LogoutWarningDialog
 import com.together.newverse.ui.screens.buy.components.PendingInvitationsCard
 import com.together.newverse.ui.screens.buy.components.TimePickerField
 import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.BuyAccountAction
+import com.together.newverse.ui.state.BuyUserAction
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.ui.state.ConnectionConfirmation
@@ -405,6 +407,24 @@ fun CustomerProfileScreenModern(
                             onScanQrCode = onScanQrCode
                         )
                     }
+
+                    // Login Status Card - shows guest warning or authenticated status
+                    LoginStatusCard(
+                        isAnonymous = isAnonymous,
+                        userEmail = userEmail ?: email.ifEmpty { null },
+                        authProvider = authProvider,
+                        isLinkingAccount = state.isLinkingAccount,
+                        onLinkWithGoogle = { onAction(BuyAccountAction.ShowLinkAccountDialog) },
+                        onLinkWithEmail = { onAction(BuyAccountAction.ShowLinkAccountDialog) },
+                        onLogout = {
+                            if (isAnonymous) {
+                                onAction(BuyAccountAction.ShowLogoutWarning)
+                            } else {
+                                onAction(BuyUserAction.Logout)
+                            }
+                        },
+                        onDeleteAccount = { onAction(BuyAccountAction.ShowDeleteAccountDialog) }
+                    )
 
                     // Quick Actions
                     if (!isEditing) {

@@ -14,6 +14,7 @@ import com.together.newverse.domain.repository.InvitationRepository
 import com.together.newverse.domain.repository.MessageRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
+import com.together.newverse.domain.repository.SellerEventRepository
 import com.together.newverse.ui.state.buy.clearPendingNavigation
 import com.together.newverse.ui.state.buy.closeDrawer
 import com.together.newverse.ui.state.buy.continueAsGuest
@@ -86,7 +87,8 @@ class BuyAppViewModel(
     internal val buyerUUIDStorage: BuyerUUIDStorage? = null,
     internal val invitationRepository: InvitationRepository? = null,
     internal val messageRepository: MessageRepository? = null,
-    internal val buyerContactRepository: BuyerContactRepository? = null
+    internal val buyerContactRepository: BuyerContactRepository? = null,
+    internal val sellerEventRepository: SellerEventRepository? = null
 ) : BaseAppViewModel<BuyAppState, BuyAction>(authRepository) {
 
     /**
