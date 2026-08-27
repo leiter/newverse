@@ -31,7 +31,12 @@ build/
 *.kotlin_metadata
 
 # iOS
-*.xcodeproj
+# The .xcodeproj itself is checked in - project.pbxproj carries the build
+# settings fastlane's bump_build edits, and xcshareddata/xcschemes carries the
+# iosApp-Buy / iosApp-Sell schemes the release lanes build. Ignoring it made
+# `git add` refuse those tracked files on every build bump. The per-user state
+# inside the bundle is covered by the xcuserdata/ and *.xcworkspace rules
+# below, which also match nested paths.
 *.xcworkspace
 !default.xcworkspace
 xcuserdata/
