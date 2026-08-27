@@ -253,6 +253,7 @@ fun CustomerProfileScreenModern(
     if (state.showDeleteAccountDialog) {
         DeleteAccountDialog(
             isLoading = state.isLoading,
+            requiresAppleConfirmation = state.deleteRequiresAppleConfirmation,
             onConfirm = { onAction(BuyAccountAction.ConfirmDeleteAccount) },
             onDismiss = { onAction(BuyAccountAction.DismissDeleteAccountDialog) }
         )

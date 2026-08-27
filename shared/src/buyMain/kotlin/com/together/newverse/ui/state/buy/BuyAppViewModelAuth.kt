@@ -333,9 +333,14 @@ internal fun BuyAppViewModel.dismissLinkAccountDialog() {
 
 internal fun BuyAppViewModel.showDeleteAccountDialog() {
     _state.update { current ->
+        // Same condition revokeAppleTokenIfNeeded applies, read from the
+        // providers refreshAuthProvider already resolved from the session.
+        val willPromptApple = AppleTokenRevoker.isSupported &&
+            current.linkedProviders.contains(AuthProvider.APPLE)
         current.copy(
             customerProfile = current.customerProfile.copy(
-                showDeleteAccountDialog = true
+                showDeleteAccountDialog = true,
+                deleteRequiresAppleConfirmation = willPromptApple
             )
         )
     }
@@ -345,7 +350,8 @@ internal fun BuyAppViewModel.dismissDeleteAccountDialog() {
     _state.update { current ->
         current.copy(
             customerProfile = current.customerProfile.copy(
-                showDeleteAccountDialog = false
+                showDeleteAccountDialog = false,
+                deleteRequiresAppleConfirmation = false
             )
         )
     }

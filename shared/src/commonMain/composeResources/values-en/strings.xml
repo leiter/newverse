@@ -365,6 +365,7 @@
     <string name="delete_account_title">Delete Account?</string>
     <string name="delete_account_message">Your profile will be deleted. Pending orders will be cancelled. Past orders will remain visible to the seller.</string>
     <string name="delete_account_confirm">Delete Account</string>
+    <string name="delete_account_apple_notice">Apple will then ask you to confirm once more. This is required to fully revoke your Sign in with Apple authorisation. Please confirm with Face ID, Touch ID, or your password.</string>
     <string name="account_deleted_success">Account deleted</string>
     <string name="account_deletion_incomplete">Your data was deleted, but the account could not be fully removed. Please contact support.</string>
     <string name="account_deleted_with_cancellations">Account deleted. %d order(s) cancelled.</string>

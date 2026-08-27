@@ -383,6 +383,15 @@ data class CustomerProfileScreenState(
     val showLogoutWarningDialog: Boolean = false,
     val showLinkAccountDialog: Boolean = false,
     val showDeleteAccountDialog: Boolean = false,
+    /**
+     * Whether deleting this account will present Apple's sign-in sheet.
+     *
+     * True only for an Apple-backed account on a platform that can revoke the
+     * token, i.e. iOS. Deletion has to re-run the Apple sign-in there to obtain
+     * a fresh authorization code, so the confirmation dialog says so up front
+     * instead of letting the sheet appear unannounced.
+     */
+    val deleteRequiresAppleConfirmation: Boolean = false,
     val isLinkingAccount: Boolean = false,
     val linkAccountError: String? = null,
     val showEmailLinkingDialog: Boolean = false,

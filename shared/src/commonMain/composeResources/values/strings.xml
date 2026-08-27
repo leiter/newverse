@@ -385,6 +385,8 @@
     <string name="delete_account_title">Konto löschen?</string>
     <string name="delete_account_message">Ihr Profil wird gelöscht. Offene Bestellungen werden storniert. Vergangene Bestellungen bleiben für den Verkäufer sichtbar.</string>
     <string name="delete_account_confirm">Konto löschen</string>
+    <!-- Shown only on iOS for Apple-backed accounts: deletion re-runs the Apple sign-in to revoke the token. -->
+    <string name="delete_account_apple_notice">Danach fragt Apple noch einmal nach Ihrer Bestätigung. Das ist nötig, damit die Anmeldung mit Apple vollständig widerrufen wird. Bitte bestätigen Sie mit Face ID, Touch ID oder Ihrem Passwort.</string>
     <string name="account_deleted_success">Konto gelöscht</string>
     <string name="account_deletion_incomplete">Ihre Daten wurden gelöscht, das Konto konnte jedoch nicht vollständig entfernt werden. Bitte kontaktieren Sie den Support.</string>
     <string name="account_deleted_with_cancellations">Konto gelöscht. %d Bestellung(en) storniert.</string>
