@@ -13,6 +13,7 @@ See the detailed guides in the `doc/` folder:
 - macOS Monterey or later
 - Xcode 15.0+
 - CocoaPods 1.11+
+- Ruby 3.2+ for fastlane (`brew install ruby`) - see below
 
 ## Build & Run
 
@@ -128,6 +129,24 @@ For Swift-only changes, just run in Xcode (no framework rebuild needed).
 cd ..
 ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
 ```
+
+### `bundle exec` fails with "Could not find 'bundler' (4.0.3)"
+
+macOS ships Ruby 2.6, which is too old for the bundler version pinned in
+`Gemfile.lock`. Homebrew's Ruby is keg-only, so it is not on `PATH` by
+default and bare `bundle` resolves to `/usr/bin/bundle` instead.
+
+```bash
+# One-off:
+PATH="/opt/homebrew/opt/ruby/bin:$PATH" bundle exec fastlane beta
+
+# Permanent - add to ~/.zshrc:
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+```
+
+Running the Homebrew `fastlane` directly (no `bundle exec`) also works, but
+it ignores `Gemfile.lock` and may be a different fastlane version than the
+one this project pins.
 
 ### Pod Errors
 ```bash
