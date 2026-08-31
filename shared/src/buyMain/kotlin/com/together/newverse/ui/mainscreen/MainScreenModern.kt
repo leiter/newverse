@@ -15,16 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -36,6 +30,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.adaptive.AdaptiveDefaults
 import com.together.newverse.ui.adaptive.LocalWindowWidthClass
@@ -50,8 +47,6 @@ import newverse.shared.generated.resources.demo_banner_complete_profile
 import newverse.shared.generated.resources.demo_banner_profile_incomplete
 import newverse.shared.generated.resources.demo_mode_banner_action
 import newverse.shared.generated.resources.demo_mode_banner_message
-import newverse.shared.generated.resources.products_search_placeholder
-import newverse.shared.generated.resources.products_search_clear
 import newverse.shared.generated.resources.products_search_no_results
 import org.jetbrains.compose.resources.stringResource
 
@@ -217,35 +212,11 @@ private fun MainScreenModernContent(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Search Bar
-                        OutlinedTextField(
-                            value = state.searchQuery,
-                            onValueChange = { onAction(BuyMainScreenAction.UpdateSearchQuery(it)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text(stringResource(Res.string.products_search_placeholder)) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            trailingIcon = {
-                                if (state.searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { onAction(BuyMainScreenAction.ClearSearchQuery) }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Clear,
-                                            contentDescription = stringResource(Res.string.products_search_clear),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            },
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                        ProductSearchField(
+                            query = state.searchQuery,
+                            onQueryChange = { onAction(BuyMainScreenAction.UpdateSearchQuery(it)) },
+                            onClear = { onAction(BuyMainScreenAction.ClearSearchQuery) },
+                            modifier = Modifier.fillMaxWidth()
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -312,7 +283,9 @@ private fun MainScreenModernContent(
                             Text(
                                 stringResource(Res.string.products_search_no_results),
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                // Announce the empty result to a screen reader as the query changes
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                             )
                         }
                     }

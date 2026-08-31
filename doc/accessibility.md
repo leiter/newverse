@@ -47,6 +47,10 @@ Covered:
 - `BuyerBottomBar` (buy bottom navigation + rail) — icons made decorative so the
   localized text label is not read twice; basket badge announces "N Artikel"
   instead of a bare number.
+- `ProductSearchField` (buy product-list search) — extracted from `MainScreenModern`;
+  explicit `contentDescription` label instead of the vanishing placeholder; the
+  empty-result message is a polite `liveRegion`. Filled in the missing English
+  translations for the search strings.
 
 Not yet covered: `HeroProductCard` (deferred — quantity field + basket state),
 `ProductListItem` / `ProductDetailCard` (currently sell-only / unused), other

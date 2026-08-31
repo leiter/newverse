@@ -814,6 +814,7 @@
     <!-- Spoken price phrase: %1$s = amount incl. currency, %2$s = unit -->
     <string name="a11y_price_per">%s pro %s</string>
     <string name="cd_favourite_toggle">Favorit</string>
+    <string name="cd_product_search">Produkte durchsuchen</string>
     <!-- Screen-reader description for the basket tab's item-count badge -->
     <string name="a11y_basket_item_count">%d Artikel</string>
     <string name="a11y_state_favourite_on">markiert</string>
