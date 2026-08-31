@@ -109,7 +109,9 @@ import com.together.newverse.util.formatString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_access_id
 import newverse.shared.generated.resources.a11y_current_mode
+import newverse.shared.generated.resources.a11y_sending
 import newverse.shared.generated.resources.a11y_state_collapsed
 import newverse.shared.generated.resources.a11y_state_expanded
 import newverse.shared.generated.resources.a11y_toggle_address
@@ -1556,15 +1558,20 @@ private fun AccessStatusCard(
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor
+                    color = contentColor,
+                    // Status changes (e.g. after requesting access) are announced.
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                 )
             }
             if (buyerUUID.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
+                val accessIdLabel = stringResource(Res.string.a11y_access_id, buyerUUID)
                 Text(
                     text = buyerUUID,
                     style = MaterialTheme.typography.labelSmall,
-                    color = contentColor.copy(alpha = 0.7f)
+                    color = contentColor.copy(alpha = 0.7f),
+                    // Frame the raw id so a screen reader does not just spell it out unlabelled.
+                    modifier = Modifier.semantics { contentDescription = accessIdLabel }
                 )
             }
             if (accessStatus != AccessStatus.APPROVED) {
@@ -1574,10 +1581,15 @@ private fun AccessStatusCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (accessStatus == AccessStatus.NONE) {
+                        val sendingLabel = stringResource(Res.string.a11y_sending)
                         Button(
                             onClick = onRequestAccess,
                             enabled = !isRequestingAccess,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics {
+                                    if (isRequestingAccess) stateDescription = sendingLabel
+                                }
                         ) {
                             if (isRequestingAccess) {
                                 CircularProgressIndicator(

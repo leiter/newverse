@@ -77,11 +77,19 @@ Covered:
 - `DemoModeCard` (buy profile, fourth card) — collapsed to one node framed as
   "Modus: …" with a polite `liveRegion` so a mid-session mode change is announced.
   Filled in the missing English `mode_demo` / `mode_production`.
+- `PendingInvitationsCard` (buy profile, fifth card) — the Accept/Decline buttons
+  now carry a `contentDescription` naming the seller ("Einladung von X annehmen"),
+  so they are unambiguous when there is more than one invitation. The card title
+  is marked as a `heading()`.
+- `AccessStatusCard` (buy profile, sixth card) — the status line is a polite
+  `liveRegion` so a NONE→PENDING→APPROVED change is announced; the raw buyer id is
+  framed as "Zugangs-ID: …" instead of being spelled out unlabelled; the request
+  button gains a "wird gesendet" `stateDescription` while the request is in
+  flight.
 
 Not yet covered: `ProductListItem` / `ProductDetailCard` (currently sell-only /
-unused), the rest of the profile screen (`PendingInvitationsCard`,
-`AccessStatusCard`, `LoginStatusCard`, `QuickActionsCard`), the `TimePickerDialog`
-internals, other sell-flavour composables, forms, dialogs.
+unused), the rest of the profile screen (`LoginStatusCard`, `QuickActionsCard`),
+the `TimePickerDialog` internals, other sell-flavour composables, forms, dialogs.
 
 ### Traversal order
 

@@ -784,6 +784,12 @@
     <!-- Frames the demo/production mode indicator: %s = mode name -->
     <string name="a11y_current_mode">Mode: %s</string>
     <string name="a11y_choose_time">Choose a time</string>
+    <!-- Invitation action buttons name the seller they act on: %1$s = seller -->
+    <string name="a11y_invitation_accept_from">Accept invitation from %1$s</string>
+    <string name="a11y_invitation_reject_from">Decline invitation from %1$s</string>
+    <!-- Access status card -->
+    <string name="a11y_access_id">Access ID: %1$s</string>
+    <string name="a11y_sending">sending</string>
 
     <!-- ========================================= -->
     <!-- ABRECHNUNG SCREEN (SELL MODULE) -->

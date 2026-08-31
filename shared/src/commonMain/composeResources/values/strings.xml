@@ -841,6 +841,12 @@
     <!-- Frames the demo/production mode indicator: %s = mode name -->
     <string name="a11y_current_mode">Modus: %s</string>
     <string name="a11y_choose_time">Uhrzeit wählen</string>
+    <!-- Invitation action buttons name the seller they act on: %1$s = seller -->
+    <string name="a11y_invitation_accept_from">Einladung von %1$s annehmen</string>
+    <string name="a11y_invitation_reject_from">Einladung von %1$s ablehnen</string>
+    <!-- Access status card -->
+    <string name="a11y_access_id">Zugangs-ID: %1$s</string>
+    <string name="a11y_sending">wird gesendet</string>
 
     <!-- ========================================= -->
     <!-- DEMO MODE INDICATORS -->
