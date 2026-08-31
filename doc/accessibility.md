@@ -51,7 +51,22 @@ Covered:
   explicit `contentDescription` label instead of the vanishing placeholder; the
   empty-result message is a polite `liveRegion`. Filled in the missing English
   translations for the search strings.
+- `HeroProductCard` (buy main hero) — `isTraversalGroup` + per-control
+  `traversalIndex` fix the focus order to: summary → quantity field → plus →
+  minus → add/change → cancel → favourite → info. The summary node reads name +
+  price, plus running total and amount once a quantity is set. The add/change
+  button's `contentDescription` says why it is disabled; the info button's label
+  states that it opens the detail screen. Badge, gradient, "•" and the weight-unit
+  label are cleared; the image goes through `ProductImage`. Localised the visible
+  "In den Korb" / "Ändern" labels.
 
-Not yet covered: `HeroProductCard` (deferred — quantity field + basket state),
-`ProductListItem` / `ProductDetailCard` (currently sell-only / unused), other
-sell-flavour composables, forms, dialogs.
+Not yet covered: `ProductListItem` / `ProductDetailCard` (currently sell-only /
+unused), other sell-flavour composables, forms, dialogs.
+
+### Traversal order
+
+Compose exposes a single linear accessibility order — "swipe down" and "swipe
+right" walk the same sequence. Order a container's children with
+`Modifier.semantics { isTraversalGroup = true }` on the container and
+`traversalIndex = <n>f` on each child; lower indices come first, and any click
+action on the same node is merged into that stop.

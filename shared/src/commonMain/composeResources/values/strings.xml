@@ -54,6 +54,8 @@
     <string name="button_edit">Bearbeiten</string>
     <string name="button_ok">OK</string>
     <string name="button_delete">Löschen</string>
+    <string name="button_add_to_basket">In den Korb</string>
+    <string name="button_apply_changes">Ändern</string>
 
     <!-- ========================================= -->
     <!-- COMMON LABELS -->
@@ -819,6 +821,18 @@
     <string name="a11y_basket_item_count">%d Artikel</string>
     <string name="a11y_state_favourite_on">markiert</string>
     <string name="a11y_state_favourite_off">nicht markiert</string>
+    <!-- HeroProductCard quantity controls -->
+    <string name="cd_quantity_input">Menge</string>
+    <string name="cd_quantity_input_unit">Menge in %s</string>
+    <string name="cd_increase_quantity">Menge erhöhen</string>
+    <string name="cd_decrease_quantity">Menge verringern</string>
+    <string name="cd_open_product_details">Produktdetails öffnen</string>
+    <!-- HeroProductCard summary: %s = total price / formatted amount -->
+    <string name="a11y_hero_total">Gesamt %s €</string>
+    <string name="a11y_hero_amount">Menge %s</string>
+    <!-- Appended to a disabled button's label to say why it is unavailable -->
+    <string name="a11y_reason_choose_amount">zuerst Menge wählen</string>
+    <string name="a11y_reason_no_changes">keine Änderungen</string>
 
     <!-- ========================================= -->
     <!-- DEMO MODE INDICATORS -->

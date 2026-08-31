@@ -1,6 +1,5 @@
 package com.together.newverse.ui.mainscreen
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -32,7 +30,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
@@ -46,26 +43,30 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
-import com.together.newverse.ui.modifier.lockSizeAfterFirstMeasure
+import com.together.newverse.ui.a11y.productPriceLabel
+import com.together.newverse.ui.components.ProductImage
 import com.together.newverse.util.formatPrice
+import com.together.newverse.util.formatString
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun HeroProductCard(
@@ -95,6 +96,44 @@ internal fun HeroProductCard(
     // Keyboard manager for dismissing keyboard on Done (platform-specific)
     val keyboardManager = rememberKeyboardManager()
 
+    // --- Accessibility labels ---------------------------------------------------
+    // One spoken summary for the whole card: name, price per unit, and — once an
+    // amount is chosen — the running total and the amount itself.
+    val priceLabel = productPriceLabel(product.price, product.unit)
+    val cardSummary = buildString {
+        append(product.productName)
+        append(", ")
+        append(priceLabel)
+        if (quantity > 0.0) {
+            val total = product.price * quantity
+            append(", ")
+            append(formatString(stringResource(Res.string.a11y_hero_total), total.formatPrice()))
+            append(", ")
+            append(
+                formatString(
+                    stringResource(Res.string.a11y_hero_amount),
+                    "${formatQuantity(quantity, isWeightBased)} ${product.unit}"
+                )
+            )
+        }
+    }
+    val quantityFieldLabel = if (isWeightBased) {
+        formatString(stringResource(Res.string.cd_quantity_input_unit), product.unit)
+    } else {
+        stringResource(Res.string.cd_quantity_input)
+    }
+    val increaseLabel = stringResource(Res.string.cd_increase_quantity)
+    val decreaseLabel = stringResource(Res.string.cd_decrease_quantity)
+    val favouriteLabel = stringResource(Res.string.cd_favourite_toggle)
+    val favouriteState = stringResource(
+        if (isFavourite) Res.string.a11y_state_favourite_on else Res.string.a11y_state_favourite_off
+    )
+    val openDetailsLabel = stringResource(Res.string.cd_open_product_details)
+    val addLabel = stringResource(Res.string.button_add_to_basket)
+    val applyLabel = stringResource(Res.string.button_apply_changes)
+    val chooseAmountReason = stringResource(Res.string.a11y_reason_choose_amount)
+    val noChangesReason = stringResource(Res.string.a11y_reason_no_changes)
+
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         // Responsive sizing based on screen width
         val isCompact = maxWidth < 400.dp
@@ -107,8 +146,10 @@ internal fun HeroProductCard(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                // Background gradient
+            // Keep the card's inner focus order self-contained: summary, quantity
+            // field, +, -, add/change, cancel, favourite, info.
+            Box(modifier = Modifier.fillMaxWidth().semantics { isTraversalGroup = true }) {
+                // Background gradient (decorative)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -121,6 +162,7 @@ internal fun HeroProductCard(
                                 )
                             )
                         )
+                        .clearAndSetSemantics { }
                 )
 
                 Column(
@@ -142,7 +184,8 @@ internal fun HeroProductCard(
                             ) {
                                 Badge(
                                     containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.clearAndSetSemantics { }
                                 ) {
                                     Text(
                                         "Regional & frisch",
@@ -153,11 +196,16 @@ internal fun HeroProductCard(
 
                                 IconButton(
                                     onClick = onToggleFavourite,
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .semantics {
+                                            traversalIndex = 6f
+                                            stateDescription = favouriteState
+                                        }
                                 ) {
                                     Icon(
                                         imageVector = if (isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
+                                        contentDescription = favouriteLabel,
                                         tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -165,11 +213,13 @@ internal fun HeroProductCard(
 
                                 IconButton(
                                     onClick = onNavigateToDetail,
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .semantics { traversalIndex = 7f }
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Info,
-                                        contentDescription = stringResource(Res.string.products_detail_title),
+                                        contentDescription = openDetailsLabel,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -178,95 +228,61 @@ internal fun HeroProductCard(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            Text(
-                                text = product.productName,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            // Name + price collapse into one focus stop that reads
+                            // the whole card summary.
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .semantics(mergeDescendants = true) {
+                                        contentDescription = cardSummary
+                                        traversalIndex = 0f
+                                    }
                             ) {
                                 Text(
-                                    text = "${product.price.formatPrice()}€ / ${product.unit}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = product.productName,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
                                 )
 
-                                if (quantity > 0.0) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     Text(
-                                        text = "•",
+                                        text = "${product.price.formatPrice()}€ / ${product.unit}",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    val totalPrice = product.price * quantity
-                                    Text(
-                                        text = "${totalPrice.formatPrice()}€",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.secondary
-                                    )
+
+                                    if (quantity > 0.0) {
+                                        Text(
+                                            text = "•",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        val totalPrice = product.price * quantity
+                                        Text(
+                                            text = "${totalPrice.formatPrice()}€",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))
 
-                        // Right: Product Image with Favourite button overlay
-                        Box(
-                            modifier = Modifier
-                                .size(imageSize)
-                                .clip(RoundedCornerShape(16.dp))
-                        ) {
-                            if (product.imageUrl.isNotEmpty()) {
-                                SubcomposeAsyncImage(
-                                    model = product.imageUrl,
-                                    contentDescription = product.productName,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop,
-                                    loading = {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(24.dp),
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                    },
-                                    error = {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Image(
-                                                painter = painterResource(Res.drawable.place_holder_landscape),
-                                                contentDescription = stringResource(Res.string.cd_image_placeholder),
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        }
-                                    }
-                                )
-                            } else {
-                                // Placeholder when no image URL
-                                Image(
-                                    painter = painterResource(Res.drawable.place_holder_landscape),
-                                    contentDescription = stringResource(Res.string.cd_image_placeholder),
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
+                        // Right: Product image (decorative — the summary carries the meaning)
+                        ProductImage(
+                            url = product.imageUrl,
+                            modifier = Modifier.size(imageSize),
+                            shape = RoundedCornerShape(16.dp),
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -306,7 +322,12 @@ internal fun HeroProductCard(
                                                 val newQuantity = (quantity - 1.0).coerceAtLeast(0.0)
                                                 onQuantityChange(newQuantity)
                                             },
-                                            modifier = Modifier.size(36.dp)
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .semantics {
+                                                    traversalIndex = 3f
+                                                    contentDescription = decreaseLabel
+                                                }
                                         ) {
                                             Text("-", style = MaterialTheme.typography.titleLarge)
                                         }
@@ -370,6 +391,10 @@ internal fun HeroProductCard(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(horizontal = 4.dp)
+                                                .semantics {
+                                                    contentDescription = quantityFieldLabel
+                                                    traversalIndex = 1f
+                                                }
                                         )
                                     }
 
@@ -382,7 +407,8 @@ internal fun HeroProductCard(
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontWeight = FontWeight.Medium,
-                                            maxLines = 1
+                                            maxLines = 1,
+                                            modifier = Modifier.clearAndSetSemantics { }
                                         )
                                     }
                                 }
@@ -399,7 +425,12 @@ internal fun HeroProductCard(
                                             onClick = {
                                                 onQuantityChange(quantity + 1.0)
                                             },
-                                            modifier = Modifier.size(36.dp)
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .semantics {
+                                                    traversalIndex = 2f
+                                                    contentDescription = increaseLabel
+                                                }
                                         ) {
                                             Icon(Icons.Default.Add, contentDescription = null)
                                         }
@@ -420,7 +451,13 @@ internal fun HeroProductCard(
                                     disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                                 ),
                                 shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.height(44.dp)
+                                modifier = Modifier
+                                    .height(44.dp)
+                                    .semantics {
+                                        traversalIndex = 4f
+                                        contentDescription =
+                                            if (hasChanges) applyLabel else "$applyLabel, $noChangesReason"
+                                    }
                             ) {
                                 Icon(
                                     if (hasChanges) Icons.Default.Check else Icons.Default.ShoppingCart,
@@ -429,7 +466,7 @@ internal fun HeroProductCard(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "Ändern",
+                                    applyLabel,
                                     style = MaterialTheme.typography.labelLarge,
                                     maxLines = 1
                                 )
@@ -444,7 +481,13 @@ internal fun HeroProductCard(
                                     disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                                 ),
                                 shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.height(44.dp)
+                                modifier = Modifier
+                                    .height(44.dp)
+                                    .semantics {
+                                        traversalIndex = 4f
+                                        contentDescription =
+                                            if (quantity > 0.0) addLabel else "$addLabel, $chooseAmountReason"
+                                    }
                             ) {
                                 Icon(
                                     Icons.Default.ShoppingCart,
@@ -453,7 +496,7 @@ internal fun HeroProductCard(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "In den Korb",
+                                    addLabel,
                                     style = MaterialTheme.typography.labelLarge
                                 )
                             }
@@ -465,7 +508,9 @@ internal fun HeroProductCard(
                                     // Reset to original quantity
                                     onRemoveFromBasket()
                                 },
-                                modifier = Modifier.size(44.dp)
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .semantics { traversalIndex = 5f }
                             ) {
                                 Icon(
                                     Icons.Default.Close,

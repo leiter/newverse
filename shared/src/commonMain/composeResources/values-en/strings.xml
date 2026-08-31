@@ -54,6 +54,8 @@
     <string name="button_edit">Edit</string>
     <string name="button_ok">OK</string>
     <string name="button_delete">Delete</string>
+    <string name="button_add_to_basket">Add to basket</string>
+    <string name="button_apply_changes">Apply changes</string>
 
     <!-- ========================================= -->
     <!-- COMMON LABELS -->
@@ -760,6 +762,18 @@
     <string name="a11y_basket_item_count">%d items</string>
     <string name="a11y_state_favourite_on">marked</string>
     <string name="a11y_state_favourite_off">not marked</string>
+    <!-- HeroProductCard quantity controls -->
+    <string name="cd_quantity_input">Quantity</string>
+    <string name="cd_quantity_input_unit">Quantity in %s</string>
+    <string name="cd_increase_quantity">Increase quantity</string>
+    <string name="cd_decrease_quantity">Decrease quantity</string>
+    <string name="cd_open_product_details">Open product details</string>
+    <!-- HeroProductCard summary: %s = total price / formatted amount -->
+    <string name="a11y_hero_total">Total %s €</string>
+    <string name="a11y_hero_amount">Amount %s</string>
+    <!-- Appended to a disabled button's label to say why it is unavailable -->
+    <string name="a11y_reason_choose_amount">choose an amount first</string>
+    <string name="a11y_reason_no_changes">nothing changed</string>
 
     <!-- ========================================= -->
     <!-- ABRECHNUNG SCREEN (SELL MODULE) -->
