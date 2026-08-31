@@ -29,7 +29,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import com.together.newverse.util.formatString
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_basket_item_count
 import newverse.shared.generated.resources.nav_customer_profile
 import newverse.shared.generated.resources.nav_home
 import newverse.shared.generated.resources.nav_shopping_basket
@@ -106,7 +110,6 @@ fun BuyerBottomNavigationBar(
                     }
                     BuyerNavItemIcon(
                         item = item,
-                        label = label,
                         badgeCount = badgeCount,
                         modifier = iconModifier
                     )
@@ -147,7 +150,7 @@ fun BuyerNavigationRail(
 
             NavigationRailItem(
                 modifier = Modifier.padding(horizontal = 12.dp),
-                icon = { BuyerNavItemIcon(item = item, label = label, badgeCount = badgeCount) },
+                icon = { BuyerNavItemIcon(item = item, badgeCount = badgeCount) },
                 label = { Text(label) },
                 selected = isSelected,
                 onClick = {
@@ -162,24 +165,35 @@ fun BuyerNavigationRail(
 @Composable
 private fun BuyerNavItemIcon(
     item: BuyerBottomNavItem,
-    label: String,
     badgeCount: Int,
     modifier: Modifier = Modifier
 ) {
+    // The icon is decorative: NavigationBarItem's always-visible text label carries
+    // the name, and the item itself supplies the Tab role and selected state.
     if (badgeCount > 0) {
+        val badgeDescription = formatString(
+            stringResource(Res.string.a11y_basket_item_count),
+            badgeCount
+        )
         BadgedBox(
-            badge = { Badge { Text(badgeCount.toString()) } }
+            badge = {
+                Badge(
+                    modifier = Modifier.clearAndSetSemantics {
+                        contentDescription = badgeDescription
+                    }
+                ) { Text(badgeCount.toString()) }
+            }
         ) {
             Icon(
                 imageVector = item.icon,
-                contentDescription = label,
+                contentDescription = null,
                 modifier = modifier
             )
         }
     } else {
         Icon(
             imageVector = item.icon,
-            contentDescription = label,
+            contentDescription = null,
             modifier = modifier
         )
     }

@@ -44,7 +44,10 @@ Covered:
 
 - `ModernProductCard` (buy product grid)
 - `FavoriteProductCard` (buy favourites list)
+- `BuyerBottomBar` (buy bottom navigation + rail) — icons made decorative so the
+  localized text label is not read twice; basket badge announces "N Artikel"
+  instead of a bare number.
 
 Not yet covered: `HeroProductCard` (deferred — quantity field + basket state),
 `ProductListItem` / `ProductDetailCard` (currently sell-only / unused), other
-sell-flavour composables, forms, dialogs, navigation.
+sell-flavour composables, forms, dialogs.
