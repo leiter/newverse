@@ -69,10 +69,19 @@ Covered:
   a11y tree. Field errors moved into `OutlinedTextField.supportingText` so they
   are announced with the field. Localised the "Toggle address visibility" and
   self-pickup hint strings.
+- `GemusedateCard` (buy profile, third card) — the read-only pickup time reads as
+  one node; the self-pickup row is a single `Role.Switch` `toggleable` so the
+  label and on/off state are announced together (the raw `Switch` is cleared from
+  the a11y tree). `TimePickerField` gained a `Role.Button` + `onClickLabel` on its
+  trigger and a polite `liveRegion` on its error text.
+- `DemoModeCard` (buy profile, fourth card) — collapsed to one node framed as
+  "Modus: …" with a polite `liveRegion` so a mid-session mode change is announced.
+  Filled in the missing English `mode_demo` / `mode_production`.
 
 Not yet covered: `ProductListItem` / `ProductDetailCard` (currently sell-only /
-unused), the rest of the profile screen, other sell-flavour composables, forms,
-dialogs.
+unused), the rest of the profile screen (`PendingInvitationsCard`,
+`AccessStatusCard`, `LoginStatusCard`, `QuickActionsCard`), the `TimePickerDialog`
+internals, other sell-flavour composables, forms, dialogs.
 
 ### Traversal order
 

@@ -838,6 +838,9 @@
     <string name="a11y_state_expanded">erweitert</string>
     <string name="a11y_state_collapsed">reduziert</string>
     <string name="a11y_toggle_address">Adresse ein- oder ausblenden</string>
+    <!-- Frames the demo/production mode indicator: %s = mode name -->
+    <string name="a11y_current_mode">Modus: %s</string>
+    <string name="a11y_choose_time">Uhrzeit wählen</string>
 
     <!-- ========================================= -->
     <!-- DEMO MODE INDICATORS -->

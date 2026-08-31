@@ -5,6 +5,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,9 +78,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -106,6 +109,7 @@ import com.together.newverse.util.formatString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_current_mode
 import newverse.shared.generated.resources.a11y_state_collapsed
 import newverse.shared.generated.resources.a11y_state_expanded
 import newverse.shared.generated.resources.a11y_toggle_address
@@ -938,7 +942,8 @@ private fun GemusedateCard(
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Column {
+                        // Label + value read as one node ("Abholzeit, 14:00 Uhr")
+                        Column(modifier = Modifier.semantics(mergeDescendants = true) { }) {
                             Text(
                                 text = stringResource(Res.string.label_pickup_time),
                                 style = MaterialTheme.typography.labelMedium,
@@ -957,9 +962,17 @@ private fun GemusedateCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Selbstabholer toggle
+            // Selbstabholer toggle — the whole row is one switch so a screen
+            // reader hears the label together with the on/off state.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = isSelfPickup,
+                        enabled = isEditing,
+                        role = Role.Switch,
+                        onValueChange = onSelfPickupToggle
+                    ),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -978,8 +991,9 @@ private fun GemusedateCard(
                 }
                 Switch(
                     checked = isSelfPickup,
-                    onCheckedChange = onSelfPickupToggle,
+                    onCheckedChange = null,
                     enabled = isEditing,
+                    modifier = Modifier.clearAndSetSemantics { },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = MaterialTheme.colorScheme.surface,
                         checkedTrackColor = MaterialTheme.colorScheme.tertiary
@@ -1032,8 +1046,22 @@ private fun GemusedateCard(
 
 @Composable
 private fun DemoModeCard(isDemoMode: Boolean) {
+    val modeText = if (isDemoMode) {
+        stringResource(Res.string.mode_demo)
+    } else {
+        stringResource(Res.string.mode_production)
+    }
+    // Read as one node that names what it is ("Modus: …") and speaks up when the
+    // mode changes while the screen is open.
+    val modeDescription = formatString(stringResource(Res.string.a11y_current_mode), modeText)
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+                contentDescription = modeDescription
+                liveRegion = LiveRegionMode.Polite
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -1043,12 +1071,6 @@ private fun DemoModeCard(isDemoMode: Boolean) {
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            val modeText = if (isDemoMode) {
-                stringResource(Res.string.mode_demo)
-            } else {
-                stringResource(Res.string.mode_production)
-            }
-
             val modeColor = if (isDemoMode) {
                 MaterialTheme.colorScheme.secondary
             } else {

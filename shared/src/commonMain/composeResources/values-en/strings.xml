@@ -631,6 +631,8 @@
     <string name="demo_orders_clear_button">Clear demo orders (&gt; 1 month)</string>
     <string name="demo_orders_clear_result">%1$d demo order(s) deleted</string>
     <string name="demo_orders_clear_none">No old demo orders found</string>
+    <string name="mode_demo">Shopping demo</string>
+    <string name="mode_production">Live ordering</string>
     <string name="access_request_button">Request Access</string>
     <string name="access_status_none">No access token received yet. Ask your seller for a link.</string>
     <string name="access_status_pending">Access request pending — waiting for seller approval</string>
@@ -779,6 +781,9 @@
     <string name="a11y_state_expanded">expanded</string>
     <string name="a11y_state_collapsed">collapsed</string>
     <string name="a11y_toggle_address">Show or hide the address</string>
+    <!-- Frames the demo/production mode indicator: %s = mode name -->
+    <string name="a11y_current_mode">Mode: %s</string>
+    <string name="a11y_choose_time">Choose a time</string>
 
     <!-- ========================================= -->
     <!-- ABRECHNUNG SCREEN (SELL MODULE) -->

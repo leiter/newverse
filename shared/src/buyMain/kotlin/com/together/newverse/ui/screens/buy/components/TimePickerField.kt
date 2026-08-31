@@ -34,9 +34,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_choose_time
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_ok
 import org.jetbrains.compose.resources.stringResource
@@ -53,6 +58,7 @@ fun TimePickerField(
     errorMessage: String? = null
 ) {
     var showTimePicker by remember { mutableStateOf(false) }
+    val chooseTimeLabel = stringResource(Res.string.a11y_choose_time)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
@@ -72,7 +78,11 @@ fun TimePickerField(
                     if (enabled) MaterialTheme.colorScheme.surface
                     else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                 )
-                .clickable(enabled = enabled) { showTimePicker = true }
+                .clickable(
+                    enabled = enabled,
+                    onClickLabel = chooseTimeLabel,
+                    role = Role.Button
+                ) { showTimePicker = true }
                 .padding(12.dp)
         ) {
             Row(
@@ -124,7 +134,9 @@ fun TimePickerField(
                 text = errorMessage,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 4.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite }
             )
         }
     }
