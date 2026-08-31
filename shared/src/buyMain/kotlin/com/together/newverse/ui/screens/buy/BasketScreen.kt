@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -35,7 +36,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -531,7 +538,9 @@ private fun BasketStatusMessages(state: BasketScreenState) {
                 text = message,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier
+                    .padding(16.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite }
             )
         }
     }
@@ -550,7 +559,13 @@ private fun BasketStatusMessages(state: BasketScreenState) {
                     text = "✗ $error",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier
+                        .padding(16.dp)
+                        // Announce the error, without the "✗" glyph
+                        .semantics {
+                            contentDescription = error
+                            liveRegion = LiveRegionMode.Polite
+                        }
                 )
             }
         }
@@ -569,19 +584,25 @@ private fun BasketEmptyCard(onNavigateToOrders: () -> Unit) {
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = stringResource(Res.string.basket_empty_title),
-                modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(Res.string.basket_empty_description),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            // Empty-state title + explanation read as one heading
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.semantics(mergeDescendants = true) { heading() }
+            ) {
+                Text(
+                    text = stringResource(Res.string.basket_empty_title),
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(Res.string.basket_empty_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedButton(onClick = onNavigateToOrders) {
                 Text(stringResource(Res.string.action_orders))
@@ -592,6 +613,8 @@ private fun BasketEmptyCard(onNavigateToOrders: () -> Unit) {
 
 @Composable
 private fun BasketTotalCard(total: Double) {
+    val totalDescription =
+        "${stringResource(Res.string.label_total)}: ${total.formatPrice()} €"
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -601,7 +624,11 @@ private fun BasketTotalCard(total: Double) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(16.dp)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = totalDescription
+                    liveRegion = LiveRegionMode.Polite
+                },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -748,7 +775,8 @@ internal fun OrderInfoCard(
                         MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
-                    }
+                    },
+                    modifier = Modifier.semantics { heading() }
                 )
             }
 
@@ -760,7 +788,9 @@ internal fun OrderInfoCard(
 
             // Pickup Date - Most prominent
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { },
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -791,7 +821,9 @@ internal fun OrderInfoCard(
 
             // Order ID
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { },
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -807,7 +839,9 @@ internal fun OrderInfoCard(
 
             // Created Date
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { },
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -1134,6 +1168,13 @@ private fun CancelOrderDialog(
     )
 }
 
+/** Marks a tappable card as a radio option so its selected state is announced. */
+private fun Modifier.optionSemantics(isSelected: Boolean): Modifier =
+    this.semantics {
+        role = Role.RadioButton
+        selected = isSelected
+    }
+
 /**
  * Individual date option card in the picker
  */
@@ -1150,7 +1191,9 @@ private fun DateOption(
     val timeRemaining = OrderDateUtils.formatTimeUntilDeadline(instant)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .optionSemantics(isSelected),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.primaryContainer
@@ -1186,9 +1229,10 @@ private fun DateOption(
                     }
                 )
                 if (isSelected) {
+                    // Selection is conveyed by the option's semantics; icon is decorative
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = stringResource(Res.string.basket_selected),
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -1475,9 +1519,11 @@ private fun MergeConflictItem(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Product name with conflict type indicator
+            // Product name with conflict type indicator — read as one node
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1503,6 +1549,7 @@ private fun MergeConflictItem(
 
             // Resolution options based on conflict type
             Column(
+                modifier = Modifier.selectableGroup(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 when (conflict.conflictType) {
@@ -1566,7 +1613,9 @@ private fun ResolutionOption(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .optionSemantics(selected),
         colors = CardDefaults.cardColors(
             containerColor = if (selected) {
                 MaterialTheme.colorScheme.primaryContainer
@@ -1599,9 +1648,10 @@ private fun ResolutionOption(
                 }
             )
             if (selected) {
+                // Selection is conveyed by the option's semantics; icon is decorative
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = stringResource(Res.string.basket_selected),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
             }

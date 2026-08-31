@@ -106,6 +106,17 @@ Covered:
   ("Tomaten", "2,50 €/kg", "× 3,00", "7,50 €"); it now reads as one node,
   "Tomaten, 2,50 € pro kg, Menge 3,00 kg, Gesamt 7,50 €". The Remove button names
   its product ("Tomaten entfernen") so it is unambiguous in a multi-item list.
+- Basket screen supporting composables:
+  - `BasketTotalCard` — merged to "Gesamt: 7,50 €", polite `liveRegion`.
+  - `BasketEmptyCard` — title + explanation read as one heading.
+  - `OrderInfoCard` — title is a `heading()`; the pickup / order-number / created
+    rows each merge into one label+value node.
+  - `BasketStatusMessages` — success and error banners are polite `liveRegion`s
+    (the error drops its "✗" glyph from the spoken text).
+  - `DateOption` / `ResolutionOption` — tappable cards now expose
+    `Role.RadioButton` + selected state via `Modifier.optionSemantics`, instead of
+    signalling selection only with a conditional check icon; `MergeConflictItem`
+    wraps its options in a `selectableGroup()` and merges its header row.
 
 Not yet covered: `ProductListItem` / `ProductDetailCard` (currently sell-only /
 unused), `ContactActionButton` (dead code — never rendered), other sell-flavour
