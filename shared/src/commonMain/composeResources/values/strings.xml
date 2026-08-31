@@ -811,6 +811,8 @@
     <string name="cd_clear_quantity">Menge löschen</string>
     <string name="cd_add">Hinzufügen</string>
     <string name="cd_message">Nachricht</string>
+    <!-- Spoken price phrase: %1$s = amount incl. currency, %2$s = unit -->
+    <string name="a11y_price_per">%s pro %s</string>
 
     <!-- ========================================= -->
     <!-- DEMO MODE INDICATORS -->
