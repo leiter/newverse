@@ -328,6 +328,8 @@
     <string name="action_orders">Bestellungen</string>
     <string name="action_favorites">Favoriten</string>
     <string name="action_payment">Zahlung</string>
+    <string name="action_email">E-Mail</string>
+    <string name="action_call">Anrufen</string>
     <string name="action_help">Über</string>
     <string name="payment_cash_only_info">Derzeit wird nur Barzahlung unterstützt. Die Bezahlung erfolgt bei der Abholung.</string>
 
@@ -856,6 +858,7 @@
     <string name="a11y_selected_time">Gewählte Zeit: %1$s</string>
     <string name="a11y_increment">%1$s erhöhen</string>
     <string name="a11y_decrement">%1$s verringern</string>
+    <string name="a11y_contact_options">Kontaktoptionen</string>
 
     <!-- ========================================= -->
     <!-- DEMO MODE INDICATORS -->

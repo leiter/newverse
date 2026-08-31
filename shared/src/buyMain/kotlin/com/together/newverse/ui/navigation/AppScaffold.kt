@@ -42,6 +42,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -59,10 +62,17 @@ import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.ui.state.DeepLinkRouter
 import com.together.newverse.util.formatPrice
+import com.together.newverse.util.formatString
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_basket_item_count
+import newverse.shared.generated.resources.a11y_contact_options
+import newverse.shared.generated.resources.a11y_hero_total
 import newverse.shared.generated.resources.about_email
 import newverse.shared.generated.resources.about_phone
+import newverse.shared.generated.resources.action_call
+import newverse.shared.generated.resources.action_email
+import newverse.shared.generated.resources.action_orders
 import newverse.shared.generated.resources.app_name
 import newverse.shared.generated.resources.back
 import newverse.shared.generated.resources.contacts_title
@@ -390,13 +400,28 @@ private fun AppScaffoldContent(
             TopAppBar(
                 title = {
                     if (isBasketScreen) {
+                        val basketCount = appState.basketScreen.items.size
+                        // Fragments ("Warenkorb (3)" + "7,50 €") read as one heading.
+                        val basketTitleDescription = listOf(
+                            stringResource(Res.string.nav_shopping_basket),
+                            formatString(stringResource(Res.string.a11y_basket_item_count), basketCount),
+                            formatString(
+                                stringResource(Res.string.a11y_hero_total),
+                                appState.basketScreen.total.formatPrice()
+                            )
+                        ).joinToString(", ")
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics(mergeDescendants = true) {
+                                    heading()
+                                    contentDescription = basketTitleDescription
+                                },
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = stringResource(Res.string.nav_shopping_basket) +  " (${appState.basketScreen.items.size}) ",
+                                text = stringResource(Res.string.nav_shopping_basket) +  " ($basketCount) ",
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
@@ -413,7 +438,10 @@ private fun AppScaffoldContent(
                             Spacer(Modifier.width(12.dp))
                         }
                     } else {
-                        Text(displayTitle)
+                        Text(
+                            text = displayTitle,
+                            modifier = Modifier.semantics { heading() }
+                        )
                     }
                 },
                 navigationIcon = {
@@ -453,7 +481,7 @@ private fun AppScaffoldContent(
                         }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Default.List,
-                                contentDescription = stringResource(Res.string.nav_shopping_basket),
+                                contentDescription = stringResource(Res.string.action_orders),
                                 tint = MaterialTheme.colorScheme.onSecondary
                             )
                         }
@@ -483,7 +511,7 @@ private fun AppScaffoldContent(
                             IconButton(onClick = { showContactMenu = true }) {
                                 Icon(
                                     imageVector = Icons.Default.Person,
-                                    contentDescription = "Kontakt",
+                                    contentDescription = stringResource(Res.string.a11y_contact_options),
                                     tint = MaterialTheme.colorScheme.onSecondary
                                 )
                             }
@@ -503,7 +531,7 @@ private fun AppScaffoldContent(
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.primary
                                             )
-                                            Text("E-Mail")
+                                            Text(stringResource(Res.string.action_email))
                                         }
                                     },
                                     onClick = {
@@ -522,7 +550,7 @@ private fun AppScaffoldContent(
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.tertiary
                                             )
-                                            Text("Anrufen")
+                                            Text(stringResource(Res.string.action_call))
                                         }
                                     },
                                     onClick = {

@@ -97,6 +97,12 @@ Covered:
   descriptions and the value+unit read as one node. Filled in the English
   `pickup_time_*` translations that were missing entirely.
 
+- `AppScaffold` top bar (buy) — the screen title is marked `heading()`. On the
+  basket screen the title's two fragments ("Warenkorb (3)" + "7,50 €") merge into
+  one heading node reading "Warenkorb, 3 Artikel, Gesamt 7,50 €". The history
+  action icon was mislabelled "Warenkorb" — it now reads "Bestellungen". Localised
+  the "Kontakt" icon-button label and the "E-Mail" / "Anrufen" contact-menu items.
+
 Not yet covered: `ProductListItem` / `ProductDetailCard` (currently sell-only /
 unused), `ContactActionButton` (dead code — never rendered), other sell-flavour
 composables, forms, dialogs.
