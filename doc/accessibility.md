@@ -42,8 +42,9 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 
 Covered:
 
-- `ModernProductCard` (buy product grid) — _in progress_
-- `FavoriteProductCard` (buy favourites list) — _in progress_
+- `ModernProductCard` (buy product grid)
+- `FavoriteProductCard` (buy favourites list)
 
-Not yet covered: `HeroProductCard` (deferred — quantity field + basket state), sell-flavour
-composables, forms, dialogs, navigation.
+Not yet covered: `HeroProductCard` (deferred — quantity field + basket state),
+`ProductListItem` / `ProductDetailCard` (currently sell-only / unused), other
+sell-flavour composables, forms, dialogs, navigation.
