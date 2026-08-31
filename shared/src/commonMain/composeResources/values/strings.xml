@@ -295,6 +295,7 @@
 
     <!-- Personal Information Section -->
     <string name="section_personal_info">Persönliche Daten</string>
+    <string name="profile_address_optional_self_pickup">Adressangabe optional für Selbstabholer</string>
 
     <!-- Delivery Preferences Section -->
     <string name="section_delivery_preferences">Gemüsedate</string>
@@ -833,6 +834,10 @@
     <!-- Appended to a disabled button's label to say why it is unavailable -->
     <string name="a11y_reason_choose_amount">zuerst Menge wählen</string>
     <string name="a11y_reason_no_changes">keine Änderungen</string>
+    <!-- Expand/collapse state for a disclosure control -->
+    <string name="a11y_state_expanded">erweitert</string>
+    <string name="a11y_state_collapsed">reduziert</string>
+    <string name="a11y_toggle_address">Adresse ein- oder ausblenden</string>
 
     <!-- ========================================= -->
     <!-- DEMO MODE INDICATORS -->

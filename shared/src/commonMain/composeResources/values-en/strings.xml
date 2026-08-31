@@ -282,6 +282,7 @@
 
     <!-- Personal Information Section -->
     <string name="section_personal_info">Personal Information</string>
+    <string name="profile_address_optional_self_pickup">Address is optional for self-collection</string>
 
     <!-- Delivery Preferences Section -->
     <string name="section_delivery_preferences">Veggie Date</string>
@@ -774,6 +775,10 @@
     <!-- Appended to a disabled button's label to say why it is unavailable -->
     <string name="a11y_reason_choose_amount">choose an amount first</string>
     <string name="a11y_reason_no_changes">nothing changed</string>
+    <!-- Expand/collapse state for a disclosure control -->
+    <string name="a11y_state_expanded">expanded</string>
+    <string name="a11y_state_collapsed">collapsed</string>
+    <string name="a11y_toggle_address">Show or hide the address</string>
 
     <!-- ========================================= -->
     <!-- ABRECHNUNG SCREEN (SELL MODULE) -->

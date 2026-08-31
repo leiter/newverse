@@ -60,8 +60,19 @@ Covered:
   label are cleared; the image goes through `ProductImage`. Localised the visible
   "In den Korb" / "Ändern" labels.
 
+- `ProfileHeaderCard` (buy profile, first card) — the whole card is one node via
+  `clearAndSetSemantics`: name, verification, email and linked auth providers read
+  in one go.
+- `PersonalInfoCard` (buy profile, second card) — the section header is a single
+  `Role.Button` toggle with an `onClickLabel` and expanded/collapsed
+  `stateDescription`; the duplicate tap target on the chevron is hidden from the
+  a11y tree. Field errors moved into `OutlinedTextField.supportingText` so they
+  are announced with the field. Localised the "Toggle address visibility" and
+  self-pickup hint strings.
+
 Not yet covered: `ProductListItem` / `ProductDetailCard` (currently sell-only /
-unused), other sell-flavour composables, forms, dialogs.
+unused), the rest of the profile screen, other sell-flavour composables, forms,
+dialogs.
 
 ### Traversal order
 

@@ -77,6 +77,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -101,6 +106,9 @@ import com.together.newverse.util.formatString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_state_collapsed
+import newverse.shared.generated.resources.a11y_state_expanded
+import newverse.shared.generated.resources.a11y_toggle_address
 import newverse.shared.generated.resources.access_request_button
 import newverse.shared.generated.resources.access_status_approved
 import newverse.shared.generated.resources.access_status_blocked
@@ -145,6 +153,7 @@ import newverse.shared.generated.resources.pickup_time_invalid_format
 import newverse.shared.generated.resources.pickup_time_outside_hours
 import newverse.shared.generated.resources.profile_incomplete_dialog_message
 import newverse.shared.generated.resources.profile_incomplete_dialog_title
+import newverse.shared.generated.resources.profile_address_optional_self_pickup
 import newverse.shared.generated.resources.profile_incomplete_go_to_profile
 import newverse.shared.generated.resources.profile_new_customer
 import newverse.shared.generated.resources.profile_no_email
@@ -479,6 +488,27 @@ private fun ProfileHeaderCard(
     authProvider: AuthProvider = AuthProvider.ANONYMOUS,
     authProviders: List<AuthProvider> = emptyList()
 ) {
+    // One per linked provider; falls back to the single resolved provider while
+    // the list is still loading.
+    val badges = authProviders.ifEmpty { listOf(authProvider) }
+
+    // The whole card is read as a single node: name, verification, email, providers.
+    val verifiedLabel = stringResource(Res.string.profile_verified)
+    val providerLabels = badges.map { authProviderLabel(it) }
+    val headerSummary = buildString {
+        append(displayName)
+        if (isVerified) {
+            append(", ")
+            append(verifiedLabel)
+        }
+        append(", ")
+        append(email)
+        if (providerLabels.isNotEmpty()) {
+            append(", ")
+            append(providerLabels.joinToString(", "))
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -487,7 +517,11 @@ private fun ProfileHeaderCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clearAndSetSemantics { contentDescription = headerSummary }
+        ) {
             // Background pattern
             Box(
                 modifier = Modifier
@@ -571,9 +605,7 @@ private fun ProfileHeaderCard(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Auth status badges - one per linked provider. An account can be
-                // backed by several (Apple plus a password, say); falls back to the
-                // single resolved provider while the list is still loading.
-                val badges = authProviders.ifEmpty { listOf(authProvider) }
+                // backed by several (Apple plus a password, say).
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     badges.forEach { provider -> AuthProviderBadge(provider) }
                 }
@@ -630,6 +662,12 @@ private fun PersonalInfoCard(
         else -> null
     }
 
+    // Accessibility labels for the expand/collapse header
+    val toggleAddressLabel = stringResource(Res.string.a11y_toggle_address)
+    val addressState = stringResource(
+        if (isAddressExpanded) Res.string.a11y_state_expanded else Res.string.a11y_state_collapsed
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -651,17 +689,26 @@ private fun PersonalInfoCard(
                     icon = Icons.Default.Person,
                     title = stringResource(Res.string.section_personal_info),
                     iconColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { isAddressExpanded = !isAddressExpanded }.weight(0.7f)
+                    modifier = Modifier
+                        .weight(0.7f)
+                        .clickable(
+                            onClickLabel = toggleAddressLabel,
+                            role = Role.Button
+                        ) { isAddressExpanded = !isAddressExpanded }
+                        .semantics { stateDescription = addressState }
                 )
 
                 if (!isEditing) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        // Visual affordance only; the header above is the a11y toggle
                         Icon(
                             if (isAddressExpanded) Icons.Default.ArrowDropDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = "Toggle address visibility",
-                            modifier = Modifier.clickable { isAddressExpanded = !isAddressExpanded },
+                            contentDescription = null,
+                            modifier = Modifier
+                                .clickable { isAddressExpanded = !isAddressExpanded }
+                                .clearAndSetSemantics { },
                             tint = MaterialTheme.colorScheme.primary
                         )
                         IconButton(
@@ -721,7 +768,7 @@ private fun PersonalInfoCard(
                     if (isSelfPickup && !isEditing) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Adressangabe optional für Selbstabholer",
+                            text = stringResource(Res.string.profile_address_optional_self_pickup),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 16.dp)
@@ -1408,6 +1455,11 @@ private fun ModernTextField(
             enabled = enabled,
             singleLine = true,
             isError = showError,
+            // Supporting text is associated with the field, so a screen reader
+            // reads the error when the field is focused.
+            supportingText = if (showError) {
+                { Text(errorMessage) }
+            } else null,
             keyboardOptions = keyboardOptions,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -1420,15 +1472,6 @@ private fun ModernTextField(
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
         )
-
-        if (showError) {
-            Text(
-                text = errorMessage,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-            )
-        }
     }
 }
 
@@ -1539,6 +1582,16 @@ private fun AccessStatusCard(
     }
 }
 
+/** Localized display name for an auth provider, shared by the badge and the header summary. */
+@Composable
+private fun authProviderLabel(provider: AuthProvider): String = when (provider) {
+    AuthProvider.ANONYMOUS -> stringResource(Res.string.auth_provider_anonymous)
+    AuthProvider.GOOGLE -> stringResource(Res.string.auth_provider_google)
+    AuthProvider.EMAIL -> stringResource(Res.string.auth_provider_email)
+    AuthProvider.TWITTER -> stringResource(Res.string.auth_provider_twitter)
+    AuthProvider.APPLE -> stringResource(Res.string.auth_provider_apple)
+}
+
 @Composable
 private fun AuthProviderBadge(provider: AuthProvider) {
     Surface(
@@ -1552,13 +1605,7 @@ private fun AuthProviderBadge(provider: AuthProvider) {
         }
     ) {
         Text(
-            text = when (provider) {
-                AuthProvider.ANONYMOUS -> stringResource(Res.string.auth_provider_anonymous)
-                AuthProvider.GOOGLE -> stringResource(Res.string.auth_provider_google)
-                AuthProvider.EMAIL -> stringResource(Res.string.auth_provider_email)
-                AuthProvider.TWITTER -> stringResource(Res.string.auth_provider_twitter)
-                AuthProvider.APPLE -> stringResource(Res.string.auth_provider_apple)
-            },
+            text = authProviderLabel(provider),
             style = MaterialTheme.typography.labelMedium,
             color = when (provider) {
                 AuthProvider.ANONYMOUS -> MaterialTheme.colorScheme.onErrorContainer
