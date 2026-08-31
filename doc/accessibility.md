@@ -86,10 +86,20 @@ Covered:
   framed as "Zugangs-ID: …" instead of being spelled out unlabelled; the request
   button gains a "wird gesendet" `stateDescription` while the request is in
   flight.
+- `LoginStatusCard` (buy profile) — card title marked `heading()`; the guest
+  status + its data-loss warning read as one node, as do the authenticated
+  email + provider list. Localised the "Angemeldet" fallback.
+- `QuickActionsCard` (buy profile) — section title marked `heading()`; the action
+  cards were already labelled clickables.
+- `TimePickerDialog` (pickup-time editor) — localised the title, the hours hint
+  and the "Stunde"/"Minute" unit names; the selected-time preview is a labelled
+  polite `liveRegion`; the +/- steppers carry "Stunde erhöhen"/"… verringern"
+  descriptions and the value+unit read as one node. Filled in the English
+  `pickup_time_*` translations that were missing entirely.
 
 Not yet covered: `ProductListItem` / `ProductDetailCard` (currently sell-only /
-unused), the rest of the profile screen (`LoginStatusCard`, `QuickActionsCard`),
-the `TimePickerDialog` internals, other sell-flavour composables, forms, dialogs.
+unused), `ContactActionButton` (dead code — never rendered), other sell-flavour
+composables, forms, dialogs.
 
 ### Traversal order
 

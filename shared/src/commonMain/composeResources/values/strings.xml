@@ -306,6 +306,10 @@
     <string name="pickup_time_empty">Bitte geben Sie eine Abholzeit an</string>
     <string name="pickup_time_invalid_format">Ungültiges Format. Verwenden Sie HH:mm (z.B. 14:30)</string>
     <string name="pickup_time_outside_hours">Abholzeit muss zwischen 7:00 und 18:00 liegen</string>
+    <string name="pickup_time_dialog_title">Abholzeit wählen</string>
+    <string name="pickup_time_hours_hint">Gültig von 7:00 – 18:00 Uhr</string>
+    <string name="pickup_time_unit_hour">Stunde</string>
+    <string name="pickup_time_unit_minute">Minute</string>
     <string name="default_market">Ökomarkt im Hansaviertel</string>
 
     <!-- Notification Settings Section -->
@@ -342,6 +346,7 @@
     <string name="account_status_guest">Angemeldet als Gast</string>
     <string name="account_status_guest_warning">Daten werden nicht dauerhaft gespeichert</string>
     <string name="account_status_authenticated">Angemeldet mit %s</string>
+    <string name="account_status_signed_in">Angemeldet</string>
 
     <!-- Auth Provider Labels -->
     <string name="auth_provider_anonymous">Gast</string>
@@ -847,6 +852,10 @@
     <!-- Access status card -->
     <string name="a11y_access_id">Zugangs-ID: %1$s</string>
     <string name="a11y_sending">wird gesendet</string>
+    <!-- Time picker: %1$s = the time (selected_time) or the unit name (increment/decrement) -->
+    <string name="a11y_selected_time">Gewählte Zeit: %1$s</string>
+    <string name="a11y_increment">%1$s erhöhen</string>
+    <string name="a11y_decrement">%1$s verringern</string>
 
     <!-- ========================================= -->
     <!-- DEMO MODE INDICATORS -->

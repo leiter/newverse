@@ -23,6 +23,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.state.AuthProvider
@@ -31,6 +33,7 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.account_status_authenticated
 import newverse.shared.generated.resources.account_status_guest
 import newverse.shared.generated.resources.account_status_guest_warning
+import newverse.shared.generated.resources.account_status_signed_in
 import newverse.shared.generated.resources.account_status_title
 import newverse.shared.generated.resources.action_delete_account
 import newverse.shared.generated.resources.action_link_email
@@ -88,7 +91,8 @@ fun LoginStatusCard(
                 Text(
                     text = stringResource(Res.string.account_status_title),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.semantics { heading() }
                 )
             }
 
@@ -120,32 +124,34 @@ private fun GuestStatus(
     isLinkingAccount: Boolean,
     onDeleteGuestAccount: () -> Unit
 ) {
-    // Warning status
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Default.Warning,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
+    // Warning status + explanation read as one node
+    Column(modifier = Modifier.semantics(mergeDescendants = true) { }) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(Res.string.account_status_guest),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
         Text(
-            text = stringResource(Res.string.account_status_guest),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.error
+            text = stringResource(Res.string.account_status_guest_warning),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 28.dp)
         )
     }
-
-    Spacer(modifier = Modifier.height(4.dp))
-
-    Text(
-        text = stringResource(Res.string.account_status_guest_warning),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 28.dp)
-    )
 
     Spacer(modifier = Modifier.height(16.dp))
 
@@ -171,25 +177,6 @@ private fun AuthenticatedStatus(
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit
 ) {
-    // Verified status
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Default.CheckCircle,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = userEmail ?: "Angemeldet",
-            style = MaterialTheme.typography.bodyLarge
-        )
-    }
-
-    Spacer(modifier = Modifier.height(4.dp))
-
     // Format: "Angemeldet mit Google, Apple" (Compose Resources doesn't support %s
     // format). An account can be linked to several providers, so all are listed.
     // map is inline, so the @Composable call is legal inside it; joinToString's
@@ -197,12 +184,34 @@ private fun AuthenticatedStatus(
     val providerNames = authProviders.map { it.localizedDisplayName() }.joinToString(", ")
     val authenticatedText = stringResource(Res.string.account_status_authenticated)
         .replace("%s", providerNames)
-    Text(
-        text = authenticatedText,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 28.dp)
-    )
+
+    // Email + provider list read as one node
+    Column(modifier = Modifier.semantics(mergeDescendants = true) { }) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = userEmail ?: stringResource(Res.string.account_status_signed_in),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = authenticatedText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 28.dp)
+        )
+    }
 
     Spacer(modifier = Modifier.height(16.dp))
 

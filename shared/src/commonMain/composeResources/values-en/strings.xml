@@ -288,7 +288,15 @@
     <string name="section_delivery_preferences">Veggie Date</string>
     <string name="label_marketplace">Marketplace</string>
     <string name="label_pickup_time">Pickup Time</string>
+    <string name="label_pickup_time_hint">Valid from 7:00 to 18:00 (format HH:mm)</string>
     <string name="pickup_time_format">%s</string>
+    <string name="pickup_time_empty">Please enter a pickup time</string>
+    <string name="pickup_time_invalid_format">Invalid format. Use HH:mm (e.g. 14:30)</string>
+    <string name="pickup_time_outside_hours">Pickup time must be between 7:00 and 18:00</string>
+    <string name="pickup_time_dialog_title">Choose pickup time</string>
+    <string name="pickup_time_hours_hint">Valid from 7:00 to 18:00</string>
+    <string name="pickup_time_unit_hour">Hour</string>
+    <string name="pickup_time_unit_minute">Minute</string>
     <string name="default_market">Organic Market at Hansaviertel</string>
 
     <!-- Notification Settings Section -->
@@ -325,6 +333,7 @@
     <string name="account_status_guest">Signed in as Guest</string>
     <string name="account_status_guest_warning">Data is not permanently saved</string>
     <string name="account_status_authenticated">Signed in with %s</string>
+    <string name="account_status_signed_in">Signed in</string>
 
     <!-- Auth Provider Labels -->
     <string name="auth_provider_anonymous">Guest</string>
@@ -790,6 +799,10 @@
     <!-- Access status card -->
     <string name="a11y_access_id">Access ID: %1$s</string>
     <string name="a11y_sending">sending</string>
+    <!-- Time picker: %1$s = the time (selected_time) or the unit name (increment/decrement) -->
+    <string name="a11y_selected_time">Selected time: %1$s</string>
+    <string name="a11y_increment">Increase %1$s</string>
+    <string name="a11y_decrement">Decrease %1$s</string>
 
     <!-- ========================================= -->
     <!-- ABRECHNUNG SCREEN (SELL MODULE) -->
