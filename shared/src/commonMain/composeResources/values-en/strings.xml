@@ -806,6 +806,8 @@
     <string name="a11y_increment">Increase %1$s</string>
     <string name="a11y_decrement">Decrease %1$s</string>
     <string name="a11y_contact_options">Contact options</string>
+    <!-- Remove button in the basket list names its line item: %1$s = product -->
+    <string name="a11y_remove_item">Remove %1$s</string>
 
     <!-- ========================================= -->
     <!-- ABRECHNUNG SCREEN (SELL MODULE) -->

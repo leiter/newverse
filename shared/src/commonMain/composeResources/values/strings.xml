@@ -859,6 +859,8 @@
     <string name="a11y_increment">%1$s erhöhen</string>
     <string name="a11y_decrement">%1$s verringern</string>
     <string name="a11y_contact_options">Kontaktoptionen</string>
+    <!-- Remove button in the basket list names its line item: %1$s = product -->
+    <string name="a11y_remove_item">%1$s entfernen</string>
 
     <!-- ========================================= -->
     <!-- DEMO MODE INDICATORS -->

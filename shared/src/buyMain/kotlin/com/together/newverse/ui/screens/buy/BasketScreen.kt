@@ -35,6 +35,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
@@ -45,6 +47,7 @@ import com.together.newverse.ui.state.MergeConflict
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
+import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.adaptive.LocalWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.util.OrderDateUtils
@@ -626,6 +629,16 @@ private fun BasketItemCard(
     onRemove: () -> Unit = {},
 //    onQuantityChange: (Double) -> Unit = {}
 ) {
+    // The whole line item reads as one node instead of four cryptic fragments
+    // ("Tomaten", "2,50 €/kg", "× 3,00", "7,50 €").
+    val itemDescription = listOf(
+        productName,
+        productPriceLabel(price, unit),
+        formatString(stringResource(Res.string.a11y_hero_amount), "${quantity.formatPrice()} $unit"),
+        formatString(stringResource(Res.string.a11y_hero_total), (price * quantity).formatPrice())
+    ).joinToString(", ")
+    val removeLabel = formatString(stringResource(Res.string.a11y_remove_item), productName)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -638,7 +651,9 @@ private fun BasketItemCard(
                 .padding(16.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { contentDescription = itemDescription },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -674,7 +689,10 @@ private fun BasketItemCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onRemove) {
+                    TextButton(
+                        onClick = onRemove,
+                        modifier = Modifier.semantics { contentDescription = removeLabel }
+                    ) {
                         Text(stringResource(Res.string.button_remove))
                     }
                 }

@@ -102,6 +102,10 @@ Covered:
   one heading node reading "Warenkorb, 3 Artikel, Gesamt 7,50 €". The history
   action icon was mislabelled "Warenkorb" — it now reads "Bestellungen". Localised
   the "Kontakt" icon-button label and the "E-Mail" / "Anrufen" contact-menu items.
+- `BasketItemCard` (buy basket list) — a line item was four cryptic stops
+  ("Tomaten", "2,50 €/kg", "× 3,00", "7,50 €"); it now reads as one node,
+  "Tomaten, 2,50 € pro kg, Menge 3,00 kg, Gesamt 7,50 €". The Remove button names
+  its product ("Tomaten entfernen") so it is unambiguous in a multi-item list.
 
 Not yet covered: `ProductListItem` / `ProductDetailCard` (currently sell-only /
 unused), `ContactActionButton` (dead code — never rendered), other sell-flavour
