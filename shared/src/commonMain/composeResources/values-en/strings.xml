@@ -751,6 +751,9 @@
     <string name="cd_message">Message</string>
     <!-- Spoken price phrase: %1$s = amount incl. currency, %2$s = unit -->
     <string name="a11y_price_per">%s per %s</string>
+    <string name="cd_favourite_toggle">Favourite</string>
+    <string name="a11y_state_favourite_on">marked</string>
+    <string name="a11y_state_favourite_off">not marked</string>
 
     <!-- ========================================= -->
     <!-- ABRECHNUNG SCREEN (SELL MODULE) -->
