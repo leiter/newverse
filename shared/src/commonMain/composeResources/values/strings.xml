@@ -829,6 +829,9 @@
     <string name="a11y_basket_item_count">%d Artikel</string>
     <string name="a11y_state_favourite_on">markiert</string>
     <string name="a11y_state_favourite_off">nicht markiert</string>
+    <!-- Spoken state for a single-select filter chip -->
+    <string name="a11y_state_selected">Ausgewählt</string>
+    <string name="a11y_state_unselected">Nicht ausgewählt</string>
     <!-- HeroProductCard quantity controls -->
     <string name="cd_quantity_input">Menge</string>
     <string name="cd_quantity_input_unit">Menge in %s</string>

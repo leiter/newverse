@@ -47,6 +47,11 @@ Covered:
 - `BuyerBottomBar` (buy bottom navigation + rail) — icons made decorative so the
   localized text label is not read twice; basket badge announces "N Artikel"
   instead of a bare number.
+- `CategoryChips` (buy product-list filter row) — the `LazyRow` is a
+  `selectableGroup()` so a screen reader announces "1 of 4"; each `FilterChip`
+  already exposes its selected flag, so it only gains a localized
+  `stateDescription` ("Ausgewählt" / "Nicht ausgewählt") in place of the default
+  "checkbox, not checked". The leading check icon was already decorative.
 - `ProductSearchField` (buy product-list search) — extracted from `MainScreenModern`;
   explicit `contentDescription` label instead of the vanishing placeholder; the
   empty-result message is a polite `liveRegion`. Filled in the missing English
