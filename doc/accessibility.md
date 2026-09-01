@@ -54,8 +54,9 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Account dialogs (`components/`) | `ConnectionConfirmDialog`, `DeleteAccountDialog`, `EmailLinkingDialog`, `LinkAccountDialog`, `LogoutWarningDialog` | announce-on-open pane title (framework-limited, see below) |
 | Order history (`OrderHistoryScreen`) | order card, count header, empty & error states, merge dialog | — |
 | Auth flow (`LoginScreen`, `RegisterScreen`, `ForcedLoginScreen`) | headings, error/success `liveRegion`s, decorative logo & social glyphs, sign-in/up progress announced, terms checkbox as one toggle, reset-dialog title | password show/hide toggle wording |
-| Messaging (`MessagesScreen`, `ConversationDetailScreen`) | — | whole flow |
-| Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | — | forms |
+| Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
+| Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
+| About (`AboutScreenModern`) | phone / email links, card headings | — |
 | Sell flavour | `ForcedLoginScreen` (shared with auth flow) | rest not started |
 
 Dead / unused, not planned: `ProductListItem`, `ProductDetailCard` (sell-only /
@@ -198,6 +199,34 @@ unrendered), `ContactActionButton` (never rendered).
   `heading()`. The status text is hoisted so the badge and the spoken description
   can't drift apart; the stray `println` in the load effect is gone. New string
   `a11y_open_order_details`.
+- Messaging (`MessagesScreen`, `ConversationDetailScreen`) — `ConversationItem`
+  was four fragments per row (avatar initial, name, timestamp, last message,
+  unread badge); it now reads as one node ("Anna, 2 ungelesen, letzte
+  Nachricht, 14:30") with an "Unterhaltung öffnen" click label, and the avatar
+  initial is cleared. `MessageBubble` collapsed sender name + text + time into
+  one node prefixed with the speaker ("Du: …" or the sender's name). The
+  message input field keeps a stable "Nachricht" label now that its
+  placeholder disappears once typing starts. The conversation-load error and
+  the "blocked" notice are polite `liveRegion`s. New strings
+  `a11y_open_conversation`, `a11y_message_you`.
+- Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) — a contact
+  row's tap target now carries a "Nachricht an X" click label and the
+  redundant message icon-button is hidden from the a11y tree (`clearAndSetSemantics`);
+  the remove button names its contact ("X entfernen") instead of a bare
+  "Entfernen". The load-error line is a polite `liveRegion`. The
+  "Sign in to manage contacts" placeholder was a hardcoded English literal,
+  now `contacts_sign_in_required`. On the add-contact screen the two card
+  titles are `heading()`s and the raw contact id is framed as
+  "Kontakt-ID: …" instead of being spelled out unlabelled. New strings
+  `a11y_message_to`, `a11y_contact_id`, `contacts_sign_in_required`.
+- `AboutScreenModern` — the phone and email lines used the deprecated
+  `ClickableText` with a substring URL annotation, which a screen reader
+  can't reach as a control and which fell under the 48dp touch-target
+  minimum. Both are now a plain `Text` with a `Role.Button` `clickable`
+  (the whole line is the link, so no offset lookup is needed), an
+  "Anrufen" / "E-Mail" click label, and vertical padding to reach 48dp. The
+  four card titles (Kontakt, Impressum, Datenschutz, Unsere Mission) are
+  `heading()`s. No new strings (reuses `action_call` / `action_email`).
 
 ### Traversal order
 
