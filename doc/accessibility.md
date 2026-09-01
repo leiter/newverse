@@ -44,7 +44,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 
 | Buyer screen / area | Composables done | Still open |
 |---|---|---|
-| Product grid & hero (`MainScreenModern`) | `ModernProductCard`, `HeroProductCard`, `ProductSearchField`, `CategoryChips` | container traversal order |
+| Product grid & hero (`MainScreenModern`) | `ModernProductCard`, `HeroProductCard`, `ProductSearchField`, `CategoryChips`, `SectionHeader` | — |
 | Favourites (`FavoritesScreen`) | `FavoriteProductCard` | — |
 | Product detail (`ProductDetailScreen`) | whole screen | — |
 | Profile (`CustomerProfileScreenModern`) | `ProfileHeaderCard`, `PersonalInfoCard`, `GemusedateCard` (+ `TimePickerField`), `DemoModeCard`, `PendingInvitationsCard`, `AccessStatusCard`, `LoginStatusCard`, `QuickActionsCard` | — |
@@ -65,6 +65,17 @@ unrendered), `ContactActionButton` (never rendered).
 ### Per-composable notes
 
 - `ModernProductCard` (buy product grid)
+- `MainScreenModern` — the feed is a single `LazyColumn` (hero card, search
+  field, category chips, then the "Frisch vom Feld" section header and the
+  product grid, all as sequential items/sticky-header content), so the swipe
+  order already matches the visual order — no `isTraversalGroup` /
+  `traversalIndex` was needed. What was actually missing: the section
+  header title and subtitle, and the "order locked" snackbar message and
+  action label, were hardcoded German literals with no English translation —
+  now `main_section_fresh_title` / `_subtitle` and
+  `main_order_locked_snackbar` / `main_start_new_order`. `SectionHeader`'s
+  title is now a `heading()` so TalkBack's next-heading gesture can jump to
+  it.
 - `FavoriteProductCard` (buy favourites list)
 - `BuyerBottomBar` (buy bottom navigation + rail) — icons made decorative so the
   localized text label is not read twice; basket badge announces "N Artikel"

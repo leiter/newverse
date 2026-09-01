@@ -206,6 +206,12 @@
     <string name="products_search_placeholder">Search products…</string>
     <string name="products_search_no_results">No products found</string>
     <string name="products_search_clear">Clear search</string>
+    <!-- Main screen product grid section header -->
+    <string name="main_section_fresh_title">Fresh from the field</string>
+    <string name="main_section_fresh_subtitle">Harvested today</string>
+    <!-- Shown when the user tries to edit an order past its deadline -->
+    <string name="main_order_locked_snackbar">This order can no longer be changed</string>
+    <string name="main_start_new_order">New order</string>
 
     <!-- ========================================= -->
     <!-- BASKET SCREEN (BUY MODULE) -->

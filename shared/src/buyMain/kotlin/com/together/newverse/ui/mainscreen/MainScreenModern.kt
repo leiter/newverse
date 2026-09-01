@@ -47,6 +47,10 @@ import newverse.shared.generated.resources.demo_banner_complete_profile
 import newverse.shared.generated.resources.demo_banner_profile_incomplete
 import newverse.shared.generated.resources.demo_mode_banner_action
 import newverse.shared.generated.resources.demo_mode_banner_message
+import newverse.shared.generated.resources.main_order_locked_snackbar
+import newverse.shared.generated.resources.main_section_fresh_subtitle
+import newverse.shared.generated.resources.main_section_fresh_title
+import newverse.shared.generated.resources.main_start_new_order
 import newverse.shared.generated.resources.products_search_no_results
 import org.jetbrains.compose.resources.stringResource
 
@@ -141,11 +145,13 @@ private fun MainScreenModernContent(
     }
 
     // Show snackbar when order is not editable and user tries to modify
+    val orderLockedMessage = stringResource(Res.string.main_order_locked_snackbar)
+    val startNewOrderLabel = stringResource(Res.string.main_start_new_order)
     LaunchedEffect(state.showNewOrderSnackbar) {
         if (state.showNewOrderSnackbar) {
             val result = snackbarHostState.showSnackbar(
-                message = "Bestellung kann nicht mehr geändert werden",
-                actionLabel = "Neue Bestellung"
+                message = orderLockedMessage,
+                actionLabel = startNewOrderLabel
             )
             when (result) {
                 SnackbarResult.ActionPerformed -> {
@@ -234,8 +240,8 @@ private fun MainScreenModernContent(
                 // Section Header
                 item {
                     SectionHeader(
-                        title = "Frisch vom Feld",
-                        subtitle = "Heute geerntet"
+                        title = stringResource(Res.string.main_section_fresh_title),
+                        subtitle = stringResource(Res.string.main_section_fresh_subtitle)
                     )
                 }
 

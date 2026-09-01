@@ -214,6 +214,12 @@
     <string name="products_detail_description">Beschreibung</string>
     <string name="products_detail_quantity">Menge</string>
     <string name="products_detail_not_found">Produkt nicht gefunden</string>
+    <!-- Main screen product grid section header -->
+    <string name="main_section_fresh_title">Frisch vom Feld</string>
+    <string name="main_section_fresh_subtitle">Heute geerntet</string>
+    <!-- Shown when the user tries to edit an order past its deadline -->
+    <string name="main_order_locked_snackbar">Bestellung kann nicht mehr geändert werden</string>
+    <string name="main_start_new_order">Neue Bestellung</string>
 
     <!-- ========================================= -->
     <!-- BASKET SCREEN (BUY MODULE) -->
