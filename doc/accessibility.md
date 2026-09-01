@@ -59,6 +59,19 @@ Covered:
   states that it opens the detail screen. Badge, gradient, "•" and the weight-unit
   label are cleared; the image goes through `ProductImage`. Localised the visible
   "In den Korb" / "Ändern" labels.
+- `ProductDetailScreen` (buy product detail) — the hero image now goes through
+  `ProductImage` (decorative, square corners) instead of a raw
+  `SubcomposeAsyncImage`; the favourite overlay dropped its hardcoded English
+  "Add/Remove from favourites" for the shared `cd_favourite_toggle` label plus an
+  on/off `stateDescription`. Name + price + running total merge into one summary
+  node ("Tomaten, 2,50 € pro kg, Gesamt 7,50 €, Menge 3 kg"). The category chip
+  reads "Kategorie: Gemüse" as one node; "Beschreibung" and "Menge" are
+  `heading()`s. The −/＋ steppers and the quantity field carry
+  `cd_decrease_quantity` / `cd_increase_quantity` / `cd_quantity_input(_unit)`
+  labels (the bare "-" glyph and the trailing unit label are cleared). The
+  Add / Update buttons append a spoken reason when disabled ("… , zuerst Menge
+  wählen" / "… , keine Änderungen"). No new string resources — all reused from
+  the hero card.
 
 - `ProfileHeaderCard` (buy profile, first card) — the whole card is one node via
   `clearAndSetSemantics`: name, verification, email and linked auth providers read
