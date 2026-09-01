@@ -5,6 +5,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.together.newverse.ui.state.ConnectionConfirmation
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.invitation_accept
@@ -24,7 +27,8 @@ fun ConnectionConfirmDialog(
         title = {
             Text(
                 text = stringResource(Res.string.invitation_confirm_title),
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {

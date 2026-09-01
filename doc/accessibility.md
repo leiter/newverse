@@ -135,10 +135,26 @@ Covered:
     `Role.RadioButton` + selected state via `Modifier.optionSemantics`, instead of
     signalling selection only with a conditional check icon; `MergeConflictItem`
     wraps its options in a `selectableGroup()` and merges its header row.
+- Account dialogs (`components/`) — `AlertDialog` already traps focus and returns
+  it on dismiss, so the pass is lighter: every dialog title is now a `heading()`;
+  the `LogoutWarningDialog` bullet glyphs are cleared from the spoken text; the
+  `DeleteAccountDialog` and `EmailLinkingDialog` in-flight spinners were silent —
+  they now announce "Konto wird gelöscht" / "Konto wird verknüpft" via a polite
+  `liveRegion` (the linking button borrows the label while its text is a
+  spinner); the `EmailLinkingDialog` server-error line is a polite `liveRegion`
+  (its field errors already ride `OutlinedTextField.supportingText`). Covers
+  `ConnectionConfirmDialog`, `DeleteAccountDialog`, `EmailLinkingDialog`,
+  `LinkAccountDialog`, `LogoutWarningDialog`. New strings
+  `a11y_deleting_account` / `a11y_linking_account`.
+
+  The dialog's announce-on-open pane title stays the generic "Dialog":
+  `BasicAlertDialog` sets `paneTitle` after the caller's modifier, so it can't be
+  overridden from the slot API without `clearAndSetSemantics`. The title text is
+  still read on open, so the impact is small.
 
 Not yet covered: `ProductListItem` / `ProductDetailCard` (currently sell-only /
 unused), `ContactActionButton` (dead code — never rendered), other sell-flavour
-composables, forms, dialogs.
+composables, forms.
 
 ### Traversal order
 

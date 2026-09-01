@@ -16,9 +16,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_deleting_account
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.delete_account_apple_notice
 import newverse.shared.generated.resources.delete_account_confirm
@@ -55,7 +61,8 @@ fun DeleteAccountDialog(
         title = {
             Text(
                 text = stringResource(Res.string.delete_account_title),
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {
@@ -82,8 +89,14 @@ fun DeleteAccountDialog(
 
                 if (isLoading) {
                     Spacer(modifier = Modifier.height(16.dp))
+                    val deletingLabel = stringResource(Res.string.a11y_deleting_account)
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier
+                            .size(24.dp)
+                            .semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                contentDescription = deletingLabel
+                            },
                         strokeWidth = 2.dp
                     )
                 }

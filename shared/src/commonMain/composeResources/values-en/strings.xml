@@ -804,6 +804,9 @@
     <!-- Access status card -->
     <string name="a11y_access_id">Access ID: %1$s</string>
     <string name="a11y_sending">sending</string>
+    <!-- Spoken progress while an account dialog action is running -->
+    <string name="a11y_deleting_account">Deleting account</string>
+    <string name="a11y_linking_account">Linking account</string>
     <!-- Time picker: %1$s = the time (selected_time) or the unit name (increment/decrement) -->
     <string name="a11y_selected_time">Selected time: %1$s</string>
     <string name="a11y_increment">Increase %1$s</string>

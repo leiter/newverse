@@ -27,12 +27,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_linking_account
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.error_confirm_password
 import newverse.shared.generated.resources.error_email_invalid
@@ -132,7 +138,8 @@ fun EmailLinkingDialog(
         title = {
             Text(
                 text = stringResource(Res.string.link_email_dialog_title),
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {
@@ -264,12 +271,14 @@ fun EmailLinkingDialog(
                     Text(
                         text = error,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                     )
                 }
             }
         },
         confirmButton = {
+            val linkingLabel = stringResource(Res.string.a11y_linking_account)
             Button(
                 onClick = {
                     // Validate all fields before submitting
@@ -281,7 +290,16 @@ fun EmailLinkingDialog(
                         onConfirm()
                     }
                 },
-                enabled = !isLinking && isFormValid
+                enabled = !isLinking && isFormValid,
+                // While linking the label is a spinner; announce the progress instead.
+                modifier = if (isLinking) {
+                    Modifier.semantics {
+                        contentDescription = linkingLabel
+                        liveRegion = LiveRegionMode.Polite
+                    }
+                } else {
+                    Modifier
+                }
             ) {
                 if (isLinking) {
                     CircularProgressIndicator(
