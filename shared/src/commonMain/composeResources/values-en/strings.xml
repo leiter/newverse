@@ -785,6 +785,7 @@
     <string name="cd_increase_quantity">Increase quantity</string>
     <string name="cd_decrease_quantity">Decrease quantity</string>
     <string name="cd_open_product_details">Open product details</string>
+    <string name="a11y_open_order_details">Open order details</string>
     <!-- HeroProductCard summary: %s = total price / formatted amount -->
     <string name="a11y_hero_total">Total %s €</string>
     <string name="a11y_hero_amount">Amount %s</string>

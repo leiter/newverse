@@ -52,7 +52,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Basket (`BasketScreen`) | `BasketItemCard`, `BasketTotalCard`, `BasketEmptyCard`, `OrderInfoCard`, `BasketStatusMessages`, `DateOption` / `ResolutionOption` / `MergeConflictItem` | `OrderMergeDialog` / `DatePickerDialog`; `BasketContent` / `BasketTwoPane` traversal |
 | Pickup-time editor | `TimePickerDialog` | — |
 | Account dialogs (`components/`) | `ConnectionConfirmDialog`, `DeleteAccountDialog`, `EmailLinkingDialog`, `LinkAccountDialog`, `LogoutWarningDialog` | announce-on-open pane title (framework-limited, see below) |
-| Order history (`OrderHistoryScreen`) | — | whole screen (strings already localised; order cards are multi-stop) |
+| Order history (`OrderHistoryScreen`) | order card, count header, empty & error states, merge dialog | — |
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | — | whole flow |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | — | forms |
 | Sell flavour | — | not started |
@@ -171,6 +171,15 @@ unrendered), `ContactActionButton` (never rendered).
   `BasicAlertDialog` sets `paneTitle` after the caller's modifier, so it can't be
   overridden from the slot API without `clearAndSetSemantics`. The title text is
   still read on open, so the impact is small.
+- `OrderHistoryScreen` — an order card was ~8 fragments ("Bestellung #ABC12345",
+  "Erstellt: …", "Geplant", "Abholung: …", "in 3 Tagen", "3 Artikel", "Gesamt",
+  "7,50 €"); it now reads as one node in a deliberate order (id → status → pickup
+  → items → total → created) with an `onClickLabel` of "Bestelldetails öffnen".
+  The count header is a `heading()`, the empty state merges into one heading, the
+  error line is a polite `liveRegion`, and `OrderHistoryMergeDialog`'s title is a
+  `heading()`. The status text is hoisted so the badge and the spoken description
+  can't drift apart; the stray `println` in the load effect is gone. New string
+  `a11y_open_order_details`.
 
 ### Traversal order
 
