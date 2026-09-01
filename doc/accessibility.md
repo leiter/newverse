@@ -40,7 +40,27 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 
 ## Status
 
-Covered:
+### Coverage map
+
+| Buyer screen / area | Composables done | Still open |
+|---|---|---|
+| Product grid & hero (`MainScreenModern`) | `ModernProductCard`, `HeroProductCard`, `ProductSearchField`, `CategoryChips` | container traversal order |
+| Favourites (`FavoritesScreen`) | `FavoriteProductCard` | — |
+| Product detail (`ProductDetailScreen`) | whole screen | — |
+| Profile (`CustomerProfileScreenModern`) | `ProfileHeaderCard`, `PersonalInfoCard`, `GemusedateCard` (+ `TimePickerField`), `DemoModeCard`, `PendingInvitationsCard`, `AccessStatusCard`, `LoginStatusCard`, `QuickActionsCard` | — |
+| App chrome | `AppScaffold` top bar, `BuyerBottomBar` (+ nav rail) | — |
+| Basket (`BasketScreen`) | `BasketItemCard`, `BasketTotalCard`, `BasketEmptyCard`, `OrderInfoCard`, `BasketStatusMessages`, `DateOption` / `ResolutionOption` / `MergeConflictItem` | `OrderMergeDialog` / `DatePickerDialog`; `BasketContent` / `BasketTwoPane` traversal |
+| Pickup-time editor | `TimePickerDialog` | — |
+| Account dialogs (`components/`) | `ConnectionConfirmDialog`, `DeleteAccountDialog`, `EmailLinkingDialog`, `LinkAccountDialog`, `LogoutWarningDialog` | announce-on-open pane title (framework-limited, see below) |
+| Order history (`OrderHistoryScreen`) | — | whole screen (strings already localised; order cards are multi-stop) |
+| Messaging (`MessagesScreen`, `ConversationDetailScreen`) | — | whole flow |
+| Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | — | forms |
+| Sell flavour | — | not started |
+
+Dead / unused, not planned: `ProductListItem`, `ProductDetailCard` (sell-only /
+unrendered), `ContactActionButton` (never rendered).
+
+### Per-composable notes
 
 - `ModernProductCard` (buy product grid)
 - `FavoriteProductCard` (buy favourites list)
@@ -151,10 +171,6 @@ Covered:
   `BasicAlertDialog` sets `paneTitle` after the caller's modifier, so it can't be
   overridden from the slot API without `clearAndSetSemantics`. The title text is
   still read on open, so the impact is small.
-
-Not yet covered: `ProductListItem` / `ProductDetailCard` (currently sell-only /
-unused), `ContactActionButton` (dead code — never rendered), other sell-flavour
-composables, forms.
 
 ### Traversal order
 
