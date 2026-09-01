@@ -1095,7 +1095,8 @@ fun DatePickerDialog(
         title = {
             Text(
                 text = stringResource(Res.string.basket_choose_pickup_date),
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {
@@ -1108,7 +1109,8 @@ fun DatePickerDialog(
                     Text(
                         text = stringResource(Res.string.basket_no_dates_available),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                     )
                 }
             } else {
@@ -1148,7 +1150,12 @@ private fun CancelOrderDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.basket_cancel_confirm_title)) },
+        title = {
+            Text(
+                stringResource(Res.string.basket_cancel_confirm_title),
+                modifier = Modifier.semantics { heading() }
+            )
+        },
         text = { Text(stringResource(Res.string.basket_cancel_confirm_message)) },
         confirmButton = {
             Button(
@@ -1279,7 +1286,8 @@ fun ReorderDatePickerDialog(
         title = {
             Text(
                 text = stringResource(Res.string.basket_choose_new_date),
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {
@@ -1302,7 +1310,8 @@ fun ReorderDatePickerDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(Res.string.basket_updating_prices),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                         )
                     }
                 } else if (availableDates.isEmpty()) {
@@ -1314,7 +1323,8 @@ fun ReorderDatePickerDialog(
                         Text(
                             text = stringResource(Res.string.basket_no_dates_available),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                         )
                     }
                 } else {
@@ -1407,7 +1417,8 @@ fun OrderMergeDialog(
         title = {
             Text(
                 text = stringResource(Res.string.basket_merge_title),
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {
@@ -1429,8 +1440,10 @@ fun OrderMergeDialog(
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+                        val itemCountLabel = stringResource(Res.string.a11y_basket_item_count, existingOrder.articles.size)
+                        val totalPrice = existingOrder.articles.sumOf { it.price * it.amountCount }.formatPrice()
                         Text(
-                            text = "${existingOrder.articles.size} Artikel, ${existingOrder.articles.sumOf { it.price * it.amountCount }.formatPrice()} €",
+                            text = "$itemCountLabel, $totalPrice €",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -1447,7 +1460,8 @@ fun OrderMergeDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(Res.string.basket_merging),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                         )
                     }
                 } else if (conflicts.isEmpty()) {
@@ -1676,7 +1690,8 @@ fun DraftWarningDialog(
         title = {
             Text(
                 text = stringResource(Res.string.basket_draft_warning_title),
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {

@@ -49,7 +49,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Product detail (`ProductDetailScreen`) | whole screen | — |
 | Profile (`CustomerProfileScreenModern`) | `ProfileHeaderCard`, `PersonalInfoCard`, `GemusedateCard` (+ `TimePickerField`), `DemoModeCard`, `PendingInvitationsCard`, `AccessStatusCard`, `LoginStatusCard`, `QuickActionsCard` | — |
 | App chrome | `AppScaffold` top bar, `BuyerBottomBar` (+ nav rail) | — |
-| Basket (`BasketScreen`) | `BasketItemCard`, `BasketTotalCard`, `BasketEmptyCard`, `OrderInfoCard`, `BasketStatusMessages`, `DateOption` / `ResolutionOption` / `MergeConflictItem` | `OrderMergeDialog` / `DatePickerDialog`; `BasketContent` / `BasketTwoPane` traversal |
+| Basket (`BasketScreen`) | `BasketItemCard`, `BasketTotalCard`, `BasketEmptyCard`, `OrderInfoCard`, `BasketStatusMessages`, `DateOption` / `ResolutionOption` / `MergeConflictItem`, all five basket dialogs | `BasketContent` / `BasketTwoPane` traversal |
 | Pickup-time editor | `TimePickerDialog` | — |
 | Account dialogs (`components/`) | `ConnectionConfirmDialog`, `DeleteAccountDialog`, `EmailLinkingDialog`, `LinkAccountDialog`, `LogoutWarningDialog` | announce-on-open pane title (framework-limited, see below) |
 | Order history (`OrderHistoryScreen`) | order card, count header, empty & error states, merge dialog | — |
@@ -157,6 +157,13 @@ unrendered), `ContactActionButton` (never rendered).
     `Role.RadioButton` + selected state via `Modifier.optionSemantics`, instead of
     signalling selection only with a conditional check icon; `MergeConflictItem`
     wraps its options in a `selectableGroup()` and merges its header row.
+  - Basket dialogs (`DatePickerDialog`, `CancelOrderDialog`,
+    `ReorderDatePickerDialog`, `OrderMergeDialog`, `DraftWarningDialog`) —
+    every title is now a `heading()`; the "no dates available" message and the
+    in-flight "wird aktualisiert" / "wird zusammengeführt" spinner captions are
+    polite `liveRegion`s. `OrderMergeDialog`'s existing-order summary had a
+    hardcoded German "X Artikel, Y €" literal — now built from the existing
+    `a11y_basket_item_count` resource. No new strings.
 - Account dialogs (`components/`) — `AlertDialog` already traps focus and returns
   it on dismiss, so the pass is lighter: every dialog title is now a `heading()`;
   the `LogoutWarningDialog` bullet glyphs are cleared from the spoken text; the
