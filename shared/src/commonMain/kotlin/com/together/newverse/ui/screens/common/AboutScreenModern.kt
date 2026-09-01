@@ -2,6 +2,7 @@ package com.together.newverse.ui.screens.common
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -38,12 +38,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.together.newverse.ui.theme.BrandOrange
@@ -73,6 +73,8 @@ import newverse.shared.generated.resources.about_privacy_button
 import newverse.shared.generated.resources.about_privacy_description
 import newverse.shared.generated.resources.about_privacy_intro
 import newverse.shared.generated.resources.about_privacy_title
+import newverse.shared.generated.resources.action_call
+import newverse.shared.generated.resources.action_email
 import newverse.shared.generated.resources.app_established
 import newverse.shared.generated.resources.app_icon
 import newverse.shared.generated.resources.app_name
@@ -230,30 +232,15 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                     text = stringResource(Res.string.about_contact_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Phone
-            val phoneAnnotatedString = buildAnnotatedString {
-                pushStringAnnotation(
-                    tag = "URL",
-                    annotation = "tel:03020249477"
-                )
-                withStyle(
-                    style = SpanStyle(
-                        color = FabGreen,
-                        textDecoration = TextDecoration.Underline,
-                        fontWeight = FontWeight.Medium
-                    )
-                ) {
-                    append(stringResource(Res.string.about_phone))
-                }
-                pop()
-            }
-
+            val callLabel = stringResource(Res.string.action_call)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -265,41 +252,26 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                     modifier = Modifier.size(20.dp)
                 )
 
-                ClickableText(
-                    text = phoneAnnotatedString,
+                Text(
+                    text = stringResource(Res.string.about_phone),
                     style = MaterialTheme.typography.bodyLarge,
-                    onClick = { offset ->
-                        phoneAnnotatedString.getStringAnnotations(
-                            tag = "URL",
-                            start = offset,
-                            end = offset
-                        ).firstOrNull()?.let { annotation ->
-                            uriHandler.openUri(annotation.item)
-                        }
-                    }
+                    color = FabGreen,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier
+                        .clickable(
+                            onClickLabel = callLabel,
+                            role = Role.Button,
+                            onClick = { uriHandler.openUri("tel:03020249477") }
+                        )
+                        .padding(vertical = 12.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             // Email
-            val emailAnnotatedString = buildAnnotatedString {
-                pushStringAnnotation(
-                    tag = "URL",
-                    annotation = "mailto:bodenschaetze@cutthecrap.link"
-                )
-                withStyle(
-                    style = SpanStyle(
-                        color = FabGreen,
-                        textDecoration = TextDecoration.Underline,
-                        fontWeight = FontWeight.Medium
-                    )
-                ) {
-                    append(stringResource(Res.string.about_email))
-                }
-                pop()
-            }
-
+            val emailLabel = stringResource(Res.string.action_email)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -311,18 +283,19 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                     modifier = Modifier.size(20.dp)
                 )
 
-                ClickableText(
-                    text = emailAnnotatedString,
+                Text(
+                    text = stringResource(Res.string.about_email),
                     style = MaterialTheme.typography.bodyLarge,
-                    onClick = { offset ->
-                        emailAnnotatedString.getStringAnnotations(
-                            tag = "URL",
-                            start = offset,
-                            end = offset
-                        ).firstOrNull()?.let { annotation ->
-                            uriHandler.openUri(annotation.item)
-                        }
-                    }
+                    color = FabGreen,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier
+                        .clickable(
+                            onClickLabel = emailLabel,
+                            role = Role.Button,
+                            onClick = { uriHandler.openUri("mailto:bodenschaetze@cutthecrap.link") }
+                        )
+                        .padding(vertical = 12.dp)
                 )
             }
 
@@ -374,7 +347,8 @@ private fun LegalInfoCard() {
                     text = stringResource(Res.string.about_impressum_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
             }
 
@@ -438,7 +412,8 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                     text = stringResource(Res.string.about_privacy_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
             }
 
@@ -511,7 +486,8 @@ private fun MissionCard() {
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = FabGreen,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { heading() }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
