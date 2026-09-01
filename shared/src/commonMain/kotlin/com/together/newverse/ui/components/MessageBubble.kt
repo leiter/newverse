@@ -15,10 +15,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_message_you
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun MessageBubble(
@@ -29,8 +34,22 @@ fun MessageBubble(
     showSenderName: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val speaker = when {
+        isFromMe -> stringResource(Res.string.a11y_message_you)
+        senderName.isNotEmpty() -> senderName
+        else -> null
+    }
+    val time = formatMessageTime(timestamp)
+    val bubbleDescription = buildString {
+        speaker?.let { append(it); append(": ") }
+        append(text)
+        if (time.isNotEmpty()) { append(", "); append(time) }
+    }
+
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics { contentDescription = bubbleDescription },
         horizontalArrangement = if (isFromMe) Arrangement.End else Arrangement.Start
     ) {
         Column(

@@ -626,6 +626,7 @@
     <!-- Contacts -->
     <string name="contacts_title">Contacts</string>
     <string name="contacts_empty">No contacts yet</string>
+    <string name="contacts_sign_in_required">Sign in to manage contacts</string>
     <string name="contacts_add">Add Contact</string>
     <string name="contacts_your_id">Your Contact ID</string>
     <string name="contacts_enter_id">Enter Contact ID</string>
@@ -823,6 +824,12 @@
     <string name="a11y_contact_options">Contact options</string>
     <!-- Remove button in the basket list names its line item: %1$s = product -->
     <string name="a11y_remove_item">Remove %1$s</string>
+    <!-- Messaging: spoken labels for the conversation list and message bubbles -->
+    <string name="a11y_open_conversation">Open conversation</string>
+    <string name="a11y_message_you">You</string>
+    <string name="a11y_message_to">Message %1$s</string>
+    <!-- Add-contact screen: frames the raw contact id, %1$s = id -->
+    <string name="a11y_contact_id">Contact ID: %1$s</string>
 
     <!-- ========================================= -->
     <!-- ABRECHNUNG SCREEN (SELL MODULE) -->

@@ -681,6 +681,7 @@
     <!-- Contacts -->
     <string name="contacts_title">Kontakte</string>
     <string name="contacts_empty">Noch keine Kontakte</string>
+    <string name="contacts_sign_in_required">Melde dich an, um Kontakte zu verwalten</string>
     <string name="contacts_add">Kontakt hinzufuegen</string>
     <string name="contacts_your_id">Deine Kontakt-ID</string>
     <string name="contacts_enter_id">Kontakt-ID eingeben</string>
@@ -876,6 +877,12 @@
     <string name="a11y_contact_options">Kontaktoptionen</string>
     <!-- Remove button in the basket list names its line item: %1$s = product -->
     <string name="a11y_remove_item">%1$s entfernen</string>
+    <!-- Messaging: spoken labels for the conversation list and message bubbles -->
+    <string name="a11y_open_conversation">Unterhaltung öffnen</string>
+    <string name="a11y_message_you">Du</string>
+    <string name="a11y_message_to">Nachricht an %1$s</string>
+    <!-- Add-contact screen: frames the raw contact id, %1$s = id -->
+    <string name="a11y_contact_id">Kontakt-ID: %1$s</string>
 
     <!-- ========================================= -->
     <!-- DEMO MODE INDICATORS -->
