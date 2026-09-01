@@ -133,6 +133,11 @@
     <string name="login_no_account">Don\'t have an account? </string>
     <string name="login_sign_up_link">Sign Up</string>
     <string name="login_success">Login successful! Redirecting...</string>
+    <!-- Seller forced-login screen -->
+    <string name="seller_login_title">Seller login</string>
+    <string name="seller_login_subtitle">Sign in to manage your products and orders</string>
+    <string name="seller_login_secure">🔒 Secure login</string>
+    <string name="seller_login_account_required">Sellers need an account</string>
 
     <!-- Login/Logout Snackbar Messages -->
     <string name="snackbar_login_success">Signed in successfully</string>
@@ -808,6 +813,9 @@
     <!-- Spoken progress while an account dialog action is running -->
     <string name="a11y_deleting_account">Deleting account</string>
     <string name="a11y_linking_account">Linking account</string>
+    <!-- Spoken progress on the sign-in / sign-up buttons -->
+    <string name="a11y_signing_in">Signing in</string>
+    <string name="a11y_creating_account">Creating account</string>
     <!-- Time picker: %1$s = the time (selected_time) or the unit name (increment/decrement) -->
     <string name="a11y_selected_time">Selected time: %1$s</string>
     <string name="a11y_increment">Increase %1$s</string>

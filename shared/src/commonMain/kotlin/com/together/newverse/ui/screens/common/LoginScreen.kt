@@ -34,6 +34,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -43,6 +49,7 @@ import com.together.newverse.data.config.Platform
 import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.AuthScreenState
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_signing_in
 import newverse.shared.generated.resources.app_leaf_icon
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_continue_guest
@@ -99,6 +106,7 @@ fun LoginScreen(
     val errorEmailInvalid = stringResource(Res.string.error_email_invalid)
     val errorPasswordRequired = stringResource(Res.string.error_password_required)
     val errorPasswordLength = stringResource(Res.string.error_password_length)
+    val signingInLabel = stringResource(Res.string.a11y_signing_in)
 
     // Validate email format
     fun validateEmail(): Boolean {
@@ -142,7 +150,9 @@ fun LoginScreen(
             Text(
                 text = stringResource(Res.string.app_leaf_icon),
                 style = MaterialTheme.typography.displayLarge,
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .clearAndSetSemantics { },
                 textAlign = TextAlign.Center
             )
         }
@@ -150,7 +160,8 @@ fun LoginScreen(
         Text(
             text = stringResource(Res.string.login_title),
             style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.semantics { heading() }
         )
 
         Text(
@@ -162,7 +173,6 @@ fun LoginScreen(
 
         // Error Message Display
         authState.error?.let { errorMessage ->
-            println("🔴 [LoginScreen] Displaying error: $errorMessage")
             Spacer(modifier = Modifier.height(16.dp))
             Card(
                 colors = CardDefaults.cardColors(
@@ -173,16 +183,14 @@ fun LoginScreen(
                 Text(
                     text = errorMessage,
                     color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
-        } ?: run {
-            println("🟡 [LoginScreen] No error in authState (authState.error=${authState.error})")
         }
-
-
 
         // Email Field
         OutlinedTextField(
@@ -258,7 +266,17 @@ fun LoginScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(56.dp)
+                .then(
+                    if (authState.isLoading) {
+                        Modifier.semantics {
+                            contentDescription = signingInLabel
+                            liveRegion = LiveRegionMode.Polite
+                        }
+                    } else {
+                        Modifier
+                    }
+                ),
             enabled = !authState.isLoading
         ) {
             if (authState.isLoading) {
@@ -305,7 +323,9 @@ fun LoginScreen(
                 text = stringResource(Res.string.login_google_icon),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = 12.dp)
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .clearAndSetSemantics { }
             )
             Text(stringResource(Res.string.login_sign_in_google), style = MaterialTheme.typography.labelLarge)
         }
@@ -350,7 +370,9 @@ fun LoginScreen(
                 Text(
                     text = stringResource(Res.string.login_apple_icon),
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(end = 12.dp)
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .clearAndSetSemantics { }
                 )
                 Text(stringResource(Res.string.login_sign_in_apple), style = MaterialTheme.typography.labelLarge)
             }
@@ -403,7 +425,9 @@ fun LoginScreen(
                 Text(
                     text = stringResource(Res.string.login_success),
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -418,7 +442,8 @@ fun LoginScreen(
             title = {
                 Text(
                     text = stringResource(Res.string.password_reset_title),
-                    style = MaterialTheme.typography.headlineSmall
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.semantics { heading() }
                 )
             },
             text = {

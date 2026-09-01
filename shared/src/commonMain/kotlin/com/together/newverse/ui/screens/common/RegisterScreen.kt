@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,6 +19,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -62,6 +70,7 @@ fun RegisterScreen(
     val errorConfirmPassword = stringResource(Res.string.error_confirm_password)
     val errorPasswordsMismatch = stringResource(Res.string.error_passwords_mismatch)
     val errorTermsRequired = stringResource(Res.string.error_terms_required)
+    val creatingAccountLabel = stringResource(Res.string.a11y_creating_account)
 
     // Validation functions
     fun validateName(): Boolean {
@@ -144,7 +153,9 @@ fun RegisterScreen(
             Text(
                 text = stringResource(Res.string.app_leaf_icon),
                 style = MaterialTheme.typography.displayMedium,
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .clearAndSetSemantics { },
                 textAlign = TextAlign.Center
             )
         }
@@ -152,7 +163,8 @@ fun RegisterScreen(
         Text(
             text = stringResource(Res.string.register_title),
             style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.semantics { heading() }
         )
 
         Text(
@@ -270,31 +282,42 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Terms and Conditions Checkbox
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Checkbox(
-                checked = acceptTerms,
-                onCheckedChange = {
-                    acceptTerms = it
-                    termsError = null
-                },
-                enabled = !authState.isLoading
-            )
-            Column(modifier = Modifier.weight(1f)) {
+        // Terms and Conditions Checkbox — one toggle node so the label and the
+        // checked state are announced together.
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = acceptTerms,
+                        enabled = !authState.isLoading,
+                        role = Role.Checkbox,
+                        onValueChange = {
+                            acceptTerms = it
+                            termsError = null
+                        }
+                    ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = acceptTerms,
+                    onCheckedChange = null,
+                    enabled = !authState.isLoading,
+                    modifier = Modifier.clearAndSetSemantics { }
+                )
                 Text(
                     text = stringResource(Res.string.register_terms_agreement),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
                 )
-                if (termsError != null) {
-                    Text(
-                        text = termsError!!,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+            }
+            if (termsError != null) {
+                Text(
+                    text = termsError!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                )
             }
         }
 
@@ -315,7 +338,17 @@ fun RegisterScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(56.dp)
+                .then(
+                    if (authState.isLoading) {
+                        Modifier.semantics {
+                            contentDescription = creatingAccountLabel
+                            liveRegion = LiveRegionMode.Polite
+                        }
+                    } else {
+                        Modifier
+                    }
+                ),
             enabled = !authState.isLoading
         ) {
             if (authState.isLoading) {
@@ -375,7 +408,9 @@ fun RegisterScreen(
                 Text(
                     text = errorMessage,
                     color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -391,12 +426,14 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
-                        contentDescription = stringResource(Res.string.register_success),
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(32.dp)
                     )

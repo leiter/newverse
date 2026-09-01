@@ -133,6 +133,11 @@
     <string name="login_no_account">Noch kein Konto? </string>
     <string name="login_sign_up_link">Registrieren</string>
     <string name="login_success">Anmeldung erfolgreich! Weiterleitung...</string>
+    <!-- Seller forced-login screen -->
+    <string name="seller_login_title">Verkäufer Login</string>
+    <string name="seller_login_subtitle">Melde dich an, um deine Produkte und Bestellungen zu verwalten</string>
+    <string name="seller_login_secure">🔒 Sicherer Login</string>
+    <string name="seller_login_account_required">Als Verkäufer benötigst du ein Konto</string>
 
     <!-- Login/Logout Snackbar Messages -->
     <string name="snackbar_login_success">Anmeldung erfolgreich</string>
@@ -861,6 +866,9 @@
     <!-- Spoken progress while an account dialog action is running -->
     <string name="a11y_deleting_account">Konto wird gelöscht</string>
     <string name="a11y_linking_account">Konto wird verknüpft</string>
+    <!-- Spoken progress on the sign-in / sign-up buttons -->
+    <string name="a11y_signing_in">Anmeldung läuft</string>
+    <string name="a11y_creating_account">Konto wird erstellt</string>
     <!-- Time picker: %1$s = the time (selected_time) or the unit name (increment/decrement) -->
     <string name="a11y_selected_time">Gewählte Zeit: %1$s</string>
     <string name="a11y_increment">%1$s erhöhen</string>

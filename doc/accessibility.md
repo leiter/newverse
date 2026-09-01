@@ -53,9 +53,10 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Pickup-time editor | `TimePickerDialog` | — |
 | Account dialogs (`components/`) | `ConnectionConfirmDialog`, `DeleteAccountDialog`, `EmailLinkingDialog`, `LinkAccountDialog`, `LogoutWarningDialog` | announce-on-open pane title (framework-limited, see below) |
 | Order history (`OrderHistoryScreen`) | order card, count header, empty & error states, merge dialog | — |
+| Auth flow (`LoginScreen`, `RegisterScreen`, `ForcedLoginScreen`) | headings, error/success `liveRegion`s, decorative logo & social glyphs, sign-in/up progress announced, terms checkbox as one toggle, reset-dialog title | password show/hide toggle wording |
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | — | whole flow |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | — | forms |
-| Sell flavour | — | not started |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow) | rest not started |
 
 Dead / unused, not planned: `ProductListItem`, `ProductDetailCard` (sell-only /
 unrendered), `ContactActionButton` (never rendered).
@@ -171,6 +172,23 @@ unrendered), `ContactActionButton` (never rendered).
   `BasicAlertDialog` sets `paneTitle` after the caller's modifier, so it can't be
   overridden from the slot API without `clearAndSetSemantics`. The title text is
   still read on open, so the impact is small.
+- Auth flow (`LoginScreen`, `RegisterScreen`, `ForcedLoginScreen`) — screen
+  titles and the password-reset dialog titles are `heading()`s; the leaf-logo
+  glyph and the Google/Apple letter glyphs on the social buttons are cleared so
+  the button label is not prefixed with "G" / "" ; the error and success cards
+  are polite `liveRegion`s (previously an auth failure after tapping "Anmelden"
+  was silent); the sign-in / sign-up buttons announce "Anmeldung läuft" /
+  "Konto wird erstellt" while their label is a spinner. `RegisterScreen`'s terms
+  row is now a single `Role.Checkbox` `toggleable` (label + checked state read
+  together; the raw `Checkbox` is cleared) and its terms error is a polite
+  `liveRegion`; the success-card check icon dropped its duplicate
+  `contentDescription`. `ForcedLoginScreen` had four hardcoded German strings
+  ("Verkäufer Login", the subtitle, "🔒 Sicherer Login", the account-required
+  footer) — now `seller_login_*` resources with English translations; its debug
+  `println`s are gone (as is `LoginScreen`'s). New strings `a11y_signing_in`,
+  `a11y_creating_account`, `seller_login_title` / `_subtitle` / `_secure` /
+  `_account_required`. The password show/hide toggle is a text button whose
+  visible label already states the action, so it was left as-is.
 - `OrderHistoryScreen` — an order card was ~8 fragments ("Bestellung #ABC12345",
   "Erstellt: …", "Geplant", "Abholung: …", "in 3 Tagen", "3 Artikel", "Gesamt",
   "7,50 €"); it now reads as one node in a deliberate order (id → status → pickup
