@@ -12,8 +12,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.navigation.NavRoutes
+import com.together.newverse.util.formatString
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.StringResource
@@ -37,8 +40,15 @@ fun SellerBottomNavigationBar(
                 NavRoutes.Sell.Profile.route -> pendingAccessRequestCount
                 else -> 0
             }
+            val badgeDescription = sellerBadgeDescription(item.route, badgeCount)
             NavigationBarItem(
-                icon = { SellerNavItemIcon(item = item, label = label, badgeCount = badgeCount) },
+                icon = {
+                    SellerNavItemIcon(
+                        item = item,
+                        badgeCount = badgeCount,
+                        badgeDescription = badgeDescription
+                    )
+                },
                 label = { Text(label) },
                 selected = currentRoute == item.route,
                 onClick = {
@@ -73,9 +83,16 @@ fun SellerNavigationRail(
                 NavRoutes.Sell.Profile.route -> pendingAccessRequestCount
                 else -> 0
             }
+            val badgeDescription = sellerBadgeDescription(item.route, badgeCount)
             NavigationRailItem(
                 modifier = Modifier.padding(horizontal = 12.dp),
-                icon = { SellerNavItemIcon(item = item, label = label, badgeCount = badgeCount) },
+                icon = {
+                    SellerNavItemIcon(
+                        item = item,
+                        badgeCount = badgeCount,
+                        badgeDescription = badgeDescription
+                    )
+                },
                 label = { Text(label) },
                 selected = currentRoute == item.route,
                 onClick = {
@@ -89,18 +106,45 @@ fun SellerNavigationRail(
     }
 }
 
+/**
+ * Screen-reader phrase for a nav-item count badge, or null when there is nothing
+ * to announce. A bare "3" next to "Nachfrage" tells a screen-reader user nothing;
+ * "3 offene Bestellungen" / "3 Zugangsanfragen" does.
+ */
+@Composable
+private fun sellerBadgeDescription(route: String, badgeCount: Int): String? {
+    if (badgeCount <= 0) return null
+    return when (route) {
+        NavRoutes.Sell.Orders.route ->
+            formatString(stringResource(Res.string.a11y_pending_orders_badge), badgeCount)
+        NavRoutes.Sell.Profile.route ->
+            formatString(stringResource(Res.string.a11y_access_requests_badge), badgeCount)
+        else -> null
+    }
+}
+
 @Composable
 private fun SellerNavItemIcon(
     item: BottomNavItem,
-    label: String,
-    badgeCount: Int
+    badgeCount: Int,
+    badgeDescription: String?
 ) {
+    // The icon is decorative: the nav item's always-visible text label carries the
+    // name and the item itself supplies the Tab role and selected state.
     if (badgeCount > 0) {
-        BadgedBox(badge = { Badge { Text(badgeCount.toString()) } }) {
-            Icon(imageVector = item.icon, contentDescription = label)
+        BadgedBox(
+            badge = {
+                Badge(
+                    modifier = Modifier.clearAndSetSemantics {
+                        if (badgeDescription != null) contentDescription = badgeDescription
+                    }
+                ) { Text(badgeCount.toString()) }
+            }
+        ) {
+            Icon(imageVector = item.icon, contentDescription = null)
         }
     } else {
-        Icon(imageVector = item.icon, contentDescription = label)
+        Icon(imageVector = item.icon, contentDescription = null)
     }
 }
 

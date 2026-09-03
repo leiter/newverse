@@ -21,7 +21,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.together.newverse.ui.navigation.NavRoutes
+import com.together.newverse.util.formatString
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -62,7 +68,7 @@ fun SellerTopBar(
     TopAppBar(
         title = {
             Text(
-                if (isInSelectionMode) {
+                text = if (isInSelectionMode) {
                     if (isSelectionMode) selectDeleteTitle else changeAvailabilityTitle
                 } else {
                     getRouteTitle(
@@ -75,7 +81,9 @@ fun SellerTopBar(
                         abrechnungTitle,
                         sellerTitle
                     )
-                }
+                },
+                // Let TalkBack's next-heading gesture land on the screen title
+                modifier = Modifier.semantics { heading() }
             )
         },
         navigationIcon = {
@@ -105,9 +113,17 @@ fun SellerTopBar(
             // Hide normal actions when in selection mode for cleaner UI
             if (!isInSelectionMode) {
                 if (pendingOrdersCount > 0) {
+                    val pendingOrdersLabel = formatString(
+                        stringResource(Res.string.a11y_pending_orders_badge),
+                        pendingOrdersCount
+                    )
                     BadgedBox(
                         badge = {
-                            Badge {
+                            Badge(
+                                modifier = Modifier.clearAndSetSemantics {
+                                    contentDescription = pendingOrdersLabel
+                                }
+                            ) {
                                 Text(pendingOrdersCount.toString())
                             }
                         }

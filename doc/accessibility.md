@@ -57,7 +57,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow) | rest not started |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail` | screens not started (Overview, Orders, OrderDetail, Create, ImportPreview, Abrechnung, SellerProfile, Notifications, seller messaging) |
 
 Dead / unused, not planned: `ProductListItem`, `ProductDetailCard` (sell-only /
 unrendered), `ContactActionButton` (never rendered).
@@ -254,6 +254,21 @@ unrendered), `ContactActionButton` (never rendered).
   "Anrufen" / "E-Mail" click label, and vertical padding to reach 48dp. The
   four card titles (Kontakt, Impressum, Datenschutz, Unsere Mission) are
   `heading()`s. No new strings (reuses `action_call` / `action_email`).
+
+#### Sell flavour
+
+- Seller chrome (`SellerTopBar`, `SellerBottomNavigationBar` /
+  `SellerNavigationRail`) — the nav-item icons repeated the visible text
+  label as their `contentDescription`, so a screen reader read every tab
+  name twice; the icons are now decorative (`contentDescription = null`),
+  the nav item's own label + Tab role + selected state carry it. The count
+  badges (pending orders on the Nachfrage tab / top-bar cart button,
+  access requests on the Profil tab) exposed a bare "3"; each now carries a
+  `clearAndSetSemantics` `contentDescription` — "3 offene Bestellungen" /
+  "3 Zugangsanfragen" — via new `a11y_pending_orders_badge` /
+  `a11y_access_requests_badge`. The top-bar screen title is a `heading()`.
+  The interactive top-bar icons (back, close-selection, refresh, overflow,
+  cart) already had localized `contentDescription`s.
 
 ### Traversal order
 

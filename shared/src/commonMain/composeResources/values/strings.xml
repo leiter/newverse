@@ -839,6 +839,9 @@
     <string name="cd_product_search">Produkte durchsuchen</string>
     <!-- Screen-reader description for the basket tab's item-count badge -->
     <string name="a11y_basket_item_count">%d Artikel</string>
+    <!-- Screen-reader descriptions for the seller nav/top-bar count badges -->
+    <string name="a11y_pending_orders_badge">%d offene Bestellungen</string>
+    <string name="a11y_access_requests_badge">%d Zugangsanfragen</string>
     <string name="a11y_state_favourite_on">markiert</string>
     <string name="a11y_state_favourite_off">nicht markiert</string>
     <!-- Spoken state for a single-select filter chip -->
