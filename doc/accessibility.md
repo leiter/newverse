@@ -57,7 +57,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen`, `AbrechnungScreen`, `SellerProfileScreen`, `NotificationsScreen`, `ConversationListScreen` / `SellerConversationDetailScreen`, `AppDialog`, `LoadingOverlay` | — |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen`, `AbrechnungScreen`, `SellerProfileScreen`, `NotificationsScreen`, `ConversationListScreen` / `SellerConversationDetailScreen`, `PickDayScreen`, `AppDialog`, `LoadingOverlay` | — |
 
 Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
 `ContactActionButton` (never rendered).
@@ -366,6 +366,10 @@ Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
   titles are `heading()`s.
 - `LoadingOverlay` — the scrim now merges to one node that announces
   "Laden" as a polite `liveRegion` instead of an unlabelled busy spinner.
+- `PickDayScreen` — each `DayCard` is now a single `toggleable`
+  (`Role.Checkbox`) so the day name and checked state read as one stop;
+  the inner `Checkbox` is `clearAndSetSemantics { }` (it duplicated the
+  card's own tap target).
 
 ### Traversal order
 
