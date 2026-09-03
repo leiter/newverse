@@ -57,7 +57,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen` | screens not started (OrderDetail, Create, ImportPreview, Abrechnung, SellerProfile, Notifications, seller messaging) |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen` | screens not started (Create, ImportPreview, Abrechnung, SellerProfile, Notifications, seller messaging) |
 
 Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
 `ContactActionButton` (never rendered).
@@ -296,6 +296,16 @@ Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
   existing `format_product_count`, `"Storniert"` the new
   `order_status_cancelled` (DE + EN). The error text is a polite
   `liveRegion` and the empty "keine Bestellungen" state is a `heading()`.
+- `OrderDetailScreen` (seller order detail) — the status row showed and
+  spoke the raw enum name ("PLACED"); it now maps through a localized
+  `OrderStatus.labelRes()` (new `order_status_draft` / `_placed` /
+  `_locked` / `_completed` / `_demo`, plus the `_cancelled` added for
+  `OrdersScreen`). Each `OrderDetailRow` merges to one "Label: Wert" node;
+  `OrderedProductDetailCard` merges to "Name, Menge, Gesamt X €, Y € pro
+  Einheit" (no "€ slash kg"); `OrderTotalCard` merges to "Gesamtbetrag:
+  X €". The two section titles, the "Bestellte Produkte" header and the
+  delete-dialog title are `heading()`s; the "Bestellung nicht gefunden"
+  message is a polite `liveRegion`.
 
 ### Traversal order
 

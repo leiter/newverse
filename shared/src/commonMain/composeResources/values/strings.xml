@@ -787,6 +787,12 @@
     <string name="order_status_editable">Bearbeitbar</string>
     <string name="order_status_scheduled">Geplant</string>
     <string name="order_status_cancelled">Storniert</string>
+    <!-- OrderStatus lifecycle labels (seller order detail) -->
+    <string name="order_status_draft">Entwurf</string>
+    <string name="order_status_placed">Bestellt</string>
+    <string name="order_status_locked">Gesperrt</string>
+    <string name="order_status_completed">Abgeschlossen</string>
+    <string name="order_status_demo">Demo-Bestellung</string>
     <string name="order_history_merge_title">Konflikt</string>
     <string name="order_history_merge_message">Sie haben einen nicht leeren Warenkorb. Möchten Sie den Inhalt zusammenführen oder den aktuellen Warenkorb verwerfen und die alte Bestellung laden?</string>
     <string name="label_total_plain">Gesamt</string>
