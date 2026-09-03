@@ -57,7 +57,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen` | screens not started (ImportPreview, Abrechnung, SellerProfile, Notifications, seller messaging) |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen` | screens not started (Abrechnung, SellerProfile, Notifications, seller messaging) |
 
 Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
 `ContactActionButton` (never rendered).
@@ -315,6 +315,15 @@ Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
   field already exposes its label, value and expand action. The two
   image-picker error snackbars no longer build `"Fehler: …"` by hand;
   they format the existing `create_product_error` resource.
+- `ImportPreviewScreen` (BNN import picker) — the top-bar title is a
+  `heading()`. The summary card's two number/caption columns each merge to
+  one node ("42 Produkte gefunden" / "5 ausgewählt") instead of speaking a
+  bare number first; the selected-count column is a polite `liveRegion` so
+  the running total is announced as rows are toggled. Each
+  `ImportProductItem` merges to one node ("Name, Kategorie, Herkunft,
+  X € pro Einheit") carrying `selected` + a selected/unselected
+  `stateDescription`; the redundant leading `Checkbox` is
+  `clearAndSetSemantics { }`.
 
 ### Traversal order
 

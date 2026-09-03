@@ -9,9 +9,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Product
+import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -33,7 +42,12 @@ fun ImportPreviewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(Res.string.import_preview_title)) },
+                title = {
+                    Text(
+                        text = stringResource(Res.string.import_preview_title),
+                        modifier = Modifier.semantics { heading() }
+                    )
+                },
                 actions = {
                     // Select All / Deselect All toggle
                     TextButton(
@@ -109,32 +123,47 @@ fun ImportPreviewScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
             ) {
+                val foundLabel = stringResource(Res.string.import_products_found_label)
+                val selectedLabel = stringResource(Res.string.import_selected_label)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
+                    // Merge count + caption so a screen reader hears "42 Produkte gefunden",
+                    // not a bare "42" followed by a separate label.
+                    Column(
+                        modifier = Modifier.semantics(mergeDescendants = true) {
+                            contentDescription = "${products.size} $foundLabel"
+                        }
+                    ) {
                         Text(
                             text = "${products.size}",
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = stringResource(Res.string.import_products_found_label),
+                            text = foundLabel,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
-                    Column(horizontalAlignment = Alignment.End) {
+                    // The selected count changes as rows are toggled — announce it politely.
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.semantics(mergeDescendants = true) {
+                            contentDescription = "${selectedProducts.size} $selectedLabel"
+                            liveRegion = LiveRegionMode.Polite
+                        }
+                    ) {
                         Text(
                             text = "${selectedProducts.size}",
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = stringResource(Res.string.import_selected_label),
+                            text = selectedLabel,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -172,9 +201,26 @@ private fun ImportProductItem(
     isSelected: Boolean,
     onToggle: () -> Unit
 ) {
+    val priceLabel = productPriceLabel(product.price, product.unit)
+    val selectedStateText =
+        if (isSelected) stringResource(Res.string.a11y_state_selected)
+        else stringResource(Res.string.a11y_state_unselected)
+    val rowDescription = buildString {
+        append(product.productName)
+        append(", "); append(product.category)
+        if (product.origin.isNotEmpty()) { append(", "); append(product.origin) }
+        append(", "); append(priceLabel)
+    }
+
     Card(
         onClick = onToggle,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = rowDescription
+                selected = isSelected
+                stateDescription = selectedStateText
+            },
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.secondaryContainer
@@ -189,9 +235,11 @@ private fun ImportProductItem(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Redundant with the row's selected state — hide from the a11y tree.
             Checkbox(
                 checked = isSelected,
-                onCheckedChange = { onToggle() }
+                onCheckedChange = { onToggle() },
+                modifier = Modifier.clearAndSetSemantics { }
             )
 
             Spacer(modifier = Modifier.width(8.dp))
