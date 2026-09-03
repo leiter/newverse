@@ -57,7 +57,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen` | screens not started (Create, ImportPreview, Abrechnung, SellerProfile, Notifications, seller messaging) |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen` | screens not started (ImportPreview, Abrechnung, SellerProfile, Notifications, seller messaging) |
 
 Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
 `ContactActionButton` (never rendered).
@@ -306,6 +306,15 @@ Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
   X €". The two section titles, the "Bestellte Produkte" header and the
   delete-dialog title are `heading()`s; the "Bestellung nicht gefunden"
   message is a polite `liveRegion`.
+- `CreateProductScreen` (seller product form) — the availability `Switch`
+  and its "Verfügbar" label are now one `toggleable` row with
+  `Role.Switch`, so a screen reader hears the label with the on/off state
+  in one stop (the inner `Switch` is `clearAndSetSemantics { }`). The
+  three `ExposedDropdownMenuBox` trailing arrows (unit, tax rate,
+  category) are decorative `contentDescription = null` — the read-only
+  field already exposes its label, value and expand action. The two
+  image-picker error snackbars no longer build `"Fehler: …"` by hand;
+  they format the existing `create_product_error` resource.
 
 ### Traversal order
 
