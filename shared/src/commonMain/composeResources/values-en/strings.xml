@@ -317,6 +317,24 @@
     <string name="notification_newsletter">Newsletter</string>
     <string name="notification_newsletter_desc">Weekly offers</string>
 
+    <!-- Seller notifications screen -->
+    <string name="seller_notif_section_orders">Orders</string>
+    <string name="seller_notif_section_stock">Stock</string>
+    <string name="seller_notif_section_marketing">Marketing</string>
+    <string name="seller_notif_section_delivery">Delivery methods</string>
+    <string name="seller_notif_new_orders">New orders</string>
+    <string name="seller_notif_new_orders_desc">Notify me about new customer orders</string>
+    <string name="seller_notif_order_updates">Order updates</string>
+    <string name="seller_notif_order_updates_desc">Notify me when orders change</string>
+    <string name="seller_notif_low_stock">Low stock</string>
+    <string name="seller_notif_low_stock_desc">Notify me when products are running low</string>
+    <string name="seller_notif_marketing">Marketing messages</string>
+    <string name="seller_notif_marketing_desc">Tips and news for sellers</string>
+    <string name="seller_notif_email">Email notifications</string>
+    <string name="seller_notif_email_desc">Receive notifications by email</string>
+    <string name="seller_notif_push">Push notifications</string>
+    <string name="seller_notif_push_desc">Notifications on this device</string>
+
     <!-- Membership -->
     <string name="membership_regular">Regular Customer</string>
     <string name="membership_discount">5% discount on all orders</string>

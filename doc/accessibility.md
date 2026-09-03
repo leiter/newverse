@@ -57,7 +57,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen`, `AbrechnungScreen`, `SellerProfileScreen` | screens not started (Notifications, seller messaging) |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen`, `AbrechnungScreen`, `SellerProfileScreen`, `NotificationsScreen` | screens not started (seller messaging) |
 
 Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
 `ContactActionButton` (never rendered).
@@ -346,6 +346,14 @@ Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
   The error message is a polite `liveRegion`. Localization: the four
   `BuyerListItem` status chips were hardcoded English ("Approved" /
   "Blocked" / "Pending" / "None") — now `buyer_status_*` (DE + EN).
+- `NotificationsScreen` (seller notification toggles) — was entirely
+  hardcoded German (four section titles + six title/description pairs);
+  all of it moved to `seller_notif_*` resources (DE + EN). Each
+  `NotificationToggleItem` row is now a single `toggleable` switch
+  (`Role.Switch`) so a screen reader hears the label, its description and
+  the on/off state in one stop (the inner `Switch` is
+  `clearAndSetSemantics { }`); every card title is a `heading()`. The
+  repeated card scaffold collapsed into one `NotificationCard` helper.
 
 ### Traversal order
 

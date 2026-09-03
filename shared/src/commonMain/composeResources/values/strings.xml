@@ -330,6 +330,24 @@
     <string name="notification_newsletter">Newsletter</string>
     <string name="notification_newsletter_desc">Wöchentliche Angebote</string>
 
+    <!-- Seller notifications screen -->
+    <string name="seller_notif_section_orders">Bestellungen</string>
+    <string name="seller_notif_section_stock">Lagerbestand</string>
+    <string name="seller_notif_section_marketing">Marketing</string>
+    <string name="seller_notif_section_delivery">Zustellungsmethoden</string>
+    <string name="seller_notif_new_orders">Neue Bestellungen</string>
+    <string name="seller_notif_new_orders_desc">Benachrichtigung bei neuen Kundenbestellungen</string>
+    <string name="seller_notif_order_updates">Bestellungs-Updates</string>
+    <string name="seller_notif_order_updates_desc">Benachrichtigung bei Änderungen an Bestellungen</string>
+    <string name="seller_notif_low_stock">Niedriger Lagerbestand</string>
+    <string name="seller_notif_low_stock_desc">Benachrichtigung wenn Produkte zur Neige gehen</string>
+    <string name="seller_notif_marketing">Marketing-Nachrichten</string>
+    <string name="seller_notif_marketing_desc">Tipps und Neuigkeiten für Verkäufer</string>
+    <string name="seller_notif_email">E-Mail-Benachrichtigungen</string>
+    <string name="seller_notif_email_desc">Benachrichtigungen per E-Mail erhalten</string>
+    <string name="seller_notif_push">Push-Benachrichtigungen</string>
+    <string name="seller_notif_push_desc">Benachrichtigungen auf diesem Gerät</string>
+
     <!-- Membership -->
     <string name="membership_regular">Stammkunde</string>
     <string name="membership_discount">5% Rabatt auf alle Bestellungen</string>
