@@ -40,10 +40,12 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
@@ -433,14 +435,27 @@ private fun BasketTwoPane(
     onAction: (BuyBasketScreenAction) -> Unit,
     onNavigateToOrders: () -> Unit
 ) {
+    // Without an explicit traversal order a screen reader walks the two panes by
+    // geometry and interleaves the item rows on the left with the summary rows on
+    // the right. Group each pane and order the groups so the whole item list is
+    // read first, then the pickup date / total / checkout column.
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .semantics { isTraversalGroup = true },
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // LEFT: status messages + items list
-        Column(modifier = Modifier.weight(0.58f).fillMaxHeight()) {
+        Column(
+            modifier = Modifier
+                .weight(0.58f)
+                .fillMaxHeight()
+                .semantics {
+                    isTraversalGroup = true
+                    traversalIndex = 0f
+                }
+        ) {
             BasketStatusMessages(state)
             if (state.items.isEmpty()) {
                 BasketEmptyCard(onNavigateToOrders = onNavigateToOrders)
@@ -471,7 +486,11 @@ private fun BasketTwoPane(
             modifier = Modifier
                 .weight(0.42f)
                 .fillMaxHeight()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .semantics {
+                    isTraversalGroup = true
+                    traversalIndex = 1f
+                },
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (state.orderId != null && state.pickupDate != null && state.createdDate != null) {

@@ -49,7 +49,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Product detail (`ProductDetailScreen`) | whole screen | — |
 | Profile (`CustomerProfileScreenModern`) | `ProfileHeaderCard`, `PersonalInfoCard`, `GemusedateCard` (+ `TimePickerField`), `DemoModeCard`, `PendingInvitationsCard`, `AccessStatusCard`, `LoginStatusCard`, `QuickActionsCard` | — |
 | App chrome | `AppScaffold` top bar, `BuyerBottomBar` (+ nav rail) | — |
-| Basket (`BasketScreen`) | `BasketItemCard`, `BasketTotalCard`, `BasketEmptyCard`, `OrderInfoCard`, `BasketStatusMessages`, `DateOption` / `ResolutionOption` / `MergeConflictItem`, all five basket dialogs | `BasketContent` / `BasketTwoPane` traversal |
+| Basket (`BasketScreen`) | `BasketItemCard`, `BasketTotalCard`, `BasketEmptyCard`, `OrderInfoCard`, `BasketStatusMessages`, `DateOption` / `ResolutionOption` / `MergeConflictItem`, all five basket dialogs, `BasketContent` / `BasketTwoPane` traversal | — |
 | Pickup-time editor | `TimePickerDialog` | — |
 | Account dialogs (`components/`) | `ConnectionConfirmDialog`, `DeleteAccountDialog`, `EmailLinkingDialog`, `LinkAccountDialog`, `LogoutWarningDialog` | announce-on-open pane title (framework-limited, see below) |
 | Order history (`OrderHistoryScreen`) | order card, count header, empty & error states, merge dialog | — |
@@ -168,6 +168,15 @@ unrendered), `ContactActionButton` (never rendered).
     `Role.RadioButton` + selected state via `Modifier.optionSemantics`, instead of
     signalling selection only with a conditional check icon; `MergeConflictItem`
     wraps its options in a `selectableGroup()` and merges its header row.
+  - `BasketContent` / `BasketTwoPane` traversal — the phone layout is a single
+    `LazyColumn` whose items already run in visual order (order info → status
+    messages → pickup date → items → total → checkout), so no grouping was
+    needed there. The tablet-landscape `BasketTwoPane` is a `Row` of two tall
+    columns; without an explicit order a screen reader walked them by geometry
+    and interleaved the left-hand item rows with the right-hand summary rows.
+    The `Row` is now `isTraversalGroup = true` and each pane carries
+    `isTraversalGroup = true` + `traversalIndex` (left `0f`, right `1f`), so the
+    whole item list is read before the pickup-date / total / checkout column.
   - Basket dialogs (`DatePickerDialog`, `CancelOrderDialog`,
     `ReorderDatePickerDialog`, `OrderMergeDialog`, `DraftWarningDialog`) —
     every title is now a `heading()`; the "no dates available" message and the
