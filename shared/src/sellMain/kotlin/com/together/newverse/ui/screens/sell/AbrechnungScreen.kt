@@ -27,9 +27,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
@@ -37,9 +43,6 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun AbrechnungScreen(
@@ -122,7 +125,7 @@ private fun PickupView(state: AsyncState<PickupSummary>) {
                             text = stringResource(Res.string.abrechnung_article_list),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(top = 4.dp)
+                            modifier = Modifier.padding(top = 4.dp).semantics { heading() }
                         )
                     }
 
@@ -139,7 +142,6 @@ private fun PickupView(state: AsyncState<PickupSummary>) {
 
 @Composable
 private fun PickupHeaderCard(summary: PickupSummary) {
-    val tz = TimeZone.currentSystemDefault()
     val dateStr = OrderDateUtils.formatDisplayDate(
         kotlin.time.Instant.fromEpochMilliseconds(summary.pickupDateMs)
     )
@@ -152,7 +154,8 @@ private fun PickupHeaderCard(summary: PickupSummary) {
                 text = stringResource(Res.string.abrechnung_pickup_date, dateStr),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.semantics { heading() }
             )
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -171,7 +174,15 @@ private fun PickupHeaderCard(summary: PickupSummary) {
 
 @Composable
 private fun AggregatedArticleRow(item: AggregatedItem) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    val perUnitLabel = productPriceLabel(item.pricePerUnit, item.unit)
+    val totalWord = stringResource(Res.string.label_total)
+    val rowDescription = "${item.productName}, ${formatQuantity(item.totalQuantity, item.unit)}, " +
+        "$totalWord ${item.totalGross.formatPrice()} €, $perUnitLabel"
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { contentDescription = rowDescription }
+    ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -286,7 +297,7 @@ private fun FinancialSummaryCard(financials: OrderFinancials) {
                 text = stringResource(Res.string.abrechnung_financial_summary),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }
             )
 
             FinancialRow(
@@ -353,15 +364,17 @@ private fun FinancialRow(
         else -> MaterialTheme.colorScheme.onSurface
     }
 
+    val valueText = "${value.formatPrice()} €"
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = if (indent) 12.dp else 0.dp, bottom = 4.dp),
+            .padding(start = if (indent) 12.dp else 0.dp, bottom = 4.dp)
+            .semantics(mergeDescendants = true) { contentDescription = "$label: $valueText" },
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(text = label, style = textStyle, fontWeight = fontWeight, color = color, modifier = Modifier.weight(1f))
         Text(
-            text = "${value.formatPrice()} €",
+            text = valueText,
             style = textStyle,
             fontWeight = fontWeight,
             color = color,
@@ -393,7 +406,7 @@ private fun ErrorBox(message: String) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier.padding(32.dp).semantics { liveRegion = LiveRegionMode.Polite }
         )
     }
 }
@@ -406,7 +419,7 @@ private fun EmptyBox(message: String) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier.padding(32.dp).semantics { heading() }
         )
     }
 }

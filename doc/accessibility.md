@@ -57,7 +57,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen` | screens not started (Abrechnung, SellerProfile, Notifications, seller messaging) |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen`, `AbrechnungScreen` | screens not started (SellerProfile, Notifications, seller messaging) |
 
 Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
 `ContactActionButton` (never rendered).
@@ -324,6 +324,14 @@ Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
   X € pro Einheit") carrying `selected` + a selected/unselected
   `stateDescription`; the redundant leading `Checkbox` is
   `clearAndSetSemantics { }`.
+- `AbrechnungScreen` (seller billing / settlement) — the pickup-date
+  header, the "Artikelliste" title and the "Finanzübersicht" title are
+  `heading()`s. Every `FinancialRow` merges to one "Label: 12,50 €" node
+  instead of a separate label and amount; each `AggregatedArticleRow`
+  merges to "Name, 2,500 kg, Gesamt: X €, Y € pro kg" (via
+  `productPriceLabel`, so no "€ slash kg"). The error box is a polite
+  `liveRegion` and the empty state is a `heading()`. Opportunistic: dropped
+  an unused `TimeZone` local and three dead `kotlinx.datetime` imports.
 
 ### Traversal order
 
