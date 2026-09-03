@@ -57,7 +57,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`) | screens not started (Orders, OrderDetail, Create, ImportPreview, Abrechnung, SellerProfile, Notifications, seller messaging) |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen` | screens not started (OrderDetail, Create, ImportPreview, Abrechnung, SellerProfile, Notifications, seller messaging) |
 
 Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
 `ContactActionButton` (never rendered).
@@ -287,6 +287,15 @@ Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
   `AlertDialog` titles (delete / set-available / set-unavailable / import
   success / import failed) are now `heading()`s and the import-error body
   is a polite `liveRegion`.
+- `OrdersScreen` (seller order queue) — `SellerOrderCard` was a stop each
+  for the buyer name, "N Produkte", the pickup date, the note and every
+  product line; it now reads as one merged node in a deliberate order
+  (buyer → cancelled? → count → pickup → note → items) with an
+  "Bestelldetails öffnen" `onClick` label (reuses `a11y_open_order_details`).
+  Two hardcoded German literals are gone: `"$n Produkte"` now uses the
+  existing `format_product_count`, `"Storniert"` the new
+  `order_status_cancelled` (DE + EN). The error text is a polite
+  `liveRegion` and the empty "keine Bestellungen" state is a `heading()`.
 
 ### Traversal order
 

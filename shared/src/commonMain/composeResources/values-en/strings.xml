@@ -733,6 +733,7 @@
     <string name="order_status_soon">Soon</string>
     <string name="order_status_editable">Editable</string>
     <string name="order_status_scheduled">Scheduled</string>
+    <string name="order_status_cancelled">Cancelled</string>
     <string name="order_history_merge_title">Conflict</string>
     <string name="order_history_merge_message">You have a non-empty basket. Would you like to merge the contents or discard your current basket and load the old order?</string>
     <string name="label_total_plain">Total</string>
