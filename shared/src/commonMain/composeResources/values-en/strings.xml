@@ -643,6 +643,7 @@
     <!-- ========================================= -->
     <string name="nav_messages">Messages</string>
     <string name="messaging_empty">No messages yet</string>
+    <string name="messaging_conversation_title">Conversation</string>
     <string name="messaging_input_hint">Write a message...</string>
     <string name="messaging_send">Send</string>
     <string name="messaging_today">Today</string>

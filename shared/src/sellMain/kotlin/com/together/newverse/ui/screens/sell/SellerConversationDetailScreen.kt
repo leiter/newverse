@@ -25,6 +25,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.components.MessageBubble
 import com.together.newverse.ui.components.MessageInput
@@ -64,7 +68,12 @@ fun SellerConversationDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(otherParticipantName.ifEmpty { "Conversation" }) },
+                title = {
+                    Text(
+                        text = otherParticipantName.ifEmpty { stringResource(Res.string.messaging_conversation_title) },
+                        modifier = Modifier.semantics { heading() }
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
@@ -95,7 +104,11 @@ fun SellerConversationDetailScreen(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(state.message, color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = state.message,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                    )
                 }
             }
             is AsyncState.Success -> {

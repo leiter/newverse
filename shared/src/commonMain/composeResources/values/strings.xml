@@ -698,6 +698,7 @@
     <!-- ========================================= -->
     <string name="nav_messages">Nachrichten</string>
     <string name="messaging_empty">Noch keine Nachrichten</string>
+    <string name="messaging_conversation_title">Unterhaltung</string>
     <string name="messaging_input_hint">Nachricht schreiben...</string>
     <string name="messaging_send">Senden</string>
     <string name="messaging_today">Heute</string>

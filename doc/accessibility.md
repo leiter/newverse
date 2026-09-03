@@ -57,7 +57,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen`, `AbrechnungScreen`, `SellerProfileScreen`, `NotificationsScreen` | screens not started (seller messaging) |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen`, `AbrechnungScreen`, `SellerProfileScreen`, `NotificationsScreen`, `ConversationListScreen` / `SellerConversationDetailScreen`, `AppDialog`, `LoadingOverlay` | — |
 
 Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
 `ContactActionButton` (never rendered).
@@ -354,6 +354,18 @@ Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
   the on/off state in one stop (the inner `Switch` is
   `clearAndSetSemantics { }`); every card title is a `heading()`. The
   repeated card scaffold collapsed into one `NotificationCard` helper.
+- Seller messaging (`ConversationListScreen`,
+  `SellerConversationDetailScreen`) — the shared `ConversationItem`,
+  `MessageBubble` and `MessageInput` were already covered in the buyer
+  pass; these screens add `heading()` on the top-bar title and the empty
+  state, a polite `liveRegion` on the error text, and localize the
+  detail screen's hardcoded `"Conversation"` fallback title
+  (`messaging_conversation_title`, DE + EN). Dead `myId` no-op local
+  dropped from the list screen.
+- `AppDialog` (seller confirm / info / error dialogs) — all three dialog
+  titles are `heading()`s.
+- `LoadingOverlay` — the scrim now merges to one node that announces
+  "Laden" as a polite `liveRegion` instead of an unlabelled busy spinner.
 
 ### Traversal order
 
