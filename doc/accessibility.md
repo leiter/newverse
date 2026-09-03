@@ -57,7 +57,7 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen`, `AbrechnungScreen` | screens not started (SellerProfile, Notifications, seller messaging) |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`), `OrdersScreen`, `OrderDetailScreen`, `CreateProductScreen`, `ImportPreviewScreen`, `AbrechnungScreen`, `SellerProfileScreen` | screens not started (Notifications, seller messaging) |
 
 Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
 `ContactActionButton` (never rendered).
@@ -332,6 +332,20 @@ Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
   `productPriceLabel`, so no "€ slash kg"). The error box is a polite
   `liveRegion` and the empty state is a `heading()`. Opportunistic: dropped
   an unused `TimeZone` local and three dead `kotlinx.datetime` imports.
+- `SellerProfileScreen` (profile, markets, customers, access requests) —
+  the screen title and every card/section title (`Statistiken`,
+  `Einstellungen`, `Verbundene Kunden`, `QR-Code teilen`,
+  `Einladung an Käufer senden`, buyer-link card, access-requests count,
+  approved/blocked buyer lists) are `heading()`s. The profile-info card,
+  each `StatCard` ("Label: Wert"), each `MarketListItem` info column
+  ("Name, Tag Zeit, Adresse"), each `CustomerListItem` and `BuyerListItem`
+  ("Name, Status"), and each access-request row ("Name, vor X") merge to a
+  single node; the market edit/delete icons now name their market, the raw
+  buyer UUID line is `clearAndSetSemantics { }`, and the markets card's
+  click action is relabelled "Markt hinzufügen" (its `+` icon silenced).
+  The error message is a polite `liveRegion`. Localization: the four
+  `BuyerListItem` status chips were hardcoded English ("Approved" /
+  "Blocked" / "Pending" / "None") — now `buyer_status_*` (DE + EN).
 
 ### Traversal order
 

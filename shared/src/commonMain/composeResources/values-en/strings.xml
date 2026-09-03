@@ -615,6 +615,10 @@
     <string name="customer_management_unblock">Unblock</string>
     <string name="customer_management_blocked">Blocked</string>
     <string name="customer_management_active">Active</string>
+    <string name="buyer_status_approved">Approved</string>
+    <string name="buyer_status_blocked">Blocked</string>
+    <string name="buyer_status_pending">Pending</string>
+    <string name="buyer_status_none">No access</string>
 
     <!-- ========================================= -->
     <!-- MESSAGING -->

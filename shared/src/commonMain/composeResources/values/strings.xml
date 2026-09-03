@@ -670,6 +670,10 @@
     <string name="customer_management_unblock">Freigeben</string>
     <string name="customer_management_blocked">Blockiert</string>
     <string name="customer_management_active">Aktiv</string>
+    <string name="buyer_status_approved">Genehmigt</string>
+    <string name="buyer_status_blocked">Gesperrt</string>
+    <string name="buyer_status_pending">Ausstehend</string>
+    <string name="buyer_status_none">Kein Zugriff</string>
 
     <!-- ========================================= -->
     <!-- MESSAGING -->
