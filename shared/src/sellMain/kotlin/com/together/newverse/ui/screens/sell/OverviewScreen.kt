@@ -16,6 +16,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.width
@@ -169,7 +175,12 @@ fun OverviewScreen(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text(stringResource(Res.string.overview_delete_products_title)) },
+                title = {
+                    Text(
+                        stringResource(Res.string.overview_delete_products_title),
+                        modifier = Modifier.semantics { heading() }
+                    )
+                },
                 text = {
                     Text(stringResource(Res.string.overview_delete_products_confirm, selectedArticleIds.size))
                 },
@@ -200,7 +211,12 @@ fun OverviewScreen(
         if (showAvailableDialog) {
             AlertDialog(
                 onDismissRequest = { showAvailableDialog = false },
-                title = { Text(stringResource(Res.string.overview_set_available_title)) },
+                title = {
+                    Text(
+                        stringResource(Res.string.overview_set_available_title),
+                        modifier = Modifier.semantics { heading() }
+                    )
+                },
                 text = {
                     Text(stringResource(Res.string.overview_set_available_confirm, selectedArticleIds.size))
                 },
@@ -231,7 +247,12 @@ fun OverviewScreen(
         if (showUnavailableDialog) {
             AlertDialog(
                 onDismissRequest = { showUnavailableDialog = false },
-                title = { Text(stringResource(Res.string.overview_set_unavailable_title)) },
+                title = {
+                    Text(
+                        stringResource(Res.string.overview_set_unavailable_title),
+                        modifier = Modifier.semantics { heading() }
+                    )
+                },
                 text = {
                     Text(stringResource(Res.string.overview_set_unavailable_confirm, selectedArticleIds.size))
                 },
@@ -267,7 +288,12 @@ fun OverviewScreen(
                             showImportResultDialog = false
                             viewModel.resetImportState()
                         },
-                        title = { Text(stringResource(Res.string.overview_import_success)) },
+                        title = {
+                            Text(
+                                stringResource(Res.string.overview_import_success),
+                                modifier = Modifier.semantics { heading() }
+                            )
+                        },
                         text = {
                             Text(
                                 if (state.errorCount > 0) {
@@ -295,8 +321,18 @@ fun OverviewScreen(
                             showImportResultDialog = false
                             viewModel.resetImportState()
                         },
-                        title = { Text(stringResource(Res.string.overview_import_failed)) },
-                        text = { Text(state.message) },
+                        title = {
+                            Text(
+                                stringResource(Res.string.overview_import_failed),
+                                modifier = Modifier.semantics { heading() }
+                            )
+                        },
+                        text = {
+                            Text(
+                                state.message,
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                            )
+                        },
                         confirmButton = {
                             Button(
                                 onClick = {
@@ -372,7 +408,8 @@ private fun ErrorContent(
         ) {
             Text(
                 text = "⚠️",
-                style = MaterialTheme.typography.displayLarge
+                style = MaterialTheme.typography.displayLarge,
+                modifier = Modifier.clearAndSetSemantics { }
             )
             Text(
                 text = stringResource(Res.string.overview_error),
@@ -383,7 +420,8 @@ private fun ErrorContent(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
             )
             Button(onClick = onRetry) {
                 Text(stringResource(Res.string.button_retry))
@@ -444,21 +482,24 @@ private fun SuccessContent(
         ) {
             Text(
                 text = stringResource(Res.string.overview_your_products),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
             )
 
             // Filter Dropdown
             Box {
+                val filterLabel = when (currentFilter) {
+                    ProductFilter.ALL -> stringResource(Res.string.overview_filter_all)
+                    ProductFilter.AVAILABLE -> stringResource(Res.string.overview_filter_available)
+                    ProductFilter.NOT_AVAILABLE -> stringResource(Res.string.overview_filter_not_available)
+                }
+                val filterButtonDescription =
+                    stringResource(Res.string.a11y_product_filter, filterLabel)
                 OutlinedButton(
-                    onClick = { filterExpanded = true }
+                    onClick = { filterExpanded = true },
+                    modifier = Modifier.semantics { contentDescription = filterButtonDescription }
                 ) {
-                    Text(
-                        text = when (currentFilter) {
-                            ProductFilter.ALL -> stringResource(Res.string.overview_filter_all)
-                            ProductFilter.AVAILABLE -> stringResource(Res.string.overview_filter_available)
-                            ProductFilter.NOT_AVAILABLE -> stringResource(Res.string.overview_filter_not_available)
-                        }
-                    )
+                    Text(text = filterLabel)
                     Icon(
                         imageVector = Icons.Default.ArrowDropDown,
                         contentDescription = null
@@ -507,13 +548,15 @@ private fun SuccessContent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(32.dp),
+                        .padding(32.dp)
+                        .semantics(mergeDescendants = true) { heading() },
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         text = "📦",
-                        style = MaterialTheme.typography.displayMedium
+                        style = MaterialTheme.typography.displayMedium,
+                        modifier = Modifier.clearAndSetSemantics { }
                     )
                     Text(
                         text = stringResource(Res.string.overview_no_products),
@@ -574,7 +617,10 @@ private fun StatCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            // One stop reading "label: value" instead of the bare number first
+            modifier = Modifier
+                .padding(16.dp)
+                .semantics(mergeDescendants = true) { contentDescription = "$title: $value" }
         ) {
             Text(
                 text = value,
@@ -605,12 +651,16 @@ private fun SelectableProductListItem(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Checkbox in selection mode
+        // Checkbox in selection mode. The whole row toggles selection, so the
+        // checkbox is a redundant tap target — hide it from the a11y tree and let
+        // the row carry the checked state via ProductListItem's `selected`.
         if (isSelectionMode) {
             Checkbox(
                 checked = isSelected,
                 onCheckedChange = { onClick() },
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .clearAndSetSemantics { }
             )
         }
 
@@ -622,6 +672,7 @@ private fun SelectableProductListItem(
             unit = unit,
             onClick = onClick,
             onLongClick = onLongClick,
+            selected = if (isSelectionMode) isSelected else null,
             modifier = Modifier.weight(1f)
         )
     }

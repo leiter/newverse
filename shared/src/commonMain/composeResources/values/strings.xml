@@ -842,6 +842,8 @@
     <!-- Screen-reader descriptions for the seller nav/top-bar count badges -->
     <string name="a11y_pending_orders_badge">%d offene Bestellungen</string>
     <string name="a11y_access_requests_badge">%d Zugangsanfragen</string>
+    <!-- Screen-reader label for the seller product-list filter dropdown button -->
+    <string name="a11y_product_filter">Filter: %1$s</string>
     <string name="a11y_state_favourite_on">markiert</string>
     <string name="a11y_state_favourite_off">nicht markiert</string>
     <!-- Spoken state for a single-select filter chip -->

@@ -57,10 +57,10 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 | Messaging (`MessagesScreen`, `ConversationDetailScreen`) | `ConversationItem`, `MessageBubble`, `MessageInput`, error / blocked live regions | — |
 | Buyer contacts (`BuyerContactsScreen`, `AddBuyerContactScreen`) | contact rows, add-contact form | — |
 | About (`AboutScreenModern`) | phone / email links, card headings | — |
-| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail` | screens not started (Overview, Orders, OrderDetail, Create, ImportPreview, Abrechnung, SellerProfile, Notifications, seller messaging) |
+| Sell flavour | `ForcedLoginScreen` (shared with auth flow), `SellerTopBar`, `SellerBottomNavigationBar` / `SellerNavigationRail`, `OverviewScreen` (+ `ProductListItem`) | screens not started (Orders, OrderDetail, Create, ImportPreview, Abrechnung, SellerProfile, Notifications, seller messaging) |
 
-Dead / unused, not planned: `ProductListItem`, `ProductDetailCard` (sell-only /
-unrendered), `ContactActionButton` (never rendered).
+Dead / unused, not planned: `ProductDetailCard` (sell-only / unrendered),
+`ContactActionButton` (never rendered).
 
 ### Per-composable notes
 
@@ -269,6 +269,24 @@ unrendered), `ContactActionButton` (never rendered).
   `a11y_access_requests_badge`. The top-bar screen title is a `heading()`.
   The interactive top-bar icons (back, close-selection, refresh, overflow,
   cart) already had localized `contentDescription`s.
+- `OverviewScreen` (seller dashboard / product list) — `ProductListItem`
+  (shared component, only rendered here) was a stop each for the thumbnail
+  (whose `contentDescription` duplicated the name), the name and the
+  "2,50€/kg" price fragment; it now reads as one merged node "Tomaten,
+  2,50 € pro kg" via `productPriceLabel`, and the thumbnail / placeholders
+  are decorative. It gained an optional `selected` param so the row in
+  selection mode exposes `selected` + an "Ausgewählt" / "Nicht ausgewählt"
+  `stateDescription` and the redundant leading `Checkbox` is cleared from
+  the a11y tree. Two `println` image-load logs removed. On the screen
+  itself: the three `StatCard`s each merge to one "Label: Wert" node
+  (instead of the bare number being read first); "Ihre Produkte" and the
+  no-products empty state are `heading()`s; the ⚠️ / 📦 glyphs are
+  cleared; the error message is a polite `liveRegion`; the filter
+  dropdown button gained a "Filter: Alle" `contentDescription` (new
+  `a11y_product_filter`) so it is not just announced as "Alle". The five
+  `AlertDialog` titles (delete / set-available / set-unavailable / import
+  success / import failed) are now `heading()`s and the import-error body
+  is a polite `liveRegion`.
 
 ### Traversal order
 
