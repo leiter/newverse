@@ -13,6 +13,26 @@
 module ReleaseTag
   module_function
 
+  # fastlane exposes its logger as FastlaneCore::UI -- there is no top-level ::UI
+  # constant, so a bare `UI.success` inside this module raises NameError. That is
+  # not theoretical: it fired *after* a successful TestFlight upload of build 47,
+  # after the version-bump commit, and cost that build its tag. Resolve the logger
+  # at call time and fall back to stdout so the module also runs outside fastlane.
+  module StdoutUI
+    module_function
+
+    def message(m);   puts "[release_tag] #{m}"; end
+    def success(m);   puts "[release_tag] #{m}"; end
+    def important(m); puts "[release_tag] #{m}"; end
+    def error(m);     warn "[release_tag] #{m}"; end
+  end
+
+  def ui
+    return FastlaneCore::UI if defined?(FastlaneCore::UI)
+    return ::UI if defined?(::UI)
+    StdoutUI
+  end
+
   # Tag only after a successful upload -- a tag for a binary that never reached
   # the store is worse than no tag -- so every caller invokes this *after*
   # upload_to_testflight / upload_to_app_store / upload_to_play_store returns.
@@ -27,8 +47,8 @@ module ReleaseTag
     return if root.nil?
 
     if tag_exists?(root, name)
-      UI.important("Tag #{name} already exists -- leaving it pointing where it is.")
-      UI.important("The upload succeeded; only the tag was skipped.")
+      ui.important("Tag #{name} already exists -- leaving it pointing where it is.")
+      ui.important("The upload succeeded; only the tag was skipped.")
       return
     end
 
@@ -37,10 +57,10 @@ module ReleaseTag
 
     _, ok = git(root, "tag", "-a", name, "-m", message)
     unless ok
-      UI.error("Could not create tag #{name}. The upload itself succeeded.")
+      ui.error("Could not create tag #{name}. The upload itself succeeded.")
       return
     end
-    UI.success("Tagged #{current_sha(root)} as #{name}")
+    ui.success("Tagged #{current_sha(root)} as #{name}")
 
     push_tag(root, name)
   end
@@ -59,7 +79,7 @@ module ReleaseTag
     out, ok = git(__dir__, "rev-parse", "--show-toplevel")
     out = out.strip
     unless ok
-      UI.error("Not inside a git repository -- skipping release tag.")
+      ui.error("Not inside a git repository -- skipping release tag.")
       return nil
     end
     out
@@ -96,9 +116,9 @@ module ReleaseTag
     git(root, "add", "--", *pending)
     _, ok = git(root, "commit", "-m", "Version bump for #{name}", "--only", "--", *pending)
     if ok
-      UI.success("Committed version bump for #{name}: #{pending.join(', ')}")
+      ui.success("Committed version bump for #{name}: #{pending.join(', ')}")
     else
-      UI.important("Could not commit #{pending.join(', ')} -- tagging HEAD as-is.")
+      ui.important("Could not commit #{pending.join(', ')} -- tagging HEAD as-is.")
     end
   end
 
@@ -109,9 +129,9 @@ module ReleaseTag
     others = dirty_files(root) - version_files
     return if others.empty?
 
-    UI.important("Uncommitted changes are NOT part of tag -- the uploaded build was made from a tree containing:")
-    others.first(20).each { |f| UI.important("  #{f}") }
-    UI.important("  ... and #{others.size - 20} more") if others.size > 20
+    ui.important("Uncommitted changes are NOT part of tag -- the uploaded build was made from a tree containing:")
+    others.first(20).each { |f| ui.important("  #{f}") }
+    ui.important("  ... and #{others.size - 20} more") if others.size > 20
   end
 
   # Tags that live only on this machine answer nobody's question later. Never fail
@@ -119,17 +139,17 @@ module ReleaseTag
   # taken back.
   def push_tag(root, name)
     if ENV["SKIP_TAG_PUSH"]
-      UI.important("SKIP_TAG_PUSH set -- #{name} exists locally only. Push it with: git push origin #{name}")
+      ui.important("SKIP_TAG_PUSH set -- #{name} exists locally only. Push it with: git push origin #{name}")
       return
     end
 
     remote = ENV["TAG_REMOTE"] || "origin"
     out, ok = git(root, "push", remote, "refs/tags/#{name}")
     if ok
-      UI.success("Pushed #{name} to #{remote}")
+      ui.success("Pushed #{name} to #{remote}")
     else
-      UI.important("Could not push #{name} to #{remote}: #{out.strip}")
-      UI.important("The tag exists locally. Push it with: git push #{remote} #{name}")
+      ui.important("Could not push #{name} to #{remote}: #{out.strip}")
+      ui.important("The tag exists locally. Push it with: git push #{remote} #{name}")
     end
   end
 end
