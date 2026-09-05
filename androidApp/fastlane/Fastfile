@@ -1,6 +1,34 @@
+require_relative "../../fastlane/release_tag"
+
 default_platform(:android)
 
 platform :android do
+  # bump_version_code rewrites this as a side effect of building, so at upload time
+  # the edit is still uncommitted. ReleaseTag commits exactly this file before
+  # tagging -- otherwise the tag would point at a tree holding the previous code.
+  VERSION_FILE = "../version.properties".freeze
+  REPO_VERSION_FILE = "androidApp/version.properties".freeze
+
+  def current_version_code
+    return 1 unless File.exist?(VERSION_FILE)
+
+    File.readlines(VERSION_FILE).each do |line|
+      return line.split("=")[1].strip.to_i if line.start_with?("VERSION_CODE=")
+    end
+    1
+  end
+
+  # Called only after a successful upload. Tagging a build that never reached the
+  # store would be worse than not tagging at all.
+  def tag_android_release(flavor, track)
+    code = current_version_code
+    ReleaseTag.tag!(
+      name: "android-#{flavor}-#{code}",
+      message: "Android #{flavor} versionCode #{code} -> Play #{track}",
+      version_files: [REPO_VERSION_FILE]
+    )
+  end
+
   # ============================================
   # Test Lanes
   # ============================================
@@ -100,6 +128,7 @@ platform :android do
       skip_upload_images: true,
       skip_upload_screenshots: true
     )
+    tag_android_release("buy", "internal")
   end
 
   desc "Deploy Buy flavor to Play Store production"
@@ -110,6 +139,7 @@ platform :android do
       track: "production",
       aab: "../androidApp/build/outputs/bundle/buyRelease/androidApp-buy-release.aab"
     )
+    tag_android_release("buy", "production")
   end
 
   # ============================================
@@ -127,6 +157,7 @@ platform :android do
       skip_upload_images: true,
       skip_upload_screenshots: true
     )
+    tag_android_release("sell", "internal")
   end
 
   desc "Deploy Sell flavor to Play Store production"
@@ -137,6 +168,7 @@ platform :android do
       track: "production",
       aab: "../androidApp/build/outputs/bundle/sellRelease/androidApp-sell-release.aab"
     )
+    tag_android_release("sell", "production")
   end
 
   # ============================================
@@ -145,21 +177,8 @@ platform :android do
 
   desc "Increment version code"
   lane :bump_version_code do
-    version_file = "../version.properties"
-
-    # Read current version
-    current = 1
-    if File.exist?(version_file)
-      File.readlines(version_file).each do |line|
-        if line.start_with?("VERSION_CODE=")
-          current = line.split("=")[1].strip.to_i
-        end
-      end
-    end
-
-    # Increment and write
-    new_version = current + 1
-    File.write(version_file, "VERSION_CODE=#{new_version}\n")
+    new_version = current_version_code + 1
+    File.write(VERSION_FILE, "VERSION_CODE=#{new_version}\n")
     UI.message("Version code incremented to #{new_version}")
   end
 

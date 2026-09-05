@@ -1,3 +1,5 @@
+require_relative "../../fastlane/release_tag"
+
 default_platform(:ios)
 
 platform :ios do
@@ -38,6 +40,36 @@ platform :ios do
   # that does not exist makes gym prompt for a choice, which loops forever when
   # running non-interactively (CI, backgrounded shells).
   BUY_SCHEME = "iosApp-Buy"
+
+  # increment_build_number rewrites iosApp.xcodeproj (and, via agvtool, the
+  # Info.plist literals), so at upload time those edits are still uncommitted.
+  # ReleaseTag commits exactly these before tagging -- otherwise the tag would
+  # point at a tree still holding the previous build number.
+  IOS_VERSION_FILES = [
+    "iosApp/iosApp.xcodeproj/project.pbxproj",
+    "iosApp/iosApp/Info.plist"
+  ].freeze
+
+  # Called only after a successful upload. Tagging a build that never reached the
+  # store would be worse than not tagging at all.
+  def tag_ios_release(track)
+    build = get_build_number(xcodeproj: "iosApp.xcodeproj")
+    # MARKETING_VERSION is only for the annotation text. By the time this runs the
+    # upload has already happened and cannot be undone, so never let a lookup
+    # failure take the lane down with it -- tag with what we have.
+    version = begin
+      get_version_number(xcodeproj: "iosApp.xcodeproj", target: "iosApp")
+    rescue StandardError => e
+      UI.important("Could not read MARKETING_VERSION (#{e.message}); tagging build number only.")
+      nil
+    end
+    label = version ? "iOS #{version} (#{build})" : "iOS build #{build}"
+    ReleaseTag.tag!(
+      name: "ios-#{build}",
+      message: "#{label} -> #{track}",
+      version_files: IOS_VERSION_FILES
+    )
+  end
 
   desc "Verify the App Store Connect API key resolves and authenticates"
   lane :check_api_key do
@@ -102,6 +134,7 @@ platform :ios do
       api_key: api_key,
       skip_waiting_for_build_processing: true
     )
+    tag_ios_release("TestFlight")
   end
 
   desc "Deploy to App Store"
@@ -113,6 +146,7 @@ platform :ios do
       automatic_release: false,
       force: true
     )
+    tag_ios_release("App Store")
   end
 
   desc "Upload metadata and screenshots only"
