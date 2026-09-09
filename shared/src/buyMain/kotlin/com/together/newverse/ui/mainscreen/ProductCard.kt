@@ -1,40 +1,30 @@
 package com.together.newverse.ui.mainscreen
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
+import com.together.newverse.ui.a11y.productCardSemantics
+import com.together.newverse.ui.a11y.productPriceLabel
+import com.together.newverse.ui.components.ProductImage
 import com.together.newverse.util.formatPrice
-import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.*
-import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun ModernProductCard(
@@ -42,10 +32,19 @@ internal fun ModernProductCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val isBio = product.productName.contains("Bio", ignoreCase = true)
+    val cardDescription = buildString {
+        append(product.productName)
+        append(", ")
+        append(productPriceLabel(product.price, product.unit))
+        if (isBio) append(", Bio")
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable { onClick() }
+            .productCardSemantics(cardDescription),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -55,58 +54,14 @@ internal fun ModernProductCard(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // Product Image
-            if (product.imageUrl.isNotEmpty()) {
-                println("🖼️ ModernProductCard: Loading image for '${product.productName}' from URL: ${product.imageUrl}")
-                SubcomposeAsyncImage(
-                    model = product.imageUrl,
-                    contentDescription = product.productName,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop,
-                    loading = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    },
-                    error = {
-                        // Show landscape placeholder on error
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                painter = painterResource(Res.drawable.place_holder_landscape),
-                                contentDescription = stringResource(Res.string.cd_image_error),
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
-                )
-            } else {
-                println("🖼️ ModernProductCard: No image URL for '${product.productName}', showing placeholder")
-                // Placeholder image when no image URL
-                Image(
-                    painter = painterResource(Res.drawable.place_holder_landscape),
-                    contentDescription = stringResource(Res.string.cd_image_placeholder),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
-                )
-            }
+            // Product Image (decorative — the name below carries the meaning)
+            ProductImage(
+                url = product.imageUrl,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                shape = RoundedCornerShape(12.dp),
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -142,7 +97,7 @@ internal fun ModernProductCard(
             }
 
             // Bio Badge if applicable
-            if (product.productName.contains("Bio", ignoreCase = true)) {
+            if (isBio) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
                     shape = RoundedCornerShape(4.dp),

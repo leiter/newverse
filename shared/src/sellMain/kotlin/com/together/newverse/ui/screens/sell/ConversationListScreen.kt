@@ -15,6 +15,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import com.together.newverse.ui.components.ConversationItem
 import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
@@ -34,7 +38,12 @@ fun ConversationListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(Res.string.nav_messages)) }
+                title = {
+                    Text(
+                        text = stringResource(Res.string.nav_messages),
+                        modifier = Modifier.semantics { heading() }
+                    )
+                }
             )
         }
     ) { padding ->
@@ -54,7 +63,8 @@ fun ConversationListScreen(
                 ) {
                     Text(
                         text = state.message,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                     )
                 }
             }
@@ -68,14 +78,11 @@ fun ConversationListScreen(
                         Text(
                             text = stringResource(Res.string.messaging_empty),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.semantics { heading() }
                         )
                     }
                 } else {
-                    val myId = viewModel.conversationsState.value.let {
-                        // The seller ID is available from auth
-                        ""
-                    }
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(padding)
                     ) {

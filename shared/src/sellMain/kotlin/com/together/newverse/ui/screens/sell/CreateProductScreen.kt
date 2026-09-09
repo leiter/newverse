@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
@@ -43,6 +44,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.ProductUnit
 import com.together.newverse.ui.adaptive.constrainedContentWidth
@@ -51,6 +54,7 @@ import com.together.newverse.ui.state.SellAction
 import com.together.newverse.ui.state.SellUiAction
 import com.together.newverse.util.ImagePickerResult
 import com.together.newverse.util.LocalImagePicker
+import com.together.newverse.util.formatString
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -109,6 +113,7 @@ fun CreateProductScreen(
     }
 
     val successMessage = stringResource(Res.string.create_product_success)
+    val imageErrorFormat = stringResource(Res.string.create_product_error)
 
     // Resolve validation errors to localized strings
     val validationMessages = mapOf(
@@ -167,7 +172,7 @@ fun CreateProductScreen(
                             viewModel.onImageSelected(result.imageData)
                         }
                         is ImagePickerResult.Error -> {
-                            showSnackbar("Fehler: ${result.message}")
+                            showSnackbar(formatString(imageErrorFormat, result.message))
                         }
                         ImagePickerResult.Cancelled -> {}
                     }
@@ -180,7 +185,7 @@ fun CreateProductScreen(
                             viewModel.onImageSelected(result.imageData)
                         }
                         is ImagePickerResult.Error -> {
-                            showSnackbar("Fehler: ${result.message}")
+                            showSnackbar(formatString(imageErrorFormat, result.message))
                         }
                         ImagePickerResult.Cancelled -> {}
                     }
@@ -301,16 +306,24 @@ fun CreateProductScreen(
                 maxLines = 5
             )
 
-            // Availability Switch
+            // Availability Switch — the whole row is one switch so a screen
+            // reader hears the label together with the on/off state.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = available,
+                        role = Role.Switch,
+                        onValueChange = viewModel::onAvailableChange
+                    ),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(stringResource(Res.string.create_product_available))
                 Switch(
                     checked = available,
-                    onCheckedChange = viewModel::onAvailableChange
+                    onCheckedChange = null,
+                    modifier = Modifier.clearAndSetSemantics { }
                 )
             }
 
@@ -443,7 +456,8 @@ private fun TaxRateSelector(
             readOnly = true,
             label = { Text(stringResource(Res.string.create_product_tax_rate)) },
             trailingIcon = {
-                Icon(Icons.Default.ArrowDropDown, stringResource(Res.string.create_product_tax_rate))
+                // Decorative — the read-only field already exposes label, value and the expand action.
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -488,7 +502,7 @@ private fun CategorySelector(
             readOnly = true,
             label = { Text(stringResource(Res.string.create_product_category_required)) },
             trailingIcon = {
-                Icon(Icons.Default.ArrowDropDown, stringResource(Res.string.create_product_category_select))
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -533,7 +547,7 @@ private fun UnitSelector(
             readOnly = true,
             label = { Text(stringResource(Res.string.create_product_unit_required)) },
             trailingIcon = {
-                Icon(Icons.Default.ArrowDropDown, stringResource(Res.string.create_product_unit_select))
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
             },
             modifier = Modifier
                 .fillMaxWidth()

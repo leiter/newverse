@@ -15,8 +15,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.cd_message
 import newverse.shared.generated.resources.messaging_input_hint
 import newverse.shared.generated.resources.messaging_send
 import org.jetbrains.compose.resources.stringResource
@@ -40,10 +43,13 @@ fun MessageInput(
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val inputLabel = stringResource(Res.string.cd_message)
             OutlinedTextField(
                 value = text,
                 onValueChange = onTextChange,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = inputLabel },
                 placeholder = {
                     Text(stringResource(Res.string.messaging_input_hint))
                 },

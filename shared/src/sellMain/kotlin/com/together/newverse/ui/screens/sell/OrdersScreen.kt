@@ -16,10 +16,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
+import com.together.newverse.util.formatString
 import com.together.newverse.ui.adaptive.AdaptiveDefaults
 import com.together.newverse.ui.adaptive.LocalWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
@@ -83,7 +90,8 @@ fun OrdersScreen(
                             Text(
                                 text = message,
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.error
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                             )
                             if (retryable) {
                                 Button(onClick = { viewModel.refresh() }) {
@@ -179,7 +187,8 @@ private fun OrdersContent(
                 Text(
                     text = stringResource(Res.string.no_orders_message),
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.semantics { heading() }
                 )
             }
         } else {
@@ -245,8 +254,35 @@ private fun SellerOrderCard(
         else -> null
     }
 
+    val cancelledLabel = stringResource(Res.string.order_status_cancelled)
+    val productCountLabel = formatString(
+        stringResource(Res.string.format_product_count),
+        order.articles.size
+    )
+    val openLabel = stringResource(Res.string.a11y_open_order_details)
+    // One stop per card, read in a deliberate order, instead of a stop each for
+    // the name, count, pickup date, message and every product row.
+    val cardDescription = buildString {
+        append(order.buyerProfile.displayName)
+        if (isCancelled) { append(", "); append(cancelledLabel) }
+        append(", "); append(productCountLabel)
+        append(", "); append(order.getFormattedPickupDateAndTime())
+        if (order.message.isNotEmpty()) { append(", "); append(order.message) }
+        order.articles.forEach { product ->
+            append(", ")
+            append(product.getFormattedAmount())
+            append(" ")
+            append(product.productName)
+        }
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = cardDescription
+                onClick(label = openLabel, action = null)
+            },
         onClick = onClick,
         colors = cardColors,
         border = borderStroke
@@ -268,7 +304,7 @@ private fun SellerOrderCard(
                 )
 
                 Text(
-                    text = "${order.articles.size} Produkte",
+                    text = productCountLabel,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 8.dp)
@@ -312,7 +348,7 @@ private fun SellerOrderCard(
             // Show "Storniert" label for cancelled orders
             if (isCancelled) {
                 Text(
-                    text = "Storniert",
+                    text = cancelledLabel,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.error

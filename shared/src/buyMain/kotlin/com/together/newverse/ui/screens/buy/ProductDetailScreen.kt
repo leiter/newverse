@@ -1,6 +1,5 @@
 package com.together.newverse.ui.screens.buy
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,7 +29,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
@@ -45,24 +43,29 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.adaptive.LocalWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
+import com.together.newverse.ui.components.ProductImage
 import com.together.newverse.util.formatPrice
+import com.together.newverse.util.formatString
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -176,45 +179,19 @@ private fun ProductImageSection(
     onToggleFavourite: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier) {
-        if (article.imageUrl.isNotEmpty()) {
-            SubcomposeAsyncImage(
-                model = article.imageUrl,
-                contentDescription = article.productName,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                loading = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                },
-                error = {
-                    Image(
-                        painter = painterResource(Res.drawable.place_holder_landscape),
-                        contentDescription = stringResource(Res.string.cd_image_placeholder),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            )
-        } else {
-            Image(
-                painter = painterResource(Res.drawable.place_holder_landscape),
-                contentDescription = stringResource(Res.string.cd_image_placeholder),
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        }
+    val favouriteState = stringResource(
+        if (isFavourite) Res.string.a11y_state_favourite_on else Res.string.a11y_state_favourite_off
+    )
 
-        // Favourite button overlay (top-right of image)
+    Box(modifier = modifier) {
+        // Decorative — the product name sits right below the image.
+        ProductImage(
+            url = article.imageUrl,
+            modifier = Modifier.fillMaxSize(),
+            shape = RectangleShape,
+        )
+
+        // Favourite button overlay (top-right of image) — stable label, on/off via state
         IconButton(
             onClick = { onToggleFavourite(article.id) },
             modifier = Modifier
@@ -224,10 +201,11 @@ private fun ProductImageSection(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                     shape = RoundedCornerShape(50)
                 )
+                .semantics { stateDescription = favouriteState }
         ) {
             Icon(
                 imageVector = if (isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
+                contentDescription = stringResource(Res.string.cd_favourite_toggle),
                 tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
             )
         }
@@ -252,45 +230,87 @@ private fun ProductDetailsColumn(
     modifier: Modifier = Modifier,
 ) {
     val keyboardManager = rememberKeyboardManager()
+
+    // --- Accessibility labels -------------------------------------------------
+    // One spoken summary for the header: name, price per unit, and — once an
+    // amount is chosen — the running total and the amount itself.
+    val productSummary = buildString {
+        append(article.productName)
+        append(", ")
+        append(productPriceLabel(article.price, article.unit))
+        if (quantity > 0) {
+            append(", ")
+            append(
+                formatString(
+                    stringResource(Res.string.a11y_hero_total),
+                    (article.price * quantity).formatPrice()
+                )
+            )
+            append(", ")
+            append(
+                formatString(
+                    stringResource(Res.string.a11y_hero_amount),
+                    "${formatQuantityForDisplay(quantity, isWeightBased)} ${article.unit}"
+                )
+            )
+        }
+    }
+    val categoryLabel = stringResource(Res.string.products_detail_category)
+    val quantityFieldLabel = if (isWeightBased) {
+        formatString(stringResource(Res.string.cd_quantity_input_unit), article.unit)
+    } else {
+        stringResource(Res.string.cd_quantity_input)
+    }
+    val decreaseLabel = stringResource(Res.string.cd_decrease_quantity)
+    val increaseLabel = stringResource(Res.string.cd_increase_quantity)
+    val chooseAmountReason = stringResource(Res.string.a11y_reason_choose_amount)
+    val noChangesReason = stringResource(Res.string.a11y_reason_no_changes)
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // Product Name
-        Text(
-            text = article.productName,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Price
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        // Name + price collapse into one focus stop reading the whole summary.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) { contentDescription = productSummary }
         ) {
             Text(
-                text = "${article.price.formatPrice()}€ / ${article.unit}",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
+                text = article.productName,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            if (quantity > 0) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Price
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text(
-                    text = "=",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${(article.price * quantity).formatPrice()}€",
+                    text = "${article.price.formatPrice()}€ / ${article.unit}",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.secondary
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
                 )
+
+                if (quantity > 0) {
+                    Text(
+                        text = "=",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${(article.price * quantity).formatPrice()}€",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
             }
         }
 
@@ -305,11 +325,15 @@ private fun ProductDetailsColumn(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = "$categoryLabel: ${article.category}"
+                        },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = stringResource(Res.string.products_detail_category) + ": ",
+                        text = "$categoryLabel: ",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -331,7 +355,8 @@ private fun ProductDetailsColumn(
                 text = stringResource(Res.string.products_detail_description),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -350,7 +375,8 @@ private fun ProductDetailsColumn(
             text = stringResource(Res.string.products_detail_quantity),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { heading() }
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -375,9 +401,15 @@ private fun ProductDetailsColumn(
                             onQuantityChange(newQuantity)
                             onQuantityTextChange(formatQuantityForDisplay(newQuantity, false))
                         },
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier
+                            .size(48.dp)
+                            .semantics { contentDescription = decreaseLabel }
                     ) {
-                        Text("-", style = MaterialTheme.typography.headlineMedium)
+                        Text(
+                            "-",
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier.clearAndSetSemantics { }
+                        )
                     }
                 } else {
                     Spacer(modifier = Modifier.width(48.dp))
@@ -425,7 +457,9 @@ private fun ProductDetailsColumn(
                             ),
                             singleLine = true,
                             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.width(80.dp)
+                            modifier = Modifier
+                                .width(80.dp)
+                                .semantics { contentDescription = quantityFieldLabel }
                         )
 
                         Spacer(modifier = Modifier.width(8.dp))
@@ -433,7 +467,8 @@ private fun ProductDetailsColumn(
                         Text(
                             text = article.unit,
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.clearAndSetSemantics { }
                         )
                     }
                 }
@@ -446,7 +481,9 @@ private fun ProductDetailsColumn(
                             onQuantityChange(newQuantity)
                             onQuantityTextChange(formatQuantityForDisplay(newQuantity, false))
                         },
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier
+                            .size(48.dp)
+                            .semantics { contentDescription = increaseLabel }
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp))
                     }
@@ -466,15 +503,25 @@ private fun ProductDetailsColumn(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Update button
+                val updateLabel = stringResource(Res.string.products_detail_update_cart)
+                val canUpdate = quantity != originalQuantity && quantity > 0
                 Button(
                     onClick = { onAddToCart(article, quantity) },
-                    enabled = quantity != originalQuantity && quantity > 0,
-                    modifier = Modifier.weight(1f),
+                    enabled = canUpdate,
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics {
+                            contentDescription = when {
+                                canUpdate -> updateLabel
+                                quantity <= 0 -> "$updateLabel, $chooseAmountReason"
+                                else -> "$updateLabel, $noChangesReason"
+                            }
+                        },
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(Res.string.products_detail_update_cart))
+                    Text(updateLabel)
                 }
 
                 // Remove button
@@ -493,18 +540,23 @@ private fun ProductDetailsColumn(
             }
         } else {
             // Add to cart button for items not in basket
+            val addLabel = stringResource(Res.string.products_detail_add_to_cart)
             Button(
                 onClick = { onAddToCart(article, quantity) },
                 enabled = quantity > 0,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(56.dp)
+                    .semantics {
+                        contentDescription =
+                            if (quantity > 0) addLabel else "$addLabel, $chooseAmountReason"
+                    },
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = stringResource(Res.string.products_detail_add_to_cart),
+                    text = addLabel,
                     style = MaterialTheme.typography.titleMedium
                 )
             }

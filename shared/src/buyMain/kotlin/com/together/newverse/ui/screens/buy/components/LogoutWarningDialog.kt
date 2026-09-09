@@ -16,6 +16,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import newverse.shared.generated.resources.Res
@@ -55,7 +58,8 @@ fun LogoutWarningDialog(
         title = {
             Text(
                 text = stringResource(Res.string.logout_warning_title),
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {
@@ -108,7 +112,9 @@ private fun BulletItem(text: String) {
         Text(
             text = "•",
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(end = 8.dp)
+            modifier = Modifier
+                .padding(end = 8.dp)
+                .clearAndSetSemantics { }
         )
         Text(
             text = text,

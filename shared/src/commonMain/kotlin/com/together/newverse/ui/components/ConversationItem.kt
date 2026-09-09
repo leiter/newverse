@@ -19,12 +19,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_open_conversation
+import newverse.shared.generated.resources.messaging_unread
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ConversationItem(
@@ -35,12 +42,27 @@ fun ConversationItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val openLabel = stringResource(Res.string.a11y_open_conversation)
+    val unreadPhrase = if (unreadCount > 0) {
+        stringResource(Res.string.messaging_unread, unreadCount)
+    } else null
+    val rowDescription = buildString {
+        append(name)
+        unreadPhrase?.let { append(", "); append(it) }
+        if (lastMessage.isNotBlank()) { append(", "); append(lastMessage) }
+        if (timestamp > 0) {
+            val time = formatConversationTime(timestamp)
+            if (time.isNotEmpty()) { append(", "); append(time) }
+        }
+    }
+
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .clickable(onClickLabel = openLabel, onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .semantics(mergeDescendants = true) { contentDescription = rowDescription },
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Avatar circle
@@ -48,7 +70,8 @@ fun ConversationItem(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clearAndSetSemantics { },
                 contentAlignment = Alignment.Center
             ) {
                 Text(

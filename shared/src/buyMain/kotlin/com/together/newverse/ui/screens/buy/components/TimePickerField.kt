@@ -34,11 +34,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_choose_time
+import newverse.shared.generated.resources.a11y_decrement
+import newverse.shared.generated.resources.a11y_increment
+import newverse.shared.generated.resources.a11y_selected_time
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_ok
+import newverse.shared.generated.resources.pickup_time_dialog_title
+import newverse.shared.generated.resources.pickup_time_hours_hint
+import newverse.shared.generated.resources.pickup_time_unit_hour
+import newverse.shared.generated.resources.pickup_time_unit_minute
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -53,6 +66,7 @@ fun TimePickerField(
     errorMessage: String? = null
 ) {
     var showTimePicker by remember { mutableStateOf(false) }
+    val chooseTimeLabel = stringResource(Res.string.a11y_choose_time)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
@@ -72,7 +86,11 @@ fun TimePickerField(
                     if (enabled) MaterialTheme.colorScheme.surface
                     else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                 )
-                .clickable(enabled = enabled) { showTimePicker = true }
+                .clickable(
+                    enabled = enabled,
+                    onClickLabel = chooseTimeLabel,
+                    role = Role.Button
+                ) { showTimePicker = true }
                 .padding(12.dp)
         ) {
             Row(
@@ -124,7 +142,9 @@ fun TimePickerField(
                 text = errorMessage,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 4.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite }
             )
         }
     }
@@ -164,9 +184,12 @@ private fun TimePickerDialog(
         )
     }
 
+    val previewTime = "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+    val previewDescription = stringResource(Res.string.a11y_selected_time, previewTime)
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Abholzeit wählen") },
+        title = { Text(stringResource(Res.string.pickup_time_dialog_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -183,13 +206,17 @@ private fun TimePickerDialog(
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
-                        text = "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}",
+                        text = previewTime,
                         style = MaterialTheme.typography.displayMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp)
+                            .semantics {
+                                contentDescription = previewDescription
+                                liveRegion = LiveRegionMode.Polite
+                            }
                     )
                 }
 
@@ -205,7 +232,7 @@ private fun TimePickerDialog(
                         onValueChange = { hour = it },
                         minValue = 7,
                         maxValue = 18,
-                        label = "Stunde",
+                        label = stringResource(Res.string.pickup_time_unit_hour),
                         modifier = Modifier.weight(1f)
                     )
 
@@ -218,14 +245,14 @@ private fun TimePickerDialog(
                         minValue = 0,
                         maxValue = 59,
                         step = 5,
-                        label = "Minute",
+                        label = stringResource(Res.string.pickup_time_unit_minute),
                         modifier = Modifier.weight(1f)
                     )
                 }
 
                 // Helper text
                 Text(
-                    text = "Gültig von 7:00 - 18:00 Uhr",
+                    text = stringResource(Res.string.pickup_time_hours_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -262,8 +289,12 @@ private fun TimeUnitPicker(
     label: String,
     modifier: Modifier = Modifier
 ) {
+    val incrementLabel = stringResource(Res.string.a11y_increment, label)
+    val decrementLabel = stringResource(Res.string.a11y_decrement, label)
+
+    // Value + unit name read as one node ("Stunde 14"); the +/- stay separate stops.
     Column(
-        modifier = modifier,
+        modifier = modifier.semantics(mergeDescendants = true) { },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -273,7 +304,9 @@ private fun TimeUnitPicker(
                 val newValue = value + step
                 if (newValue <= maxValue) onValueChange(newValue)
             },
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier
+                .size(40.dp)
+                .semantics { contentDescription = incrementLabel },
             contentPadding = PaddingValues(0.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -312,7 +345,9 @@ private fun TimeUnitPicker(
                 val newValue = value - step
                 if (newValue >= minValue) onValueChange(newValue)
             },
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier
+                .size(40.dp)
+                .semantics { contentDescription = decrementLabel },
             contentPadding = PaddingValues(0.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer

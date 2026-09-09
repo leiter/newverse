@@ -1,6 +1,5 @@
 package com.together.newverse.ui.screens.buy
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +21,6 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,25 +34,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.SubcomposeAsyncImage
 import com.together.newverse.domain.model.Article
+import com.together.newverse.ui.a11y.productCardSemantics
+import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.adaptive.AdaptiveDefaults
+import com.together.newverse.ui.components.ProductImage
 import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyMainScreenAction
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_state_favourite_off
+import newverse.shared.generated.resources.a11y_state_favourite_on
+import newverse.shared.generated.resources.cd_favourite_toggle
 import newverse.shared.generated.resources.favorites_discover_empty
 import newverse.shared.generated.resources.favorites_empty
 import newverse.shared.generated.resources.favorites_tab_discover
 import newverse.shared.generated.resources.favorites_tab_favorites
-import newverse.shared.generated.resources.place_holder_landscape
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -194,6 +195,11 @@ private fun FavoriteProductCard(
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val infoDescription = "${article.productName}, ${productPriceLabel(article.price, article.unit)}"
+    val favouriteState = stringResource(
+        if (isFavorite) Res.string.a11y_state_favourite_on else Res.string.a11y_state_favourite_off
+    )
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -207,35 +213,21 @@ private fun FavoriteProductCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Product Image
-            SubcomposeAsyncImage(
-                model = article.imageUrl,
-                contentDescription = article.productName,
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop,
-                loading = {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    }
-                },
-                error = {
-                    Image(
-                        painter = painterResource(Res.drawable.place_holder_landscape),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop
-                    )
-                }
+            // Product Image (decorative — the name below carries the meaning)
+            ProductImage(
+                url = article.imageUrl,
+                modifier = Modifier.size(64.dp),
+                shape = RoundedCornerShape(12.dp),
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Product Info
-            Column(modifier = Modifier.weight(1f)) {
+            // Product Info — merged into one screen-reader node
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .productCardSemantics(infoDescription)
+            ) {
                 Text(
                     text = article.productName,
                     style = MaterialTheme.typography.bodyLarge,
@@ -250,14 +242,16 @@ private fun FavoriteProductCard(
                 )
             }
 
-            // Toggle Button
+            // Toggle Button — stable label, on/off conveyed via state
             IconButton(
                 onClick = onToggleFavorite,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics { stateDescription = favouriteState }
             ) {
                 Icon(
                     imageVector = if (isFavorite) Icons.Default.Remove else Icons.Default.Add,
-                    contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                    contentDescription = stringResource(Res.string.cd_favourite_toggle),
                     tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )
             }

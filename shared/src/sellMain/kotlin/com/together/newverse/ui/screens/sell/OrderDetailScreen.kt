@@ -10,10 +10,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.util.formatPrice
+import com.together.newverse.util.formatString
+import org.jetbrains.compose.resources.StringResource
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -80,7 +88,8 @@ fun OrderDetailScreen(
                     Text(
                         text = stringResource(Res.string.order_not_found),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                     )
                     Button(onClick = onNavigateBack) {
                         Text(stringResource(Res.string.back))
@@ -168,7 +177,7 @@ private fun OrderDetailContent(order: Order) {
                 )
                 OrderDetailRow(
                     label = stringResource(Res.string.order_status),
-                    value = order.status.name
+                    value = stringResource(order.status.labelRes())
                 )
                 if (order.message.isNotEmpty()) {
                     OrderDetailRow(
@@ -185,7 +194,8 @@ private fun OrderDetailContent(order: Order) {
                 text = stringResource(Res.string.ordered_products),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics { heading() }
             )
         }
 
@@ -216,7 +226,8 @@ private fun OrderDetailSection(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics { heading() }
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             content()
@@ -227,7 +238,9 @@ private fun OrderDetailSection(
 @Composable
 private fun OrderDetailRow(label: String, value: String) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { contentDescription = "$label: $value" },
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
@@ -250,8 +263,22 @@ private fun OrderDetailRow(label: String, value: String) {
  */
 @Composable
 private fun OrderedProductDetailCard(product: com.together.newverse.domain.model.OrderedProduct) {
+    // One node: "Tomaten, 3 kg, Gesamt 7,50 €, 2,50 € pro kg" instead of four
+    // stops with "€ slash kg" read literally.
+    val perUnitLabel = formatString(
+        stringResource(Res.string.a11y_price_per),
+        "${product.getFormattedPricePerUnit()} €",
+        product.unit
+    )
+    val totalWord = stringResource(Res.string.label_total)
+    val cardDescription =
+        "${product.productName}, ${product.getFormattedAmount()}, " +
+            "$totalWord ${product.getFormattedTotalPrice()} €, $perUnitLabel"
+
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { contentDescription = cardDescription }
     ) {
         Row(
             modifier = Modifier
@@ -302,9 +329,15 @@ private fun OrderedProductDetailCard(product: com.together.newverse.domain.model
 @Composable
 private fun OrderTotalCard(order: Order) {
     val totalAmount = order.articles.sumOf { it.getTotalPrice() }
+    val totalLabel = stringResource(Res.string.total_amount)
+    val totalValue = "${totalAmount.formatPrice()}€"
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$totalLabel: $totalValue"
+            },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
@@ -341,7 +374,10 @@ private fun DeleteOrderConfirmationDialog(
     AlertDialog(
         onDismissRequest = { if (!isDeleting) onDismiss() },
         title = {
-            Text(stringResource(Res.string.delete_order_title))
+            Text(
+                stringResource(Res.string.delete_order_title),
+                modifier = Modifier.semantics { heading() }
+            )
         },
         text = {
             Text(
@@ -379,4 +415,14 @@ private fun DeleteOrderConfirmationDialog(
             }
         }
     )
+}
+
+/** Localized label for an [OrderStatus] (the raw enum name was shown before). */
+private fun OrderStatus.labelRes(): StringResource = when (this) {
+    OrderStatus.DRAFT -> Res.string.order_status_draft
+    OrderStatus.PLACED -> Res.string.order_status_placed
+    OrderStatus.LOCKED -> Res.string.order_status_locked
+    OrderStatus.COMPLETED -> Res.string.order_status_completed
+    OrderStatus.CANCELLED -> Res.string.order_status_cancelled
+    OrderStatus.DEMO_ORDER -> Res.string.order_status_demo
 }

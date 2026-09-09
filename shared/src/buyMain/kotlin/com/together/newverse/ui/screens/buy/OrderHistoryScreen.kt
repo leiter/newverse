@@ -37,6 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Order
@@ -68,7 +73,6 @@ fun OrderHistoryScreen(
 ) {
     // Load order history when screen opens
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        println("📋 OrderHistoryScreen: Triggering loadOrderHistory")
         onAction(BuyProfileAction.LoadOrderHistory)
     }
 
@@ -133,7 +137,8 @@ fun OrderHistoryScreen(
                         Text(
                             text = message,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                         )
                         if (retryable) {
                             Button(onClick = onRetry) {
@@ -155,7 +160,9 @@ fun OrderHistoryScreen(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.padding(32.dp)
+                        modifier = Modifier
+                            .padding(32.dp)
+                            .semantics(mergeDescendants = true) { heading() }
                     ) {
                         Surface(
                             shape = CircleShape,
@@ -198,7 +205,9 @@ fun OrderHistoryScreen(
                             text = if (sortedOrders.size == 1) stringResource(Res.string.order_history_count_single) else formatString(stringResource(Res.string.order_history_count_plural), sortedOrders.size),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier
+                                .padding(bottom = 8.dp)
+                                .semantics { heading() }
                         )
                     }
 
@@ -227,10 +236,42 @@ private fun OrderHistoryCard(
     val isUpcoming = daysUntilPickup >= 0
     val canEdit = daysUntilPickup > 3
 
+    val orderIdText = formatString(stringResource(Res.string.format_order_id), order.id.takeLast(8))
+    val createdText = formatString(stringResource(Res.string.order_history_created_date), createdDate)
+    val pickupText = formatString(stringResource(Res.string.order_history_pickup_date), pickupDate)
+    val daysText = when {
+        daysUntilPickup <= 0 -> null
+        daysUntilPickup == 1L -> stringResource(Res.string.order_history_in_day)
+        else -> formatString(stringResource(Res.string.order_history_in_days), daysUntilPickup)
+    }
+    val itemCountText = formatString(stringResource(Res.string.format_item_count), itemCount)
+    val totalLabel = stringResource(Res.string.label_total_plain)
+    val priceText = "${totalPrice.formatPrice()} €"
+    val statusText = when {
+        daysUntilPickup < 0 -> stringResource(Res.string.order_status_picked_up)
+        daysUntilPickup == 0L -> stringResource(Res.string.basket_today)
+        daysUntilPickup == 1L -> stringResource(Res.string.basket_tomorrow)
+        daysUntilPickup <= 3 -> stringResource(Res.string.order_status_soon)
+        else -> if (canEdit) stringResource(Res.string.order_status_editable) else stringResource(Res.string.order_status_scheduled)
+    }
+
+    // One deliberate node for the whole card instead of ~8 text fragments.
+    val cardDescription = buildString {
+        append(orderIdText)
+        append(", "); append(statusText)
+        append(", "); append(pickupText)
+        daysText?.let { append(", "); append(it) }
+        append(", "); append(itemCountText)
+        append(", "); append(totalLabel); append(" "); append(priceText)
+        append(", "); append(createdText)
+    }
+    val openLabel = stringResource(Res.string.a11y_open_order_details)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClickLabel = openLabel, onClick = onClick)
+            .semantics { contentDescription = cardDescription },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isUpcoming) {
@@ -254,13 +295,13 @@ private fun OrderHistoryCard(
             ) {
                 Column {
                     Text(
-                        text = formatString(stringResource(Res.string.format_order_id), order.id.takeLast(8)),
+                        text = orderIdText,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = formatString(stringResource(Res.string.order_history_created_date), createdDate),
+                        text = createdText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -277,13 +318,7 @@ private fun OrderHistoryCard(
                     }
                 ) {
                     Text(
-                        text = when {
-                            daysUntilPickup < 0 -> stringResource(Res.string.order_status_picked_up)
-                            daysUntilPickup == 0L -> stringResource(Res.string.basket_today)
-                            daysUntilPickup == 1L -> stringResource(Res.string.basket_tomorrow)
-                            daysUntilPickup <= 3 -> stringResource(Res.string.order_status_soon)
-                            else -> if (canEdit) stringResource(Res.string.order_status_editable) else stringResource(Res.string.order_status_scheduled)
-                        },
+                        text = statusText,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
                         color = when {
@@ -311,14 +346,14 @@ private fun OrderHistoryCard(
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = formatString(stringResource(Res.string.order_history_pickup_date), pickupDate),
+                    text = pickupText,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                if (daysUntilPickup > 0) {
+                daysText?.let {
                     Text(
-                        text = if (daysUntilPickup == 1L) stringResource(Res.string.order_history_in_day) else formatString(stringResource(Res.string.order_history_in_days), daysUntilPickup),
+                        text = it,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -335,7 +370,7 @@ private fun OrderHistoryCard(
             ) {
                 Column {
                     Text(
-                        text = formatString(stringResource(Res.string.format_item_count), itemCount),
+                        text = itemCountText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -343,12 +378,12 @@ private fun OrderHistoryCard(
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = stringResource(Res.string.label_total_plain),
+                        text = totalLabel,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${totalPrice.formatPrice()} €",
+                        text = priceText,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -367,7 +402,12 @@ private fun OrderHistoryMergeDialog(
 ) {
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text(stringResource(Res.string.order_history_merge_title)) },
+        title = {
+            Text(
+                text = stringResource(Res.string.order_history_merge_title),
+                modifier = Modifier.semantics { heading() }
+            )
+        },
         text = { Text(stringResource(Res.string.order_history_merge_message)) },
         confirmButton = {
             Button(onClick = onMerge) {

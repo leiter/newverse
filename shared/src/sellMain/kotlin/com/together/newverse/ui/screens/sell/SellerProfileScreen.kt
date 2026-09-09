@@ -17,6 +17,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -86,7 +93,8 @@ fun SellerProfileScreen(
                     Text(
                         text = profileState.message,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = onRetry) {
@@ -106,12 +114,15 @@ fun SellerProfileScreen(
                     Text(
                         text = stringResource(Res.string.seller_profile_title),
                         style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics { heading() }
                     )
 
-                    // Profile info card
+                    // Profile info card — merge name, phone and address into one stop.
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics(mergeDescendants = true) {},
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer
                         )
@@ -144,7 +155,8 @@ fun SellerProfileScreen(
 
                     Text(
                         text = stringResource(Res.string.seller_profile_stats_title),
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() }
                     )
 
                     Row(
@@ -157,13 +169,17 @@ fun SellerProfileScreen(
 
                     Text(
                         text = stringResource(Res.string.seller_profile_settings_title),
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() }
                     )
 
                     // Edit Profile - Markets Section
+                    val addMarketLabel = stringResource(Res.string.seller_profile_add_market)
                     OutlinedCard(
                         onClick = { onShowMarketDialog(null) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { onClick(label = addMarketLabel, action = null) }
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -180,7 +196,7 @@ fun SellerProfileScreen(
                                 )
                                 Icon(
                                     imageVector = Icons.Default.Add,
-                                    contentDescription = stringResource(Res.string.seller_profile_add_market),
+                                    contentDescription = null, // card's click action is already labelled "add market"
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -248,7 +264,8 @@ fun SellerProfileScreen(
                             ) {
                                 Text(
                                     text = stringResource(Res.string.customer_management_title),
-                                    style = MaterialTheme.typography.titleMedium
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.semantics { heading() }
                                 )
 
                                 customerState.knownClientIds.forEach { buyerId ->
@@ -375,7 +392,14 @@ private fun MarketListItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            val marketDescription = "${market.name}, " +
+                "${market.dayOfWeek}, ${market.begin} - ${market.end}, " +
+                "${market.street} ${market.houseNumber}, ${market.zipCode} ${market.city}"
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics(mergeDescendants = true) { contentDescription = marketDescription }
+            ) {
                 Text(
                     text = market.name,
                     style = MaterialTheme.typography.titleSmall
@@ -395,14 +419,14 @@ private fun MarketListItem(
                 IconButton(onClick = onEdit) {
                     Icon(
                         imageVector = Icons.Default.Edit,
-                        contentDescription = stringResource(Res.string.market_edit),
+                        contentDescription = "${stringResource(Res.string.market_edit)}: ${market.name}",
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(Res.string.market_delete),
+                        contentDescription = "${stringResource(Res.string.market_delete)}: ${market.name}",
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -436,18 +460,26 @@ private fun CustomerListItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            val customerName = displayName.ifBlank { buyerId.take(16) + "\u2026" }
+            val customerStatus = if (isBlocked) {
+                stringResource(Res.string.customer_management_blocked)
+            } else {
+                stringResource(Res.string.customer_management_active)
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "$customerName, $customerStatus"
+                    }
+            ) {
                 Text(
-                    text = displayName.ifBlank { buyerId.take(16) + "\u2026" },
+                    text = customerName,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1
                 )
                 Text(
-                    text = if (isBlocked) {
-                        stringResource(Res.string.customer_management_blocked)
-                    } else {
-                        stringResource(Res.string.customer_management_active)
-                    },
+                    text = customerStatus,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (isBlocked) {
                         MaterialTheme.colorScheme.error
@@ -491,7 +523,8 @@ private fun InvitationCard(
         ) {
             Text(
                 text = stringResource(Res.string.seller_connection_share_qr),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
             )
 
             // Expiry selection
@@ -598,7 +631,8 @@ private fun InvitationCard(
             // Send invitation to specific buyer
             Text(
                 text = stringResource(Res.string.invitation_send_to_buyer),
-                style = MaterialTheme.typography.titleSmall
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() }
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -852,7 +886,9 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier
+                .padding(16.dp)
+                .semantics(mergeDescendants = true) { contentDescription = "$label: $value" }
         ) {
             Text(
                 text = value,
@@ -912,7 +948,8 @@ private fun GenerateBuyerLinkCard(
         ) {
             Text(
                 text = stringResource(Res.string.buyer_link_card_title),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
             )
             Text(
                 text = stringResource(Res.string.buyer_link_card_description),
@@ -995,7 +1032,8 @@ private fun AccessRequestsCard(
         ) {
             Text(
                 text = stringResource(Res.string.access_requests_title, requests.size),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
             )
             if (requests.isEmpty()) {
                 Text(
@@ -1005,16 +1043,27 @@ private fun AccessRequestsCard(
                 )
             } else {
                 requests.forEach { request ->
+                    val requesterName = request.buyerDisplayName.ifEmpty { stringResource(Res.string.access_requests_anonymous) }
+                    val requestedAgo = if (request.requestedAt > 0) formatRelativeTime(request.requestedAt) else null
                     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .padding(12.dp)
+                                // Merge name + "requested X ago"; the raw UUID stays visible
+                                // but is read out separately only on demand.
+                                .semantics(mergeDescendants = true) {
+                                    contentDescription = listOfNotNull(requesterName, requestedAgo).joinToString(", ")
+                                }
+                        ) {
                             Text(
-                                text = request.buyerDisplayName.ifEmpty { stringResource(Res.string.access_requests_anonymous) },
+                                text = requesterName,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
                                 text = request.buyerUUID,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.clearAndSetSemantics { }
                             )
                             if (request.requestedAt > 0) {
                                 Text(
@@ -1096,7 +1145,8 @@ private fun BuyerListCard(
         ) {
             Text(
                 text = "$title (${buyers.size})",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
             )
             if (buyers.isEmpty()) {
                 Text(
@@ -1131,11 +1181,12 @@ private fun BuyerListItem(
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val statusLabel = when (entry.status) {
-        AccessStatus.APPROVED -> "Approved"
-        AccessStatus.BLOCKED -> "Blocked"
-        AccessStatus.PENDING -> "Pending"
-        AccessStatus.NONE -> "None"
+        AccessStatus.APPROVED -> stringResource(Res.string.buyer_status_approved)
+        AccessStatus.BLOCKED -> stringResource(Res.string.buyer_status_blocked)
+        AccessStatus.PENDING -> stringResource(Res.string.buyer_status_pending)
+        AccessStatus.NONE -> stringResource(Res.string.buyer_status_none)
     }
+    val buyerName = entry.displayName.ifBlank { entry.id.take(16) + "\u2026" }
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -1144,9 +1195,15 @@ private fun BuyerListItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "$buyerName, $statusLabel"
+                    }
+            ) {
                 Text(
-                    text = entry.displayName.ifBlank { entry.id.take(16) + "\u2026" },
+                    text = buyerName,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1
                 )

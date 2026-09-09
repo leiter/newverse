@@ -28,6 +28,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.BuyerContact
@@ -65,7 +69,7 @@ fun BuyerContactsScreen(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Sign in to manage contacts",
+                        text = stringResource(Res.string.contacts_sign_in_required),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -86,7 +90,11 @@ fun BuyerContactsScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(
+                            state.message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                        )
                     }
                 }
                 is AsyncState.Success -> {
@@ -141,34 +149,41 @@ private fun ContactRow(
     onRemove: () -> Unit,
     onBlock: () -> Unit
 ) {
+    val name = contact.displayName.ifEmpty { contact.userId.take(8) }
+    val messageLabel = stringResource(Res.string.a11y_message_to, name)
+    val removeLabel = stringResource(Res.string.a11y_remove_item, name)
     Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onMessage)
+                .clickable(onClickLabel = messageLabel, onClick = onMessage)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = contact.displayName.ifEmpty { contact.userId.take(8) },
+                text = name,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
 
             Row {
-                IconButton(onClick = onMessage) {
+                // Redundant with the row's own tap target; hidden from the a11y tree.
+                IconButton(
+                    onClick = onMessage,
+                    modifier = Modifier.clearAndSetSemantics { }
+                ) {
                     Icon(
                         Icons.AutoMirrored.Filled.Message,
-                        contentDescription = stringResource(Res.string.cd_message),
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 IconButton(onClick = onRemove) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = stringResource(Res.string.button_remove),
+                        contentDescription = removeLabel,
                         tint = MaterialTheme.colorScheme.error
                     )
                 }

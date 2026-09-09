@@ -28,6 +28,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -74,7 +77,8 @@ fun AddBuyerContactScreen(
                     Text(
                         text = stringResource(Res.string.contacts_your_id),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.semantics { heading() }
                     )
 
                     Spacer(Modifier.height(8.dp))
@@ -89,11 +93,13 @@ fun AddBuyerContactScreen(
 
                     Spacer(Modifier.height(8.dp))
 
+                    val contactIdLabel = stringResource(Res.string.a11y_contact_id, myUserId)
                     Text(
                         text = myUserId,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.semantics { contentDescription = contactIdLabel }
                     )
 
                     Spacer(Modifier.height(8.dp))
@@ -123,7 +129,8 @@ fun AddBuyerContactScreen(
                     Text(
                         text = stringResource(Res.string.contacts_enter_id),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.semantics { heading() }
                     )
 
                     OutlinedTextField(

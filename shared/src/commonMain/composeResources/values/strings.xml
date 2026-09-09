@@ -54,6 +54,8 @@
     <string name="button_edit">Bearbeiten</string>
     <string name="button_ok">OK</string>
     <string name="button_delete">Löschen</string>
+    <string name="button_add_to_basket">In den Korb</string>
+    <string name="button_apply_changes">Ändern</string>
 
     <!-- ========================================= -->
     <!-- COMMON LABELS -->
@@ -131,6 +133,11 @@
     <string name="login_no_account">Noch kein Konto? </string>
     <string name="login_sign_up_link">Registrieren</string>
     <string name="login_success">Anmeldung erfolgreich! Weiterleitung...</string>
+    <!-- Seller forced-login screen -->
+    <string name="seller_login_title">Verkäufer Login</string>
+    <string name="seller_login_subtitle">Melde dich an, um deine Produkte und Bestellungen zu verwalten</string>
+    <string name="seller_login_secure">🔒 Sicherer Login</string>
+    <string name="seller_login_account_required">Als Verkäufer benötigst du ein Konto</string>
 
     <!-- Login/Logout Snackbar Messages -->
     <string name="snackbar_login_success">Anmeldung erfolgreich</string>
@@ -207,6 +214,12 @@
     <string name="products_detail_description">Beschreibung</string>
     <string name="products_detail_quantity">Menge</string>
     <string name="products_detail_not_found">Produkt nicht gefunden</string>
+    <!-- Main screen product grid section header -->
+    <string name="main_section_fresh_title">Frisch vom Feld</string>
+    <string name="main_section_fresh_subtitle">Heute geerntet</string>
+    <!-- Shown when the user tries to edit an order past its deadline -->
+    <string name="main_order_locked_snackbar">Bestellung kann nicht mehr geändert werden</string>
+    <string name="main_start_new_order">Neue Bestellung</string>
 
     <!-- ========================================= -->
     <!-- BASKET SCREEN (BUY MODULE) -->
@@ -293,6 +306,7 @@
 
     <!-- Personal Information Section -->
     <string name="section_personal_info">Persönliche Daten</string>
+    <string name="profile_address_optional_self_pickup">Adressangabe optional für Selbstabholer</string>
 
     <!-- Delivery Preferences Section -->
     <string name="section_delivery_preferences">Gemüsedate</string>
@@ -303,6 +317,10 @@
     <string name="pickup_time_empty">Bitte geben Sie eine Abholzeit an</string>
     <string name="pickup_time_invalid_format">Ungültiges Format. Verwenden Sie HH:mm (z.B. 14:30)</string>
     <string name="pickup_time_outside_hours">Abholzeit muss zwischen 7:00 und 18:00 liegen</string>
+    <string name="pickup_time_dialog_title">Abholzeit wählen</string>
+    <string name="pickup_time_hours_hint">Gültig von 7:00 – 18:00 Uhr</string>
+    <string name="pickup_time_unit_hour">Stunde</string>
+    <string name="pickup_time_unit_minute">Minute</string>
     <string name="default_market">Ökomarkt im Hansaviertel</string>
 
     <!-- Notification Settings Section -->
@@ -311,6 +329,24 @@
     <string name="notification_push_desc">Push-Benachrichtigungen erhalten</string>
     <string name="notification_newsletter">Newsletter</string>
     <string name="notification_newsletter_desc">Wöchentliche Angebote</string>
+
+    <!-- Seller notifications screen -->
+    <string name="seller_notif_section_orders">Bestellungen</string>
+    <string name="seller_notif_section_stock">Lagerbestand</string>
+    <string name="seller_notif_section_marketing">Marketing</string>
+    <string name="seller_notif_section_delivery">Zustellungsmethoden</string>
+    <string name="seller_notif_new_orders">Neue Bestellungen</string>
+    <string name="seller_notif_new_orders_desc">Benachrichtigung bei neuen Kundenbestellungen</string>
+    <string name="seller_notif_order_updates">Bestellungs-Updates</string>
+    <string name="seller_notif_order_updates_desc">Benachrichtigung bei Änderungen an Bestellungen</string>
+    <string name="seller_notif_low_stock">Niedriger Lagerbestand</string>
+    <string name="seller_notif_low_stock_desc">Benachrichtigung wenn Produkte zur Neige gehen</string>
+    <string name="seller_notif_marketing">Marketing-Nachrichten</string>
+    <string name="seller_notif_marketing_desc">Tipps und Neuigkeiten für Verkäufer</string>
+    <string name="seller_notif_email">E-Mail-Benachrichtigungen</string>
+    <string name="seller_notif_email_desc">Benachrichtigungen per E-Mail erhalten</string>
+    <string name="seller_notif_push">Push-Benachrichtigungen</string>
+    <string name="seller_notif_push_desc">Benachrichtigungen auf diesem Gerät</string>
 
     <!-- Membership -->
     <string name="membership_regular">Stammkunde</string>
@@ -321,6 +357,8 @@
     <string name="action_orders">Bestellungen</string>
     <string name="action_favorites">Favoriten</string>
     <string name="action_payment">Zahlung</string>
+    <string name="action_email">E-Mail</string>
+    <string name="action_call">Anrufen</string>
     <string name="action_help">Über</string>
     <string name="payment_cash_only_info">Derzeit wird nur Barzahlung unterstützt. Die Bezahlung erfolgt bei der Abholung.</string>
 
@@ -339,6 +377,7 @@
     <string name="account_status_guest">Angemeldet als Gast</string>
     <string name="account_status_guest_warning">Daten werden nicht dauerhaft gespeichert</string>
     <string name="account_status_authenticated">Angemeldet mit %s</string>
+    <string name="account_status_signed_in">Angemeldet</string>
 
     <!-- Auth Provider Labels -->
     <string name="auth_provider_anonymous">Gast</string>
@@ -649,12 +688,17 @@
     <string name="customer_management_unblock">Freigeben</string>
     <string name="customer_management_blocked">Blockiert</string>
     <string name="customer_management_active">Aktiv</string>
+    <string name="buyer_status_approved">Genehmigt</string>
+    <string name="buyer_status_blocked">Gesperrt</string>
+    <string name="buyer_status_pending">Ausstehend</string>
+    <string name="buyer_status_none">Kein Zugriff</string>
 
     <!-- ========================================= -->
     <!-- MESSAGING -->
     <!-- ========================================= -->
     <string name="nav_messages">Nachrichten</string>
     <string name="messaging_empty">Noch keine Nachrichten</string>
+    <string name="messaging_conversation_title">Unterhaltung</string>
     <string name="messaging_input_hint">Nachricht schreiben...</string>
     <string name="messaging_send">Senden</string>
     <string name="messaging_today">Heute</string>
@@ -666,6 +710,7 @@
     <!-- Contacts -->
     <string name="contacts_title">Kontakte</string>
     <string name="contacts_empty">Noch keine Kontakte</string>
+    <string name="contacts_sign_in_required">Melde dich an, um Kontakte zu verwalten</string>
     <string name="contacts_add">Kontakt hinzufuegen</string>
     <string name="contacts_your_id">Deine Kontakt-ID</string>
     <string name="contacts_enter_id">Kontakt-ID eingeben</string>
@@ -764,6 +809,13 @@
     <string name="order_status_soon">Bald</string>
     <string name="order_status_editable">Bearbeitbar</string>
     <string name="order_status_scheduled">Geplant</string>
+    <string name="order_status_cancelled">Storniert</string>
+    <!-- OrderStatus lifecycle labels (seller order detail) -->
+    <string name="order_status_draft">Entwurf</string>
+    <string name="order_status_placed">Bestellt</string>
+    <string name="order_status_locked">Gesperrt</string>
+    <string name="order_status_completed">Abgeschlossen</string>
+    <string name="order_status_demo">Demo-Bestellung</string>
     <string name="order_history_merge_title">Konflikt</string>
     <string name="order_history_merge_message">Sie haben einen nicht leeren Warenkorb. Möchten Sie den Inhalt zusammenführen oder den aktuellen Warenkorb verwerfen und die alte Bestellung laden?</string>
     <string name="label_total_plain">Gesamt</string>
@@ -811,6 +863,67 @@
     <string name="cd_clear_quantity">Menge löschen</string>
     <string name="cd_add">Hinzufügen</string>
     <string name="cd_message">Nachricht</string>
+    <!-- Spoken price phrase: %1$s = amount incl. currency, %2$s = unit -->
+    <string name="a11y_price_per">%s pro %s</string>
+    <string name="cd_favourite_toggle">Favorit</string>
+    <string name="cd_product_search">Produkte durchsuchen</string>
+    <!-- Screen-reader description for the basket tab's item-count badge -->
+    <string name="a11y_basket_item_count">%d Artikel</string>
+    <!-- Screen-reader descriptions for the seller nav/top-bar count badges -->
+    <string name="a11y_pending_orders_badge">%d offene Bestellungen</string>
+    <string name="a11y_access_requests_badge">%d Zugangsanfragen</string>
+    <!-- Screen-reader label for the seller product-list filter dropdown button -->
+    <string name="a11y_product_filter">Filter: %1$s</string>
+    <string name="a11y_state_favourite_on">markiert</string>
+    <string name="a11y_state_favourite_off">nicht markiert</string>
+    <!-- Spoken state for a single-select filter chip -->
+    <string name="a11y_state_selected">Ausgewählt</string>
+    <string name="a11y_state_unselected">Nicht ausgewählt</string>
+    <!-- HeroProductCard quantity controls -->
+    <string name="cd_quantity_input">Menge</string>
+    <string name="cd_quantity_input_unit">Menge in %s</string>
+    <string name="cd_increase_quantity">Menge erhöhen</string>
+    <string name="cd_decrease_quantity">Menge verringern</string>
+    <string name="cd_open_product_details">Produktdetails öffnen</string>
+    <string name="a11y_open_order_details">Bestelldetails öffnen</string>
+    <!-- HeroProductCard summary: %s = total price / formatted amount -->
+    <string name="a11y_hero_total">Gesamt %s €</string>
+    <string name="a11y_hero_amount">Menge %s</string>
+    <!-- Appended to a disabled button's label to say why it is unavailable -->
+    <string name="a11y_reason_choose_amount">zuerst Menge wählen</string>
+    <string name="a11y_reason_no_changes">keine Änderungen</string>
+    <!-- Expand/collapse state for a disclosure control -->
+    <string name="a11y_state_expanded">erweitert</string>
+    <string name="a11y_state_collapsed">reduziert</string>
+    <string name="a11y_toggle_address">Adresse ein- oder ausblenden</string>
+    <!-- Frames the demo/production mode indicator: %s = mode name -->
+    <string name="a11y_current_mode">Modus: %s</string>
+    <string name="a11y_choose_time">Uhrzeit wählen</string>
+    <!-- Invitation action buttons name the seller they act on: %1$s = seller -->
+    <string name="a11y_invitation_accept_from">Einladung von %1$s annehmen</string>
+    <string name="a11y_invitation_reject_from">Einladung von %1$s ablehnen</string>
+    <!-- Access status card -->
+    <string name="a11y_access_id">Zugangs-ID: %1$s</string>
+    <string name="a11y_sending">wird gesendet</string>
+    <!-- Spoken progress while an account dialog action is running -->
+    <string name="a11y_deleting_account">Konto wird gelöscht</string>
+    <string name="a11y_linking_account">Konto wird verknüpft</string>
+    <!-- Spoken progress on the sign-in / sign-up buttons -->
+    <string name="a11y_signing_in">Anmeldung läuft</string>
+    <string name="a11y_creating_account">Konto wird erstellt</string>
+    <!-- Time picker: %1$s = the time (selected_time) or the unit name (increment/decrement) -->
+    <string name="a11y_selected_time">Gewählte Zeit: %1$s</string>
+    <string name="a11y_increment">%1$s erhöhen</string>
+    <string name="a11y_decrement">%1$s verringern</string>
+    <string name="a11y_contact_options">Kontaktoptionen</string>
+    <!-- Remove button in the basket list names its line item: %1$s = product -->
+    <string name="a11y_remove_item">%1$s entfernen</string>
+    <!-- Messaging: spoken labels for the conversation list and message bubbles -->
+    <string name="a11y_open_conversation">Unterhaltung öffnen</string>
+    <string name="a11y_message_you">Du</string>
+    <string name="a11y_message_to">Nachricht an %1$s</string>
+    <!-- Add-contact screen: frames the raw contact id, %1$s = id -->
+    <string name="a11y_contact_id">Kontakt-ID: %1$s</string>
 
     <!-- ========================================= -->
     <!-- DEMO MODE INDICATORS -->

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -35,6 +36,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
@@ -45,6 +56,7 @@ import com.together.newverse.ui.state.MergeConflict
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
+import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.adaptive.LocalWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.util.OrderDateUtils
@@ -423,14 +435,27 @@ private fun BasketTwoPane(
     onAction: (BuyBasketScreenAction) -> Unit,
     onNavigateToOrders: () -> Unit
 ) {
+    // Without an explicit traversal order a screen reader walks the two panes by
+    // geometry and interleaves the item rows on the left with the summary rows on
+    // the right. Group each pane and order the groups so the whole item list is
+    // read first, then the pickup date / total / checkout column.
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .semantics { isTraversalGroup = true },
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // LEFT: status messages + items list
-        Column(modifier = Modifier.weight(0.58f).fillMaxHeight()) {
+        Column(
+            modifier = Modifier
+                .weight(0.58f)
+                .fillMaxHeight()
+                .semantics {
+                    isTraversalGroup = true
+                    traversalIndex = 0f
+                }
+        ) {
             BasketStatusMessages(state)
             if (state.items.isEmpty()) {
                 BasketEmptyCard(onNavigateToOrders = onNavigateToOrders)
@@ -461,7 +486,11 @@ private fun BasketTwoPane(
             modifier = Modifier
                 .weight(0.42f)
                 .fillMaxHeight()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .semantics {
+                    isTraversalGroup = true
+                    traversalIndex = 1f
+                },
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (state.orderId != null && state.pickupDate != null && state.createdDate != null) {
@@ -528,7 +557,9 @@ private fun BasketStatusMessages(state: BasketScreenState) {
                 text = message,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier
+                    .padding(16.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite }
             )
         }
     }
@@ -547,7 +578,13 @@ private fun BasketStatusMessages(state: BasketScreenState) {
                     text = "✗ $error",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier
+                        .padding(16.dp)
+                        // Announce the error, without the "✗" glyph
+                        .semantics {
+                            contentDescription = error
+                            liveRegion = LiveRegionMode.Polite
+                        }
                 )
             }
         }
@@ -566,19 +603,25 @@ private fun BasketEmptyCard(onNavigateToOrders: () -> Unit) {
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = stringResource(Res.string.basket_empty_title),
-                modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(Res.string.basket_empty_description),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            // Empty-state title + explanation read as one heading
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.semantics(mergeDescendants = true) { heading() }
+            ) {
+                Text(
+                    text = stringResource(Res.string.basket_empty_title),
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(Res.string.basket_empty_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedButton(onClick = onNavigateToOrders) {
                 Text(stringResource(Res.string.action_orders))
@@ -589,6 +632,8 @@ private fun BasketEmptyCard(onNavigateToOrders: () -> Unit) {
 
 @Composable
 private fun BasketTotalCard(total: Double) {
+    val totalDescription =
+        "${stringResource(Res.string.label_total)}: ${total.formatPrice()} €"
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -598,7 +643,11 @@ private fun BasketTotalCard(total: Double) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(16.dp)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = totalDescription
+                    liveRegion = LiveRegionMode.Polite
+                },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -626,6 +675,16 @@ private fun BasketItemCard(
     onRemove: () -> Unit = {},
 //    onQuantityChange: (Double) -> Unit = {}
 ) {
+    // The whole line item reads as one node instead of four cryptic fragments
+    // ("Tomaten", "2,50 €/kg", "× 3,00", "7,50 €").
+    val itemDescription = listOf(
+        productName,
+        productPriceLabel(price, unit),
+        formatString(stringResource(Res.string.a11y_hero_amount), "${quantity.formatPrice()} $unit"),
+        formatString(stringResource(Res.string.a11y_hero_total), (price * quantity).formatPrice())
+    ).joinToString(", ")
+    val removeLabel = formatString(stringResource(Res.string.a11y_remove_item), productName)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -638,7 +697,9 @@ private fun BasketItemCard(
                 .padding(16.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { contentDescription = itemDescription },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -674,7 +735,10 @@ private fun BasketItemCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onRemove) {
+                    TextButton(
+                        onClick = onRemove,
+                        modifier = Modifier.semantics { contentDescription = removeLabel }
+                    ) {
                         Text(stringResource(Res.string.button_remove))
                     }
                 }
@@ -730,7 +794,8 @@ internal fun OrderInfoCard(
                         MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
-                    }
+                    },
+                    modifier = Modifier.semantics { heading() }
                 )
             }
 
@@ -742,7 +807,9 @@ internal fun OrderInfoCard(
 
             // Pickup Date - Most prominent
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { },
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -773,7 +840,9 @@ internal fun OrderInfoCard(
 
             // Order ID
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { },
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -789,7 +858,9 @@ internal fun OrderInfoCard(
 
             // Created Date
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { },
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -1043,7 +1114,8 @@ fun DatePickerDialog(
         title = {
             Text(
                 text = stringResource(Res.string.basket_choose_pickup_date),
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {
@@ -1056,7 +1128,8 @@ fun DatePickerDialog(
                     Text(
                         text = stringResource(Res.string.basket_no_dates_available),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                     )
                 }
             } else {
@@ -1096,7 +1169,12 @@ private fun CancelOrderDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.basket_cancel_confirm_title)) },
+        title = {
+            Text(
+                stringResource(Res.string.basket_cancel_confirm_title),
+                modifier = Modifier.semantics { heading() }
+            )
+        },
         text = { Text(stringResource(Res.string.basket_cancel_confirm_message)) },
         confirmButton = {
             Button(
@@ -1116,6 +1194,13 @@ private fun CancelOrderDialog(
     )
 }
 
+/** Marks a tappable card as a radio option so its selected state is announced. */
+private fun Modifier.optionSemantics(isSelected: Boolean): Modifier =
+    this.semantics {
+        role = Role.RadioButton
+        selected = isSelected
+    }
+
 /**
  * Individual date option card in the picker
  */
@@ -1132,7 +1217,9 @@ private fun DateOption(
     val timeRemaining = OrderDateUtils.formatTimeUntilDeadline(instant)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .optionSemantics(isSelected),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.primaryContainer
@@ -1168,9 +1255,10 @@ private fun DateOption(
                     }
                 )
                 if (isSelected) {
+                    // Selection is conveyed by the option's semantics; icon is decorative
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = stringResource(Res.string.basket_selected),
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -1217,7 +1305,8 @@ fun ReorderDatePickerDialog(
         title = {
             Text(
                 text = stringResource(Res.string.basket_choose_new_date),
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {
@@ -1240,7 +1329,8 @@ fun ReorderDatePickerDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(Res.string.basket_updating_prices),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                         )
                     }
                 } else if (availableDates.isEmpty()) {
@@ -1252,7 +1342,8 @@ fun ReorderDatePickerDialog(
                         Text(
                             text = stringResource(Res.string.basket_no_dates_available),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                         )
                     }
                 } else {
@@ -1345,7 +1436,8 @@ fun OrderMergeDialog(
         title = {
             Text(
                 text = stringResource(Res.string.basket_merge_title),
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {
@@ -1367,8 +1459,10 @@ fun OrderMergeDialog(
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+                        val itemCountLabel = stringResource(Res.string.a11y_basket_item_count, existingOrder.articles.size)
+                        val totalPrice = existingOrder.articles.sumOf { it.price * it.amountCount }.formatPrice()
                         Text(
-                            text = "${existingOrder.articles.size} Artikel, ${existingOrder.articles.sumOf { it.price * it.amountCount }.formatPrice()} €",
+                            text = "$itemCountLabel, $totalPrice €",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -1385,7 +1479,8 @@ fun OrderMergeDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(Res.string.basket_merging),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                         )
                     }
                 } else if (conflicts.isEmpty()) {
@@ -1457,9 +1552,11 @@ private fun MergeConflictItem(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Product name with conflict type indicator
+            // Product name with conflict type indicator — read as one node
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1485,6 +1582,7 @@ private fun MergeConflictItem(
 
             // Resolution options based on conflict type
             Column(
+                modifier = Modifier.selectableGroup(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 when (conflict.conflictType) {
@@ -1548,7 +1646,9 @@ private fun ResolutionOption(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .optionSemantics(selected),
         colors = CardDefaults.cardColors(
             containerColor = if (selected) {
                 MaterialTheme.colorScheme.primaryContainer
@@ -1581,9 +1681,10 @@ private fun ResolutionOption(
                 }
             )
             if (selected) {
+                // Selection is conveyed by the option's semantics; icon is decorative
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = stringResource(Res.string.basket_selected),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -1608,7 +1709,8 @@ fun DraftWarningDialog(
         title = {
             Text(
                 text = stringResource(Res.string.basket_draft_warning_title),
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.semantics { heading() }
             )
         },
         text = {

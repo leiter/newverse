@@ -54,6 +54,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.AuthScreenState
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_signing_in
 import newverse.shared.generated.resources.app_leaf_icon
 import newverse.shared.generated.resources.button_sign_in
 import newverse.shared.generated.resources.divider_or
@@ -82,6 +89,10 @@ import newverse.shared.generated.resources.login_sign_in_google
 import newverse.shared.generated.resources.password_reset_description
 import newverse.shared.generated.resources.password_reset_send
 import newverse.shared.generated.resources.password_reset_title
+import newverse.shared.generated.resources.seller_login_account_required
+import newverse.shared.generated.resources.seller_login_secure
+import newverse.shared.generated.resources.seller_login_subtitle
+import newverse.shared.generated.resources.seller_login_title
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -109,10 +120,6 @@ fun ForcedLoginScreen(
     onShowPasswordResetDialog: () -> Unit = {},
     onHidePasswordResetDialog: () -> Unit = {}
 ) {
-    // Debug logging
-    println("🟢 ForcedLoginScreen: authState.error = ${authState.error}")
-    println("🟢 ForcedLoginScreen: authState.isLoading = ${authState.isLoading}")
-
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -138,6 +145,7 @@ fun ForcedLoginScreen(
     val errorEmailInvalid = stringResource(Res.string.error_email_invalid)
     val errorPasswordRequired = stringResource(Res.string.error_password_required)
     val errorPasswordLength = stringResource(Res.string.error_password_length)
+    val signingInLabel = stringResource(Res.string.a11y_signing_in)
 
     // Validate email format
     fun validateEmail(): Boolean {
@@ -210,7 +218,8 @@ fun ForcedLoginScreen(
                     Text(
                         text = stringResource(Res.string.app_leaf_icon),
                         style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.clearAndSetSemantics { }
                     )
                 }
             }
@@ -219,17 +228,18 @@ fun ForcedLoginScreen(
 
             // Welcome Message
             Text(
-                text = "Verkäufer Login",
+                text = stringResource(Res.string.seller_login_title),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { heading() }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Melde dich an, um deine Produkte und Bestellungen zu verwalten",
+                text = stringResource(Res.string.seller_login_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -339,7 +349,17 @@ fun ForcedLoginScreen(
                         onClick = { handleLogin() },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(56.dp)
+                            .then(
+                                if (isLoading) {
+                                    Modifier.semantics {
+                                        contentDescription = signingInLabel
+                                        liveRegion = LiveRegionMode.Polite
+                                    }
+                                } else {
+                                    Modifier
+                                }
+                            ),
                         enabled = !isLoading,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -427,7 +447,9 @@ fun ForcedLoginScreen(
                             Text(
                                 text = authState.error,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .semantics { liveRegion = LiveRegionMode.Polite },
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center
                             )
@@ -446,16 +468,18 @@ fun ForcedLoginScreen(
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.alpha(0.7f)
+                    modifier = Modifier
+                        .alpha(0.7f)
+                        .semantics(mergeDescendants = true) { }
                 ) {
                     Text(
-                        text = "🔒 Sicherer Login",
+                        text = stringResource(Res.string.seller_login_secure),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Als Verkäufer benötigst du ein Konto",
+                        text = stringResource(Res.string.seller_login_account_required),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -474,7 +498,8 @@ fun ForcedLoginScreen(
             title = {
                 Text(
                     text = stringResource(Res.string.password_reset_title),
-                    style = MaterialTheme.typography.headlineSmall
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.semantics { heading() }
                 )
             },
             text = {

@@ -17,6 +17,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.components.MessageBubble
 import com.together.newverse.ui.components.MessageInput
@@ -70,7 +73,11 @@ fun BuyerConversationDetailScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(
+                            state.message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                        )
                     }
                 }
                 is AsyncState.Success -> {
@@ -103,7 +110,8 @@ fun BuyerConversationDetailScreen(
             ) {
                 Text(
                     text = stringResource(Res.string.messaging_blocked),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                 )
             }
         } else {

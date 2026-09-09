@@ -54,6 +54,8 @@
     <string name="button_edit">Edit</string>
     <string name="button_ok">OK</string>
     <string name="button_delete">Delete</string>
+    <string name="button_add_to_basket">Add to basket</string>
+    <string name="button_apply_changes">Apply changes</string>
 
     <!-- ========================================= -->
     <!-- COMMON LABELS -->
@@ -131,6 +133,11 @@
     <string name="login_no_account">Don\'t have an account? </string>
     <string name="login_sign_up_link">Sign Up</string>
     <string name="login_success">Login successful! Redirecting...</string>
+    <!-- Seller forced-login screen -->
+    <string name="seller_login_title">Seller login</string>
+    <string name="seller_login_subtitle">Sign in to manage your products and orders</string>
+    <string name="seller_login_secure">🔒 Secure login</string>
+    <string name="seller_login_account_required">Sellers need an account</string>
 
     <!-- Login/Logout Snackbar Messages -->
     <string name="snackbar_login_success">Signed in successfully</string>
@@ -196,6 +203,15 @@
     <string name="products_title">Browse Products</string>
     <string name="products_empty">No products available</string>
     <string name="products_error_load">Failed to load products: %s</string>
+    <string name="products_search_placeholder">Search products…</string>
+    <string name="products_search_no_results">No products found</string>
+    <string name="products_search_clear">Clear search</string>
+    <!-- Main screen product grid section header -->
+    <string name="main_section_fresh_title">Fresh from the field</string>
+    <string name="main_section_fresh_subtitle">Harvested today</string>
+    <!-- Shown when the user tries to edit an order past its deadline -->
+    <string name="main_order_locked_snackbar">This order can no longer be changed</string>
+    <string name="main_start_new_order">New order</string>
 
     <!-- ========================================= -->
     <!-- BASKET SCREEN (BUY MODULE) -->
@@ -277,12 +293,21 @@
 
     <!-- Personal Information Section -->
     <string name="section_personal_info">Personal Information</string>
+    <string name="profile_address_optional_self_pickup">Address is optional for self-collection</string>
 
     <!-- Delivery Preferences Section -->
     <string name="section_delivery_preferences">Veggie Date</string>
     <string name="label_marketplace">Marketplace</string>
     <string name="label_pickup_time">Pickup Time</string>
+    <string name="label_pickup_time_hint">Valid from 7:00 to 18:00 (format HH:mm)</string>
     <string name="pickup_time_format">%s</string>
+    <string name="pickup_time_empty">Please enter a pickup time</string>
+    <string name="pickup_time_invalid_format">Invalid format. Use HH:mm (e.g. 14:30)</string>
+    <string name="pickup_time_outside_hours">Pickup time must be between 7:00 and 18:00</string>
+    <string name="pickup_time_dialog_title">Choose pickup time</string>
+    <string name="pickup_time_hours_hint">Valid from 7:00 to 18:00</string>
+    <string name="pickup_time_unit_hour">Hour</string>
+    <string name="pickup_time_unit_minute">Minute</string>
     <string name="default_market">Organic Market at Hansaviertel</string>
 
     <!-- Notification Settings Section -->
@@ -291,6 +316,24 @@
     <string name="notification_push_desc">Receive push notifications</string>
     <string name="notification_newsletter">Newsletter</string>
     <string name="notification_newsletter_desc">Weekly offers</string>
+
+    <!-- Seller notifications screen -->
+    <string name="seller_notif_section_orders">Orders</string>
+    <string name="seller_notif_section_stock">Stock</string>
+    <string name="seller_notif_section_marketing">Marketing</string>
+    <string name="seller_notif_section_delivery">Delivery methods</string>
+    <string name="seller_notif_new_orders">New orders</string>
+    <string name="seller_notif_new_orders_desc">Notify me about new customer orders</string>
+    <string name="seller_notif_order_updates">Order updates</string>
+    <string name="seller_notif_order_updates_desc">Notify me when orders change</string>
+    <string name="seller_notif_low_stock">Low stock</string>
+    <string name="seller_notif_low_stock_desc">Notify me when products are running low</string>
+    <string name="seller_notif_marketing">Marketing messages</string>
+    <string name="seller_notif_marketing_desc">Tips and news for sellers</string>
+    <string name="seller_notif_email">Email notifications</string>
+    <string name="seller_notif_email_desc">Receive notifications by email</string>
+    <string name="seller_notif_push">Push notifications</string>
+    <string name="seller_notif_push_desc">Notifications on this device</string>
 
     <!-- Membership -->
     <string name="membership_regular">Regular Customer</string>
@@ -301,6 +344,8 @@
     <string name="action_orders">Orders</string>
     <string name="action_favorites">Favorites</string>
     <string name="action_payment">Payment</string>
+    <string name="action_email">Email</string>
+    <string name="action_call">Call</string>
     <string name="action_help">About</string>
     <string name="payment_cash_only_info">Currently only cash payment is supported. Payment is made at pickup.</string>
 
@@ -319,6 +364,7 @@
     <string name="account_status_guest">Signed in as Guest</string>
     <string name="account_status_guest_warning">Data is not permanently saved</string>
     <string name="account_status_authenticated">Signed in with %s</string>
+    <string name="account_status_signed_in">Signed in</string>
 
     <!-- Auth Provider Labels -->
     <string name="auth_provider_anonymous">Guest</string>
@@ -587,12 +633,17 @@
     <string name="customer_management_unblock">Unblock</string>
     <string name="customer_management_blocked">Blocked</string>
     <string name="customer_management_active">Active</string>
+    <string name="buyer_status_approved">Approved</string>
+    <string name="buyer_status_blocked">Blocked</string>
+    <string name="buyer_status_pending">Pending</string>
+    <string name="buyer_status_none">No access</string>
 
     <!-- ========================================= -->
     <!-- MESSAGING -->
     <!-- ========================================= -->
     <string name="nav_messages">Messages</string>
     <string name="messaging_empty">No messages yet</string>
+    <string name="messaging_conversation_title">Conversation</string>
     <string name="messaging_input_hint">Write a message...</string>
     <string name="messaging_send">Send</string>
     <string name="messaging_today">Today</string>
@@ -604,6 +655,7 @@
     <!-- Contacts -->
     <string name="contacts_title">Contacts</string>
     <string name="contacts_empty">No contacts yet</string>
+    <string name="contacts_sign_in_required">Sign in to manage contacts</string>
     <string name="contacts_add">Add Contact</string>
     <string name="contacts_your_id">Your Contact ID</string>
     <string name="contacts_enter_id">Enter Contact ID</string>
@@ -625,6 +677,8 @@
     <string name="demo_orders_clear_button">Clear demo orders (&gt; 1 month)</string>
     <string name="demo_orders_clear_result">%1$d demo order(s) deleted</string>
     <string name="demo_orders_clear_none">No old demo orders found</string>
+    <string name="mode_demo">Shopping demo</string>
+    <string name="mode_production">Live ordering</string>
     <string name="access_request_button">Request Access</string>
     <string name="access_status_none">No access token received yet. Ask your seller for a link.</string>
     <string name="access_status_pending">Access request pending — waiting for seller approval</string>
@@ -702,6 +756,13 @@
     <string name="order_status_soon">Soon</string>
     <string name="order_status_editable">Editable</string>
     <string name="order_status_scheduled">Scheduled</string>
+    <string name="order_status_cancelled">Cancelled</string>
+    <!-- OrderStatus lifecycle labels (seller order detail) -->
+    <string name="order_status_draft">Draft</string>
+    <string name="order_status_placed">Placed</string>
+    <string name="order_status_locked">Locked</string>
+    <string name="order_status_completed">Completed</string>
+    <string name="order_status_demo">Demo order</string>
     <string name="order_history_merge_title">Conflict</string>
     <string name="order_history_merge_message">You have a non-empty basket. Would you like to merge the contents or discard your current basket and load the old order?</string>
     <string name="label_total_plain">Total</string>
@@ -749,6 +810,67 @@
     <string name="cd_clear_quantity">Clear quantity</string>
     <string name="cd_add">Add</string>
     <string name="cd_message">Message</string>
+    <!-- Spoken price phrase: %1$s = amount incl. currency, %2$s = unit -->
+    <string name="a11y_price_per">%s per %s</string>
+    <string name="cd_favourite_toggle">Favourite</string>
+    <string name="cd_product_search">Search products</string>
+    <!-- Screen-reader description for the basket tab's item-count badge -->
+    <string name="a11y_basket_item_count">%d items</string>
+    <!-- Screen-reader descriptions for the seller nav/top-bar count badges -->
+    <string name="a11y_pending_orders_badge">%d pending orders</string>
+    <string name="a11y_access_requests_badge">%d access requests</string>
+    <!-- Screen-reader label for the seller product-list filter dropdown button -->
+    <string name="a11y_product_filter">Filter: %1$s</string>
+    <string name="a11y_state_favourite_on">marked</string>
+    <string name="a11y_state_favourite_off">not marked</string>
+    <!-- Spoken state for a single-select filter chip -->
+    <string name="a11y_state_selected">Selected</string>
+    <string name="a11y_state_unselected">Not selected</string>
+    <!-- HeroProductCard quantity controls -->
+    <string name="cd_quantity_input">Quantity</string>
+    <string name="cd_quantity_input_unit">Quantity in %s</string>
+    <string name="cd_increase_quantity">Increase quantity</string>
+    <string name="cd_decrease_quantity">Decrease quantity</string>
+    <string name="cd_open_product_details">Open product details</string>
+    <string name="a11y_open_order_details">Open order details</string>
+    <!-- HeroProductCard summary: %s = total price / formatted amount -->
+    <string name="a11y_hero_total">Total %s €</string>
+    <string name="a11y_hero_amount">Amount %s</string>
+    <!-- Appended to a disabled button's label to say why it is unavailable -->
+    <string name="a11y_reason_choose_amount">choose an amount first</string>
+    <string name="a11y_reason_no_changes">nothing changed</string>
+    <!-- Expand/collapse state for a disclosure control -->
+    <string name="a11y_state_expanded">expanded</string>
+    <string name="a11y_state_collapsed">collapsed</string>
+    <string name="a11y_toggle_address">Show or hide the address</string>
+    <!-- Frames the demo/production mode indicator: %s = mode name -->
+    <string name="a11y_current_mode">Mode: %s</string>
+    <string name="a11y_choose_time">Choose a time</string>
+    <!-- Invitation action buttons name the seller they act on: %1$s = seller -->
+    <string name="a11y_invitation_accept_from">Accept invitation from %1$s</string>
+    <string name="a11y_invitation_reject_from">Decline invitation from %1$s</string>
+    <!-- Access status card -->
+    <string name="a11y_access_id">Access ID: %1$s</string>
+    <string name="a11y_sending">sending</string>
+    <!-- Spoken progress while an account dialog action is running -->
+    <string name="a11y_deleting_account">Deleting account</string>
+    <string name="a11y_linking_account">Linking account</string>
+    <!-- Spoken progress on the sign-in / sign-up buttons -->
+    <string name="a11y_signing_in">Signing in</string>
+    <string name="a11y_creating_account">Creating account</string>
+    <!-- Time picker: %1$s = the time (selected_time) or the unit name (increment/decrement) -->
+    <string name="a11y_selected_time">Selected time: %1$s</string>
+    <string name="a11y_increment">Increase %1$s</string>
+    <string name="a11y_decrement">Decrease %1$s</string>
+    <string name="a11y_contact_options">Contact options</string>
+    <!-- Remove button in the basket list names its line item: %1$s = product -->
+    <string name="a11y_remove_item">Remove %1$s</string>
+    <!-- Messaging: spoken labels for the conversation list and message bubbles -->
+    <string name="a11y_open_conversation">Open conversation</string>
+    <string name="a11y_message_you">You</string>
+    <string name="a11y_message_to">Message %1$s</string>
+    <!-- Add-contact screen: frames the raw contact id, %1$s = id -->
+    <string name="a11y_contact_id">Contact ID: %1$s</string>
 
     <!-- ========================================= -->
     <!-- ABRECHNUNG SCREEN (SELL MODULE) -->

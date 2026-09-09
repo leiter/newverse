@@ -21,9 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
@@ -39,8 +44,18 @@ fun ProductListItem(
     imageUrl: String = "",
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
+    selected: Boolean? = null,
     modifier: Modifier = Modifier
 ) {
+    // One spoken node per row ("Tomaten, 2,50 € pro kg") instead of a stop each
+    // for the thumbnail, the name and the "2,50€/kg" price fragment.
+    val rowDescription = "$productName, ${productPriceLabel(price, unit)}"
+    val selectedStateText = when (selected) {
+        true -> stringResource(Res.string.a11y_state_selected)
+        false -> stringResource(Res.string.a11y_state_unselected)
+        null -> null
+    }
+
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
@@ -49,16 +64,23 @@ fun ProductListItem(
                     onClick = onClick,
                     onLongClick = onLongClick
                 )
+                .semantics(mergeDescendants = true) {
+                    contentDescription = rowDescription
+                    if (selected != null) {
+                        this.selected = selected
+                        selectedStateText?.let { stateDescription = it }
+                    }
+                }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Product image thumbnail
+            // Product image thumbnail — decorative; the name sits right beside it
+            // and the row's merged description already names the product.
             if (imageUrl.isNotEmpty()) {
-                println("🖼️ ProductListItem: Loading image for '$productName' from URL: $imageUrl")
                 SubcomposeAsyncImage(
                     model = imageUrl,
-                    contentDescription = productName,
+                    contentDescription = null,
                     modifier = Modifier
                         .size(56.dp)
                         .clip(RoundedCornerShape(8.dp)),
@@ -79,18 +101,17 @@ fun ProductListItem(
                         // Show portrait placeholder on error
                         androidx.compose.foundation.Image(
                             painter = painterResource(Res.drawable.place_holder_landscape),
-                            contentDescription = stringResource(Res.string.cd_image_error),
+                            contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
                     }
                 )
             } else {
-                println("🖼️ ProductListItem: No image URL for '$productName', showing placeholder")
                 // Placeholder when no image
                 androidx.compose.foundation.Image(
                     painter = painterResource(Res.drawable.place_holder_landscape),
-                    contentDescription = stringResource(Res.string.cd_no_image),
+                    contentDescription = null,
                     modifier = Modifier
                         .size(56.dp)
                         .clip(RoundedCornerShape(8.dp)),

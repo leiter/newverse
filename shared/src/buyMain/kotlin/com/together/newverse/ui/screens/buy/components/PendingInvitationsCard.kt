@@ -19,10 +19,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Invitation
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_invitation_accept_from
+import newverse.shared.generated.resources.a11y_invitation_reject_from
 import newverse.shared.generated.resources.invitation_accept
 import newverse.shared.generated.resources.invitation_from
 import newverse.shared.generated.resources.invitation_pending_title
@@ -64,11 +69,13 @@ fun PendingInvitationsCard(
                 Text(
                     text = stringResource(Res.string.invitation_pending_title),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.semantics { heading() }
                 )
             }
 
             invitations.forEach { invitation ->
+                val sellerName = invitation.sellerDisplayName.ifEmpty { invitation.sellerId }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -82,10 +89,7 @@ fun PendingInvitationsCard(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = stringResource(
-                                Res.string.invitation_from,
-                                invitation.sellerDisplayName.ifEmpty { invitation.sellerId }
-                            ),
+                            text = stringResource(Res.string.invitation_from, sellerName),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -94,15 +98,21 @@ fun PendingInvitationsCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            val rejectLabel = stringResource(Res.string.a11y_invitation_reject_from, sellerName)
+                            val acceptLabel = stringResource(Res.string.a11y_invitation_accept_from, sellerName)
                             OutlinedButton(
                                 onClick = { onReject(invitation.id) },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .semantics { contentDescription = rejectLabel }
                             ) {
                                 Text(stringResource(Res.string.invitation_reject))
                             }
                             Button(
                                 onClick = { onAccept(invitation.id) },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .semantics { contentDescription = acceptLabel }
                             ) {
                                 Text(stringResource(Res.string.invitation_accept))
                             }

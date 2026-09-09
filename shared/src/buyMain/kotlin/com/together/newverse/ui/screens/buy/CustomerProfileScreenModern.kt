@@ -5,6 +5,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,6 +78,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -101,6 +110,12 @@ import com.together.newverse.util.formatString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.a11y_access_id
+import newverse.shared.generated.resources.a11y_current_mode
+import newverse.shared.generated.resources.a11y_sending
+import newverse.shared.generated.resources.a11y_state_collapsed
+import newverse.shared.generated.resources.a11y_state_expanded
+import newverse.shared.generated.resources.a11y_toggle_address
 import newverse.shared.generated.resources.access_request_button
 import newverse.shared.generated.resources.access_status_approved
 import newverse.shared.generated.resources.access_status_blocked
@@ -145,6 +160,7 @@ import newverse.shared.generated.resources.pickup_time_invalid_format
 import newverse.shared.generated.resources.pickup_time_outside_hours
 import newverse.shared.generated.resources.profile_incomplete_dialog_message
 import newverse.shared.generated.resources.profile_incomplete_dialog_title
+import newverse.shared.generated.resources.profile_address_optional_self_pickup
 import newverse.shared.generated.resources.profile_incomplete_go_to_profile
 import newverse.shared.generated.resources.profile_new_customer
 import newverse.shared.generated.resources.profile_no_email
@@ -479,6 +495,27 @@ private fun ProfileHeaderCard(
     authProvider: AuthProvider = AuthProvider.ANONYMOUS,
     authProviders: List<AuthProvider> = emptyList()
 ) {
+    // One per linked provider; falls back to the single resolved provider while
+    // the list is still loading.
+    val badges = authProviders.ifEmpty { listOf(authProvider) }
+
+    // The whole card is read as a single node: name, verification, email, providers.
+    val verifiedLabel = stringResource(Res.string.profile_verified)
+    val providerLabels = badges.map { authProviderLabel(it) }
+    val headerSummary = buildString {
+        append(displayName)
+        if (isVerified) {
+            append(", ")
+            append(verifiedLabel)
+        }
+        append(", ")
+        append(email)
+        if (providerLabels.isNotEmpty()) {
+            append(", ")
+            append(providerLabels.joinToString(", "))
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -487,7 +524,11 @@ private fun ProfileHeaderCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clearAndSetSemantics { contentDescription = headerSummary }
+        ) {
             // Background pattern
             Box(
                 modifier = Modifier
@@ -571,9 +612,7 @@ private fun ProfileHeaderCard(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Auth status badges - one per linked provider. An account can be
-                // backed by several (Apple plus a password, say); falls back to the
-                // single resolved provider while the list is still loading.
-                val badges = authProviders.ifEmpty { listOf(authProvider) }
+                // backed by several (Apple plus a password, say).
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     badges.forEach { provider -> AuthProviderBadge(provider) }
                 }
@@ -630,6 +669,12 @@ private fun PersonalInfoCard(
         else -> null
     }
 
+    // Accessibility labels for the expand/collapse header
+    val toggleAddressLabel = stringResource(Res.string.a11y_toggle_address)
+    val addressState = stringResource(
+        if (isAddressExpanded) Res.string.a11y_state_expanded else Res.string.a11y_state_collapsed
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -651,17 +696,26 @@ private fun PersonalInfoCard(
                     icon = Icons.Default.Person,
                     title = stringResource(Res.string.section_personal_info),
                     iconColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { isAddressExpanded = !isAddressExpanded }.weight(0.7f)
+                    modifier = Modifier
+                        .weight(0.7f)
+                        .clickable(
+                            onClickLabel = toggleAddressLabel,
+                            role = Role.Button
+                        ) { isAddressExpanded = !isAddressExpanded }
+                        .semantics { stateDescription = addressState }
                 )
 
                 if (!isEditing) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        // Visual affordance only; the header above is the a11y toggle
                         Icon(
                             if (isAddressExpanded) Icons.Default.ArrowDropDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = "Toggle address visibility",
-                            modifier = Modifier.clickable { isAddressExpanded = !isAddressExpanded },
+                            contentDescription = null,
+                            modifier = Modifier
+                                .clickable { isAddressExpanded = !isAddressExpanded }
+                                .clearAndSetSemantics { },
                             tint = MaterialTheme.colorScheme.primary
                         )
                         IconButton(
@@ -721,7 +775,7 @@ private fun PersonalInfoCard(
                     if (isSelfPickup && !isEditing) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Adressangabe optional für Selbstabholer",
+                            text = stringResource(Res.string.profile_address_optional_self_pickup),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 16.dp)
@@ -891,7 +945,8 @@ private fun GemusedateCard(
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Column {
+                        // Label + value read as one node ("Abholzeit, 14:00 Uhr")
+                        Column(modifier = Modifier.semantics(mergeDescendants = true) { }) {
                             Text(
                                 text = stringResource(Res.string.label_pickup_time),
                                 style = MaterialTheme.typography.labelMedium,
@@ -910,9 +965,17 @@ private fun GemusedateCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Selbstabholer toggle
+            // Selbstabholer toggle — the whole row is one switch so a screen
+            // reader hears the label together with the on/off state.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = isSelfPickup,
+                        enabled = isEditing,
+                        role = Role.Switch,
+                        onValueChange = onSelfPickupToggle
+                    ),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -931,8 +994,9 @@ private fun GemusedateCard(
                 }
                 Switch(
                     checked = isSelfPickup,
-                    onCheckedChange = onSelfPickupToggle,
+                    onCheckedChange = null,
                     enabled = isEditing,
+                    modifier = Modifier.clearAndSetSemantics { },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = MaterialTheme.colorScheme.surface,
                         checkedTrackColor = MaterialTheme.colorScheme.tertiary
@@ -985,8 +1049,22 @@ private fun GemusedateCard(
 
 @Composable
 private fun DemoModeCard(isDemoMode: Boolean) {
+    val modeText = if (isDemoMode) {
+        stringResource(Res.string.mode_demo)
+    } else {
+        stringResource(Res.string.mode_production)
+    }
+    // Read as one node that names what it is ("Modus: …") and speaks up when the
+    // mode changes while the screen is open.
+    val modeDescription = formatString(stringResource(Res.string.a11y_current_mode), modeText)
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+                contentDescription = modeDescription
+                liveRegion = LiveRegionMode.Polite
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -996,12 +1074,6 @@ private fun DemoModeCard(isDemoMode: Boolean) {
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            val modeText = if (isDemoMode) {
-                stringResource(Res.string.mode_demo)
-            } else {
-                stringResource(Res.string.mode_production)
-            }
-
             val modeColor = if (isDemoMode) {
                 MaterialTheme.colorScheme.secondary
             } else {
@@ -1069,7 +1141,8 @@ private fun QuickActionsCard(
             text = stringResource(Res.string.quick_actions_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.semantics { heading() }
         )
 
         Row(
@@ -1408,6 +1481,11 @@ private fun ModernTextField(
             enabled = enabled,
             singleLine = true,
             isError = showError,
+            // Supporting text is associated with the field, so a screen reader
+            // reads the error when the field is focused.
+            supportingText = if (showError) {
+                { Text(errorMessage) }
+            } else null,
             keyboardOptions = keyboardOptions,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -1420,15 +1498,6 @@ private fun ModernTextField(
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
         )
-
-        if (showError) {
-            Text(
-                text = errorMessage,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-            )
-        }
     }
 }
 
@@ -1491,15 +1560,20 @@ private fun AccessStatusCard(
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor
+                    color = contentColor,
+                    // Status changes (e.g. after requesting access) are announced.
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                 )
             }
             if (buyerUUID.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
+                val accessIdLabel = stringResource(Res.string.a11y_access_id, buyerUUID)
                 Text(
                     text = buyerUUID,
                     style = MaterialTheme.typography.labelSmall,
-                    color = contentColor.copy(alpha = 0.7f)
+                    color = contentColor.copy(alpha = 0.7f),
+                    // Frame the raw id so a screen reader does not just spell it out unlabelled.
+                    modifier = Modifier.semantics { contentDescription = accessIdLabel }
                 )
             }
             if (accessStatus != AccessStatus.APPROVED) {
@@ -1509,10 +1583,15 @@ private fun AccessStatusCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (accessStatus == AccessStatus.NONE) {
+                        val sendingLabel = stringResource(Res.string.a11y_sending)
                         Button(
                             onClick = onRequestAccess,
                             enabled = !isRequestingAccess,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics {
+                                    if (isRequestingAccess) stateDescription = sendingLabel
+                                }
                         ) {
                             if (isRequestingAccess) {
                                 CircularProgressIndicator(
@@ -1539,6 +1618,16 @@ private fun AccessStatusCard(
     }
 }
 
+/** Localized display name for an auth provider, shared by the badge and the header summary. */
+@Composable
+private fun authProviderLabel(provider: AuthProvider): String = when (provider) {
+    AuthProvider.ANONYMOUS -> stringResource(Res.string.auth_provider_anonymous)
+    AuthProvider.GOOGLE -> stringResource(Res.string.auth_provider_google)
+    AuthProvider.EMAIL -> stringResource(Res.string.auth_provider_email)
+    AuthProvider.TWITTER -> stringResource(Res.string.auth_provider_twitter)
+    AuthProvider.APPLE -> stringResource(Res.string.auth_provider_apple)
+}
+
 @Composable
 private fun AuthProviderBadge(provider: AuthProvider) {
     Surface(
@@ -1552,13 +1641,7 @@ private fun AuthProviderBadge(provider: AuthProvider) {
         }
     ) {
         Text(
-            text = when (provider) {
-                AuthProvider.ANONYMOUS -> stringResource(Res.string.auth_provider_anonymous)
-                AuthProvider.GOOGLE -> stringResource(Res.string.auth_provider_google)
-                AuthProvider.EMAIL -> stringResource(Res.string.auth_provider_email)
-                AuthProvider.TWITTER -> stringResource(Res.string.auth_provider_twitter)
-                AuthProvider.APPLE -> stringResource(Res.string.auth_provider_apple)
-            },
+            text = authProviderLabel(provider),
             style = MaterialTheme.typography.labelMedium,
             color = when (provider) {
                 AuthProvider.ANONYMOUS -> MaterialTheme.colorScheme.onErrorContainer
