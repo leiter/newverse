@@ -52,7 +52,8 @@ data class Product(
 )
 
 /**
- * Extension function to convert legacy Article to new Product
+ * Extension function to convert legacy Article to new Product.
+ * Purchase and sourcing fields stay empty: the public article does not carry them.
  */
 fun Article.toProduct(): Product = Product(
     id = this.id,
@@ -66,8 +67,6 @@ fun Article.toProduct(): Product = Product(
     imageUrl = this.imageUrl,
     searchTerms = this.searchTerms,
     detailInfo = this.detailInfo,
-    acquirePrice = this.acquirePrice,
-    markupFactor = this.markupFactor,
     taxRate = this.taxRate
 )
 
@@ -90,7 +89,8 @@ fun Product.toSellerArticle(): SellerArticle = SellerArticle(
 )
 
 /**
- * Extension function to convert Product to legacy Article (for backward compatibility)
+ * The public half of a Product. Seller-only fields are dropped; use
+ * [toSellerArticle] to keep them.
  */
 fun Product.toArticle(): Article = Article(
     id = this.id,
@@ -104,7 +104,5 @@ fun Product.toArticle(): Article = Article(
     category = this.category,
     searchTerms = this.searchTerms,
     detailInfo = this.detailInfo,
-    acquirePrice = this.acquirePrice,
-    markupFactor = this.markupFactor,
     taxRate = this.taxRate
 )

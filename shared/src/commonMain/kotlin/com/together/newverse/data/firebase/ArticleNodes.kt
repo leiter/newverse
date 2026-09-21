@@ -28,10 +28,7 @@ internal object ArticleNodes {
     fun publicPath(sellerId: String, articleId: String) = "$PUBLIC_ROOT/$sellerId/$articleId"
     fun privatePath(sellerId: String, articleId: String) = "$PRIVATE_ROOT/$sellerId/$articleId"
 
-    /**
-     * The public fields of an article. The seller-only fields that [Article] still
-     * carries (acquirePrice, markupFactor) are deliberately not part of it.
-     */
+    /** The public fields of an article. */
     fun publicFields(article: Article): Map<String, Any?> = mapOf(
         "productId" to article.productId,
         "productName" to article.productName,

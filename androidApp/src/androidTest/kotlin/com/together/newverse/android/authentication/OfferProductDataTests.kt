@@ -39,7 +39,9 @@ class OfferProductDataTests : BaseTest() {
         val validUnits = ProductUnit.getAllDisplayNames()
         val validCategories = ProductCategory.getAllDisplayNames()
 
-        offerArticles.forEach { article ->
+        offerArticles.forEach { offer ->
+            val article = offer.article
+            val sellerData = offer.sellerData
             val name = article.productName
             assertTrue("Blank product name", name.isNotBlank())
             assertTrue("$name: missing BNN article number", article.productId.isNotBlank())
@@ -48,7 +50,12 @@ class OfferProductDataTests : BaseTest() {
                 "$name: unknown category '${article.category}'",
                 article.category in validCategories
             )
-            assertTrue("$name: no supplier price", article.acquirePrice > 0.0)
+            assertTrue("$name: no seller-only data", sellerData != null)
+            sellerData!!
+            assertTrue("$name: no supplier price", sellerData.hasAcquirePrice)
+            assertTrue("$name: no supplier code", sellerData.supplier.isNotBlank())
+            assertTrue("$name: no origin code", sellerData.origin.isNotBlank())
+            assertTrue("$name: no certification code", sellerData.certification.isNotBlank())
             assertTrue("$name: weightPerPiece must be > 0", article.weightPerPiece > 0.0)
             assertTrue("$name: search terms missing", article.searchTerms.isNotBlank())
 
@@ -69,13 +76,13 @@ class OfferProductDataTests : BaseTest() {
             }
             assertTrue(
                 "$name: sell price ${article.price} must exceed acquire price " +
-                    "${article.acquirePrice}",
-                article.price > article.acquirePrice
+                    "${sellerData.acquirePrice}",
+                article.price > sellerData.acquirePrice
             )
 
             // Same formula as CreateProductViewModel.recalculateSellPrice, so reopening the
             // product in the seller form does not silently recalculate a different price.
-            val expected = (article.acquirePrice * article.markupFactor *
+            val expected = (sellerData.acquirePrice * sellerData.markupFactor *
                 (1.0 + article.taxRate) * 100).toLong() / 100.0
             assertEquals("$name: price out of sync with markup", expected, article.price, 0.001)
         }
@@ -83,7 +90,7 @@ class OfferProductDataTests : BaseTest() {
         assertEquals(
             "Duplicate BNN article numbers in offer",
             offerArticles.size,
-            offerArticles.map { it.productId }.toSet().size
+            offerArticles.map { it.article.productId }.toSet().size
         )
     }
 

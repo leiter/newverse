@@ -8,8 +8,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.together.newverse.domain.model.Article
-import com.together.newverse.domain.repository.ArticleRepository
+import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.SellerArticleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,7 +20,7 @@ import java.util.Random
 class TestContainerActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
 
     private val authRepository: AuthRepository by inject()
-    private val articleRepository: ArticleRepository by inject()
+    private val sellerArticleRepository: SellerArticleRepository by inject()
 
     val testData = TestDataHolder()
 
@@ -120,17 +121,15 @@ class TestContainerActivity : AppCompatActivity(), FirebaseAuth.AuthStateListene
         }
         loading(true)
         CoroutineScope(Dispatchers.Main).launch {
-            var success = 0
-            var failed = 0
-            for (article in testData.productList) {
-                articleRepository.saveArticle(uid, article)
-                    .onSuccess { success++ }
-                    .onFailure { failed++ }
-            }
+            // Both halves of every article in one atomic update: all or nothing.
+            val result = sellerArticleRepository.saveSellerArticles(uid, testData.productList)
             loading(false)
             Toast.makeText(
                 this@TestContainerActivity,
-                "Upload done: $success OK, $failed failed",
+                result.fold(
+                    onSuccess = { "Upload done: ${it.size} OK" },
+                    onFailure = { "Upload failed: ${it.message}" }
+                ),
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -156,45 +155,46 @@ data class TestDataHolder(
     var passWord: String = "12345678",
     var isLoggedIn: Boolean = false,
     var isGoogleAuth: Boolean = false,
-    var productList: List<Article> = testArticles
+    var productList: List<SellerArticle> = testArticles
 )
 
-val testArticles = listOf(
-    Article(
+/** Generic test products; public data only, like articles created without a purchase price. */
+val testArticles: List<SellerArticle> = listOf(
+    SellerArticle(Article(
         id = "", productName = "TEST-Mangos Gold", available = true, price = 4.50, unit = "kg",
         category = "Exotisch", searchTerms = "mango,exotisch,obst",
         detailInfo = "Goldene Bio-Mangos aus Peru. Nach Demeter-Vorgaben angebaut.",
         imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp6852941846258768194.tmp?alt=media&token=f4b2a6a2-a8fa-495b-a093-04c269e97abe",
         weightPerPiece = 0.350
-    ),
-    Article(
+    )),
+    SellerArticle(Article(
         id = "", productName = "TEST-Rote Paprika", available = true, price = 3.90, unit = "kg",
         category = "Gemuese", searchTerms = "paprika,gemuese,rot",
         detailInfo = "Knackige rote Paprika vom Biohof Waldheide.",
         imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp7534516650759375907.tmp?alt=media&token=d474b967-46e9-45b2-8931-336f9c780ee3",
         weightPerPiece = 0.200
-    ),
-    Article(
+    )),
+    SellerArticle(Article(
         id = "", productName = "TEST-Basilikum Topf", available = true, price = 2.50, unit = "Stueck",
         category = "Kraeuter", searchTerms = "basilikum,kraeuter,topf",
         detailInfo = "Frischer Basilikum im Topf. Bio-Qualitaet aus der Region.",
         imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp274159401886863829.tmp?alt=media&token=e725f46f-5ab3-440c-9586-c04c6e1b7392",
         weightPerPiece = 1.0
-    ),
-    Article(
+    )),
+    SellerArticle(Article(
         id = "", productName = "TEST-Honigmelone", available = true, price = 3.20, unit = "Stueck",
         category = "Exotisch", searchTerms = "melone,honigmelone,obst",
         detailInfo = "Suesse Honigmelone aus Spanien. Biologisch angebaut.",
         imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1145260240680560593.tmp?alt=media&token=0670c0da-e260-4d41-b5d8-1a119ea24a64",
         weightPerPiece = 1.0
-    ),
-    Article(
+    )),
+    SellerArticle(Article(
         id = "", productName = "TEST-Demeter Kartoffeln", available = true, price = 2.80, unit = "kg",
         category = "Kartoffel", searchTerms = "kartoffel,kartoffeln",
         detailInfo = "Festkochende Demeter-Kartoffeln vom Hof Apfeltraum.",
         imageUrl = "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1576373532957500855.tmp?alt=media&token=81892fcd-c346-479a-8b56-4b56d7ce8381",
         weightPerPiece = 0.060
-    )
+    ))
 )
 
 fun generateEmail(): String {

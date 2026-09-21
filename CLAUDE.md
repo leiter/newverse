@@ -123,15 +123,20 @@ val canEdit = order.canEdit() // checks deadline
 
 ## Firebase Structure
 
-```
-/sellers/{sellerId}/
-  ├── articles/{articleId}    # Products
-  ├── orders/{date}/{orderId} # Orders
-  └── profile                 # Seller profile
+Realtime Database, top-level node first, then owner:
 
-/buyers/{buyerId}/
-  └── profile                 # Buyer profile with order history
 ```
+/articles/{sellerId}/{articleId}          # Public product data, readable by every signed-in user
+/seller_articles/{sellerId}/{articleId}   # Seller-only: purchase price, markup, sourcing
+/orders/{sellerId}/{yyyyMMdd}/{orderId}   # Orders by pickup date
+/seller_profile/{sellerId}                # Seller profile
+/buyer_profile/{buyerId}                  # Buyer profile with order history
+```
+
+An article's two halves are always written and deleted together in one
+multi-path update (`ArticleNodes`); the seller app reads them through
+`SellerArticleRepository`, buyers through `ArticleRepository`. Every node and
+its access rules: `firebase/database.rules.json` (tests in `firebase/tests`).
 
 ## Feature Flags
 

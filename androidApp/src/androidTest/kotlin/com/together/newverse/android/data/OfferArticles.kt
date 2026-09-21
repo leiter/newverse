@@ -4,6 +4,8 @@ import com.together.newverse.data.parser.ProductDescriptionBuilder
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.ProductCategory
 import com.together.newverse.domain.model.ProductUnit
+import com.together.newverse.domain.model.SellerArticle
+import com.together.newverse.domain.model.SellerArticleData
 import com.together.newverse.domain.model.TaxRate
 
 /**
@@ -11,7 +13,9 @@ import com.together.newverse.domain.model.TaxRate
  * (Terra Naturkost Handels KG, BNN price list "Obst & Gemüse KW 31/26",
  * valid 27.07.-02.08.2026, source file `tmp/plf.bnn`).
  *
- * [acquirePrice] is the supplier's net list price per base unit as printed in the BNN file.
+ * `acquirePrice` is the supplier's net list price per base unit as printed in the BNN file.
+ * It is seller-only: it goes into [SellerArticleData] together with the BNN codes, while
+ * the public [Article] carries what buyers see.
  * [Article.price] is never written by hand — it is derived by [offerArticle] using the exact
  * same formula the seller app uses in CreateProductViewModel.recalculateSellPrice:
  *
@@ -29,7 +33,7 @@ const val OFFER_NAME_PREFIX = ""
 private val descriptionBuilder = ProductDescriptionBuilder()
 
 /**
- * Builds an [Article] with a sell price derived from the supplier price, so the offer data
+ * Builds a [SellerArticle] with a sell price derived from the supplier price, so the offer data
  * cannot drift out of sync with the markup.
  *
  * [Article.detailInfo] is not written by hand either. Origin, certification and producer are
@@ -57,7 +61,7 @@ fun offerArticle(
     weightPerPiece: Double,
     markupFactor: Double = OFFER_MARKUP_FACTOR,
     taxRate: TaxRate = TaxRate.REDUCED
-): Article {
+): SellerArticle {
     val detailInfo = descriptionBuilder.build(
         bnnDetail = note,
         originCode = originCode,
@@ -66,7 +70,7 @@ fun offerArticle(
     )
     val gross = acquirePrice * markupFactor * (1.0 + taxRate.rate)
     val price = (gross * 100).toLong() / 100.0
-    return Article(
+    val article = Article(
         id = "",
         productId = productId,
         productName = OFFER_NAME_PREFIX + productName,
@@ -78,9 +82,17 @@ fun offerArticle(
         category = category.displayName,
         searchTerms = searchTerms,
         detailInfo = detailInfo,
-        acquirePrice = acquirePrice,
-        markupFactor = markupFactor,
         taxRate = taxRate.rate
+    )
+    return SellerArticle(
+        article = article,
+        sellerData = SellerArticleData(
+            acquirePrice = acquirePrice,
+            markupFactor = markupFactor,
+            supplier = producerCode,
+            origin = originCode,
+            certification = certificationCode
+        )
     )
 }
 
@@ -90,7 +102,7 @@ const val OFFER_ARTICLE_COUNT = 30
 /**
  * Article 1-30 of `offer.md`, in the same order: 12 Obst & Nüsse, then 18 Gemüse & Wurzeln.
  */
-val offerArticles: List<Article> = listOf(
+val offerArticles: List<SellerArticle> = listOf(
 
     // ---------------------------------------------------------------- Obst & Nüsse (12)
 

@@ -1,7 +1,10 @@
 package com.together.newverse.domain.model
 
 /**
- * Represents a product/article available for purchase
+ * A product as buyers see it — the public half of an article.
+ *
+ * Purchase price, markup and sourcing are seller-only and live in
+ * [SellerArticleData]; the seller works with both halves as a [SellerArticle].
  */
 data class Article(
     val id: String = "",
@@ -15,8 +18,6 @@ data class Article(
     val category: String = "",
     val searchTerms: String = "",
     val detailInfo: String = "",
-    val acquirePrice: Double = 0.0,
-    val markupFactor: Double = 1.0,
     val taxRate: Double = TaxRate.REDUCED.rate,
     val mode: Int = MODE_UNDEFINED
 ) {

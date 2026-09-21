@@ -26,8 +26,6 @@ class ArticleNodesTest {
         category = "Obst",
         searchTerms = "apfel,topaz",
         detailInfo = "Angebaut in Deutschland nach Bioland-Richtlinien.",
-        acquirePrice = 1.96,
-        markupFactor = 1.67,
         taxRate = TaxRate.REDUCED.rate
     )
 
@@ -125,10 +123,7 @@ class ArticleNodesTest {
     fun `public half round-trips`() {
         val stored = ArticleNodes.publicFields(article)
 
-        assertEquals(
-            article.copy(acquirePrice = 0.0, markupFactor = 1.0),
-            ArticleNodes.articleFromMap(articleId, stored)
-        )
+        assertEquals(article, ArticleNodes.articleFromMap(articleId, stored))
     }
 
     @Test

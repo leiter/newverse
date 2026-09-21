@@ -58,7 +58,14 @@ Bidirectional: editing the sell price directly recalculates `markupFactor`:
 markupFactor = sellPrice / (acquirePrice × (1 + taxRate))
 ```
 
-All three fields (`acquirePrice`, `markupFactor`, `taxRate`) are persisted to Firebase via `ArticleDto`.
+`taxRate` is public and stored with the article in `/articles/{sellerId}/{articleId}`.
+`acquirePrice` and `markupFactor` are seller-only and stored in
+`/seller_articles/{sellerId}/{articleId}`, which buyers cannot read; the form loads
+and saves both halves through `SellerArticleRepository`.
+
+An acquire price of 0 means "unknown", never "free". The form writes the seller-only
+half only when it loaded one or a purchase price was entered, and keeps the sourcing
+fields (supplier, origin, certification, …) that the BNN import stored there.
 
 ## Setup Required
 

@@ -365,9 +365,14 @@ Newverse has a solid foundation with well-architected code, proper separation of
 **Recent Improvements (2026-03):**
 - Buy/sell flavor separation complete — all screens, ViewModels, and state in dedicated source sets
 - Buyer display name resolution: seller app enriches QR-link placeholders by reading `buyer_access_status`, persists corrected names
-- `acquirePrice` field added to Product/Article/ArticleDto — parsed from BNN position 35, persisted to Firebase
+- `acquirePrice` field added to Product/Article — parsed from BNN position 35 (not actually persisted until 2026-09, see below)
 - Markup factor + tax rate fields in product form — bidirectional: editing sell price updates markup, editing acquire/markup/tax recalculates sell price
 - Tax rate configurable via `ProductCatalogConfig` (default: 7% / `TaxRate.REDUCED`)
+
+**Seller-only article data (2026-09):**
+- Purchase price, markup and sourcing (supplier, origin, certification, quality, barcode, package size) moved out of `Article` into `SellerArticleData`, stored under `/seller_articles/{sellerId}`, readable by the seller only
+- Before this, `acquirePrice`, `markupFactor` and `taxRate` were never written by `GitLiveArticleRepository`: purchase prices were lost on save and the Abrechnung counted every item at 7 % VAT and zero purchase cost
+- The BNN import now keeps the sourcing fields; the Abrechnung reports a missing purchase price as unknown instead of zero
 
 **Critical Gaps:**
 - Search functionality (high user impact)
