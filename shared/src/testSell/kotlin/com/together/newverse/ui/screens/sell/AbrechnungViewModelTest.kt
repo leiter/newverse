@@ -14,6 +14,7 @@ import com.together.newverse.test.FakeAuthRepository
 import com.together.newverse.test.FakeOrderRepository
 import com.together.newverse.test.FakeSaleRepository
 import com.together.newverse.test.FakeSellerArticleRepository
+import com.together.newverse.test.FakeTextFileSharer
 import com.together.newverse.test.MainDispatcherRule
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.util.OrderDateUtils
@@ -45,6 +46,7 @@ class AbrechnungViewModelTest {
     private lateinit var orderRepository: FakeOrderRepository
     private lateinit var saleRepository: FakeSaleRepository
     private lateinit var authRepository: FakeAuthRepository
+    private lateinit var fileSharer: FakeTextFileSharer
 
     private val berlin = TimeZone.of("Europe/Berlin")
     private val today = LocalDate(2026, 9, 24)
@@ -57,6 +59,7 @@ class AbrechnungViewModelTest {
         saleRepository = FakeSaleRepository()
         authRepository = FakeAuthRepository()
         authRepository.setCurrentUserId("seller_123")
+        fileSharer = FakeTextFileSharer()
     }
 
     @AfterTest
@@ -73,6 +76,7 @@ class AbrechnungViewModelTest {
         orderRepository = orderRepository,
         authRepository = authRepository,
         saleRepository = saleRepository,
+        fileSharer = fileSharer,
         timeZone = berlin,
         today = { today }
     )
@@ -248,6 +252,69 @@ class AbrechnungViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, periodSummary(viewModel).saleCount)
+    }
+
+    // ===== Export =====
+
+    @Test
+    fun `export shares the shown period as CSV`() = runTest {
+        saleRepository.setSales(listOf(
+            sale("-S1", millis(2026, 9, 3), saleLine(quantity = 1.62, unitPriceCents = 319)),
+            sale("-S0", millis(2026, 8, 31), saleLine(unitPriceCents = 999))   // August: not exported
+        ))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.exportPeriod()
+        advanceUntilIdle()
+
+        val file = fileSharer.shared.single()
+        assertEquals("Verkaeufe_2026-09.csv", file.fileName)
+        assertEquals("text/csv", file.mimeType)
+        val rows = file.content.removePrefix("\uFEFF").split("\r\n").filter { it.isNotEmpty() }
+        assertEquals(2, rows.size)
+        assertTrue(rows[1].startsWith("03.09.2026;V-S1;"), rows[1])
+        assertTrue(rows[1].endsWith(";4,83;0,34;5,17"), rows[1])
+        assertEquals(ExportState(), viewModel.export.value)
+    }
+
+    @Test
+    fun `export follows the selected week`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.setPeriodType(PeriodType.WEEK)
+        saleRepository.setSales(listOf(sale("-S1", millis(2026, 9, 22), saleLine(unitPriceCents = 100))))
+
+        viewModel.exportPeriod()
+        advanceUntilIdle()
+
+        assertEquals("Verkaeufe_2026-KW39.csv", fileSharer.shared.single().fileName)
+    }
+
+    @Test
+    fun `an empty period is not exported`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.exportPeriod()
+        advanceUntilIdle()
+
+        assertTrue(fileSharer.shared.isEmpty())
+        assertEquals(ExportMessage.NOTHING_TO_EXPORT, viewModel.export.value.message)
+    }
+
+    @Test
+    fun `a failed share is reported`() = runTest {
+        saleRepository.setSales(listOf(sale("-S1", millis(2026, 9, 3), saleLine(unitPriceCents = 100))))
+        fileSharer.shouldFail = true
+        val viewModel = createViewModel()
+
+        viewModel.exportPeriod()
+        advanceUntilIdle()
+
+        assertEquals(ExportMessage.FAILED, viewModel.export.value.message)
+        assertFalse(viewModel.export.value.isExporting)
+
+        viewModel.clearExportMessage()
+        assertEquals(ExportState(), viewModel.export.value)
     }
 
     // ===== Nächste Abholung: forecast from the catalog =====

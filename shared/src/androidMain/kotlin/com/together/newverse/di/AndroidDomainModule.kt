@@ -7,11 +7,11 @@ import com.together.newverse.data.config.DefaultSellerConfig
 import com.together.newverse.data.config.DemoOrderStorage
 import com.together.newverse.data.config.SellerIdStorage
 import com.together.newverse.data.repository.GitLiveArticleRepository
-import com.together.newverse.data.repository.GitLiveSaleRepository
-import com.together.newverse.data.repository.GitLiveSellerArticleRepository
 import com.together.newverse.data.repository.GitLiveAuthRepository
 import com.together.newverse.data.repository.GitLiveOrderRepository
 import com.together.newverse.data.repository.GitLiveProfileRepository
+import com.together.newverse.data.repository.GitLiveSaleRepository
+import com.together.newverse.data.repository.GitLiveSellerArticleRepository
 import com.together.newverse.data.repository.InMemoryBasketRepository
 import com.together.newverse.data.repository.PlatformStorageRepository
 import com.together.newverse.domain.config.OrderScheduleConfig
@@ -25,6 +25,8 @@ import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.SaleRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.domain.repository.StorageRepository
+import com.together.newverse.util.FileSharer
+import com.together.newverse.util.TextFileSharer
 import org.koin.dsl.module
 
 /**
@@ -60,6 +62,9 @@ val androidDomainModule = module {
     single<SaleRepository> {
         GitLiveSaleRepository(get<AuthRepository>())
     }
+
+    // Share sheet for exported files (CSV bookkeeping export)
+    single<TextFileSharer> { FileSharer(get()) }
 
     // Order Repository - GitLive cross-platform implementation
     single<OrderRepository> {

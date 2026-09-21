@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,6 +26,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -63,6 +66,7 @@ fun AbrechnungScreen(
     val period by viewModel.period.collectAsState()
     val pickupSummary by viewModel.pickupSummary.collectAsState()
     val periodSummary by viewModel.periodSummary.collectAsState()
+    val export by viewModel.export.collectAsState()
 
     AbrechnungContent(
         selectedTab = selectedTab,
@@ -73,7 +77,9 @@ fun AbrechnungScreen(
         onTabSelected = viewModel::selectTab,
         onPeriodTypeSelected = viewModel::setPeriodType,
         onPreviousPeriod = viewModel::previousPeriod,
-        onNextPeriod = viewModel::nextPeriod
+        onNextPeriod = viewModel::nextPeriod,
+        export = export,
+        onExport = viewModel::exportPeriod
     )
 }
 
@@ -88,7 +94,9 @@ fun AbrechnungContent(
     onTabSelected: (AbrechnungTab) -> Unit,
     onPeriodTypeSelected: (PeriodType) -> Unit,
     onPreviousPeriod: () -> Unit,
-    onNextPeriod: () -> Unit
+    onNextPeriod: () -> Unit,
+    export: ExportState = ExportState(),
+    onExport: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         PrimaryTabRow(selectedTabIndex = selectedTab.ordinal) {
@@ -112,7 +120,9 @@ fun AbrechnungContent(
                 canGoNext = canGoNext,
                 onPeriodTypeSelected = onPeriodTypeSelected,
                 onPreviousPeriod = onPreviousPeriod,
-                onNextPeriod = onNextPeriod
+                onNextPeriod = onNextPeriod,
+                export = export,
+                onExport = onExport
             )
         }
     }
@@ -245,7 +255,9 @@ private fun PeriodView(
     canGoNext: Boolean,
     onPeriodTypeSelected: (PeriodType) -> Unit,
     onPreviousPeriod: () -> Unit,
-    onNextPeriod: () -> Unit
+    onNextPeriod: () -> Unit,
+    export: ExportState,
+    onExport: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         PeriodTypeRow(period, onPeriodTypeSelected)
@@ -277,10 +289,44 @@ private fun PeriodView(
 
                         item { FinancialSummaryCard(summary.financials) }
 
+                        item { ExportRow(export, onExport) }
+
                         item { Spacer(Modifier.height(16.dp)) }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ExportRow(export: ExportState, onExport: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(
+            onClick = onExport,
+            enabled = !export.isExporting,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (export.isExporting) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(Icons.Default.Share, contentDescription = null)
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(Res.string.abrechnung_export))
+        }
+        export.message?.let { message ->
+            Text(
+                text = stringResource(
+                    when (message) {
+                        ExportMessage.NOTHING_TO_EXPORT -> Res.string.abrechnung_export_nothing
+                        ExportMessage.FAILED -> Res.string.abrechnung_export_failed
+                    }
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+            )
         }
     }
 }

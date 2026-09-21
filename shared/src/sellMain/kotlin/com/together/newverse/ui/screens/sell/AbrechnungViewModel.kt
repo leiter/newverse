@@ -7,6 +7,7 @@ import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.Sale
+import com.together.newverse.domain.model.SalesCsv
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.TaxRate
 import com.together.newverse.domain.repository.AuthRepository
@@ -15,12 +16,14 @@ import com.together.newverse.domain.repository.SaleRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.util.OrderDateUtils
+import com.together.newverse.util.TextFileSharer
 import kotlin.time.Clock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -36,6 +39,7 @@ class AbrechnungViewModel(
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
     private val saleRepository: SaleRepository,
+    private val fileSharer: TextFileSharer,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val today: () -> LocalDate = { Clock.System.now().toLocalDateTime(timeZone).date }
 ) : ViewModel() {
@@ -146,6 +150,44 @@ class AbrechnungViewModel(
 
     fun selectTab(tab: AbrechnungTab) {
         _selectedTab.value = tab
+    }
+
+    // ----- Export -----
+
+    private val _export = MutableStateFlow(ExportState())
+    val export: StateFlow<ExportState> = _export.asStateFlow()
+
+    /** Writes the shown period's sales as CSV and opens the share sheet. */
+    fun exportPeriod() {
+        if (_export.value.isExporting) return
+        val period = _period.value
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            _export.value = ExportState(isExporting = true)
+            try {
+                // Read afresh rather than reuse the summary: the export must be complete.
+                val sales = saleRepository
+                    .observeSales(sellerId, period.startMillis(timeZone), period.endMillis(timeZone))
+                    .first()
+                if (sales.isEmpty()) {
+                    _export.value = ExportState(message = ExportMessage.NOTHING_TO_EXPORT)
+                    return@launch
+                }
+                val result = fileSharer.shareTextFile(
+                    fileName = SalesCsv.fileName(period),
+                    mimeType = "text/csv",
+                    content = SalesCsv.write(sales, timeZone)
+                )
+                _export.value = ExportState(message = if (result.isSuccess) null else ExportMessage.FAILED)
+            } catch (e: Exception) {
+                println("❌ AbrechnungViewModel.exportPeriod: ${e.message}")
+                _export.value = ExportState(message = ExportMessage.FAILED)
+            }
+        }
+    }
+
+    fun clearExportMessage() {
+        _export.value = _export.value.copy(message = null)
     }
 
     // ----- Period navigation -----
@@ -279,6 +321,13 @@ internal fun List<Sale>.toFinancials(): OrderFinancials {
 enum class AbrechnungTab { PICKUP, PERIOD }
 
 enum class PeriodType { WEEK, MONTH }
+
+data class ExportState(
+    val isExporting: Boolean = false,
+    val message: ExportMessage? = null
+)
+
+enum class ExportMessage { NOTHING_TO_EXPORT, FAILED }
 
 data class AggregatedItem(
     val productId: String,
