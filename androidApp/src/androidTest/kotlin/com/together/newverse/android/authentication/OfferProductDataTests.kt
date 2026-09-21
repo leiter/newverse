@@ -10,6 +10,7 @@ import com.together.newverse.android.utils.BaseTest
 import com.together.newverse.domain.model.ProductCategory
 import com.together.newverse.domain.model.ProductUnit
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -50,6 +51,22 @@ class OfferProductDataTests : BaseTest() {
             assertTrue("$name: no supplier price", article.acquirePrice > 0.0)
             assertTrue("$name: weightPerPiece must be > 0", article.weightPerPiece > 0.0)
             assertTrue("$name: search terms missing", article.searchTerms.isNotBlank())
+
+            // Every uploaded article must reach the buyer with a description, and it
+            // must say where the food comes from — that is the point of the field.
+            assertTrue("$name: no description", article.detailInfo.isNotBlank())
+            assertTrue(
+                "$name: description does not state an origin: ${article.detailInfo}",
+                article.detailInfo.contains("Angebaut in") ||
+                    article.detailInfo.contains("regionalem Anbau")
+            )
+            // Trade details are seller-facing and must not leak into the buyer text.
+            listOf("Gebinde", "Handelsklasse", "netto", "EUR").forEach { term ->
+                assertFalse(
+                    "$name: description leaks trade detail '$term': ${article.detailInfo}",
+                    article.detailInfo.contains(term)
+                )
+            }
             assertTrue(
                 "$name: sell price ${article.price} must exceed acquire price " +
                     "${article.acquirePrice}",

@@ -41,7 +41,9 @@ enum class ProductCategory(val displayName: String) {
                 // Fruit
                 "äpfel", "apfel", "birnen", "birne", "bananen", "banane",
                 "erdbeeren", "erdbeere", "kirschen", "kirsche", "pflaumen", "pflaume",
-                "trauben", "weintrauben", "orangen", "zitronen", "limetten",
+                "traube", "trauben", "weintraube", "weintrauben",
+                "orange", "orangen", "zitrone", "zitronen",
+                "limette", "limetten",
                 "pfirsiche", "pfirsich", "nektarinen", "nektarine", "melonen", "melone",
                 "beeren", "himbeeren", "brombeeren", "heidelbeeren", "johannisbeeren",
                 "mango", "kiwi", "ananas", "granatapfel", "feigen", "feige",

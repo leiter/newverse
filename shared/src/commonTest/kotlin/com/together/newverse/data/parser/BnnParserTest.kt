@@ -32,10 +32,10 @@ class BnnParserTest {
 
     /**
      * Creates a valid BNN line with 70 fields.
-     * Key positions:
+     * Key positions, 0-indexed, matching a real Terra price list:
      * 0=productId, 1=availability, 4=barcode, 6=name, 7=detail,
-     * 10=quality, 11=supplier, 13=origin, 14=certification,
-     * 22=packageDesc, 23=packageSize, 24=unit, 37=price, 68=weightPerPiece
+     * 9=quality, 10=supplier, 12=origin, 13=certification,
+     * 21=packageDesc, 22=packageSize, 23=unit, 37=price, 68=weightPerPiece
      */
     private fun createBnnLine(
         productId: String = "12345",
@@ -62,13 +62,13 @@ class BnnParserTest {
         fields[4] = barcode
         fields[6] = name
         fields[7] = detail
-        fields[10] = quality
-        fields[11] = supplier
-        fields[13] = origin
-        fields[14] = certification
-        fields[22] = packageDesc
-        fields[23] = packageSize
-        fields[24] = unit
+        fields[9] = quality
+        fields[10] = supplier
+        fields[12] = origin
+        fields[13] = certification
+        fields[21] = packageDesc
+        fields[22] = packageSize
+        fields[23] = unit
         fields[37] = price
         fields[68] = weightPerPiece
 
@@ -304,12 +304,12 @@ class BnnParserTest {
 
     @Test
     fun `parse categorizes vegetables correctly`() {
-        // Note: Parser uses firstWord for categorization
-        // "Rote Bete" has firstWord="Rote" which doesn't match "Bete" pattern
+        // The parser checks every word of the name, then a few multi-word terms
+        // such as "rote bete" that no single word would match.
         val vegetableNames = listOf(
-            "Kartoffel festkochend" to "Gemüse",
-            "Speisekartoffel mehlig" to "Gemüse",
-            "Süßkartoffel" to "Gemüse",
+            "Kartoffel festkochend" to "Kartoffeln",
+            "Speisekartoffel mehlig" to "Kartoffeln",
+            "Süßkartoffel" to "Kartoffeln",
             "Möhren Bund" to "Gemüse",
             "Karotten lose" to "Gemüse",
             "Tomate Rispen" to "Gemüse",
@@ -318,8 +318,8 @@ class BnnParserTest {
             "Gurken Mini" to "Gemüse",
             "Paprika rot" to "Gemüse",
             "Peperoni grün" to "Gemüse",
-            "Salat Kopf" to "Gemüse",
-            "Kopfsalat Bio" to "Gemüse",
+            "Salat Kopf" to "Salat",
+            "Kopfsalat Bio" to "Salat",
             "Kohl Weiß" to "Gemüse",
             "Kohlrabi" to "Gemüse",
             "Blumenkohl" to "Gemüse",
@@ -330,7 +330,7 @@ class BnnParserTest {
             "Fenchel" to "Gemüse",
             "Rettich weiß" to "Gemüse",
             "Radieschen Bund" to "Gemüse",
-            "Bete rot" to "Gemüse"  // Parser checks contains("Bete"), firstWord must contain it
+            "Rote Bete, samenfest" to "Gemüse"  // Matched by the multi-word term
         )
 
         for ((name, expectedCategory) in vegetableNames) {
@@ -348,25 +348,25 @@ class BnnParserTest {
     }
 
     @Test
-    fun `parse categorizes unknown products as Sonstiges`() {
-        val unknownNames = listOf(
-            "Honig Bio",
-            "Milch frisch",
-            "Käse Gouda",
-            "Brot Vollkorn",
-            "Eier Bio"
+    fun `parse categorizes non-produce by its own category`() {
+        val names = mapOf(
+            "Käse Gouda" to "Milchprodukte",
+            "Brot Vollkorn" to "Backwaren",
+            "Eier Bio" to "Eier",
+            // Nothing in the name matches any category keyword.
+            "Bienenwachstuch" to "Sonstiges"
         )
 
-        for (name in unknownNames) {
+        for ((name, expectedCategory) in names) {
             val line = createBnnLine(productId = name.take(5), name = name)
             val content = createBnnFile(line)
 
             val result = parser.parse(content)
 
             assertEquals(
-                "Sonstiges",
+                expectedCategory,
                 result[0].category,
-                "Expected '$name' to be categorized as 'Sonstiges'"
+                "Expected '$name' to be categorized as '$expectedCategory'"
             )
         }
     }
@@ -542,17 +542,112 @@ class BnnParserTest {
     fun `parse builds detail info with all components`() {
         val line = createBnnLine(
             detail = "Frisch geerntet",
+            origin = "DE",
             certification = "DD",
+            supplier = "BTR",
             packageDesc = "6 KG Kiste"
         )
         val content = createBnnFile(line)
 
         val result = parser.parse(content)
 
+        assertEquals(
+            "Frisch geerntet. Angebaut in Deutschland nach Demeter-Richtlinien. " +
+                "Erzeuger: BioTropic.",
+            result[0].detailInfo
+        )
+    }
+
+    @Test
+    fun `parse omits trade details from detail info`() {
+        val line = createBnnLine(quality = "II", packageDesc = "6 KG Kiste")
+        val content = createBnnFile(line)
+
+        val result = parser.parse(content)
+
+        // The description is for the customer: Gebinde and Handelsklasse are
+        // seller-facing and must not leak into it.
         val detailInfo = result[0].detailInfo
-        assertTrue(detailInfo.contains("Frisch geerntet"))
-        assertTrue(detailInfo.contains("Demeter"))
-        assertTrue(detailInfo.contains("Gebinde: 6 KG Kiste"))
+        assertFalse(detailInfo.contains("Gebinde"))
+        assertFalse(detailInfo.contains("6 KG Kiste"))
+        assertFalse(detailInfo.contains("Handelsklasse"))
+    }
+
+    @Test
+    fun `parse describes regional produce as regional`() {
+        val line = createBnnLine(
+            detail = "",
+            origin = "REG",
+            certification = "DB",
+            supplier = "unknown"
+        )
+        val content = createBnnFile(line)
+
+        val result = parser.parse(content)
+
+        assertEquals(
+            "Aus regionalem Anbau nach Bioland-Richtlinien.",
+            result[0].detailInfo
+        )
+    }
+
+    @Test
+    fun `parse does not name a region for regional produce`() {
+        // REG covers Terra's whole delivery area, so the description must not
+        // narrow it to a state the price list never claims.
+        val line = createBnnLine(detail = "", origin = "REG", certification = "DD")
+        val content = createBnnFile(line)
+
+        val result = parser.parse(content)
+
+        val detailInfo = result[0].detailInfo
+        assertTrue(detailInfo.contains("regionalem Anbau"))
+        assertFalse(detailInfo.contains("Brandenburg"))
+        assertFalse(detailInfo.contains("Berlin"))
+    }
+
+    @Test
+    fun `parse uses the dative form for countries that take an article`() {
+        val line = createBnnLine(
+            detail = "",
+            origin = "NL",
+            certification = "EG",
+            supplier = "unknown"
+        )
+        val content = createBnnFile(line)
+
+        val result = parser.parse(content)
+
+        assertEquals(
+            "Angebaut in den Niederlanden, zertifiziert nach EU-Öko-Verordnung.",
+            result[0].detailInfo
+        )
+    }
+
+    @Test
+    fun `parse omits unknown producer codes instead of showing them raw`() {
+        val line = createBnnLine(detail = "", supplier = "zzz")
+        val content = createBnnFile(line)
+
+        val result = parser.parse(content)
+
+        assertFalse(result[0].detailInfo.contains("zzz"))
+        assertFalse(result[0].detailInfo.contains("Erzeuger"))
+    }
+
+    @Test
+    fun `parse yields an empty description when nothing is known`() {
+        val line = createBnnLine(
+            detail = "",
+            origin = "",
+            certification = "",
+            supplier = ""
+        )
+        val content = createBnnFile(line)
+
+        val result = parser.parse(content)
+
+        assertEquals("", result[0].detailInfo)
     }
 
     @Test
@@ -561,8 +656,13 @@ class BnnParserTest {
             "DD" to "Demeter",
             "DB" to "Bioland",
             "DN" to "Naturland",
-            "IA" to "Bio (Italien)",
-            "EG" to "EU-Bio"
+            "DK" to "Biokreis",
+            "DG" to "Gäa",
+            "DV" to "Verbund Ökohöfe",
+            "IA" to "IFOAM",
+            "EG" to "EU-Öko-Verordnung",
+            "C%" to "EU-Öko-Verordnung",
+            "97" to "EU-Öko-Verordnung"
         )
 
         for ((code, expectedName) in certMappings) {
@@ -575,10 +675,10 @@ class BnnParserTest {
 
             val result = parser.parse(content)
 
-            assertEquals(
-                expectedName,
-                result[0].detailInfo,
-                "Certification '$code' should map to '$expectedName'"
+            assertTrue(
+                result[0].detailInfo.contains(expectedName),
+                "Certification '$code' should be described as '$expectedName', " +
+                    "but was: ${result[0].detailInfo}"
             )
         }
     }
@@ -594,8 +694,10 @@ class BnnParserTest {
 
         val result = parser.parse(content)
 
-        // Should only contain "Test", not XX
-        assertEquals("Test", result[0].detailInfo)
+        // The raw code must never reach the customer; the rest of the
+        // description is still built.
+        assertFalse(result[0].detailInfo.contains("XX"))
+        assertEquals("Test. Angebaut in Deutschland. Erzeuger: BioTropic.", result[0].detailInfo)
     }
 
     // ===== I. Edge Cases & Validation (6 tests) =====
@@ -759,7 +861,7 @@ class BnnParserTest {
         val honeyProduct = result.find { it.productId == "30001" }
         assertNotNull(honeyProduct)
         assertEquals("Honig Blüte", honeyProduct.productName)
-        assertEquals("Sonstiges", honeyProduct.category)  // Not fruit or veggie
+        assertEquals("Konserven", honeyProduct.category)  // Honig is mapped to Konserven
         assertTrue(honeyProduct.availability)
         assertTrue(honeyProduct.isOrganic)  // EU-Bio
         assertNull(honeyProduct.barcode)  // Empty barcode

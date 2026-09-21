@@ -18,7 +18,8 @@ import com.together.newverse.domain.model.ProductCategory
  * 9  = Quality Grade (I, II, Bio, Demeter, etc.)
  * 10 = Supplier Code
  * 12 = Origin Country Code
- * 13 = Certification (DD=Demeter, DB=Bioland, EG=EU-Bio, etc.)
+ * 13 = Certification, BNN identification code / IK (DD=Demeter, DB=Bioland,
+ *      EG=EU-Öko-Verordnung, etc. — see [BnnCodeTables])
  * 21 = Package Description (e.g., "6 KG")
  * 22 = Package Size (numeric, e.g., 6.000)
  * 23 = Unit (KG, ST, BT, SC, etc.)
@@ -27,6 +28,8 @@ import com.together.newverse.domain.model.ProductCategory
  * 68 = Weight per piece
  */
 class BnnParser {
+
+    private val descriptionBuilder = ProductDescriptionBuilder()
 
     companion object {
         private const val FIELD_SEPARATOR = ";"
@@ -42,7 +45,6 @@ class BnnParser {
         private const val POS_SUPPLIER = 10
         private const val POS_ORIGIN = 12
         private const val POS_CERTIFICATION = 13
-        private const val POS_PACKAGE_DESC = 21
         private const val POS_PACKAGE_SIZE = 22
         private const val POS_UNIT = 23
         private const val POS_ACQUIRE_PRICE = 35
@@ -97,7 +99,6 @@ class BnnParser {
             val supplier = fields.getOrEmpty(POS_SUPPLIER)
             val origin = fields.getOrEmpty(POS_ORIGIN)
             val certification = fields.getOrEmpty(POS_CERTIFICATION)
-            val packageDesc = fields.getOrEmpty(POS_PACKAGE_DESC)
             val unit = fields.getOrEmpty(POS_UNIT)
 
             val packageSize = fields.getOrEmpty(POS_PACKAGE_SIZE)
@@ -121,7 +122,10 @@ class BnnParser {
             val availability = availabilityFlag == "A" // A = Available, N = New/Not yet available
 
             // Determine if organic based on certification
-            val isOrganic = certification in listOf("DD", "DB", "DN", "IA", "EG")
+            val isOrganic = BnnCodeTables.certificationFor(certification)
+                ?.kind
+                ?.let { it != BnnCodeTables.CertificationKind.NONE }
+                ?: false
 
             // Build category from product name (first word often indicates category)
             val category = extractCategory(productName)
@@ -143,7 +147,12 @@ class BnnParser {
                 category = category,
                 imageUrl = "", // Not provided in BNN format
                 searchTerms = searchTerms,
-                detailInfo = buildDetailInfo(detailInfo, certification, packageDesc),
+                detailInfo = descriptionBuilder.build(
+                    bnnDetail = detailInfo,
+                    originCode = origin,
+                    certificationCode = certification,
+                    producerCode = supplier
+                ),
                 isOrganic = isOrganic,
                 barcode = barcode,
                 minOrderQuantity = 1.0, // Default to 1
@@ -215,29 +224,6 @@ class BnnParser {
         if (quality.isNotBlank()) terms.add(quality.lowercase())
 
         return terms.joinToString(",")
-    }
-
-    /**
-     * Build detailed product information from various fields.
-     */
-    private fun buildDetailInfo(detail: String, certification: String, packageDesc: String): String {
-        val parts = mutableListOf<String>()
-
-        if (detail.isNotBlank()) parts.add(detail)
-
-        val certName = when (certification) {
-            "DD" -> "Demeter"
-            "DB" -> "Bioland"
-            "DN" -> "Naturland"
-            "IA" -> "Bio (Italien)"
-            "EG" -> "EU-Bio"
-            else -> null
-        }
-        if (certName != null) parts.add(certName)
-
-        if (packageDesc.isNotBlank()) parts.add("Gebinde: $packageDesc")
-
-        return parts.joinToString(" | ")
     }
 
     /**
