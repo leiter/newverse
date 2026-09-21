@@ -6,7 +6,12 @@ import com.together.newverse.util.formatPrice
  * Represents a product within an order
  */
 data class OrderedProduct(
+    /** Usually empty: the buyer app never assigns it. */
     val id: String = "",
+    /**
+     * The database id of the ordered [Article] — not its BNN article number, despite
+     * the name. This is how the buyer app has always filled it.
+     */
     val productId: String = "-1",
     val productName: String = "",
     val unit: String = "",

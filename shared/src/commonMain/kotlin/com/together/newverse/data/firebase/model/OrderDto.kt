@@ -109,7 +109,7 @@ data class BuyerProfileDto(
  * Firebase DTO for OrderedProduct
  */
 data class OrderedProductDto(
-    val id: String = "",  // Firebase article ID
+    val id: String = "",  // usually empty; the article's database id is in productId
     val productId: String = "",
     val productName: String = "",
     val price: Double = 0.0,
@@ -118,7 +118,7 @@ data class OrderedProductDto(
 ) {
     fun toDomain(): OrderedProduct {
         return OrderedProduct(
-            id = id,  // Firebase article ID for matching
+            id = id,
             productId = productId,
             productName = productName,
             price = price,

@@ -104,9 +104,9 @@ fun List<Sale>.vatTotals(): List<VatTotal> =
  * @param actualQuantities What was handed over, one entry per line of [Order.articles]
  *   in the same order. A weighed amount replaces the ordered one; 0 means the item was
  *   missing, and the line is left out.
- * @param catalog The seller's articles by id, for the VAT rate and purchase price.
- *   An article no longer in the catalog is booked at the default rate with an unknown
- *   purchase price.
+ * @param catalog The seller's articles by id, for the VAT rate, purchase price and
+ *   article number. An article no longer in the catalog is booked at the default
+ *   rate with an unknown purchase price and no article number.
  */
 fun Order.toSale(
     actualQuantities: List<Double>,
@@ -121,10 +121,12 @@ fun Order.toSale(
     val lines = articles.zip(actualQuantities)
         .filter { (_, quantity) -> quantity > 0.0 }
         .map { (item, quantity) ->
-            val sellerArticle = catalog[item.id]
+            val sellerArticle = catalog.articleFor(item)
             SaleLine(
-                articleId = item.id,
-                productId = item.productId,
+                articleId = sellerArticle?.id ?: item.articleKey(),
+                // The article number of the catalog article; the order line only
+                // knows the database id, which means nothing to a tax advisor.
+                productId = sellerArticle?.article?.productId.orEmpty(),
                 productName = item.productName,
                 unit = item.unit,
                 quantity = quantity,
@@ -143,3 +145,16 @@ fun Order.toSale(
         lines = lines
     )
 }
+
+/**
+ * The catalog article an order line refers to, from a map keyed by article id.
+ *
+ * The buyer app puts the article's database id into [OrderedProduct.productId] and
+ * leaves [OrderedProduct.id] empty; [OrderedProduct.id] is only a fallback for
+ * lines written some other way.
+ */
+fun Map<String, SellerArticle>.articleFor(item: OrderedProduct): SellerArticle? =
+    this[item.productId] ?: item.id.takeIf { it.isNotEmpty() }?.let { this[it] }
+
+/** The id an order line refers to its article by. */
+private fun OrderedProduct.articleKey(): String = productId.takeIf { it.isNotEmpty() && it != "-1" } ?: id

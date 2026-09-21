@@ -346,8 +346,8 @@ class AbrechnungViewModelTest {
             catalogArticle("b", taxRate = TaxRate.STANDARD)
         ))
         orderRepository.setOrders(listOf(nextPickupOrder(
-            OrderedProduct(id = "a", productId = "bnn_a", price = 3.21, amountCount = 2.0),
-            OrderedProduct(id = "b", productId = "bnn_b", price = 11.90, amountCount = 1.0)
+            OrderedProduct(productId = "a", price = 3.21, amountCount = 2.0),
+            OrderedProduct(productId = "b", price = 11.90, amountCount = 1.0)
         )))
 
         val viewModel = createViewModel()
@@ -361,13 +361,14 @@ class AbrechnungViewModelTest {
     }
 
     @Test
-    fun `pickup forecast matches articles by id before BNN number`() = runTest {
+    fun `pickup forecast finds articles by the database id in productId`() = runTest {
+        // Two articles share a BNN number; the order line names one by database id.
         articleRepository.setArticles(listOf(
-            catalogArticle("a", productId = "bnn_a", acquirePrice = 1.0),
-            catalogArticle("b", productId = "bnn_a", acquirePrice = 2.0)
+            catalogArticle("a", productId = "112108", acquirePrice = 1.0),
+            catalogArticle("b", productId = "112108", acquirePrice = 2.0)
         ))
         orderRepository.setOrders(listOf(nextPickupOrder(
-            OrderedProduct(id = "b", productId = "bnn_a", price = 5.0, amountCount = 1.0)
+            OrderedProduct(productId = "b", price = 5.0, amountCount = 1.0)
         )))
 
         val viewModel = createViewModel()
@@ -377,10 +378,10 @@ class AbrechnungViewModelTest {
     }
 
     @Test
-    fun `pickup forecast does not match articles by a blank BNN number`() = runTest {
+    fun `pickup forecast treats a deleted article as unknown`() = runTest {
         articleRepository.setArticles(listOf(catalogArticle("manual", productId = "", acquirePrice = 9.0)))
         orderRepository.setOrders(listOf(nextPickupOrder(
-            OrderedProduct(id = "deleted", productId = "", price = 5.0, amountCount = 1.0)
+            OrderedProduct(productId = "deleted", price = 5.0, amountCount = 1.0)
         )))
 
         val viewModel = createViewModel()

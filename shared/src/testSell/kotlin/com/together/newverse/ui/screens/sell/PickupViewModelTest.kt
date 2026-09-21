@@ -40,9 +40,10 @@ class PickupViewModelTest {
         pickUpDate = 5_000L,
         status = OrderStatus.LOCKED,
         articles = listOf(
-            OrderedProduct(id = "apple", productId = "112108", productName = "Apfel Topaz",
+            // As the buyer app writes them: the article's database id in productId
+            OrderedProduct(productId = "apple", productName = "Apfel Topaz",
                 unit = "kg", price = 3.19, amountCount = 1.5),
-            OrderedProduct(id = "sweet", productId = "122654", productName = "Süßkartoffel",
+            OrderedProduct(productId = "sweet", productName = "Süßkartoffel",
                 unit = "kg", price = 4.62, amountCount = 1.0)
         )
     )

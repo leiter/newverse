@@ -10,6 +10,7 @@ import com.together.newverse.domain.model.Sale
 import com.together.newverse.domain.model.SalesCsv
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.TaxRate
+import com.together.newverse.domain.model.articleFor
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.SaleRepository
@@ -57,9 +58,8 @@ class AbrechnungViewModel(
     private val _periodSummary = MutableStateFlow<AsyncState<PeriodSummary>>(AsyncState.Loading)
     val periodSummary: StateFlow<AsyncState<PeriodSummary>> = _periodSummary.asStateFlow()
 
-    // Catalog for tax rate and purchase price lookups, by article id and BNN number
+    // Catalog for tax rate and purchase price lookups, by article id
     private var articlesById = mapOf<String, SellerArticle>()
-    private var articlesByProductId = mapOf<String, SellerArticle>()
     private var allOrders = listOf<Order>()
 
     init {
@@ -81,9 +81,6 @@ class AbrechnungViewModel(
                     .catch { }
                     .collect { catalog ->
                         articlesById = catalog.associateBy { it.id }
-                        articlesByProductId = catalog
-                            .filter { it.article.productId.isNotBlank() }
-                            .associateBy { it.article.productId }
                         recalculate()
                     }
             }
@@ -119,9 +116,7 @@ class AbrechnungViewModel(
         calculatePickupSummary()
     }
 
-    private fun lookupArticle(item: OrderedProduct): SellerArticle? =
-        articlesById[item.id]
-            ?: item.productId.takeIf { it.isNotBlank() }?.let { articlesByProductId[it] }
+    private fun lookupArticle(item: OrderedProduct): SellerArticle? = articlesById.articleFor(item)
 
     private fun calculatePickupSummary() {
         val tz = TimeZone.currentSystemDefault()

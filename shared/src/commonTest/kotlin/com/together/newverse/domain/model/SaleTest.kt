@@ -150,26 +150,27 @@ class SaleTest {
 
     // --- order to sale ---
 
+    // As the buyer app writes order lines: id empty, the article's database id in productId.
     private val order = Order(
         id = "order_1",
         pickUpDate = 900L,
         articles = listOf(
-            OrderedProduct(id = "apple", productId = "112108", productName = "Apfel Topaz",
+            OrderedProduct(productId = "apple", productName = "Apfel Topaz",
                 unit = "kg", price = 3.04, amountCount = 1.5),
-            OrderedProduct(id = "sweet", productId = "122654", productName = "Süßkartoffel",
+            OrderedProduct(productId = "sweet", productName = "Süßkartoffel",
                 unit = "kg", price = 4.62, amountCount = 1.0),
-            OrderedProduct(id = "gone", productId = "", productName = "Teesieb",
+            OrderedProduct(productId = "gone", productName = "Teesieb",
                 unit = "Stück", price = 1.19, amountCount = 2.0)
         )
     )
 
     private val catalog = mapOf(
         "apple" to SellerArticle(
-            Article(id = "apple", taxRate = TaxRate.REDUCED.rate),
+            Article(id = "apple", productId = "112108", taxRate = TaxRate.REDUCED.rate),
             SellerArticleData(acquirePrice = 1.96)
         ),
         "sweet" to SellerArticle(
-            Article(id = "sweet", taxRate = TaxRate.STANDARD.rate),
+            Article(id = "sweet", productId = "122654", taxRate = TaxRate.STANDARD.rate),
             SellerArticleData(acquirePrice = 0.0)   // recorded as unknown
         )
         // "gone" was deleted from the catalog since it was ordered
@@ -202,6 +203,34 @@ class SaleTest {
 
         assertEquals(TaxRate.default.rate, s.lines[2].taxRate)
         assertNull(s.lines[2].acquirePriceCents)
+        assertEquals("gone", s.lines[2].articleId)
+        assertEquals("", s.lines[2].productId, "no article number rather than a database id")
+    }
+
+    @Test
+    fun `order lines find their article by the database id in productId`() {
+        // The case found on a device: a 19 % article booked at 7 % because the
+        // lookup used OrderedProduct.id, which the buyer app leaves empty.
+        val s = order.toSale(listOf(1.5, 1.0, 2.0), catalog, confirmedAt = 1_000L)
+
+        assertEquals(listOf("apple", "sweet"), s.lines.take(2).map { it.articleId })
+        assertEquals(0.19, s.lines[1].taxRate)
+    }
+
+    @Test
+    fun `the article number comes from the catalog, not the order line`() {
+        val s = order.toSale(listOf(1.5, 1.0, 2.0), catalog, confirmedAt = 1_000L)
+
+        assertEquals(listOf("112108", "122654"), s.lines.take(2).map { it.productId })
+    }
+
+    @Test
+    fun `a line that names its article in id is still found`() {
+        val legacy = order.copy(articles = listOf(
+            OrderedProduct(id = "sweet", productId = "", productName = "Süßkartoffel", price = 4.62, amountCount = 1.0)
+        ))
+
+        assertEquals(0.19, legacy.toSale(listOf(1.0), catalog, 1_000L).lines.single().taxRate)
     }
 
     @Test
