@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.config.ProductCatalogConfig
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.ProductUnit
+import com.together.newverse.domain.model.SellerArticle
+import com.together.newverse.domain.model.SellerArticleData
 import com.together.newverse.domain.model.TaxRate
-import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.domain.repository.StorageRepository
 import com.together.newverse.ui.state.core.FormState
 import com.together.newverse.ui.state.core.clearFieldError
@@ -86,7 +88,7 @@ data class ProductFormData(
  * Handles product creation with image upload using FormState pattern.
  */
 class CreateProductViewModel(
-    private val articleRepository: ArticleRepository,
+    private val sellerArticleRepository: SellerArticleRepository,
     private val authRepository: AuthRepository,
     private val storageRepository: StorageRepository,
     private val catalogConfig: ProductCatalogConfig
@@ -114,6 +116,9 @@ class CreateProductViewModel(
     // Edit mode: holds the existing article's Firebase ID
     private var editingArticleId: String? = null
     val isEditMode: Boolean get() = editingArticleId != null
+
+    // Seller-only half as loaded for editing; null if the article has none yet
+    private var loadedSellerData: SellerArticleData? = null
 
     /** Available categories from config, exposed for UI dropdowns */
     val availableCategories: List<String> = catalogConfig.categories
@@ -194,17 +199,20 @@ class CreateProductViewModel(
     fun loadArticle(articleId: String) {
         viewModelScope.launch {
             val currentUserId = authRepository.getCurrentUserId() ?: return@launch
-            val result = articleRepository.getArticle(currentUserId, articleId)
-            result.onSuccess { article ->
+            val result = sellerArticleRepository.getSellerArticle(currentUserId, articleId)
+            result.onSuccess { sellerArticle ->
+                val article = sellerArticle.article
+                val sellerData = sellerArticle.sellerData
                 editingArticleId = article.id
+                loadedSellerData = sellerData
                 _formState.value = formStateOf(
                     ProductFormData(
                         productName = article.productName,
                         productId = article.productId,
                         searchTerms = article.searchTerms,
                         price = if (article.price > 0) article.price.toString() else "",
-                        acquirePrice = if (article.acquirePrice > 0) article.acquirePrice.toString() else "",
-                        markupFactor = if (article.markupFactor > 0) article.markupFactor.toString() else "1.0",
+                        acquirePrice = if (sellerData?.hasAcquirePrice == true) sellerData.acquirePrice.toString() else "",
+                        markupFactor = if (sellerData != null && sellerData.markupFactor > 0) sellerData.markupFactor.toString() else "1.0",
                         taxRate = TaxRate.fromRate(article.taxRate),
                         unit = article.unit.ifBlank { catalogConfig.defaultUnit },
                         category = article.category.ifBlank { catalogConfig.defaultCategory },
@@ -214,6 +222,11 @@ class CreateProductViewModel(
                         imageUrl = article.imageUrl
                     )
                 )
+            }.onFailure { error ->
+                // Not entering edit mode keeps a half-loaded form from being saved
+                // over the stored article.
+                println("❌ CreateProductViewModel.loadArticle: ${error.message}")
+                _formState.update { it.submitFailure("Failed to load product: ${error.message}") }
             }
         }
     }
@@ -360,8 +373,6 @@ class CreateProductViewModel(
                     productId = formData.productId,
                     productName = formData.productName,
                     price = formData.price.toDouble(),
-                    acquirePrice = formData.acquirePrice.toDoubleOrNull() ?: 0.0,
-                    markupFactor = formData.markupFactor.toDoubleOrNull() ?: 1.0,
                     taxRate = formData.taxRate.rate,
                     unit = formData.unit,
                     category = formData.category,
@@ -373,7 +384,10 @@ class CreateProductViewModel(
                 )
 
                 // Save to repository
-                val saveResult = articleRepository.saveArticle(sellerId, article)
+                val saveResult = sellerArticleRepository.saveSellerArticle(
+                    sellerId,
+                    SellerArticle(article = article, sellerData = sellerDataForSave(formData))
+                )
 
                 if (saveResult.isSuccess) {
                     _formState.update { it.submitSuccess() }
@@ -388,6 +402,25 @@ class CreateProductViewModel(
                 e.printStackTrace()
                 _formState.update { it.submitFailure(e.message ?: "Failed to save product") }
             }
+        }
+    }
+
+    /**
+     * The seller-only half to save, or null to leave the stored one untouched.
+     *
+     * The form edits only purchase price and markup; sourcing fields stored by the
+     * import (supplier, origin, …) are carried over from what was loaded. Without a
+     * loaded half there is nothing to preserve, so one is only created once the
+     * seller actually enters a purchase price.
+     */
+    private fun sellerDataForSave(form: ProductFormData): SellerArticleData? {
+        val acquire = form.acquirePrice.toDoubleOrNull()
+        val markup = form.markupFactor.toDoubleOrNull() ?: 1.0
+        val loaded = loadedSellerData
+        return when {
+            loaded != null -> loaded.copy(acquirePrice = acquire ?: 0.0, markupFactor = markup)
+            acquire != null && acquire > 0 -> SellerArticleData(acquirePrice = acquire, markupFactor = markup)
+            else -> null
         }
     }
 

@@ -2,9 +2,12 @@ package com.together.newverse.ui.screens.sell
 
 import app.cash.turbine.test
 import com.together.newverse.data.config.DefaultProductCatalogConfig
-import com.together.newverse.data.config.DefaultSellerConfig
-import com.together.newverse.test.FakeArticleRepository
+import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.SellerArticle
+import com.together.newverse.domain.model.SellerArticleData
+import com.together.newverse.domain.model.TaxRate
 import com.together.newverse.test.FakeAuthRepository
+import com.together.newverse.test.FakeSellerArticleRepository
 import com.together.newverse.test.FakeStorageRepository
 import com.together.newverse.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,20 +19,22 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CreateProductViewModelTest {
 
     private val dispatcherRule = MainDispatcherRule()
-    private lateinit var articleRepository: FakeArticleRepository
+    private lateinit var articleRepository: FakeSellerArticleRepository
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var storageRepository: FakeStorageRepository
 
     @BeforeTest
     fun setup() {
         dispatcherRule.setup()
-        articleRepository = FakeArticleRepository()
+        articleRepository = FakeSellerArticleRepository()
         authRepository = FakeAuthRepository()
         storageRepository = FakeStorageRepository()
     }
@@ -41,10 +46,9 @@ class CreateProductViewModelTest {
 
     private fun createViewModel(): CreateProductViewModel {
         return CreateProductViewModel(
-            articleRepository = articleRepository,
+            sellerArticleRepository = articleRepository,
             authRepository = authRepository,
             storageRepository = storageRepository,
-            sellerConfig = DefaultSellerConfig(),
             catalogConfig = DefaultProductCatalogConfig()
         )
     }
@@ -214,7 +218,7 @@ class CreateProductViewModelTest {
 
         // And article should be saved
         assertEquals(1, articleRepository.savedArticles.size)
-        val savedArticle = articleRepository.savedArticles[0].second
+        val savedArticle = articleRepository.savedArticles[0].second.article
         assertEquals("Test Product", savedArticle.productName)
         assertEquals(2.50, savedArticle.price)
         assertEquals("kg", savedArticle.unit)
@@ -244,7 +248,7 @@ class CreateProductViewModelTest {
         assertTrue(storageRepository.uploadedImages[0].imageData.contentEquals(imageData))
 
         // And saved article should have uploaded URL
-        val savedArticle = articleRepository.savedArticles[0].second
+        val savedArticle = articleRepository.savedArticles[0].second.article
         assertEquals(storageRepository.uploadedImageUrl, savedArticle.imageUrl)
     }
 
@@ -490,5 +494,159 @@ class CreateProductViewModelTest {
             assertFalse(state.fieldErrors.containsKey("productName"))
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ===== Seller-only purchase data =====
+
+    private val storedArticle = Article(
+        id = "article_1",
+        productId = "112108",
+        productName = "Apfel Topaz",
+        searchTerms = "apfel",
+        price = 3.5,
+        unit = "kg",
+        category = "Obst",
+        imageUrl = "https://example.com/apfel.jpg",
+        taxRate = TaxRate.REDUCED.rate
+    )
+
+    private val storedSellerData = SellerArticleData(
+        acquirePrice = 1.96,
+        markupFactor = 1.67,
+        supplier = "BOA",
+        origin = "DE",
+        certification = "DB",
+        barcode = "4012345678901"
+    )
+
+    private fun fillRequiredFields(viewModel: CreateProductViewModel) {
+        viewModel.onProductNameChange("Test Product")
+        viewModel.onSearchTermsChange("test,product")
+        viewModel.onPriceChange("2.50")
+        viewModel.onUnitChange("kg")
+        viewModel.onCategoryChange("Gemuse")
+        viewModel.onImageSelected(byteArrayOf(1, 2, 3, 4))
+    }
+
+    private fun lastSaved(): SellerArticle = articleRepository.savedArticles.last().second
+
+    @Test
+    fun `new product without purchase price stores no seller data`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        fillRequiredFields(viewModel)
+
+        viewModel.saveProduct()
+        advanceUntilIdle()
+
+        assertNull(lastSaved().sellerData)
+    }
+
+    @Test
+    fun `new product with purchase price stores it as seller data`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        fillRequiredFields(viewModel)
+        viewModel.onAcquirePriceChange("1.50")
+        viewModel.onMarkupFactorChange("1.5")
+
+        viewModel.saveProduct()
+        advanceUntilIdle()
+
+        val sellerData = assertNotNull(lastSaved().sellerData)
+        assertEquals(1.50, sellerData.acquirePrice)
+        assertEquals(1.5, sellerData.markupFactor)
+    }
+
+    @Test
+    fun `editing loads the purchase data into the form`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(SellerArticle(storedArticle, storedSellerData)))
+        val viewModel = createViewModel()
+
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.isEditMode)
+        assertEquals("1.96", viewModel.formState.value.data.acquirePrice)
+        assertEquals("1.67", viewModel.formState.value.data.markupFactor)
+    }
+
+    @Test
+    fun `editing keeps the sourcing data the form does not show`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(SellerArticle(storedArticle, storedSellerData)))
+        val viewModel = createViewModel()
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+
+        viewModel.onAcquirePriceChange("2.10")
+        viewModel.saveProduct()
+        advanceUntilIdle()
+
+        assertEquals(
+            storedSellerData.copy(acquirePrice = 2.10),
+            lastSaved().sellerData
+        )
+        assertEquals("article_1", lastSaved().id)
+    }
+
+    @Test
+    fun `editing an article without seller data does not invent any`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(SellerArticle(storedArticle, sellerData = null)))
+        val viewModel = createViewModel()
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+
+        viewModel.onPriceChange("3.90")
+        viewModel.saveProduct()
+        advanceUntilIdle()
+
+        assertNull(lastSaved().sellerData)
+        assertEquals(3.90, lastSaved().article.price)
+    }
+
+    @Test
+    fun `clearing the purchase price marks it unknown and keeps the rest`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(SellerArticle(storedArticle, storedSellerData)))
+        val viewModel = createViewModel()
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+
+        viewModel.onAcquirePriceChange("")
+        viewModel.saveProduct()
+        advanceUntilIdle()
+
+        val sellerData = assertNotNull(lastSaved().sellerData)
+        assertFalse(sellerData.hasAcquirePrice)
+        assertEquals("BOA", sellerData.supplier)
+    }
+
+    @Test
+    fun `tax rate is saved with the article`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        fillRequiredFields(viewModel)
+        viewModel.onTaxRateChange(TaxRate.STANDARD)
+
+        viewModel.saveProduct()
+        advanceUntilIdle()
+
+        assertEquals(TaxRate.STANDARD.rate, lastSaved().article.taxRate)
+    }
+
+    @Test
+    fun `failed load does not enter edit mode`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.shouldFailGetArticle = true
+        val viewModel = createViewModel()
+
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+
+        assertFalse(viewModel.isEditMode)
+        assertNotNull(viewModel.formState.value.submitError)
     }
 }

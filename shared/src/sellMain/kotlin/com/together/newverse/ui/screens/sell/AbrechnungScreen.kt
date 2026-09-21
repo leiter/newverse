@@ -41,6 +41,7 @@ import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -342,6 +343,18 @@ private fun FinancialSummaryCard(financials: OrderFinancials) {
                     bold = true,
                     highlight = true
                 )
+                if (financials.isGrossProfitIncomplete) {
+                    Text(
+                        text = pluralStringResource(
+                            Res.plurals.abrechnung_gross_profit_incomplete,
+                            financials.itemsWithoutAcquirePrice,
+                            financials.itemsWithoutAcquirePrice
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
         }
     }

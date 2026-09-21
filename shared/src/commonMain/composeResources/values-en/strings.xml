@@ -891,6 +891,10 @@
     <string name="abrechnung_net_total">Net Revenue</string>
     <string name="abrechnung_acquire_cost">Purchase Cost (net)</string>
     <string name="abrechnung_gross_profit">Gross Profit</string>
+    <plurals name="abrechnung_gross_profit_incomplete">
+        <item quantity="one">Gross profit incomplete: %d item without a purchase price</item>
+        <item quantity="other">Gross profit incomplete: %d items without a purchase price</item>
+    </plurals>
     <string name="abrechnung_period_week">7 days</string>
     <string name="abrechnung_period_month">30 days</string>
     <string name="abrechnung_period_all">All time</string>

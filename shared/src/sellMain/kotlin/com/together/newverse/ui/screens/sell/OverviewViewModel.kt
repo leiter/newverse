@@ -4,18 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.service.ProductImportService
 import com.together.newverse.domain.model.Article
-import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
-import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
-import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import kotlin.time.Clock
 import com.together.newverse.domain.model.Product
-import com.together.newverse.domain.model.toArticle
-import com.together.newverse.domain.repository.ArticleRepository
+import com.together.newverse.domain.model.SellerArticle
+import com.together.newverse.domain.model.toSellerArticle
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
+import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.ui.state.core.AsyncState
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +28,7 @@ import org.jetbrains.compose.resources.getString
  * ViewModel for Seller Overview/Dashboard screen
  */
 class OverviewViewModel(
-    private val articleRepository: ArticleRepository,
+    private val sellerArticleRepository: SellerArticleRepository,
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
     private val productImportService: ProductImportService
@@ -44,16 +43,19 @@ class OverviewViewModel(
     private val _currentFilter = MutableStateFlow(ProductFilter.ALL)
     val currentFilter: StateFlow<ProductFilter> = _currentFilter.asStateFlow()
 
-    private val articles = mutableListOf<Article>()
+    private var articles = listOf<SellerArticle>()
     private var activeOrdersCount = 0
     private var allOrders = listOf<Order>()
+    private var loadJob: Job? = null
 
     init {
         loadOverview()
     }
 
     private fun loadOverview() {
-        viewModelScope.launch {
+        // A refresh replaces the listeners instead of stacking another pair.
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _overviewState.value = AsyncState.Loading
 
             // Verify user is authenticated
@@ -67,33 +69,12 @@ class OverviewViewModel(
 
             // Observe both articles and orders
             launch {
-                // Observe articles for current seller
-                articleRepository.getArticles(sellerId)
+                sellerArticleRepository.observeSellerArticles(sellerId)
                     .catch { e ->
                         _overviewState.value = AsyncState.Error("Failed to load articles: ${e.message}", e)
                     }
-                    .collect { article ->
-                        // Update articles list based on mode
-                        when (article.mode) {
-                            MODE_ADDED -> {
-                                // Check if article already exists to avoid duplicates
-                                val existingIndex = articles.indexOfFirst { it.id == article.id }
-                                if (existingIndex >= 0) {
-                                    // Update existing article
-                                    articles[existingIndex] = article
-                                } else {
-                                    // Add new article
-                                    articles.add(article)
-                                }
-                            }
-                            MODE_CHANGED -> {
-                                val index = articles.indexOfFirst { it.id == article.id }
-                                if (index >= 0) articles[index] = article
-                            }
-                            MODE_REMOVED -> articles.removeAll { it.id == article.id }
-                        }
-
-                        // Update UI state with current data
+                    .collect { catalog ->
+                        articles = catalog
                         updateUiState()
                     }
             }
@@ -118,10 +99,11 @@ class OverviewViewModel(
     }
 
     private fun updateUiState() {
+        val publicArticles = articles.map { it.article }
         val filteredArticles = when (_currentFilter.value) {
-            ProductFilter.ALL -> articles.toList()
-            ProductFilter.AVAILABLE -> articles.filter { it.available }
-            ProductFilter.NOT_AVAILABLE -> articles.filter { !it.available }
+            ProductFilter.ALL -> publicArticles
+            ProductFilter.AVAILABLE -> publicArticles.filter { it.available }
+            ProductFilter.NOT_AVAILABLE -> publicArticles.filter { !it.available }
         }
 
         _overviewState.value = AsyncState.Success(
@@ -157,7 +139,7 @@ class OverviewViewModel(
     }
 
     fun refresh() {
-        articles.clear()
+        articles = emptyList()
         activeOrdersCount = 0
         allOrders = emptyList()
         loadOverview()
@@ -177,11 +159,11 @@ class OverviewViewModel(
             articleIds.forEach { articleId ->
                 try {
                     println("🗑️ Deleting article from Firebase: $articleId")
-                    val result = articleRepository.deleteArticle(sellerId, articleId)
+                    val result = sellerArticleRepository.deleteSellerArticle(sellerId, articleId)
                     result.onSuccess {
                         println("✅ Successfully deleted article: $articleId")
                         // Remove from local list
-                        articles.removeAll { it.id == articleId }
+                        articles = articles.filterNot { it.id == articleId }
                     }.onFailure { error ->
                         println("❌ Failed to delete article $articleId: ${error.message}")
                     }
@@ -212,19 +194,23 @@ class OverviewViewModel(
             articleIds.forEach { articleId ->
                 try {
                     // Find the article in local list
-                    val article = articles.find { it.id == articleId }
+                    val article = articles.find { it.id == articleId }?.article
                     if (article != null) {
                         // Update the article with new availability
                         val updatedArticle = article.copy(available = available)
                         println("📝 Updating article in Firebase: ${article.productName} (id=$articleId) -> available=$available")
 
-                        val result = articleRepository.saveArticle(sellerId, updatedArticle)
+                        // Public half only: availability says nothing about purchase
+                        // data, which may not even be loaded yet.
+                        val result = sellerArticleRepository.saveSellerArticle(
+                            sellerId,
+                            SellerArticle(article = updatedArticle, sellerData = null)
+                        )
                         result.onSuccess {
                             println("✅ Successfully updated article: ${article.productName}")
                             // Update local list
-                            val index = articles.indexOfFirst { it.id == articleId }
-                            if (index >= 0) {
-                                articles[index] = updatedArticle
+                            articles = articles.map {
+                                if (it.id == articleId) it.copy(article = updatedArticle) else it
                             }
                         }.onFailure { error ->
                             println("❌ Failed to update article $articleId: ${error.message}")
@@ -293,37 +279,18 @@ class OverviewViewModel(
             val sellerId = currentUserId
 
             try {
-                var successCount = 0
-                var errorCount = 0
-
-                // Save each product
-                products.forEach { product ->
-                    try {
-                        val article = product.toArticle()
-                        val result = articleRepository.saveArticle(sellerId, article)
-                        result.onSuccess {
-                            successCount++
-                            println("✅ Imported: ${product.productName}")
-                        }.onFailure { error ->
-                            errorCount++
-                            println("❌ Failed to import ${product.productName}: ${error.message}")
-                        }
-                    } catch (e: Exception) {
-                        errorCount++
-                        println("❌ Exception importing ${product.productName}: ${e.message}")
-                    }
-                }
-
-                _importState.value = ImportState.Success(
-                    importedCount = successCount,
-                    errorCount = errorCount
+                // One atomic update: the whole selection is imported, or none of it.
+                val result = sellerArticleRepository.saveSellerArticles(
+                    sellerId,
+                    products.map { it.toSellerArticle() }
                 )
-
-                // Refresh the list to show new products
-                if (successCount > 0) {
-                    refresh()
+                result.onSuccess { ids ->
+                    println("✅ Imported ${ids.size} products")
+                    _importState.value = ImportState.Success(importedCount = ids.size, errorCount = 0)
+                }.onFailure { error ->
+                    println("❌ Import failed: ${error.message}")
+                    _importState.value = ImportState.Success(importedCount = 0, errorCount = products.size)
                 }
-
             } catch (e: Exception) {
                 println("❌ Import failed: ${e.message}")
                 _importState.value = ImportState.Error(

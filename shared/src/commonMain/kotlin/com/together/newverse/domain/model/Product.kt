@@ -37,6 +37,7 @@ data class Product(
     val searchTerms: String = "",           // Comma-separated search terms
     val detailInfo: String = "",            // Detailed product description
     val isOrganic: Boolean = false,         // Organic certification flag
+    val certification: String = "",         // BNN IK code (DD, DB, EG, …)
     val barcode: String? = null,            // EAN barcode if available
 
     // Buyer-Specific
@@ -68,6 +69,24 @@ fun Article.toProduct(): Product = Product(
     acquirePrice = this.acquirePrice,
     markupFactor = this.markupFactor,
     taxRate = this.taxRate
+)
+
+/**
+ * The seller's view of an imported product: the public article plus everything
+ * the price list says about purchase price and sourcing.
+ */
+fun Product.toSellerArticle(): SellerArticle = SellerArticle(
+    article = toArticle(),
+    sellerData = SellerArticleData(
+        acquirePrice = acquirePrice,
+        markupFactor = markupFactor,
+        supplier = supplier,
+        origin = origin,
+        certification = certification,
+        quality = quality,
+        barcode = barcode.orEmpty(),
+        packageSize = packageSize
+    )
 )
 
 /**

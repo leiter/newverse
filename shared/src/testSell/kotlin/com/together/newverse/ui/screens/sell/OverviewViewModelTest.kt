@@ -1,7 +1,6 @@
 package com.together.newverse.ui.screens.sell
 
 import app.cash.turbine.test
-import com.together.newverse.domain.config.SellerConfig
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
@@ -10,10 +9,11 @@ import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.Product
+import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.service.ProductImportService
-import com.together.newverse.test.FakeArticleRepository
 import com.together.newverse.test.FakeAuthRepository
 import com.together.newverse.test.FakeOrderRepository
+import com.together.newverse.test.FakeSellerArticleRepository
 import com.together.newverse.test.MainDispatcherRule
 import com.together.newverse.ui.state.core.AsyncState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,6 +24,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 
@@ -45,19 +46,17 @@ import kotlin.time.Clock
 class OverviewViewModelTest {
 
     private val dispatcherRule = MainDispatcherRule()
-    private lateinit var articleRepository: FakeArticleRepository
+    private lateinit var articleRepository: FakeSellerArticleRepository
     private lateinit var orderRepository: FakeOrderRepository
     private lateinit var authRepository: FakeAuthRepository
-    private lateinit var sellerConfig: FakeSellerConfig
     private lateinit var productImportService: FakeProductImportService
 
     @BeforeTest
     fun setup() {
         dispatcherRule.setup()
-        articleRepository = FakeArticleRepository()
+        articleRepository = FakeSellerArticleRepository()
         orderRepository = FakeOrderRepository()
         authRepository = FakeAuthRepository()
-        sellerConfig = FakeSellerConfig()
         productImportService = FakeProductImportService()
     }
 
@@ -72,10 +71,9 @@ class OverviewViewModelTest {
     }
 
     private fun createViewModel() = OverviewViewModel(
-        articleRepository = articleRepository,
+        sellerArticleRepository = articleRepository,
         orderRepository = orderRepository,
         authRepository = authRepository,
-        sellerConfig = sellerConfig,
         productImportService = productImportService
     )
 
@@ -95,6 +93,22 @@ class OverviewViewModelTest {
             available = available,
             price = price,
             mode = mode
+        )
+    }
+
+    /**
+     * Applies an add/change/remove event to the fake's catalog, which the view
+     * model observes as whole snapshots.
+     */
+    private fun emitArticle(article: Article) {
+        val current = articleRepository.articles
+        articleRepository.setArticles(
+            when {
+                article.mode == MODE_REMOVED -> current.filterNot { it.id == article.id }
+                current.any { it.id == article.id } ->
+                    current.map { if (it.id == article.id) SellerArticle(article) else it }
+                else -> current + SellerArticle(article)
+            }
         )
     }
 
@@ -220,15 +234,15 @@ class OverviewViewModelTest {
     // ===== C. Article Management (4 tests) =====
 
     @Test
-    fun `adds articles when receiving MODE_ADDED`() = runTest {
+    fun `shows the articles of the catalog`() = runTest {
         // Given authenticated user
         authRepository.setCurrentUserId("seller_123")
         val viewModel = createViewModel()
         advanceUntilIdle()
 
         // When emitting articles with MODE_ADDED
-        articleRepository.emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("2", "Banana", mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
+        emitArticle(createArticle("2", "Banana", mode = MODE_ADDED))
         advanceUntilIdle()
 
         // Then articles are added to overview
@@ -242,18 +256,18 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun `updates articles when receiving MODE_CHANGED`() = runTest {
+    fun `reflects a changed article`() = runTest {
         // Given authenticated user and existing article
         authRepository.setCurrentUserId("seller_123")
         val viewModel = createViewModel()
         advanceUntilIdle()
 
         // Add initial article
-        articleRepository.emitArticle(createArticle("1", "Apple", price = 10.0, mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple", price = 10.0, mode = MODE_ADDED))
         advanceUntilIdle()
 
         // When updating article with MODE_CHANGED
-        articleRepository.emitArticle(createArticle("1", "Apple Updated", price = 15.0, mode = MODE_CHANGED))
+        emitArticle(createArticle("1", "Apple Updated", price = 15.0, mode = MODE_CHANGED))
         advanceUntilIdle()
 
         // Then article is updated (not duplicated)
@@ -268,19 +282,19 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun `removes articles when receiving MODE_REMOVED`() = runTest {
+    fun `drops a removed article`() = runTest {
         // Given authenticated user and existing articles
         authRepository.setCurrentUserId("seller_123")
         val viewModel = createViewModel()
         advanceUntilIdle()
 
         // Add initial articles
-        articleRepository.emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("2", "Banana", mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
+        emitArticle(createArticle("2", "Banana", mode = MODE_ADDED))
         advanceUntilIdle()
 
         // When removing article with MODE_REMOVED
-        articleRepository.emitArticle(createArticle("1", mode = MODE_REMOVED))
+        emitArticle(createArticle("1", mode = MODE_REMOVED))
         advanceUntilIdle()
 
         // Then article is removed
@@ -294,16 +308,16 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun `handles duplicate MODE_ADDED by updating`() = runTest {
+    fun `does not duplicate an article emitted twice`() = runTest {
         // Given authenticated user
         authRepository.setCurrentUserId("seller_123")
         val viewModel = createViewModel()
         advanceUntilIdle()
 
         // When emitting same article ID twice with MODE_ADDED
-        articleRepository.emitArticle(createArticle("1", "Apple v1", mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple v1", mode = MODE_ADDED))
         advanceUntilIdle()
-        articleRepository.emitArticle(createArticle("1", "Apple v2", mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple v2", mode = MODE_ADDED))
         advanceUntilIdle()
 
         // Then article is updated, not duplicated
@@ -325,8 +339,8 @@ class OverviewViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        articleRepository.emitArticle(createArticle("1", "Available", available = true, mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("2", "Not Available", available = false, mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Available", available = true, mode = MODE_ADDED))
+        emitArticle(createArticle("2", "Not Available", available = false, mode = MODE_ADDED))
         advanceUntilIdle()
 
         // When filter is ALL (default)
@@ -349,9 +363,9 @@ class OverviewViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        articleRepository.emitArticle(createArticle("1", "Available 1", available = true, mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("2", "Not Available", available = false, mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("3", "Available 2", available = true, mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Available 1", available = true, mode = MODE_ADDED))
+        emitArticle(createArticle("2", "Not Available", available = false, mode = MODE_ADDED))
+        emitArticle(createArticle("3", "Available 2", available = true, mode = MODE_ADDED))
         advanceUntilIdle()
 
         // When filter is AVAILABLE
@@ -375,9 +389,9 @@ class OverviewViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        articleRepository.emitArticle(createArticle("1", "Available", available = true, mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("2", "Not Available 1", available = false, mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("3", "Not Available 2", available = false, mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Available", available = true, mode = MODE_ADDED))
+        emitArticle(createArticle("2", "Not Available 1", available = false, mode = MODE_ADDED))
+        emitArticle(createArticle("3", "Not Available 2", available = false, mode = MODE_ADDED))
         advanceUntilIdle()
 
         // When filter is NOT_AVAILABLE
@@ -443,7 +457,7 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun `calculates revenue from completed and locked orders`() = runTest {
+    fun `revenue sums upcoming placed and locked orders`() = runTest {
         // Given authenticated user and orders with products
         authRepository.setCurrentUserId("seller_123")
 
@@ -476,21 +490,22 @@ class OverviewViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        // Then revenue = 20 + 15 + 8 = 43.0 (excludes PLACED)
+        // Then revenue = 8 + 100 = 108.0: open orders only, the completed one is past
         viewModel.overviewState.test {
             val state = awaitItem()
             assertIs<AsyncState.Success<OverviewData>>(state)
-            assertEquals(43.0, state.data.totalRevenue, 0.001)
+            assertEquals(108.0, state.data.totalRevenue, 0.001)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `revenue is zero when no completed orders`() = runTest {
-        // Given authenticated user and only placed orders
+    fun `revenue ignores cancelled and past orders`() = runTest {
+        // Given authenticated user, a past order and a cancelled one
         authRepository.setCurrentUserId("seller_123")
+        val yesterday = Clock.System.now().toEpochMilliseconds() - 86400000
         orderRepository.setOrders(listOf(
-            createOrder("1", OrderStatus.PLACED, articles = listOf(
+            createOrder("1", OrderStatus.PLACED, pickUpDate = yesterday, articles = listOf(
                 createOrderedProduct("p1", price = 100.0, amount = 1.0)
             )),
             createOrder("2", OrderStatus.CANCELLED, articles = listOf(
@@ -520,8 +535,8 @@ class OverviewViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        articleRepository.emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("2", "Banana", mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
+        emitArticle(createArticle("2", "Banana", mode = MODE_ADDED))
         advanceUntilIdle()
 
         // When deleting articles
@@ -541,8 +556,8 @@ class OverviewViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        articleRepository.emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("2", "Banana", mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
+        emitArticle(createArticle("2", "Banana", mode = MODE_ADDED))
         advanceUntilIdle()
 
         // When deleting one article
@@ -566,7 +581,7 @@ class OverviewViewModelTest {
         advanceUntilIdle()
 
         // Add article
-        articleRepository.emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
         advanceUntilIdle()
 
         // When user becomes unauthenticated and tries to delete
@@ -592,8 +607,8 @@ class OverviewViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        articleRepository.emitArticle(createArticle("1", "Apple", available = true, mode = MODE_ADDED))
-        articleRepository.emitArticle(createArticle("2", "Banana", available = true, mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple", available = true, mode = MODE_ADDED))
+        emitArticle(createArticle("2", "Banana", available = true, mode = MODE_ADDED))
         advanceUntilIdle()
 
         // When updating availability to false
@@ -602,7 +617,28 @@ class OverviewViewModelTest {
 
         // Then articles are saved with new availability
         assertEquals(2, articleRepository.savedArticles.size)
-        assertTrue(articleRepository.savedArticles.all { !it.second.available })
+        assertTrue(articleRepository.savedArticles.all { !it.second.article.available })
+    }
+
+    @Test
+    fun `updateArticlesAvailability never writes seller data`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(
+            SellerArticle(
+                createArticle("1", "Apple"),
+                com.together.newverse.domain.model.SellerArticleData(acquirePrice = 1.96, supplier = "BOA")
+            )
+        ))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.updateArticlesAvailability(setOf("1"), available = false)
+        advanceUntilIdle()
+
+        // The save carries the public half only …
+        assertNull(articleRepository.savedArticles.single().second.sellerData)
+        // … so the stored purchase data survives.
+        assertEquals(1.96, articleRepository.articles.single().sellerData?.acquirePrice)
     }
 
     @Test
@@ -612,7 +648,7 @@ class OverviewViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        articleRepository.emitArticle(createArticle("1", "Apple", available = true, mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple", available = true, mode = MODE_ADDED))
         advanceUntilIdle()
 
         // Set filter to AVAILABLE
@@ -647,7 +683,7 @@ class OverviewViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        articleRepository.emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
         advanceUntilIdle()
 
         // When user becomes unauthenticated
@@ -775,6 +811,27 @@ class OverviewViewModelTest {
     }
 
     @Test
+    fun `importSelectedProducts keeps purchase and sourcing data`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.importSelectedProducts(listOf(
+            Product(
+                productId = "112108", productName = "Apfel Topaz",
+                acquirePrice = 1.96, supplier = "BOA", origin = "DE", certification = "DB"
+            )
+        ))
+        advanceUntilIdle()
+
+        val sellerData = articleRepository.savedArticles.single().second.sellerData
+        assertEquals(1.96, sellerData?.acquirePrice)
+        assertEquals("BOA", sellerData?.supplier)
+        assertEquals("DE", sellerData?.origin)
+        assertEquals("DB", sellerData?.certification)
+    }
+
+    @Test
     fun `importSelectedProducts transitions to Success state`() = runTest {
         // Given authenticated user
         authRepository.setCurrentUserId("seller_123")
@@ -872,13 +929,13 @@ class OverviewViewModelTest {
     // ===== K. Refresh (2 tests) =====
 
     @Test
-    fun `refresh clears and reloads data`() = runTest {
+    fun `refresh reloads the catalog`() = runTest {
         // Given authenticated user and articles
         authRepository.setCurrentUserId("seller_123")
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        articleRepository.emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
+        emitArticle(createArticle("1", "Apple", mode = MODE_ADDED))
         advanceUntilIdle()
 
         // Verify initial data
@@ -893,15 +950,11 @@ class OverviewViewModelTest {
         viewModel.refresh()
         advanceUntilIdle()
 
-        // Then data is cleared (articles cleared, reload starts fresh)
+        // Then the catalog is observed afresh and shown again
         viewModel.overviewState.test {
             val state = awaitItem()
-            // After refresh, should be Loading or Success with cleared data
-            assertTrue(
-                state is AsyncState.Loading ||
-                (state is AsyncState.Success && state.data.totalProducts == 0),
-                "Expected Loading or Success with 0 products"
-            )
+            assertIs<AsyncState.Success<OverviewData>>(state)
+            assertEquals(1, state.data.totalProducts)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -928,10 +981,6 @@ class OverviewViewModelTest {
 }
 
 // ===== Test Fakes =====
-
-class FakeSellerConfig(
-    override val sellerId: String = "seller_123"
-) : SellerConfig
 
 class FakeProductImportService : ProductImportService {
     private var products: List<Product> = emptyList()

@@ -2,6 +2,7 @@ package com.together.newverse.ui.state
 
 import app.cash.turbine.test
 import com.together.newverse.test.FakeAuthRepository
+import com.together.newverse.test.FakeProfileRepository
 import com.together.newverse.test.MainDispatcherRule
 import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.core.AuthState
@@ -49,7 +50,8 @@ class SellAppViewModelTest {
     }
 
     private fun createViewModel() = SellAppViewModel(
-        authRepository = authRepository
+        authRepository = authRepository,
+        profileRepository = FakeProfileRepository()
     )
 
     // ===== A. Initial State (3 tests) =====

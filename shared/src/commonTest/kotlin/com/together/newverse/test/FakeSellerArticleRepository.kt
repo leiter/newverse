@@ -17,7 +17,8 @@ class FakeSellerArticleRepository : SellerArticleRepository {
     private val _articles = MutableStateFlow<List<SellerArticle>>(emptyList())
     val articles: List<SellerArticle> get() = _articles.value
 
-    // Track operations for verification
+    // Track operations for verification: what was asked to be saved (id assigned),
+    // not the merged result — so a save without seller data shows up as null here
     private val _savedArticles = mutableListOf<Pair<String, SellerArticle>>()
     val savedArticles: List<Pair<String, SellerArticle>> get() = _savedArticles.toList()
 
@@ -84,11 +85,9 @@ class FakeSellerArticleRepository : SellerArticleRepository {
     private fun store(sellerId: String, article: SellerArticle): String {
         val id = article.id.ifEmpty { "fake-article-${nextId++}" }
         val existing = _articles.value.find { it.id == id }
-        val stored = SellerArticle(
-            article = article.article.copy(id = id),
-            sellerData = article.sellerData ?: existing?.sellerData
-        )
-        _savedArticles.add(sellerId to stored)
+        val requested = article.copy(article = article.article.copy(id = id))
+        val stored = requested.copy(sellerData = article.sellerData ?: existing?.sellerData)
+        _savedArticles.add(sellerId to requested)
         _articles.value = if (existing == null) {
             _articles.value + stored
         } else {

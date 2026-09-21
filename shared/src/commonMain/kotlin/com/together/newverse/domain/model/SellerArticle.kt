@@ -9,7 +9,7 @@ package com.together.newverse.domain.model
  * articles could otherwise read every purchase price.
  */
 data class SellerArticleData(
-    val acquirePrice: Double = 0.0,     // Purchase price per unit in EUR (net)
+    val acquirePrice: Double = 0.0,     // Purchase price per unit in EUR (net); 0 = unknown
     val markupFactor: Double = 1.0,     // Applied on top of acquirePrice before tax
     val supplier: String = "",          // Supplier code (BTR, SCH, …)
     val origin: String = "",            // Country code or "REG"
@@ -17,7 +17,10 @@ data class SellerArticleData(
     val quality: String = "",           // Handelsklasse
     val barcode: String = "",           // EAN, empty if unknown
     val packageSize: Double = 0.0       // Gebinde size in [Article.unit]
-)
+) {
+    /** Whether a purchase price was recorded. Zero means unknown, never free. */
+    val hasAcquirePrice: Boolean get() = acquirePrice > 0.0
+}
 
 /**
  * The seller's view of an article: the public [article] every buyer sees, plus the

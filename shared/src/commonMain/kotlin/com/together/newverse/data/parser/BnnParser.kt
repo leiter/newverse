@@ -154,6 +154,7 @@ class BnnParser {
                     producerCode = supplier
                 ),
                 isOrganic = isOrganic,
+                certification = certification.trim(),
                 barcode = barcode,
                 minOrderQuantity = 1.0, // Default to 1
                 supplier = supplier,

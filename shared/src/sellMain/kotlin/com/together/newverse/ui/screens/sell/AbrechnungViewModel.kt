@@ -2,16 +2,14 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.together.newverse.domain.model.Article
-import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
-import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
-import com.together.newverse.domain.model.Article.Companion.MODE_REMOVED
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.OrderStatus
+import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.TaxRate
-import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
+import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +23,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
 class AbrechnungViewModel(
-    private val articleRepository: ArticleRepository,
+    private val sellerArticleRepository: SellerArticleRepository,
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
 ) : ViewModel() {
@@ -42,9 +40,9 @@ class AbrechnungViewModel(
     private val _periodSummary = MutableStateFlow<AsyncState<PeriodSummary>>(AsyncState.Loading)
     val periodSummary: StateFlow<AsyncState<PeriodSummary>> = _periodSummary.asStateFlow()
 
-    // productId → Article for tax/acquire cost lookups; id as fallback key
-    private val articlesByProductId = mutableMapOf<String, Article>()
-    private val articlesById = mutableMapOf<String, Article>()
+    // Catalog for tax rate and purchase price lookups, by article id and BNN number
+    private var articlesById = mapOf<String, SellerArticle>()
+    private var articlesByProductId = mapOf<String, SellerArticle>()
     private var allOrders = listOf<Order>()
 
     init {
@@ -60,20 +58,15 @@ class AbrechnungViewModel(
             }
 
             launch {
-                // Article lookup is best-effort; missing taxRate falls back to 7 %
-                articleRepository.getArticles(sellerId)
+                // Article lookup is best-effort; a missing article falls back to 7 %
+                // and an unknown purchase price
+                sellerArticleRepository.observeSellerArticles(sellerId)
                     .catch { }
-                    .collect { article ->
-                        when (article.mode) {
-                            MODE_ADDED, MODE_CHANGED -> {
-                                articlesByProductId[article.productId] = article
-                                articlesById[article.id] = article
-                            }
-                            MODE_REMOVED -> {
-                                articlesByProductId.remove(article.productId)
-                                articlesById.remove(article.id)
-                            }
-                        }
+                    .collect { catalog ->
+                        articlesById = catalog.associateBy { it.id }
+                        articlesByProductId = catalog
+                            .filter { it.article.productId.isNotBlank() }
+                            .associateBy { it.article.productId }
                         recalculate()
                     }
             }
@@ -98,8 +91,9 @@ class AbrechnungViewModel(
         calculatePeriodSummary()
     }
 
-    private fun lookupArticle(productId: String): Article? =
-        articlesByProductId[productId] ?: articlesById[productId]
+    private fun lookupArticle(item: OrderedProduct): SellerArticle? =
+        articlesById[item.id]
+            ?: item.productId.takeIf { it.isNotBlank() }?.let { articlesByProductId[it] }
 
     private fun calculatePickupSummary() {
         val tz = TimeZone.currentSystemDefault()
@@ -162,9 +156,11 @@ class AbrechnungViewModel(
         val grouped = mutableMapOf<String, AggregatedItem>()
         for (order in orders) {
             for (op in order.articles) {
-                val article = lookupArticle(op.productId)
-                val taxRate = article?.taxRate ?: TaxRate.REDUCED.rate
-                val acquirePricePerUnit = article?.acquirePrice ?: 0.0
+                val article = lookupArticle(op)
+                val taxRate = article?.article?.taxRate ?: TaxRate.REDUCED.rate
+                val acquirePricePerUnit = article?.sellerData
+                    ?.takeIf { it.hasAcquirePrice }
+                    ?.acquirePrice
                 val lineTotal = op.getTotalPrice()
 
                 val existing = grouped[op.productId]
@@ -195,6 +191,7 @@ class AbrechnungViewModel(
         var vatAmount7 = 0.0
         var vatAmount19 = 0.0
         var acquireCost = 0.0
+        var itemsWithoutAcquirePrice = 0
 
         for (item in items) {
             grossTotal += item.totalGross
@@ -205,7 +202,12 @@ class AbrechnungViewModel(
                 TaxRate.STANDARD -> vatAmount19 += vat
                 TaxRate.ZERO -> Unit
             }
-            acquireCost += item.acquirePricePerUnit * item.totalQuantity
+            val acquirePrice = item.acquirePricePerUnit
+            if (acquirePrice != null) {
+                acquireCost += acquirePrice * item.totalQuantity
+            } else {
+                itemsWithoutAcquirePrice++
+            }
         }
 
         return OrderFinancials(
@@ -214,7 +216,8 @@ class AbrechnungViewModel(
             vatAmount19 = vatAmount19,
             netTotal = grossTotal - vatAmount7 - vatAmount19,
             acquireCost = acquireCost,
-            grossProfit = (grossTotal - vatAmount7 - vatAmount19) - acquireCost
+            grossProfit = (grossTotal - vatAmount7 - vatAmount19) - acquireCost,
+            itemsWithoutAcquirePrice = itemsWithoutAcquirePrice
         )
     }
 }
@@ -231,7 +234,7 @@ data class AggregatedItem(
     val totalQuantity: Double,
     val totalGross: Double,
     val taxRate: Double,
-    val acquirePricePerUnit: Double
+    val acquirePricePerUnit: Double?    // null = purchase price unknown
 )
 
 data class OrderFinancials(
@@ -239,10 +242,14 @@ data class OrderFinancials(
     val vatAmount7: Double,
     val vatAmount19: Double,
     val netTotal: Double,
-    val acquireCost: Double,
-    val grossProfit: Double
+    val acquireCost: Double,            // Sum over items with a known purchase price
+    val grossProfit: Double,
+    val itemsWithoutAcquirePrice: Int = 0
 ) {
     val hasAcquireCost: Boolean get() = acquireCost > 0.01
+
+    /** Gross profit leaves out items whose purchase price is unknown, overstating it. */
+    val isGrossProfitIncomplete: Boolean get() = itemsWithoutAcquirePrice > 0
 }
 
 data class PickupSummary(

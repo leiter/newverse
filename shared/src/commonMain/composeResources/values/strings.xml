@@ -950,6 +950,10 @@
     <string name="abrechnung_net_total">Nettoumsatz</string>
     <string name="abrechnung_acquire_cost">Wareneinkauf (netto)</string>
     <string name="abrechnung_gross_profit">Rohertrag</string>
+    <plurals name="abrechnung_gross_profit_incomplete">
+        <item quantity="one">Rohertrag unvollständig: %d Artikel ohne Einkaufspreis</item>
+        <item quantity="other">Rohertrag unvollständig: %d Artikel ohne Einkaufspreis</item>
+    </plurals>
     <string name="abrechnung_period_week">7 Tage</string>
     <string name="abrechnung_period_month">30 Tage</string>
     <string name="abrechnung_period_all">Gesamt</string>
