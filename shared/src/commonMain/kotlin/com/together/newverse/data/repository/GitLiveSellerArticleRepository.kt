@@ -99,7 +99,11 @@ class GitLiveSellerArticleRepository(
             }
             rootRef.updateChildren(update)
 
-            println("✅ GitLiveSellerArticleRepository: saved ${ids.size} article(s)")
+            val withSellerData = articles.count { it.sellerData != null }
+            println(
+                "✅ GitLiveSellerArticleRepository: saved ${ids.size} article(s), " +
+                    "$withSellerData with seller-only data"
+            )
             Result.success(ids)
         } catch (e: Exception) {
             println("❌ GitLiveSellerArticleRepository.saveSellerArticles: Error - ${e.message}")
