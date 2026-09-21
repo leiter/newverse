@@ -1,0 +1,145 @@
+package com.together.newverse.domain.model
+
+/**
+ * A sale as it goes into the books: what was actually handed over at pickup, at the
+ * price, VAT rate and purchase price valid at that moment.
+ *
+ * A sale is created once, when the seller confirms a pickup, and never changed. It
+ * copies everything it needs instead of pointing at the order or the catalog, which
+ * the buyer or the seller can still edit afterwards. A mistake is corrected by a
+ * cancellation — a second sale with negated quantities, see [reversal] — followed
+ * by a new confirmation.
+ */
+data class Sale(
+    val id: String = "",
+    val orderId: String,
+    /** When the seller confirmed the pickup; the booking date. Epoch milliseconds. */
+    val confirmedAt: Long,
+    /** The order's pickup date, for reference. Epoch milliseconds. */
+    val pickUpDate: Long,
+    val lines: List<SaleLine>,
+    /** Id of the sale this one cancels; null for an ordinary sale. */
+    val reverses: String? = null
+) {
+    val isReversal: Boolean get() = reverses != null
+
+    val grossCents: Long get() = lines.sumOf { it.grossCents }
+    val netCents: Long get() = lines.sumOf { it.netCents }
+    val vatCents: Long get() = lines.sumOf { it.vatCents }
+
+    /**
+     * The cancellation of this sale: same lines with negated quantities, so every
+     * amount is exactly the negative of the original.
+     */
+    fun reversal(confirmedAt: Long): Sale {
+        require(!isReversal) { "A cancellation cannot itself be cancelled" }
+        require(id.isNotEmpty()) { "Only a stored sale can be cancelled" }
+        return Sale(
+            orderId = orderId,
+            confirmedAt = confirmedAt,
+            pickUpDate = pickUpDate,
+            lines = lines.map { it.copy(quantity = -it.quantity) },
+            reverses = id
+        )
+    }
+}
+
+/**
+ * One article of a [Sale].
+ *
+ * Amounts are derived per line and rounded to the cent here, once: the export shows
+ * these line amounts, and every total is their sum.
+ */
+data class SaleLine(
+    val articleId: String,
+    /** BNN article number; empty for articles created by hand. */
+    val productId: String,
+    val productName: String,
+    val unit: String,
+    /** The amount actually handed over, in [unit]; negative in a cancellation. */
+    val quantity: Double,
+    /** Gross price per unit, as the buyer ordered it. */
+    val unitPriceCents: Long,
+    val taxRate: Double,
+    /** Net purchase price per unit; null when the seller never recorded one. */
+    val acquirePriceCents: Long? = null
+) {
+    val grossCents: Long get() = Money.roundHalfAwayFromZero(quantity * unitPriceCents)
+
+    /** Net is split off the gross amount; VAT is the rest, so the two always add up. */
+    val netCents: Long get() = Money.roundHalfAwayFromZero(grossCents / (1.0 + taxRate))
+
+    val vatCents: Long get() = grossCents - netCents
+
+    /** Purchase cost of this line, or null when the purchase price is unknown. */
+    val acquireCostCents: Long?
+        get() = acquirePriceCents?.let { Money.roundHalfAwayFromZero(quantity * it) }
+}
+
+/** Net, VAT and gross of all lines at one VAT rate. */
+data class VatTotal(
+    val taxRate: Double,
+    val netCents: Long,
+    val vatCents: Long,
+    val grossCents: Long
+)
+
+/** Totals per VAT rate over any number of sales, cancellations included. */
+fun List<Sale>.vatTotals(): List<VatTotal> =
+    flatMap { it.lines }
+        .groupBy { it.taxRate }
+        .map { (rate, lines) ->
+            VatTotal(
+                taxRate = rate,
+                netCents = lines.sumOf { it.netCents },
+                vatCents = lines.sumOf { it.vatCents },
+                grossCents = lines.sumOf { it.grossCents }
+            )
+        }
+        .sortedBy { it.taxRate }
+
+/**
+ * The sale for this order's pickup.
+ *
+ * @param actualQuantities What was handed over, one entry per line of [Order.articles]
+ *   in the same order. A weighed amount replaces the ordered one; 0 means the item was
+ *   missing, and the line is left out.
+ * @param catalog The seller's articles by id, for the VAT rate and purchase price.
+ *   An article no longer in the catalog is booked at the default rate with an unknown
+ *   purchase price.
+ */
+fun Order.toSale(
+    actualQuantities: List<Double>,
+    catalog: Map<String, SellerArticle>,
+    confirmedAt: Long
+): Sale {
+    require(actualQuantities.size == articles.size) {
+        "One actual quantity per order line: ${articles.size} lines, ${actualQuantities.size} quantities"
+    }
+    require(actualQuantities.none { it < 0.0 }) { "Quantities handed over cannot be negative" }
+
+    val lines = articles.zip(actualQuantities)
+        .filter { (_, quantity) -> quantity > 0.0 }
+        .map { (item, quantity) ->
+            val sellerArticle = catalog[item.id]
+            SaleLine(
+                articleId = item.id,
+                productId = item.productId,
+                productName = item.productName,
+                unit = item.unit,
+                quantity = quantity,
+                unitPriceCents = Money.toCents(item.price),
+                taxRate = sellerArticle?.article?.taxRate ?: TaxRate.default.rate,
+                acquirePriceCents = sellerArticle?.sellerData
+                    ?.takeIf { it.hasAcquirePrice }
+                    ?.let { Money.toCents(it.acquirePrice) }
+            )
+        }
+
+    return Sale(
+        orderId = id,
+        confirmedAt = confirmedAt,
+        pickUpDate = pickUpDate,
+        lines = lines
+    )
+}
