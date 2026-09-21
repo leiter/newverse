@@ -48,6 +48,11 @@ halves of an article in one multi-path update, so a deployed ruleset without
 `seller_articles` rejects those writes entirely — including deleting an
 article. Deploy the rules before releasing an app version that writes there.
 
+`sales.test.js` covers the seller's books: `sales` and `sale_index` can only
+be added to. Not even the seller may change or delete a booked sale — a mistake
+is corrected by recording a cancellation. A sale and its index entry have to be
+written together and point at each other.
+
 ## Notes
 
 - The suite runs single threaded (`--test-concurrency=1`): the emulator holds

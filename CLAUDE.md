@@ -129,6 +129,8 @@ Realtime Database, top-level node first, then owner:
 /articles/{sellerId}/{articleId}          # Public product data, readable by every signed-in user
 /seller_articles/{sellerId}/{articleId}   # Seller-only: purchase price, markup, sourcing
 /orders/{sellerId}/{yyyyMMdd}/{orderId}   # Orders by pickup date
+/sales/{sellerId}/{yyyyMM}/{saleId}        # Booked sales (seller-only, add-only)
+/sale_index/{sellerId}/{orderId}/{saleId}  # = yyyyMM: which sales belong to an order
 /seller_profile/{sellerId}                # Seller profile
 /buyer_profile/{buyerId}                  # Buyer profile with order history
 ```

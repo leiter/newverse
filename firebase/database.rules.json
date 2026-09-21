@@ -15,6 +15,28 @@
         }
       }
     },
+    "sales": {
+      "$sellerId": {
+        ".read": "auth != null && auth.uid === $sellerId",
+        "$month": {
+          "$saleId": {
+            ".write": "auth != null && auth.uid === $sellerId && !data.exists()",
+            ".validate": "$month.matches(/^[0-9]{6}$/) && newData.hasChildren(['orderId', 'confirmedAt', 'lines']) && newData.parent().parent().parent().parent().child('sale_index').child($sellerId).child(newData.child('orderId').val()).child($saleId).val() === $month"
+          }
+        }
+      }
+    },
+    "sale_index": {
+      "$sellerId": {
+        ".read": "auth != null && auth.uid === $sellerId",
+        "$orderId": {
+          "$saleId": {
+            ".write": "auth != null && auth.uid === $sellerId && !data.exists()",
+            ".validate": "newData.isString() && newData.parent().parent().parent().parent().child('sales').child($sellerId).child(newData.val()).child($saleId).child('orderId').val() === $orderId"
+          }
+        }
+      }
+    },
     "seller_profile": {
       "$sellerId": {
         ".read": "auth != null && auth.uid === $sellerId",
