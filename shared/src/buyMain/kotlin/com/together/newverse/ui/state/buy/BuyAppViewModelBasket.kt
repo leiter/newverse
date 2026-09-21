@@ -917,21 +917,38 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
 
             val buyerProfile = getBuyerProfileOrFallback(currentUserId)
             val isDemo = _state.value.isDemoMode
+            val isLocalDemo = isDemo && orderId.startsWith("demo_")
 
-            val updatedOrder = Order(
-                id = orderId,
-                buyerProfile = buyerProfile,
-                createdDate = createdDate,
-                sellerId = sellerConfig.sellerId,
-                marketId = "",
-                pickUpDate = pickupDate,
-                message = "",
-                articles = items,
-                isDemoOrder = isDemo
-            )
+            val updatedOrder = if (isLocalDemo) {
+                Order(
+                    id = orderId,
+                    buyerProfile = buyerProfile,
+                    createdDate = createdDate,
+                    sellerId = sellerConfig.sellerId,
+                    marketId = "",
+                    pickUpDate = pickupDate,
+                    message = "",
+                    articles = items,
+                    isDemoOrder = true
+                )
+            } else {
+                // Change the stored order, not a rebuilt one: updateOrder writes the
+                // whole order, and a rebuilt one would drop what the buyer app does
+                // not hold — the message, the market, and the seller having hidden it.
+                val root = if (isDemo) "demo_orders" else "orders"
+                val dateKey = basketState.orderDate
+                    ?: OrderDateUtils.formatDateKey(Instant.fromEpochMilliseconds(pickupDate))
+                val stored = orderRepository
+                    .loadOrder(sellerConfig.sellerId, orderId, "$root/${sellerConfig.sellerId}/$dateKey/$orderId")
+                    .getOrElse {
+                        setBasketError("Bestellung konnte nicht geladen werden")
+                        return@launch
+                    }
+                stored.copy(buyerProfile = buyerProfile, articles = items)
+            }
 
             val result = if (isDemo) {
-                if (orderId.startsWith("demo_")) {
+                if (isLocalDemo) {
                     runCatching {
                         sellerConfig.updateDemoOrder(updatedOrder)
                         loadOrderHistory()
