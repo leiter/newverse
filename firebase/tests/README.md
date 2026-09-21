@@ -40,6 +40,14 @@ seed data in a shape the old approval mechanism didn't use, and the read
 receipt test fails because read receipts were genuinely broken under the old
 rules.)
 
+## Rules the app depends on
+
+`articles.test.js` covers `seller_articles`, the seller-only half of every
+article (purchase price, markup, sourcing). The app writes and deletes both
+halves of an article in one multi-path update, so a deployed ruleset without
+`seller_articles` rejects those writes entirely — including deleting an
+article. Deploy the rules before releasing an app version that writes there.
+
 ## Notes
 
 - The suite runs single threaded (`--test-concurrency=1`): the emulator holds

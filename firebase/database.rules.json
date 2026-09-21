@@ -6,6 +6,15 @@
         ".write": "auth != null && $sellerId === auth.uid"
       }
     },
+    "seller_articles": {
+      "$sellerId": {
+        ".read": "auth != null && auth.uid === $sellerId",
+        ".write": "auth != null && auth.uid === $sellerId",
+        "$articleId": {
+          ".validate": "newData.parent().parent().parent().child('articles').child($sellerId).child($articleId).exists()"
+        }
+      }
+    },
     "seller_profile": {
       "$sellerId": {
         ".read": "auth != null && auth.uid === $sellerId",
