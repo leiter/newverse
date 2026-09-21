@@ -51,6 +51,7 @@ import kotlinx.datetime.number
 import newverse.shared.generated.resources.*
 import newverse.shared.generated.resources.Res
 import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -351,18 +352,12 @@ private fun periodLabel(period: BookingPeriod): String = when (period) {
     }
     is BookingPeriod.Month -> stringResource(
         Res.string.abrechnung_month_label,
-        stringResource(MONTH_NAMES[period.month - 1]),
+        stringArrayResource(Res.array.month_names)[period.month - 1],
         period.year
     )
 }
 
 private fun Int.pad2() = toString().padStart(2, '0')
-
-private val MONTH_NAMES = listOf(
-    Res.string.month_1, Res.string.month_2, Res.string.month_3, Res.string.month_4,
-    Res.string.month_5, Res.string.month_6, Res.string.month_7, Res.string.month_8,
-    Res.string.month_9, Res.string.month_10, Res.string.month_11, Res.string.month_12
-)
 
 // ─── Shared components ─────────────────────────────────────────────────────
 
