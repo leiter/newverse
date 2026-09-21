@@ -1,51 +1,15 @@
-# Kotlin
--keep class kotlin.** { *; }
--keep class kotlinx.** { *; }
+# Libraries (Kotlin, kotlinx, Compose, Firebase, Koin, Coil, WorkManager) ship their
+# own consumer R8 rules. Do not add package-wide `-keep class lib.** { *; }` rules here:
+# they disable shrinking/obfuscation for the whole library (Play "App-Optimierung: Niedrig").
 
-# Compose
--keep class androidx.compose.** { *; }
--dontwarn androidx.compose.**
-
-# Firebase
--keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }
--dontwarn com.google.firebase.**
--dontwarn com.google.android.gms.**
-
-# Koin
--keep class org.koin.** { *; }
--keep class kotlin.reflect.** { *; }
-
-# Keep data classes used for Firebase serialization
--keepclassmembers class com.together.newverse.data.firebase.model.** {
-    <fields>;
-    <init>(...);
-}
+# Firebase Android SDK reads OrderDto by reflection
+# (sell: ListenerService -> getValue(OrderDto::class.java))
 -keep class com.together.newverse.data.firebase.model.** { *; }
 
-# Keep domain models
--keep class com.together.newverse.domain.model.** { *; }
+# Move obfuscated classes into a single package (smaller DEX)
+-repackageclasses
 
-# Coroutines
--keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
--keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
-
-# Coil (Image loading)
--keep class coil3.** { *; }
+-dontwarn androidx.compose.**
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
 -dontwarn coil3.**
-
-# Keep enums
--keepclassmembers enum * {
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
-}
-
-# Keep Serializable classes
--keepclassmembers class * implements java.io.Serializable {
-    static final long serialVersionUID;
-    private static final java.io.ObjectStreamField[] serialPersistentFields;
-    private void writeObject(java.io.ObjectOutputStream);
-    private void readObject(java.io.ObjectInputStream);
-    java.lang.Object writeReplace();
-    java.lang.Object readResolve();
-}
