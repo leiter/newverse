@@ -24,4 +24,7 @@ interface ProductCatalogConfig {
 
     /** Default tax rate for new products */
     val defaultTaxRate: TaxRate
+
+    /** Markup applied to purchase prices when importing a price list, e.g. 1.45 for 45 % */
+    val importMarkupFactor: Double
 }

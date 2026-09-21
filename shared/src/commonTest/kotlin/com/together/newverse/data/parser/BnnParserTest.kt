@@ -1,5 +1,6 @@
 package com.together.newverse.data.parser
 
+import com.together.newverse.domain.model.TaxRate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -35,7 +36,8 @@ class BnnParserTest {
      * Key positions, 0-indexed, matching a real Terra price list:
      * 0=productId, 1=availability, 4=barcode, 6=name, 7=detail,
      * 9=quality, 10=supplier, 12=origin, 13=certification,
-     * 21=packageDesc, 22=packageSize, 23=unit, 37=price, 68=weightPerPiece
+     * 21=packageDesc, 22=packageSize, 23=unit, 33=VAT code, 37=purchase price,
+     * 68=weightPerPiece
      */
     private fun createBnnLine(
         productId: String = "12345",
@@ -50,7 +52,8 @@ class BnnParserTest {
         packageDesc: String = "6 KG",
         packageSize: String = "6,000",
         unit: String = "KG",
-        price: String = "12,50",
+        acquirePrice: String = "12,50",
+        taxCode: String = "1",
         weightPerPiece: String = "0,200"
     ): String {
         // Create array of 70 empty fields
@@ -69,7 +72,8 @@ class BnnParserTest {
         fields[21] = packageDesc
         fields[22] = packageSize
         fields[23] = unit
-        fields[37] = price
+        fields[33] = taxCode
+        fields[37] = acquirePrice
         fields[68] = weightPerPiece
 
         return fields.joinToString(";")
@@ -144,9 +148,9 @@ class BnnParserTest {
     }
 
     @Test
-    fun `parse extracts pricing and unit fields`() {
+    fun `parse extracts purchase price and unit fields`() {
         val line = createBnnLine(
-            price = "15,99",
+            acquirePrice = "15,99",
             unit = "KG",
             packageSize = "5,500",
             weightPerPiece = "0,350"
@@ -157,7 +161,7 @@ class BnnParserTest {
 
         assertEquals(1, result.size)
         val product = result[0]
-        assertEquals(15.99, product.price, 0.001)
+        assertEquals(15.99, product.acquirePrice, 0.001)
         assertEquals("KG", product.unit)
         assertEquals(5.5, product.packageSize, 0.001)
         assertEquals(0.35, product.weightPerPiece, 0.001)
@@ -206,7 +210,7 @@ class BnnParserTest {
     @Test
     fun `parse sets default values for empty numeric fields`() {
         val line = createBnnLine(
-            price = "",
+            acquirePrice = "",
             packageSize = "",
             weightPerPiece = ""
         )
@@ -216,52 +220,104 @@ class BnnParserTest {
 
         assertEquals(1, result.size)
         val product = result[0]
-        assertEquals(0.0, product.price, 0.001)
+        assertEquals(0.0, product.acquirePrice, 0.001)
         assertEquals(0.0, product.packageSize, 0.001)
         assertEquals(0.0, product.weightPerPiece, 0.001)
+    }
+
+    // ===== Prices and VAT =====
+
+    @Test
+    fun `purchase price comes from field 37, not the retail price in field 35`() {
+        // Terra leaves the recommended retail price (35) at 0,00 in every row.
+        val fields = createBnnLine(acquirePrice = "1,96").split(";").toMutableList()
+        fields[35] = "0,00"
+        val result = parser.parse(createBnnFile(fields.joinToString(";")))
+
+        assertEquals(1.96, result.single().acquirePrice, 0.001)
+    }
+
+    @Test
+    fun `selling price applies markup and VAT to the purchase price`() {
+        val marked = BnnParser(markupFactor = 1.45)
+        val result = marked.parse(createBnnFile(createBnnLine(acquirePrice = "2,00", taxCode = "1")))
+
+        val product = result.single()
+        assertEquals(3.1, product.price, 0.001)          // 2.00 × 1.45 × 1.07 = 3.103
+        assertEquals(1.45, product.markupFactor, 0.001)
+    }
+
+    @Test
+    fun `VAT code 1 is the reduced rate`() {
+        val result = parser.parse(createBnnFile(createBnnLine(taxCode = "1")))
+
+        assertEquals(TaxRate.REDUCED.rate, result.single().taxRate)
+    }
+
+    @Test
+    fun `VAT code 2 is the standard rate`() {
+        val result = parser.parse(createBnnFile(createBnnLine(acquirePrice = "2,68", taxCode = "2")))
+
+        val product = result.single()
+        assertEquals(TaxRate.STANDARD.rate, product.taxRate)
+        assertEquals(3.19, product.price, 0.001)         // 2.68 × 1.0 × 1.19 = 3.189
+    }
+
+    @Test
+    fun `unknown VAT code falls back to the default rate`() {
+        val result = parser.parse(createBnnFile(createBnnLine(taxCode = "")))
+
+        assertEquals(TaxRate.default.rate, result.single().taxRate)
+    }
+
+    @Test
+    fun `without a purchase price there is no selling price`() {
+        val result = parser.parse(createBnnFile(createBnnLine(acquirePrice = "")))
+
+        assertEquals(0.0, result.single().price, 0.001)
     }
 
     // ===== C. Number Parsing (4 tests) =====
 
     @Test
     fun `parse converts German comma decimal to double`() {
-        val line = createBnnLine(price = "123,45")
+        val line = createBnnLine(acquirePrice = "123,45")
         val content = createBnnFile(line)
 
         val result = parser.parse(content)
 
-        assertEquals(123.45, result[0].price, 0.001)
+        assertEquals(123.45, result[0].acquirePrice, 0.001)
     }
 
     @Test
     fun `parse handles integer values without decimal`() {
-        val line = createBnnLine(price = "100")
+        val line = createBnnLine(acquirePrice = "100")
         val content = createBnnFile(line)
 
         val result = parser.parse(content)
 
-        assertEquals(100.0, result[0].price, 0.001)
+        assertEquals(100.0, result[0].acquirePrice, 0.001)
     }
 
     @Test
     fun `parse handles values with leading zeros`() {
-        val line = createBnnLine(price = "007,50")
+        val line = createBnnLine(acquirePrice = "007,50")
         val content = createBnnFile(line)
 
         val result = parser.parse(content)
 
-        assertEquals(7.5, result[0].price, 0.001)
+        assertEquals(7.5, result[0].acquirePrice, 0.001)
     }
 
     @Test
     fun `parse returns zero for invalid numeric values`() {
-        val line = createBnnLine(price = "abc", packageSize = "n/a")
+        val line = createBnnLine(acquirePrice = "abc", packageSize = "n/a")
         val content = createBnnFile(line)
 
         val result = parser.parse(content)
 
         assertEquals(1, result.size)
-        assertEquals(0.0, result[0].price, 0.001)
+        assertEquals(0.0, result[0].acquirePrice, 0.001)
         assertEquals(0.0, result[0].packageSize, 0.001)
     }
 
@@ -795,7 +851,7 @@ class BnnParserTest {
             packageDesc = "6 KG Kiste",
             packageSize = "6,000",
             unit = "KG",
-            price = "18,50",
+            acquirePrice = "18,50",
             weightPerPiece = "0,180"
         )
 
@@ -812,7 +868,7 @@ class BnnParserTest {
             packageDesc = "12 Bund",
             packageSize = "12,000",
             unit = "BD",
-            price = "1,20",
+            acquirePrice = "1,20",
             weightPerPiece = "0,300"
         )
 
@@ -829,7 +885,7 @@ class BnnParserTest {
             packageDesc = "6 x 500g",
             packageSize = "3,000",
             unit = "KG",
-            price = "8,99",
+            acquirePrice = "8,99",
             weightPerPiece = "0,500"
         )
 
@@ -844,7 +900,7 @@ class BnnParserTest {
         assertNotNull(appleProduct)
         assertEquals("Apfel Elstar", appleProduct.productName)
         assertEquals("Obst", appleProduct.category)
-        assertEquals(18.50, appleProduct.price, 0.001)
+        assertEquals(18.50, appleProduct.acquirePrice, 0.001)
         assertTrue(appleProduct.availability)
         assertTrue(appleProduct.isOrganic)
         assertEquals("4012345000001", appleProduct.barcode)

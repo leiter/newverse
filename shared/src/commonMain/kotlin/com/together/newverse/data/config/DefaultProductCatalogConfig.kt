@@ -15,4 +15,5 @@ class DefaultProductCatalogConfig : ProductCatalogConfig {
     override val defaultUnit: String = ProductUnit.KG.displayName
     override val taxRates: List<TaxRate> = TaxRate.entries
     override val defaultTaxRate: TaxRate = TaxRate.REDUCED
+    override val importMarkupFactor: Double = 1.45
 }

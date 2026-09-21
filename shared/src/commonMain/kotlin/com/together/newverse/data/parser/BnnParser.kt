@@ -2,6 +2,8 @@ package com.together.newverse.data.parser
 
 import com.together.newverse.domain.model.Product
 import com.together.newverse.domain.model.ProductCategory
+import com.together.newverse.domain.model.ProductPricing
+import com.together.newverse.domain.model.TaxRate
 
 /**
  * Parser for BNN (Bio-Naturkost-Norm) format data files.
@@ -23,11 +25,20 @@ import com.together.newverse.domain.model.ProductCategory
  * 21 = Package Description (e.g., "6 KG")
  * 22 = Package Size (numeric, e.g., 6.000)
  * 23 = Unit (KG, ST, BT, SC, etc.)
- * 37 = Price (numeric with comma as decimal separator)
+ * 33 = VAT code: 1 = reduced (7 %), 2 = standard (19 %)
+ * 35 = Recommended retail price — empty (0,00) in Terra's lists, not used
+ * 37 = Purchase price: the wholesaler's net price per unit, comma decimal
  * 67 = Base Unit for calculation
  * 68 = Weight per piece
+ *
+ * The selling price is not in the file: it is derived from the purchase price with
+ * [markupFactor] and the VAT rate, the same way the seller's product form does.
+ *
+ * @param markupFactor Markup applied to the purchase price, e.g. 1.45 for 45 %.
  */
-class BnnParser {
+class BnnParser(
+    private val markupFactor: Double = 1.0
+) {
 
     private val descriptionBuilder = ProductDescriptionBuilder()
 
@@ -47,8 +58,8 @@ class BnnParser {
         private const val POS_CERTIFICATION = 13
         private const val POS_PACKAGE_SIZE = 22
         private const val POS_UNIT = 23
-        private const val POS_ACQUIRE_PRICE = 35
-        private const val POS_PRICE = 37
+        private const val POS_TAX_CODE = 33
+        private const val POS_ACQUIRE_PRICE = 37
         private const val POS_BASE_UNIT = 67
         private const val POS_WEIGHT_PER_PIECE = 68
     }
@@ -109,9 +120,12 @@ class BnnParser {
                 .replace(DECIMAL_SEPARATOR_DE, ".")
                 .toDoubleOrNull() ?: 0.0
 
-            val price = fields.getOrEmpty(POS_PRICE)
-                .replace(DECIMAL_SEPARATOR_DE, ".")
-                .toDoubleOrNull() ?: 0.0
+            val taxRate = taxRateFor(fields.getOrEmpty(POS_TAX_CODE))
+
+            // No purchase price, no selling price: the seller sets it in the form.
+            val price = if (acquirePrice > 0.0) {
+                ProductPricing.sellPrice(acquirePrice, markupFactor, taxRate.rate)
+            } else 0.0
 
             val weightPerPiece = fields.getOrEmpty(POS_WEIGHT_PER_PIECE)
                 .replace(DECIMAL_SEPARATOR_DE, ".")
@@ -159,12 +173,24 @@ class BnnParser {
                 minOrderQuantity = 1.0, // Default to 1
                 supplier = supplier,
                 acquirePrice = acquirePrice,
+                markupFactor = markupFactor,
+                taxRate = taxRate.rate,
                 stock = 0 // Not provided in BNN format
             )
         } catch (e: Exception) {
             println("Error parsing line: ${e.message}")
             null
         }
+    }
+
+    /**
+     * BNN VAT code to rate. An unknown code falls back to the default rate, which
+     * is what almost every food item carries.
+     */
+    private fun taxRateFor(code: String): TaxRate = when (code.trim()) {
+        "1" -> TaxRate.REDUCED
+        "2" -> TaxRate.STANDARD
+        else -> TaxRate.default
     }
 
     /**

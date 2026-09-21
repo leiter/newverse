@@ -27,7 +27,7 @@ import org.koin.dsl.module
  */
 val appModule = module {
     // Product import service
-    single<ProductImportService> { BnnProductImportService() }
+    single<ProductImportService> { BnnProductImportService(get()) }
 
     // Main Sell App ViewModel
     viewModel {

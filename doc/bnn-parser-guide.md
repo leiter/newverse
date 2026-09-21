@@ -83,21 +83,31 @@ println(stats)
 
 The parser extracts the following information from BNN format:
 
+Positions are 0-based, as in `BnnParser`, and were checked against a real Terra price list.
+
 | Product Field | BNN Position | Description | Example |
 |--------------|--------------|-------------|---------|
 | `productId` | 0 | Article number | "111116" |
+| `availability` | 1 | Change flag; `A` is treated as available | "A" |
+| `barcode` | 4 | EAN barcode, often empty | "4003557165006" |
 | `productName` | 6 | Product name | "Zitronen, gelb Kal 5-6" |
-| `price` | 37 | Price per unit (EUR) | 4.25 |
-| `unit` | 24 | Unit of measurement | "KG", "ST", "BT" |
-| `packageSize` | 23 | Package size | 6.0 |
-| `origin` | 13 | Country code | "DE", "IT", "ES" |
-| `quality` | 10 | Quality grade | "I", "II", "Bio" |
-| `supplier` | 11 | Supplier code | "BTR", "SCH" |
-| `barcode` | 4 | EAN barcode | "4060271000778" |
-| `availability` | 1 | Available flag | "A" = available |
-| `isOrganic` | 14 | Derived from certification | DD, DB, DN, EG |
+| `detailInfo` | 7 | Variant detail, prefixed to the generated description | "Waschware" |
+| `quality` | 9 | Handelsklasse | "I", "II" |
+| `supplier` | 10 | Producer / brand code | "BTR", "SCH" |
+| `origin` | 12 | Country code, or `REG` for regional | "DE", "ES" |
+| `certification` | 13 | BNN IK code (see `BnnCodeTables`) | "DD", "DB", "EG" |
+| `packageSize` | 22 | Gebinde size | 6.0 |
+| `unit` | 23 | Unit of measurement | "KG", "ST", "BT" |
+| `taxRate` | 33 | VAT code: 1 = 7 %, 2 = 19 % | 0.07 |
+| `acquirePrice` | 37 | Purchase price, net, per unit (EUR) | 1.96 |
+| `price` | - | Derived: acquirePrice × import markup × (1 + VAT) | 3.04 |
+| `markupFactor` | - | Import markup, `ProductCatalogConfig.importMarkupFactor` | 1.45 |
+| `isOrganic` | - | Derived from certification | true |
 | `category` | - | Derived from product name | "Obst", "Gemüse" |
-| `detailInfo` | 7 | Product details | Combination of fields |
+
+Field 35 (recommended retail price) is 0,00 throughout Terra's lists and is not used.
+Purchase price, markup and sourcing fields are seller-only: the import stores them in
+`/seller_articles`, not in the public article.
 | `weightPerPiece` | 68 | Weight calculation | 1.0 |
 
 ## Certification Codes
