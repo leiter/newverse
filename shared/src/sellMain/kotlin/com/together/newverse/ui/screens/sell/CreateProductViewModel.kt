@@ -14,11 +14,11 @@ import com.together.newverse.domain.repository.StorageRepository
 import com.together.newverse.ui.state.core.FormState
 import com.together.newverse.ui.state.core.clearFieldError
 import com.together.newverse.ui.state.core.formStateOf
+import com.together.newverse.ui.state.core.rejectSubmit
 import com.together.newverse.ui.state.core.submitFailure
 import com.together.newverse.ui.state.core.submitSuccess
 import com.together.newverse.ui.state.core.submitting
 import com.together.newverse.ui.state.core.updateField
-import com.together.newverse.ui.state.core.withFieldErrors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -330,7 +330,7 @@ class CreateProductViewModel(
         val errors = validateFormData(_formState.value.data)
         if (errors.isNotEmpty()) {
             println("❌ CreateProductViewModel.saveProduct: Validation failed: $errors")
-            _formState.update { it.withFieldErrors(errors) }
+            _formState.update { it.rejectSubmit(errors) }
             return
         }
 

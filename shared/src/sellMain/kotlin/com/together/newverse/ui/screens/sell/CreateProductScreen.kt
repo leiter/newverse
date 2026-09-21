@@ -126,6 +126,10 @@ fun CreateProductScreen(
         ValidationError.WeightRequired.fieldName to stringResource(Res.string.validation_weight_required)
     )
 
+    // Shown under the field it belongs to; null while the field is fine
+    fun fieldError(error: ValidationError): String? =
+        formState.fieldErrors[error.fieldName]?.let { validationMessages[error.fieldName] ?: it }
+
     // Handle success
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
@@ -198,6 +202,8 @@ fun CreateProductScreen(
                 value = productName,
                 onValueChange = viewModel::onProductNameChange,
                 label = { Text(stringResource(Res.string.create_product_name_required)) },
+                isError = fieldError(ValidationError.ProductNameRequired) != null,
+                supportingText = fieldError(ValidationError.ProductNameRequired)?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -207,7 +213,13 @@ fun CreateProductScreen(
                 value = searchTerms,
                 onValueChange = viewModel::onSearchTermsChange,
                 label = { Text(stringResource(Res.string.create_product_search_terms)) },
-                supportingText = { Text(stringResource(Res.string.create_product_search_terms_hint)) },
+                isError = fieldError(ValidationError.SearchTermsRequired) != null,
+                supportingText = {
+                    Text(
+                        fieldError(ValidationError.SearchTermsRequired)
+                            ?: stringResource(Res.string.create_product_search_terms_hint)
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -231,6 +243,8 @@ fun CreateProductScreen(
                     onValueChange = viewModel::onPriceChange,
                     label = { Text(stringResource(Res.string.create_product_price_required)) },
                     prefix = { Text(stringResource(Res.string.create_product_price_prefix)) },
+                    isError = fieldError(ValidationError.PriceRequired) != null,
+                    supportingText = fieldError(ValidationError.PriceRequired)?.let { { Text(it) } },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -282,6 +296,8 @@ fun CreateProductScreen(
                     value = weightPerPiece,
                     onValueChange = viewModel::onWeightPerPieceChange,
                     label = { Text(stringResource(Res.string.create_product_weight_required)) },
+                    isError = fieldError(ValidationError.WeightRequired) != null,
+                    supportingText = fieldError(ValidationError.WeightRequired)?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )

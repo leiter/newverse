@@ -123,6 +123,14 @@ fun <T> FormState<T>.clearFieldErrors(): FormState<T> = copy(
 )
 
 /**
+ * Records a submit attempt that failed validation, so the screen shows the errors.
+ */
+fun <T> FormState<T>.rejectSubmit(errors: Map<String, String>): FormState<T> = copy(
+    fieldErrors = errors,
+    hasAttemptedSubmit = true
+)
+
+/**
  * Marks the form as submitting.
  */
 fun <T> FormState<T>.submitting(): FormState<T> = copy(

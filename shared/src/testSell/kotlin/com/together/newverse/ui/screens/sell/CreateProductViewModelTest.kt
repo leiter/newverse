@@ -649,4 +649,22 @@ class CreateProductViewModelTest {
         assertFalse(viewModel.isEditMode)
         assertNotNull(viewModel.formState.value.submitError)
     }
+
+    @Test
+    fun `rejected save counts as an attempt so the screen shows the errors`() = runTest {
+        // The screen only reports field errors after a submit attempt. A save that
+        // fails validation never reaches submitting(), so it must set the flag itself.
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        fillRequiredFields(viewModel)
+        viewModel.onUnitChange("Stück")   // countable: weight per piece now required
+
+        viewModel.saveProduct()
+        advanceUntilIdle()
+
+        val state = viewModel.formState.value
+        assertTrue(state.hasAttemptedSubmit)
+        assertTrue(state.fieldErrors.containsKey(ValidationError.WeightRequired.fieldName))
+        assertTrue(articleRepository.savedArticles.isEmpty())
+    }
 }
