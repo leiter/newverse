@@ -1,6 +1,6 @@
 # Newverse Feature Status
 
-**Last Updated:** 2024-10-27
+**Last Updated:** 2026-09-21
 
 *Note: This file replaces the previous TODO.md. The TODO.md file in the root directory is now obsolete and should be deleted.*
 
@@ -43,6 +43,11 @@ This document outlines the current implementation status of core features and a 
 - ✅ Market management (CRUD operations for market locations)
 - ✅ Customer management (approve, block, unblock buyers)
 - ✅ QR code / deep link based invitations for buyers
+- ✅ Seller-only article data (purchase price, markup, sourcing) in `/seller_articles`, hidden from buyers
+- ✅ BNN price list import with purchase price, VAT rate and sourcing codes
+- ✅ Pickup confirmation: book what was handed over as a sale, cancel a booking, mark "nicht abgeholt"
+- ✅ Abrechnung from booked sales by calendar week / month
+- ✅ CSV export of a week or month for the tax advisor (share sheet on Android and iOS)
 
 ---
 
@@ -70,6 +75,39 @@ The following features are planned but not yet implemented, or are only partiall
     - Create a unified error component (e.g., a full-screen error message with a retry button).
     - Standardize all ViewModels to use a single error state pattern (e.g., `AsyncState.Error` or a global dialog).
 
+### High Priority: Bookkeeping & Tax (Sell App)
+- **Questions for the tax advisor**
+  - **Status:** Open — not code decisions
+  - **Tasks:**
+    - Regular VAT or small business (Kleinunternehmer, §19 UStG)? The export assumes regular VAT; under §19 its VAT columns would be wrong.
+    - Are the app's records sufficient under GoBD / KassenSichV? Sales can only be added in the app (enforced by the database rules), but the Firebase project owner can still change data in the console, and there is no certified security module (TSE).
+    - Is 19 % right for Süßkartoffel? Terra's price list marks it 19 %; the app follows the list.
+
+- **Walk-in market sales**
+  - **Status:** Not Implemented (deferred)
+  - **Tasks:**
+    - Record a sale without an app order (articles, quantities) as a `Sale`, so market sales appear in the Abrechnung and the CSV export.
+
+### High Priority: Bugs
+- **Editing an order clears the buyer's message**
+  - **Status:** Open
+  - **Issue:** `BuyAppViewModelBasket.basketScreenUpdateOrder` rebuilds the order with `message = ""`, so the buyer's note to the seller is lost on every edit.
+
+### Medium Priority: BNN Import (Sell App)
+- **Availability flag**
+  - **Status:** Unverified
+  - **Issue:** Only rows with change flag `A` (field 1) are imported as available. In Terra's list 30 rows are `X` and 22 `N` — including articles that are in the offer (e.g. Apfel Topaz). The meaning of the flags needs checking against the BNN spec.
+- **Weight per piece**
+  - **Status:** Broken
+  - **Issue:** The parser reads fields 67/68, which are empty in every row of Terra's list, so "Gewicht pro Stück" must be entered by hand for every piece-counted product before it can be saved.
+- **Re-import creates duplicates**
+  - **Status:** Open
+  - **Issue:** Every import creates new articles. Importing the weekly price list again duplicates the catalog; articles should be matched by BNN number and updated.
+- **Import markup**
+  - **Status:** Fixed default (45 %, `ProductCatalogConfig.importMarkupFactor`)
+  - **Tasks:**
+    - Decide whether the markup should be a seller profile setting or chosen in the import preview.
+
 ### Medium Priority: Business Features
 - **Promo Codes (Buy App)**
   - **Status:** Stubbed
@@ -78,6 +116,14 @@ The following features are planned but not yet implemented, or are only partiall
     - Design and implement a data model for promo codes.
     - Add validation logic in the `BuyAppViewModel`.
     - Apply discounts to the order total during checkout.
+
+### Low Priority: Housekeeping
+- **CSV export: trailing spaces in article names**
+  - **Status:** Open (cosmetic)
+  - **Issue:** Names are exported as entered, e.g. "Teesieb " with a trailing space. Trim names in the export or when saving the product.
+- **Known failing unit tests**
+  - **Status:** Open, unrelated to the bookkeeping work
+  - **Issue:** `OrderDateUtilsTest` (2: `getAvailablePickupDates` count, `calculateEditDeadline` for a non-pickup day), `BuyAppViewModelTest` (4: navigation and initial auth state), `SellAppViewModelTest` (1: initial state is `Loading`, test expects `Guest`).
 
 ### Low Priority & On Hold
 - **Twitter Sign-In**
