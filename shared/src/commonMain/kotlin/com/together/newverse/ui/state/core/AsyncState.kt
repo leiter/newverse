@@ -21,6 +21,8 @@ sealed interface AsyncState<out T> {
      * Operation is in progress.
      */
     data object Loading : AsyncState<Nothing>
+//    data class Loading<T>(val data:T? = null) : AsyncState<Nothing>
+
 
     /**
      * Operation completed successfully with data.
