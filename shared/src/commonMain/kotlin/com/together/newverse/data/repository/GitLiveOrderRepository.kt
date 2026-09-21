@@ -294,27 +294,34 @@ class GitLiveOrderRepository(
         return try {
             println("🔐 GitLiveOrderRepository.updateOrder: START - orderId=${order.id}")
 
-            if (!order.canEdit()) {
-                return Result.failure(Exception("Order is not editable (deadline passed or status: ${order.status})"))
+            // A stored order has been placed; callers rebuilding it from the basket
+            // leave the status at its DRAFT default. As in placeOrder, store it as
+            // PLACED — which also makes the deadline check below apply.
+            val placed = if (order.status == OrderStatus.DRAFT) {
+                order.copy(status = OrderStatus.PLACED)
+            } else order
+
+            if (!placed.canEdit()) {
+                return Result.failure(Exception("Order is not editable (deadline passed or status: ${placed.status})"))
             }
 
             // Get the target seller ID - use default if empty
-            val targetSellerId = order.sellerId.ifEmpty {
+            val targetSellerId = placed.sellerId.ifEmpty {
                 getFirstSellerId()
             }
 
             // Format date for Firebase path
-            val dateString = formatDate(order.pickUpDate)
+            val dateString = formatDate(placed.pickUpDate)
 
             // Convert to map for Firebase
-            val orderMap = orderToMap(order)
+            val orderMap = orderToMap(placed)
 
             // Save to GitLive Firebase using the existing order ID
-            val orderRef = rootRef(order.isDemoOrder).child(targetSellerId).child(dateString).child(order.id)
+            val orderRef = rootRef(placed.isDemoOrder).child(targetSellerId).child(dateString).child(placed.id)
             orderRef.setValue(orderMap)
 
             // Update cache
-            ordersCache[order.id] = order
+            ordersCache[placed.id] = placed
 
             println("✅ GitLiveOrderRepository.updateOrder: Success")
             Result.success(Unit)
@@ -570,11 +577,7 @@ class GitLiveOrderRepository(
                         message = value["message"] as? String ?: "",
                         notFavourite = value["notFavourite"] as? Boolean != false,
                         articles = articles,
-                        status = try {
-                            OrderStatus.valueOf(value["status"] as? String ?: "DRAFT")
-                        } catch (e: Exception) {
-                            OrderStatus.DRAFT
-                        },
+                        status = storedOrderStatus(value["status"] as? String),
                         hiddenBySeller = value["hiddenBySeller"] as? Boolean == true,
                         hiddenByBuyer = value["hiddenByBuyer"] as? Boolean == true,
                         isDemoOrder = value["isDemoOrder"] as? Boolean ?: false
@@ -857,4 +860,18 @@ class GitLiveOrderRepository(
             status = OrderStatus.PLACED
         )
     }
+}
+
+/**
+ * The status of an order read from the database.
+ *
+ * Every order under /orders has been placed — drafts live only in the buyer's basket.
+ * Yet updateOrder used to store orders edited by the buyer as DRAFT, and a DRAFT is
+ * editable at any time, past the Tuesday deadline. So a stored DRAFT, a missing
+ * status or one this app version does not know are all read as PLACED; the usual
+ * date-based transitions then take it to LOCKED or COMPLETED.
+ */
+internal fun storedOrderStatus(raw: String?): OrderStatus {
+    val status = raw?.let { name -> OrderStatus.entries.find { it.name == name } }
+    return if (status == null || status == OrderStatus.DRAFT) OrderStatus.PLACED else status
 }
