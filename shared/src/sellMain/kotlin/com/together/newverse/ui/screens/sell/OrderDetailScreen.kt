@@ -38,9 +38,11 @@ import kotlinx.coroutines.launch
 fun OrderDetailScreen(
     orderId: String,
     onNavigateBack: () -> Unit,
-    viewModel: OrdersViewModel = koinViewModel()
+    viewModel: OrdersViewModel = koinViewModel(),
+    pickupViewModel: PickupViewModel = koinViewModel()
 ) {
     val ordersState by viewModel.ordersState.collectAsState()
+    val pickupState by pickupViewModel.state.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -50,6 +52,19 @@ fun OrderDetailScreen(
     val order = when (val state = ordersState) {
         is AsyncState.Success -> state.data.find { it.id == orderId }
         else -> null
+    }
+
+    // Re-evaluate the pickup whenever the order changes (status, lines)
+    LaunchedEffect(order) {
+        order?.let(pickupViewModel::load)
+    }
+
+    val pickupMessage = pickupState.message?.let { stringResource(it.labelRes()) }
+    LaunchedEffect(pickupMessage) {
+        if (pickupMessage != null) {
+            snackbarHostState.showSnackbar(pickupMessage, duration = SnackbarDuration.Long)
+            pickupViewModel.clearMessage()
+        }
     }
 
     Scaffold(
@@ -98,7 +113,19 @@ fun OrderDetailScreen(
             }
         } else {
             // Show order details
-            OrderDetailContent(order = order)
+            OrderDetailContent(order = order) {
+                PickupSection(
+                    state = pickupState,
+                    onStartConfirm = pickupViewModel::startConfirm,
+                    onQuantityChange = pickupViewModel::setQuantity,
+                    onMissing = pickupViewModel::setMissing,
+                    onBook = pickupViewModel::confirm,
+                    onDismissEditor = pickupViewModel::dismissEditor,
+                    onMarkNotPickedUp = pickupViewModel::markNotPickedUp,
+                    onUndoNotPickedUp = pickupViewModel::undoNotPickedUp,
+                    onCancelBooking = pickupViewModel::cancelBooking
+                )
+            }
         }
 
         // Delete confirmation dialog
@@ -136,12 +163,15 @@ fun OrderDetailScreen(
 }
 
 @Composable
-private fun OrderDetailContent(order: Order) {
+private fun OrderDetailContent(order: Order, pickupSection: @Composable () -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Pickup: confirm and book, mark not picked up, or cancel a booking
+        item { pickupSection() }
+
         // Customer information section
         item {
             OrderDetailSection(title = stringResource(Res.string.customer_information)) {
@@ -208,6 +238,14 @@ private fun OrderDetailContent(order: Order) {
             OrderTotalCard(order = order)
         }
     }
+}
+
+private fun PickupMessage.labelRes(): StringResource = when (this) {
+    PickupMessage.INVALID_QUANTITY -> Res.string.pickup_msg_invalid_quantity
+    PickupMessage.NOTHING_HANDED_OVER -> Res.string.pickup_msg_nothing
+    PickupMessage.ALREADY_BOOKED -> Res.string.pickup_msg_already_booked
+    PickupMessage.SAVE_FAILED -> Res.string.pickup_msg_save_failed
+    PickupMessage.STATUS_UPDATE_FAILED -> Res.string.pickup_msg_status_failed
 }
 
 @Composable
@@ -424,5 +462,6 @@ private fun OrderStatus.labelRes(): StringResource = when (this) {
     OrderStatus.LOCKED -> Res.string.order_status_locked
     OrderStatus.COMPLETED -> Res.string.order_status_completed
     OrderStatus.CANCELLED -> Res.string.order_status_cancelled
+    OrderStatus.NOT_PICKED_UP -> Res.string.order_status_not_picked_up
     OrderStatus.DEMO_ORDER -> Res.string.order_status_demo
 }

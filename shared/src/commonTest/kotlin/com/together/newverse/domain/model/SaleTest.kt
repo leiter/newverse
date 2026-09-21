@@ -38,6 +38,15 @@ class SaleTest {
         assertEquals(0L, Money.toCents(0.0))
     }
 
+    @Test
+    fun `cents format exactly as German decimals`() {
+        assertEquals("19,99", Money.formatCents(1999))
+        assertEquals("0,05", Money.formatCents(5))
+        assertEquals("-0,05", Money.formatCents(-5))
+        assertEquals("1234,50", Money.formatCents(123450))
+        assertEquals("0,00", Money.formatCents(0))
+    }
+
     // --- line amounts ---
 
     @Test

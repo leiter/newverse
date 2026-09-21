@@ -259,8 +259,11 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 }
                 result.onSuccess { loadedOrder ->
                     // Check if order is finalized
+                    // Finished orders stay as the seller or buyer left them; in particular a
+                    // NOT_PICKED_UP must not be overwritten with COMPLETED further down.
                     if (loadedOrder.status == com.together.newverse.domain.model.OrderStatus.CANCELLED ||
-                        loadedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
+                        loadedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED ||
+                        loadedOrder.status == com.together.newverse.domain.model.OrderStatus.NOT_PICKED_UP) {
                         bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order is finalized, clearing basket")
                         basketRepository.clearBasket()
                         // Clear basket state

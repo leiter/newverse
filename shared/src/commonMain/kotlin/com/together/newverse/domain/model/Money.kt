@@ -14,6 +14,17 @@ object Money {
     fun toCents(euros: Double): Long = roundHalfAwayFromZero(euros * 100.0)
 
     /**
+     * Cents as German decimal text: "12,34", "-0,05", "1234,50" — no thousands
+     * separator, so spreadsheets read it as a number. Exact, unlike formatting a
+     * Double, where 19.99 × 100 is 1998.9999… and truncates to 19,98.
+     */
+    fun formatCents(cents: Long): String {
+        val sign = if (cents < 0) "-" else ""
+        val abs = abs(cents)
+        return "$sign${abs / 100},${(abs % 100).toString().padStart(2, '0')}"
+    }
+
+    /**
      * Rounds half away from zero, so that rounding a negative amount gives exactly
      * the negation of rounding the positive one (a cancellation mirrors its sale).
      */

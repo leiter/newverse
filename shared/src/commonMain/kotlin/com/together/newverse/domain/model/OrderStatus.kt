@@ -35,6 +35,12 @@ enum class OrderStatus {
     CANCELLED,
 
     /**
+     * The seller marked that nobody collected the order. Nothing was sold, so nothing
+     * is booked. App versions that predate this status read it as DRAFT.
+     */
+    NOT_PICKED_UP,
+
+    /**
      * A temporary order created by a demo/anonymous user.
      * These orders are filtered out once the user signs up.
      */
@@ -56,7 +62,8 @@ fun OrderStatus.isEditable(): Boolean {
  * Check if order is finalized (cannot be changed)
  */
 fun OrderStatus.isFinalized(): Boolean {
-    return this == OrderStatus.LOCKED || this == OrderStatus.COMPLETED || this == OrderStatus.CANCELLED
+    return this == OrderStatus.LOCKED || this == OrderStatus.COMPLETED ||
+        this == OrderStatus.CANCELLED || this == OrderStatus.NOT_PICKED_UP
 }
 
 /**
@@ -64,5 +71,6 @@ fun OrderStatus.isFinalized(): Boolean {
  * Note: This only checks the status enum. Use Order.isActiveOrder() to also check pickup date.
  */
 fun OrderStatus.isActive(): Boolean {
-    return this != OrderStatus.COMPLETED && this != OrderStatus.CANCELLED
+    return this != OrderStatus.COMPLETED && this != OrderStatus.CANCELLED &&
+        this != OrderStatus.NOT_PICKED_UP
 }

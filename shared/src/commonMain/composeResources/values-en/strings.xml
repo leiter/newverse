@@ -902,4 +902,27 @@
     <string name="abrechnung_loading">Loading…</string>
     <string name="abrechnung_error">Error loading settlement data</string>
 
+    <!-- Pickup confirmation (seller) -->
+    <string name="order_status_not_picked_up">Not picked up</string>
+    <string name="pickup_title">Pickup</string>
+    <string name="pickup_open_hint">Not booked yet</string>
+    <string name="pickup_confirm">Confirm pickup</string>
+    <string name="pickup_mark_not_picked_up">Not picked up</string>
+    <string name="pickup_booked">Booked on %1$s · €%2$s</string>
+    <string name="pickup_cancel_booking">Cancel booking</string>
+    <string name="pickup_cancel_title">Cancel booking?</string>
+    <string name="pickup_cancel_text">A cancellation is booked; the original booking is kept. The pickup can then be confirmed again.</string>
+    <string name="pickup_not_picked_up_info">Not picked up – nothing booked</string>
+    <string name="pickup_undo">Undo</string>
+    <string name="pickup_unknown">Could not load the booking state</string>
+    <string name="pickup_editor_title">Quantities handed over</string>
+    <string name="pickup_editor_hint">Enter weighed amounts; set missing items to 0.</string>
+    <string name="pickup_ordered">Ordered: %1$s %2$s</string>
+    <string name="pickup_missing">Missing</string>
+    <string name="pickup_book">Book</string>
+    <string name="pickup_msg_invalid_quantity">Please enter a valid quantity for every item</string>
+    <string name="pickup_msg_nothing">Nothing handed over – please mark as “Not picked up”</string>
+    <string name="pickup_msg_already_booked">This order is already booked</string>
+    <string name="pickup_msg_save_failed">Booking failed</string>
+    <string name="pickup_msg_status_failed">Could not update the order status</string>
 </resources>

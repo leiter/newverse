@@ -961,4 +961,27 @@
     <string name="abrechnung_loading">Wird geladen…</string>
     <string name="abrechnung_error">Fehler beim Laden der Abrechnungsdaten</string>
 
+    <!-- Pickup confirmation (seller) -->
+    <string name="order_status_not_picked_up">Nicht abgeholt</string>
+    <string name="pickup_title">Abholung</string>
+    <string name="pickup_open_hint">Noch nicht verbucht</string>
+    <string name="pickup_confirm">Abholung bestätigen</string>
+    <string name="pickup_mark_not_picked_up">Nicht abgeholt</string>
+    <string name="pickup_booked">Verbucht am %1$s · %2$s €</string>
+    <string name="pickup_cancel_booking">Buchung stornieren</string>
+    <string name="pickup_cancel_title">Buchung stornieren?</string>
+    <string name="pickup_cancel_text">Es wird eine Stornobuchung angelegt; die ursprüngliche Buchung bleibt erhalten. Danach kann die Abholung neu bestätigt werden.</string>
+    <string name="pickup_not_picked_up_info">Nicht abgeholt – nichts verbucht</string>
+    <string name="pickup_undo">Rückgängig</string>
+    <string name="pickup_unknown">Buchungsstand konnte nicht geladen werden</string>
+    <string name="pickup_editor_title">Ausgegebene Mengen</string>
+    <string name="pickup_editor_hint">Gewogene Mengen eintragen, fehlende Artikel auf 0 setzen.</string>
+    <string name="pickup_ordered">Bestellt: %1$s %2$s</string>
+    <string name="pickup_missing">Fehlt</string>
+    <string name="pickup_book">Verbuchen</string>
+    <string name="pickup_msg_invalid_quantity">Bitte für jeden Artikel eine gültige Menge eintragen</string>
+    <string name="pickup_msg_nothing">Nichts ausgegeben – bitte als „Nicht abgeholt“ markieren</string>
+    <string name="pickup_msg_already_booked">Diese Bestellung ist bereits verbucht</string>
+    <string name="pickup_msg_save_failed">Buchung fehlgeschlagen</string>
+    <string name="pickup_msg_status_failed">Status der Bestellung konnte nicht aktualisiert werden</string>
 </resources>

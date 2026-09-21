@@ -1,5 +1,8 @@
 package com.together.newverse.util
 
+import com.together.newverse.domain.model.Money
+import kotlin.math.abs
+
 /**
  * Platform-specific string formatting.
  * Replaces %s and %d placeholders with provided arguments.
@@ -23,18 +26,19 @@ expect fun formatString(format: String, vararg args: Any): String
  * - 0.5 -> "0,50"
  */
 fun Double.formatPrice(): String {
-    // Round to 2 decimal places
-    val rounded = (this * 100).toLong() / 100.0
-    val intPart = rounded.toLong()
-    val decimalPart = ((rounded - intPart) * 100).toLong()
+    // Round to whole cents. Truncating showed about one price in twenty a cent too
+    // low: 19.99 * 100 is 1998.9999… as a Double.
+    val cents = Money.toCents(this)
+    val sign = if (cents < 0) "-" else ""
+    val absCents = abs(cents)
 
     // Format integer part with thousands separator
-    val formattedIntPart = intPart.toString()
+    val formattedIntPart = (absCents / 100).toString()
         .reversed()
         .chunked(3)
         .joinToString(".")
         .reversed()
 
     // Combine with decimal part using comma separator
-    return "$formattedIntPart,${decimalPart.toString().padStart(2, '0')}"
+    return "$sign$formattedIntPart,${(absCents % 100).toString().padStart(2, '0')}"
 }

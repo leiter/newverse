@@ -5,6 +5,7 @@ import com.together.newverse.domain.service.ProductImportService
 import com.together.newverse.ui.screens.sell.CreateProductViewModel
 import com.together.newverse.ui.screens.sell.OrdersViewModel
 import com.together.newverse.ui.screens.sell.OverviewViewModel
+import com.together.newverse.ui.screens.sell.PickupViewModel
 import com.together.newverse.data.repository.GitLiveInvitationRepository
 import com.together.newverse.data.repository.GitLiveMessageRepository
 import com.together.newverse.data.repository.GitLiveSellerEventRepository
@@ -50,6 +51,7 @@ val appModule = module {
     viewModel { OverviewViewModel(get(), get(), get(), get()) }
     viewModel { AbrechnungViewModel(get(), get(), get()) }
     viewModel { OrdersViewModel(get(), get()) }
+    viewModel { PickupViewModel(get(), get(), get(), get()) }
     viewModel { CreateProductViewModel(get(), get(), get(), get()) }
     viewModel { SellerProfileViewModel(get(), get(), get(), get(), get()) }
 
