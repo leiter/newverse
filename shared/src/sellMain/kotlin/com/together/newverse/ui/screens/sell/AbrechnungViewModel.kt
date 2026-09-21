@@ -2,37 +2,50 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.BookingPeriod
 import com.together.newverse.domain.model.Order
-import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.OrderStatus
+import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.model.Sale
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.TaxRate
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
+import com.together.newverse.domain.repository.SaleRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.util.OrderDateUtils
+import kotlin.time.Clock
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AbrechnungViewModel(
     private val sellerArticleRepository: SellerArticleRepository,
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
+    private val saleRepository: SaleRepository,
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    private val today: () -> LocalDate = { Clock.System.now().toLocalDateTime(timeZone).date }
 ) : ViewModel() {
 
     private val _selectedTab = MutableStateFlow(AbrechnungTab.PICKUP)
     val selectedTab: StateFlow<AbrechnungTab> = _selectedTab.asStateFlow()
 
-    private val _selectedPeriod = MutableStateFlow(PeriodFilter.MONTH)
-    val selectedPeriod: StateFlow<PeriodFilter> = _selectedPeriod.asStateFlow()
+    /** The booking period shown in the "Zeitraum" tab; starts at the current month. */
+    private val _period = MutableStateFlow<BookingPeriod>(BookingPeriod.monthOf(today()))
+    val period: StateFlow<BookingPeriod> = _period.asStateFlow()
 
     private val _pickupSummary = MutableStateFlow<AsyncState<PickupSummary>>(AsyncState.Loading)
     val pickupSummary: StateFlow<AsyncState<PickupSummary>> = _pickupSummary.asStateFlow()
@@ -74,21 +87,32 @@ class AbrechnungViewModel(
             launch {
                 orderRepository.observeSellerOrders(sellerId)
                     .catch {
-                        val msg = "Bestellungen konnten nicht geladen werden"
-                        _pickupSummary.value = AsyncState.Error(msg)
-                        _periodSummary.value = AsyncState.Error(msg)
+                        _pickupSummary.value = AsyncState.Error("Bestellungen konnten nicht geladen werden")
                     }
                     .collect { orders ->
                         allOrders = orders.filter { !it.isDemoOrder }
                         recalculate()
                     }
             }
+
+            launch {
+                // The books: sales of the selected period, re-read when it changes
+                _period
+                    .flatMapLatest { period ->
+                        saleRepository.observeSales(sellerId, period.startMillis(timeZone), period.endMillis(timeZone))
+                            .map<List<Sale>, AsyncState<PeriodSummary>> { sales ->
+                                AsyncState.Success(summarize(period, sales))
+                            }
+                            .onStart { emit(AsyncState.Loading) }
+                            .catch { emit(AsyncState.Error("Buchungen konnten nicht geladen werden")) }
+                    }
+                    .collect { _periodSummary.value = it }
+            }
         }
     }
 
     private fun recalculate() {
         calculatePickupSummary()
-        calculatePeriodSummary()
     }
 
     private fun lookupArticle(item: OrderedProduct): SellerArticle? =
@@ -124,33 +148,37 @@ class AbrechnungViewModel(
         _selectedTab.value = tab
     }
 
-    fun setPeriod(period: PeriodFilter) {
-        _selectedPeriod.value = period
-        calculatePeriodSummary()
+    // ----- Period navigation -----
+
+    fun setPeriodType(type: PeriodType) {
+        val current = _period.value
+        // Keep the view where it is: the week or month containing the current start,
+        // or today if the current period is the running one.
+        val anchor = today().takeIf { it in current } ?: current.start
+        _period.value = when (type) {
+            PeriodType.WEEK -> BookingPeriod.weekOf(anchor)
+            PeriodType.MONTH -> BookingPeriod.monthOf(anchor)
+        }
     }
 
-    private fun calculatePeriodSummary() {
-        val nowMs = Clock.System.now().toEpochMilliseconds()
-        val cutoffMs: Long = when (_selectedPeriod.value) {
-            PeriodFilter.WEEK -> nowMs - 7L * 24 * 3600 * 1000
-            PeriodFilter.MONTH -> nowMs - 30L * 24 * 3600 * 1000
-            PeriodFilter.ALL -> 0L
-        }
+    fun previousPeriod() {
+        _period.value = _period.value.previous()
+    }
 
-        val periodOrders = allOrders.filter { order ->
-            order.status == OrderStatus.COMPLETED && order.pickUpDate >= cutoffMs
-        }
+    fun nextPeriod() {
+        if (canGoNext(_period.value)) _period.value = _period.value.next()
+    }
 
-        val aggregated = aggregateItems(periodOrders)
+    /** No periods in the future: there is nothing booked there yet. */
+    fun canGoNext(period: BookingPeriod): Boolean = period.next().start <= today()
 
-        _periodSummary.value = AsyncState.Success(
-            PeriodSummary(
-                orderCount = periodOrders.size,
-                customerCount = periodOrders.map { it.buyerProfile.id }.filter { it.isNotEmpty() }.toSet().size,
-                financials = computeFinancials(aggregated)
-            )
+    private fun summarize(period: BookingPeriod, sales: List<Sale>): PeriodSummary =
+        PeriodSummary(
+            period = period,
+            saleCount = sales.count { !it.isReversal },
+            cancellationCount = sales.count { it.isReversal },
+            financials = sales.toFinancials()
         )
-    }
 
     private fun aggregateItems(orders: List<Order>): List<AggregatedItem> {
         val grouped = mutableMapOf<String, AggregatedItem>()
@@ -222,9 +250,35 @@ class AbrechnungViewModel(
     }
 }
 
+/**
+ * The financial summary of booked sales, cancellations included. Everything is summed
+ * in cents from the sale lines — the same amounts the export shows — and converted
+ * to euros only for display.
+ */
+internal fun List<Sale>.toFinancials(): OrderFinancials {
+    val lines = flatMap { it.lines }
+    fun vatAt(rate: Double) = lines.filter { it.taxRate == rate }.sumOf { it.vatCents }
+    val grossCents = lines.sumOf { it.grossCents }
+    val netCents = lines.sumOf { it.netCents }
+    val acquireCents = lines.sumOf { it.acquireCostCents ?: 0L }
+    // A cancelled line cancels its count too, so the net count is what is still booked.
+    val withoutAcquirePrice = lines.filter { it.acquirePriceCents == null }
+        .sumOf { if (it.quantity < 0) -1 else 1 }
+        .coerceAtLeast(0)
+    return OrderFinancials(
+        grossTotal = grossCents / 100.0,
+        vatAmount7 = vatAt(TaxRate.REDUCED.rate) / 100.0,
+        vatAmount19 = vatAt(TaxRate.STANDARD.rate) / 100.0,
+        netTotal = netCents / 100.0,
+        acquireCost = acquireCents / 100.0,
+        grossProfit = (netCents - acquireCents) / 100.0,
+        itemsWithoutAcquirePrice = withoutAcquirePrice
+    )
+}
+
 enum class AbrechnungTab { PICKUP, PERIOD }
 
-enum class PeriodFilter { WEEK, MONTH, ALL }
+enum class PeriodType { WEEK, MONTH }
 
 data class AggregatedItem(
     val productId: String,
@@ -261,7 +315,11 @@ data class PickupSummary(
 )
 
 data class PeriodSummary(
-    val orderCount: Int,
-    val customerCount: Int,
+    val period: BookingPeriod,
+    /** Sales booked in the period, not counting cancellations. */
+    val saleCount: Int,
+    val cancellationCount: Int,
     val financials: OrderFinancials
-)
+) {
+    val isEmpty: Boolean get() = saleCount == 0 && cancellationCount == 0
+}

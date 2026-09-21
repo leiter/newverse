@@ -954,12 +954,35 @@
         <item quantity="one">Rohertrag unvollständig: %d Artikel ohne Einkaufspreis</item>
         <item quantity="other">Rohertrag unvollständig: %d Artikel ohne Einkaufspreis</item>
     </plurals>
-    <string name="abrechnung_period_week">7 Tage</string>
-    <string name="abrechnung_period_month">30 Tage</string>
-    <string name="abrechnung_period_all">Gesamt</string>
-    <string name="abrechnung_no_completed_orders">Keine abgeschlossenen Bestellungen im gewählten Zeitraum</string>
+    <string name="abrechnung_period_week">Woche</string>
+    <string name="abrechnung_period_month">Monat</string>
     <string name="abrechnung_loading">Wird geladen…</string>
     <string name="abrechnung_error">Fehler beim Laden der Abrechnungsdaten</string>
+    <string name="abrechnung_no_sales">Keine Buchungen im gewählten Zeitraum</string>
+    <string name="abrechnung_week_label">KW %1$d/%2$d · %3$s – %4$s</string>
+    <string name="abrechnung_month_label">%1$s %2$d</string>
+    <string name="abrechnung_previous_period">Vorheriger Zeitraum</string>
+    <string name="abrechnung_next_period">Nächster Zeitraum</string>
+    <string name="month_1">Januar</string>
+    <string name="month_2">Februar</string>
+    <string name="month_3">März</string>
+    <string name="month_4">April</string>
+    <string name="month_5">Mai</string>
+    <string name="month_6">Juni</string>
+    <string name="month_7">Juli</string>
+    <string name="month_8">August</string>
+    <string name="month_9">September</string>
+    <string name="month_10">Oktober</string>
+    <string name="month_11">November</string>
+    <string name="month_12">Dezember</string>
+    <plurals name="abrechnung_sales_count">
+        <item quantity="one">%d Verkauf</item>
+        <item quantity="other">%d Verkäufe</item>
+    </plurals>
+    <plurals name="abrechnung_cancellations_count">
+        <item quantity="one">%d Storno</item>
+        <item quantity="other">%d Stornos</item>
+    </plurals>
 
     <!-- Pickup confirmation (seller) -->
     <string name="order_status_not_picked_up">Nicht abgeholt</string>

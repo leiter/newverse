@@ -49,7 +49,7 @@ val appModule = module {
 
     // Sell-specific ViewModels
     viewModel { OverviewViewModel(get(), get(), get(), get()) }
-    viewModel { AbrechnungViewModel(get(), get(), get()) }
+    viewModel { AbrechnungViewModel(get(), get(), get(), get()) }
     viewModel { OrdersViewModel(get(), get()) }
     viewModel { PickupViewModel(get(), get(), get(), get()) }
     viewModel { CreateProductViewModel(get(), get(), get(), get()) }

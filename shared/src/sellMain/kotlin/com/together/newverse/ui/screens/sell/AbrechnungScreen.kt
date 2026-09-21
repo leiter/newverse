@@ -12,12 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
@@ -35,12 +40,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.BookingPeriod
 import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
-import newverse.shared.generated.resources.Res
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.minus
+import kotlinx.datetime.number
 import newverse.shared.generated.resources.*
+import newverse.shared.generated.resources.Res
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -50,17 +59,20 @@ fun AbrechnungScreen(
     viewModel: AbrechnungViewModel = koinViewModel()
 ) {
     val selectedTab by viewModel.selectedTab.collectAsState()
-    val selectedPeriod by viewModel.selectedPeriod.collectAsState()
+    val period by viewModel.period.collectAsState()
     val pickupSummary by viewModel.pickupSummary.collectAsState()
     val periodSummary by viewModel.periodSummary.collectAsState()
 
     AbrechnungContent(
         selectedTab = selectedTab,
-        selectedPeriod = selectedPeriod,
+        period = period,
+        canGoNext = viewModel.canGoNext(period),
         pickupSummary = pickupSummary,
         periodSummary = periodSummary,
         onTabSelected = viewModel::selectTab,
-        onPeriodSelected = viewModel::setPeriod
+        onPeriodTypeSelected = viewModel::setPeriodType,
+        onPreviousPeriod = viewModel::previousPeriod,
+        onNextPeriod = viewModel::nextPeriod
     )
 }
 
@@ -68,11 +80,14 @@ fun AbrechnungScreen(
 @Composable
 fun AbrechnungContent(
     selectedTab: AbrechnungTab,
-    selectedPeriod: PeriodFilter,
+    period: BookingPeriod,
+    canGoNext: Boolean,
     pickupSummary: AsyncState<PickupSummary>,
     periodSummary: AsyncState<PeriodSummary>,
     onTabSelected: (AbrechnungTab) -> Unit,
-    onPeriodSelected: (PeriodFilter) -> Unit
+    onPeriodTypeSelected: (PeriodType) -> Unit,
+    onPreviousPeriod: () -> Unit,
+    onNextPeriod: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         PrimaryTabRow(selectedTabIndex = selectedTab.ordinal) {
@@ -92,8 +107,11 @@ fun AbrechnungContent(
             AbrechnungTab.PICKUP -> PickupView(pickupSummary)
             AbrechnungTab.PERIOD -> PeriodView(
                 periodSummary = periodSummary,
-                selectedPeriod = selectedPeriod,
-                onPeriodSelected = onPeriodSelected
+                period = period,
+                canGoNext = canGoNext,
+                onPeriodTypeSelected = onPeriodTypeSelected,
+                onPreviousPeriod = onPreviousPeriod,
+                onNextPeriod = onNextPeriod
             )
         }
     }
@@ -222,19 +240,23 @@ private fun AggregatedArticleRow(item: AggregatedItem) {
 @Composable
 private fun PeriodView(
     periodSummary: AsyncState<PeriodSummary>,
-    selectedPeriod: PeriodFilter,
-    onPeriodSelected: (PeriodFilter) -> Unit
+    period: BookingPeriod,
+    canGoNext: Boolean,
+    onPeriodTypeSelected: (PeriodType) -> Unit,
+    onPreviousPeriod: () -> Unit,
+    onNextPeriod: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        PeriodFilterRow(selectedPeriod, onPeriodSelected)
+        PeriodTypeRow(period, onPeriodTypeSelected)
+        PeriodNavigator(period, canGoNext, onPreviousPeriod, onNextPeriod)
 
         when (periodSummary) {
             AsyncState.Initial, AsyncState.Loading -> LoadingBox()
             is AsyncState.Error -> ErrorBox(periodSummary.message)
             is AsyncState.Success -> {
                 val summary = periodSummary.data
-                if (summary.orderCount == 0) {
-                    EmptyBox(stringResource(Res.string.abrechnung_no_completed_orders))
+                if (summary.isEmpty) {
+                    EmptyBox(stringResource(Res.string.abrechnung_no_sales))
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -244,8 +266,11 @@ private fun PeriodView(
 
                         item {
                             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                                StatChip(stringResource(Res.string.abrechnung_orders_count, summary.orderCount))
-                                StatChip(stringResource(Res.string.abrechnung_customers_count, summary.customerCount))
+                                StatChip(pluralStringResource(Res.plurals.abrechnung_sales_count, summary.saleCount, summary.saleCount))
+                                if (summary.cancellationCount > 0) {
+                                    StatChip(pluralStringResource(Res.plurals.abrechnung_cancellations_count,
+                                        summary.cancellationCount, summary.cancellationCount))
+                                }
                             }
                         }
 
@@ -260,7 +285,7 @@ private fun PeriodView(
 }
 
 @Composable
-private fun PeriodFilterRow(selected: PeriodFilter, onSelect: (PeriodFilter) -> Unit) {
+private fun PeriodTypeRow(period: BookingPeriod, onSelect: (PeriodType) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -268,22 +293,76 @@ private fun PeriodFilterRow(selected: PeriodFilter, onSelect: (PeriodFilter) -> 
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         FilterChip(
-            selected = selected == PeriodFilter.WEEK,
-            onClick = { onSelect(PeriodFilter.WEEK) },
+            selected = period is BookingPeriod.Week,
+            onClick = { onSelect(PeriodType.WEEK) },
             label = { Text(stringResource(Res.string.abrechnung_period_week)) }
         )
         FilterChip(
-            selected = selected == PeriodFilter.MONTH,
-            onClick = { onSelect(PeriodFilter.MONTH) },
+            selected = period is BookingPeriod.Month,
+            onClick = { onSelect(PeriodType.MONTH) },
             label = { Text(stringResource(Res.string.abrechnung_period_month)) }
-        )
-        FilterChip(
-            selected = selected == PeriodFilter.ALL,
-            onClick = { onSelect(PeriodFilter.ALL) },
-            label = { Text(stringResource(Res.string.abrechnung_period_all)) }
         )
     }
 }
+
+@Composable
+private fun PeriodNavigator(
+    period: BookingPeriod,
+    canGoNext: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onPrevious) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = stringResource(Res.string.abrechnung_previous_period)
+            )
+        }
+        Text(
+            text = periodLabel(period),
+            style = MaterialTheme.typography.titleSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }
+        )
+        IconButton(onClick = onNext, enabled = canGoNext) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = stringResource(Res.string.abrechnung_next_period)
+            )
+        }
+    }
+}
+
+/** "KW 39/2026 · 21.09. – 27.09.2026" or "September 2026". */
+@Composable
+private fun periodLabel(period: BookingPeriod): String = when (period) {
+    is BookingPeriod.Week -> {
+        val last = period.endExclusive.minus(1, DateTimeUnit.DAY)
+        stringResource(
+            Res.string.abrechnung_week_label,
+            period.week, period.year,
+            "${period.start.day.pad2()}.${period.start.month.number.pad2()}.",
+            "${last.day.pad2()}.${last.month.number.pad2()}.${last.year}"
+        )
+    }
+    is BookingPeriod.Month -> stringResource(
+        Res.string.abrechnung_month_label,
+        stringResource(MONTH_NAMES[period.month - 1]),
+        period.year
+    )
+}
+
+private fun Int.pad2() = toString().padStart(2, '0')
+
+private val MONTH_NAMES = listOf(
+    Res.string.month_1, Res.string.month_2, Res.string.month_3, Res.string.month_4,
+    Res.string.month_5, Res.string.month_6, Res.string.month_7, Res.string.month_8,
+    Res.string.month_9, Res.string.month_10, Res.string.month_11, Res.string.month_12
+)
 
 // ─── Shared components ─────────────────────────────────────────────────────
 
