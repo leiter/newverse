@@ -45,6 +45,10 @@ private val descriptionBuilder = ProductDescriptionBuilder()
  * @param certificationCode BNN field 13: identification code (IK).
  * @param producerCode BNN field 10: producer / brand code. Omitted from the text when
  *   Terra publishes no name for it.
+ * @param packageSize BNN field 22: Gebinde size, in [unit]. Seller-only.
+ * @param quality BNN field 9: Handelsklasse, empty when Terra gives none. Seller-only.
+ * @param barcode BNN field 4: EAN, empty when Terra gives none. Seller-only.
+ * @param taxRate BNN field 33: 1 = reduced (7 %), 2 = standard (19 %).
  */
 fun offerArticle(
     productId: String,
@@ -58,6 +62,9 @@ fun offerArticle(
     certificationCode: String,
     producerCode: String,
     weightPerPiece: Double,
+    packageSize: Double,
+    quality: String = "",
+    barcode: String = "",
     markupFactor: Double = OFFER_MARKUP_FACTOR,
     taxRate: TaxRate = TaxRate.REDUCED
 ): SellerArticle {
@@ -89,7 +96,10 @@ fun offerArticle(
             markupFactor = markupFactor,
             supplier = producerCode,
             origin = originCode,
-            certification = certificationCode
+            certification = certificationCode,
+            quality = quality,
+            barcode = barcode,
+            packageSize = packageSize
         )
     )
 }
@@ -110,7 +120,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "apfel,äpfel,topaz,obst,lagerapfel",
         note = "Robuste Lagersorte, säuerlich-aromatisch.",
         originCode = "DE", certificationCode = "DB", producerCode = "BOA",
-        weightPerPiece = 0.170
+        weightPerPiece = 0.170,
+        packageSize = 9.0, quality = "II"
     ),
     offerArticle(
         productId = "112082", productName = "Apfel Milwa",
@@ -118,7 +129,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "apfel,äpfel,milwa,diwa,obst",
         note = "Süß-aromatisch und sehr saftig.",
         originCode = "DE", certificationCode = "UW", producerCode = "BOA",
-        weightPerPiece = 0.170
+        weightPerPiece = 0.170,
+        packageSize = 9.0, quality = "II"
     ),
     offerArticle(
         productId = "112112", productName = "Apfel Red Jonaprince",
@@ -126,7 +138,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "apfel,äpfel,jonaprince,jonagold,obst",
         note = "Kräftig rot, süß-säuerlich.",
         originCode = "DE", certificationCode = "DD", producerCode = "BOA",
-        weightPerPiece = 0.190
+        weightPerPiece = 0.190,
+        packageSize = 9.0, quality = "II"
     ),
     offerArticle(
         productId = "112099", productName = "Apfel Natyra",
@@ -134,7 +147,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "apfel,äpfel,natyra,obst,lagerapfel",
         note = "Schorfresistent und besonders lange lagerfähig.",
         originCode = "DE", certificationCode = "DD", producerCode = "BOA",
-        weightPerPiece = 0.175
+        weightPerPiece = 0.175,
+        packageSize = 9.0, quality = "II"
     ),
     offerArticle(
         productId = "111116", productName = "Zitronen gelb Eureka",
@@ -142,7 +156,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "zitrone,zitronen,eureka,zitrusfrucht,obst",
         note = "Kaliber 2-3, mit unbehandelter Schale.",
         originCode = "ZA", certificationCode = "EG", producerCode = "BTR",
-        weightPerPiece = 0.120
+        weightPerPiece = 0.120,
+        packageSize = 6.0, quality = "II"
     ),
     offerArticle(
         productId = "111512", productName = "Orange Midknight",
@@ -150,7 +165,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "orange,orangen,midknight,zitrusfrucht,obst",
         note = "Kaliber 2-3, saftig und kernarm.",
         originCode = "ES", certificationCode = "EG", producerCode = "SCH",
-        weightPerPiece = 0.220
+        weightPerPiece = 0.220,
+        packageSize = 10.0, quality = "II"
     ),
     offerArticle(
         productId = "111133", productName = "Limetten",
@@ -158,7 +174,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "limette,limetten,lime,zitrusfrucht,obst",
         note = "Aromatisch-herb.",
         originCode = "BR", certificationCode = "EG", producerCode = "ZAN",
-        weightPerPiece = 0.070
+        weightPerPiece = 0.070,
+        packageSize = 2.0, quality = "II"
     ),
     offerArticle(
         productId = "1162269", productName = "Kiwi Hayward",
@@ -166,16 +183,19 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "kiwi,hayward,obst",
         note = "Kaliber 33, reift langsam nach.",
         originCode = "AR", certificationCode = "EG", producerCode = "BTR",
-        weightPerPiece = 0.115
+        weightPerPiece = 0.115,
+        packageSize = 32.0, quality = "II"
     ),
     offerArticle(
-        // Listenpreis 19,20 EUR je Kiste mit 9-10 Stück (ca. 3,8 kg) -> ca. 2,02 EUR/Stück
+        // Listenpreis 19,20 EUR je Kiste mit 9-10 Stück (ca. 3,8 kg) -> ca. 2,02 EUR/Stück,
+        // Gebinde entsprechend 9,5 Stück
         productId = "1180493", productName = "Granatapfel",
         acquirePrice = 2.02, unit = ProductUnit.STUECK, category = ProductCategory.OBST,
         searchTerms = "granatapfel,granatäpfel,obst",
         note = "Große Früchte von etwa 400 g.",
         originCode = "PE", certificationCode = "EG", producerCode = "EOS",
-        weightPerPiece = 0.400
+        weightPerPiece = 0.400,
+        packageSize = 9.5
     ),
     offerArticle(
         productId = "114405", productName = "Walnüsse AOP Grenoble",
@@ -183,7 +203,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "walnuss,walnüsse,nuss,nüsse,grenoble",
         note = "Kaliber 30-32, in der Schale und sehr lange lagerfähig.",
         originCode = "FR", certificationCode = "EG", producerCode = "PNA",
-        weightPerPiece = 0.012
+        weightPerPiece = 0.012,
+        packageSize = 5.0
     ),
     offerArticle(
         productId = "118018", productName = "Medjuhl-Datteln",
@@ -191,7 +212,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "dattel,datteln,medjool,medjuhl,trockenfrucht",
         note = "Groß, weich und karamellig.",
         originCode = "IL", certificationCode = "EG", producerCode = "BTR",
-        weightPerPiece = 0.023
+        weightPerPiece = 0.023,
+        packageSize = 2.0
     ),
     offerArticle(
         productId = "118009", productName = "Datteln Deglet Nour, 400 g",
@@ -199,7 +221,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "dattel,datteln,deglet nour,trockenfrucht,beutel",
         note = "Feinfruchtig und ungeschwefelt, im 400-g-Beutel.",
         originCode = "TN", certificationCode = "DD", producerCode = "TIL",
-        weightPerPiece = 0.400
+        weightPerPiece = 0.400,
+        packageSize = 12.0, barcode = "4003557165006"
     ),
 
     // ------------------------------------------------------------ Gemüse & Wurzeln (18)
@@ -210,7 +233,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "möhre,möhren,karotte,karotten,gemüse",
         note = "Waschware, gut lagerfähig.",
         originCode = "REG", certificationCode = "DD", producerCode = "ÖBW",
-        weightPerPiece = 0.090
+        weightPerPiece = 0.090,
+        packageSize = 10.0
     ),
     offerArticle(
         productId = "124231", productName = "Zwiebeln gelb",
@@ -218,7 +242,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "zwiebel,zwiebeln,gelb,gemüse",
         note = "Trocken gelagert monatelang haltbar.",
         originCode = "DE", certificationCode = "DB", producerCode = "AHR",
-        weightPerPiece = 0.110
+        weightPerPiece = 0.110,
+        packageSize = 8.0
     ),
     offerArticle(
         productId = "124253", productName = "Rote Zwiebeln",
@@ -226,7 +251,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "zwiebel,zwiebeln,rot,rote zwiebel,gemüse",
         note = "Mild-würzig und gut lagerfähig.",
         originCode = "IT", certificationCode = "IA", producerCode = "BTR",
-        weightPerPiece = 0.110
+        weightPerPiece = 0.110,
+        packageSize = 6.0
     ),
     offerArticle(
         productId = "124270", productName = "Gemüsezwiebeln 80+",
@@ -234,7 +260,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "zwiebel,zwiebeln,gemüsezwiebel,gemüse",
         note = "Große, milde Zwiebeln ab 80 mm.",
         originCode = "ES", certificationCode = "EG", producerCode = "SCH",
-        weightPerPiece = 0.300
+        weightPerPiece = 0.300,
+        packageSize = 10.0
     ),
     offerArticle(
         productId = "124134", productName = "Schalotten",
@@ -242,7 +269,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "schalotte,schalotten,zwiebel,gemüse",
         note = "Fein-aromatisch und sehr gut lagerfähig.",
         originCode = "DE", certificationCode = "DB", producerCode = "AHR",
-        weightPerPiece = 0.030
+        weightPerPiece = 0.030,
+        packageSize = 3.0, quality = "II"
     ),
     offerArticle(
         productId = "124410", productName = "Knoblauch getrocknet",
@@ -250,7 +278,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "knoblauch,knofi,gemüse",
         note = "Trocken gelagert monatelang haltbar.",
         originCode = "ES", certificationCode = "EG", producerCode = "SCH",
-        weightPerPiece = 0.060
+        weightPerPiece = 0.060,
+        packageSize = 3.0
     ),
     offerArticle(
         productId = "122790", productName = "Frühkartoffel Adretta, mehligkochend",
@@ -258,7 +287,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "kartoffel,kartoffeln,adretta,mehligkochend",
         note = "Mehligkochend, ideal für Püree und Suppen.",
         originCode = "REG", certificationCode = "DD", producerCode = "BFH",
-        weightPerPiece = 0.080
+        weightPerPiece = 0.080,
+        packageSize = 12.5
     ),
     offerArticle(
         productId = "122735", productName = "Speisekartoffel Annabelle, 1,5 kg Netz",
@@ -266,7 +296,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "kartoffel,kartoffeln,annabelle,festkochend,netz",
         note = "Festkochend, im 1,5-kg-Netz.",
         originCode = "DE", certificationCode = "DB", producerCode = "AHR",
-        weightPerPiece = 1.500
+        weightPerPiece = 1.500,
+        packageSize = 12.0, barcode = "4027021100041"
     ),
     offerArticle(
         productId = "122654", productName = "Süßkartoffel",
@@ -274,7 +305,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "süßkartoffel,süßkartoffeln,batate,gemüse",
         note = "Mittlere Sortierung von 200 bis 500 g je Stück.",
         originCode = "ES", certificationCode = "EG", producerCode = "SCH",
-        weightPerPiece = 0.350
+        weightPerPiece = 0.350,
+        packageSize = 6.0, taxRate = TaxRate.STANDARD
     ),
     offerArticle(
         productId = "122408", productName = "Rote Bete, samenfest",
@@ -282,7 +314,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "rote bete,rote beete,randen,gemüse,samenfest",
         note = "Aus samenfestem Saatgut, sehr gut lagerfähig.",
         originCode = "REG", certificationCode = "DB", producerCode = "wvg",
-        weightPerPiece = 0.200
+        weightPerPiece = 0.200,
+        packageSize = 5.0
     ),
     offerArticle(
         productId = "122509", productName = "Knollensellerie mit Grün",
@@ -290,7 +323,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "sellerie,knollensellerie,gemüse,suppengrün",
         note = "Mit Grün, als Suppengemüse und zum Einlagern.",
         originCode = "DE", certificationCode = "DB", producerCode = "SJM",
-        weightPerPiece = 0.600
+        weightPerPiece = 0.600,
+        packageSize = 10.0
     ),
     offerArticle(
         productId = "121700", productName = "Wurzelpetersilie, samenfest",
@@ -298,7 +332,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "wurzelpetersilie,petersilienwurzel,gemüse,suppengrün",
         note = "Aus samenfestem Saatgut, würzige Suppenwurzel.",
         originCode = "DE", certificationCode = "DD", producerCode = "NKG",
-        weightPerPiece = 0.120
+        weightPerPiece = 0.120,
+        packageSize = 3.0
     ),
     offerArticle(
         productId = "121110", productName = "Rettich weiß",
@@ -306,7 +341,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "rettich,weiß,gemüse",
         note = "Kühl gelagert wochenlang knackig.",
         originCode = "DE", certificationCode = "DB", producerCode = "RHO",
-        weightPerPiece = 0.350
+        weightPerPiece = 0.350,
+        packageSize = 3.0
     ),
     offerArticle(
         productId = "127466", productName = "Kürbis Hokkaido orange",
@@ -314,7 +350,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "kürbis,hokkaido,gemüse",
         note = "Schale mitessbar, monatelang lagerfähig.",
         originCode = "DE", certificationCode = "DB", producerCode = "AHR",
-        weightPerPiece = 1.000
+        weightPerPiece = 1.000,
+        packageSize = 10.0
     ),
     offerArticle(
         productId = "126044", productName = "Weißkohl",
@@ -322,7 +359,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "weißkohl,kohl,kraut,gemüse",
         note = "Feste Köpfe, gut zum Einlagern und Fermentieren.",
         originCode = "REG", certificationCode = "DB", producerCode = "wvg",
-        weightPerPiece = 1.200
+        weightPerPiece = 1.200,
+        packageSize = 6.0
     ),
     offerArticle(
         productId = "125904", productName = "Rotkohl",
@@ -330,7 +368,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "rotkohl,blaukraut,kohl,gemüse",
         note = "Feste Köpfe, klassisch als Blaukraut.",
         originCode = "DE", certificationCode = "DB", producerCode = "RHO",
-        weightPerPiece = 0.900
+        weightPerPiece = 0.900,
+        packageSize = 5.0
     ),
     offerArticle(
         productId = "126210", productName = "Wirsing",
@@ -338,7 +377,8 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "wirsing,kohl,gemüse",
         note = "Zarte, lockere Köpfe.",
         originCode = "REG", certificationCode = "EG", producerCode = "gde",
-        weightPerPiece = 1.300
+        weightPerPiece = 1.300,
+        packageSize = 8.0
     ),
     offerArticle(
         productId = "1180613", productName = "Ingwer",
@@ -346,6 +386,7 @@ val offerArticles: List<SellerArticle> = listOf(
         searchTerms = "ingwer,ginger,wurzel,gemüse",
         note = "Kühl und trocken wochenlang haltbar.",
         originCode = "TH", certificationCode = "EG", producerCode = "BTR",
-        weightPerPiece = 0.080
+        weightPerPiece = 0.080,
+        packageSize = 3.0
     )
 )

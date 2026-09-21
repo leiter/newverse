@@ -10,6 +10,7 @@ import com.together.newverse.android.utils.BaseTest
 import com.together.newverse.domain.model.ProductCategory
 import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.ProductUnit
+import com.together.newverse.domain.model.TaxRate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -57,6 +58,11 @@ class OfferProductDataTests : BaseTest() {
             assertTrue("$name: no supplier code", sellerData.supplier.isNotBlank())
             assertTrue("$name: no origin code", sellerData.origin.isNotBlank())
             assertTrue("$name: no certification code", sellerData.certification.isNotBlank())
+            assertTrue("$name: no package size", sellerData.packageSize > 0.0)
+            assertTrue(
+                "$name: tax rate ${article.taxRate} is not one of the offered rates",
+                TaxRate.entries.any { it.rate == article.taxRate }
+            )
             assertTrue("$name: weightPerPiece must be > 0", article.weightPerPiece > 0.0)
             assertTrue("$name: search terms missing", article.searchTerms.isNotBlank())
 
