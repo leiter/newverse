@@ -125,7 +125,7 @@ class FakeAuthRepository : AuthRepository {
         return _currentUserId.value?.startsWith("guest_") ?: false
     }
 
-    override suspend fun signInWithGoogle(idToken: String): Result<String> {
+    override suspend fun signInWithGoogle(idToken: String, accessToken: String?): Result<String> {
         if (shouldFailSignIn) {
             return Result.failure(Exception(failureMessage))
         }

@@ -53,6 +53,20 @@ class FakeSellerConfig(
         _firebaseDemoWriteCount++
     }
 
+    override fun isDemoLocalMode(): Boolean = _firebaseDemoWriteCount > firebaseDemoWriteLimit
+
+    override fun markDemoLocalMode() {
+        _firebaseDemoWriteCount = firebaseDemoWriteLimit + 1
+    }
+
+    override fun removeDemoOrder(orderId: String) {
+        _demoOrders.removeAll { it.id == orderId }
+    }
+
+    override fun resetDemoOrderState() {
+        _firebaseDemoWriteCount = 0
+    }
+
     fun reset() {
         _sellerId = demoSellerId
         _demoOrders.clear()
