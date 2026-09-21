@@ -1,5 +1,6 @@
 package com.together.newverse.data.repository
 
+import com.together.newverse.data.firebase.ArticleNodes
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
@@ -210,18 +211,8 @@ class GitLiveArticleRepository(
 
             // Save to GitLive Firebase using updateChildren for atomic write
             val articleRef = sellerArticlesRef.child(articleId)
-            val articleData = hashMapOf<String, Any?>(
-                "productId" to articleWithId.productId,
-                "productName" to articleWithId.productName,
-                "available" to articleWithId.available,
-                "unit" to articleWithId.unit,
-                "price" to articleWithId.price,
-                "weightPerPiece" to articleWithId.weightPerPiece,
-                "imageUrl" to articleWithId.imageUrl,
-                "category" to articleWithId.category,
-                "searchTerms" to articleWithId.searchTerms,
-                "detailInfo" to articleWithId.detailInfo
-            )
+            // Public fields only: this repository never writes seller-only data.
+            val articleData = ArticleNodes.publicFields(articleWithId)
             articleRef.updateChildren(articleData)
 
             // Update cache
@@ -249,9 +240,9 @@ class GitLiveArticleRepository(
                 return Result.failure(Exception("User not authenticated"))
             }
 
-            // Remove from GitLive Firebase
-            val articleRef = articlesRootRef.child(sellerId).child(articleId)
-            articleRef.removeValue()
+            // Remove both halves in one atomic update, so no seller-only data is
+            // left behind without its article.
+            database.reference().updateChildren(ArticleNodes.deleteUpdate(sellerId, articleId))
 
             // Remove from cache
             articlesCache[sellerId]?.remove(articleId)
@@ -288,41 +279,7 @@ class GitLiveArticleRepository(
      */
     private fun mapSnapshotToArticle(snapshot: DataSnapshot): Article? {
         val articleId = snapshot.key ?: return null
-        return when (val value = snapshot.value) {
-            is Map<*, *> -> {
-                Article(
-                    id = articleId,
-                    productId = value["productId"] as? String ?: "",
-                    productName = value["productName"] as? String ?: "",
-                    available = value["available"] as? Boolean == true,
-                    unit = value["unit"] as? String ?: "",
-                    price = (value["price"] as? Number)?.toDouble() ?: 0.0,
-                    weightPerPiece = (value["weightPerPiece"] as? Number)?.toDouble() ?: 0.0,
-                    imageUrl = value["imageUrl"] as? String ?: "",
-                    category = value["category"] as? String ?: "",
-                    searchTerms = value["searchTerms"] as? String ?: "",
-                    detailInfo = value["detailInfo"] as? String ?: ""
-                )
-            }
-            else -> null
-        }
-    }
-
-    /**
-     * Convert an Article to a map for Firebase storage.
-     */
-    private fun articleToMap(article: Article): Map<String, Any?> {
-        return mapOf(
-            "productId" to article.productId,
-            "productName" to article.productName,
-            "available" to article.available,
-            "unit" to article.unit,
-            "price" to article.price,
-            "weightPerPiece" to article.weightPerPiece,
-            "imageUrl" to article.imageUrl,
-            "category" to article.category,
-            "searchTerms" to article.searchTerms,
-            "detailInfo" to article.detailInfo
-        )
+        val value = snapshot.value as? Map<*, *> ?: return null
+        return ArticleNodes.articleFromMap(articleId, value)
     }
 }

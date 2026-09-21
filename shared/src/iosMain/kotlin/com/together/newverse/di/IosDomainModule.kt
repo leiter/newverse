@@ -7,6 +7,7 @@ import com.together.newverse.data.config.DefaultSellerConfig
 import com.together.newverse.data.config.DemoOrderStorage
 import com.together.newverse.data.config.SellerIdStorage
 import com.together.newverse.data.repository.GitLiveArticleRepository
+import com.together.newverse.data.repository.GitLiveSellerArticleRepository
 import com.together.newverse.data.repository.GitLiveAuthRepository
 import com.together.newverse.data.repository.GitLiveOrderRepository
 import com.together.newverse.data.repository.GitLiveProfileRepository
@@ -19,6 +20,7 @@ import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
+import com.together.newverse.domain.repository.SellerArticleRepository
 import org.koin.dsl.module
 
 /**
@@ -43,6 +45,11 @@ val iosDomainModule = module {
     // Article Repository - GitLive cross-platform implementation
     single<ArticleRepository> {
         GitLiveArticleRepository(get<AuthRepository>())
+    }
+
+    // Seller view of articles: public and seller-only halves, written atomically
+    single<SellerArticleRepository> {
+        GitLiveSellerArticleRepository(get<AuthRepository>())
     }
 
     // Order Repository - GitLive cross-platform implementation
