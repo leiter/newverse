@@ -8,6 +8,7 @@ import com.together.newverse.android.data.OFFER_ARTICLE_COUNT
 import com.together.newverse.android.data.offerArticles
 import com.together.newverse.android.utils.BaseTest
 import com.together.newverse.domain.model.ProductCategory
+import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.ProductUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -80,10 +81,11 @@ class OfferProductDataTests : BaseTest() {
                 article.price > sellerData.acquirePrice
             )
 
-            // Same formula as CreateProductViewModel.recalculateSellPrice, so reopening the
-            // product in the seller form does not silently recalculate a different price.
-            val expected = (sellerData.acquirePrice * sellerData.markupFactor *
-                (1.0 + article.taxRate) * 100).toLong() / 100.0
+            // Same formula as the seller's product form, so the stored markup matches
+            // what the form shows for this price.
+            val expected = ProductPricing.sellPrice(
+                sellerData.acquirePrice, sellerData.markupFactor, article.taxRate
+            )
             assertEquals("$name: price out of sync with markup", expected, article.price, 0.001)
         }
 

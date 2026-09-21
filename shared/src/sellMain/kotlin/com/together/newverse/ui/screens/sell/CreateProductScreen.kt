@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
@@ -46,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.ProductUnit
 import com.together.newverse.ui.adaptive.constrainedContentWidth
@@ -92,7 +94,7 @@ fun CreateProductScreen(
     val searchTerms = formData.searchTerms
     val price = formData.price
     val acquirePrice = formData.acquirePrice
-    val markupFactor = formData.markupFactor
+    val markupPercent = formData.markupPercent
     val taxRate = formData.taxRate
     val unit = formData.unit
     val category = formData.category
@@ -125,6 +127,9 @@ fun CreateProductScreen(
         ValidationError.ImageRequired.fieldName to stringResource(Res.string.validation_image_required),
         ValidationError.WeightRequired.fieldName to stringResource(Res.string.validation_weight_required)
     )
+
+    // Number fields accept "0,80" as well as "0.80"
+    val decimalKeyboard = KeyboardOptions(keyboardType = KeyboardType.Decimal)
 
     // Shown under the field it belongs to; null while the field is fine
     fun fieldError(error: ValidationError): String? =
@@ -243,6 +248,7 @@ fun CreateProductScreen(
                     onValueChange = viewModel::onPriceChange,
                     label = { Text(stringResource(Res.string.create_product_price_required)) },
                     prefix = { Text(stringResource(Res.string.create_product_price_prefix)) },
+                    keyboardOptions = decimalKeyboard,
                     isError = fieldError(ValidationError.PriceRequired) != null,
                     supportingText = fieldError(ValidationError.PriceRequired)?.let { { Text(it) } },
                     modifier = Modifier.weight(1f),
@@ -264,6 +270,7 @@ fun CreateProductScreen(
                 onValueChange = viewModel::onAcquirePriceChange,
                 label = { Text(stringResource(Res.string.create_product_acquire_price)) },
                 prefix = { Text(stringResource(Res.string.create_product_price_prefix)) },
+                keyboardOptions = decimalKeyboard,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -274,9 +281,11 @@ fun CreateProductScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedTextField(
-                    value = markupFactor,
-                    onValueChange = viewModel::onMarkupFactorChange,
+                    value = markupPercent,
+                    onValueChange = viewModel::onMarkupChange,
                     label = { Text(stringResource(Res.string.create_product_markup_factor)) },
+                    suffix = { Text("%") },
+                    keyboardOptions = decimalKeyboard,
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -296,6 +305,7 @@ fun CreateProductScreen(
                     value = weightPerPiece,
                     onValueChange = viewModel::onWeightPerPieceChange,
                     label = { Text(stringResource(Res.string.create_product_weight_required)) },
+                    keyboardOptions = decimalKeyboard,
                     isError = fieldError(ValidationError.WeightRequired) != null,
                     supportingText = fieldError(ValidationError.WeightRequired)?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth(),

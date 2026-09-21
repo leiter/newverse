@@ -3,6 +3,7 @@ package com.together.newverse.android.data
 import com.together.newverse.data.parser.ProductDescriptionBuilder
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.ProductCategory
+import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.ProductUnit
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.SellerArticleData
@@ -16,12 +17,10 @@ import com.together.newverse.domain.model.TaxRate
  * `acquirePrice` is the supplier's net list price per base unit as printed in the BNN file.
  * It is seller-only: it goes into [SellerArticleData] together with the BNN codes, while
  * the public [Article] carries what buyers see.
- * [Article.price] is never written by hand — it is derived by [offerArticle] using the exact
- * same formula the seller app uses in CreateProductViewModel.recalculateSellPrice:
+ * [Article.price] is never written by hand — it is derived by [offerArticle] with
+ * [ProductPricing.sellPrice], the formula the seller's product form uses:
  *
- *     price = acquirePrice * markupFactor * (1 + taxRate)
- *
- * so a product uploaded here reopens in the seller form without the price jumping.
+ *     price = acquirePrice * markupFactor * (1 + taxRate), rounded to cents
  */
 
 /** Default gross margin applied to the supplier list price. Adjust for the real offer. */
@@ -68,8 +67,7 @@ fun offerArticle(
         certificationCode = certificationCode,
         producerCode = producerCode
     )
-    val gross = acquirePrice * markupFactor * (1.0 + taxRate.rate)
-    val price = (gross * 100).toLong() / 100.0
+    val price = ProductPricing.sellPrice(acquirePrice, markupFactor, taxRate.rate)
     val article = Article(
         id = "",
         productId = productId,

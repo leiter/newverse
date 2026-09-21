@@ -548,7 +548,7 @@ class CreateProductViewModelTest {
         val viewModel = createViewModel()
         fillRequiredFields(viewModel)
         viewModel.onAcquirePriceChange("1.50")
-        viewModel.onMarkupFactorChange("1.5")
+        viewModel.onMarkupChange("50")
 
         viewModel.saveProduct()
         advanceUntilIdle()
@@ -569,7 +569,7 @@ class CreateProductViewModelTest {
 
         assertTrue(viewModel.isEditMode)
         assertEquals("1.96", viewModel.formState.value.data.acquirePrice)
-        assertEquals("1.67", viewModel.formState.value.data.markupFactor)
+        assertEquals("67", viewModel.formState.value.data.markupPercent)
     }
 
     @Test
@@ -584,10 +584,12 @@ class CreateProductViewModelTest {
         viewModel.saveProduct()
         advanceUntilIdle()
 
+        // Selling price stays 3.50; the markup follows: 3.50 / (2.10 × 1.07) = 55.8 %
         assertEquals(
-            storedSellerData.copy(acquirePrice = 2.10),
+            storedSellerData.copy(acquirePrice = 2.10, markupFactor = 1.558),
             lastSaved().sellerData
         )
+        assertEquals(3.5, lastSaved().article.price)
         assertEquals("article_1", lastSaved().id)
     }
 
@@ -666,5 +668,98 @@ class CreateProductViewModelTest {
         assertTrue(state.hasAttemptedSubmit)
         assertTrue(state.fieldErrors.containsKey(ValidationError.WeightRequired.fieldName))
         assertTrue(articleRepository.savedArticles.isEmpty())
+    }
+
+    // ===== Pricing: the selling price leads =====
+
+    private val formData get() = viewModelUnderTest.formState.value.data
+    private lateinit var viewModelUnderTest: CreateProductViewModel
+
+    private fun pricingForm(): CreateProductViewModel =
+        createViewModel().also { viewModelUnderTest = it }
+
+    @Test
+    fun `entering a purchase price keeps the selling price and derives the markup`() = runTest {
+        // The "Teesieb" case: price set first, purchase price added later.
+        val viewModel = pricingForm()
+        viewModel.onTaxRateChange(TaxRate.STANDARD)
+        viewModel.onPriceChange("1.19")
+
+        viewModel.onAcquirePriceChange("0.80")
+
+        assertEquals("1.19", formData.price)
+        assertEquals("25", formData.markupPercent)   // 0.80 × 1.25 × 1.19 = 1.19
+    }
+
+    @Test
+    fun `purchase price and markup fill in an empty selling price`() = runTest {
+        val viewModel = pricingForm()
+        viewModel.onMarkupChange("45")
+
+        viewModel.onAcquirePriceChange("2")
+
+        assertEquals("3.1", formData.price)          // 2 × 1.45 × 1.07 = 3.103
+    }
+
+    @Test
+    fun `changing the markup recalculates the selling price`() = runTest {
+        val viewModel = pricingForm()
+        viewModel.onPriceChange("3.00")
+        viewModel.onAcquirePriceChange("2")
+
+        viewModel.onMarkupChange("50")
+
+        assertEquals("3.21", formData.price)         // 2 × 1.5 × 1.07
+    }
+
+    @Test
+    fun `changing the selling price recalculates the markup`() = runTest {
+        val viewModel = pricingForm()
+        viewModel.onAcquirePriceChange("2")
+
+        viewModel.onPriceChange("4.28")
+
+        assertEquals("100", formData.markupPercent)  // 4.28 / (2 × 1.07) = 2.0
+    }
+
+    @Test
+    fun `changing the tax rate keeps the selling price`() = runTest {
+        val viewModel = pricingForm()
+        viewModel.onPriceChange("3.21")
+        viewModel.onAcquirePriceChange("2")
+
+        viewModel.onTaxRateChange(TaxRate.STANDARD)
+
+        assertEquals("3.21", formData.price)
+        assertEquals("34.9", formData.markupPercent) // 3.21 / (2 × 1.19) = 1.3487
+    }
+
+    @Test
+    fun `decimal commas are accepted`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = pricingForm()
+        fillRequiredFields(viewModel)
+        viewModel.onPriceChange("1,19")
+        viewModel.onAcquirePriceChange("0,80")
+
+        viewModel.saveProduct()
+        advanceUntilIdle()
+
+        assertEquals(1.19, lastSaved().article.price)
+        assertEquals(0.80, lastSaved().sellerData?.acquirePrice)
+    }
+
+    @Test
+    fun `markup is stored as a factor`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = pricingForm()
+        fillRequiredFields(viewModel)
+        viewModel.onAcquirePriceChange("2")
+        viewModel.onMarkupChange("45")
+
+        viewModel.saveProduct()
+        advanceUntilIdle()
+
+        assertEquals(1.45, lastSaved().sellerData?.markupFactor)
     }
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.config.ProductCatalogConfig
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.ProductUnit
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.SellerArticleData
@@ -34,7 +35,7 @@ data class ProductFormData(
     val searchTerms: String = "",
     val price: String = "",
     val acquirePrice: String = "",
-    val markupFactor: String = "1.0",
+    val markupPercent: String = "",       // Aufschlag in %, stored as a factor
     val taxRate: TaxRate = TaxRate.REDUCED,
     val unit: String = "",
     val category: String = "",
@@ -53,7 +54,7 @@ data class ProductFormData(
                 searchTerms == other.searchTerms &&
                 price == other.price &&
                 acquirePrice == other.acquirePrice &&
-                markupFactor == other.markupFactor &&
+                markupPercent == other.markupPercent &&
                 taxRate == other.taxRate &&
                 unit == other.unit &&
                 category == other.category &&
@@ -70,7 +71,7 @@ data class ProductFormData(
         result = 31 * result + searchTerms.hashCode()
         result = 31 * result + price.hashCode()
         result = 31 * result + acquirePrice.hashCode()
-        result = 31 * result + markupFactor.hashCode()
+        result = 31 * result + markupPercent.hashCode()
         result = 31 * result + taxRate.hashCode()
         result = 31 * result + unit.hashCode()
         result = 31 * result + category.hashCode()
@@ -216,7 +217,9 @@ class CreateProductViewModel(
                         searchTerms = article.searchTerms,
                         price = if (article.price > 0) article.price.toString() else "",
                         acquirePrice = if (sellerData?.hasAcquirePrice == true) sellerData.acquirePrice.toString() else "",
-                        markupFactor = if (sellerData != null && sellerData.markupFactor > 0) sellerData.markupFactor.toString() else "1.0",
+                        markupPercent = if (sellerData?.hasAcquirePrice == true && sellerData.markupFactor > 0) {
+                            ProductPricing.formatPercent(ProductPricing.factorToPercent(sellerData.markupFactor))
+                        } else "",
                         taxRate = TaxRate.fromRate(article.taxRate),
                         unit = article.unit.ifBlank { catalogConfig.defaultUnit },
                         category = article.category.ifBlank { catalogConfig.defaultCategory },
@@ -248,56 +251,66 @@ class CreateProductViewModel(
         _formState.update { it.updateField { data -> data.copy(searchTerms = value) }.clearFieldError(ValidationError.SearchTermsRequired.fieldName) }
     }
 
+    // ----- Pricing -----
+    //
+    // The selling price leads: it is what the seller decides and the buyer pays.
+    // Only editing the price itself or the markup changes it; a new purchase price or
+    // tax rate re-derives the markup instead. The price is computed from purchase
+    // price and markup only while it is still empty.
+
     fun onPriceChange(value: String) {
         _formState.update { state ->
-            val updated = state.updateField { data -> data.copy(price = value) }
+            state.updateField { data -> data.copy(price = value) }
                 .clearFieldError(ValidationError.PriceRequired.fieldName)
-            val data = updated.data
-            val sellPrice = value.toDoubleOrNull()
-            val acquire = data.acquirePrice.toDoubleOrNull()
-            if (sellPrice != null && acquire != null && acquire > 0) {
-                val factor = sellPrice / (acquire * (1.0 + data.taxRate.rate))
-                val rounded = (factor * 10000).toLong() / 10000.0
-                updated.updateField { d -> d.copy(markupFactor = rounded.toString()) }
-            } else {
-                updated
-            }
+                .deriveMarkup()
         }
     }
 
     fun onAcquirePriceChange(value: String) {
         _formState.update { state ->
             val updated = state.updateField { data -> data.copy(acquirePrice = value) }
-            recalculateSellPrice(updated)
+            if (updated.data.priceValue() != null) updated.deriveMarkup() else updated.derivePrice()
         }
     }
 
-    fun onMarkupFactorChange(value: String) {
+    fun onMarkupChange(value: String) {
         _formState.update { state ->
-            val updated = state.updateField { data -> data.copy(markupFactor = value) }
-            recalculateSellPrice(updated)
+            state.updateField { data -> data.copy(markupPercent = value) }.derivePrice()
         }
     }
 
     fun onTaxRateChange(taxRate: TaxRate) {
         _formState.update { state ->
             val updated = state.updateField { data -> data.copy(taxRate = taxRate) }
-            recalculateSellPrice(updated)
+            if (updated.data.priceValue() != null) updated.deriveMarkup() else updated.derivePrice()
         }
     }
 
-    private fun recalculateSellPrice(state: FormState<ProductFormData>): FormState<ProductFormData> {
-        val data = state.data
-        val acquire = data.acquirePrice.toDoubleOrNull()
-        val factor = data.markupFactor.toDoubleOrNull()
-        return if (acquire != null && acquire > 0 && factor != null && factor > 0) {
-            val sellPrice = acquire * factor * (1.0 + data.taxRate.rate)
-            val rounded = (sellPrice * 100).toLong() / 100.0
-            state.updateField { d -> d.copy(price = rounded.toString()) }
-                .clearFieldError(ValidationError.PriceRequired.fieldName)
-        } else {
-            state
-        }
+    private fun ProductFormData.priceValue(): Double? =
+        ProductPricing.parseDecimal(price)?.takeIf { it > 0 }
+
+    private fun ProductFormData.acquireValue(): Double? =
+        ProductPricing.parseDecimal(acquirePrice)?.takeIf { it > 0 }
+
+    /** Markup from selling and purchase price; unchanged if either is missing. */
+    private fun FormState<ProductFormData>.deriveMarkup(): FormState<ProductFormData> {
+        val sellPrice = data.priceValue() ?: return this
+        val acquire = data.acquireValue() ?: return this
+        val factor = ProductPricing.markupFactor(sellPrice, acquire, data.taxRate.rate)
+        val percent = ProductPricing.formatPercent(ProductPricing.factorToPercent(factor))
+        return updateField { it.copy(markupPercent = percent) }
+    }
+
+    /** Selling price from purchase price and markup; unchanged if either is missing. */
+    private fun FormState<ProductFormData>.derivePrice(): FormState<ProductFormData> {
+        val acquire = data.acquireValue() ?: return this
+        val percent = ProductPricing.parseDecimal(data.markupPercent) ?: return this
+        val sellPrice = ProductPricing.sellPrice(
+            acquire, ProductPricing.percentToFactor(percent), data.taxRate.rate
+        )
+        if (sellPrice <= 0) return this
+        return updateField { it.copy(price = sellPrice.toString()) }
+            .clearFieldError(ValidationError.PriceRequired.fieldName)
     }
 
     fun onUnitChange(value: String) {
@@ -376,12 +389,12 @@ class CreateProductViewModel(
                     id = editingArticleId ?: "", // Firebase will generate ID for new articles
                     productId = formData.productId,
                     productName = formData.productName,
-                    price = formData.price.toDouble(),
+                    price = ProductPricing.parseDecimal(formData.price) ?: 0.0,
                     taxRate = formData.taxRate.rate,
                     unit = formData.unit,
                     category = formData.category,
                     searchTerms = prepareSearchTerms(formData),
-                    weightPerPiece = formData.weightPerPiece.toDoubleOrNull() ?: 0.0,
+                    weightPerPiece = ProductPricing.parseDecimal(formData.weightPerPiece) ?: 0.0,
                     detailInfo = formData.detailInfo,
                     available = formData.available,
                     imageUrl = finalImageUrl
@@ -418,8 +431,8 @@ class CreateProductViewModel(
      * seller actually enters a purchase price.
      */
     private fun sellerDataForSave(form: ProductFormData): SellerArticleData? {
-        val acquire = form.acquirePrice.toDoubleOrNull()
-        val markup = form.markupFactor.toDoubleOrNull() ?: 1.0
+        val acquire = ProductPricing.parseDecimal(form.acquirePrice)
+        val markup = ProductPricing.parseDecimal(form.markupPercent)?.let(ProductPricing::percentToFactor) ?: 1.0
         val loaded = loadedSellerData
         return when {
             loaded != null -> loaded.copy(acquirePrice = acquire ?: 0.0, markupFactor = markup)
@@ -443,7 +456,7 @@ class CreateProductViewModel(
             errors[ValidationError.SearchTermsRequired.fieldName] = "Search terms are required"
         }
 
-        val priceValue = data.price.toDoubleOrNull()
+        val priceValue = ProductPricing.parseDecimal(data.price)
         if (priceValue == null || priceValue <= 0) {
             errors[ValidationError.PriceRequired.fieldName] = "Valid price is required"
         }
@@ -463,7 +476,7 @@ class CreateProductViewModel(
         // Validate weight per piece if unit is countable
         val unitEnum = ProductUnit.fromDisplayName(data.unit)
         if (unitEnum?.isCountable == true) {
-            val weight = data.weightPerPiece.toDoubleOrNull()
+            val weight = ProductPricing.parseDecimal(data.weightPerPiece)
             if (weight == null || weight <= 0) {
                 errors[ValidationError.WeightRequired.fieldName] = "Weight per piece is required for countable units"
             }
