@@ -16,7 +16,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,14 +28,19 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -44,6 +52,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.BookingPeriod
+import com.together.newverse.domain.model.Money
+import com.together.newverse.domain.model.Sale
 import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.util.OrderDateUtils
@@ -67,6 +77,8 @@ fun AbrechnungScreen(
     val pickupSummary by viewModel.pickupSummary.collectAsState()
     val periodSummary by viewModel.periodSummary.collectAsState()
     val export by viewModel.export.collectAsState()
+    val bookingMessage by viewModel.bookingMessage.collectAsState()
+    var showWalkIn by remember { mutableStateOf(false) }
 
     AbrechnungContent(
         selectedTab = selectedTab,
@@ -79,8 +91,22 @@ fun AbrechnungScreen(
         onPreviousPeriod = viewModel::previousPeriod,
         onNextPeriod = viewModel::nextPeriod,
         export = export,
-        onExport = viewModel::exportPeriod
+        onExport = viewModel::exportPeriod,
+        bookingMessage = bookingMessage,
+        onRecordWalkIn = { showWalkIn = true },
+        onCancelWalkIn = { sale -> viewModel.clearBookingMessage(); viewModel.cancelWalkInSale(sale) }
     )
+
+    if (showWalkIn) {
+        WalkInSaleDialog(
+            onBooked = {
+                showWalkIn = false
+                // The sale is booked now; show the period it landed in.
+                viewModel.showCurrentPeriod()
+            },
+            onDismiss = { showWalkIn = false }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,7 +122,10 @@ fun AbrechnungContent(
     onPreviousPeriod: () -> Unit,
     onNextPeriod: () -> Unit,
     export: ExportState = ExportState(),
-    onExport: () -> Unit = {}
+    onExport: () -> Unit = {},
+    bookingMessage: BookingMessage? = null,
+    onRecordWalkIn: () -> Unit = {},
+    onCancelWalkIn: (Sale) -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         PrimaryTabRow(selectedTabIndex = selectedTab.ordinal) {
@@ -122,7 +151,10 @@ fun AbrechnungContent(
                 onPreviousPeriod = onPreviousPeriod,
                 onNextPeriod = onNextPeriod,
                 export = export,
-                onExport = onExport
+                onExport = onExport,
+                bookingMessage = bookingMessage,
+                onRecordWalkIn = onRecordWalkIn,
+                onCancelWalkIn = onCancelWalkIn
             )
         }
     }
@@ -257,11 +289,22 @@ private fun PeriodView(
     onPreviousPeriod: () -> Unit,
     onNextPeriod: () -> Unit,
     export: ExportState,
-    onExport: () -> Unit
+    onExport: () -> Unit,
+    bookingMessage: BookingMessage?,
+    onRecordWalkIn: () -> Unit,
+    onCancelWalkIn: (Sale) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         PeriodTypeRow(period, onPeriodTypeSelected)
         PeriodNavigator(period, canGoNext, onPreviousPeriod, onNextPeriod)
+        OutlinedButton(
+            onClick = onRecordWalkIn,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(Res.string.walkin_button))
+        }
 
         when (periodSummary) {
             AsyncState.Initial, AsyncState.Loading -> LoadingBox()
@@ -291,11 +334,88 @@ private fun PeriodView(
 
                         item { ExportRow(export, onExport) }
 
+                        item {
+                            Text(
+                                text = stringResource(Res.string.bookings_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(top = 8.dp).semantics { heading() }
+                            )
+                        }
+                        bookingMessage?.let { message ->
+                            item {
+                                Text(
+                                    text = stringResource(
+                                        when (message) {
+                                            BookingMessage.ALREADY_CANCELLED -> Res.string.booking_msg_already_cancelled
+                                            BookingMessage.CANCEL_FAILED -> Res.string.booking_msg_cancel_failed
+                                        }
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                                )
+                            }
+                        }
+                        val cancelledIds = summary.sales.mapNotNull { it.reverses }.toSet()
+                        items(summary.sales, key = { it.id }) { sale ->
+                            BookingRow(sale, isCancelled = sale.id in cancelledIds, onCancelWalkIn = onCancelWalkIn)
+                        }
+
                         item { Spacer(Modifier.height(16.dp)) }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BookingRow(sale: Sale, isCancelled: Boolean, onCancelWalkIn: (Sale) -> Unit) {
+    var confirmCancel by remember { mutableStateOf(false) }
+    val what = if (sale.isWalkIn) stringResource(Res.string.booking_walk_in)
+    else stringResource(Res.string.booking_order, sale.orderId.take(8))
+
+    ListItem(
+        headlineContent = { Text(what) },
+        supportingContent = {
+            Text(
+                OrderDateUtils.formatDisplayDateTime(kotlin.time.Instant.fromEpochMilliseconds(sale.confirmedAt)) +
+                    when {
+                        sale.isReversal -> " · " + stringResource(Res.string.booking_reversal)
+                        isCancelled -> " · " + stringResource(Res.string.booking_cancelled)
+                        else -> ""
+                    }
+            )
+        },
+        trailingContent = {
+            Column(horizontalAlignment = Alignment.End) {
+                Text("${Money.formatCents(sale.grossCents)} €", fontWeight = FontWeight.SemiBold)
+                if (sale.isWalkIn && !sale.isReversal && !isCancelled) {
+                    TextButton(onClick = { confirmCancel = true }) {
+                        Text(stringResource(Res.string.booking_cancel))
+                    }
+                }
+            }
+        }
+    )
+
+    if (confirmCancel) {
+        AlertDialog(
+            onDismissRequest = { confirmCancel = false },
+            title = { Text(stringResource(Res.string.booking_cancel_title)) },
+            text = { Text(stringResource(Res.string.booking_cancel_text)) },
+            confirmButton = {
+                Button(onClick = { confirmCancel = false; onCancelWalkIn(sale) }) {
+                    Text(stringResource(Res.string.booking_cancel))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmCancel = false }) {
+                    Text(stringResource(Res.string.button_cancel))
+                }
+            }
+        )
     }
 }
 

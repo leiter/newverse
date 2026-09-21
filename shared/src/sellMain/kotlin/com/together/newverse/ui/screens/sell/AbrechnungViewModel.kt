@@ -10,6 +10,7 @@ import com.together.newverse.domain.model.Sale
 import com.together.newverse.domain.model.SalesCsv
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.TaxRate
+import com.together.newverse.domain.model.activeSale
 import com.together.newverse.domain.model.articleFor
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
@@ -42,7 +43,8 @@ class AbrechnungViewModel(
     private val saleRepository: SaleRepository,
     private val fileSharer: TextFileSharer,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    private val today: () -> LocalDate = { Clock.System.now().toLocalDateTime(timeZone).date }
+    private val today: () -> LocalDate = { Clock.System.now().toLocalDateTime(timeZone).date },
+    private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() }
 ) : ViewModel() {
 
     private val _selectedTab = MutableStateFlow(AbrechnungTab.PICKUP)
@@ -181,6 +183,35 @@ class AbrechnungViewModel(
         }
     }
 
+    // ----- Cancelling a walk-in sale -----
+
+    private val _bookingMessage = MutableStateFlow<BookingMessage?>(null)
+    val bookingMessage: StateFlow<BookingMessage?> = _bookingMessage.asStateFlow()
+
+    /**
+     * Books the cancellation of a walk-in sale. Order sales are cancelled in the order
+     * detail instead, which also reopens the order.
+     */
+    fun cancelWalkInSale(sale: Sale) {
+        if (!sale.isWalkIn || sale.isReversal) return
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            // Read the reference's sales afresh: the list shows one period, and the
+            // cancellation may already have been booked in a later one.
+            val standing = saleRepository.salesForOrder(sellerId, sale.orderId).getOrNull()?.activeSale()
+            if (standing?.id != sale.id) {
+                _bookingMessage.value = BookingMessage.ALREADY_CANCELLED
+                return@launch
+            }
+            saleRepository.recordSale(sellerId, sale.reversal(confirmedAt = now()))
+                .onFailure { _bookingMessage.value = BookingMessage.CANCEL_FAILED }
+        }
+    }
+
+    fun clearBookingMessage() {
+        _bookingMessage.value = null
+    }
+
     fun clearExportMessage() {
         _export.value = _export.value.copy(message = null)
     }
@@ -198,6 +229,14 @@ class AbrechnungViewModel(
         }
     }
 
+    /** Back to the week or month containing today, e.g. after booking a sale. */
+    fun showCurrentPeriod() {
+        _period.value = when (_period.value) {
+            is BookingPeriod.Week -> BookingPeriod.weekOf(today())
+            is BookingPeriod.Month -> BookingPeriod.monthOf(today())
+        }
+    }
+
     fun previousPeriod() {
         _period.value = _period.value.previous()
     }
@@ -212,6 +251,7 @@ class AbrechnungViewModel(
     private fun summarize(period: BookingPeriod, sales: List<Sale>): PeriodSummary =
         PeriodSummary(
             period = period,
+            sales = sales.sortedByDescending { it.confirmedAt },
             saleCount = sales.count { !it.isReversal },
             cancellationCount = sales.count { it.isReversal },
             financials = sales.toFinancials()
@@ -324,6 +364,8 @@ data class ExportState(
 
 enum class ExportMessage { NOTHING_TO_EXPORT, FAILED }
 
+enum class BookingMessage { ALREADY_CANCELLED, CANCEL_FAILED }
+
 data class AggregatedItem(
     val productId: String,
     val productName: String,
@@ -360,6 +402,8 @@ data class PickupSummary(
 
 data class PeriodSummary(
     val period: BookingPeriod,
+    /** The period's bookings, newest first, cancellations included. */
+    val sales: List<Sale> = emptyList(),
     /** Sales booked in the period, not counting cancellations. */
     val saleCount: Int,
     val cancellationCount: Int,

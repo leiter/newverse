@@ -48,6 +48,7 @@ This document outlines the current implementation status of core features and a 
 - ✅ Pickup confirmation: book what was handed over as a sale, cancel a booking, mark "nicht abgeholt"
 - ✅ Abrechnung from booked sales by calendar week / month
 - ✅ CSV export of a week or month for the tax advisor (share sheet on Android and iOS)
+- ✅ Walk-in market sales from the Abrechnung (catalog price prefilled and editable), listed with the period's bookings and cancellable
 - ✅ Buyer edits keep the stored order's message, market and seller's "hidden" flag (fixed 2026-09-21)
 
 ---
@@ -84,10 +85,10 @@ The following features are planned but not yet implemented, or are only partiall
     - Are the app's records sufficient under GoBD / KassenSichV? Sales can only be added in the app (enforced by the database rules), but the Firebase project owner can still change data in the console, and there is no certified security module (TSE).
     - Is 19 % right for Süßkartoffel? Terra's price list marks it 19 %; the app follows the list.
 
-- **Walk-in market sales**
-  - **Status:** Not Implemented (deferred)
+- **Walk-in market sales: device check**
+  - **Status:** Implemented, not yet tried on a device
   - **Tasks:**
-    - Record a sale without an app order (articles, quantities) as a `Sale`, so market sales appear in the Abrechnung and the CSV export.
+    - Record a market sale with a changed price, cancel one, and export the month (the CSV shows "Marktverkauf").
 
 ### Medium Priority: BNN Import (Sell App)
 - **Availability flag**

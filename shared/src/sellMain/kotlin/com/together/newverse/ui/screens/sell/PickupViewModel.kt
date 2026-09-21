@@ -6,6 +6,7 @@ import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.Sale
+import com.together.newverse.domain.model.activeSale
 import com.together.newverse.domain.model.toSale
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
@@ -222,10 +223,7 @@ class PickupViewModel(
         private val NOT_BOOKABLE = setOf(OrderStatus.DRAFT, OrderStatus.CANCELLED, OrderStatus.DEMO_ORDER)
 
         /** The sale currently standing for an order: the latest one not cancelled. */
-        fun activeSale(sales: List<Sale>): Sale? {
-            val cancelled = sales.mapNotNull { it.reverses }.toSet()
-            return sales.filter { !it.isReversal && it.id !in cancelled }.maxByOrNull { it.confirmedAt }
-        }
+        fun activeSale(sales: List<Sale>): Sale? = sales.activeSale()
     }
 }
 

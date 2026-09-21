@@ -317,6 +317,80 @@ class AbrechnungViewModelTest {
         assertEquals(ExportState(), viewModel.export.value)
     }
 
+    // ===== Bookings and walk-in cancellation =====
+
+    private fun walkIn(id: String, at: Long, cents: Long) =
+        Sale(id = id, orderId = Sale.newWalkInOrderId(at), confirmedAt = at, pickUpDate = at,
+            lines = listOf(saleLine(unitPriceCents = cents)))
+
+    @Test
+    fun `the period lists its bookings newest first`() = runTest {
+        saleRepository.setSales(listOf(
+            walkIn("w1", millis(2026, 9, 3), 100),
+            sale("o1", millis(2026, 9, 10), saleLine(unitPriceCents = 200))
+        ))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf("o1", "w1"), periodSummary(viewModel).sales.map { it.id })
+    }
+
+    @Test
+    fun `cancelling a walk-in sale books its reversal`() = runTest {
+        val w1 = walkIn("w1", millis(2026, 9, 3), 350)
+        saleRepository.setSales(listOf(w1))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.cancelWalkInSale(w1)
+        advanceUntilIdle()
+
+        val storno = saleRepository.sales.single { it.isReversal }
+        assertEquals("w1", storno.reverses)
+        assertEquals(w1.orderId, storno.orderId)
+        assertEquals(0.0, periodSummary(viewModel).financials.grossTotal, 0.001)
+    }
+
+    @Test
+    fun `a walk-in sale is not cancelled twice`() = runTest {
+        val w1 = walkIn("w1", millis(2026, 9, 3), 350)
+        saleRepository.setSales(listOf(w1, w1.reversal(confirmedAt = millis(2026, 9, 4)).copy(id = "w1s")))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.cancelWalkInSale(w1)
+        advanceUntilIdle()
+
+        assertEquals(1, saleRepository.sales.count { it.isReversal })
+        assertEquals(BookingMessage.ALREADY_CANCELLED, viewModel.bookingMessage.value)
+    }
+
+    @Test
+    fun `order sales are not cancelled from the list`() = runTest {
+        val o1 = sale("o1", millis(2026, 9, 3), saleLine(unitPriceCents = 350))
+        saleRepository.setSales(listOf(o1))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.cancelWalkInSale(o1)
+        advanceUntilIdle()
+
+        assertTrue(saleRepository.sales.none { it.isReversal })
+    }
+
+    @Test
+    fun `after booking the current period is shown`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.setPeriodType(PeriodType.WEEK)
+        viewModel.previousPeriod()
+        viewModel.previousPeriod()
+
+        viewModel.showCurrentPeriod()
+
+        assertEquals(BookingPeriod.Week(2026, 39), viewModel.period.value)
+    }
+
     // ===== Nächste Abholung: forecast from the catalog =====
 
     private fun nextPickupOrder(vararg items: OrderedProduct) = Order(

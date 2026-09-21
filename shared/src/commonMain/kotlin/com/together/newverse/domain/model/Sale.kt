@@ -1,5 +1,7 @@
 package com.together.newverse.domain.model
 
+import kotlin.random.Random
+
 /**
  * A sale as it goes into the books: what was actually handed over at pickup, at the
  * price, VAT rate and purchase price valid at that moment.
@@ -23,6 +25,9 @@ data class Sale(
 ) {
     val isReversal: Boolean get() = reverses != null
 
+    /** Sold at the market stall without an app order; [orderId] is then generated. */
+    val isWalkIn: Boolean get() = orderId.startsWith(WALK_IN_PREFIX)
+
     val grossCents: Long get() = lines.sumOf { it.grossCents }
     val netCents: Long get() = lines.sumOf { it.netCents }
     val vatCents: Long get() = lines.sumOf { it.vatCents }
@@ -41,6 +46,17 @@ data class Sale(
             lines = lines.map { it.copy(quantity = -it.quantity) },
             reverses = id
         )
+    }
+
+    companion object {
+        const val WALK_IN_PREFIX = "walkin_"
+
+        /**
+         * A reference for a walk-in sale, standing in for the order number. It groups
+         * the sale and its cancellation in the sale index like an order does.
+         */
+        fun newWalkInOrderId(now: Long, random: Random = Random.Default): String =
+            "$WALK_IN_PREFIX${now}_${random.nextInt(0, 1_000_000).toString().padStart(6, '0')}"
     }
 }
 
@@ -158,3 +174,50 @@ fun Map<String, SellerArticle>.articleFor(item: OrderedProduct): SellerArticle? 
 
 /** The id an order line refers to its article by. */
 private fun OrderedProduct.articleKey(): String = productId.takeIf { it.isNotEmpty() && it != "-1" } ?: id
+
+/**
+ * The sale currently standing among the sales of one order or walk-in reference:
+ * the latest one not cancelled, or null if there is none.
+ */
+fun List<Sale>.activeSale(): Sale? {
+    val cancelled = mapNotNull { it.reverses }.toSet()
+    return filter { !it.isReversal && it.id !in cancelled }.maxByOrNull { it.confirmedAt }
+}
+
+/** One article sold at the market stall: what, how much, and at which gross price. */
+data class WalkInItem(
+    val article: SellerArticle,
+    val quantity: Double,
+    val unitPrice: Double
+)
+
+/**
+ * A walk-in sale of [items]. VAT rate, purchase price and article number come from
+ * the catalog article, as for confirmed orders; the price is the one charged.
+ */
+fun walkInSale(items: List<WalkInItem>, confirmedAt: Long, orderId: String): Sale {
+    require(items.isNotEmpty()) { "A sale without lines books nothing" }
+    require(items.all { it.quantity > 0.0 }) { "Quantities must be positive" }
+    require(items.all { it.unitPrice > 0.0 }) { "Prices must be positive" }
+    require(orderId.startsWith(Sale.WALK_IN_PREFIX)) { "Walk-in sales need a walk-in reference" }
+    return Sale(
+        orderId = orderId,
+        confirmedAt = confirmedAt,
+        pickUpDate = confirmedAt,
+        lines = items.map { item ->
+            val article = item.article.article
+            SaleLine(
+                articleId = item.article.id,
+                productId = article.productId,
+                productName = article.productName,
+                unit = article.unit,
+                quantity = item.quantity,
+                unitPriceCents = Money.toCents(item.unitPrice),
+                taxRate = article.taxRate,
+                acquirePriceCents = item.article.sellerData
+                    ?.takeIf { it.hasAcquirePrice }
+                    ?.let { Money.toCents(it.acquirePrice) }
+            )
+        }
+    )
+}

@@ -245,4 +245,56 @@ class SaleTest {
         assertFailsWith<IllegalArgumentException> { order.toSale(listOf(1.0), catalog, 1_000L) }
         assertFailsWith<IllegalArgumentException> { order.toSale(listOf(1.0, -1.0, 1.0), catalog, 1_000L) }
     }
+
+    // --- walk-in sales ---
+
+    private val walkInRef = Sale.newWalkInOrderId(now = 5_000L, random = kotlin.random.Random(1))
+
+    @Test
+    fun `a walk-in reference is recognisable`() {
+        assertTrue(walkInRef.startsWith("walkin_5000_"))
+        assertTrue(Sale(orderId = walkInRef, confirmedAt = 1, pickUpDate = 1, lines = emptyList()).isWalkIn)
+        assertTrue(!Sale(orderId = "order_1", confirmedAt = 1, pickUpDate = 1, lines = emptyList()).isWalkIn)
+    }
+
+    @Test
+    fun `a walk-in sale books the charged price with the catalog's VAT and cost`() {
+        val sweet = SellerArticle(
+            Article(id = "sweet", productId = "122654", productName = "Süßkartoffel", unit = "kg",
+                price = 4.62, taxRate = TaxRate.STANDARD.rate),
+            SellerArticleData(acquirePrice = 2.68)
+        )
+
+        val s = walkInSale(listOf(WalkInItem(sweet, quantity = 0.8, unitPrice = 4.50)), confirmedAt = 7_000L, orderId = walkInRef)
+
+        val line = s.lines.single()
+        assertEquals("sweet", line.articleId)
+        assertEquals("122654", line.productId)
+        assertEquals("Süßkartoffel", line.productName)
+        assertEquals(450L, line.unitPriceCents, "the charged price, not the catalog's 4.62")
+        assertEquals(0.19, line.taxRate)
+        assertEquals(268L, line.acquirePriceCents)
+        assertEquals(360L, line.grossCents)
+        assertEquals(7_000L, s.confirmedAt)
+        assertTrue(s.isWalkIn)
+    }
+
+    @Test
+    fun `a walk-in sale needs lines, positive amounts and a walk-in reference`() {
+        val apple = SellerArticle(Article(id = "apple", productName = "Apfel", taxRate = 0.07))
+        assertFailsWith<IllegalArgumentException> { walkInSale(emptyList(), 1L, walkInRef) }
+        assertFailsWith<IllegalArgumentException> { walkInSale(listOf(WalkInItem(apple, 0.0, 1.0)), 1L, walkInRef) }
+        assertFailsWith<IllegalArgumentException> { walkInSale(listOf(WalkInItem(apple, 1.0, 0.0)), 1L, walkInRef) }
+        assertFailsWith<IllegalArgumentException> { walkInSale(listOf(WalkInItem(apple, 1.0, 1.0)), 1L, "order_1") }
+    }
+
+    @Test
+    fun `the active sale is the latest not cancelled`() {
+        val first = sale(line()).copy(id = "s1", confirmedAt = 1_000L)
+        val storno = first.reversal(confirmedAt = 2_000L).copy(id = "s2")
+        val second = sale(line()).copy(id = "s3", confirmedAt = 3_000L)
+
+        assertNull(listOf(first, storno).activeSale())
+        assertEquals("s3", listOf(first, storno, second).activeSale()?.id)
+    }
 }

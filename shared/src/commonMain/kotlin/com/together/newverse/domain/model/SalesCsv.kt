@@ -26,6 +26,9 @@ object SalesCsv {
     private const val SEPARATOR = ";"
     private const val LINE_END = "\r\n"
 
+    /** The "Bestellung" column of a sale made at the stall without an app order. */
+    const val WALK_IN_LABEL = "Marktverkauf"
+
     val HEADER = listOf(
         "Datum", "Beleg", "Storno zu Beleg", "Bestellung", "Artikelnr", "Artikel",
         "Menge", "Einheit", "Einzelpreis brutto", "MwSt-Satz %", "Netto", "MwSt", "Brutto"
@@ -42,7 +45,7 @@ object SalesCsv {
                         date,
                         receiptNumber(sale.id),
                         sale.reverses?.let(::receiptNumber).orEmpty(),
-                        "B${sale.orderId}",
+                        if (sale.isWalkIn) WALK_IN_LABEL else "B${sale.orderId}",
                         text(line.productId),
                         text(line.productName),
                         formatQuantity(line.quantity),

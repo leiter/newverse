@@ -22,13 +22,13 @@ class SalesCsvTest {
         lines = listOf(apple, sweet)
     )
 
-    private fun rows(csv: String) = csv.removePrefix("﻿").split("\r\n").filter { it.isNotEmpty() }
+    private fun rows(csv: String) = csv.removePrefix("\uFEFF").split("\r\n").filter { it.isNotEmpty() }
 
     @Test
     fun `starts with a byte order mark and a header`() {
         val csv = SalesCsv.write(emptyList(), berlin)
 
-        assertTrue(csv.startsWith("﻿"), "Excel needs the BOM to read umlauts as UTF-8")
+        assertTrue(csv.startsWith("\uFEFF"), "Excel needs the BOM to read umlauts as UTF-8")
         assertEquals(
             listOf("Datum;Beleg;Storno zu Beleg;Bestellung;Artikelnr;Artikel;Menge;Einheit;" +
                 "Einzelpreis brutto;MwSt-Satz %;Netto;MwSt;Brutto"),
@@ -138,5 +138,12 @@ class SalesCsvTest {
     fun `file names name the period`() {
         assertEquals("Verkaeufe_2026-KW09.csv", SalesCsv.fileName(BookingPeriod.Week(2026, 9)))
         assertEquals("Verkaeufe_2026-09.csv", SalesCsv.fileName(BookingPeriod.Month(2026, 9)))
+    }
+
+    @Test
+    fun `a walk-in sale says Marktverkauf instead of an order number`() {
+        val walkIn = sale.copy(id = "-P9", orderId = Sale.newWalkInOrderId(1L))
+
+        assertTrue(rows(SalesCsv.write(listOf(walkIn), berlin))[1].startsWith("24.09.2026;V-P9;;Marktverkauf;"))
     }
 }
