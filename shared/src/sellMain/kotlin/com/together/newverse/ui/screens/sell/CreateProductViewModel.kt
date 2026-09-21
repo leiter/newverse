@@ -203,6 +203,10 @@ class CreateProductViewModel(
             result.onSuccess { sellerArticle ->
                 val article = sellerArticle.article
                 val sellerData = sellerArticle.sellerData
+                println(
+                    "✅ CreateProductViewModel.loadArticle: $articleId '${article.productName}', " +
+                        "seller-only data: ${if (sellerData == null) "none" else "acquirePrice=${sellerData.acquirePrice}"}"
+                )
                 editingArticleId = article.id
                 loadedSellerData = sellerData
                 _formState.value = formStateOf(
@@ -225,7 +229,7 @@ class CreateProductViewModel(
             }.onFailure { error ->
                 // Not entering edit mode keeps a half-loaded form from being saved
                 // over the stored article.
-                println("❌ CreateProductViewModel.loadArticle: ${error.message}")
+                println("❌ CreateProductViewModel.loadArticle: $articleId - ${error.message}")
                 _formState.update { it.submitFailure("Failed to load product: ${error.message}") }
             }
         }
