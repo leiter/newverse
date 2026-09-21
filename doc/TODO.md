@@ -48,6 +48,7 @@ This document outlines the current implementation status of core features and a 
 - ✅ Pickup confirmation: book what was handed over as a sale, cancel a booking, mark "nicht abgeholt"
 - ✅ Abrechnung from booked sales by calendar week / month
 - ✅ CSV export of a week or month for the tax advisor (share sheet on Android and iOS)
+- ✅ Buyer edits keep the stored order's message, market and seller's "hidden" flag (fixed 2026-09-21)
 
 ---
 
@@ -87,11 +88,6 @@ The following features are planned but not yet implemented, or are only partiall
   - **Status:** Not Implemented (deferred)
   - **Tasks:**
     - Record a sale without an app order (articles, quantities) as a `Sale`, so market sales appear in the Abrechnung and the CSV export.
-
-### High Priority: Bugs
-- **Editing an order clears the buyer's message**
-  - **Status:** Open
-  - **Issue:** `BuyAppViewModelBasket.basketScreenUpdateOrder` rebuilds the order with `message = ""`, so the buyer's note to the seller is lost on every edit.
 
 ### Medium Priority: BNN Import (Sell App)
 - **Availability flag**
