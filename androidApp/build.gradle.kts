@@ -9,15 +9,15 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-// Read version code from properties file
-val versionPropsFile = file("version.properties")
-val appVersionCode = if (versionPropsFile.exists()) {
-    val props = Properties()
-    props.load(versionPropsFile.inputStream())
-    props.getProperty("VERSION_CODE", "1").toInt()
-} else {
-    1
+// One version code per flavor: buy and sell are separate Play apps, each with its own
+// counter. fastlane's bump_version_code lane raises the flavor's key before each build.
+val versionProps = Properties().apply {
+    val versionPropsFile = file("version.properties")
+    if (versionPropsFile.exists()) versionPropsFile.inputStream().use { load(it) }
 }
+
+fun versionCodeFor(flavor: String): Int =
+    versionProps.getProperty("VERSION_CODE_${flavor.uppercase()}", "1").toInt()
 
 android {
     namespace = "com.together.newverse.android"
@@ -27,7 +27,6 @@ android {
         applicationId = "com.together"
         minSdk = 23
         targetSdk = 36
-        versionCode = appVersionCode
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -108,7 +107,7 @@ android {
         create("buy") {
             dimension = "userType"
             applicationIdSuffix = ".buy"
-            versionCode = appVersionCode
+            versionCode = versionCodeFor("buy")
             versionNameSuffix = "-buy"
             matchingFallbacks += "buy"
         }
@@ -116,7 +115,7 @@ android {
         create("sell") {
             dimension = "userType"
             applicationIdSuffix = ".sell"
-            versionCode = appVersionCode
+            versionCode = versionCodeFor("sell")
             versionNameSuffix = "-sell"
             matchingFallbacks += "sell"
         }

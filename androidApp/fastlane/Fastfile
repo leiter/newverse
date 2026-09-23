@@ -9,19 +9,32 @@ platform :android do
   VERSION_FILE = "../version.properties".freeze
   REPO_VERSION_FILE = "androidApp/version.properties".freeze
 
-  def current_version_code
-    return 1 unless File.exist?(VERSION_FILE)
+  FLAVORS = %w[buy sell].freeze
 
-    File.readlines(VERSION_FILE).each do |line|
-      return line.split("=")[1].strip.to_i if line.start_with?("VERSION_CODE=")
+  # One key per flavor (VERSION_CODE_BUY, VERSION_CODE_SELL): the two apps are
+  # separate Play listings, each with its own counter.
+  def version_key(flavor)
+    UI.user_error!("Unknown flavor '#{flavor}', expected one of #{FLAVORS.join(', ')}") unless FLAVORS.include?(flavor.to_s)
+    "VERSION_CODE_#{flavor.to_s.upcase}"
+  end
+
+  def read_version_codes
+    return {} unless File.exist?(VERSION_FILE)
+
+    File.readlines(VERSION_FILE).each_with_object({}) do |line, codes|
+      key, value = line.strip.split("=", 2)
+      codes[key] = value.to_i if key && value
     end
-    1
+  end
+
+  def current_version_code(flavor)
+    read_version_codes.fetch(version_key(flavor), 1)
   end
 
   # Called only after a successful upload. Tagging a build that never reached the
   # store would be worse than not tagging at all.
   def tag_android_release(flavor, track)
-    code = current_version_code
+    code = current_version_code(flavor)
     ReleaseTag.tag!(
       name: "android-#{flavor}-#{code}",
       message: "Android #{flavor} versionCode #{code} -> Play #{track}",
@@ -47,7 +60,7 @@ platform :android do
 
   desc "Build debug APK for Buy flavor"
   lane :debug_buy do
-    bump_version_code
+    bump_version_code(flavor: "buy")
     gradle(
       task: "assembleBuyDebug",
       project_dir: ".."
@@ -57,7 +70,7 @@ platform :android do
 
   desc "Build debug APK for Sell flavor"
   lane :debug_sell do
-    bump_version_code
+    bump_version_code(flavor: "sell")
     gradle(
       task: "assembleSellDebug",
       project_dir: ".."
@@ -71,7 +84,7 @@ platform :android do
 
   desc "Build release APK for Buy flavor"
   lane :release_buy do
-    bump_version_code
+    bump_version_code(flavor: "buy")
     gradle(
       task: "assembleBuyRelease",
       project_dir: ".."
@@ -81,7 +94,7 @@ platform :android do
 
   desc "Build release APK for Sell flavor"
   lane :release_sell do
-    bump_version_code
+    bump_version_code(flavor: "sell")
     gradle(
       task: "assembleSellRelease",
       project_dir: ".."
@@ -95,7 +108,7 @@ platform :android do
 
   desc "Build release bundle (AAB) for Buy flavor"
   lane :bundle_buy do
-    bump_version_code
+    bump_version_code(flavor: "buy")
     gradle(
       task: "bundleBuyRelease",
       project_dir: ".."
@@ -105,7 +118,7 @@ platform :android do
 
   desc "Build release bundle (AAB) for Sell flavor"
   lane :bundle_sell do
-    bump_version_code
+    bump_version_code(flavor: "sell")
     gradle(
       task: "bundleSellRelease",
       project_dir: ".."
@@ -175,11 +188,13 @@ platform :android do
   # Version Management
   # ============================================
 
-  desc "Increment version code"
-  lane :bump_version_code do
-    new_version = current_version_code + 1
-    File.write(VERSION_FILE, "VERSION_CODE=#{new_version}\n")
-    UI.message("Version code incremented to #{new_version}")
+  desc "Increment the version code of one flavor: bump_version_code(flavor: \"buy\")"
+  lane :bump_version_code do |options|
+    key = version_key(options[:flavor])
+    codes = read_version_codes
+    codes[key] = codes.fetch(key, 1) + 1
+    File.write(VERSION_FILE, codes.map { |k, v| "#{k}=#{v}\n" }.join)
+    UI.message("#{key} incremented to #{codes[key]}")
   end
 
   # ============================================

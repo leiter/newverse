@@ -98,8 +98,9 @@ The following features are planned but not yet implemented, or are only partiall
 
 ### High Priority: Release (Buy App)
 - **Android: versionCode**
-  - **Status:** Fixed 2026-09-23 — both flavors read `appVersionCode` from `androidApp/version.properties` again (buy since 8d9c40b; sell was hardcoded to 23)
-  - **Issue:** Buy and sell share one counter, so each flavor's codes have gaps. That is fine for Play, which only needs every upload to be higher than the last.
+  - **Status:** Fixed 2026-09-23 — each flavor has its own counter in `androidApp/version.properties` (`VERSION_CODE_BUY`, `VERSION_CODE_SELL`), read by Gradle and bumped per flavor by the fastlane lanes
+  - **Tasks:**
+    - Check the sell counter against Play before the next sell upload: it restarts at 23, the value last pinned in the build file (8d9c40b).
 - **iOS App Store submission**
   - **Status:** Not submittable (see `doc/apple-store-release-status.md`)
   - **Tasks:**
@@ -167,6 +168,11 @@ The following features are planned but not yet implemented, or are only partiall
   - **Issue:** Milestone 2 (two-pane list-detail) left out Messages ↔ ConversationDetail; those screens only have width caps.
 
 ### Low Priority: Housekeeping
+- **Unused build-logic convention plugin**
+  - **Status:** Open decision
+  - **Issue:** `build-logic` defines `newverse.android.application` (`AndroidApplicationConventionPlugin`), but `androidApp` applies its plugins directly and never uses it. The copy has drifted: compileSdk 35 / targetSdk 37 against the app's 36 / 36, and it still reads the old single `VERSION_CODE` key instead of `VERSION_CODE_BUY` / `VERSION_CODE_SELL`.
+  - **Tasks:**
+    - Decide: delete the plugin, or bring it in line and switch `androidApp` over to it.
 - **Password visibility toggle**
   - **Status:** Open
   - **Issue:** `ForcedLoginScreen.kt` has no show/hide icon on the password field (TODO in the code).
