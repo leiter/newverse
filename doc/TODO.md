@@ -97,11 +97,9 @@ The following features are planned but not yet implemented, or are only partiall
     - Run the steps on a device, mark each verdict, then fix the confirmed ones — A1 and E2 first.
 
 ### High Priority: Release (Buy App)
-- **Android: hardcoded versionCode**
-  - **Status:** Open
-  - **Issue:** `versionCode = 35 // Todo appVersionCode` in `androidApp/build.gradle.kts` (defaultConfig and the buy flavor) bypasses `version.properties`, so the next Play upload collides.
-  - **Tasks:**
-    - Switch both back to `appVersionCode`.
+- **Android: versionCode**
+  - **Status:** Fixed 2026-09-23 — both flavors read `appVersionCode` from `androidApp/version.properties` again (buy since 8d9c40b; sell was hardcoded to 23)
+  - **Issue:** Buy and sell share one counter, so each flavor's codes have gaps. That is fine for Play, which only needs every upload to be higher than the last.
 - **iOS App Store submission**
   - **Status:** Not submittable (see `doc/apple-store-release-status.md`)
   - **Tasks:**
