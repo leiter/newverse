@@ -1,6 +1,6 @@
 # Newverse Feature Status
 
-**Last Updated:** 2026-09-21
+**Last Updated:** 2026-09-23
 
 *Note: This file replaces the previous TODO.md. The TODO.md file in the root directory is now obsolete and should be deleted.*
 
@@ -59,7 +59,7 @@ The following features are planned but not yet implemented, or are only partiall
 
 ### High Priority: User Experience
 - **Push Notifications**
-  - **Status:** Not Implemented
+  - **Status:** Not Implemented — options written up in `doc/order-ready-notification-design.md` (in-app banner first, then FCM + Cloud Function, and a configurable WorkManager reminder engine)
   - **Tasks:**
     - Set up Firebase Cloud Messaging (FCM) for Android and iOS.
     - Implement notifications for order status changes (buyer) and new orders (seller).
@@ -76,6 +76,39 @@ The following features are planned but not yet implemented, or are only partiall
   - **Tasks:**
     - Create a unified error component (e.g., a full-screen error message with a retry button).
     - Standardize all ViewModels to use a single error state pattern (e.g., `AsyncState.Error` or a global dialog).
+
+### High Priority: Suspected Bugs (Buy App)
+- **Manual test plan still unrun**
+  - **Status:** Open — suspected from reading the code, not yet observed; no commit since 2026-09-10 addresses them
+  - **Issue:** `doc/manual-test-plan.md` lists the steps for each. Buyer-side items:
+    - A1 (critical): `formatPrice()` shows most prices one cent too low.
+    - E2 (critical, needs confirmation): a time-zone change can orphan a placed order.
+    - A2: kg amounts render 1 g short (`1,2 kg` → `1,199 kg`).
+    - B1: the pickup date picker only ever offers 2 dates.
+    - B2: an order reads as "pickup passed" for all of pickup day.
+    - C1: re-adding an item corrupts its displayed amount/unit.
+    - C2: a quantity edit can set a negative piece count.
+    - C3 (needs confirmation): basket items with a blank product id merge together.
+    - E1: the basket renders dates in Berlin time, the rest of the app in device time.
+    - E3 (needs confirmation): a failed profile write leaves the order in Firebase but not in the buyer's list.
+    - G1: 46 strings untranslated — German text in the English UI.
+    - G2/G3: hardcoded English error messages in the German app.
+  - **Tasks:**
+    - Run the steps on a device, mark each verdict, then fix the confirmed ones — A1 and E2 first.
+
+### High Priority: Release (Buy App)
+- **Android: hardcoded versionCode**
+  - **Status:** Open
+  - **Issue:** `versionCode = 35 // Todo appVersionCode` in `androidApp/build.gradle.kts` (defaultConfig and the buy flavor) bypasses `version.properties`, so the next Play upload collides.
+  - **Tasks:**
+    - Switch both back to `appVersionCode`.
+- **iOS App Store submission**
+  - **Status:** Not submittable (see `doc/apple-store-release-status.md`)
+  - **Tasks:**
+    - Fix the `CFBundleVersion` / `CURRENT_PROJECT_VERSION` build-number wiring.
+    - Capture screenshots.
+    - Replace the generic "Newverse" store metadata and add the two `subtitle.txt` files.
+    - Run the app on a device — so far it has only been compiled. Known code issues: iOS `NetworkConnectivity` always reports online; `HeroProductCard` uses a fixed width.
 
 ### High Priority: Bookkeeping & Tax (Sell App)
 - **Questions for the tax advisor**
@@ -114,7 +147,34 @@ The following features are planned but not yet implemented, or are only partiall
     - Add validation logic in the `BuyAppViewModel`.
     - Apply discounts to the order total during checkout.
 
+### Medium Priority: Web Buyer App
+- **Blocking gaps**
+  - **Status:** Open — last assessed 2026-05-25 (`doc/web-implementation-audit.md`), may be out of date
+  - **Tasks:**
+    - Fill in the Firebase config placeholders in `webApp/src/jsMain/resources/index.html`.
+    - Test login → order → message end to end.
+    - Check the Firebase Storage CORS rules for image loading.
+- **Polish**
+  - **Tasks:**
+    - Replace the non-working "Scan QR Code" button with a code input, or remove it.
+    - Tell users on the login screen that Google/Apple sign-in is not available on web.
+    - Test the layout on desktop and tablet widths.
+- **Later**
+  - **Tasks:**
+    - Google OAuth web flow, FCM with a service worker, offline caching, keyboard handling on mobile web.
+
+### Medium Priority: Tablet Layout
+- **Messages two-pane**
+  - **Status:** Deferred at the user's request
+  - **Issue:** Milestone 2 (two-pane list-detail) left out Messages ↔ ConversationDetail; those screens only have width caps.
+
 ### Low Priority: Housekeeping
+- **Password visibility toggle**
+  - **Status:** Open
+  - **Issue:** `ForcedLoginScreen.kt` has no show/hide icon on the password field (TODO in the code).
+- **Default seller id**
+  - **Status:** Open
+  - **Issue:** `GitLiveArticleRepository.getFirstSellerId()` still returns the deprecated `DEFAULT_SELLER_ID` instead of the configured or connected seller.
 - **CSV export: trailing spaces in article names**
   - **Status:** Open (cosmetic)
   - **Issue:** Names are exported as entered, e.g. "Teesieb " with a trailing space. Trim names in the export or when saving the product.
