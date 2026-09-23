@@ -62,6 +62,10 @@ android {
         )
     }
 
+    // Supplier price lists stay out of git (tmp/ is ignored). LowPriceOfferProductDataTests
+    // reads the Terra BNN file from here; see LowPriceArticles.kt for where to put it.
+    sourceSets.getByName("androidTest").assets.srcDir(rootProject.file("tmp/androidTest-assets"))
+
     val releaseSigningPropsFile = File("/home/mandroid/Videos/AA_FILES/bodenkunde_signing")
     val releaseSigningProps = Properties()
     if (releaseSigningPropsFile.exists()) {
