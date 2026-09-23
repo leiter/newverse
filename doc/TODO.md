@@ -96,12 +96,25 @@ The following features are planned but not yet implemented, or are only partiall
   - **Tasks:**
     - Run the steps on a device, mark each verdict, then fix the confirmed ones — A1 and E2 first.
 
-### High Priority: Release (Buy App)
+### High Priority: Release
 - **Android: versionCode**
   - **Status:** Fixed 2026-09-23 — each flavor has its own counter in `androidApp/version.properties` (`VERSION_CODE_BUY`, `VERSION_CODE_SELL`), read by Gradle and bumped per flavor by the fastlane lanes
   - **Tasks:**
     - Check the sell counter against Play before the next sell upload: it restarts at 23, the value last pinned in the build file (8d9c40b).
-    - After each upload by hand in the Play Console, tag it: `fastlane tag_release flavor:buy` (or `flavor:sell`, optional `track:internal`) from `androidApp/`. No Android build has a tag yet.
+    - After each upload by hand in the Play Console, tag it: `fastlane tag_release flavor:buy` (or `flavor:sell`, optional `track:internal`) from `androidApp/`. No Android build has a tag yet. Needs fastlane installed first (see below).
+- **Android: Play Store deployment via fastlane**
+  - **Status:** Not set up — uploads are done by hand in the Play Console
+  - **Issue:** The `beta_*` / `deploy_*` lanes cannot run:
+    - `androidApp/fastlane/Appfile` still has the placeholder `json_key_file("path/to/google-play-service-account.json")`; no service-account key exists.
+    - fastlane is not installed on the dev machine (no `fastlane` / `bundle`; `androidApp/Gemfile` was never installed, no `Gemfile.lock`) — this also blocks `tag_release`.
+    - The key file is not in `.gitignore` (the repo is public).
+    - `fastlane/metadata/android` only holds the buyer listing text, and `deploy_sell` does not skip metadata, so it would publish the buyer text on the sell listing.
+  - **Tasks:**
+    - Create the service account and grant it "Release manager" in the Play Console (steps in `doc/google-play-api-setup.md`).
+    - Store the key outside git, add its path to `.gitignore`, and point `json_key_file` at it.
+    - `bundle install` in `androidApp/`, then check the key with `fastlane run validate_play_store_json_key`.
+    - Add sell listing metadata, or set `skip_upload_metadata` / `skip_upload_images` / `skip_upload_screenshots` in `deploy_sell`.
+    - Try `beta_buy` to the internal track first.
 - **iOS App Store submission**
   - **Status:** Not submittable (see `doc/apple-store-release-status.md`)
   - **Tasks:**
