@@ -101,6 +101,7 @@ The following features are planned but not yet implemented, or are only partiall
   - **Status:** Fixed 2026-09-23 — each flavor has its own counter in `androidApp/version.properties` (`VERSION_CODE_BUY`, `VERSION_CODE_SELL`), read by Gradle and bumped per flavor by the fastlane lanes
   - **Tasks:**
     - Check the sell counter against Play before the next sell upload: it restarts at 23, the value last pinned in the build file (8d9c40b).
+    - After each upload by hand in the Play Console, tag it: `fastlane tag_release flavor:buy` (or `flavor:sell`, optional `track:internal`) from `androidApp/`. No Android build has a tag yet.
 - **iOS App Store submission**
   - **Status:** Not submittable (see `doc/apple-store-release-status.md`)
   - **Tasks:**

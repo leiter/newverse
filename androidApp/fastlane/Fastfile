@@ -31,12 +31,18 @@ platform :android do
     read_version_codes.fetch(version_key(flavor), 1)
   end
 
+  # One tag series per flavor, like the version codes: android-buy-38, android-sell-24.
+  def android_tag_name(flavor, code)
+    version_key(flavor) # rejects an unknown flavor
+    "android-#{flavor}-#{code}"
+  end
+
   # Called only after a successful upload. Tagging a build that never reached the
   # store would be worse than not tagging at all.
   def tag_android_release(flavor, track)
     code = current_version_code(flavor)
     ReleaseTag.tag!(
-      name: "android-#{flavor}-#{code}",
+      name: android_tag_name(flavor, code),
       message: "Android #{flavor} versionCode #{code} -> Play #{track}",
       version_files: [REPO_VERSION_FILE]
     )
@@ -187,6 +193,17 @@ platform :android do
   # ============================================
   # Version Management
   # ============================================
+
+  # The upload lanes tag by themselves. Builds uploaded by hand in the Play Console
+  # (Android Studio or bundle_buy/bundle_sell, then upload) are tagged with this lane
+  # afterwards. It tags the flavor's code in version.properties, which is the code
+  # Gradle built with, so run it before the next build of that flavor.
+  desc "Tag a build uploaded by hand: fastlane tag_release flavor:sell track:internal"
+  lane :tag_release do |options|
+    flavor = options[:flavor].to_s
+    version_key(flavor) # rejects an unknown or missing flavor before touching git
+    tag_android_release(flavor, options[:track] || "manual upload")
+  end
 
   desc "Increment the version code of one flavor: bump_version_code(flavor: \"buy\")"
   lane :bump_version_code do |options|
