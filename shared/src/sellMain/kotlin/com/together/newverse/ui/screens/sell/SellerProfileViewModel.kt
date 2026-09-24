@@ -181,21 +181,25 @@ class SellerProfileViewModel(
         }
     }
 
+    /**
+     * Always re-resolves against buyer_access_status rather than only when the stored
+     * name is blank/placeholder: a buyer can rename themselves after being approved, and
+     * that update lands in buyer_access_status without ever touching approvedBuyerIds,
+     * so this list would otherwise keep showing the name from approval time forever.
+     */
     private suspend fun enrichWithDisplayNames(sellerId: String, entries: List<BuyerEntry>): List<BuyerEntry> =
         coroutineScope {
             entries.map { entry ->
-                if (entry.displayName.isBlank() || entry.displayName == QR_LINK_PLACEHOLDER) {
-                    async {
-                        val name = profileRepository.getBuyerDisplayName(sellerId, entry.id)
-                        val isResolved = name.isNotBlank() && name != QR_LINK_PLACEHOLDER
-                        if (isResolved) {
-                            // Persist the resolved name so future loads and the observer see the real name
-                            profileRepository.correctApprovedBuyerDisplayName(sellerId, entry.id, name)
-                        }
-                        entry.copy(displayName = if (isResolved) name else entry.displayName)
+                async {
+                    val name = profileRepository.getBuyerDisplayName(sellerId, entry.id)
+                    val isResolved = name.isNotBlank() && name != QR_LINK_PLACEHOLDER
+                    if (isResolved && name != entry.displayName && entry.status == AccessStatus.APPROVED) {
+                        // Persist the resolved name so future loads and the observer see the real name.
+                        // Only approvedBuyerIds is corrected here - a blocked buyer can no longer write
+                        // buyer_access_status, and correcting blockedClientIds isn't supported by the repo.
+                        profileRepository.correctApprovedBuyerDisplayName(sellerId, entry.id, name)
                     }
-                } else {
-                    async { entry }
+                    entry.copy(displayName = if (isResolved) name else entry.displayName)
                 }
             }.awaitAll()
         }

@@ -152,6 +152,44 @@ describe("access requests and approval", () => {
     );
   });
 
+  it("allows an approved buyer to update their own display name", async () => {
+    await seed(env, (db) =>
+      db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
+        status: "APPROVED", buyerUUID: ALICE_UUID, authUID: ALICE, updatedAt: 1, displayName: "Alice"
+      })
+    );
+    const alice = asUser(env, ALICE);
+    await assertSucceeds(
+      alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}/displayName`).set("Alicia")
+    );
+  });
+
+  it("denies an approved buyer smuggling a status change into a display name update", async () => {
+    await seed(env, (db) =>
+      db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
+        status: "APPROVED", buyerUUID: ALICE_UUID, authUID: ALICE, updatedAt: 1, displayName: "Alice"
+      })
+    );
+    const alice = asUser(env, ALICE);
+    await assertFails(
+      alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
+        status: "BLOCKED", buyerUUID: ALICE_UUID, authUID: ALICE, updatedAt: 2, displayName: "Alicia"
+      })
+    );
+  });
+
+  it("denies a blocked buyer updating their own display name", async () => {
+    await seed(env, (db) =>
+      db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
+        status: "BLOCKED", buyerUUID: ALICE_UUID, authUID: ALICE, updatedAt: 1, displayName: "Alice"
+      })
+    );
+    const alice = asUser(env, ALICE);
+    await assertFails(
+      alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}/displayName`).set("Alicia")
+    );
+  });
+
   it("allows the seller to approve a request and clear it", async () => {
     const seller = asUser(env, SELLER);
     await assertSucceeds(

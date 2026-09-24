@@ -103,11 +103,18 @@ class GitLiveProfileRepository(
             // Convert to map for Firebase
             val profileMap = buyerProfileToMap(profileWithCorrectId)
 
-            // Save to GitLive Firebase
-            buyersRef.child(userId).setValue(profileMap)
+            // Save to GitLive Firebase. updateChildren (not setValue) so this only touches
+            // the fields this profile model knows about, leaving sibling children written
+            // by other flows - e.g. linkedSellerIds from submitAccessRequest - untouched.
+            buyersRef.child(userId).updateChildren(profileMap)
 
             // Update local cache
+            val previousDisplayName = _buyerProfile.value?.displayName
             _buyerProfile.value = profileWithCorrectId
+
+            if (profileWithCorrectId.displayName != previousDisplayName) {
+                syncDisplayNameToLinkedSellers(userId, profileWithCorrectId.buyerUUID, profileWithCorrectId.displayName)
+            }
 
             println("✅ GitLiveProfileRepository.saveBuyerProfile: Success")
             Result.success(profileWithCorrectId)
@@ -711,6 +718,11 @@ class GitLiveProfileRepository(
                 "displayName" to displayName,
                 "authUID" to authUID
             ))
+            // Remember this seller so a later display-name change can be pushed to
+            // buyer_access_status too - see syncDisplayNameToLinkedSellers.
+            if (authUID.isNotBlank()) {
+                buyersRef.child(authUID).child("linkedSellerIds").child(sellerId).setValue(true)
+            }
             println("✅ GitLiveProfileRepository.submitAccessRequest: Success - sellerId=$sellerId, uuid=$buyerUUID")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -919,6 +931,33 @@ class GitLiveProfileRepository(
         }
     }
 
+    /**
+     * Push a buyer's new display name to buyer_access_status for every seller they've
+     * ever requested access from. buyer_access_status is the only buyer-writable node a
+     * seller can read (buyer_profile is owner-only), so it's the sole path by which a
+     * rename can ever reach the seller side - without this, the seller's approved/blocked
+     * buyer lists keep showing the name from the moment access was first requested.
+     */
+    private suspend fun syncDisplayNameToLinkedSellers(userId: String, buyerUUID: String, displayName: String) {
+        if (buyerUUID.isBlank()) return
+        try {
+            val linksSnapshot = buyersRef.child(userId).child("linkedSellerIds").valueEvents.first()
+            val sellerIds = (linksSnapshot.value as? Map<*, *>)?.keys?.filterIsInstance<String>() ?: return
+            for (sellerId in sellerIds) {
+                try {
+                    buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("displayName").setValue(displayName)
+                } catch (e: Exception) {
+                    // A blocked seller relationship rejects this write - that's expected and
+                    // must not stop the name from reaching the buyer's other sellers.
+                    println("⚠️ GitLiveProfileRepository.syncDisplayNameToLinkedSellers: sellerId=$sellerId - ${e.message}")
+                }
+            }
+            println("✅ GitLiveProfileRepository.syncDisplayNameToLinkedSellers: pushed name to ${sellerIds.size} seller(s)")
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.syncDisplayNameToLinkedSellers: Error - ${e.message}")
+        }
+    }
+
     override suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String {
         return try {
             // Read displayName from buyer_access_status — the seller owns this path and the buyer
@@ -928,6 +967,16 @@ class GitLiveProfileRepository(
             snapshot.value as? String ?: ""
         } catch (e: Exception) {
             println("❌ GitLiveProfileRepository.getBuyerDisplayName: Error sellerId=$sellerId uuid=$buyerUUID - ${e.message}")
+            ""
+        }
+    }
+
+    override suspend fun getBuyerAuthUID(sellerId: String, buyerUUID: String): String {
+        return try {
+            val snapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("authUID").valueEvents.first()
+            snapshot.value as? String ?: ""
+        } catch (e: Exception) {
+            println("❌ GitLiveProfileRepository.getBuyerAuthUID: Error sellerId=$sellerId uuid=$buyerUUID - ${e.message}")
             ""
         }
     }

@@ -93,7 +93,7 @@
       "$sellerId": {
         "$buyerUUID": {
           ".read": "auth != null && (auth.uid === $sellerId || data.child('authUID').val() === auth.uid)",
-          ".write": "auth != null && (auth.uid === $sellerId || (newData.exists() && newData.child('authUID').val() === auth.uid && newData.child('status').val() === 'PENDING' && newData.child('buyerUUID').val() === $buyerUUID && (!data.exists() || (data.child('authUID').val() === auth.uid && data.child('status').val() !== 'BLOCKED'))) || (data.exists() && !newData.exists() && data.child('authUID').val() === auth.uid && data.child('status').val() !== 'BLOCKED'))"
+          ".write": "auth != null && (auth.uid === $sellerId || (newData.exists() && newData.child('authUID').val() === auth.uid && newData.child('buyerUUID').val() === $buyerUUID && (!data.exists() ? newData.child('status').val() === 'PENDING' : (data.child('authUID').val() === auth.uid && data.child('status').val() !== 'BLOCKED' && newData.child('status').val() === data.child('status').val()))) || (data.exists() && !newData.exists() && data.child('authUID').val() === auth.uid && data.child('status').val() !== 'BLOCKED'))"
         }
       }
     },
