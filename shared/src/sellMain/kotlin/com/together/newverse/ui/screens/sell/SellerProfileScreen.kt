@@ -70,7 +70,8 @@ fun SellerProfileScreen(
     onBlockApprovedBuyer: (String) -> Unit = {},
     onUnblockApprovedBuyer: (String) -> Unit = {},
     onClearGeneratedLink: () -> Unit = {},
-    onRetry: () -> Unit = {}
+    onRetry: () -> Unit = {},
+    onBuyerClick: (BuyerEntry) -> Unit = {}
 ) {
     // Extract profile from state
     val profile = (profileState as? AsyncState.Success)?.data
@@ -302,7 +303,8 @@ fun SellerProfileScreen(
                         emptyText = stringResource(Res.string.approved_buyers_empty),
                         actionLabel = stringResource(Res.string.customer_management_block),
                         actionColor = MaterialTheme.colorScheme.error,
-                        onAction = onBlockApprovedBuyer
+                        onAction = onBlockApprovedBuyer,
+                        onBuyerClick = onBuyerClick
                     )
 
                     // Blocked Buyers Card
@@ -313,7 +315,8 @@ fun SellerProfileScreen(
                             emptyText = "",
                             actionLabel = stringResource(Res.string.customer_management_unblock),
                             actionColor = MaterialTheme.colorScheme.primary,
-                            onAction = onUnblockApprovedBuyer
+                            onAction = onUnblockApprovedBuyer,
+                            onBuyerClick = onBuyerClick
                         )
                     }
 
@@ -1134,7 +1137,8 @@ private fun BuyerListCard(
     emptyText: String,
     actionLabel: String,
     actionColor: androidx.compose.ui.graphics.Color,
-    onAction: (String) -> Unit
+    onAction: (String) -> Unit,
+    onBuyerClick: (BuyerEntry) -> Unit = {}
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -1160,7 +1164,8 @@ private fun BuyerListCard(
                         entry = entry,
                         actionLabel = actionLabel,
                         actionColor = actionColor,
-                        onAction = { onAction(entry.id) }
+                        onAction = { onAction(entry.id) },
+                        onClick = { onBuyerClick(entry) }
                     )
                 }
             }
@@ -1173,7 +1178,8 @@ private fun BuyerListItem(
     entry: BuyerEntry,
     actionLabel: String,
     actionColor: androidx.compose.ui.graphics.Color,
-    onAction: () -> Unit
+    onAction: () -> Unit,
+    onClick: () -> Unit = {}
 ) {
     val statusColor = when (entry.status) {
         AccessStatus.APPROVED -> MaterialTheme.colorScheme.primary
@@ -1198,6 +1204,7 @@ private fun BuyerListItem(
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .clickable(onClick = onClick)
                     .semantics(mergeDescendants = true) {
                         contentDescription = "$buyerName, $statusLabel"
                     }

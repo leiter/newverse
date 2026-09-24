@@ -261,4 +261,6 @@ class FakeProfileRepository : ProfileRepository {
         Result.success(Unit)
 
     override suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String = ""
+
+    override suspend fun getBuyerAuthUID(sellerId: String, buyerUUID: String): String = ""
 }

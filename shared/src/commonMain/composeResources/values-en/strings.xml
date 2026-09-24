@@ -637,6 +637,16 @@
     <string name="buyer_status_blocked">Blocked</string>
     <string name="buyer_status_pending">Pending</string>
     <string name="buyer_status_none">No access</string>
+    <string name="customer_detail_title">Customer details</string>
+    <string name="customer_detail_contact_section">Contact</string>
+    <string name="customer_detail_no_contact">No contact details available</string>
+    <string name="customer_detail_orders_section">Order overview</string>
+    <string name="customer_detail_orders_count">%d orders</string>
+    <string name="customer_detail_total_spent">Total spent</string>
+    <string name="customer_detail_last_order">Last order</string>
+    <string name="customer_detail_no_orders">No orders yet</string>
+    <string name="customer_detail_view_orders">View all orders</string>
+    <string name="customer_detail_access_status">Access status</string>
 
     <!-- ========================================= -->
     <!-- MESSAGING -->

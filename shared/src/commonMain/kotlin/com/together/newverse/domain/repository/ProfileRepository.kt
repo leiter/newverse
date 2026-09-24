@@ -207,4 +207,13 @@ interface ProfileRepository {
      * Returns empty string if the buyer has not connected yet (knowledge gap).
      */
     suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String
+
+    /**
+     * Resolve the Firebase auth uid backing a buyer's UUID identity for a seller.
+     * Reads authUID from buyer_access_status/{sellerId}/{buyerUUID}/authUID.
+     * This is the id orders are keyed by (Order.buyerProfile.id), so it's how a
+     * seller correlates a buyerUUID from the access list with that buyer's orders.
+     * Returns empty string if the buyer has not connected yet.
+     */
+    suspend fun getBuyerAuthUID(sellerId: String, buyerUUID: String): String
 }

@@ -10,6 +10,7 @@ import androidx.navigation.navArgument
 import androidx.savedstate.read
 import com.together.newverse.ui.screens.sell.AbrechnungScreen
 import com.together.newverse.ui.screens.sell.CreateProductScreen
+import com.together.newverse.ui.screens.sell.CustomerDetailScreen
 import com.together.newverse.ui.screens.sell.ImportPreviewScreen
 import com.together.newverse.ui.screens.sell.ImportState
 import com.together.newverse.ui.screens.sell.NotificationsScreen
@@ -194,7 +195,23 @@ fun NavGraphBuilder.navGraph(
             onBlockApprovedBuyer = { uuid -> profileViewModel.blockApprovedBuyer(uuid) },
             onUnblockApprovedBuyer = { uuid -> profileViewModel.unblockApprovedBuyer(uuid) },
             onClearGeneratedLink = { profileViewModel.clearGeneratedLink() },
-            onRetry = { profileViewModel.refresh() }
+            onRetry = { profileViewModel.refresh() },
+            onBuyerClick = { entry ->
+                navController.navigate(NavRoutes.Sell.CustomerDetail.createRoute(entry.id))
+            }
+        )
+    }
+
+    composable(
+        route = NavRoutes.Sell.CustomerDetail.route,
+        arguments = listOf(
+            navArgument("buyerId") { type = NavType.StringType }
+        )
+    ) { backStackEntry ->
+        val buyerId = backStackEntry.arguments?.read { getStringOrNull("buyerId") } ?: return@composable
+        CustomerDetailScreen(
+            buyerId = buyerId,
+            onViewOrders = { navController.navigate(NavRoutes.Sell.Orders.route) }
         )
     }
 
