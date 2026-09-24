@@ -11,6 +11,7 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
+import com.together.newverse.domain.repository.StorageRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,6 +22,9 @@ class TestContainerActivity : AppCompatActivity(), FirebaseAuth.AuthStateListene
 
     private val authRepository: AuthRepository by inject()
     private val sellerArticleRepository: SellerArticleRepository by inject()
+
+    /** Exposed for instrumentation tests that upload article images before saving. */
+    val storageRepository: StorageRepository by inject()
 
     val testData = TestDataHolder()
 
