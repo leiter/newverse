@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -44,7 +45,8 @@ fun OverviewScreen(
     isAvailabilityMode: Boolean = false,
     onAvailabilityModeChange: (Boolean) -> Unit = {},
     onNavigateToImportPreview: () -> Unit = {},
-    onEditArticle: (String) -> Unit = {}
+    onEditArticle: (String) -> Unit = {},
+    onCreateArticle: () -> Unit = {}
 ) {
     val overviewState by viewModel.overviewState.collectAsState()
     val importState by viewModel.importState.collectAsState()
@@ -119,7 +121,8 @@ fun OverviewScreen(
                             selectedArticleIds + articleId
                         }
                     },
-                    onEditArticle = onEditArticle
+                    onEditArticle = onEditArticle,
+                    onCreateArticle = onCreateArticle
                 )
             }
         }
@@ -439,7 +442,8 @@ private fun SuccessContent(
     isSelectionMode: Boolean = false,
     selectedArticleIds: Set<String> = emptySet(),
     onArticleSelectionToggle: (String) -> Unit = {},
-    onEditArticle: (String) -> Unit = {}
+    onEditArticle: (String) -> Unit = {},
+    onCreateArticle: () -> Unit = {}
 ) {
     var filterExpanded by remember { mutableStateOf(false) }
 
@@ -480,11 +484,19 @@ private fun SuccessContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(Res.string.overview_your_products),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() }
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onCreateArticle) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(Res.string.cd_create_product)
+                    )
+                }
+                Text(
+                    text = stringResource(Res.string.overview_your_products),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() }
+                )
+            }
 
             // Filter Dropdown
             Box {

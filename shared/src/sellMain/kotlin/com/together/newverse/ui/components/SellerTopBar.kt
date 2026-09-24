@@ -226,7 +226,6 @@ private val topLevelRoutes = setOf(
     NavRoutes.Sell.Overview.route,
     NavRoutes.Sell.Orders.route,
     NavRoutes.Sell.Abrechnung.route,
-    NavRoutes.Sell.Create.route,
     NavRoutes.Sell.Profile.route,
 )
 

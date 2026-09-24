@@ -73,6 +73,9 @@ fun NavGraphBuilder.navGraph(
             onNavigateToImportPreview = onNavigateToImportPreview,
             onEditArticle = { articleId ->
                 navController.navigate(NavRoutes.Sell.Create.createRoute(articleId))
+            },
+            onCreateArticle = {
+                navController.navigate(NavRoutes.Sell.Create.route)
             }
         )
     }

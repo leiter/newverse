@@ -867,6 +867,7 @@
     <string name="cd_no_image">Kein Bild</string>
     <string name="cd_cancel_selection">Auswahl abbrechen</string>
     <string name="cd_more_options">Mehr Optionen</string>
+    <string name="cd_create_product">Neues Produkt anlegen</string>
     <string name="cd_qr_code">QR-Code</string>
     <string name="cd_clear_input">Eingabe löschen</string>
     <string name="cd_info">Info</string>

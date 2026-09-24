@@ -814,6 +814,7 @@
     <string name="cd_no_image">No image</string>
     <string name="cd_cancel_selection">Cancel selection</string>
     <string name="cd_more_options">More options</string>
+    <string name="cd_create_product">Add new product</string>
     <string name="cd_qr_code">QR Code</string>
     <string name="cd_clear_input">Clear input</string>
     <string name="cd_info">Info</string>

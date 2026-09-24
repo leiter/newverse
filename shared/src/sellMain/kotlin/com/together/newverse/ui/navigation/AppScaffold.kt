@@ -251,7 +251,10 @@ private fun AppScaffoldContent(
             )
         },
         bottomBar = {
-            if (!useNavRail && currentRoute != NavRoutes.Sell.CustomerDetail.route) {
+            if (!useNavRail &&
+                currentRoute != NavRoutes.Sell.CustomerDetail.route &&
+                currentRoute != NavRoutes.Sell.Create.route
+            ) {
                 SellerBottomNavigationBar(
                     currentRoute = currentRoute,
                     pendingOrdersCount = pendingOrdersCount,
@@ -266,7 +269,10 @@ private fun AppScaffoldContent(
     ) { innerPadding ->
         // Navigation content, with side rail on Expanded windows
         Row(modifier = Modifier.padding(innerPadding)) {
-            if (useNavRail && currentRoute != NavRoutes.Sell.CustomerDetail.route) {
+            if (useNavRail &&
+                currentRoute != NavRoutes.Sell.CustomerDetail.route &&
+                currentRoute != NavRoutes.Sell.Create.route
+            ) {
                 SellerNavigationRail(
                     currentRoute = currentRoute,
                     onNavigate = onNavigateToTab,

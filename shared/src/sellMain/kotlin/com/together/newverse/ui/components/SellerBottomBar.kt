@@ -3,7 +3,6 @@ package com.together.newverse.ui.components
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -169,11 +168,6 @@ private val SellerBottomNavItems = listOf(
         route = NavRoutes.Sell.Abrechnung.route,
         labelRes = Res.string.bottomnav_abrechnung,
         icon = Icons.Default.BarChart
-    ),
-    BottomNavItem(
-        route = NavRoutes.Sell.Create.route,
-        labelRes = Res.string.bottomnav_new,
-        icon = Icons.Default.Add
     ),
     BottomNavItem(
         route = NavRoutes.Sell.Profile.route,
