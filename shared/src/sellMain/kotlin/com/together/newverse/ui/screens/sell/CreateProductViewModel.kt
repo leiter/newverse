@@ -388,7 +388,7 @@ class CreateProductViewModel(
                 val article = Article(
                     id = editingArticleId ?: "", // Firebase will generate ID for new articles
                     productId = formData.productId,
-                    productName = formData.productName,
+                    productName = formData.productName.trim(),
                     price = ProductPricing.parseDecimal(formData.price) ?: 0.0,
                     taxRate = formData.taxRate.rate,
                     unit = formData.unit,

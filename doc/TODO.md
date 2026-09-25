@@ -1,6 +1,6 @@
 # Newverse Feature Status
 
-**Last Updated:** 2026-09-23
+**Last Updated:** 2026-09-25
 
 *Note: This file replaces the previous TODO.md. The TODO.md file in the root directory is now obsolete and should be deleted.*
 
@@ -81,11 +81,11 @@ The following features are planned but not yet implemented, or are only partiall
 - **Manual test plan still unrun**
   - **Status:** Open — suspected from reading the code, not yet observed; no commit since 2026-09-10 addresses them
   - **Issue:** `doc/manual-test-plan.md` lists the steps for each. Buyer-side items:
-    - A1 (critical): `formatPrice()` shows most prices one cent too low.
+    - A1 (critical): ~~`formatPrice()` shows most prices one cent too low.~~ **Fixed** (`eafaf1e`) — rounds via `Money.toCents()` instead of truncating a Double.
     - E2 (critical, needs confirmation): a time-zone change can orphan a placed order.
-    - A2: kg amounts render 1 g short (`1,2 kg` → `1,199 kg`).
-    - B1: the pickup date picker only ever offers 2 dates.
-    - B2: an order reads as "pickup passed" for all of pickup day.
+    - A2: ~~kg amounts render 1 g short (`1,2 kg` → `1,199 kg`).~~ **Fixed 2026-09-25** — `OrderedProduct.getFormattedAmount()` rounded a Double then re-derived the fraction by subtraction, which reintroduced binary floating-point noise; now rounds directly into integer grams/cents, same pattern as `Money.toCents()`. Covered by `OrderedProductTest.kt`.
+    - B1: the pickup date picker only ever offers 2 dates. **Root cause found 2026-09-25**: `OrderDateUtils.getAvailablePickupDates()` hardcodes `dates.take(2)` at the end regardless of the requested `count`. Not yet fixed.
+    - B2: an order reads as "pickup passed" for all of pickup day. **Root cause found 2026-09-25**: `OrderDateUtils.getOrderWindowStatus()` compares `now` against `pickupDate`, which is always midnight at the *start* of pickup day (`calculateNextPickupDate()` returns `pickupDate.atTime(0, 0)`) — so `now > pickupDate` is true from 00:00 on, well before pickup actually happens. Needs a real end-of-pickup-day (or actual pickup time) cutoff instead. Not yet fixed.
     - C1: re-adding an item corrupts its displayed amount/unit.
     - C2: a quantity edit can set a negative piece count.
     - C3 (needs confirmation): basket items with a blank product id merge together.
@@ -94,7 +94,8 @@ The following features are planned but not yet implemented, or are only partiall
     - G1: 46 strings untranslated — German text in the English UI.
     - G2/G3: hardcoded English error messages in the German app.
   - **Tasks:**
-    - Run the steps on a device, mark each verdict, then fix the confirmed ones — A1 and E2 first.
+    - Fix B1/B2 (root causes now known, see above).
+    - Run the remaining steps on a device, mark each verdict, then fix the confirmed ones — E2 next.
 
 ### High Priority: Release
 - **Android: versionCode**
@@ -190,15 +191,18 @@ The following features are planned but not yet implemented, or are only partiall
 - **Password visibility toggle**
   - **Status:** Open
   - **Issue:** `ForcedLoginScreen.kt` has no show/hide icon on the password field (TODO in the code).
+- **CustomerDetail top bar title**
+  - **Status:** Fixed 2026-09-25 — `SellerTopBar.getRouteTitle()` had no case for `NavRoutes.Sell.CustomerDetail`, so it fell back to the generic "Verkäufer" title; now shows the existing `customer_detail_title` string ("Kundendetails" / "Customer details").
+- **Orphaned `bottomnav_new` string**
+  - **Status:** Fixed 2026-09-25 — removed from `strings.xml` (German); it was left over after the "Neu" bottom-nav tab was replaced by the plus button on Overview (07d5ed6) and was never present in the English strings file.
 - **Default seller id**
   - **Status:** Open
   - **Issue:** `GitLiveArticleRepository.getFirstSellerId()` still returns the deprecated `DEFAULT_SELLER_ID` instead of the configured or connected seller.
 - **CSV export: trailing spaces in article names**
-  - **Status:** Open (cosmetic)
-  - **Issue:** Names are exported as entered, e.g. "Teesieb " with a trailing space. Trim names in the export or when saving the product.
+  - **Status:** Fixed 2026-09-25 (cosmetic) — names now trimmed at both write points: `CreateProductViewModel` (manual create/edit) and `BnnParser` (import, the actual source of "Teesieb "). Existing DB records keep their trailing space until re-saved or re-imported.
 - **Known failing unit tests**
   - **Status:** Open, unrelated to the bookkeeping work
-  - **Issue:** `OrderDateUtilsTest` (2: `getAvailablePickupDates` count, `calculateEditDeadline` for a non-pickup day), `BuyAppViewModelTest` (4: navigation and initial auth state), `SellAppViewModelTest` (1: initial state is `Loading`, test expects `Guest`).
+  - **Issue:** `OrderDateUtilsTest` (2: `getAvailablePickupDates` count — see B1 above, `calculateEditDeadline` for a non-pickup day), `BuyAppViewModelTest` (4: navigation and initial auth state), `SellAppViewModelTest` (1: initial state is `Loading`, test expects `Guest`).
 
 ### Low Priority & On Hold
 - **Twitter Sign-In**

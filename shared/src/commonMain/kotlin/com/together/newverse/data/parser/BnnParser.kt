@@ -97,7 +97,7 @@ class BnnParser(
             }
 
             val productId = fields.getOrEmpty(POS_PRODUCT_ID)
-            val productName = fields.getOrEmpty(POS_PRODUCT_NAME)
+            val productName = fields.getOrEmpty(POS_PRODUCT_NAME).trim()
 
             // Skip if no product ID or name
             if (productId.isBlank() || productName.isBlank()) {

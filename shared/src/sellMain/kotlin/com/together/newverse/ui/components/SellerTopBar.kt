@@ -61,6 +61,7 @@ fun SellerTopBar(
     val notificationsTitle = stringResource(Res.string.topbar_notifications)
     val abrechnungTitle = stringResource(Res.string.topbar_abrechnung)
     val sellerTitle = stringResource(Res.string.topbar_seller)
+    val customerDetailTitle = stringResource(Res.string.customer_detail_title)
     val selectDeleteTitle = stringResource(Res.string.topbar_select_delete)
     val changeAvailabilityTitle = stringResource(Res.string.topbar_change_availability)
     val importProductsTitle = stringResource(Res.string.topbar_import_products)
@@ -79,7 +80,8 @@ fun SellerTopBar(
                         profileTitle,
                         notificationsTitle,
                         abrechnungTitle,
-                        sellerTitle
+                        sellerTitle,
+                        customerDetailTitle
                     )
                 },
                 // Let TalkBack's next-heading gesture land on the screen title
@@ -209,7 +211,8 @@ private fun getRouteTitle(
     profileTitle: String,
     notificationsTitle: String,
     abrechnungTitle: String,
-    sellerTitle: String
+    sellerTitle: String,
+    customerDetailTitle: String
 ): String {
     return when (route) {
         NavRoutes.Sell.Overview.route -> sortimentTitle
@@ -218,6 +221,7 @@ private fun getRouteTitle(
         NavRoutes.Sell.Profile.route -> profileTitle
         NavRoutes.Sell.NotificationSettings.route -> notificationsTitle
         NavRoutes.Sell.Abrechnung.route -> abrechnungTitle
+        NavRoutes.Sell.CustomerDetail.route -> customerDetailTitle
         else -> sellerTitle
     }
 }

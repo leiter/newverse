@@ -49,29 +49,22 @@ data class OrderedProduct(
     }
 
     /**
-     * Format double with specified number of decimal places
+     * Format double with specified number of decimal places.
+     *
+     * Rounds in integer space (like [Money.toCents]) rather than splitting a rounded
+     * Double into whole/fraction parts: that split re-introduces binary floating-point
+     * noise, e.g. 1.2 kg rendered as "1,199" because (1.2 - 1) * 1000 lands just under 200.
      */
     private fun Double.formatWithDecimals(decimals: Int): String {
         val multiplier = when (decimals) {
-            2 -> 100.0
-            3 -> 1000.0
-            else -> 100.0
+            2 -> 100L
+            3 -> 1000L
+            else -> 100L
         }
-        val rounded = kotlin.math.round(this * multiplier) / multiplier
-
-        return when (decimals) {
-            2 -> {
-                val whole = rounded.toInt()
-                val fraction = ((rounded - whole) * 100).toInt()
-                "$whole.${fraction.toString().padStart(2, '0')}"
-            }
-            3 -> {
-                val whole = rounded.toInt()
-                val fraction = ((rounded - whole) * 1000).toInt()
-                "$whole.${fraction.toString().padStart(3, '0')}"
-            }
-            else -> rounded.toString()
-        }
+        val scaled = Money.roundHalfAwayFromZero(this * multiplier)
+        val whole = scaled / multiplier
+        val fraction = (scaled % multiplier).toString().padStart(decimals, '0')
+        return "$whole.$fraction"
     }
 
     /**
