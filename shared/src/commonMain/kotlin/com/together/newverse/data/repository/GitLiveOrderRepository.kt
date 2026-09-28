@@ -11,8 +11,12 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.database.DataSnapshot
 import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -97,58 +101,34 @@ class GitLiveOrderRepository(
         sellerId: String,
         placedOrderIds: Map<String, String>,
         isDemo: Boolean
-    ): Flow<List<Order>> = flow {
+    ): Flow<List<Order>> {
         Log.d(TAG) { "observeBuyerOrders: START - ${placedOrderIds.size} orders, isDemo=$isDemo" }
 
-        if (placedOrderIds.isEmpty()) {
-            emit(emptyList())
-            return@flow
+        if (placedOrderIds.isEmpty()) return flowOf(emptyList())
+
+        val targetSellerId = sellerId.ifEmpty { getFirstSellerId() }
+        val sellerOrdersRef = rootRef(isDemo).child(targetSellerId)
+
+        // One listener per known order rather than one on the seller's whole order
+        // tree: the rules only grant a buyer read on orders carrying their own
+        // buyerId, so a subscription to the parent is rejected outright. A missing
+        // or since-deleted order yields null and drops out of the list.
+        val perOrder = placedOrderIds.map { (date, orderId) ->
+            sellerOrdersRef.child(date).child(orderId).valueEvents
+                .map { snapshot -> if (snapshot.exists) mapSnapshotToOrder(snapshot) else null }
+                .catch { e ->
+                    Log.w(TAG) { "observeBuyerOrders: order $orderId unavailable - ${e.message}" }
+                    emit(null)
+                }
         }
 
-        try {
-            // Get the target seller ID
-            val targetSellerId = if (sellerId.isEmpty()) {
-                getFirstSellerId()
-            } else {
-                sellerId
-            }
-
-            // Collect orders by observing each order path
-            // We'll observe the seller's orders root and filter for buyer's orders
-            val ordersRef = rootRef(isDemo).child(targetSellerId)
-
-            ordersRef.valueEvents.collect { snapshot ->
-                val orders = mutableListOf<Order>()
-
-                // Process date snapshots and filter for buyer's orders
-                placedOrderIds.forEach { (date, orderId) ->
-                    try {
-                        val dateSnapshot = snapshot.child(date)
-                        if (dateSnapshot.exists) {
-                            val orderSnapshot = dateSnapshot.child(orderId)
-                            if (orderSnapshot.exists) {
-                                val order = mapSnapshotToOrder(orderSnapshot)
-                                if (order != null && !order.hiddenByBuyer) {
-                                    orders.add(order.copy(isDemoOrder = isDemo))
-                                }
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG) { "observeBuyerOrders: Error processing order $orderId: ${e.message}" }
-                    }
-                }
-
-                Log.d(TAG) { "observeBuyerOrders: Emitting ${orders.size} orders" }
-                // For non-demo users, filter out any orders that were marked as demo orders.
-                if (!isDemo) {
-                    emit(orders.filter { it.status != OrderStatus.DEMO_ORDER })
-                } else {
-                    emit(orders)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG) { "observeBuyerOrders: Error - ${e.message}" }
-            emit(emptyList())
+        return combine(perOrder) { orders ->
+            orders.filterNotNull()
+                .filter { !it.hiddenByBuyer }
+                .map { it.copy(isDemoOrder = isDemo) }
+                // For non-demo users, drop anything still marked as a demo order.
+                .filter { isDemo || it.status != OrderStatus.DEMO_ORDER }
+                .also { Log.d(TAG) { "observeBuyerOrders: Emitting ${it.size} orders" } }
         }
     }
 

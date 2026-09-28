@@ -136,7 +136,28 @@ whole catalog is keyed under it.
 Also clear app data on buyer test devices: `BuyerUUIDStorage` persists the buyerUUID
 locally, so a wiped server plus a stale device still presents a dead UUID.
 
-### 2b. Rules
+### 2b. Rules ✅ DONE (2026-09-28)
+
+Rekey landed; suite **97/97 green**, mutation-verified (removing `$buyerUid === auth.uid`
+fails exactly the two ownership tests). Also folded in, by decision:
+
+**Narrowed the `orders` read.** Previously `orders/{sellerId}` was readable by any
+`knownClientIds` member, so one approved buyer could read every other customer's orders —
+including the `buyerEmail` embedded in each. The read moved down to `$orderId` gated on
+`data.child('buyerId').val() === auth.uid`; the seller keeps the tree-wide read.
+
+This required a code change, because the original assumption was wrong: `observeBuyerOrders`
+subscribed to the seller's whole order tree and filtered client-side. `getBuyerOrders`
+already read per-order paths, so only the live observer needed rewriting — now one listener
+per known order, merged with `combine`. Verified: buy and sell both compile; unit tests show
+the same 6 pre-existing failures as the committed baseline (4 `BuyAppViewModelTest`,
+2 known `OrderDateUtilsTest`), so no regressions.
+
+**Still open:** after the rekey, `knownClientIds` has no remaining purpose — the orders gate
+was its last user and `approvedBuyerIds` is now the access list. Removing it is a candidate
+for Phase 4 cleanup.
+
+### 2b. Rules — original brief
 
 - `buyer_access_status` keyed by auth uid: `$buyerUid === auth.uid` replaces the
   `data.child('authUID').val() === auth.uid` indirection throughout. Target the shape the

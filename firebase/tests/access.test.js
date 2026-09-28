@@ -1,16 +1,21 @@
 import { before, after, beforeEach, describe, it } from "node:test";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { createTestEnv, asUser, seed, SELLER, ALICE, MALLORY } from "./helpers.js";
+import { createTestEnv, asUser, seed, SELLER, ALICE, BOB, MALLORY } from "./helpers.js";
 
 /**
- * A buyer is identified to the seller by buyerUUID, but that value lives in the
- * buyer's own profile and can be set to anything. Authorisation must key on the
- * auth uid instead.
+ * Access records are keyed by the buyer's Firebase auth uid. The key *is* the
+ * identity, so ownership is `$buyerUid === auth.uid` and there is no indirection
+ * through an `authUID` field to get wrong.
+ *
+ * This replaces the buyerUUID-keyed model, where a buyer picked their own
+ * identifier in their own profile and the rules had to cross-check it. That
+ * indirection is what made seller pre-approval unredeemable: a record written by
+ * the seller had no authUID, and the rules demanded you already own a record in
+ * order to claim it. Pre-approval now goes through `invite_tokens` instead —
+ * see invite-tokens.test.js.
  */
 describe("access requests and approval", () => {
   let env;
-  const ALICE_UUID = "uuid-alice";
-  const BOB_UUID = "uuid-bob";
 
   before(async () => { env = await createTestEnv(); });
   after(async () => { await env.cleanup(); });
@@ -18,13 +23,11 @@ describe("access requests and approval", () => {
   beforeEach(async () => {
     await env.clearDatabase();
     await seed(env, async (db) => {
-      // Mallory can put anything she likes in her own profile.
-      await db.ref(`buyer_profile/${MALLORY}`).set({ id: MALLORY, buyerUUID: BOB_UUID });
-      await db.ref(`buyer_access_status/${SELLER}/${BOB_UUID}`).set({
-        status: "APPROVED", buyerUUID: BOB_UUID, authUID: "bobUid00000000000000000000", updatedAt: 1
+      await db.ref(`buyer_access_status/${SELLER}/${BOB}`).set({
+        status: "APPROVED", updatedAt: 1, displayName: "Bob"
       });
-      await db.ref(`access_requests/${SELLER}/${ALICE_UUID}`).set({
-        buyerUUID: ALICE_UUID, displayName: "Alice", requestedAt: 1, authUID: ALICE
+      await db.ref(`access_requests/${SELLER}/${ALICE}`).set({
+        displayName: "Alice", requestedAt: 1
       });
     });
   });
@@ -33,34 +36,41 @@ describe("access requests and approval", () => {
 
   it("denies a buyer approving their own access", async () => {
     await assertFails(
-      asUser(env, ALICE).ref(`buyer_access_status/${SELLER}/uuid-fresh`).set({
-        status: "APPROVED", buyerUUID: "uuid-fresh", authUID: ALICE, updatedAt: 2
+      asUser(env, ALICE).ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+        status: "APPROVED", updatedAt: 2
       })
     );
   });
 
   it("denies a buyer upgrading an existing request to approved", async () => {
     await seed(env, (db) =>
-      db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
-        status: "PENDING", buyerUUID: ALICE_UUID, authUID: ALICE, updatedAt: 1
+      db.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({ status: "PENDING", updatedAt: 1 })
+    );
+    await assertFails(
+      asUser(env, ALICE).ref(`buyer_access_status/${SELLER}/${ALICE}/status`).set("APPROVED")
+    );
+  });
+
+  // --- one buyer, one key --------------------------------------------------
+
+  it("denies reading or removing another buyer's access record", async () => {
+    const mallory = asUser(env, MALLORY);
+    await assertFails(mallory.ref(`buyer_access_status/${SELLER}/${BOB}`).once("value"));
+    await assertFails(mallory.ref(`buyer_access_status/${SELLER}/${BOB}`).remove());
+  });
+
+  it("denies creating an access record under somebody else's uid", async () => {
+    await assertFails(
+      asUser(env, MALLORY).ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+        status: "PENDING", updatedAt: 2
       })
     );
-    await assertFails(
-      asUser(env, ALICE).ref(`buyer_access_status/${SELLER}/${ALICE_UUID}/status`).set("APPROVED")
-    );
   });
 
-  it("denies claiming another buyer's uuid by editing your own profile", async () => {
-    // Mallory's profile already says her buyerUUID is Bob's.
-    const mallory = asUser(env, MALLORY);
-    await assertFails(mallory.ref(`buyer_access_status/${SELLER}/${BOB_UUID}`).once("value"));
-    await assertFails(mallory.ref(`buyer_access_status/${SELLER}/${BOB_UUID}`).remove());
-  });
-
-  it("denies submitting a request in somebody else's name", async () => {
+  it("denies submitting a request under somebody else's uid", async () => {
     await assertFails(
-      asUser(env, MALLORY).ref(`access_requests/${SELLER}/uuid-victim`).set({
-        buyerUUID: "uuid-victim", displayName: "Victim", requestedAt: 2, authUID: ALICE
+      asUser(env, MALLORY).ref(`access_requests/${SELLER}/${ALICE}`).set({
+        displayName: "Victim", requestedAt: 2
       })
     );
   });
@@ -69,7 +79,7 @@ describe("access requests and approval", () => {
 
   it("denies a stranger wiping a seller's pending access requests", async () => {
     await assertFails(asUser(env, MALLORY).ref(`access_requests/${SELLER}`).remove());
-    await assertFails(asUser(env, MALLORY).ref(`access_requests/${SELLER}/${ALICE_UUID}`).remove());
+    await assertFails(asUser(env, MALLORY).ref(`access_requests/${SELLER}/${ALICE}`).remove());
   });
 
   it("denies a stranger reading a seller's pending access requests", async () => {
@@ -96,108 +106,101 @@ describe("access requests and approval", () => {
   it("allows a buyer to submit and withdraw their own pending request", async () => {
     const alice = asUser(env, ALICE);
     await assertSucceeds(
-      alice.ref(`buyer_access_status/${SELLER}/uuid-fresh`).set({
-        status: "PENDING", buyerUUID: "uuid-fresh", authUID: ALICE, updatedAt: 2
-      })
+      alice.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({ status: "PENDING", updatedAt: 2 })
     );
-    await assertSucceeds(alice.ref(`buyer_access_status/${SELLER}/uuid-fresh`).remove());
-    await assertSucceeds(alice.ref(`access_requests/${SELLER}/${ALICE_UUID}`).remove());
+    await assertSucceeds(alice.ref(`buyer_access_status/${SELLER}/${ALICE}`).remove());
+    await assertSucceeds(alice.ref(`access_requests/${SELLER}/${ALICE}`).remove());
   });
 
   it("allows a buyer with an existing record to request access again", async () => {
     // submitAccessRequest uses setValue, which overwrites. A buyer retrying
     // after a lingering or rejected request must not be locked out.
     await seed(env, async (db) => {
-      await db.ref(`access_requests/${SELLER}/${ALICE_UUID}`).set({
-        buyerUUID: ALICE_UUID, displayName: "Alice", requestedAt: 1, authUID: ALICE
+      await db.ref(`access_requests/${SELLER}/${ALICE}`).set({
+        displayName: "Alice", requestedAt: 1
       });
-      await db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
-        status: "PENDING", updatedAt: 1, buyerUUID: ALICE_UUID, displayName: "Alice", authUID: ALICE
+      await db.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+        status: "PENDING", updatedAt: 1, displayName: "Alice"
       });
     });
     const alice = asUser(env, ALICE);
-    await assertSucceeds(alice.ref(`access_requests/${SELLER}/${ALICE_UUID}`).set({
-      buyerUUID: ALICE_UUID, displayName: "Alice", requestedAt: 2, authUID: ALICE
+    await assertSucceeds(alice.ref(`access_requests/${SELLER}/${ALICE}`).set({
+      displayName: "Alice", requestedAt: 2
     }));
-    await assertSucceeds(alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
-      status: "PENDING", updatedAt: 2, buyerUUID: ALICE_UUID, displayName: "Alice", authUID: ALICE
+    await assertSucceeds(alice.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+      status: "PENDING", updatedAt: 2, displayName: "Alice"
     }));
   });
 
   it("denies a blocked buyer resetting themselves back to pending", async () => {
     await seed(env, (db) =>
-      db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
-        status: "BLOCKED", updatedAt: 1, buyerUUID: ALICE_UUID, displayName: "Alice", authUID: ALICE
+      db.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+        status: "BLOCKED", updatedAt: 1, displayName: "Alice"
       })
     );
     const alice = asUser(env, ALICE);
-    await assertFails(alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
-      status: "PENDING", updatedAt: 2, buyerUUID: ALICE_UUID, displayName: "Alice", authUID: ALICE
+    await assertFails(alice.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+      status: "PENDING", updatedAt: 2, displayName: "Alice"
     }));
     // nor by deleting the block and starting over
-    await assertFails(alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).remove());
-    await assertFails(alice.ref(`access_requests/${SELLER}/${ALICE_UUID}`).set({
-      buyerUUID: ALICE_UUID, displayName: "Alice", requestedAt: 2, authUID: ALICE
+    await assertFails(alice.ref(`buyer_access_status/${SELLER}/${ALICE}`).remove());
+    await assertFails(alice.ref(`access_requests/${SELLER}/${ALICE}`).set({
+      displayName: "Alice", requestedAt: 2
     }));
   });
 
   it("allows a buyer to read their own access status", async () => {
     await seed(env, (db) =>
-      db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
-        status: "PENDING", buyerUUID: ALICE_UUID, authUID: ALICE, updatedAt: 1
-      })
+      db.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({ status: "PENDING", updatedAt: 1 })
     );
     await assertSucceeds(
-      asUser(env, ALICE).ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).once("value")
+      asUser(env, ALICE).ref(`buyer_access_status/${SELLER}/${ALICE}`).once("value")
     );
   });
 
   it("allows an approved buyer to update their own display name", async () => {
     await seed(env, (db) =>
-      db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
-        status: "APPROVED", buyerUUID: ALICE_UUID, authUID: ALICE, updatedAt: 1, displayName: "Alice"
+      db.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+        status: "APPROVED", updatedAt: 1, displayName: "Alice"
       })
     );
-    const alice = asUser(env, ALICE);
     await assertSucceeds(
-      alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}/displayName`).set("Alicia")
+      asUser(env, ALICE).ref(`buyer_access_status/${SELLER}/${ALICE}/displayName`).set("Alicia")
     );
   });
 
   it("denies an approved buyer smuggling a status change into a display name update", async () => {
     await seed(env, (db) =>
-      db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
-        status: "APPROVED", buyerUUID: ALICE_UUID, authUID: ALICE, updatedAt: 1, displayName: "Alice"
+      db.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+        status: "APPROVED", updatedAt: 1, displayName: "Alice"
       })
     );
-    const alice = asUser(env, ALICE);
     await assertFails(
-      alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
-        status: "BLOCKED", buyerUUID: ALICE_UUID, authUID: ALICE, updatedAt: 2, displayName: "Alicia"
+      asUser(env, ALICE).ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+        status: "BLOCKED", updatedAt: 2, displayName: "Alicia"
       })
     );
   });
 
   it("denies a blocked buyer updating their own display name", async () => {
     await seed(env, (db) =>
-      db.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).set({
-        status: "BLOCKED", buyerUUID: ALICE_UUID, authUID: ALICE, updatedAt: 1, displayName: "Alice"
+      db.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+        status: "BLOCKED", updatedAt: 1, displayName: "Alice"
       })
     );
-    const alice = asUser(env, ALICE);
     await assertFails(
-      alice.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}/displayName`).set("Alicia")
+      asUser(env, ALICE).ref(`buyer_access_status/${SELLER}/${ALICE}/displayName`).set("Alicia")
     );
   });
 
   it("allows the seller to approve a request and clear it", async () => {
     const seller = asUser(env, SELLER);
     await assertSucceeds(
-      seller.ref(`buyer_access_status/${SELLER}/${ALICE_UUID}`).update({
-        status: "APPROVED", updatedAt: 3, buyerUUID: ALICE_UUID
+      seller.ref(`buyer_access_status/${SELLER}/${ALICE}`).update({
+        status: "APPROVED", updatedAt: 3
       })
     );
-    await assertSucceeds(seller.ref(`access_requests/${SELLER}/${ALICE_UUID}`).remove());
+    await assertSucceeds(seller.ref(`access_requests/${SELLER}/${ALICE}`).remove());
     await assertSucceeds(seller.ref(`access_requests/${SELLER}`).once("value"));
   });
 
