@@ -6,12 +6,13 @@ import com.together.newverse.ui.navigation.PlatformAction
 import com.together.newverse.ui.state.DeepLinkRouter
 import com.together.newverse.ui.theme.NewverseTheme
 import platform.UIKit.UIViewController
+import com.together.newverse.util.Log
 
 /**
  * Called from Swift `.onOpenURL` to forward a deep link URL into the Kotlin layer.
  */
 fun handleDeepLinkUrl(url: String) {
-    println("iOS Deep Link received: $url")
+    Log.d(TAG) { "iOS Deep Link received: $url" }
     DeepLinkRouter.route(url)
 }
 
@@ -23,7 +24,7 @@ fun MainViewController(): UIViewController {
         NewverseTheme {
             MainAppScaffold(
                 onPlatformAction = { action ->
-                    println("iOS Platform Action: $action")
+                    Log.d(TAG) { "iOS Platform Action: $action" }
                 }
             )
         }
@@ -44,7 +45,7 @@ fun MainViewControllerWithCallback(
         NewverseTheme {
             MainAppScaffold(
                 onPlatformAction = { action ->
-                    println("iOS Platform Action: $action")
+                    Log.d(TAG) { "iOS Platform Action: $action" }
                     when (action) {
                         is PlatformAction.GoogleSignIn -> onGoogleSignInRequested()
                         is PlatformAction.AppleSignIn -> onAppleSignInRequested()

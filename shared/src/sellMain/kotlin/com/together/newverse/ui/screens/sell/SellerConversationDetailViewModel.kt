@@ -16,6 +16,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.together.newverse.util.Log
+
+
+private const val TAG = "SellerConvoVM"
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SellerConversationDetailViewModel(
@@ -82,7 +86,7 @@ class SellerConversationDetailViewModel(
             ).onSuccess {
                 _inputText.value = ""
             }.onFailure { error ->
-                println("Failed to send message: ${error.message}")
+                Log.e(TAG) { "Failed to send message: ${error.message}" }
             }
 
             _isSending.value = false

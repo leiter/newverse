@@ -3,6 +3,7 @@ package com.together.newverse.data.repository
 import com.google.firebase.storage.FirebaseStorage
 import com.together.newverse.domain.repository.StorageRepository
 import kotlinx.coroutines.tasks.await
+import com.together.newverse.util.Log
 
 /**
  * Android-specific implementation of StorageRepository.
@@ -14,6 +15,7 @@ class PlatformStorageRepository : StorageRepository {
     private val storageRef = storage.reference
 
     companion object {
+        private const val TAG = "PlatformStorage"
         private const val IMAGES_PATH = "images/"
     }
 
@@ -23,7 +25,7 @@ class PlatformStorageRepository : StorageRepository {
         onProgress: ((Float) -> Unit)?
     ): Result<String> {
         return try {
-            println("📤 PlatformStorageRepository.uploadImage: START (${imageData.size} bytes)")
+            Log.d(TAG) { "uploadImage: START (${imageData.size} bytes)" }
 
             val path = filename.ifEmpty {
                 generateImagePath()
@@ -48,11 +50,11 @@ class PlatformStorageRepository : StorageRepository {
             // Get download URL
             val downloadUrl = imageRef.downloadUrl.await().toString()
 
-            println("✅ PlatformStorageRepository.uploadImage: Success - $downloadUrl")
+            Log.d(TAG) { "uploadImage: Success - $downloadUrl" }
             Result.success(downloadUrl)
 
         } catch (e: Exception) {
-            println("❌ PlatformStorageRepository.uploadImage: Error - ${e.message}")
+            Log.e(TAG) { "uploadImage: Error - ${e.message}" }
             e.printStackTrace()
             Result.failure(e)
         }
@@ -64,17 +66,17 @@ class PlatformStorageRepository : StorageRepository {
                 return Result.success(Unit)
             }
 
-            println("🗑️ PlatformStorageRepository.deleteImage: START - $imageUrl")
+            Log.d(TAG) { "deleteImage: START - $imageUrl" }
 
             // Get reference from URL
             val imageRef = storage.getReferenceFromUrl(imageUrl)
             imageRef.delete().await()
 
-            println("✅ PlatformStorageRepository.deleteImage: Success")
+            Log.d(TAG) { "deleteImage: Success" }
             Result.success(Unit)
 
         } catch (e: Exception) {
-            println("❌ PlatformStorageRepository.deleteImage: Error - ${e.message}")
+            Log.e(TAG) { "deleteImage: Error - ${e.message}" }
             e.printStackTrace()
             Result.failure(e)
         }

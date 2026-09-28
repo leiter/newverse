@@ -1,9 +1,10 @@
 package com.together.newverse.util
 
 import android.app.Application
-import android.util.Log
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+
+private const val TAG = "GoogleSignInMgr"
 
 /**
  * Android implementation of Google Sign-In management
@@ -17,7 +18,7 @@ actual object GoogleSignInManager : KoinComponent {
      */
     actual fun clearCachedAccount() {
         try {
-            Log.d("GoogleSignInManager", "🗑️ Clearing cached Google account on Android")
+            Log.d(TAG) { "Clearing cached Google account on Android" }
             val context = application.applicationContext
 
             // Create a temporary GoogleSignInHelper to access the clear method
@@ -25,9 +26,9 @@ actual object GoogleSignInManager : KoinComponent {
             val helper = GoogleSignInHelper(context, webClientId)
             helper.clearCachedAccount()
 
-            Log.d("GoogleSignInManager", "✅ Successfully initiated Google account cache clear")
+            Log.d(TAG) { "Successfully initiated Google account cache clear" }
         } catch (e: Exception) {
-            Log.e("GoogleSignInManager", "Failed to clear Google account: ${e.message}", e)
+            Log.e(TAG) { "Failed to clear Google account: ${e.message}" }
         }
     }
 }

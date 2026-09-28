@@ -16,6 +16,10 @@ import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
+import com.together.newverse.util.Log
+
+
+private const val TAG = "SellVM"
 
 /**
  * Sell flavor ViewModel managing all app state for seller/vendor app.
@@ -40,22 +44,22 @@ class SellAppViewModel(
     }
 
     init {
-        println("[NV_SellAppVM] init: START")
+        Log.d(TAG) { "init: START" }
 
         // Initialize auth coordinator from base class
-        println("[NV_SellAppVM] init: Calling initializeAuthCoordinator()...")
+        Log.d(TAG) { "init: Calling initializeAuthCoordinator()..." }
         initializeAuthCoordinator()
-        println("[NV_SellAppVM] init: initializeAuthCoordinator() returned")
+        Log.d(TAG) { "init: initializeAuthCoordinator() returned" }
 
         // Observe auth state changes and sync to SellAppState
-        println("[NV_SellAppVM] init: Calling observeAuthStateChanges()...")
+        Log.d(TAG) { "init: Calling observeAuthStateChanges()..." }
         observeAuthStateChanges()
-        println("[NV_SellAppVM] init: observeAuthStateChanges() returned")
+        Log.d(TAG) { "init: observeAuthStateChanges() returned" }
 
         // Initialize app on startup
-        println("[NV_SellAppVM] init: Calling initializeApp()...")
+        Log.d(TAG) { "init: Calling initializeApp()..." }
         initializeApp()
-        println("[NV_SellAppVM] init: END")
+        Log.d(TAG) { "init: END" }
     }
 
     /**
@@ -63,25 +67,25 @@ class SellAppViewModel(
      * This bridges the new AuthState to the existing UserState for backward compatibility.
      */
     private fun observeAuthStateChanges() {
-        println("[NV_SellAppVM] observeAuthStateChanges: Setting up auth state collection")
+        Log.d(TAG) { "observeAuthStateChanges: Setting up auth state collection" }
         viewModelScope.launch {
-            println("[NV_SellAppVM] observeAuthStateChanges: Coroutine started, collecting authState...")
+            Log.d(TAG) { "observeAuthStateChanges: Coroutine started, collecting authState..." }
             authCoordinator.authState.collect { authState ->
-                println("[NV_SellAppVM] observeAuthStateChanges: Collected authState=$authState")
+                Log.d(TAG) { "observeAuthStateChanges: Collected authState=$authState" }
                 _state.update { current ->
                     current.copy(
                         user = authState.toUserState(),
                         requiresLogin = authState !is AuthState.Authenticated,
                         meta = when (authState) {
                             is AuthState.Initializing -> {
-                                println("[NV_SellAppVM] observeAuthStateChanges: Setting meta to Initializing/CheckingAuth")
+                                Log.d(TAG) { "observeAuthStateChanges: Setting meta to Initializing/CheckingAuth" }
                                 current.meta.copy(
                                     isInitializing = true,
                                     initializationStep = InitializationStep.CheckingAuth
                                 )
                             }
                             is AuthState.NotAuthenticated -> {
-                                println("[NV_SellAppVM] observeAuthStateChanges: Setting meta to NotAuthenticated/Complete")
+                                Log.d(TAG) { "observeAuthStateChanges: Setting meta to NotAuthenticated/Complete" }
                                 current.meta.copy(
                                     isInitializing = false,
                                     isInitialized = true,
@@ -89,7 +93,7 @@ class SellAppViewModel(
                                 )
                             }
                             is AuthState.Authenticated -> {
-                                println("[NV_SellAppVM] observeAuthStateChanges: Setting meta to Authenticated/Complete")
+                                Log.d(TAG) { "observeAuthStateChanges: Setting meta to Authenticated/Complete" }
                                 observeAccessRequestCount(authState.userId)
                                 current.meta.copy(
                                     isInitializing = false,
@@ -126,7 +130,7 @@ class SellAppViewModel(
         accessRequestJob?.cancel()
         accessRequestJob = viewModelScope.launch {
             profileRepository.observeAccessRequests(sellerId)
-                .catch { e -> println("[NV_SellAppVM] observeAccessRequestCount error: ${e.message}") }
+                .catch { e -> Log.e(TAG) { "observeAccessRequestCount error: ${e.message}" } }
                 .collect { requests ->
                     _state.update { it.copy(pendingAccessRequestCount = requests.size) }
                 }
@@ -218,10 +222,10 @@ class SellAppViewModel(
                 // Only set initializing state if auth hasn't already resolved
                 // This prevents overwriting the state if observeAuthStateChanges already updated it
                 val currentAuthState = authCoordinator.authState.value
-                println("[NV_SellAppVM] initializeApp: Current auth state = $currentAuthState")
+                Log.d(TAG) { "initializeApp: Current auth state = $currentAuthState" }
 
                 if (currentAuthState is AuthState.Initializing) {
-                    println("[NV_SellAppVM] initializeApp: Auth still initializing, setting loading state")
+                    Log.d(TAG) { "initializeApp: Auth still initializing, setting loading state" }
                     _state.update { it.copy(
                         meta = it.meta.copy(
                             isInitializing = true,
@@ -229,15 +233,15 @@ class SellAppViewModel(
                         )
                     )}
                 } else {
-                    println("[NV_SellAppVM] initializeApp: Auth already resolved, skipping loading state")
+                    Log.d(TAG) { "initializeApp: Auth already resolved, skipping loading state" }
                 }
 
                 // AuthFlowCoordinator handles auth checking automatically
                 // observeAuthStateChanges will handle the state transitions
-                println("[NV_SellAppVM] initializeApp: Waiting for auth state...")
+                Log.d(TAG) { "initializeApp: Waiting for auth state..." }
 
             } catch (e: Exception) {
-                println("[NV_SellAppVM] initializeApp: ERROR - ${e.message}")
+                Log.e(TAG) { "initializeApp: ERROR - ${e.message}" }
                 _state.update { it.copy(
                     meta = it.meta.copy(
                         isInitializing = false,
@@ -358,7 +362,7 @@ class SellAppViewModel(
 
             authRepository.signInWithEmail(email, password)
                 .onSuccess { userId ->
-                    println("✅ Seller Login Success: userId=$userId")
+                    Log.d(TAG) { "Seller Login Success: userId=$userId" }
 
                     // AuthFlowCoordinator will automatically update auth state
                     // which triggers observeAuthStateChanges() to update SellAppState
@@ -411,14 +415,14 @@ class SellAppViewModel(
     }
 
     private fun loginWithGoogle() {
-        println("🔐 SellAppViewModel.loginWithGoogle: Triggering Google Sign-In")
+        Log.d(TAG) { "loginWithGoogle: Triggering Google Sign-In" }
         _state.update { current ->
             current.copy(triggerGoogleSignIn = true)
         }
     }
 
     private fun loginWithTwitter() {
-        println("🔐 SellAppViewModel.loginWithTwitter: Triggering Twitter Sign-In")
+        Log.d(TAG) { "loginWithTwitter: Triggering Twitter Sign-In" }
         _state.update { current ->
             current.copy(triggerTwitterSignIn = true)
         }
@@ -441,7 +445,7 @@ class SellAppViewModel(
 
             authRepository.sendPasswordResetEmail(email)
                 .onSuccess {
-                    println("✅ Password reset email sent to $email")
+                    Log.d(TAG) { "Password reset email sent to $email" }
                     _state.update { current ->
                         current.copy(
                             auth = current.auth.copy(
@@ -455,7 +459,7 @@ class SellAppViewModel(
                     showSnackbarInState(getString(Res.string.password_reset_sent), SnackbarType.SUCCESS)
                 }
                 .onFailure { error ->
-                    println("❌ Password reset failed: ${error.message}")
+                    Log.e(TAG) { "Password reset failed: ${error.message}" }
                     val errorMessage = when {
                         error.message?.contains("No account found", true) == true ->
                             getString(Res.string.error_no_account)
@@ -516,9 +520,9 @@ class SellAppViewModel(
      * Set auth error message (called when Google Sign-In fails)
      */
     fun setAuthError(errorMessage: String?) {
-        println("🔴 SellAppViewModel.setAuthError: Setting error to: $errorMessage")
+        Log.e(TAG) { "setAuthError: Setting error to: $errorMessage" }
         _state.update { current ->
-            println("🔴 SellAppViewModel.setAuthError: Current auth error was: ${current.auth.error}")
+            Log.e(TAG) { "setAuthError: Current auth error was: ${current.auth.error}" }
             current.copy(
                 auth = current.auth.copy(
                     isLoading = false,
@@ -526,7 +530,7 @@ class SellAppViewModel(
                 )
             )
         }
-        println("🔴 SellAppViewModel.setAuthError: New auth error is: ${_state.value.auth.error}")
+        Log.e(TAG) { "setAuthError: New auth error is: ${_state.value.auth.error}" }
     }
 
     fun resetTwitterSignInTrigger() {

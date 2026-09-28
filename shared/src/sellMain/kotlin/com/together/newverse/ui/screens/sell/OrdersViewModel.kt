@@ -25,6 +25,10 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import com.together.newverse.util.Log
+
+
+private const val TAG = "OrdersVM"
 
 /**
  * ViewModel for Seller Orders Management screen.
@@ -54,7 +58,7 @@ class OrdersViewModel(
     ) { filter, _ -> filter }
         .flatMapLatest { filter ->
             val sellerId = authRepository.getCurrentUserId() ?: ""
-            println("📦 OrdersViewModel: Loading orders for sellerId='$sellerId', filter=$filter")
+            Log.d(TAG) { "OrdersViewModel: Loading orders for sellerId='$sellerId', filter=$filter" }
 
             if (sellerId.isEmpty()) {
                 flowOf(AsyncState.Error("Not authenticated", retryable = true))
@@ -102,7 +106,7 @@ class OrdersViewModel(
     ) {
         viewModelScope.launch {
             try {
-                println("📦 OrdersViewModel.hideOrder: orderId='${order.id}'")
+                Log.d(TAG) { "hideOrder: orderId='${order.id}'" }
 
                 // Format date key from pickUpDate
                 val date = formatDateKey(order.pickUpDate)
@@ -114,14 +118,14 @@ class OrdersViewModel(
                 )
 
                 result.onSuccess {
-                    println("✅ OrdersViewModel.hideOrder: Success")
+                    Log.d(TAG) { "hideOrder: Success" }
                     onSuccess()
                 }.onFailure { error ->
-                    println("❌ OrdersViewModel.hideOrder: Error - ${error.message}")
+                    Log.e(TAG) { "hideOrder: Error - ${error.message}" }
                     onError(error.message ?: "Failed to hide order")
                 }
             } catch (e: Exception) {
-                println("❌ OrdersViewModel.hideOrder: Error - ${e.message}")
+                Log.e(TAG) { "hideOrder: Error - ${e.message}" }
                 onError(e.message ?: "Failed to hide order")
             }
         }

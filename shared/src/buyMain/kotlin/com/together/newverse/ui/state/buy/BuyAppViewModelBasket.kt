@@ -22,6 +22,10 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
+import com.together.newverse.util.Log
+
+
+private const val TAG = "BuyVMBasket"
 
 /**
  * Basket Screen extension functions for BuyAppViewModel
@@ -49,7 +53,7 @@ private const val DRAFT_SAVE_DEBOUNCE_MS = 2000L
 private const val LOG_BASKET = false
 
 private fun bLog(message: String) {
-    if (LOG_BASKET) println(message)
+    if (LOG_BASKET) Log.d(TAG) { message }
 }
 
 /**
@@ -1448,7 +1452,7 @@ internal fun BuyAppViewModel.basketScreenConfirmMerge() {
  */
 internal suspend fun BuyAppViewModel.performDemoMigration(newOrder: Order): Result<Order> {
     return try {
-        println("🛒 performDemoMigration: START")
+        Log.d(TAG) { "performDemoMigration: START" }
         val buyerProfile = profileRepository.getBuyerProfile().getOrThrow()
 
         // Fetch the two existing demo orders from Firebase
@@ -1461,9 +1465,9 @@ internal suspend fun BuyAppViewModel.performDemoMigration(newOrder: Order): Resu
         existingOrdersResult.onSuccess { existingOrders ->
             // Save existing orders locally
             existingOrders.forEach { sellerConfig.saveDemoOrder(it) }
-            println("🛒 performDemoMigration: Saved ${existingOrders.size} existing demo orders locally")
+            Log.d(TAG) { "performDemoMigration: Saved ${existingOrders.size} existing demo orders locally" }
         }.onFailure {
-            println("❌ performDemoMigration: Failed to fetch existing demo orders — ${it.message}")
+            Log.e(TAG) { "performDemoMigration: Failed to fetch existing demo orders — ${it.message}" }
             return Result.failure(it)
         }
 
@@ -1475,23 +1479,23 @@ internal suspend fun BuyAppViewModel.performDemoMigration(newOrder: Order): Resu
 
         // Mark fully-local mode — subsequent orders skip Firebase entirely
         sellerConfig.markDemoLocalMode()
-        println("🛒 performDemoMigration: Saved order 3 locally, marked local mode")
+        Log.d(TAG) { "performDemoMigration: Saved order 3 locally, marked local mode" }
 
         // Delete the 2 prior Firebase copies (best-effort — local data is already safe)
         if (buyerProfile.placedOrderIds.isNotEmpty()) {
             orderRepository.deleteDemoOrders(sellerConfig.sellerId, buyerProfile.placedOrderIds)
                 .onFailure { e ->
-                    println("⚠️ performDemoMigration: Firebase delete failed (non-fatal): ${e.message}")
+                    Log.w(TAG) { "performDemoMigration: Firebase delete failed (non-fatal): ${e.message}" }
                 }
             // Remove Firebase-tracked IDs from buyer profile so the observer doesn't refetch them
             profileRepository.saveBuyerProfile(buyerProfile.copy(placedOrderIds = emptyMap()))
         }
 
         loadOrderHistory()
-        println("✅ performDemoMigration: Complete — 2 prior orders local, 1 new local order placed")
+        Log.d(TAG) { "performDemoMigration: Complete — 2 prior orders local, 1 new local order placed" }
         Result.success(localOrder)
     } catch (e: Exception) {
-        println("❌ performDemoMigration: Failed — ${e.message}")
+        Log.e(TAG) { "performDemoMigration: Failed — ${e.message}" }
         Result.failure(e)
     }
 }

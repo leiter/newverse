@@ -9,6 +9,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 
+private const val TAG = "GoogleSignIn"
+
 /**
  * Helper class for Google Sign-In integration
  *
@@ -24,25 +26,25 @@ class GoogleSignInHelper(
     private val googleSignInClient: GoogleSignInClient
 
     init {
-        println("🔐 GoogleSignInHelper: Initializing with webClientId: $webClientId")
+        Log.d(TAG) { "Initializing with webClientId" }
         // Configure Google Sign-In
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(webClientId)
             .requestEmail()
             .build()
 
-        println("🔐 GoogleSignInHelper: Creating GoogleSignInClient...")
+        Log.d(TAG) { "Creating GoogleSignInClient..." }
         googleSignInClient = GoogleSignIn.getClient(context, gso)
-        println("🔐 GoogleSignInHelper: Initialization complete")
+        Log.d(TAG) { "Initialization complete" }
     }
 
     /**
      * Get the sign-in intent to launch with ActivityResultLauncher
      */
     fun getSignInIntent(): Intent {
-        println("🔐 GoogleSignInHelper.getSignInIntent(): Getting sign-in intent...")
+        Log.d(TAG) { "getSignInIntent: Getting sign-in intent..." }
         val intent = googleSignInClient.signInIntent
-        println("🔐 GoogleSignInHelper.getSignInIntent(): Intent created: $intent")
+        Log.d(TAG) { "getSignInIntent: Intent created: $intent" }
         return intent
     }
 
@@ -58,15 +60,14 @@ class GoogleSignInHelper(
             val idToken = account.idToken
 
             if (idToken != null) {
-                println("🔐 GoogleSignInHelper: Got ID token from Google Sign-In")
+                Log.d(TAG) { "Got ID token from Google Sign-In" }
                 Result.success(idToken)
             } else {
-                println("❌ GoogleSignInHelper: ID token is null")
+                Log.e(TAG) { "ID token is null" }
                 Result.failure(Exception("Failed to get ID token from Google"))
             }
         } catch (e: ApiException) {
-            println("❌ GoogleSignInHelper: Sign-in failed with error code: ${e.statusCode}")
-            e.printStackTrace()
+            Log.e(TAG) { "Sign-in failed with error code: ${e.statusCode}" }
 
             val errorMessage = when (e.statusCode) {
                 7 -> "Network error. Please check your connection"
@@ -76,8 +77,7 @@ class GoogleSignInHelper(
             }
             Result.failure(Exception(errorMessage))
         } catch (e: Exception) {
-            println("❌ GoogleSignInHelper: Unexpected error: ${e.message}")
-            e.printStackTrace()
+            Log.e(TAG) { "Unexpected error: ${e.message}" }
             Result.failure(Exception("Sign-in failed: ${e.message}"))
         }
     }
@@ -87,13 +87,13 @@ class GoogleSignInHelper(
      * This clears the cached account
      */
     fun signOut() {
-        println("🔐 GoogleSignInHelper.signOut(): Clearing cached account...")
+        Log.d(TAG) { "signOut: Clearing cached account..." }
         googleSignInClient.signOut()
             .addOnCompleteListener {
-                println("🔐 GoogleSignInHelper.signOut(): Completed")
+                Log.d(TAG) { "signOut: Completed" }
             }
             .addOnFailureListener { e ->
-                println("❌ GoogleSignInHelper.signOut(): Failed - ${e.message}")
+                Log.e(TAG) { "signOut: Failed - ${e.message}" }
             }
     }
 
@@ -101,18 +101,18 @@ class GoogleSignInHelper(
      * Synchronously clear the cached account without signing out of Google
      */
     fun clearCachedAccount() {
-        println("🔐 GoogleSignInHelper.clearCachedAccount(): Clearing cached account...")
+        Log.d(TAG) { "clearCachedAccount: Clearing cached account..." }
         try {
             // Call signOut synchronously to clear the cache
             val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
             if (lastAccount != null) {
-                println("🔐 GoogleSignInHelper.clearCachedAccount(): Found cached account, signing out...")
+                Log.d(TAG) { "clearCachedAccount: Found cached account, signing out..." }
                 signOut()
             } else {
-                println("🔐 GoogleSignInHelper.clearCachedAccount(): No cached account found")
+                Log.d(TAG) { "clearCachedAccount: No cached account found" }
             }
         } catch (e: Exception) {
-            println("❌ GoogleSignInHelper.clearCachedAccount(): Exception - ${e.message}")
+            Log.e(TAG) { "clearCachedAccount: Exception - ${e.message}" }
         }
     }
 

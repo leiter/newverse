@@ -7,6 +7,7 @@ import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.js.Js
+import com.together.newverse.util.Log
 
 actual fun createImageLoader(context: PlatformContext): ImageLoader {
     val httpClient = HttpClient(Js)
@@ -20,5 +21,5 @@ actual fun createImageLoader(context: PlatformContext): ImageLoader {
 
 actual fun initializeImageLoader(context: PlatformContext) {
     SingletonImageLoader.setSafe { createImageLoader(it) }
-    println("✅ Coil ImageLoader configured for web")
+    Log.d(TAG) { "Coil ImageLoader configured for web" }
 }

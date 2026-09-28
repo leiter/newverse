@@ -20,6 +20,7 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
+import com.together.newverse.util.Log
 
 /**
  * GitLive implementation of OrderRepository for cross-platform order management.
@@ -29,6 +30,10 @@ class GitLiveOrderRepository(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository
 ) : OrderRepository {
+
+    private companion object {
+        private const val TAG = "OrderRepo"
+    }
 
     // GitLive Firebase Database references
     private val database = Firebase.database
@@ -45,7 +50,7 @@ class GitLiveOrderRepository(
      * Observe orders for a seller with real-time updates.
      */
     override fun observeSellerOrders(sellerId: String): Flow<List<Order>> = flow {
-        println("🔐 GitLiveOrderRepository.observeSellerOrders: START for sellerId=$sellerId")
+        Log.d(TAG) { "observeSellerOrders: START for sellerId=$sellerId" }
 
         try {
             // Get the target seller ID - use default if empty
@@ -75,11 +80,11 @@ class GitLiveOrderRepository(
 
                 // Update cache and emit
                 sellerOrdersCache[sellerId] = orders
-                println("🔐 GitLiveOrderRepository.observeSellerOrders: Emitting ${orders.size} orders")
+                Log.d(TAG) { "observeSellerOrders: Emitting ${orders.size} orders" }
                 emit(orders)
             }
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.observeSellerOrders: Error - ${e.message}")
+            Log.e(TAG) { "observeSellerOrders: Error - ${e.message}" }
             // Emit empty list on error
             emit(emptyList())
         }
@@ -93,7 +98,7 @@ class GitLiveOrderRepository(
         placedOrderIds: Map<String, String>,
         isDemo: Boolean
     ): Flow<List<Order>> = flow {
-        println("🔐 GitLiveOrderRepository.observeBuyerOrders: START - ${placedOrderIds.size} orders, isDemo=$isDemo")
+        Log.d(TAG) { "observeBuyerOrders: START - ${placedOrderIds.size} orders, isDemo=$isDemo" }
 
         if (placedOrderIds.isEmpty()) {
             emit(emptyList())
@@ -129,11 +134,11 @@ class GitLiveOrderRepository(
                             }
                         }
                     } catch (e: Exception) {
-                        println("⚠️ GitLiveOrderRepository.observeBuyerOrders: Error processing order $orderId: ${e.message}")
+                        Log.w(TAG) { "observeBuyerOrders: Error processing order $orderId: ${e.message}" }
                     }
                 }
 
-                println("🔐 GitLiveOrderRepository.observeBuyerOrders: Emitting ${orders.size} orders")
+                Log.d(TAG) { "observeBuyerOrders: Emitting ${orders.size} orders" }
                 // For non-demo users, filter out any orders that were marked as demo orders.
                 if (!isDemo) {
                     emit(orders.filter { it.status != OrderStatus.DEMO_ORDER })
@@ -142,7 +147,7 @@ class GitLiveOrderRepository(
                 }
             }
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.observeBuyerOrders: Error - ${e.message}")
+            Log.e(TAG) { "observeBuyerOrders: Error - ${e.message}" }
             emit(emptyList())
         }
     }
@@ -163,7 +168,7 @@ class GitLiveOrderRepository(
         isDemo: Boolean
     ): Result<List<Order>> {
         return try {
-            println("🔐 GitLiveOrderRepository.getBuyerOrders: START - ${placedOrderIds.size} orders, isDemo=$isDemo")
+            Log.d(TAG) { "getBuyerOrders: START - ${placedOrderIds.size} orders, isDemo=$isDemo" }
 
             if (placedOrderIds.isEmpty()) {
                 return Result.success(emptyList())
@@ -193,7 +198,7 @@ class GitLiveOrderRepository(
                         }
                     }
                 } catch (e: Exception) {
-                    println("⚠️ GitLiveOrderRepository.getBuyerOrders: Failed to fetch order $orderId: ${e.message}")
+                    Log.w(TAG) { "getBuyerOrders: Failed to fetch order $orderId: ${e.message}" }
                 }
             }
 
@@ -203,11 +208,11 @@ class GitLiveOrderRepository(
                 orders
             }
 
-            println("✅ GitLiveOrderRepository.getBuyerOrders: Found ${finalOrders.size} orders after filtering")
+            Log.d(TAG) { "getBuyerOrders: Found ${finalOrders.size} orders after filtering" }
             Result.success(finalOrders)
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.getBuyerOrders: Error - ${e.message}")
+            Log.e(TAG) { "getBuyerOrders: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -219,7 +224,7 @@ class GitLiveOrderRepository(
      */
     override suspend fun placeOrder(order: Order): Result<Order> {
         return try {
-            println("🔐 GitLiveOrderRepository.placeOrder: START")
+            Log.d(TAG) { "placeOrder: START" }
 
             val userId = authRepository.getCurrentUserId()
             if (userId == null) {
@@ -244,11 +249,11 @@ class GitLiveOrderRepository(
                 // New order: use push() to get Firebase auto-generated ID
                 val newOrderRef = dateRef.push()
                 val newOrderId = newOrderRef.key ?: "order_${Clock.System.now().toEpochMilliseconds()}"
-                println("🔐 GitLiveOrderRepository.placeOrder: Using push() - generated ID: $newOrderId")
+                Log.d(TAG) { "placeOrder: Using push() - generated ID: $newOrderId" }
                 Pair(newOrderId, newOrderRef)
             } else {
                 // Existing order: use the existing Firebase order ID
-                println("🔐 GitLiveOrderRepository.placeOrder: Using existing ID: ${order.id}")
+                Log.d(TAG) { "placeOrder: Using existing ID: ${order.id}" }
                 Pair(order.id, dateRef.child(order.id))
             }
 
@@ -277,11 +282,11 @@ class GitLiveOrderRepository(
             // Cache the order
             ordersCache[orderId] = finalOrder
 
-            println("✅ GitLiveOrderRepository.placeOrder: Success - orderId=$orderId")
+            Log.d(TAG) { "placeOrder: Success - orderId=$orderId" }
             Result.success(finalOrder)
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.placeOrder: Error - ${e.message}")
+            Log.e(TAG) { "placeOrder: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -292,7 +297,7 @@ class GitLiveOrderRepository(
      */
     override suspend fun updateOrder(order: Order): Result<Unit> {
         return try {
-            println("🔐 GitLiveOrderRepository.updateOrder: START - orderId=${order.id}")
+            Log.d(TAG) { "updateOrder: START - orderId=${order.id}" }
 
             // A stored order has been placed; callers rebuilding it from the basket
             // leave the status at its DRAFT default. As in placeOrder, store it as
@@ -323,11 +328,11 @@ class GitLiveOrderRepository(
             // Update cache
             ordersCache[placed.id] = placed
 
-            println("✅ GitLiveOrderRepository.updateOrder: Success")
+            Log.d(TAG) { "updateOrder: Success" }
             Result.success(Unit)
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.updateOrder: Error - ${e.message}")
+            Log.e(TAG) { "updateOrder: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -344,23 +349,23 @@ class GitLiveOrderRepository(
         return try {
             val rootName = if (isDemo) "demo_orders" else "orders"
             val path = "$rootName/$sellerId/$date/$orderId"
-            println("🔐 GitLiveOrderRepository.cancelOrder: START")
-            println("🔐 GitLiveOrderRepository.cancelOrder: sellerId=$sellerId")
-            println("🔐 GitLiveOrderRepository.cancelOrder: date=$date")
-            println("🔐 GitLiveOrderRepository.cancelOrder: orderId=$orderId")
-            println("🔐 GitLiveOrderRepository.cancelOrder: Full path=$path")
+            Log.d(TAG) { "cancelOrder: START" }
+            Log.d(TAG) { "cancelOrder: sellerId=$sellerId" }
+            Log.d(TAG) { "cancelOrder: date=$date" }
+            Log.d(TAG) { "cancelOrder: orderId=$orderId" }
+            Log.d(TAG) { "cancelOrder: Full path=$path" }
 
             // Fetch the order from GitLive Firebase
             val orderRef = rootRef(isDemo).child(sellerId).child(date).child(orderId)
             val snapshot = orderRef.valueEvents.first()
-            println("🔐 GitLiveOrderRepository.cancelOrder: snapshot.exists=${snapshot.exists}")
+            Log.d(TAG) { "cancelOrder: snapshot.exists=${snapshot.exists}" }
 
             if (snapshot.exists) {
                 val order = mapSnapshotToOrder(snapshot)
                 if (order != null) {
                     // Validate order can still be modified (deadline check)
                     if (!order.canEdit()) {
-                        println("❌ GitLiveOrderRepository.cancelOrder: Order cannot be cancelled (deadline passed)")
+                        Log.e(TAG) { "cancelOrder: Order cannot be cancelled (deadline passed)" }
                         return Result.failure(Exception("Order cannot be cancelled (deadline passed)"))
                     }
 
@@ -374,21 +379,21 @@ class GitLiveOrderRepository(
                     // Update cache
                     ordersCache[orderId] = cancelledOrder
 
-                    println("✅ GitLiveOrderRepository.cancelOrder: Success")
+                    Log.d(TAG) { "cancelOrder: Success" }
                     Result.success(true)
                 } else {
                     Result.failure(Exception("Failed to parse order data"))
                 }
             } else {
-                println("❌ GitLiveOrderRepository.cancelOrder: Order not found in Firebase")
+                Log.e(TAG) { "cancelOrder: Order not found in Firebase" }
                 // Clear from cache since it doesn't exist in Firebase
                 ordersCache.remove(orderId)
-                println("🔐 GitLiveOrderRepository.cancelOrder: Removed from cache")
+                Log.d(TAG) { "cancelOrder: Removed from cache" }
                 Result.failure(Exception("Order not found"))
             }
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.cancelOrder: Error - ${e.message}")
+            Log.e(TAG) { "cancelOrder: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -402,11 +407,11 @@ class GitLiveOrderRepository(
         orderPath: String
     ): Result<Order> {
         return try {
-            println("🔐 GitLiveOrderRepository.loadOrder: START - orderId=$orderId")
+            Log.d(TAG) { "loadOrder: START - orderId=$orderId" }
 
             // Check cache first
             ordersCache[orderId]?.let {
-                println("✅ GitLiveOrderRepository.loadOrder: Found in cache")
+                Log.d(TAG) { "loadOrder: Found in cache" }
                 return Result.success(it)
             }
 
@@ -420,18 +425,18 @@ class GitLiveOrderRepository(
                     // Update cache
                     ordersCache[orderId] = order
 
-                    println("✅ GitLiveOrderRepository.loadOrder: Fetched from Firebase")
+                    Log.d(TAG) { "loadOrder: Fetched from Firebase" }
                     Result.success(order)
                 } else {
                     Result.failure(Exception("Failed to parse order data"))
                 }
             } else {
-                println("❌ GitLiveOrderRepository.loadOrder: Order not found")
+                Log.e(TAG) { "loadOrder: Order not found" }
                 Result.failure(Exception("Order not found"))
             }
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.loadOrder: Error - ${e.message}")
+            Log.e(TAG) { "loadOrder: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -445,10 +450,10 @@ class GitLiveOrderRepository(
         isDemo: Boolean
     ): Result<Order?> {
         return try {
-            println("🔐 GitLiveOrderRepository.getOpenEditableOrder: START")
+            Log.d(TAG) { "getOpenEditableOrder: START" }
 
             if (placedOrderIds.isEmpty()) {
-                println("✅ GitLiveOrderRepository.getOpenEditableOrder: No placed orders")
+                Log.d(TAG) { "getOpenEditableOrder: No placed orders" }
                 return Result.success(null)
             }
 
@@ -467,15 +472,15 @@ class GitLiveOrderRepository(
                 .maxByOrNull { it.createdDate }
 
             if (editableOrder != null) {
-                println("✅ GitLiveOrderRepository.getOpenEditableOrder: Found editable order ${editableOrder.id}")
+                Log.d(TAG) { "getOpenEditableOrder: Found editable order ${editableOrder.id}" }
             } else {
-                println("✅ GitLiveOrderRepository.getOpenEditableOrder: No editable orders found")
+                Log.d(TAG) { "getOpenEditableOrder: No editable orders found" }
             }
 
             Result.success(editableOrder)
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.getOpenEditableOrder: Error - ${e.message}")
+            Log.e(TAG) { "getOpenEditableOrder: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -489,10 +494,10 @@ class GitLiveOrderRepository(
         isDemo: Boolean
     ): Result<Order?> {
         return try {
-            println("🔐 GitLiveOrderRepository.getUpcomingOrder: START")
+            Log.d(TAG) { "getUpcomingOrder: START" }
 
             if (placedOrderIds.isEmpty()) {
-                println("✅ GitLiveOrderRepository.getUpcomingOrder: No placed orders")
+                Log.d(TAG) { "getUpcomingOrder: No placed orders" }
                 return Result.success(null)
             }
 
@@ -511,15 +516,15 @@ class GitLiveOrderRepository(
                 .maxByOrNull { it.pickUpDate }
 
             if (upcomingOrder != null) {
-                println("✅ GitLiveOrderRepository.getUpcomingOrder: Found upcoming order ${upcomingOrder.id}")
+                Log.d(TAG) { "getUpcomingOrder: Found upcoming order ${upcomingOrder.id}" }
             } else {
-                println("✅ GitLiveOrderRepository.getUpcomingOrder: No upcoming orders found")
+                Log.d(TAG) { "getUpcomingOrder: No upcoming orders found" }
             }
 
             Result.success(upcomingOrder)
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.getUpcomingOrder: Error - ${e.message}")
+            Log.e(TAG) { "getUpcomingOrder: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -583,7 +588,7 @@ class GitLiveOrderRepository(
                         isDemoOrder = value["isDemoOrder"] as? Boolean ?: false
                     )
                 } catch (e: Exception) {
-                    println("❌ Error mapping order snapshot: ${e.message}")
+                    Log.e(TAG) { "Error mapping order snapshot: ${e.message}" }
                     null
                 }
             }
@@ -627,16 +632,16 @@ class GitLiveOrderRepository(
 
     override suspend fun hideOrderForSeller(sellerId: String, date: String, orderId: String): Result<Boolean> {
         return try {
-            println("🔐 GitLiveOrderRepository.hideOrderForSeller: START - orderId=$orderId")
+            Log.d(TAG) { "hideOrderForSeller: START - orderId=$orderId" }
 
             val orderRef = ordersRootRef.child(sellerId).child(date).child(orderId).child("hiddenBySeller")
             orderRef.setValue(true)
 
-            println("✅ GitLiveOrderRepository.hideOrderForSeller: Success")
+            Log.d(TAG) { "hideOrderForSeller: Success" }
             Result.success(true)
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.hideOrderForSeller: Error - ${e.message}")
+            Log.e(TAG) { "hideOrderForSeller: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -648,16 +653,16 @@ class GitLiveOrderRepository(
         isDemo: Boolean
     ): Result<Boolean> {
         return try {
-            println("🔐 GitLiveOrderRepository.hideOrderForBuyer: START - orderId=$orderId, isDemo=$isDemo")
+            Log.d(TAG) { "hideOrderForBuyer: START - orderId=$orderId, isDemo=$isDemo" }
 
             val orderRef = rootRef(isDemo).child(sellerId).child(date).child(orderId).child("hiddenByBuyer")
             orderRef.setValue(true)
 
-            println("✅ GitLiveOrderRepository.hideOrderForBuyer: Success")
+            Log.d(TAG) { "hideOrderForBuyer: Success" }
             Result.success(true)
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.hideOrderForBuyer: Error - ${e.message}")
+            Log.e(TAG) { "hideOrderForBuyer: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -673,7 +678,7 @@ class GitLiveOrderRepository(
         isDemo: Boolean
     ): Result<Unit> {
         return try {
-            println("🔐 GitLiveOrderRepository.updateOrderStatus: START - orderId=$orderId, newStatus=$status, isDemo=$isDemo")
+            Log.d(TAG) { "updateOrderStatus: START - orderId=$orderId, newStatus=$status, isDemo=$isDemo" }
 
             val orderRef = rootRef(isDemo).child(sellerId).child(date).child(orderId).child("status")
             orderRef.setValue(status.name)
@@ -683,11 +688,11 @@ class GitLiveOrderRepository(
                 ordersCache[orderId] = cachedOrder.copy(status = status)
             }
 
-            println("✅ GitLiveOrderRepository.updateOrderStatus: Success")
+            Log.d(TAG) { "updateOrderStatus: Success" }
             Result.success(Unit)
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.updateOrderStatus: Error - ${e.message}")
+            Log.e(TAG) { "updateOrderStatus: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -697,13 +702,13 @@ class GitLiveOrderRepository(
      */
     override suspend fun deleteOldDemoOrders(sellerId: String): Result<Int> {
         return try {
-            println("🔐 GitLiveOrderRepository.deleteOldDemoOrders: START for sellerId=$sellerId")
+            Log.d(TAG) { "deleteOldDemoOrders: START for sellerId=$sellerId" }
 
             val sellerDemoRef = demoOrdersRootRef.child(sellerId)
             val snapshot = sellerDemoRef.valueEvents.first()
 
             if (!snapshot.exists) {
-                println("✅ GitLiveOrderRepository.deleteOldDemoOrders: No demo orders found")
+                Log.d(TAG) { "deleteOldDemoOrders: No demo orders found" }
                 return Result.success(0)
             }
 
@@ -726,19 +731,19 @@ class GitLiveOrderRepository(
                         if (dateMillis < cutoffMillis) {
                             sellerDemoRef.child(dateKey).removeValue()
                             deletedCount++
-                            println("🗑️ GitLiveOrderRepository.deleteOldDemoOrders: Deleted $dateKey")
+                            Log.d(TAG) { "deleteOldDemoOrders: Deleted $dateKey" }
                         }
                     } catch (e: Exception) {
-                        println("⚠️ GitLiveOrderRepository.deleteOldDemoOrders: Failed to parse date key '$dateKey': ${e.message}")
+                        Log.w(TAG) { "deleteOldDemoOrders: Failed to parse date key '$dateKey': ${e.message}" }
                     }
                 }
             }
 
-            println("✅ GitLiveOrderRepository.deleteOldDemoOrders: Deleted $deletedCount date nodes")
+            Log.d(TAG) { "deleteOldDemoOrders: Deleted $deletedCount date nodes" }
             Result.success(deletedCount)
 
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.deleteOldDemoOrders: Error - ${e.message}")
+            Log.e(TAG) { "deleteOldDemoOrders: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -748,15 +753,15 @@ class GitLiveOrderRepository(
      */
     override suspend fun deleteDemoOrders(sellerId: String, dateToOrderId: Map<String, String>): Result<Unit> {
         return try {
-            println("🔐 GitLiveOrderRepository.deleteDemoOrders: Deleting ${dateToOrderId.size} orders for sellerId=$sellerId")
+            Log.d(TAG) { "deleteDemoOrders: Deleting ${dateToOrderId.size} orders for sellerId=$sellerId" }
             dateToOrderId.forEach { (date, orderId) ->
                 demoOrdersRootRef.child(sellerId).child(date).child(orderId).removeValue()
-                println("🗑️ GitLiveOrderRepository.deleteDemoOrders: Deleted $date/$orderId")
+                Log.d(TAG) { "deleteDemoOrders: Deleted $date/$orderId" }
             }
-            println("✅ GitLiveOrderRepository.deleteDemoOrders: Success")
+            Log.d(TAG) { "deleteDemoOrders: Success" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveOrderRepository.deleteDemoOrders: Error - ${e.message}")
+            Log.e(TAG) { "deleteDemoOrders: Error - ${e.message}" }
             Result.failure(e)
         }
     }

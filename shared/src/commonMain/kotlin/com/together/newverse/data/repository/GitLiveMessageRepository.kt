@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import com.together.newverse.util.Log
 
 /**
  * Firebase Realtime Database implementation of MessageRepository.
@@ -21,6 +22,10 @@ import kotlin.uuid.Uuid
  * - user_conversations/{userId}/{conversationId}: true - index for user's conversations
  */
 class GitLiveMessageRepository : MessageRepository {
+
+    private companion object {
+        private const val TAG = "MessageRepo"
+    }
 
     private val database = Firebase.database
     private val conversationsRef = database.reference("conversations")
@@ -41,7 +46,7 @@ class GitLiveMessageRepository : MessageRepository {
                         conversations.add(parseConversation(conversationId, convSnapshot))
                     }
                 } catch (e: Exception) {
-                    println("Failed to fetch conversation $conversationId: ${e.message}")
+                    Log.d(TAG) { "Failed to fetch conversation $conversationId: ${e.message}" }
                 }
             }
             conversations.sortedByDescending { it.lastMessageTimestamp }
@@ -57,7 +62,7 @@ class GitLiveMessageRepository : MessageRepository {
                 try {
                     messages.add(parseMessage(conversationId, child))
                 } catch (e: Exception) {
-                    println("Failed to parse message: ${e.message}")
+                    Log.d(TAG) { "Failed to parse message: ${e.message}" }
                 }
             }
             messages.sortedBy { it.timestamp }
@@ -151,10 +156,10 @@ class GitLiveMessageRepository : MessageRepository {
             userConversationsRef.child(senderId).child(conversationId).setValue(true)
             userConversationsRef.child(recipientId).child(conversationId).setValue(true)
 
-            println("Message sent: $messageId in conversation $conversationId")
+            Log.d(TAG) { "Message sent: $messageId in conversation $conversationId" }
             Result.success(message)
         } catch (e: Exception) {
-            println("Failed to send message: ${e.message}")
+            Log.d(TAG) { "Failed to send message: ${e.message}" }
             Result.failure(e)
         }
     }
@@ -187,7 +192,7 @@ class GitLiveMessageRepository : MessageRepository {
 
             Result.success(Unit)
         } catch (e: Exception) {
-            println("Failed to mark as read: ${e.message}")
+            Log.d(TAG) { "Failed to mark as read: ${e.message}" }
             Result.failure(e)
         }
     }
@@ -239,10 +244,10 @@ class GitLiveMessageRepository : MessageRepository {
                 unreadCounts = mapOf(userAId to 0, userBId to 0)
             )
 
-            println("Conversation created: $conversationId")
+            Log.d(TAG) { "Conversation created: $conversationId" }
             Result.success(conversation)
         } catch (e: Exception) {
-            println("Failed to create conversation: ${e.message}")
+            Log.d(TAG) { "Failed to create conversation: ${e.message}" }
             Result.failure(e)
         }
     }
@@ -280,7 +285,7 @@ class GitLiveMessageRepository : MessageRepository {
             }
             countRef.setValue(currentCount + 1)
         } catch (e: Exception) {
-            println("Failed to increment unread count: ${e.message}")
+            Log.d(TAG) { "Failed to increment unread count: ${e.message}" }
         }
     }
 

@@ -7,6 +7,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
+private const val TAG = "DocPicker"
+
 /**
  * Android implementation of DocumentPicker
  * Uses Activity Result API for document selection
@@ -25,18 +27,18 @@ actual class DocumentPicker(private val activity: ComponentActivity) {
      * Must be called before activity is started
      */
     private fun setupLauncher() {
-        println("📄 DocumentPicker: Setting up launcher")
+        Log.d(TAG) { "Setting up launcher" }
         pickDocumentLauncher = activity.registerForActivityResult(
             ActivityResultContracts.OpenDocument()
         ) { uri: Uri? ->
-            println("📄 DocumentPicker: Callback received, uri=$uri")
+            Log.d(TAG) { "Callback received, uri=$uri" }
             val continuation = pendingDocumentContinuation
             pendingDocumentContinuation = null
             if (continuation != null) {
-                println("📄 DocumentPicker: Resuming continuation")
+                Log.d(TAG) { "Resuming continuation" }
                 continuation.resume(uri)
             } else {
-                println("📄 DocumentPicker: WARNING - No pending continuation!")
+                Log.w(TAG) { "No pending continuation!" }
             }
         }
     }
@@ -49,27 +51,27 @@ actual class DocumentPicker(private val activity: ComponentActivity) {
      * Pick a document file (text/csv/bnn)
      */
     actual suspend fun pickDocument(): DocumentPickerResult {
-        println("📄 DocumentPicker: pickDocument() called")
+        Log.d(TAG) { "pickDocument() called" }
         return try {
             val uri = suspendCancellableCoroutine<Uri?> { continuation ->
-                println("📄 DocumentPicker: Setting continuation and launching picker")
+                Log.d(TAG) { "Setting continuation and launching picker" }
                 pendingDocumentContinuation = continuation
                 // Accept text files and any file type
                 pickDocumentLauncher?.launch(arrayOf("text/*", "*/*"))
-                    ?: println("📄 DocumentPicker: ERROR - launcher is null!")
+                    ?: Log.e(TAG) { "launcher is null!" }
             }
 
-            println("📄 DocumentPicker: Got URI result: $uri")
+            Log.d(TAG) { "Got URI result: $uri" }
             if (uri != null) {
                 val result = processDocumentUri(uri)
-                println("📄 DocumentPicker: Processing result: $result")
+                Log.d(TAG) { "Processing result: $result" }
                 result
             } else {
-                println("📄 DocumentPicker: Cancelled")
+                Log.d(TAG) { "Cancelled" }
                 DocumentPickerResult.Cancelled
             }
         } catch (e: Exception) {
-            println("📄 DocumentPicker: Exception: ${e.message}")
+            Log.e(TAG) { "Exception: ${e.message}" }
             e.printStackTrace()
             DocumentPickerResult.Error("Failed to open document picker: ${e.message}")
         }

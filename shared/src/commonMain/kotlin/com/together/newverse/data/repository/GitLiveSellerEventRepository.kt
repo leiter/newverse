@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import com.together.newverse.util.Log
 
 /**
  * Firebase Realtime Database implementation of [SellerEventRepository].
@@ -22,6 +23,10 @@ import kotlin.uuid.Uuid
  * but never modified or removed once written.
  */
 class GitLiveSellerEventRepository : SellerEventRepository {
+
+    private companion object {
+        private const val TAG = "SellerEventRepo"
+    }
 
     private val database = Firebase.database
     private val eventsRef = database.reference("seller_events")
@@ -65,10 +70,10 @@ class GitLiveSellerEventRepository : SellerEventRepository {
             // record in one shot; field-by-field writes would trip `!data.exists()`.
             eventsRef.child(sellerId).child(event.id).setValue(eventToMap(event))
 
-            println("📒 GitLiveSellerEventRepository.logEvent: ${type.name} for buyer $buyerId → seller $sellerId")
+            Log.d(TAG) { "📒 GitLiveSellerEventRepository.logEvent: ${type.name} for buyer $buyerId → seller $sellerId" }
             Result.success(event)
         } catch (e: Exception) {
-            println("⚠️ GitLiveSellerEventRepository.logEvent: Failed - ${e.message}")
+            Log.w(TAG) { "logEvent: Failed - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -99,7 +104,7 @@ class GitLiveSellerEventRepository : SellerEventRepository {
                     .take(limit)
             }
             .catch { e ->
-                println("⚠️ GitLiveSellerEventRepository.observeEvents: Failed - ${e.message}")
+                Log.w(TAG) { "observeEvents: Failed - ${e.message}" }
                 emit(emptyList())
             }
     }
@@ -125,7 +130,7 @@ class GitLiveSellerEventRepository : SellerEventRepository {
                 details = data["details"] as? String ?: ""
             )
         } catch (e: Exception) {
-            println("⚠️ GitLiveSellerEventRepository.parseEvent: Skipping malformed event - ${e.message}")
+            Log.w(TAG) { "parseEvent: Skipping malformed event - ${e.message}" }
             null
         }
     }

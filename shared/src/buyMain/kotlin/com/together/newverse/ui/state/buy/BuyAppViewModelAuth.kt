@@ -43,6 +43,10 @@ import newverse.shared.generated.resources.snackbar_logout_failed
 import newverse.shared.generated.resources.snackbar_logout_success
 import newverse.shared.generated.resources.link_account_success
 import org.jetbrains.compose.resources.getString
+import com.together.newverse.util.Log
+
+
+private const val TAG = "BuyVMAuth"
 
 /**
  * Authentication and Account Management extension functions for BuyAppViewModel
@@ -82,7 +86,7 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
         if (result == null) {
             // Timed out — no internet or server unreachable
             val errorMessage = getString(Res.string.error_no_internet)
-            println("⏱️ Login timeout - treating as network error")
+            Log.d(TAG) { "Login timeout - treating as network error" }
             showSnackBar(errorMessage, SnackbarType.ERROR)
             _state.update { current ->
                 current.copy(
@@ -98,8 +102,8 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
 
         result
             .onSuccess { userId ->
-                println("✅ [LOGIN SUCCESS] Buy App Login Success: userId=$userId")
-                println("📋 [LOGIN STATE] Setting isLoading=false, error=null")
+                Log.d(TAG) { "[LOGIN SUCCESS] Buy App Login Success: userId=$userId" }
+                Log.d(TAG) { "[LOGIN STATE] Setting isLoading=false, error=null" }
 
                 // Clear auth screen loading state
                 _state.update { current ->
@@ -119,10 +123,10 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
                 // Resume app initialization (load profile, order, articles)
                 resumeInitializationAfterAuth()
 
-                println("🎯 Login complete - resuming initialization")
+                Log.d(TAG) { "Login complete - resuming initialization" }
             }
             .onFailure { error ->
-                println("❌ [LOGIN ERROR] Login failed: ${error.message}")
+                Log.e(TAG) { "[LOGIN ERROR] Login failed: ${error.message}" }
                 // Parse error message for user-friendly display
                 val errorMessage = when {
                     error.message?.contains("No account found", true) == true ->
@@ -161,7 +165,7 @@ internal fun BuyAppViewModel.login(email: String, password: String) {
 }
 
 internal fun BuyAppViewModel.loginWithGoogle() {
-    println("🔐 BuyAppViewModel.loginWithGoogle: Triggering Google Sign-In flow")
+    Log.d(TAG) { "loginWithGoogle: Triggering Google Sign-In flow" }
     _state.update { current ->
         current.copy(
             triggerGoogleSignIn = true
@@ -170,7 +174,7 @@ internal fun BuyAppViewModel.loginWithGoogle() {
 }
 
 internal fun BuyAppViewModel.loginWithTwitter() {
-    println("🔐 BuyAppViewModel.loginWithTwitter: Triggering Twitter Sign-In flow")
+    Log.d(TAG) { "loginWithTwitter: Triggering Twitter Sign-In flow" }
     _state.update { current ->
         current.copy(
             triggerTwitterSignIn = true
@@ -179,7 +183,7 @@ internal fun BuyAppViewModel.loginWithTwitter() {
 }
 
 internal fun BuyAppViewModel.loginWithApple() {
-    println("🔐 BuyAppViewModel.loginWithApple: Triggering Apple Sign-In flow")
+    Log.d(TAG) { "loginWithApple: Triggering Apple Sign-In flow" }
     _state.update { current ->
         current.copy(
             triggerAppleSignIn = true
@@ -205,7 +209,7 @@ internal fun BuyAppViewModel.sendPasswordResetEmail(email: String) {
 
         authRepository.sendPasswordResetEmail(email)
             .onSuccess {
-                println("✅ Password reset email sent to $email")
+                Log.d(TAG) { "Password reset email sent to $email" }
                 _state.update { current ->
                     current.copy(
                         auth = current.auth.copy(
@@ -219,7 +223,7 @@ internal fun BuyAppViewModel.sendPasswordResetEmail(email: String) {
                 showSnackBar(getString(Res.string.password_reset_sent), SnackbarType.SUCCESS)
             }
             .onFailure { error ->
-                println("❌ Password reset failed: ${error.message}")
+                Log.e(TAG) { "Password reset failed: ${error.message}" }
                 val errorMessage = when {
                     error.message?.contains("No account found", true) == true ->
                         getString(Res.string.error_no_account)
@@ -382,18 +386,18 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
             // Step 1: Delete buyer profile from Firebase
             if (userId != null) {
                 profileRepository.deleteBuyerProfile(userId)
-                println("🗑️ Deleted buyer profile for: $userId")
+                Log.d(TAG) { "Deleted buyer profile for: $userId" }
             }
 
             // Step 2: Clear local basket and cached profiles
             basketRepository.clearBasket()
             profileRepository.clearCache()
-            println("🗑️ Cleared local basket")
+            Log.d(TAG) { "Cleared local basket" }
 
             // Step 3: Clear per-user storage
             buyerUUIDStorage?.clearActiveUserId()
             (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.clearActiveUser()
-            println("🗑️ Cleared per-user storage")
+            Log.d(TAG) { "Cleared per-user storage" }
 
             // Step 4: Record the wipe in the seller's book keeping log.
             // Written before auth deletion, while the session can still write.
@@ -426,7 +430,7 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
             }
 
         } catch (e: Exception) {
-            println("❌ Error during guest logout: ${e.message}")
+            Log.e(TAG) { "Error during guest logout: ${e.message}" }
             _state.update { current ->
                 current.copy(
                     customerProfile = current.customerProfile.copy(
@@ -489,7 +493,7 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
         // Attempt to link the account
         authRepository.linkWithEmail(email, password)
             .onSuccess { userId ->
-                println("✅ BuyAppViewModel.linkWithEmail: Success - userId=$userId")
+                Log.d(TAG) { "linkWithEmail: Success - userId=$userId" }
 
                 // Update profile with the linked email.
                 val updatedProfile = (anonymousProfile ?: _state.value.customerProfile.profile)?.copy(
@@ -505,7 +509,7 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
                     buyerUUIDStorage?.renameUserId(previousUserId, userId)
                     buyerUUIDStorage?.setActiveUserId(userId)
                     (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.migrateAnonymousUser(previousUserId, userId)
-                    println("🔑 Migrated per-user storage from anonymous $previousUserId to real $userId")
+                    Log.d(TAG) { "Migrated per-user storage from anonymous $previousUserId to real $userId" }
                 }
 
                 // Update state: close dialog, update user state
@@ -557,7 +561,7 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
                 showSnackBar(getString(Res.string.link_account_success), SnackbarType.SUCCESS)
             }
             .onFailure { error ->
-                println("❌ BuyAppViewModel.linkWithEmail: Error - ${error.message}")
+                Log.e(TAG) { "linkWithEmail: Error - ${error.message}" }
 
                 // Update state with error
                 _state.update { current ->
@@ -672,16 +676,16 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
 
                     cleanUpResult.onSuccess { result ->
                         cancelledOrderCount = result.cancelledOrders.size
-                        println("🔐 confirmDeleteAccount: Cleanup complete - cancelled=${result.cancelledOrders.size}, skipped=${result.skippedOrders.size}, profileDeleted=${result.profileDeleted}")
+                        Log.d(TAG) { "confirmDeleteAccount: Cleanup complete - cancelled=${result.cancelledOrders.size}, skipped=${result.skippedOrders.size}, profileDeleted=${result.profileDeleted}" }
                         if (result.errors.isNotEmpty()) {
-                            println("⚠️ confirmDeleteAccount: Cleanup had errors: ${result.errors}")
+                            Log.w(TAG) { "confirmDeleteAccount: Cleanup had errors: ${result.errors}" }
                         }
                     }.onFailure { e ->
-                        println("⚠️ confirmDeleteAccount: Cleanup failed - ${e.message}")
+                        Log.w(TAG) { "confirmDeleteAccount: Cleanup failed - ${e.message}" }
                     }
                 } else {
                     // No profile found, just delete auth
-                    println("🔐 confirmDeleteAccount: No buyer profile found, proceeding with auth deletion only")
+                    Log.d(TAG) { "confirmDeleteAccount: No buyer profile found, proceeding with auth deletion only" }
                 }
             }
 
@@ -785,7 +789,7 @@ internal suspend fun BuyAppViewModel.logSellerEvent(
     val repository = sellerEventRepository ?: return
     if (sellerConfig.isDemoMode) {
         // Not connected to a real seller - there are no books to keep.
-        println("📒 logSellerEvent: Skipping ${type.name} (demo mode)")
+        Log.d(TAG) { "logSellerEvent: Skipping ${type.name} (demo mode)" }
         return
     }
     repository.logEvent(
@@ -799,7 +803,7 @@ internal suspend fun BuyAppViewModel.logSellerEvent(
         cancelledOrderCount = cancelledOrderCount,
         details = details
     ).onFailure { e ->
-        println("⚠️ logSellerEvent: Could not record ${type.name} - ${e.message}")
+        Log.w(TAG) { "logSellerEvent: Could not record ${type.name} - ${e.message}" }
     }
 }
 
@@ -826,11 +830,11 @@ internal suspend fun BuyAppViewModel.revokeAppleTokenIfNeeded(
 
     if (!AppleTokenRevoker.isSupported) {
         val reason = "Apple account, but this platform cannot revoke the token"
-        println("⚠️ revokeAppleTokenIfNeeded: $reason")
+        Log.w(TAG) { "revokeAppleTokenIfNeeded: $reason" }
         return reason
     }
 
-    println("🍎 revokeAppleTokenIfNeeded: Revoking Apple token for ${audit.firebaseUserId}")
+    Log.d(TAG) { "revokeAppleTokenIfNeeded: Revoking Apple token for ${audit.firebaseUserId}" }
     return AppleTokenRevoker.reauthenticateAndRevoke().fold(
         onSuccess = { null },
         onFailure = { e -> e.message ?: "Apple token revocation failed" }
@@ -859,19 +863,19 @@ internal suspend fun BuyAppViewModel.deleteAuthAccountOrSignOut(
 
     authRepository.deleteAccount()
         .onSuccess {
-            println("🔐 Deleted Firebase Auth account ${audit.firebaseUserId}")
+            Log.d(TAG) { "Deleted Firebase Auth account ${audit.firebaseUserId}" }
             return null
         }
 
     // Retry once: transient network failures are the common case here.
     val retry = authRepository.deleteAccount()
     retry.onSuccess {
-        println("🔐 Deleted Firebase Auth account ${audit.firebaseUserId} (retry)")
+        Log.d(TAG) { "Deleted Firebase Auth account ${audit.firebaseUserId} (retry)" }
         return null
     }
 
     val reason = retry.exceptionOrNull()?.message ?: "Unknown error"
-    println("⚠️ Auth account ${audit.firebaseUserId} could not be deleted - $reason")
+    Log.w(TAG) { "Auth account ${audit.firebaseUserId} could not be deleted - $reason" }
 
     // Record the orphan while still authenticated: the append rule requires a
     // session whose uid matches buyerId, so signing out first would block it.
@@ -900,7 +904,7 @@ internal fun BuyAppViewModel.refreshAuthProvider() {
         val providerIds = try {
             authRepository.getProviderIds()
         } catch (e: Exception) {
-            println("⚠️ refreshAuthProvider: Error - ${e.message}")
+            Log.w(TAG) { "refreshAuthProvider: Error - ${e.message}" }
             emptyList()
         }
         val linked = AuthProvider.allFromProviderIds(providerIds)
@@ -908,10 +912,10 @@ internal fun BuyAppViewModel.refreshAuthProvider() {
         val anonymous = try {
             authRepository.isAnonymous()
         } catch (e: Exception) {
-            println("⚠️ refreshAuthProvider: isAnonymous failed - ${e.message}")
+            Log.w(TAG) { "refreshAuthProvider: isAnonymous failed - ${e.message}" }
             false
         }
-        println("🔐 refreshAuthProvider: provider=$provider, linked=$linked, anonymous=$anonymous")
+        Log.d(TAG) { "refreshAuthProvider: provider=$provider, linked=$linked, anonymous=$anonymous" }
         _state.update {
             it.copy(
                 authProvider = provider,
@@ -953,7 +957,7 @@ internal fun BuyAppViewModel.continueAsGuest() {
         if (result == null) {
             // Timed out — no internet or server unreachable
             val errorMessage = getString(Res.string.error_no_internet)
-            println("⏱️ Guest sign-in timeout - treating as network error")
+            Log.d(TAG) { "Guest sign-in timeout - treating as network error" }
             _state.update { current ->
                 current.copy(
                     auth = current.auth.copy(
@@ -967,7 +971,7 @@ internal fun BuyAppViewModel.continueAsGuest() {
 
         result.fold(
             onSuccess = { userId ->
-                println("✅ Buy App: Guest sign-in successful, user ID: $userId")
+                Log.d(TAG) { "Buy App: Guest sign-in successful, user ID: $userId" }
                 _state.update { current ->
                     current.copy(
                         auth = current.auth.copy(
@@ -980,7 +984,7 @@ internal fun BuyAppViewModel.continueAsGuest() {
                 resumeInitializationAfterAuth()
             },
             onFailure = { error ->
-                println("❌ Buy App: Guest sign-in failed - ${error.message}")
+                Log.e(TAG) { "Buy App: Guest sign-in failed - ${error.message}" }
                 // Parse error message for user-friendly display
                 val errorMessage = when {
                     error.message?.contains("Network", true) == true ||
@@ -1015,9 +1019,9 @@ internal fun BuyAppViewModel.continueAsGuest() {
 internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUserInfo? = null) {
     viewModelScope.launch {
         try {
-            println("🚀 Resuming initialization after auth...")
+            Log.d(TAG) { "Resuming initialization after auth..." }
             if (authUserInfo != null) {
-                println("📧 Auth user info: email=${authUserInfo.email}, name=${authUserInfo.displayName}")
+                Log.d(TAG) { "Auth user info: email=${authUserInfo.email}, name=${authUserInfo.displayName}" }
             }
 
             // Activate per-user storage
@@ -1025,7 +1029,7 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             if (userId != null) {
                 buyerUUIDStorage?.setActiveUserId(userId)
                 (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.setActiveUserId(userId)
-                println("🔑 Activated per-user storage for userId=$userId")
+                Log.d(TAG) { "Activated per-user storage for userId=$userId" }
             }
 
             // Publish which provider backs this session
@@ -1053,7 +1057,7 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             if (localUUID == null) {
                 val profileUUID = _state.value.customerProfile.profile?.buyerUUID
                 if (!profileUUID.isNullOrBlank()) {
-                    println("🔑 resumeInitializationAfterAuth: Restoring buyerUUID from Firebase profile after reinstall")
+                    Log.d(TAG) { "resumeInitializationAfterAuth: Restoring buyerUUID from Firebase profile after reinstall" }
                     buyerUUIDStorage?.set(profileUUID)
                 }
             }
@@ -1069,7 +1073,7 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
                         connectedSellerDisplayName = sellerDisplayName
                     )}
                 } catch (e: Exception) {
-                    println("[NV_BuyAppVM] resumeInitializationAfterAuth: getSellerDisplayName failed (non-fatal) - ${e.message}")
+                    Log.d(TAG) { "resumeInitializationAfterAuth: getSellerDisplayName failed (non-fatal) - ${e.message}" }
                 }
             }
 
@@ -1114,10 +1118,10 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
                 )
             }
 
-            println("✅ Initialization resumed successfully!")
+            Log.d(TAG) { "Initialization resumed successfully!" }
 
         } catch (e: Exception) {
-            println("❌ Error resuming initialization: ${e.message}")
+            Log.e(TAG) { "Error resuming initialization: ${e.message}" }
             _state.update { current ->
                 current.copy(
                     meta = current.meta.copy(
@@ -1155,7 +1159,7 @@ internal fun BuyAppViewModel.register(email: String, password: String, name: Str
         if (result == null) {
             // Timed out — no internet or server unreachable
             val errorMessage = getString(Res.string.error_no_internet)
-            println("⏱️ Registration timeout - treating as network error")
+            Log.d(TAG) { "Registration timeout - treating as network error" }
             showSnackBar(errorMessage, SnackbarType.ERROR)
             _state.update { current ->
                 current.copy(

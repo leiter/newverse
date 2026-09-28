@@ -17,6 +17,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.together.newverse.util.Log
+
+
+private const val TAG = "BuyerConvoVM"
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BuyerConversationViewModel(
@@ -90,7 +94,7 @@ class BuyerConversationViewModel(
                 if (error is BlockedException) {
                     _isBlocked.value = true
                 }
-                println("Failed to send message: ${error.message}")
+                Log.e(TAG) { "Failed to send message: ${error.message}" }
             }
 
             _isSending.value = false

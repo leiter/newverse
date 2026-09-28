@@ -2,6 +2,7 @@ package com.together.newverse.data.repository
 
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.AuthUserInfo
+import com.together.newverse.util.Log
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.auth.FirebaseAuth
@@ -12,6 +13,8 @@ import dev.gitlive.firebase.auth.TwitterAuthProvider
 import dev.gitlive.firebase.auth.OAuthProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+
+private const val TAG = "AuthRepo"
 
 /**
  * GitLive implementation of AuthRepository for cross-platform authentication.
@@ -28,32 +31,32 @@ class GitLiveAuthRepository : AuthRepository {
      */
     override suspend fun checkPersistedAuth(): Result<String?> {
         return try {
-            println("[NV_GitLiveAuth] checkPersistedAuth: START")
-            println("[NV_GitLiveAuth] checkPersistedAuth: Getting auth.currentUser...")
+            Log.d(TAG) { "checkPersistedAuth: START" }
+            Log.d(TAG) { "checkPersistedAuth: Getting auth.currentUser..." }
 
             val currentUser = auth.currentUser
-            println("[NV_GitLiveAuth] checkPersistedAuth: currentUser = ${currentUser?.uid ?: "null"}")
+            Log.d(TAG) { "checkPersistedAuth: currentUser = ${currentUser?.uid ?: "null"}" }
 
             if (currentUser != null) {
                 // Refresh token to ensure validity
-                println("[NV_GitLiveAuth] checkPersistedAuth: Calling getIdToken(true)... (this can hang if network issues)")
+                Log.d(TAG) { "checkPersistedAuth: Calling getIdToken(true)... (this can hang if network issues)" }
                 try {
                     currentUser.getIdToken(true)
-                    println("[NV_GitLiveAuth] checkPersistedAuth: getIdToken SUCCESS")
+                    Log.d(TAG) { "checkPersistedAuth: getIdToken SUCCESS" }
                 } catch (tokenError: Exception) {
-                    println("[NV_GitLiveAuth] checkPersistedAuth: getIdToken FAILED - ${tokenError.message}")
+                    Log.w(TAG) { "checkPersistedAuth: getIdToken FAILED - ${tokenError.message}" }
                     // Don't fail the whole auth check if token refresh fails
                     // User might still be valid, just couldn't refresh token
                 }
-                println("[NV_GitLiveAuth] checkPersistedAuth: Found user ${currentUser.uid}")
+                Log.d(TAG) { "checkPersistedAuth: Found user ${currentUser.uid}" }
                 Result.success(currentUser.uid)
             } else {
-                println("[NV_GitLiveAuth] checkPersistedAuth: No persisted user")
+                Log.d(TAG) { "checkPersistedAuth: No persisted user" }
                 Result.success(null)
             }
         } catch (e: Exception) {
-            println("[NV_GitLiveAuth] checkPersistedAuth: ERROR - ${e.message}")
-            println("[NV_GitLiveAuth] checkPersistedAuth: Stack trace: ${e.stackTraceToString()}")
+            Log.e(TAG) { "checkPersistedAuth: ERROR - ${e.message}" }
+            Log.e(TAG) { "checkPersistedAuth: Stack trace: ${e.stackTraceToString()}" }
             Result.failure(Exception("Failed to check auth status: ${e.message}"))
         }
     }
@@ -62,12 +65,12 @@ class GitLiveAuthRepository : AuthRepository {
      * Observe authentication state changes.
      */
     override fun observeAuthState(): Flow<String?> {
-        println("[NV_GitLiveAuth] observeAuthState: Setting up auth state observer")
-        println("[NV_GitLiveAuth] observeAuthState: Getting auth.authStateChanged Flow...")
+        Log.d(TAG) { "observeAuthState: Setting up auth state observer" }
+        Log.d(TAG) { "observeAuthState: Getting auth.authStateChanged Flow..." }
 
         // GitLive provides authStateChanged as a Flow
         return auth.authStateChanged.map { user ->
-            println("[NV_GitLiveAuth] observeAuthState: Flow emitted - userId=${user?.uid}")
+            Log.d(TAG) { "observeAuthState: Flow emitted - userId=${user?.uid}" }
             user?.uid
         }
     }
@@ -83,7 +86,7 @@ class GitLiveAuthRepository : AuthRepository {
         return try {
             auth.currentUser?.providerData?.map { it.providerId } ?: emptyList()
         } catch (e: Exception) {
-            println("⚠️ GitLiveAuthRepository.getProviderIds: Error - ${e.message}")
+            Log.w(TAG) { "getProviderIds: Error - ${e.message}" }
             emptyList()
         }
     }
@@ -98,14 +101,14 @@ class GitLiveAuthRepository : AuthRepository {
                 return Result.failure(Exception("Email and password cannot be empty"))
             }
 
-            println("🔐 GitLiveAuthRepository.signInWithEmail: Attempting sign in for $email")
+            Log.d(TAG) { "signInWithEmail: Attempting sign in for $email" }
 
             // Sign in with GitLive Firebase Auth
             val authResult = auth.signInWithEmailAndPassword(email, password)
             val user = authResult.user
 
             if (user != null) {
-                println("✅ GitLiveAuthRepository.signInWithEmail: Success - userId=${user.uid}")
+                Log.d(TAG) { "signInWithEmail: Success - userId=${user.uid}" }
                 Result.success(user.uid)
             } else {
                 Result.failure(Exception("Sign in failed: User is null"))
@@ -126,14 +129,14 @@ class GitLiveAuthRepository : AuthRepository {
                 return Result.failure(Exception("Email and password cannot be empty"))
             }
 
-            println("🔐 GitLiveAuthRepository.signUpWithEmail: Creating account for $email")
+            Log.d(TAG) { "signUpWithEmail: Creating account for $email" }
 
             // Create user with GitLive Firebase Auth
             val authResult = auth.createUserWithEmailAndPassword(email, password)
             val user = authResult.user
 
             if (user != null) {
-                println("✅ GitLiveAuthRepository.signUpWithEmail: Success - userId=${user.uid}")
+                Log.d(TAG) { "signUpWithEmail: Success - userId=${user.uid}" }
                 Result.success(user.uid)
             } else {
                 Result.failure(Exception("Sign up failed: User creation failed"))
@@ -150,11 +153,11 @@ class GitLiveAuthRepository : AuthRepository {
     override suspend fun signOut(): Result<Unit> {
         return try {
             val currentUser = auth.currentUser
-            println("🔐 GitLiveAuthRepository.signOut: Signing out user ${currentUser?.uid}")
+            Log.d(TAG) { "signOut: Signing out user ${currentUser?.uid}" }
 
             auth.signOut()
 
-            println("✅ GitLiveAuthRepository.signOut: Success")
+            Log.d(TAG) { "signOut: Success" }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(Exception("Sign out failed: ${e.message}"))
@@ -171,11 +174,11 @@ class GitLiveAuthRepository : AuthRepository {
                 return Result.failure(Exception("No user is currently signed in"))
             }
 
-            println("🔐 GitLiveAuthRepository.deleteAccount: Deleting account for user ${currentUser.uid}")
+            Log.d(TAG) { "deleteAccount: Deleting account for user ${currentUser.uid}" }
 
             currentUser.delete()
 
-            println("✅ GitLiveAuthRepository.deleteAccount: Success")
+            Log.d(TAG) { "deleteAccount: Success" }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(Exception("Account deletion failed: ${e.message}"))
@@ -187,13 +190,13 @@ class GitLiveAuthRepository : AuthRepository {
      */
     override suspend fun signInAnonymously(): Result<String> {
         return try {
-            println("🔐 GitLiveAuthRepository.signInAnonymously: Creating anonymous session")
+            Log.d(TAG) { "signInAnonymously: Creating anonymous session" }
 
             val authResult = auth.signInAnonymously()
             val user = authResult.user
 
             if (user != null) {
-                println("✅ GitLiveAuthRepository.signInAnonymously: Success - userId=${user.uid}")
+                Log.d(TAG) { "signInAnonymously: Success - userId=${user.uid}" }
                 Result.success(user.uid)
             } else {
                 Result.failure(Exception("Anonymous sign in failed"))
@@ -216,14 +219,14 @@ class GitLiveAuthRepository : AuthRepository {
      */
     override suspend fun signInWithGoogle(idToken: String, accessToken: String?): Result<String> {
         return try {
-            println("🔐 GitLiveAuthRepository.signInWithGoogle: Authenticating with Google")
+            Log.d(TAG) { "signInWithGoogle: Authenticating with Google" }
 
             val credential = GoogleAuthProvider.credential(idToken, accessToken)
             val authResult = auth.signInWithCredential(credential)
             val user = authResult.user
 
             if (user != null) {
-                println("✅ GitLiveAuthRepository.signInWithGoogle: Success - userId=${user.uid}")
+                Log.d(TAG) { "signInWithGoogle: Success - userId=${user.uid}" }
                 Result.success(user.uid)
             } else {
                 Result.failure(Exception("Google sign in failed"))
@@ -239,14 +242,14 @@ class GitLiveAuthRepository : AuthRepository {
      */
     override suspend fun signInWithTwitter(token: String, secret: String): Result<String> {
         return try {
-            println("🔐 GitLiveAuthRepository.signInWithTwitter: Authenticating with Twitter")
+            Log.d(TAG) { "signInWithTwitter: Authenticating with Twitter" }
 
             val credential = TwitterAuthProvider.credential(token, secret)
             val authResult = auth.signInWithCredential(credential)
             val user = authResult.user
 
             if (user != null) {
-                println("✅ GitLiveAuthRepository.signInWithTwitter: Success - userId=${user.uid}")
+                Log.d(TAG) { "signInWithTwitter: Success - userId=${user.uid}" }
                 Result.success(user.uid)
             } else {
                 Result.failure(Exception("Twitter sign in failed"))
@@ -262,9 +265,8 @@ class GitLiveAuthRepository : AuthRepository {
      */
     override suspend fun signInWithApple(idToken: String, rawNonce: String): Result<String> {
         return try {
-            println("🔐 GitLiveAuthRepository.signInWithApple: Authenticating with Apple")
-            println("🔐 GitLiveAuthRepository.signInWithApple: idToken length=${idToken.length}, rawNonce length=${rawNonce.length}")
-            println("🔐 GitLiveAuthRepository.signInWithApple: idToken preview=${idToken.take(50)}...")
+            Log.d(TAG) { "signInWithApple: Authenticating with Apple" }
+            Log.d(TAG) { "signInWithApple: idToken length=${idToken.length}, rawNonce length=${rawNonce.length}, idToken=${idToken.take(50)}..." }
 
             // Create OAuth credential for Apple Sign-In
             // Per GitLive Firebase Auth API for Apple: (providerId, idToken, rawNonce)
@@ -274,21 +276,20 @@ class GitLiveAuthRepository : AuthRepository {
                 rawNonce = rawNonce
             )
 
-            println("🔐 GitLiveAuthRepository.signInWithApple: Credential created, signing in...")
+            Log.d(TAG) { "signInWithApple: Credential created, signing in..." }
             val authResult = auth.signInWithCredential(credential)
             val user = authResult.user
 
             if (user != null) {
-                println("✅ GitLiveAuthRepository.signInWithApple: Success - userId=${user.uid}")
+                Log.d(TAG) { "signInWithApple: Success - userId=${user.uid}" }
                 Result.success(user.uid)
             } else {
-                println("❌ GitLiveAuthRepository.signInWithApple: User is null after sign-in")
+                Log.e(TAG) { "signInWithApple: User is null after sign-in" }
                 Result.failure(Exception("Apple sign in failed - no user returned"))
             }
 
         } catch (e: Exception) {
-            println("❌ GitLiveAuthRepository.signInWithApple: Exception - ${e.message}")
-            e.printStackTrace()
+            Log.e(TAG) { "signInWithApple: Exception - ${e.message}" }
             Result.failure(Exception("Apple sign in failed: ${e.message}"))
         }
     }
@@ -302,11 +303,11 @@ class GitLiveAuthRepository : AuthRepository {
                 return Result.failure(Exception("Email cannot be empty"))
             }
 
-            println("🔐 GitLiveAuthRepository.sendPasswordResetEmail: Sending reset email to $email")
+            Log.d(TAG) { "sendPasswordResetEmail: Sending reset email" }
 
             auth.sendPasswordResetEmail(email)
 
-            println("✅ GitLiveAuthRepository.sendPasswordResetEmail: Success")
+            Log.d(TAG) { "sendPasswordResetEmail: Success" }
             Result.success(Unit)
         } catch (e: Exception) {
             val errorMessage = when {
@@ -314,7 +315,7 @@ class GitLiveAuthRepository : AuthRepository {
                 e.message?.contains("INVALID_EMAIL") == true -> "Invalid email format"
                 else -> e.message ?: "Failed to send reset email"
             }
-            println("❌ GitLiveAuthRepository.sendPasswordResetEmail: Error - $errorMessage")
+            Log.e(TAG) { "sendPasswordResetEmail: Error - $errorMessage" }
             Result.failure(Exception(errorMessage))
         }
     }
@@ -339,7 +340,7 @@ class GitLiveAuthRepository : AuthRepository {
                 return Result.failure(Exception("Current user is not anonymous"))
             }
 
-            println("🔐 GitLiveAuthRepository.linkWithEmail: Linking anonymous account with email $email")
+            Log.d(TAG) { "linkWithEmail: Linking anonymous account with $email" }
 
             // Create email credential and link with current user
             val credential = EmailAuthProvider.credential(email, password)
@@ -347,7 +348,7 @@ class GitLiveAuthRepository : AuthRepository {
             val linkedUser = authResult.user
 
             if (linkedUser != null) {
-                println("✅ GitLiveAuthRepository.linkWithEmail: Success - userId=${linkedUser.uid}")
+                Log.d(TAG) { "linkWithEmail: Success - userId=${linkedUser.uid}" }
                 Result.success(linkedUser.uid)
             } else {
                 Result.failure(Exception("Account linking failed: User is null"))
@@ -378,7 +379,7 @@ class GitLiveAuthRepository : AuthRepository {
             else -> exception.message ?: "$operation failed"
         }
 
-        println("❌ GitLiveAuthRepository: $operation error - $errorMessage")
+        Log.e(TAG) { "$operation error - $errorMessage" }
         return Result.failure(Exception(errorMessage))
     }
 
@@ -397,7 +398,7 @@ class GitLiveAuthRepository : AuthRepository {
             else -> exception.message ?: "Account linking failed"
         }
 
-        println("❌ GitLiveAuthRepository.linkWithEmail: Error - $errorMessage")
+        Log.e(TAG) { "linkWithEmail: Error - $errorMessage" }
         return Result.failure(Exception(errorMessage))
     }
 

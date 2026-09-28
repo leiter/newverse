@@ -15,6 +15,10 @@ import com.together.newverse.ui.state.SnackbarType
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.together.newverse.util.Log
+
+
+private const val TAG = "BuyVMSeller"
 
 /**
  * Seller connection extension functions for BuyAppViewModel.
@@ -86,7 +90,7 @@ private fun BuyAppViewModel.connectWithInvitation(
                 }
             )
         } catch (e: Exception) {
-            println("BuyAppViewModel.connectWithInvitation: Error - ${e.message}")
+            Log.e(TAG) { "connectWithInvitation: Error - ${e.message}" }
             showSnackBar("Failed to validate invitation: ${e.message}", SnackbarType.ERROR)
         }
     }
@@ -194,7 +198,7 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
                 try {
                     profileRepository.addKnownClient(sellerId, buyerId)
                 } catch (e: Exception) {
-                    println("BuyAppViewModel.performConnection: addKnownClient failed (non-fatal) - ${e.message}")
+                    Log.d(TAG) { "performConnection: addKnownClient failed (non-fatal) - ${e.message}" }
                 }
             }
 
@@ -207,14 +211,14 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
             try {
                 profileRepository.clearDraftBasket()
             } catch (e: Exception) {
-                println("BuyAppViewModel.performConnection: clearDraftBasket failed (non-fatal) - ${e.message}")
+                Log.d(TAG) { "performConnection: clearDraftBasket failed (non-fatal) - ${e.message}" }
             }
 
             // Fetch seller display name
             val sellerDisplayName = try {
                 profileRepository.getSellerDisplayName(sellerId).getOrNull() ?: ""
             } catch (e: Exception) {
-                println("BuyAppViewModel.performConnection: getSellerDisplayName failed (non-fatal) - ${e.message}")
+                Log.d(TAG) { "performConnection: getSellerDisplayName failed (non-fatal) - ${e.message}" }
                 ""
             }
 
@@ -242,7 +246,7 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
             showSnackBar("Connected to seller", SnackbarType.SUCCESS)
 
         } catch (e: Exception) {
-            println("BuyAppViewModel.performConnection: Error - ${e.message}")
+            Log.e(TAG) { "performConnection: Error - ${e.message}" }
             showSnackBar("Failed to connect: ${e.message}", SnackbarType.ERROR)
         }
     }

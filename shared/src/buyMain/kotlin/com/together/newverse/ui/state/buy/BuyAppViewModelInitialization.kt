@@ -11,6 +11,7 @@ import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
 import com.together.newverse.ui.state.core.AuthState
 import com.together.newverse.util.AppleSignInManager
+import com.together.newverse.util.Log
 import com.together.newverse.util.AppleSignInState
 import com.together.newverse.util.GoogleSignInManager
 import com.together.newverse.util.GoogleSignInState
@@ -27,6 +28,8 @@ import newverse.shared.generated.resources.error_no_internet
 import org.jetbrains.compose.resources.getString
 import kotlin.time.Clock
 import kotlin.time.Instant
+
+private const val TAG = "BuyVMInit"
 
 /**
  * Initialization extension functions for BuyAppViewModel
@@ -68,16 +71,16 @@ internal fun AuthState.toUserState(): UserState = when (this) {
  * 3. observeAuthStateChanges handles loading user data when authenticated
  */
 internal fun BuyAppViewModel.initializeApp() {
-    println("[NV_BuyAppVM] initializeApp: START")
+    Log.d(TAG) { "initializeApp: START" }
     viewModelScope.launch {
         try {
             // Only set initializing state if auth hasn't already resolved
             // This prevents overwriting the state if observeAuthStateChanges already updated it
             val currentAuthState = authFlowCoordinator.authState.value
-            println("[NV_BuyAppVM] initializeApp: Current auth state = $currentAuthState")
+            Log.d(TAG) { "initializeApp: Current auth state = $currentAuthState" }
 
             if (currentAuthState is AuthState.Initializing) {
-                println("[NV_BuyAppVM] initializeApp: Auth still initializing, setting loading state")
+                Log.d(TAG) { "initializeApp: Auth still initializing, setting loading state" }
                 _state.update { it.copy(
                     meta = it.meta.copy(
                         isInitializing = true,
@@ -85,15 +88,15 @@ internal fun BuyAppViewModel.initializeApp() {
                     )
                 )}
             } else {
-                println("[NV_BuyAppVM] initializeApp: Auth already resolved, skipping loading state")
+                Log.d(TAG) { "initializeApp: Auth already resolved, skipping loading state" }
             }
 
             // AuthFlowCoordinator handles auth checking automatically
             // observeAuthStateChanges will trigger loading when authenticated
-            println("[NV_BuyAppVM] initializeApp: Waiting for auth state from coordinator...")
+            Log.d(TAG) { "initializeApp: Waiting for auth state from coordinator..." }
 
         } catch (e: Exception) {
-            println("[NV_BuyAppVM] initializeApp: ERROR - ${e.message}")
+            Log.e(TAG) { "initializeApp: ERROR - ${e.message}" }
             e.printStackTrace()
             _state.update { it.copy(
                 meta = it.meta.copy(
@@ -107,7 +110,7 @@ internal fun BuyAppViewModel.initializeApp() {
             )}
         }
     }
-    println("[NV_BuyAppVM] initializeApp: END (coroutine launched)")
+    Log.d(TAG) { "initializeApp: END (coroutine launched)" }
 }
 
 /**
@@ -116,13 +119,13 @@ internal fun BuyAppViewModel.initializeApp() {
  * Also handles loading user data when authentication changes.
  */
 internal fun BuyAppViewModel.observeAuthStateChanges() {
-    println("[NV_BuyAppVM] observeAuthStateChanges: Setting up auth state collection")
+    Log.d(TAG) { "observeAuthStateChanges: Setting up auth state collection" }
     viewModelScope.launch {
         var previousAuthState: AuthState? = null
-        println("[NV_BuyAppVM] observeAuthStateChanges: Coroutine started, collecting authState...")
+        Log.d(TAG) { "observeAuthStateChanges: Coroutine started, collecting authState..." }
 
         authFlowCoordinator.authState.collect { authState ->
-            println("[NV_BuyAppVM] observeAuthStateChanges: Collected authState=$authState (previous=$previousAuthState)")
+            Log.d(TAG) { "observeAuthStateChanges: Collected authState=$authState (previous=$previousAuthState)" }
             _state.value.user
 
             // Update state with new auth info
@@ -132,14 +135,14 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
                     requiresLogin = false, // Buy flavor: guest access allowed
                     meta = when (authState) {
                         is AuthState.Initializing -> {
-                            println("[NV_BuyAppVM] observeAuthStateChanges: Setting meta to Initializing/CheckingAuth")
+                            Log.d(TAG) { "observeAuthStateChanges: Setting meta to Initializing/CheckingAuth" }
                             current.meta.copy(
                                 isInitializing = true,
                                 initializationStep = InitializationStep.CheckingAuth
                             )
                         }
                         is AuthState.NotAuthenticated -> {
-                            println("[NV_BuyAppVM] observeAuthStateChanges: Setting meta to NotAuthenticated/NotStarted")
+                            Log.d(TAG) { "observeAuthStateChanges: Setting meta to NotAuthenticated/NotStarted" }
                             current.meta.copy(
                                 isInitializing = false,
                                 isInitialized = false,
@@ -147,7 +150,7 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
                             )
                         }
                         is AuthState.Authenticated -> {
-                            println("[NV_BuyAppVM] observeAuthStateChanges: Keeping current meta (Authenticated)")
+                            Log.d(TAG) { "observeAuthStateChanges: Keeping current meta (Authenticated)" }
                             current.meta // Keep current, will be updated below
                         }
                     }
@@ -159,7 +162,7 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
                 // Finished initializing (from checking to authenticated) - persisted session
                 // Must be checked before the general "just became authenticated" case
                 authState is AuthState.Authenticated && (previousAuthState is AuthState.Initializing || previousAuthState == null) -> {
-                    println("[NV_BuyAppVM] observeAuthStateChanges: Auth initialized with existing session - userId=${authState.userId}")
+                    Log.d(TAG) { "observeAuthStateChanges: Auth initialized with existing session - userId=${authState.userId}" }
                     val userInfo = AuthUserInfo(
                         id = authState.userId,
                         email = authState.email,
@@ -167,13 +170,13 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
                         photoUrl = authState.photoUrl,
                         isAnonymous = authState.isAnonymous
                     )
-                    println("[NV_BuyAppVM] observeAuthStateChanges: Calling resumeInitializationAfterAuth for persisted session")
+                    Log.d(TAG) { "observeAuthStateChanges: Calling resumeInitializationAfterAuth for persisted session" }
                     resumeInitializationAfterAuth(userInfo)
                 }
 
                 // Just became authenticated (from NotAuthenticated - login/register)
                 authState is AuthState.Authenticated && previousAuthState is AuthState.NotAuthenticated -> {
-                    println("[NV_BuyAppVM] observeAuthStateChanges: First-time auth, running full initialization...")
+                    Log.d(TAG) { "observeAuthStateChanges: First-time auth, running full initialization..." }
                     val userInfo = AuthUserInfo(
                         id = authState.userId,
                         email = authState.email,
@@ -186,7 +189,7 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
 
                 // Just became not authenticated (logged out)
                 authState is AuthState.NotAuthenticated && previousAuthState is AuthState.Authenticated -> {
-                    println("[NV_BuyAppVM] observeAuthStateChanges: Logged out (Authenticated -> NotAuthenticated)")
+                    Log.d(TAG) { "observeAuthStateChanges: Logged out (Authenticated -> NotAuthenticated)" }
                 }
             }
 
@@ -202,7 +205,7 @@ internal fun BuyAppViewModel.observeAuthStateChanges() {
 internal fun BuyAppViewModel.loadOpenOrderAfterAuth() {
     viewModelScope.launch {
         try {
-            println("🛒 BuyAppViewModel.loadOpenOrderAfterAuth: START")
+            Log.d(TAG) { "loadOpenOrderAfterAuth: START" }
 
             // Get buyer profile to get placed order IDs
             val profileResult = profileRepository.getBuyerProfile()
@@ -210,11 +213,11 @@ internal fun BuyAppViewModel.loadOpenOrderAfterAuth() {
                 val placedOrderIds = buyerProfile.placedOrderIds
 
                 if (placedOrderIds.isEmpty()) {
-                    println("🛒 BuyAppViewModel.loadOpenOrderAfterAuth: No placed orders found")
+                    Log.d(TAG) { "loadOpenOrderAfterAuth: No placed orders found" }
                     return@launch
                 }
 
-                println("🛒 BuyAppViewModel.loadOpenOrderAfterAuth: Found ${placedOrderIds.size} placed orders")
+                Log.d(TAG) { "loadOpenOrderAfterAuth: Found ${placedOrderIds.size} placed orders" }
 
                 val isDemo = _state.value.isDemoMode
                 val sellerId = sellerConfig.sellerId
@@ -223,7 +226,7 @@ internal fun BuyAppViewModel.loadOpenOrderAfterAuth() {
                 if (isDemo) {
                     val localOrder = sellerConfig.loadDemoOrders().find { it.canEdit() }
                     if (localOrder != null) {
-                        println("✅ BuyAppViewModel.loadOpenOrderAfterAuth: Loaded editable LOCAL order - orderId=${localOrder.id}")
+                        Log.d(TAG) { "loadOpenOrderAfterAuth: Loaded editable LOCAL order - orderId=${localOrder.id}" }
                         val dateKey = formatDateKey(localOrder.pickUpDate)
                         basketRepository.loadOrderItems(localOrder.articles, localOrder.id, dateKey)
                         _state.update { current ->
@@ -243,7 +246,7 @@ internal fun BuyAppViewModel.loadOpenOrderAfterAuth() {
 
                 // FALLBACK: If not found and access status isn't confirmed, try the other trunk
                 if (orderResult.getOrNull() == null && !_state.value.isAccessStatusLoaded) {
-                    println("🛒 BuyAppViewModel.loadOpenOrderAfterAuth: Not found in primary trunk, trying other trunk...")
+                    Log.d(TAG) { "loadOpenOrderAfterAuth: Not found in primary trunk, trying other trunk..." }
                     val altResult = orderRepository.getOpenEditableOrder(sellerId, placedOrderIds, isDemo = !isDemo)
                     if (altResult.isSuccess && altResult.getOrNull() != null) {
                         orderResult = altResult
@@ -252,7 +255,7 @@ internal fun BuyAppViewModel.loadOpenOrderAfterAuth() {
 
                 orderResult.onSuccess { order ->
                     if (order != null) {
-                        println("✅ BuyAppViewModel.loadOpenOrderAfterAuth: Loaded editable order - orderId=${order.id}, ${order.articles.size} items")
+                        Log.d(TAG) { "loadOpenOrderAfterAuth: Loaded editable order - orderId=${order.id}, ${order.articles.size} items" }
 
                         // Calculate date key
                         val dateKey = formatDateKey(order.pickUpDate)
@@ -271,18 +274,18 @@ internal fun BuyAppViewModel.loadOpenOrderAfterAuth() {
                         }
 
                         val itemCount = order.articles.size
-                        println("✅ BuyAppViewModel.loadOpenOrderAfterAuth: Cart badge updated with $itemCount items")
+                        Log.d(TAG) { "loadOpenOrderAfterAuth: Cart badge updated with $itemCount items" }
                     } else {
-                        println("🛒 BuyAppViewModel.loadOpenOrderAfterAuth: No editable orders found")
+                        Log.d(TAG) { "loadOpenOrderAfterAuth: No editable orders found" }
                     }
                 }.onFailure { error ->
-                    println("❌ BuyAppViewModel.loadOpenOrderAfterAuth: Failed to load order - ${error.message}")
+                    Log.e(TAG) { "loadOpenOrderAfterAuth: Failed to load order - ${error.message}" }
                 }
             }.onFailure { error ->
-                println("❌ BuyAppViewModel.loadOpenOrderAfterAuth: Failed to load buyer profile - ${error.message}")
+                Log.e(TAG) { "loadOpenOrderAfterAuth: Failed to load buyer profile - ${error.message}" }
             }
         } catch (e: Exception) {
-            println("❌ BuyAppViewModel.loadOpenOrderAfterAuth: Exception - ${e.message}")
+            Log.e(TAG) { "loadOpenOrderAfterAuth: Exception - ${e.message}" }
         }
     }
 }
@@ -300,12 +303,12 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
     try {
         val userId = (_state.value.user as? UserState.LoggedIn)?.id ?: return
 
-        println("👤 Loading user profile for userId: $userId")
+        Log.d(TAG) { "Loading user profile for userId: $userId" }
 
         val result = profileRepository.getBuyerProfile()
 
         result.onSuccess { profile ->
-            println("✅ Profile loaded successfully: ${profile.displayName}")
+            Log.d(TAG) { "Profile loaded successfully: ${profile.displayName}" }
 
             // Check if we need to update the profile with auth provider info
             // This handles Google sign-in where profile is created with empty/default fields
@@ -325,9 +328,9 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
                 val needsUpdate = needsDisplayNameUpdate || needsEmailUpdate || needsPhotoUpdate
 
                 if (needsUpdate) {
-                    println("📝 Updating profile with auth provider info...")
-                    println("   - Current displayName: '${profile.displayName}', Auth displayName: '${authUserInfo.displayName}'")
-                    println("   - needsDisplayNameUpdate: $needsDisplayNameUpdate, needsEmailUpdate: $needsEmailUpdate")
+                    Log.d(TAG) { "Updating profile with auth provider info..." }
+                    Log.d(TAG) { "- Current displayName: '${profile.displayName}', Auth displayName: '${authUserInfo.displayName}'" }
+                    Log.d(TAG) { "- needsDisplayNameUpdate: $needsDisplayNameUpdate, needsEmailUpdate: $needsEmailUpdate" }
 
                     updatedProfile = profile.copy(
                         displayName = if (needsDisplayNameUpdate) {
@@ -350,7 +353,7 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
 
                     // Save the updated profile to Firebase
                     profileRepository.saveBuyerProfile(updatedProfile)
-                    println("✅ Profile updated with auth provider info: ${updatedProfile.displayName}, ${updatedProfile.emailAddress}")
+                    Log.d(TAG) { "Profile updated with auth provider info: ${updatedProfile.displayName}, ${updatedProfile.emailAddress}" }
                 }
             }
 
@@ -364,7 +367,7 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
                 )
             }
         }.onFailure { error ->
-            println("❌ Failed to load profile: ${error.message}")
+            Log.e(TAG) { "Failed to load profile: ${error.message}" }
             _state.update { current ->
                 current.copy(
                     customerProfile = current.customerProfile.copy(
@@ -378,7 +381,7 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
             }
         }
     } catch (e: Exception) {
-        println("❌ Exception loading profile: ${e.message}")
+        Log.e(TAG) { "Exception loading profile: ${e.message}" }
     }
 }
 
@@ -393,7 +396,7 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
  */
 internal suspend fun BuyAppViewModel.loadCurrentOrder() {
     try {
-        println("📦 loadCurrentOrder: Loading current order...")
+        Log.d(TAG) { "loadCurrentOrder: Loading current order..." }
 
         // Get profile to access placedOrderIds and draftBasket
         val profileResult = profileRepository.getBuyerProfile()
@@ -402,7 +405,7 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
             // Check for draft basket first (user's unsaved work takes priority)
             val draftBasket = profile.draftBasket
             if (draftBasket != null && draftBasket.items.isNotEmpty()) {
-                println("🛒 loadCurrentOrder: Found draft basket with ${draftBasket.items.size} items")
+                Log.d(TAG) { "loadCurrentOrder: Found draft basket with ${draftBasket.items.size} items" }
 
                 // Check if the draft's selected pickup date has expired
                 val selectedDateKey = draftBasket.selectedPickupDate
@@ -412,18 +415,18 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
                         val pickupInstant = Instant.fromEpochMilliseconds(pickupTimestamp)
                         if (!OrderDateUtils.canEditOrder(pickupInstant)) {
                             // Deadline passed - clear the pickup date from draft
-                            println("⚠️ loadCurrentOrder: Draft pickup date expired, clearing...")
+                            Log.w(TAG) { "loadCurrentOrder: Draft pickup date expired, clearing..." }
                             val clearedDraft = draftBasket.copy(selectedPickupDate = null)
                             profileRepository.saveDraftBasket(clearedDraft)
                             basketRepository.loadFromProfile(clearedDraft)
-                            println("✅ loadCurrentOrder: Loaded draft basket with cleared pickup date")
+                            Log.d(TAG) { "loadCurrentOrder: Loaded draft basket with cleared pickup date" }
                             return@onSuccess
                         }
                     }
                 }
 
                 basketRepository.loadFromProfile(draftBasket)
-                println("✅ loadCurrentOrder: Loaded draft basket")
+                Log.d(TAG) { "loadCurrentOrder: Loaded draft basket" }
                 return@onSuccess
             }
 
@@ -431,11 +434,11 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
             val placedOrderIds = profile.placedOrderIds
 
             if (placedOrderIds.isEmpty()) {
-                println("ℹ️ loadCurrentOrder: No placed orders found in profile")
+                Log.d(TAG) { "loadCurrentOrder: No placed orders found in profile" }
                 return@onSuccess
             }
 
-            println("📦 loadCurrentOrder: Found ${placedOrderIds.size} placed orders, looking for upcoming order...")
+            Log.d(TAG) { "loadCurrentOrder: Found ${placedOrderIds.size} placed orders, looking for upcoming order..." }
 
             // Use state.isDemoMode, NOT sellerConfig.isDemoMode — the seller config always
             // reports isDemoMode=true because demoSellerId == real sellerId, which would
@@ -450,7 +453,7 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
                     .maxByOrNull { it.createdDate }
 
                 if (localOrder != null) {
-                    println("✅ loadCurrentOrder: Found upcoming LOCAL demo order - orderId=${localOrder.id}")
+                    Log.d(TAG) { "loadCurrentOrder: Found upcoming LOCAL demo order - orderId=${localOrder.id}" }
                     val dateKey = formatDateKey(localOrder.pickUpDate)
                     val canEdit = localOrder.canEdit()
                     basketRepository.loadOrderItems(localOrder.articles, localOrder.id, dateKey)
@@ -481,14 +484,14 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
                     }
                     return@onSuccess
                 }
-                println("ℹ️ loadCurrentOrder: No upcoming LOCAL demo orders, checking Firebase...")
+                Log.d(TAG) { "loadCurrentOrder: No upcoming LOCAL demo orders, checking Firebase..." }
             }
 
             val orderResultPrimary = orderRepository.getUpcomingOrder(sellerId, placedOrderIds, isDemo = isDemo)
             
             // FALLBACK: If not found and access status isn't confirmed, try the other trunk
             val orderResult = if (orderResultPrimary.getOrNull() == null && !_state.value.isAccessStatusLoaded) {
-                println("📦 loadCurrentOrder: Not found in primary trunk, trying other trunk...")
+                Log.d(TAG) { "loadCurrentOrder: Not found in primary trunk, trying other trunk..." }
                 val altResult = orderRepository.getUpcomingOrder(sellerId, placedOrderIds, isDemo = !isDemo)
                 if (altResult.isSuccess && altResult.getOrNull() != null) altResult else orderResultPrimary
             } else {
@@ -497,13 +500,13 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
 
             orderResult.onSuccess { loadedOrder ->
                 if (loadedOrder != null) {
-                    println("✅ loadCurrentOrder: Found upcoming order - orderId=${loadedOrder.id}, ${loadedOrder.articles.size} items")
+                    Log.d(TAG) { "loadCurrentOrder: Found upcoming order - orderId=${loadedOrder.id}, ${loadedOrder.articles.size} items" }
 
                     // Check if pickup date has already passed
                     val now = Clock.System.now()
                     val pickupInstant = Instant.fromEpochMilliseconds(loadedOrder.pickUpDate)
                     if (now > pickupInstant) {
-                        println("⏰ loadCurrentOrder: Order pickup date has passed, skipping...")
+                        Log.d(TAG) { "loadCurrentOrder: Order pickup date has passed, skipping..." }
                         // Transition to COMPLETED and update Firebase
                         val dateKey = formatDateKey(loadedOrder.pickUpDate)
                         orderRepository.updateOrderStatus(sellerId, dateKey, loadedOrder.id, com.together.newverse.domain.model.OrderStatus.COMPLETED, isDemo = isDemo)
@@ -512,14 +515,14 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
 
                     // Apply status transition if needed (PLACED->LOCKED)
                     val order = loadedOrder.transitionStatusIfNeeded()?.let { updatedOrder ->
-                        println("🔄 loadCurrentOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}")
+                        Log.d(TAG) { "loadCurrentOrder: Status transition ${loadedOrder.status} -> ${updatedOrder.status}" }
                         // Update Firebase with new status
                         val dateKey = formatDateKey(updatedOrder.pickUpDate)
                         orderRepository.updateOrderStatus(sellerId, dateKey, updatedOrder.id, updatedOrder.status, isDemo = isDemo)
 
                         // If order transitioned to COMPLETED, don't load it
                         if (updatedOrder.status == com.together.newverse.domain.model.OrderStatus.COMPLETED) {
-                            println("⏰ loadCurrentOrder: Order transitioned to COMPLETED, skipping...")
+                            Log.d(TAG) { "loadCurrentOrder: Order transitioned to COMPLETED, skipping..." }
                             return@onSuccess
                         }
                         updatedOrder
@@ -532,7 +535,7 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
                     val canEdit = order.canEdit()
 
                     val nowMs = now.toEpochMilliseconds()
-                    println("📦 loadCurrentOrder: Order canEdit=$canEdit (pickup in ${(order.pickUpDate - nowMs) / (24 * 60 * 60 * 1000)} days)")
+                    Log.d(TAG) { "loadCurrentOrder: Order canEdit=$canEdit (pickup in ${(order.pickUpDate - nowMs) / (24 * 60 * 60 * 1000)} days)" }
 
                     // Load order items into BasketRepository with order metadata
                     basketRepository.loadOrderItems(order.articles, order.id, dateKey)
@@ -565,18 +568,18 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
                         )
                     }
 
-                    println("✅ loadCurrentOrder: Loaded ${order.articles.size} items into basket")
+                    Log.d(TAG) { "loadCurrentOrder: Loaded ${order.articles.size} items into basket" }
                 } else {
-                    println("ℹ️ loadCurrentOrder: No upcoming orders found")
+                    Log.d(TAG) { "loadCurrentOrder: No upcoming orders found" }
                 }
             }.onFailure { error ->
-                println("❌ loadCurrentOrder: Failed to load order - ${error.message}")
+                Log.e(TAG) { "loadCurrentOrder: Failed to load order - ${error.message}" }
             }
         }.onFailure { error ->
-            println("❌ loadCurrentOrder: Failed to load profile - ${error.message}")
+            Log.e(TAG) { "loadCurrentOrder: Failed to load profile - ${error.message}" }
         }
     } catch (e: Exception) {
-        println("❌ loadCurrentOrder: Exception - ${e.message}")
+        Log.e(TAG) { "loadCurrentOrder: Exception - ${e.message}" }
     }
 }
 
@@ -593,7 +596,7 @@ private fun parsePickupDateFromKey(dateKey: String): Long? {
         val localDate = kotlinx.datetime.LocalDate(year, month, day)
         localDate.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()
     } catch (e: Exception) {
-        println("⚠️ parsePickupDateFromKey: Failed to parse '$dateKey': ${e.message}")
+        Log.w(TAG) { "parsePickupDateFromKey: Failed to parse '$dateKey': ${e.message}" }
         null
     }
 }
@@ -605,7 +608,7 @@ private fun parsePickupDateFromKey(dateKey: String): Long? {
 internal fun BuyAppViewModel.observeAppleSignInCompletion() {
     viewModelScope.launch {
         AppleSignInState.authCompleted.collect {
-            println("[NV_BuyAppVM] observeAppleSignInCompletion: Apple Sign-In complete, refreshing auth state")
+            Log.d(TAG) { "observeAppleSignInCompletion: Apple Sign-In complete, refreshing auth state" }
 
             // Set loading state
             _state.update { current ->
@@ -626,10 +629,10 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
                 if (refreshResult == null) {
                     // Timed out — no internet or server unreachable
                     val errorMessage = getString(Res.string.error_no_internet)
-                    println("⏱️ Apple Sign-In timeout - treating as network error")
+                    Log.d(TAG) { "Apple Sign-In timeout - treating as network error" }
 
                     // Strategy 2: Clear cached state on failure
-                    println("[NV_BuyAppVM] 🗑️ Clearing Apple Sign-In cached state after timeout")
+                    Log.d(TAG) { "🗑️ Clearing Apple Sign-In cached state after timeout" }
                     AppleSignInManager.clearCachedState()
 
                     _state.update { current ->
@@ -647,7 +650,7 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
                 // Manually trigger initialization flow since authStateChanged might not fire
                 val currentUserId = authRepository.getCurrentUserId()
                 if (currentUserId != null) {
-                    println("[NV_BuyAppVM] observeAppleSignInCompletion: User authenticated, triggering initialization")
+                    Log.d(TAG) { "observeAppleSignInCompletion: User authenticated, triggering initialization" }
                     _state.update { current ->
                         current.copy(auth = current.auth.copy(isLoading = false, error = null))
                     }
@@ -655,14 +658,14 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
                     if (userInfo != null) {
                         resumeInitializationAfterAuth(userInfo)
                     } else {
-                        println("[NV_BuyAppVM] observeAppleSignInCompletion: No user info available, using basic initialization")
+                        Log.d(TAG) { "observeAppleSignInCompletion: No user info available, using basic initialization" }
                         resumeInitializationAfterAuth()
                     }
                 } else {
-                    println("[NV_BuyAppVM] observeAppleSignInCompletion: Warning - no current user found after Apple Sign-In")
+                    Log.w(TAG) { "observeAppleSignInCompletion: Warning - no current user found after Apple Sign-In" }
 
                     // Strategy 2: Clear cached state on failure
-                    println("[NV_BuyAppVM] 🗑️ Clearing Apple Sign-In cached state after auth failure")
+                    Log.d(TAG) { "🗑️ Clearing Apple Sign-In cached state after auth failure" }
                     AppleSignInManager.clearCachedState()
 
                     val errorMessage = "Apple Sign-In failed: No user authenticated"
@@ -677,10 +680,10 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
                     showSnackBar(errorMessage, SnackbarType.ERROR)
                 }
             } catch (e: Exception) {
-                println("[NV_BuyAppVM] observeAppleSignInCompletion: ❌ Error - ${e.message}")
+                Log.e(TAG) { "observeAppleSignInCompletion: ❌ Error - ${e.message}" }
 
                 // Strategy 2: Clear cached state on failure
-                println("[NV_BuyAppVM] 🗑️ Clearing Apple Sign-In cached state after exception")
+                Log.d(TAG) { "🗑️ Clearing Apple Sign-In cached state after exception" }
                 AppleSignInManager.clearCachedState()
 
                 val errorMessage = when {
@@ -715,7 +718,7 @@ internal fun BuyAppViewModel.observeAppleSignInCompletion() {
 internal fun BuyAppViewModel.observeGoogleSignInCompletion() {
     viewModelScope.launch {
         GoogleSignInState.signInCompleted.collect { tokens ->
-            println("[NV_BuyAppVM] observeGoogleSignInCompletion: Received tokens, signing in with Firebase")
+            Log.d(TAG) { "observeGoogleSignInCompletion: Received tokens, signing in with Firebase" }
 
             // Set loading state
             _state.update { current ->
@@ -735,10 +738,10 @@ internal fun BuyAppViewModel.observeGoogleSignInCompletion() {
             if (result == null) {
                 // Timed out — no internet or server unreachable
                 val errorMessage = getString(Res.string.error_no_internet)
-                println("⏱️ Google Sign-In timeout - treating as network error")
+                Log.d(TAG) { "Google Sign-In timeout - treating as network error" }
 
                 // Strategy 2: Clear cached account on failure
-                println("[NV_BuyAppVM] Clearing cached Google account after timeout")
+                Log.d(TAG) { "Clearing cached Google account after timeout" }
                 GoogleSignInManager.clearCachedAccount()
 
                 _state.update { current ->
@@ -755,17 +758,17 @@ internal fun BuyAppViewModel.observeGoogleSignInCompletion() {
 
             result
                 .onSuccess { userId ->
-                    println("[NV_BuyAppVM] observeGoogleSignInCompletion: Firebase sign-in success, userId=$userId")
+                    Log.d(TAG) { "observeGoogleSignInCompletion: Firebase sign-in success, userId=$userId" }
                     _state.update { current ->
                         current.copy(auth = current.auth.copy(isLoading = false, error = null))
                     }
                     resumeInitializationAfterAuth()
                 }
                 .onFailure { error ->
-                    println("[NV_BuyAppVM] observeGoogleSignInCompletion: Firebase sign-in failed - ${error.message}")
+                    Log.d(TAG) { "observeGoogleSignInCompletion: Firebase sign-in failed - ${error.message}" }
 
                     // Strategy 2: Clear cached account on failure
-                    println("[NV_BuyAppVM] Clearing cached Google account after sign-in failure")
+                    Log.d(TAG) { "Clearing cached Google account after sign-in failure" }
                     GoogleSignInManager.clearCachedAccount()
 
                     // Parse error message for user-friendly display

@@ -80,6 +80,10 @@ import newverse.shared.generated.resources.nav_shopping_basket
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import com.together.newverse.util.Log
+
+
+private const val TAG = "AppScaffold"
 
 /**
  * Main App Scaffold with Navigation Drawer
@@ -109,9 +113,9 @@ private fun AppScaffoldContent(
 
     // Observe Google Sign-In trigger
     LaunchedEffect(appState.triggerGoogleSignIn) {
-        println("🔍 AppScaffold: LaunchedEffect triggered, triggerGoogleSignIn=${appState.triggerGoogleSignIn}")
+        Log.d(TAG) { "AppScaffold: LaunchedEffect triggered, triggerGoogleSignIn=${appState.triggerGoogleSignIn}" }
         if (appState.triggerGoogleSignIn) {
-            println("🔐 AppScaffold: Calling onPlatformAction(GoogleSignIn)")
+            Log.d(TAG) { "AppScaffold: Calling onPlatformAction(GoogleSignIn)" }
             onPlatformAction(PlatformAction.GoogleSignIn)
             viewModel.resetGoogleSignInTrigger()
         }
@@ -120,7 +124,7 @@ private fun AppScaffoldContent(
     // Observe Twitter Sign-In trigger
     LaunchedEffect(appState.triggerTwitterSignIn) {
         if (appState.triggerTwitterSignIn) {
-            println("🔐 AppScaffold: Calling onPlatformAction(TwitterSignIn)")
+            Log.d(TAG) { "AppScaffold: Calling onPlatformAction(TwitterSignIn)" }
             onPlatformAction(PlatformAction.TwitterSignIn)
             viewModel.resetTwitterSignInTrigger()
         }
@@ -129,7 +133,7 @@ private fun AppScaffoldContent(
     // Observe Apple Sign-In trigger
     LaunchedEffect(appState.triggerAppleSignIn) {
         if (appState.triggerAppleSignIn) {
-            println("🔐 AppScaffold: Calling onPlatformAction(AppleSignIn)")
+            Log.d(TAG) { "AppScaffold: Calling onPlatformAction(AppleSignIn)" }
             onPlatformAction(PlatformAction.AppleSignIn)
             viewModel.resetAppleSignInTrigger()
         }
@@ -140,7 +144,7 @@ private fun AppScaffoldContent(
     LaunchedEffect(pendingDeepLink) {
         val url = pendingDeepLink ?: return@LaunchedEffect
         DeepLinkRouter.consume()
-        println("AppScaffold: handling deep link: $url")
+        Log.d(TAG) { "AppScaffold: handling deep link: $url" }
 
         try {
             // Parse query string using Kotlin stdlib only (KMP-compatible)
@@ -163,19 +167,19 @@ private fun AppScaffoldContent(
                 seller != null && inviteId != null && expires != null ->
                     viewModel.dispatch(BuySellerAction.ConnectWithInvitation(seller, inviteId, expires))
                 seller != null ->
-                    println("AppScaffold: deep link with bare seller ID (no token/invite) ignored: $seller")
+                    Log.d(TAG) { "AppScaffold: deep link with bare seller ID (no token/invite) ignored: $seller" }
                 else ->
-                    println("AppScaffold: deep link has no recognised seller param: $url")
+                    Log.d(TAG) { "AppScaffold: deep link has no recognised seller param: $url" }
             }
         } catch (e: Exception) {
-            println("AppScaffold: failed to parse deep link '$url': ${e.message}")
+            Log.e(TAG) { "AppScaffold: failed to parse deep link '$url': ${e.message}" }
         }
     }
 
     // Observe Google Sign-Out trigger
     LaunchedEffect(appState.triggerGoogleSignOut) {
         if (appState.triggerGoogleSignOut) {
-            println("🔐 AppScaffold: Calling onPlatformAction(GoogleSignOut)")
+            Log.d(TAG) { "AppScaffold: Calling onPlatformAction(GoogleSignOut)" }
             onPlatformAction(PlatformAction.GoogleSignOut)
             viewModel.resetGoogleSignOutTrigger()
         }
@@ -348,24 +352,24 @@ private fun AppScaffoldContent(
     val useNavRail = LocalWindowWidthClass.current == WindowWidthClass.Expanded
 
     val onNavigateToTab: (String) -> Unit = { route ->
-        println("🔍 AppScaffold: onNavigate called, route=$route")
+        Log.d(TAG) { "AppScaffold: onNavigate called, route=$route" }
         if (route == NavRoutes.Home.route) {
             // For home (start destination), don't use saveState/restoreState
             // This avoids iOS state restoration issues with the start destination
-            println("🔍 AppScaffold: Navigating to HOME with inclusive popUpTo")
+            Log.d(TAG) { "AppScaffold: Navigating to HOME with inclusive popUpTo" }
             navController.navigate(route) {
                 popUpTo(NavRoutes.Home.route) { inclusive = true }
                 launchSingleTop = true
             }
-            println("🔍 AppScaffold: Navigation to HOME completed")
+            Log.d(TAG) { "AppScaffold: Navigation to HOME completed" }
         } else {
-            println("🔍 AppScaffold: Navigating to $route with saveState/restoreState")
+            Log.d(TAG) { "AppScaffold: Navigating to $route with saveState/restoreState" }
             navController.navigate(route) {
                 popUpTo(NavRoutes.Home.route) { saveState = true }
                 launchSingleTop = true
                 restoreState = true
             }
-            println("🔍 AppScaffold: Navigation to $route completed")
+            Log.d(TAG) { "AppScaffold: Navigation to $route completed" }
         }
     }
 

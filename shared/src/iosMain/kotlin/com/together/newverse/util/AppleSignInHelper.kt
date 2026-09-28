@@ -3,6 +3,7 @@ package com.together.newverse.util
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import com.together.newverse.util.Log
 
 /**
  * iOS Apple Sign-In Helper
@@ -45,7 +46,7 @@ class AppleSignInHelper {
     fun signIn(
         completion: (Result<AppleSignInResult>) -> Unit
     ) {
-        println("Apple Sign-In (iOS): Sign-in requested from Kotlin")
+        Log.d(TAG) { "Apple Sign-In (iOS): Sign-in requested from Kotlin" }
         signInCompletion = completion
 
         // Signal to Swift that sign-in should start
@@ -62,7 +63,7 @@ class AppleSignInHelper {
      * @param email The user's email (may be null on subsequent sign-ins)
      */
     fun onSignInSuccess(idToken: String, rawNonce: String, fullName: String?, email: String?) {
-        println("Apple Sign-In (iOS): Sign-in success callback received")
+        Log.d(TAG) { "Apple Sign-In (iOS): Sign-in success callback received" }
         val result = AppleSignInResult(
             idToken = idToken,
             rawNonce = rawNonce,
@@ -79,7 +80,7 @@ class AppleSignInHelper {
      * @param errorMessage The error message
      */
     fun onSignInError(errorMessage: String) {
-        println("Apple Sign-In (iOS): Sign-in error callback received: $errorMessage")
+        Log.d(TAG) { "Apple Sign-In (iOS): Sign-in error callback received: $errorMessage" }
         signInCompletion?.invoke(Result.failure(Exception(errorMessage)))
         signInCompletion = null
     }
@@ -88,7 +89,7 @@ class AppleSignInHelper {
      * Called from Swift when user cancels sign-in
      */
     fun onSignInCancelled() {
-        println("Apple Sign-In (iOS): Sign-in cancelled")
+        Log.d(TAG) { "Apple Sign-In (iOS): Sign-in cancelled" }
         signInCompletion?.invoke(Result.failure(Exception("User cancelled sign-in")))
         signInCompletion = null
     }
@@ -114,7 +115,7 @@ class AppleSignInHelper {
      * This is a hook for clearing Kotlin-side state if needed
      */
     fun clearCachedState() {
-        println("Apple Sign-In (iOS): Clearing cached state")
+        Log.d(TAG) { "Apple Sign-In (iOS): Clearing cached state" }
         // Cancel any pending sign-in
         signInCompletion = null
     }

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.time.Clock
+import com.together.newverse.util.Log
 
 /**
  * In-memory implementation of AuthRepository for testing and development.
@@ -15,6 +16,10 @@ import kotlin.time.Clock
  * Replace with FirebaseAuthRepository or other backend implementation for production.
  */
 class InMemoryAuthRepository : AuthRepository {
+
+    private companion object {
+        private const val TAG = "InMemoryAuth"
+    }
 
     // In-memory storage for user credentials
     private val users = mutableMapOf<String, UserCredentials>()
@@ -245,7 +250,7 @@ class InMemoryAuthRepository : AuthRepository {
             }
 
             // In mock implementation, just simulate success
-            println("📧 InMemoryAuthRepository: Password reset email sent to $email (simulated)")
+            Log.d(TAG) { "Password reset email sent to $email (simulated)" }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(Exception("Failed to send reset email: ${e.message}"))
@@ -280,7 +285,7 @@ class InMemoryAuthRepository : AuthRepository {
             // Persist the session
             persistedUserId = currentUserId
 
-            println("🔗 InMemoryAuthRepository: Linked anonymous account with email $email")
+            Log.d(TAG) { "Linked anonymous account with email $email" }
             Result.success(currentUserId)
         } catch (e: Exception) {
             Result.failure(Exception("Account linking failed: ${e.message}"))

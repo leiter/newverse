@@ -13,6 +13,7 @@ import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import com.together.newverse.util.Log
 
 /**
  * GitLive implementation of ArticleRepository for cross-platform article management.
@@ -40,14 +41,14 @@ class GitLiveArticleRepository(
      * when multiple flow collectors are active (e.g., loadProducts and loadMainScreenArticles).
      */
     override fun observeArticles(sellerId: String): Flow<Article> = flow {
-        println("🔐 GitLiveArticleRepository.observeArticles: START with sellerId='$sellerId'")
+        Log.d(TAG) { "observeArticles: START with sellerId='$sellerId'" }
 
         try {
             // Determine seller ID
             val targetSellerId = if (sellerId.isEmpty()) {
                 // Buyer mode: Get first available seller
                 val firstSellerId = getFirstSellerId()
-                println("🔐 GitLiveArticleRepository.observeArticles: Using first seller: $firstSellerId")
+                Log.d(TAG) { "observeArticles: Using first seller: $firstSellerId" }
                 firstSellerId
             } else {
                 // Seller mode: Use provided ID
@@ -81,11 +82,11 @@ class GitLiveArticleRepository(
                     // Get from local previous state for accurate data
                     val deletedArticle = previousArticles[deletedId]
                     if (deletedArticle != null) {
-                        println("🗑️ GitLiveArticleRepository: Article REMOVED '${deletedArticle.productName}'")
+                        Log.d(TAG) { "Article REMOVED '${deletedArticle.productName}'" }
                         emit(deletedArticle.copy(mode = MODE_REMOVED))
                     } else {
                         // Create a minimal article for removal if not found
-                        println("🗑️ GitLiveArticleRepository: Article REMOVED (id=$deletedId)")
+                        Log.d(TAG) { "Article REMOVED (id=$deletedId)" }
                         emit(Article(id = deletedId, mode = MODE_REMOVED))
                     }
                 }
@@ -94,7 +95,7 @@ class GitLiveArticleRepository(
                 val addedIds = currentArticleIds - previousArticleIds
                 addedIds.forEach { addedId ->
                     val article = currentArticles[addedId]!!
-                    println("➕ GitLiveArticleRepository: Article ADDED '${article.productName}'")
+                    Log.d(TAG) { "➕ GitLiveArticleRepository: Article ADDED '${article.productName}'" }
                     emit(article.copy(mode = MODE_ADDED))
                 }
 
@@ -105,11 +106,11 @@ class GitLiveArticleRepository(
                     val previousArticle = previousArticles[existingId]
                     // Compare with local previous state, not shared cache
                     if (previousArticle != null && previousArticle != article) {
-                        println("✏️ GitLiveArticleRepository: Article CHANGED '${article.productName}' (available: ${previousArticle.available} -> ${article.available})")
+                        Log.d(TAG) { "✏️ GitLiveArticleRepository: Article CHANGED '${article.productName}' (available: ${previousArticle.available} -> ${article.available})" }
                         emit(article.copy(mode = MODE_CHANGED))
                     } else if (previousArticle == null) {
                         // First load - emit as added
-                        println("➕ GitLiveArticleRepository: Article ADDED '${article.productName}'")
+                        Log.d(TAG) { "➕ GitLiveArticleRepository: Article ADDED '${article.productName}'" }
                         emit(article.copy(mode = MODE_ADDED))
                     }
                 }
@@ -121,7 +122,7 @@ class GitLiveArticleRepository(
                 articlesCache[targetSellerId] = currentArticles.toMutableMap()
             }
         } catch (e: Exception) {
-            println("❌ GitLiveArticleRepository.observeArticles: Error - ${e.message}")
+            Log.e(TAG) { "observeArticles: Error - ${e.message}" }
             throw e
         }
     }
@@ -139,12 +140,12 @@ class GitLiveArticleRepository(
      */
     override suspend fun getArticle(sellerId: String, articleId: String): Result<Article> {
         return try {
-            println("🔐 GitLiveArticleRepository.getArticle: START - sellerId=$sellerId, articleId=$articleId")
+            Log.d(TAG) { "getArticle: START - sellerId=$sellerId, articleId=$articleId" }
 
             // Determine seller ID (same logic as observeArticles)
             val targetSellerId = if (sellerId.isEmpty()) {
                 val firstSellerId = getFirstSellerId()
-                println("🔐 GitLiveArticleRepository.getArticle: Using first seller: $firstSellerId")
+                Log.d(TAG) { "getArticle: Using first seller: $firstSellerId" }
                 firstSellerId
             } else {
                 sellerId
@@ -153,7 +154,7 @@ class GitLiveArticleRepository(
             // Check cache first
             val cachedArticle = articlesCache[targetSellerId]?.get(articleId)
             if (cachedArticle != null) {
-                println("✅ GitLiveArticleRepository.getArticle: Found in cache")
+                Log.d(TAG) { "getArticle: Found in cache" }
                 return Result.success(cachedArticle)
             }
 
@@ -167,18 +168,18 @@ class GitLiveArticleRepository(
                     // Update cache
                     articlesCache.getOrPut(targetSellerId) { mutableMapOf() }[articleId] = article
 
-                    println("✅ GitLiveArticleRepository.getArticle: Fetched from Firebase - price=${article.price}")
+                    Log.d(TAG) { "getArticle: Fetched from Firebase - price=${article.price}" }
                     Result.success(article)
                 } else {
                     Result.failure(Exception("Failed to parse article data"))
                 }
             } else {
-                println("❌ GitLiveArticleRepository.getArticle: Article not found for id=$articleId")
+                Log.e(TAG) { "getArticle: Article not found for id=$articleId" }
                 Result.failure(Exception("Article not found"))
             }
 
         } catch (e: Exception) {
-            println("❌ GitLiveArticleRepository.getArticle: Error - ${e.message}")
+            Log.e(TAG) { "getArticle: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -188,7 +189,7 @@ class GitLiveArticleRepository(
      */
     override suspend fun saveArticle(sellerId: String, article: Article): Result<Unit> {
         return try {
-            println("🔐 GitLiveArticleRepository.saveArticle: START - ${article.productName}")
+            Log.d(TAG) { "saveArticle: START - ${article.productName}" }
 
             // Validate seller permission
             val currentUserId = authRepository.getCurrentUserId()
@@ -218,11 +219,11 @@ class GitLiveArticleRepository(
             // Update cache
             articlesCache.getOrPut(sellerId) { mutableMapOf() }[articleId] = articleWithId
 
-            println("✅ GitLiveArticleRepository.saveArticle: Success with ID=$articleId")
+            Log.d(TAG) { "saveArticle: Success with ID=$articleId" }
             Result.success(Unit)
 
         } catch (e: Exception) {
-            println("❌ GitLiveArticleRepository.saveArticle: Error - ${e.message}")
+            Log.e(TAG) { "saveArticle: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -232,7 +233,7 @@ class GitLiveArticleRepository(
      */
     override suspend fun deleteArticle(sellerId: String, articleId: String): Result<Unit> {
         return try {
-            println("🔐 GitLiveArticleRepository.deleteArticle: START - articleId=$articleId")
+            Log.d(TAG) { "deleteArticle: START - articleId=$articleId" }
 
             // Validate seller permission
             val currentUserId = authRepository.getCurrentUserId()
@@ -247,11 +248,11 @@ class GitLiveArticleRepository(
             // Remove from cache
             articlesCache[sellerId]?.remove(articleId)
 
-            println("✅ GitLiveArticleRepository.deleteArticle: Success")
+            Log.d(TAG) { "deleteArticle: Success" }
             Result.success(Unit)
 
         } catch (e: Exception) {
-            println("❌ GitLiveArticleRepository.deleteArticle: Error - ${e.message}")
+            Log.e(TAG) { "deleteArticle: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -267,6 +268,8 @@ class GitLiveArticleRepository(
     }
 
     companion object {
+        private const val TAG = "ArticleRepo"
+
         @Deprecated(
             "Use SellerConfig.sellerId instead. Inject SellerConfig via DI.",
             ReplaceWith("sellerConfig.sellerId")

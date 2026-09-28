@@ -14,6 +14,7 @@ import okio.Path.Companion.toPath
 import platform.Foundation.NSCachesDirectory
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUserDomainMask
+import com.together.newverse.util.Log
 
 /**
  * iOS-specific ImageLoader configuration
@@ -73,7 +74,7 @@ actual fun initializeImageLoader(context: PlatformContext) {
         createImageLoader(ctx)
     }
 
-    println("✅ Coil ImageLoader configured with caching:")
-    println("   - Memory cache: 25% of available memory")
-    println("   - Disk cache: 100MB at $cacheDir/image_cache")
+    Log.d(TAG) { "Coil ImageLoader configured with caching:" }
+    Log.d(TAG) { "   - Memory cache: 25% of available memory" }
+    Log.d(TAG) { "   - Disk cache: 100MB at $cacheDir/image_cache" }
 }

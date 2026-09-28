@@ -18,6 +18,7 @@ import platform.UniformTypeIdentifiers.UTTypePlainText
 import platform.UniformTypeIdentifiers.UTTypeData
 import platform.darwin.NSObject
 import kotlin.coroutines.resume
+import com.together.newverse.util.Log
 
 /**
  * iOS implementation of DocumentPicker
@@ -112,17 +113,17 @@ private class DocumentPickerDelegate(
             // Stop security-scoped resource access
             if (accessing) url.stopAccessingSecurityScopedResource()
 
-            println("Document picked: $filename (${content.length} chars)")
+            Log.d(TAG) { "Document picked: $filename (${content.length} chars)" }
             onResult(DocumentPickerResult.Success(content, filename))
 
         } catch (e: Exception) {
-            println("Error reading document: ${e.message}")
+            Log.e(TAG) { "Error reading document: ${e.message}" }
             onResult(DocumentPickerResult.Error("Failed to read document: ${e.message}"))
         }
     }
 
     override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
-        println("Document picker cancelled")
+        Log.d(TAG) { "Document picker cancelled" }
         onResult(DocumentPickerResult.Cancelled)
     }
 }

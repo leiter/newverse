@@ -6,6 +6,10 @@ import com.together.newverse.ui.state.BuySellerAction
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.together.newverse.util.Log
+
+
+private const val TAG = "BuyVMInvite"
 
 /**
  * Invitation observation extension functions for BuyAppViewModel.
@@ -26,7 +30,7 @@ internal fun BuyAppViewModel.observePendingInvitations() {
 
         repo.observePendingInvitations(buyerId)
             .catch { e ->
-                println("BuyAppViewModel.observePendingInvitations: Error - ${e.message}")
+                Log.e(TAG) { "observePendingInvitations: Error - ${e.message}" }
             }
             .collect { invitations ->
                 _state.update { current ->

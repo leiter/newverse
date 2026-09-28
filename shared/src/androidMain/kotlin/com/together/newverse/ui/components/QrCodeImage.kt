@@ -14,6 +14,9 @@ import com.google.zxing.qrcode.QRCodeWriter
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import com.together.newverse.util.Log
+
+private const val TAG = "QrCodeImage"
 
 @Composable
 actual fun QrCodeImage(
@@ -48,7 +51,7 @@ private fun generateQrBitmap(content: String, size: Int): Bitmap? {
         }
         bitmap
     } catch (e: Exception) {
-        println("Failed to generate QR code: ${e.message}")
+        Log.e(TAG) { "Failed to generate QR code: ${e.message}" }
         null
     }
 }

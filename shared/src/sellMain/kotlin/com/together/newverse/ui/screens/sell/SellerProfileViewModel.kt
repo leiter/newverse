@@ -28,6 +28,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import com.together.newverse.util.Log
+
+
+private const val TAG = "SellerProfileVM"
 
 /**
  * ViewModel for Seller Profile screen
@@ -92,7 +96,7 @@ class SellerProfileViewModel(
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             profileRepository.observeAccessRequests(sellerId)
-                .catch { e -> println("❌ SellerProfileViewModel.observeAccessRequests: ${e.message}") }
+                .catch { e -> Log.e(TAG) { "observeAccessRequests: ${e.message}" } }
                 .collect { requests -> _accessRequests.value = requests }
         }
     }
@@ -101,9 +105,9 @@ class SellerProfileViewModel(
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             profileRepository.observeApprovedBuyerIds(sellerId)
-                .catch { e -> println("❌ SellerProfileViewModel.observeApprovedBuyers: ${e.message}") }
+                .catch { e -> Log.e(TAG) { "observeApprovedBuyers: ${e.message}" } }
                 .collect { map ->
-                    println("✅ SellerProfileViewModel.observeApprovedBuyers: ${map.size} approved buyers")
+                    Log.d(TAG) { "observeApprovedBuyers: ${map.size} approved buyers" }
                     val entries = map.map { (id, name) -> BuyerEntry(id, name, AccessStatus.APPROVED) }
                     val enriched = enrichWithDisplayNames(sellerId, entries)
                     _customerState.update { state -> state.copy(approvedBuyers = enriched) }
@@ -117,12 +121,12 @@ class SellerProfileViewModel(
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             val uuid = Uuid.random().toString()
             val link = "https://cutthecrap.link/connect?seller=$sellerId&token=$uuid"
-            println("[NV_Seller] generateBuyerLink: sellerId=$sellerId uuid=$uuid link=$link")
+            Log.d(TAG) { "generateBuyerLink: sellerId=$sellerId uuid=$uuid link=$link" }
             _generatedBuyerLink.value = link
             // Pre-approve in background so the buyer is immediately APPROVED upon scanning/clicking
             launch {
                 profileRepository.approveAccessRequestWithTracking(sellerId, uuid, QR_LINK_PLACEHOLDER)
-                    .onFailure { e -> println("Pre-approve for buyer link failed: ${e.message}") }
+                    .onFailure { e -> Log.e(TAG) { "Pre-approve for buyer link failed: ${e.message}" } }
             }
         }
     }
@@ -132,7 +136,7 @@ class SellerProfileViewModel(
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             val displayName = _accessRequests.value.find { it.buyerUUID == buyerUUID }?.buyerDisplayName ?: ""
             profileRepository.approveAccessRequestWithTracking(sellerId, buyerUUID, displayName)
-                .onFailure { e -> println("❌ SellerProfileViewModel.approveRequest: ${e.message}") }
+                .onFailure { e -> Log.e(TAG) { "approveRequest: ${e.message}" } }
         }
     }
 
@@ -140,7 +144,7 @@ class SellerProfileViewModel(
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             profileRepository.blockBuyer(sellerId, buyerUUID)
-                .onFailure { e -> println("❌ SellerProfileViewModel.blockBuyer: ${e.message}") }
+                .onFailure { e -> Log.e(TAG) { "blockBuyer: ${e.message}" } }
         }
     }
 
@@ -161,7 +165,7 @@ class SellerProfileViewModel(
                         )
                     }
                 }
-                .onFailure { e -> println("❌ SellerProfileViewModel.blockApprovedBuyer: ${e.message}") }
+                .onFailure { e -> Log.e(TAG) { "blockApprovedBuyer: ${e.message}" } }
         }
     }
 
@@ -177,7 +181,7 @@ class SellerProfileViewModel(
                         )
                     }
                 }
-                .onFailure { e -> println("❌ SellerProfileViewModel.unblockApprovedBuyer: ${e.message}") }
+                .onFailure { e -> Log.e(TAG) { "unblockApprovedBuyer: ${e.message}" } }
         }
     }
 
@@ -284,7 +288,7 @@ class SellerProfileViewModel(
                 },
                 onFailure = { e ->
                     // Keep the current profile but show error via a snackbar or similar
-                    println("❌ Failed to save profile: ${e.message}")
+                    Log.e(TAG) { "Failed to save profile: ${e.message}" }
                     _isSaving.value = false
                 }
             )
@@ -393,11 +397,11 @@ class SellerProfileViewModel(
                     // Pre-approve in background so the buyer is immediately APPROVED upon accepting
                     launch {
                         profileRepository.approveAccessRequestWithTracking(sellerId, invitation.id, "Invitation")
-                            .onFailure { e -> println("Pre-approve for invitation failed: ${e.message}") }
+                            .onFailure { e -> Log.e(TAG) { "Pre-approve for invitation failed: ${e.message}" } }
                     }
                 },
                 onFailure = { e ->
-                    println("Failed to generate invitation: ${e.message}")
+                    Log.e(TAG) { "Failed to generate invitation: ${e.message}" }
                     _invitationState.update { it.copy(isGenerating = false) }
                 }
             )
@@ -427,7 +431,7 @@ class SellerProfileViewModel(
                     }
                 },
                 onFailure = { e ->
-                    println("Failed to send invitation: ${e.message}")
+                    Log.e(TAG) { "Failed to send invitation: ${e.message}" }
                     _invitationState.update { it.copy(isSendingToBuyer = false) }
                 }
             )
@@ -447,7 +451,7 @@ class SellerProfileViewModel(
                     }
                 },
                 onFailure = { e ->
-                    println("Failed to revoke invitation: ${e.message}")
+                    Log.e(TAG) { "Failed to revoke invitation: ${e.message}" }
                 }
             )
         }

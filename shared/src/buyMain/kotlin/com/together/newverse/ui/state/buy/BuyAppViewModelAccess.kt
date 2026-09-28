@@ -9,6 +9,10 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.together.newverse.util.Log
+
+
+private const val TAG = "BuyVMAccess"
 
 /**
  * Tracks which required profile fields are missing.
@@ -75,9 +79,9 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
 
     viewModelScope.launch {
         profileRepository.observeAccessStatus(uuid, sellerId)
-            .catch { e -> println("[NV_Access] observeAccessStatus error (permission?): ${e.message}") }
+            .catch { e -> Log.e(TAG) { "observeAccessStatus error (permission?): ${e.message}" } }
             .collect { status ->
-                println("[NV_Access] observeAccessStatus: status=$status uuid=$uuid")
+                Log.d(TAG) { "observeAccessStatus: status=$status uuid=$uuid" }
                 val wasDemoMode = _state.value.isDemoMode
                 _state.update { it.copy(accessStatus = status, isAccessStatusLoaded = true) }
                 when {
@@ -183,22 +187,22 @@ internal fun BuyAppViewModel.migrateLocalDemoOrdersToProduction() {
             sellerConfig.resetDemoOrderState()
             return@launch
         }
-        println("[NV_Access] migrateLocalDemoOrdersToProduction: Migrating ${localOrders.size} orders to production Firebase")
+        Log.d(TAG) { "migrateLocalDemoOrdersToProduction: Migrating ${localOrders.size} orders to production Firebase" }
         var migratedCount = 0
         for (demoOrder in localOrders) {
             orderRepository.placeOrder(demoOrder.copy(isDemoOrder = false))
                 .onSuccess {
                     migratedCount++
-                    println("[NV_Access] migrateLocalDemoOrdersToProduction: Migrated order ${demoOrder.id}")
+                    Log.d(TAG) { "migrateLocalDemoOrdersToProduction: Migrated order ${demoOrder.id}" }
                 }
                 .onFailure { e ->
-                    println("[NV_Access] migrateLocalDemoOrdersToProduction: Failed for ${demoOrder.id}: ${e.message}")
+                    Log.d(TAG) { "migrateLocalDemoOrdersToProduction: Failed for ${demoOrder.id}: ${e.message}" }
                 }
         }
         sellerConfig.clearDemoOrders()
         sellerConfig.resetDemoOrderState()
         loadOrderHistory()
-        println("[NV_Access] migrateLocalDemoOrdersToProduction: Done — $migratedCount/${localOrders.size} migrated")
+        Log.d(TAG) { "migrateLocalDemoOrdersToProduction: Done — $migratedCount/${localOrders.size} migrated" }
     }
 }
 
@@ -252,7 +256,7 @@ internal fun BuyAppViewModel.connectWithToken(sellerId: String, buyerToken: Stri
         // Cancel any previously submitted request under a different UUID
         if (oldUUID != null && oldUUID != buyerToken) {
             profileRepository.cancelAccessRequest(sellerId, oldUUID)
-                .onFailure { e -> println("[NV_Access] connectWithToken: Failed to cancel old request ($oldUUID) - ${e.message}") }
+                .onFailure { e -> Log.e(TAG) { "connectWithToken: Failed to cancel old request ($oldUUID) - ${e.message}" } }
         }
 
         // Ensure buyerUUID is persisted in Firebase profile so security rules allow reading status
@@ -260,19 +264,19 @@ internal fun BuyAppViewModel.connectWithToken(sellerId: String, buyerToken: Stri
 
         // Fetch current status first — never overwrite APPROVED or BLOCKED
         val currentStatus = profileRepository.getAccessStatus(buyerToken, sellerId)
-        println("[NV_Access] connectWithToken: currentStatus=$currentStatus uuid=$buyerToken")
+        Log.d(TAG) { "connectWithToken: currentStatus=$currentStatus uuid=$buyerToken" }
 
         val displayName = _state.value.customerProfile.profile?.displayName?.takeIf { it.isNotBlank() } ?: "Guest"
 
         if (currentStatus == AccessStatus.NONE) {
             profileRepository.submitAccessRequest(sellerId, buyerToken, displayName)
-                .onSuccess { println("[NV_Access] connectWithToken: Access request submitted") }
-                .onFailure { e -> println("[NV_Access] connectWithToken: Failed to submit request - ${e.message}") }
+                .onSuccess { Log.d(TAG) { "connectWithToken: Access request submitted" } }
+                .onFailure { e -> Log.e(TAG) { "connectWithToken: Failed to submit request - ${e.message}" } }
         } else if (currentStatus == AccessStatus.APPROVED) {
             // QR pre-approval case: update display name from placeholder to real name
             profileRepository.updateApprovedBuyerDisplayName(sellerId, buyerToken, displayName)
-                .onSuccess { println("[NV_Access] connectWithToken: Updated buyer display name") }
-                .onFailure { e -> println("[NV_Access] connectWithToken: Failed to update display name - ${e.message}") }
+                .onSuccess { Log.d(TAG) { "connectWithToken: Updated buyer display name" } }
+                .onFailure { e -> Log.e(TAG) { "connectWithToken: Failed to update display name - ${e.message}" } }
         }
 
         startObservingAccessStatus()

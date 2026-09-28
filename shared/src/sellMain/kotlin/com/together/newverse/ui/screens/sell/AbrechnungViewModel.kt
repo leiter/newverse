@@ -34,6 +34,10 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import com.together.newverse.util.Log
+
+
+private const val TAG = "AbrechnungVM"
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AbrechnungViewModel(
@@ -177,7 +181,7 @@ class AbrechnungViewModel(
                 )
                 _export.value = ExportState(message = if (result.isSuccess) null else ExportMessage.FAILED)
             } catch (e: Exception) {
-                println("❌ AbrechnungViewModel.exportPeriod: ${e.message}")
+                Log.e(TAG) { "exportPeriod: ${e.message}" }
                 _export.value = ExportState(message = ExportMessage.FAILED)
             }
         }

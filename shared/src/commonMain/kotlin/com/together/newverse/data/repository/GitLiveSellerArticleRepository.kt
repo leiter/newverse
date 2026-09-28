@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import com.together.newverse.util.Log
 
 /**
  * GitLive implementation of [SellerArticleRepository].
@@ -23,6 +24,10 @@ import kotlinx.coroutines.flow.map
 class GitLiveSellerArticleRepository(
     private val authRepository: AuthRepository
 ) : SellerArticleRepository {
+
+    private companion object {
+        private const val TAG = "SellerArticleRepo"
+    }
 
     private val database = Firebase.database
     private val rootRef = database.reference()
@@ -43,7 +48,7 @@ class GitLiveSellerArticleRepository(
                 // Keep the catalog usable if the private half cannot be read (e.g. the
                 // database rules for seller_articles are not deployed yet). Articles then
                 // show no purchase data, and saves without it leave the private half alone.
-                println("❌ GitLiveSellerArticleRepository: private half unavailable - ${e.message}")
+                Log.e(TAG) { "private half unavailable - ${e.message}" }
                 emit(emptyMap())
             }
 
@@ -75,7 +80,7 @@ class GitLiveSellerArticleRepository(
                 )
             )
         } catch (e: Exception) {
-            println("❌ GitLiveSellerArticleRepository.getSellerArticle: Error - ${e.message}")
+            Log.e(TAG) { "getSellerArticle: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -100,13 +105,10 @@ class GitLiveSellerArticleRepository(
             rootRef.updateChildren(update)
 
             val withSellerData = articles.count { it.sellerData != null }
-            println(
-                "✅ GitLiveSellerArticleRepository: saved ${ids.size} article(s), " +
-                    "$withSellerData with seller-only data"
-            )
+            Log.d(TAG) { "saveSellerArticles: saved ${ids.size} article(s), $withSellerData with seller-only data" }
             Result.success(ids)
         } catch (e: Exception) {
-            println("❌ GitLiveSellerArticleRepository.saveSellerArticles: Error - ${e.message}")
+            Log.e(TAG) { "saveSellerArticles: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -119,7 +121,7 @@ class GitLiveSellerArticleRepository(
             rootRef.updateChildren(ArticleNodes.deleteUpdate(sellerId, articleId))
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveSellerArticleRepository.deleteSellerArticle: Error - ${e.message}")
+            Log.e(TAG) { "deleteSellerArticle: Error - ${e.message}" }
             Result.failure(e)
         }
     }

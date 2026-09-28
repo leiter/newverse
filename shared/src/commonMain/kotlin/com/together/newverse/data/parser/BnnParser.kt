@@ -4,6 +4,9 @@ import com.together.newverse.domain.model.Product
 import com.together.newverse.domain.model.ProductCategory
 import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.TaxRate
+import com.together.newverse.util.Log
+
+private const val TAG = "BnnParser"
 
 /**
  * Parser for BNN (Bio-Naturkost-Norm) format data files.
@@ -92,7 +95,7 @@ class BnnParser(
 
             // Ensure we have enough fields
             if (fields.size < 70) {
-                println("Warning: Skipping line with insufficient fields (${fields.size})")
+                Log.w(TAG) { "Skipping line with insufficient fields (${fields.size})" }
                 return null
             }
 
@@ -178,7 +181,7 @@ class BnnParser(
                 stock = 0 // Not provided in BNN format
             )
         } catch (e: Exception) {
-            println("Error parsing line: ${e.message}")
+            Log.e(TAG) { "Error parsing line: ${e.message}" }
             null
         }
     }

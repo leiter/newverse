@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import com.together.newverse.util.Log
 
 /**
  * Firebase Realtime Database implementation of InvitationRepository.
@@ -23,6 +24,10 @@ import kotlin.uuid.Uuid
 class GitLiveInvitationRepository(
     private val profileRepository: ProfileRepository
 ) : InvitationRepository {
+
+    private companion object {
+        private const val TAG = "InvitationRepo"
+    }
 
     private val database = Firebase.database
     private val invitationsRef = database.reference("invitations")
@@ -72,10 +77,10 @@ class GitLiveInvitationRepository(
                 buyerInvitationsRef.child(targetBuyerId).child(id).setValue(true)
             }
 
-            println("Invitation created: $id for seller $sellerId")
+            Log.d(TAG) { "Invitation created: $id for seller $sellerId" }
             Result.success(invitation)
         } catch (e: Exception) {
-            println("Failed to create invitation: ${e.message}")
+            Log.d(TAG) { "Failed to create invitation: ${e.message}" }
             Result.failure(e)
         }
     }
@@ -108,7 +113,7 @@ class GitLiveInvitationRepository(
 
             Result.success(snapshot)
         } catch (e: Exception) {
-            println("Failed to get invitation: ${e.message}")
+            Log.d(TAG) { "Failed to get invitation: ${e.message}" }
             Result.failure(e)
         }
     }
@@ -153,10 +158,10 @@ class GitLiveInvitationRepository(
                 status = InvitationStatus.ACCEPTED,
                 buyerId = buyerId
             )
-            println("Invitation $invitationId accepted by buyer $buyerId")
+            Log.d(TAG) { "Invitation $invitationId accepted by buyer $buyerId" }
             Result.success(accepted)
         } catch (e: Exception) {
-            println("Failed to accept invitation: ${e.message}")
+            Log.d(TAG) { "Failed to accept invitation: ${e.message}" }
             Result.failure(e)
         }
     }
@@ -169,10 +174,10 @@ class GitLiveInvitationRepository(
             invitationsRef.child(invitationId).child("status")
                 .setValue(InvitationStatus.REJECTED.name)
             buyerInvitationsRef.child(buyerId).child(invitationId).removeValue()
-            println("Invitation $invitationId rejected by buyer $buyerId")
+            Log.d(TAG) { "Invitation $invitationId rejected by buyer $buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("Failed to reject invitation: ${e.message}")
+            Log.d(TAG) { "Failed to reject invitation: ${e.message}" }
             Result.failure(e)
         }
     }
@@ -195,7 +200,7 @@ class GitLiveInvitationRepository(
                         }
                     }
                 } catch (e: Exception) {
-                    println("Failed to fetch invitation $invitationId: ${e.message}")
+                    Log.d(TAG) { "Failed to fetch invitation $invitationId: ${e.message}" }
                 }
             }
             invitations
@@ -215,10 +220,10 @@ class GitLiveInvitationRepository(
                 buyerInvitationsRef.child(buyerId).child(invitationId).removeValue()
             }
 
-            println("Invitation $invitationId revoked")
+            Log.d(TAG) { "Invitation $invitationId revoked" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("Failed to revoke invitation: ${e.message}")
+            Log.d(TAG) { "Failed to revoke invitation: ${e.message}" }
             Result.failure(e)
         }
     }

@@ -75,6 +75,10 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.painterResource
+import com.together.newverse.util.Log
+
+
+private const val TAG = "MainScreen"
 
 /**
  * Buy flavor MainScreenModern (default)
@@ -618,7 +622,7 @@ private fun ModernProductCard(
         ) {
             // Product Image
             if (product.imageUrl.isNotEmpty()) {
-                println("🖼️ ModernProductCard: Loading image for '${product.productName}' from URL: ${product.imageUrl}")
+                Log.d(TAG) { "ModernProductCard: Loading image for '${product.productName}' from URL: ${product.imageUrl}" }
                 SubcomposeAsyncImage(
                     model = product.imageUrl,
                     contentDescription = product.productName,
@@ -657,7 +661,7 @@ private fun ModernProductCard(
                     }
                 )
             } else {
-                println("🖼️ ModernProductCard: No image URL for '${product.productName}', showing placeholder")
+                Log.d(TAG) { "ModernProductCard: No image URL for '${product.productName}', showing placeholder" }
                 // Placeholder with Category Icon when no image
                 Surface(
                     modifier = Modifier

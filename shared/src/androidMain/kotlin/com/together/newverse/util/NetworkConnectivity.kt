@@ -6,6 +6,8 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.annotation.RequiresPermission
 
+private const val TAG = "NetworkConn"
+
 /**
  * Check network connectivity status
  */
@@ -18,30 +20,30 @@ object NetworkConnectivity {
         try {
             val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             if (connectivityManager == null) {
-                println("🌐 [NetworkConnectivity] No ConnectivityManager available")
+                Log.d(TAG) { "No ConnectivityManager available" }
                 return false
             }
 
             val network = connectivityManager.activeNetwork
             if (network == null) {
-                println("🌐 [NetworkConnectivity] No active network")
+                Log.d(TAG) { "No active network" }
                 return false
             }
 
             val capabilities = connectivityManager.getNetworkCapabilities(network)
             if (capabilities == null) {
-                println("🌐 [NetworkConnectivity] No capabilities for active network")
+                Log.d(TAG) { "No capabilities for active network" }
                 return false
             }
 
             val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             val isValidated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 
-            println("🌐 [NetworkConnectivity] hasInternet=$hasInternet, isValidated=$isValidated")
+            Log.d(TAG) { "hasInternet=$hasInternet, isValidated=$isValidated" }
 
             return hasInternet && isValidated
         } catch (e: Exception) {
-            println("🌐 [NetworkConnectivity] Exception: ${e.message}")
+            Log.e(TAG) { "Exception: ${e.message}" }
             return false
         }
     }

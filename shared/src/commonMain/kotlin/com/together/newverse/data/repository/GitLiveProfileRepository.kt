@@ -12,6 +12,7 @@ import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.ProfileRepository
+import com.together.newverse.util.Log
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.database.DataSnapshot
 import dev.gitlive.firebase.database.database
@@ -31,6 +32,10 @@ class GitLiveProfileRepository(
     private val buyerUUIDStorage: BuyerUUIDStorage? = null
 ) : ProfileRepository {
 
+    private companion object {
+        private const val TAG = "ProfileRepo"
+    }
+
     // GitLive Firebase Database references
     private val database = Firebase.database
     private val buyersRef = database.reference("buyer_profile")
@@ -43,24 +48,24 @@ class GitLiveProfileRepository(
     private val sellerProfileCache = mutableMapOf<String, SellerProfile>()
 
     override fun observeBuyerProfile(): Flow<BuyerProfile?> {
-        println("🔐 GitLiveProfileRepository.observeBuyerProfile: Setting up profile observer")
+        Log.d(TAG) { "observeBuyerProfile: Setting up profile observer" }
         return _buyerProfile.asStateFlow()
     }
 
     override suspend fun getBuyerProfile(): Result<BuyerProfile> {
         return try {
-            println("🔐 GitLiveProfileRepository.getBuyerProfile: START")
+            Log.d(TAG) { "getBuyerProfile: START" }
 
             val userId = authRepository.getCurrentUserId()
             if (userId == null) {
-                println("❌ GitLiveProfileRepository.getBuyerProfile: No authenticated user")
+                Log.e(TAG) { "getBuyerProfile: No authenticated user" }
                 return Result.failure(Exception("User not authenticated"))
             }
 
             // Check cache first
             val cachedProfile = _buyerProfile.value
             if (cachedProfile != null) {
-                println("✅ GitLiveProfileRepository.getBuyerProfile: Returning cached profile")
+                Log.d(TAG) { "getBuyerProfile: Returning cached profile" }
                 return Result.success(cachedProfile)
             }
 
@@ -71,29 +76,29 @@ class GitLiveProfileRepository(
             if (snapshot.exists) {
                 val profile = mapSnapshotToBuyerProfile(userId, snapshot)
                 _buyerProfile.value = profile
-                println("✅ GitLiveProfileRepository.getBuyerProfile: Fetched from Firebase")
+                Log.d(TAG) { "getBuyerProfile: Fetched from Firebase" }
                 Result.success(profile)
             } else {
                 // Create default profile for new users
                 val defaultProfile = createDefaultBuyerProfile(userId)
                 _buyerProfile.value = defaultProfile
-                println("✅ GitLiveProfileRepository.getBuyerProfile: Created default profile")
+                Log.d(TAG) { "getBuyerProfile: Created default profile" }
                 Result.success(defaultProfile)
             }
 
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.getBuyerProfile: Error - ${e.message}")
+            Log.e(TAG) { "getBuyerProfile: Error - ${e.message}" }
             Result.failure(e)
         }
     }
 
     override suspend fun saveBuyerProfile(profile: BuyerProfile): Result<BuyerProfile> {
         return try {
-            println("🔐 GitLiveProfileRepository.saveBuyerProfile: START - ${profile.displayName}")
+            Log.d(TAG) { "saveBuyerProfile: START - ${profile.displayName}" }
 
             val userId = authRepository.getCurrentUserId()
             if (userId == null) {
-                println("❌ GitLiveProfileRepository.saveBuyerProfile: No authenticated user")
+                Log.e(TAG) { "saveBuyerProfile: No authenticated user" }
                 return Result.failure(Exception("User not authenticated"))
             }
 
@@ -116,11 +121,11 @@ class GitLiveProfileRepository(
                 syncDisplayNameToLinkedSellers(userId, profileWithCorrectId.buyerUUID, profileWithCorrectId.displayName)
             }
 
-            println("✅ GitLiveProfileRepository.saveBuyerProfile: Success")
+            Log.d(TAG) { "saveBuyerProfile: Success" }
             Result.success(profileWithCorrectId)
 
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.saveBuyerProfile: Error - ${e.message}")
+            Log.e(TAG) { "saveBuyerProfile: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -128,7 +133,7 @@ class GitLiveProfileRepository(
     override suspend fun clearCache() {
         _buyerProfile.value = null
         sellerProfileCache.clear()
-        println("🗑️ GitLiveProfileRepository.clearCache: Cleared cached profiles")
+        Log.d(TAG) { "clearCache: Cleared cached profiles" }
     }
 
     override suspend fun getSellerDisplayName(sellerId: String): Result<String> {
@@ -142,18 +147,18 @@ class GitLiveProfileRepository(
             val displayName = snapshot.value as? String ?: ""
             Result.success(displayName)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.getSellerDisplayName: Error - ${e.message}")
+            Log.e(TAG) { "getSellerDisplayName: Error - ${e.message}" }
             Result.failure(e)
         }
     }
 
     override suspend fun getSellerProfile(sellerId: String): Result<SellerProfile> {
         return try {
-            println("🔐 GitLiveProfileRepository.getSellerProfile: START - sellerId=$sellerId")
+            Log.d(TAG) { "getSellerProfile: START - sellerId=$sellerId" }
 
             // Check cache first
             if (sellerId.isNotEmpty() && sellerProfileCache.containsKey(sellerId)) {
-                println("✅ GitLiveProfileRepository.getSellerProfile: Returning cached profile")
+                Log.d(TAG) { "getSellerProfile: Returning cached profile" }
                 return Result.success(sellerProfileCache[sellerId]!!)
             }
 
@@ -174,25 +179,25 @@ class GitLiveProfileRepository(
             if (snapshot.exists) {
                 val profile = mapSnapshotToSellerProfile(targetSellerId, snapshot)
                 sellerProfileCache[targetSellerId] = profile
-                println("✅ GitLiveProfileRepository.getSellerProfile: Fetched from Firebase")
+                Log.d(TAG) { "getSellerProfile: Fetched from Firebase" }
                 Result.success(profile)
             } else {
                 // Return mock for testing if no seller found
                 val mockProfile = createMockSellerProfile(targetSellerId)
                 sellerProfileCache[targetSellerId] = mockProfile
-                println("✅ GitLiveProfileRepository.getSellerProfile: Created mock profile")
+                Log.d(TAG) { "getSellerProfile: Created mock profile" }
                 Result.success(mockProfile)
             }
 
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.getSellerProfile: Error - ${e.message}")
+            Log.e(TAG) { "getSellerProfile: Error - ${e.message}" }
             Result.failure(e)
         }
     }
 
     override suspend fun saveSellerProfile(profile: SellerProfile): Result<Unit> {
         return try {
-            println("🔐 GitLiveProfileRepository.saveSellerProfile: START - ${profile.displayName}")
+            Log.d(TAG) { "saveSellerProfile: START - ${profile.displayName}" }
 
             // Convert to map for Firebase
             val profileMap = sellerProfileToMap(profile)
@@ -203,18 +208,18 @@ class GitLiveProfileRepository(
             // Update cache
             sellerProfileCache[profile.id] = profile
 
-            println("✅ GitLiveProfileRepository.saveSellerProfile: Success")
+            Log.d(TAG) { "saveSellerProfile: Success" }
             Result.success(Unit)
 
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.saveSellerProfile: Error - ${e.message}")
+            Log.e(TAG) { "saveSellerProfile: Error - ${e.message}" }
             Result.failure(e)
         }
     }
 
     override suspend fun clearUserData(sellerId: String, buyerProfile: BuyerProfile): Result<CleanUpResult> {
         return try {
-            println("🔐 GitLiveProfileRepository.clearUserData: START - sellerId=$sellerId, placedOrders=${buyerProfile.placedOrderIds.size}")
+            Log.d(TAG) { "clearUserData: START - sellerId=$sellerId, placedOrders=${buyerProfile.placedOrderIds.size}" }
 
             val now = Clock.System.now().toEpochMilliseconds()
             val futureOrderIds = mutableListOf<String>()
@@ -226,7 +231,7 @@ class GitLiveProfileRepository(
             // placedOrderIds is Map<String, String> where key=date, value=orderId
             for ((date, orderId) in buyerProfile.placedOrderIds) {
                 try {
-                    println("🔐 GitLiveProfileRepository.clearUserData: Processing order date=$date, orderId=$orderId")
+                    Log.d(TAG) { "clearUserData: Processing order date=$date, orderId=$orderId" }
 
                     // Load the order from Firebase
                     // Path: seller_profile/{sellerId}/orders/{date}/{orderId}
@@ -239,7 +244,7 @@ class GitLiveProfileRepository(
                             val pickUpDate = (orderData["pickUpDate"] as? Number)?.toLong() ?: 0L
                             val currentStatus = (orderData["status"] as? String) ?: "PLACED"
 
-                            println("🔐 GitLiveProfileRepository.clearUserData: Order pickUpDate=$pickUpDate, now=$now, status=$currentStatus")
+                            Log.d(TAG) { "clearUserData: Order pickUpDate=$pickUpDate, now=$now, status=$currentStatus" }
 
                             if (pickUpDate > now) {
                                 // Future order - cancel it
@@ -250,23 +255,23 @@ class GitLiveProfileRepository(
                                     // Update status to CANCELLED
                                     orderRef.child("status").setValue(OrderStatus.CANCELLED.name)
                                     cancelledOrders.add(orderId)
-                                    println("✅ GitLiveProfileRepository.clearUserData: Cancelled order $orderId")
+                                    Log.d(TAG) { "clearUserData: Cancelled order $orderId" }
                                 } else {
-                                    println("⏭️ GitLiveProfileRepository.clearUserData: Order $orderId already $currentStatus")
+                                    Log.w(TAG) { "clearUserData: Order $orderId already $currentStatus" }
                                     skippedOrders.add(orderId)
                                 }
                             } else {
                                 // Past order - keep it for seller records
                                 skippedOrders.add(orderId)
-                                println("⏭️ GitLiveProfileRepository.clearUserData: Skipping past order $orderId (pickup was ${pickUpDate})")
+                                Log.w(TAG) { "clearUserData: Skipping past order $orderId (pickup was ${pickUpDate})" }
                             }
                         }
                     } else {
-                        println("⚠️ GitLiveProfileRepository.clearUserData: Order $orderId not found")
+                        Log.w(TAG) { "clearUserData: Order $orderId not found" }
                         errors.add("Order $orderId not found")
                     }
                 } catch (e: Exception) {
-                    println("❌ GitLiveProfileRepository.clearUserData: Error processing order $orderId - ${e.message}")
+                    Log.e(TAG) { "clearUserData: Error processing order $orderId - ${e.message}" }
                     errors.add("Failed to process order $orderId: ${e.message}")
                 }
             }
@@ -293,18 +298,18 @@ class GitLiveProfileRepository(
                 errors = errors
             )
 
-            println("✅ GitLiveProfileRepository.clearUserData: Complete - cancelled=${cancelledOrders.size}, skipped=${skippedOrders.size}, profileDeleted=$profileDeleted")
+            Log.d(TAG) { "clearUserData: Complete - cancelled=${cancelledOrders.size}, skipped=${skippedOrders.size}, profileDeleted=$profileDeleted" }
             Result.success(result)
 
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.clearUserData: Error - ${e.message}")
+            Log.e(TAG) { "clearUserData: Error - ${e.message}" }
             Result.failure(e)
         }
     }
 
     override suspend fun deleteBuyerProfile(userId: String): Result<Unit> {
         return try {
-            println("🔐 GitLiveProfileRepository.deleteBuyerProfile: START - userId=$userId")
+            Log.d(TAG) { "deleteBuyerProfile: START - userId=$userId" }
 
             // Delete from Firebase
             buyersRef.child(userId).removeValue()
@@ -312,11 +317,11 @@ class GitLiveProfileRepository(
             // Clear local cache
             _buyerProfile.value = null
 
-            println("✅ GitLiveProfileRepository.deleteBuyerProfile: Success")
+            Log.d(TAG) { "deleteBuyerProfile: Success" }
             Result.success(Unit)
 
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.deleteBuyerProfile: Error - ${e.message}")
+            Log.e(TAG) { "deleteBuyerProfile: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -334,7 +339,7 @@ class GitLiveProfileRepository(
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.addKnownClient: Error - ${e.message}")
+            Log.e(TAG) { "addKnownClient: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -353,7 +358,7 @@ class GitLiveProfileRepository(
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.blockClient: Error - ${e.message}")
+            Log.e(TAG) { "blockClient: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -372,7 +377,7 @@ class GitLiveProfileRepository(
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.unblockClient: Error - ${e.message}")
+            Log.e(TAG) { "unblockClient: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -387,18 +392,18 @@ class GitLiveProfileRepository(
             val snapshot = sellersRef.child(sellerId).child("blockedClientIds").child(buyerId).valueEvents.first()
             snapshot.exists
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.isClientBlocked: Error - ${e.message}")
+            Log.e(TAG) { "isClientBlocked: Error - ${e.message}" }
             false
         }
     }
 
     override suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit> {
         return try {
-            println("🛒 GitLiveProfileRepository.saveDraftBasket: START - ${draftBasket.items.size} items")
+            Log.d(TAG) { "saveDraftBasket: START - ${draftBasket.items.size} items" }
 
             val userId = authRepository.getCurrentUserId()
             if (userId == null) {
-                println("❌ GitLiveProfileRepository.saveDraftBasket: No authenticated user")
+                Log.e(TAG) { "saveDraftBasket: No authenticated user" }
                 return Result.failure(Exception("User not authenticated"))
             }
 
@@ -409,22 +414,22 @@ class GitLiveProfileRepository(
             // Update local cache
             _buyerProfile.value = _buyerProfile.value?.copy(draftBasket = draftBasket)
 
-            println("✅ GitLiveProfileRepository.saveDraftBasket: Success")
+            Log.d(TAG) { "saveDraftBasket: Success" }
             Result.success(Unit)
 
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.saveDraftBasket: Error - ${e.message}")
+            Log.e(TAG) { "saveDraftBasket: Error - ${e.message}" }
             Result.failure(e)
         }
     }
 
     override suspend fun clearDraftBasket(): Result<Unit> {
         return try {
-            println("🛒 GitLiveProfileRepository.clearDraftBasket: START")
+            Log.d(TAG) { "clearDraftBasket: START" }
 
             val userId = authRepository.getCurrentUserId()
             if (userId == null) {
-                println("❌ GitLiveProfileRepository.clearDraftBasket: No authenticated user")
+                Log.e(TAG) { "clearDraftBasket: No authenticated user" }
                 return Result.failure(Exception("User not authenticated"))
             }
 
@@ -434,11 +439,11 @@ class GitLiveProfileRepository(
             // Update local cache
             _buyerProfile.value = _buyerProfile.value?.copy(draftBasket = null)
 
-            println("✅ GitLiveProfileRepository.clearDraftBasket: Success")
+            Log.d(TAG) { "clearDraftBasket: Success" }
             Result.success(Unit)
 
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.clearDraftBasket: Error - ${e.message}")
+            Log.e(TAG) { "clearDraftBasket: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -689,10 +694,10 @@ class GitLiveProfileRepository(
                 ?: return Result.failure(Exception("User not authenticated"))
             buyersRef.child(userId).child("buyerUUID").setValue(uuid)
             buyerUUIDStorage?.set(uuid)
-            println("✅ GitLiveProfileRepository.saveBuyerUUID: saved uuid=$uuid for userId=$userId")
+            Log.d(TAG) { "saveBuyerUUID: saved uuid=$uuid for userId=$userId" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.saveBuyerUUID: Error - ${e.message}")
+            Log.e(TAG) { "saveBuyerUUID: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -723,10 +728,10 @@ class GitLiveProfileRepository(
             if (authUID.isNotBlank()) {
                 buyersRef.child(authUID).child("linkedSellerIds").child(sellerId).setValue(true)
             }
-            println("✅ GitLiveProfileRepository.submitAccessRequest: Success - sellerId=$sellerId, uuid=$buyerUUID")
+            Log.d(TAG) { "submitAccessRequest: Success - sellerId=$sellerId, uuid=$buyerUUID" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.submitAccessRequest: Error - ${e.message}")
+            Log.e(TAG) { "submitAccessRequest: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -735,10 +740,10 @@ class GitLiveProfileRepository(
         return try {
             accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
             buyerAccessStatusRef.child(sellerId).child(buyerUUID).removeValue()
-            println("✅ GitLiveProfileRepository.cancelAccessRequest: cancelled uuid=$buyerUUID")
+            Log.d(TAG) { "cancelAccessRequest: cancelled uuid=$buyerUUID" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.cancelAccessRequest: Error - ${e.message}")
+            Log.e(TAG) { "cancelAccessRequest: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -751,7 +756,7 @@ class GitLiveProfileRepository(
             val statusStr = data["status"] as? String ?: return AccessStatus.NONE
             AccessStatus.entries.firstOrNull { it.name == statusStr } ?: AccessStatus.NONE
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.getAccessStatus: Error - ${e.message}")
+            Log.e(TAG) { "getAccessStatus: Error - ${e.message}" }
             AccessStatus.NONE
         }
     }
@@ -789,10 +794,10 @@ class GitLiveProfileRepository(
                 "buyerUUID" to buyerUUID
             ))
             accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
-            println("✅ GitLiveProfileRepository.approveAccessRequest: approved uuid=$buyerUUID")
+            Log.d(TAG) { "approveAccessRequest: approved uuid=$buyerUUID" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.approveAccessRequest: Error - ${e.message}")
+            Log.e(TAG) { "approveAccessRequest: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -818,11 +823,11 @@ class GitLiveProfileRepository(
                     blockedClientIds = cached.blockedClientIds + (buyerUUID to displayName)
                 )
             }
-            println("✅ GitLiveProfileRepository.blockBuyer: blocked uuid=$buyerUUID")
+            Log.d(TAG) { "blockBuyer: blocked uuid=$buyerUUID" }
 
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.blockBuyer: Error - ${e.message}")
+            Log.e(TAG) { "blockBuyer: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -847,10 +852,10 @@ class GitLiveProfileRepository(
                     )
                 }
             }
-            println("✅ GitLiveProfileRepository.approveAccessRequestWithTracking: approved uuid=$buyerUUID")
+            Log.d(TAG) { "approveAccessRequestWithTracking: approved uuid=$buyerUUID" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.approveAccessRequestWithTracking: Error - ${e.message}")
+            Log.e(TAG) { "approveAccessRequestWithTracking: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -871,10 +876,10 @@ class GitLiveProfileRepository(
                     )
                 }
             }
-            println("✅ GitLiveProfileRepository.updateApprovedBuyerDisplayName: updated uuid=$buyerUUID name=$displayName")
+            Log.d(TAG) { "updateApprovedBuyerDisplayName: updated uuid=$buyerUUID name=$displayName" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.updateApprovedBuyerDisplayName: Error - ${e.message}")
+            Log.e(TAG) { "updateApprovedBuyerDisplayName: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -887,10 +892,10 @@ class GitLiveProfileRepository(
                     approvedBuyerIds = cached.approvedBuyerIds + (buyerUUID to displayName)
                 )
             }
-            println("✅ GitLiveProfileRepository.correctApprovedBuyerDisplayName: uuid=$buyerUUID name=$displayName")
+            Log.d(TAG) { "correctApprovedBuyerDisplayName: uuid=$buyerUUID name=$displayName" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.correctApprovedBuyerDisplayName: Error - ${e.message}")
+            Log.e(TAG) { "correctApprovedBuyerDisplayName: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -923,10 +928,10 @@ class GitLiveProfileRepository(
                     approvedBuyerIds = cached.approvedBuyerIds + (buyerUUID to name)
                 )
             }
-            println("✅ GitLiveProfileRepository.unblockApprovedBuyer: unblocked uuid=$buyerUUID")
+            Log.d(TAG) { "unblockApprovedBuyer: unblocked uuid=$buyerUUID" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.unblockApprovedBuyer: Error - ${e.message}")
+            Log.e(TAG) { "unblockApprovedBuyer: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -949,12 +954,12 @@ class GitLiveProfileRepository(
                 } catch (e: Exception) {
                     // A blocked seller relationship rejects this write - that's expected and
                     // must not stop the name from reaching the buyer's other sellers.
-                    println("⚠️ GitLiveProfileRepository.syncDisplayNameToLinkedSellers: sellerId=$sellerId - ${e.message}")
+                    Log.w(TAG) { "syncDisplayNameToLinkedSellers: sellerId=$sellerId - ${e.message}" }
                 }
             }
-            println("✅ GitLiveProfileRepository.syncDisplayNameToLinkedSellers: pushed name to ${sellerIds.size} seller(s)")
+            Log.d(TAG) { "syncDisplayNameToLinkedSellers: pushed name to ${sellerIds.size} seller(s)" }
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.syncDisplayNameToLinkedSellers: Error - ${e.message}")
+            Log.e(TAG) { "syncDisplayNameToLinkedSellers: Error - ${e.message}" }
         }
     }
 
@@ -966,7 +971,7 @@ class GitLiveProfileRepository(
             val snapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("displayName").valueEvents.first()
             snapshot.value as? String ?: ""
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.getBuyerDisplayName: Error sellerId=$sellerId uuid=$buyerUUID - ${e.message}")
+            Log.e(TAG) { "getBuyerDisplayName: Error sellerId=$sellerId uuid=$buyerUUID - ${e.message}" }
             ""
         }
     }
@@ -976,7 +981,7 @@ class GitLiveProfileRepository(
             val snapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("authUID").valueEvents.first()
             snapshot.value as? String ?: ""
         } catch (e: Exception) {
-            println("❌ GitLiveProfileRepository.getBuyerAuthUID: Error sellerId=$sellerId uuid=$buyerUUID - ${e.message}")
+            Log.e(TAG) { "getBuyerAuthUID: Error sellerId=$sellerId uuid=$buyerUUID - ${e.message}" }
             ""
         }
     }

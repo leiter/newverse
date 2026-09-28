@@ -67,6 +67,10 @@ import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.snackbar_added_to_basket
 import org.jetbrains.compose.resources.getString
+import com.together.newverse.util.Log
+
+
+private const val TAG = "BuyVM"
 
 /**
  * Buy flavor ViewModel - Extension-Based Architecture
@@ -117,17 +121,17 @@ class BuyAppViewModel(
     internal var draftSaveJob: Job? = null
 
     init {
-        println("[NV_BuyAppVM] init: START")
+        Log.d(TAG) { "init: START" }
 
         // Initialize auth coordinator from base class
-        println("[NV_BuyAppVM] init: Calling initializeAuthCoordinator()...")
+        Log.d(TAG) { "init: Calling initializeAuthCoordinator()..." }
         initializeAuthCoordinator()
-        println("[NV_BuyAppVM] init: initializeAuthCoordinator() returned")
+        Log.d(TAG) { "init: initializeAuthCoordinator() returned" }
 
         // Observe auth state changes and sync to BuyAppState
-        println("[NV_BuyAppVM] init: Calling observeAuthStateChanges()...")
+        Log.d(TAG) { "init: Calling observeAuthStateChanges()..." }
         observeAuthStateChanges()
-        println("[NV_BuyAppVM] init: observeAuthStateChanges() returned")
+        Log.d(TAG) { "init: observeAuthStateChanges() returned" }
 
         // Observe Apple Sign-In completion to force-refresh auth state on iOS
         observeAppleSignInCompletion()
@@ -136,28 +140,28 @@ class BuyAppViewModel(
         observeGoogleSignInCompletion()
 
         // Initialize app on startup
-        println("[NV_BuyAppVM] init: Calling initializeApp()...")
+        Log.d(TAG) { "init: Calling initializeApp()..." }
         initializeApp()
-        println("[NV_BuyAppVM] init: initializeApp() returned")
+        Log.d(TAG) { "init: initializeApp() returned" }
 
         // Initialize MainScreen observers
-        println("[NV_BuyAppVM] init: Setting up MainScreen observers...")
+        Log.d(TAG) { "init: Setting up MainScreen observers..." }
         observeMainScreenBasket()
         observeMainScreenBuyerProfile()
 
         // Initialize BasketScreen observers
-        println("[NV_BuyAppVM] init: Setting up BasketScreen observers...")
+        Log.d(TAG) { "init: Setting up BasketScreen observers..." }
         initializeBasketScreen()
 
         // Observe pending invitations
-        println("[NV_BuyAppVM] init: Setting up invitation observer...")
+        Log.d(TAG) { "init: Setting up invitation observer..." }
         observePendingInvitations()
 
         // Observe unread message count
-        println("[NV_BuyAppVM] init: Setting up unread messages observer...")
+        Log.d(TAG) { "init: Setting up unread messages observer..." }
         observeUnreadMessages()
 
-        println("[NV_BuyAppVM] init: END")
+        Log.d(TAG) { "init: END" }
         // Load MainScreen articles after auth is ready (handled by observeAuthStateChanges)
     }
 
@@ -300,12 +304,12 @@ class BuyAppViewModel(
     internal fun loadProducts() {
         // Only load if authenticated
         if (!isAuthenticated()) {
-            println("📦 BuyAppViewModel.loadProducts: Skipping - not authenticated")
+            Log.d(TAG) { "loadProducts: Skipping - not authenticated" }
             return
         }
 
         viewModelScope.launch {
-            println("📦 BuyAppViewModel.loadProducts: START")
+            Log.d(TAG) { "loadProducts: START" }
 
             // Update loading state
             _state.update { current ->
@@ -314,14 +318,14 @@ class BuyAppViewModel(
                 )
             }
 
-            println("📦 BuyAppViewModel.loadProducts: Set loading state to true")
+            Log.d(TAG) { "loadProducts: Set loading state to true" }
 
             val sellerId = sellerConfig.sellerId
-            println("📦 BuyAppViewModel.loadProducts: Calling articleRepository.getArticles(sellerId='$sellerId')")
+            Log.d(TAG) { "loadProducts: Calling articleRepository.getArticles(sellerId='$sellerId')" }
 
             articleRepository.getArticles(sellerId)
                 .catch { e ->
-                    println("❌ BuyAppViewModel.loadProducts: ERROR - ${e.message}")
+                    Log.e(TAG) { "loadProducts: ERROR - ${e.message}" }
                     e.printStackTrace()
                     _state.update { current ->
                         current.copy(
@@ -336,7 +340,7 @@ class BuyAppViewModel(
                     }
                 }
                 .collect { article ->
-                    println("📦 BuyAppViewModel.loadProducts: Received article event - mode=${article.mode}, id=${article.id}, name=${article.productName}")
+                    Log.d(TAG) { "loadProducts: Received article event - mode=${article.mode}, id=${article.id}, name=${article.productName}" }
 
                     _state.update { current ->
                         val currentProducts = current.products.items.toMutableList()
@@ -347,30 +351,30 @@ class BuyAppViewModel(
                                 val existingIndex = currentProducts.indexOfFirst { it.id == article.id }
                                 if (existingIndex >= 0) {
                                     currentProducts[existingIndex] = article
-                                    println("📦 BuyAppViewModel.loadProducts: UPDATED existing article '${article.productName}' at index $existingIndex")
+                                    Log.d(TAG) { "loadProducts: UPDATED existing article '${article.productName}' at index $existingIndex" }
                                 } else {
                                     currentProducts.add(article)
-                                    println("📦 BuyAppViewModel.loadProducts: ADDED article '${article.productName}' (id=${article.id})")
+                                    Log.d(TAG) { "loadProducts: ADDED article '${article.productName}' (id=${article.id})" }
                                 }
                             }
                             Article.MODE_CHANGED -> {
                                 val index = currentProducts.indexOfFirst { it.id == article.id }
                                 if (index >= 0) {
                                     currentProducts[index] = article
-                                    println("📦 BuyAppViewModel.loadProducts: CHANGED article '${article.productName}' at index $index, available=${article.available}")
+                                    Log.d(TAG) { "loadProducts: CHANGED article '${article.productName}' at index $index, available=${article.available}" }
                                 } else {
                                     currentProducts.add(article)
-                                    println("📦 BuyAppViewModel.loadProducts: CHANGED but not found, ADDED article '${article.productName}' (id=${article.id}), available=${article.available}")
+                                    Log.d(TAG) { "loadProducts: CHANGED but not found, ADDED article '${article.productName}' (id=${article.id}), available=${article.available}" }
                                 }
                             }
                             Article.MODE_REMOVED -> {
                                 currentProducts.removeAll { it.id == article.id }
-                                println("📦 BuyAppViewModel.loadProducts: REMOVED article '${article.productName}' (id=${article.id})")
+                                Log.d(TAG) { "loadProducts: REMOVED article '${article.productName}' (id=${article.id})" }
                             }
                         }
 
                         val afterCount = currentProducts.size
-                        println("📦 BuyAppViewModel.loadProducts: Product count: $beforeCount → $afterCount")
+                        Log.d(TAG) { "loadProducts: Product count: $beforeCount → $afterCount" }
 
                         current.copy(
                             products = current.products.copy(
@@ -491,21 +495,21 @@ class BuyAppViewModel(
 
     // Override interface methods - kept in core ViewModel (not extracted)
     fun resetGoogleSignInTrigger() {
-        println("🔐 BuyAppViewModel.resetGoogleSignInTrigger: Resetting trigger")
+        Log.d(TAG) { "resetGoogleSignInTrigger: Resetting trigger" }
         _state.update { current ->
             current.copy(triggerGoogleSignIn = false)
         }
     }
 
     fun resetTwitterSignInTrigger() {
-        println("🔐 BuyAppViewModel.resetTwitterSignInTrigger: Resetting trigger")
+        Log.d(TAG) { "resetTwitterSignInTrigger: Resetting trigger" }
         _state.update { current ->
             current.copy(triggerTwitterSignIn = false)
         }
     }
 
     fun resetAppleSignInTrigger() {
-        println("🔐 BuyAppViewModel.resetAppleSignInTrigger: Resetting trigger")
+        Log.d(TAG) { "resetAppleSignInTrigger: Resetting trigger" }
         _state.update { current ->
             current.copy(triggerAppleSignIn = false)
         }
@@ -550,7 +554,7 @@ class BuyAppViewModel(
             authFlowCoordinator.authState.collect { authState ->
                 if (authState is com.together.newverse.ui.state.core.AuthState.Authenticated) {
                     repo.observeUnreadCount(authState.userId)
-                        .catch { e -> println("Failed to observe unread count: ${e.message}") }
+                        .catch { e -> Log.e(TAG) { "Failed to observe unread count: ${e.message}" } }
                         .collect { count ->
                             _state.update { it.copy(unreadMessageCount = count) }
                         }

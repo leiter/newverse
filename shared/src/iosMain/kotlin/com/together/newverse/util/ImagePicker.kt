@@ -23,6 +23,7 @@ import platform.UIKit.UIImagePickerControllerSourceType
 import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.darwin.NSObject
 import kotlin.coroutines.resume
+import com.together.newverse.util.Log
 
 /**
  * iOS implementation of ImagePicker
@@ -126,11 +127,11 @@ private class ImagePickerDelegate(
                 val byteArray = jpegData.toByteArray()
                 val filename = "image_${NSUUID().UUIDString}.jpg"
 
-                println("Image picked: $filename (${byteArray.size} bytes)")
+                Log.d(TAG) { "Image picked: $filename (${byteArray.size} bytes)" }
                 onResult(ImagePickerResult.Success(byteArray, filename))
 
             } catch (e: Exception) {
-                println("Error processing image: ${e.message}")
+                Log.e(TAG) { "Error processing image: ${e.message}" }
                 onResult(ImagePickerResult.Error("Failed to process image: ${e.message}"))
             }
         }
@@ -138,7 +139,7 @@ private class ImagePickerDelegate(
 
     override fun imagePickerControllerDidCancel(picker: UIImagePickerController) {
         picker.dismissViewControllerAnimated(true) {
-            println("Image picker cancelled")
+            Log.d(TAG) { "Image picker cancelled" }
             onResult(ImagePickerResult.Cancelled)
         }
     }

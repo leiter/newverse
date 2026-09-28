@@ -7,6 +7,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import com.together.newverse.util.Log
 
 /**
  * Bridge object for completing Apple Sign-In with Firebase Auth.
@@ -50,22 +51,22 @@ object AppleAuthBridge : KoinComponent {
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit
     ) {
-        println("AppleAuthBridge: Completing Apple Sign-In with Firebase")
+        Log.d(TAG) { "Completing Apple Sign-In with Firebase" }
 
         scope.launch {
             try {
                 val result = authRepository.signInWithApple(idToken, rawNonce)
 
                 result.onSuccess { userId ->
-                    println("AppleAuthBridge: Firebase auth success - userId=$userId")
+                    Log.d(TAG) { "Firebase auth success - userId=$userId" }
                     AppleSignInState.notifyAuthComplete()
                     onSuccess(userId)
                 }.onFailure { error ->
-                    println("AppleAuthBridge: Firebase auth failed - ${error.message}")
+                    Log.d(TAG) { "Firebase auth failed - ${error.message}" }
                     onError(error.message ?: "Unknown error during Apple Sign-In")
                 }
             } catch (e: Exception) {
-                println("AppleAuthBridge: Exception during Firebase auth - ${e.message}")
+                Log.d(TAG) { "Exception during Firebase auth - ${e.message}" }
                 onError(e.message ?: "Unknown error during Apple Sign-In")
             }
         }

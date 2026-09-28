@@ -7,6 +7,7 @@ import platform.UIKit.UIApplication
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import com.together.newverse.util.GoogleSignInState
+import com.together.newverse.util.Log
 
 /**
  * iOS Google Sign-In Helper
@@ -41,7 +42,7 @@ class GoogleSignInHelper {
     fun signIn(
         completion: (Result<String>) -> Unit
     ) {
-        println("Google Sign-In (iOS): Sign-in requested from Kotlin")
+        Log.d(TAG) { "Google Sign-In (iOS): Sign-in requested from Kotlin" }
         signInCompletion = completion
 
         // Signal to Swift that sign-in should start
@@ -55,7 +56,7 @@ class GoogleSignInHelper {
      * @param idToken The ID token from Google
      */
     fun onSignInSuccess(idToken: String, accessToken: String) {
-        println("Google Sign-In (iOS): Sign-in success callback received")
+        Log.d(TAG) { "Google Sign-In (iOS): Sign-in success callback received" }
         GoogleSignInState.notifySignInComplete(idToken, accessToken)
         signInCompletion?.invoke(Result.success(idToken))
         signInCompletion = null
@@ -67,7 +68,7 @@ class GoogleSignInHelper {
      * @param errorMessage The error message
      */
     fun onSignInError(errorMessage: String) {
-        println("Google Sign-In (iOS): Sign-in error callback received: $errorMessage")
+        Log.d(TAG) { "Google Sign-In (iOS): Sign-in error callback received: $errorMessage" }
         signInCompletion?.invoke(Result.failure(Exception(errorMessage)))
         signInCompletion = null
     }
@@ -76,7 +77,7 @@ class GoogleSignInHelper {
      * Called from Swift when user cancels sign-in
      */
     fun onSignInCancelled() {
-        println("Google Sign-In (iOS): Sign-in cancelled")
+        Log.d(TAG) { "Google Sign-In (iOS): Sign-in cancelled" }
         signInCompletion?.invoke(Result.failure(Exception("User cancelled sign-in")))
         signInCompletion = null
     }
@@ -101,7 +102,7 @@ class GoogleSignInHelper {
      * Note: The actual sign-out is handled by Swift layer.
      */
     fun signOut() {
-        println("Google Sign-In (iOS): Sign-out requested")
+        Log.d(TAG) { "Google Sign-In (iOS): Sign-out requested" }
         // Sign-out handled by Swift GIDSignIn.sharedInstance.signOut()
     }
 
@@ -110,7 +111,7 @@ class GoogleSignInHelper {
      * Note: The actual clearing is handled by Swift layer.
      */
     fun clearCachedAccount() {
-        println("Google Sign-In (iOS): Clear cached account requested")
+        Log.d(TAG) { "Google Sign-In (iOS): Clear cached account requested" }
         // This triggers signOut on the Swift side to clear the cached account
         signOut()
     }
@@ -132,7 +133,7 @@ class GoogleSignInHelper {
     fun restorePreviousSignIn(
         completion: (Result<String>?) -> Unit
     ) {
-        println("Google Sign-In (iOS): Restore sign-in requested")
+        Log.d(TAG) { "Google Sign-In (iOS): Restore sign-in requested" }
         // Restore handled by Swift layer using GIDSignIn.sharedInstance.restorePreviousSignIn
         completion(null) // Default: no previous sign-in
     }

@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp
 import com.together.newverse.data.firebase.GitLiveFirebaseInit
 import com.together.newverse.di.androidDomainModule
 import com.together.newverse.di.flavorAppModule
+import com.together.newverse.util.Log
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -19,10 +20,13 @@ class NewverseApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        com.together.newverse.util.initDebugFlag(applicationInfo)
+        com.together.newverse.util.androidLogInit()
+
         // Initialize feature flags BEFORE Firebase and Koin
         // This must happen first to ensure all dependencies use the correct configuration
         com.together.newverse.data.config.FeatureFlagConfig.configureForProduction()
-        println("🚀 NewverseApp: Feature flags configured for PRODUCTION")
+        Log.d(TAG) { "Feature flags configured for PRODUCTION" }
 
         // Initialize Firebase (required for both Firebase and GitLive SDKs)
         FirebaseApp.initializeApp(this)
@@ -31,13 +35,13 @@ class NewverseApp : Application() {
         // Must be called before any database reference is created
         try {
             com.google.firebase.database.FirebaseDatabase.getInstance().setPersistenceEnabled(true)
-            println("🔥 NewverseApp: Firebase persistence enabled")
+            Log.d(TAG) { "Firebase persistence enabled" }
         } catch (e: Exception) {
-            println("⚠️ NewverseApp: Firebase persistence already enabled or failed: ${e.message}")
+            Log.w(TAG) { "Firebase persistence already enabled or failed: ${e.message}" }
         }
 
         // Initialize GitLive Firebase SDK (cross-platform)
-        println("🚀 NewverseApp: Initializing GitLive Firebase SDK")
+        Log.d(TAG) { "Initializing GitLive Firebase SDK" }
         GitLiveFirebaseInit.initialize()
 
         startKoin {
@@ -46,5 +50,9 @@ class NewverseApp : Application() {
             // Load flavor-specific module (from buyMain or sellMain) and Android domain module
             modules(flavorAppModule, androidDomainModule)
         }
+    }
+
+    private companion object {
+        private const val TAG = "NewverseApp"
     }
 }

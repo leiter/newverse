@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.TimeZone
+import com.together.newverse.util.Log
 
 /**
  * GitLive implementation of [SaleRepository]. Layout and update maps come from
@@ -23,6 +24,10 @@ class GitLiveSaleRepository(
     private val authRepository: AuthRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault()
 ) : SaleRepository {
+
+    private companion object {
+        private const val TAG = "SaleRepo"
+    }
 
     private val database = Firebase.database
 
@@ -65,7 +70,7 @@ class GitLiveSaleRepository(
             }
             Result.success(sales.sortedBy { it.confirmedAt })
         } catch (e: Exception) {
-            println("❌ GitLiveSaleRepository.salesForOrder: Error - ${e.message}")
+            Log.e(TAG) { "salesForOrder: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -81,11 +86,10 @@ class GitLiveSaleRepository(
 
             database.reference().updateChildren(SaleNodes.recordUpdate(sellerId, saleId, sale, timeZone))
 
-            println("✅ GitLiveSaleRepository: recorded sale $saleId for order ${sale.orderId} " +
-                "(${sale.lines.size} lines, ${sale.grossCents} cents${if (sale.isReversal) ", cancellation" else ""})")
+            Log.d(TAG) { "recordSale: $saleId for order ${sale.orderId} (${sale.lines.size} lines, ${sale.grossCents} cents${if (sale.isReversal) ", cancellation" else ""})" }
             Result.success(sale.copy(id = saleId))
         } catch (e: Exception) {
-            println("❌ GitLiveSaleRepository.recordSale: Error - ${e.message}")
+            Log.e(TAG) { "recordSale: Error - ${e.message}" }
             Result.failure(e)
         }
     }

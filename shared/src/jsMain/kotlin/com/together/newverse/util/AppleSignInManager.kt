@@ -6,6 +6,6 @@ package com.together.newverse.util
  */
 actual object AppleSignInManager {
     actual fun clearCachedState() {
-        println("[AppleSignInManager] No Apple Sign-In on web; nothing to clear")
+        Log.d(TAG) { "[AppleSignInManager] No Apple Sign-In on web; nothing to clear" }
     }
 }

@@ -23,6 +23,10 @@ import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.getString
+import com.together.newverse.util.Log
+
+
+private const val TAG = "OverviewVM"
 
 /**
  * ViewModel for Seller Overview/Dashboard screen
@@ -83,13 +87,13 @@ class OverviewViewModel(
                 // Observe orders for current seller
                 orderRepository.observeSellerOrders(sellerId)
                     .catch { e ->
-                        println("⚠️ Failed to load orders: ${e.message}")
+                        Log.w(TAG) { "Failed to load orders: ${e.message}" }
                         // Don't fail the whole screen, just show 0 orders
                     }
                     .collect { orders ->
                         allOrders = orders
                         activeOrdersCount = orders.count { isUpcomingPlacedOrder(it) }
-                        println("📊 Active orders count: $activeOrdersCount (total: ${orders.size})")
+                        Log.d(TAG) { "Active orders count: $activeOrdersCount (total: ${orders.size})" }
 
                         // Update UI state with current data
                         updateUiState()
@@ -150,7 +154,7 @@ class OverviewViewModel(
             // Get current seller ID
             val sellerId = authRepository.getCurrentUserId()
             if (sellerId == null) {
-                println("❌ Cannot delete articles: User not authenticated")
+                Log.e(TAG) { "Cannot delete articles: User not authenticated" }
                 _overviewState.value = AsyncState.Error("Authentication required to delete products")
                 return@launch
             }
@@ -158,17 +162,17 @@ class OverviewViewModel(
             // Delete each article from Firebase
             articleIds.forEach { articleId ->
                 try {
-                    println("🗑️ Deleting article from Firebase: $articleId")
+                    Log.d(TAG) { "Deleting article from Firebase: $articleId" }
                     val result = sellerArticleRepository.deleteSellerArticle(sellerId, articleId)
                     result.onSuccess {
-                        println("✅ Successfully deleted article: $articleId")
+                        Log.d(TAG) { "Successfully deleted article: $articleId" }
                         // Remove from local list
                         articles = articles.filterNot { it.id == articleId }
                     }.onFailure { error ->
-                        println("❌ Failed to delete article $articleId: ${error.message}")
+                        Log.e(TAG) { "Failed to delete article $articleId: ${error.message}" }
                     }
                 } catch (e: Exception) {
-                    println("❌ Exception deleting article $articleId: ${e.message}")
+                    Log.e(TAG) { "Exception deleting article $articleId: ${e.message}" }
                     e.printStackTrace()
                 }
             }
@@ -183,12 +187,12 @@ class OverviewViewModel(
             // Get current seller ID
             val sellerId = authRepository.getCurrentUserId()
             if (sellerId == null) {
-                println("❌ Cannot update articles: User not authenticated")
+                Log.e(TAG) { "Cannot update articles: User not authenticated" }
                 _overviewState.value = AsyncState.Error("Authentication required to update products")
                 return@launch
             }
 
-            println("📝 Updating ${articleIds.size} articles to available=$available")
+            Log.d(TAG) { "Updating ${articleIds.size} articles to available=$available" }
 
             // Update each article's availability in Firebase
             articleIds.forEach { articleId ->
@@ -198,7 +202,7 @@ class OverviewViewModel(
                     if (article != null) {
                         // Update the article with new availability
                         val updatedArticle = article.copy(available = available)
-                        println("📝 Updating article in Firebase: ${article.productName} (id=$articleId) -> available=$available")
+                        Log.d(TAG) { "Updating article in Firebase: ${article.productName} (id=$articleId) -> available=$available" }
 
                         // Public half only: availability says nothing about purchase
                         // data, which may not even be loaded yet.
@@ -207,19 +211,19 @@ class OverviewViewModel(
                             SellerArticle(article = updatedArticle, sellerData = null)
                         )
                         result.onSuccess {
-                            println("✅ Successfully updated article: ${article.productName}")
+                            Log.d(TAG) { "Successfully updated article: ${article.productName}" }
                             // Update local list
                             articles = articles.map {
                                 if (it.id == articleId) it.copy(article = updatedArticle) else it
                             }
                         }.onFailure { error ->
-                            println("❌ Failed to update article $articleId: ${error.message}")
+                            Log.e(TAG) { "Failed to update article $articleId: ${error.message}" }
                         }
                     } else {
-                        println("⚠️ Article $articleId not found in local list")
+                        Log.w(TAG) { "Article $articleId not found in local list" }
                     }
                 } catch (e: Exception) {
-                    println("❌ Exception updating article $articleId: ${e.message}")
+                    Log.e(TAG) { "Exception updating article $articleId: ${e.message}" }
                     e.printStackTrace()
                 }
             }
@@ -238,7 +242,7 @@ class OverviewViewModel(
 
             try {
                 val products = productImportService.parse(fileContent)
-                println("📦 Parsed ${products.size} products from BNN file")
+                Log.d(TAG) { "Parsed ${products.size} products from BNN file" }
 
                 if (products.isEmpty()) {
                     _importState.value = ImportState.Error(
@@ -251,7 +255,7 @@ class OverviewViewModel(
                 _importState.value = ImportState.Preview(products)
 
             } catch (e: Exception) {
-                println("❌ Parse failed: ${e.message}")
+                Log.e(TAG) { "Parse failed: ${e.message}" }
                 _importState.value = ImportState.Error(
                     getStringOrFallback(Res.string.import_file_read_error, "File read error: ${e.message}", e.message ?: "")
                 )
@@ -269,7 +273,7 @@ class OverviewViewModel(
             // Verify user is authenticated
             val currentUserId = authRepository.getCurrentUserId()
             if (currentUserId == null) {
-                println("❌ Cannot import products: User not authenticated")
+                Log.e(TAG) { "Cannot import products: User not authenticated" }
                 _importState.value = ImportState.Error(
                     getStringOrFallback(Res.string.import_auth_required, "Authentication required")
                 )
@@ -285,14 +289,14 @@ class OverviewViewModel(
                     products.map { it.toSellerArticle() }
                 )
                 result.onSuccess { ids ->
-                    println("✅ Imported ${ids.size} products")
+                    Log.d(TAG) { "Imported ${ids.size} products" }
                     _importState.value = ImportState.Success(importedCount = ids.size, errorCount = 0)
                 }.onFailure { error ->
-                    println("❌ Import failed: ${error.message}")
+                    Log.e(TAG) { "Import failed: ${error.message}" }
                     _importState.value = ImportState.Success(importedCount = 0, errorCount = products.size)
                 }
             } catch (e: Exception) {
-                println("❌ Import failed: ${e.message}")
+                Log.e(TAG) { "Import failed: ${e.message}" }
                 _importState.value = ImportState.Error(
                     getStringOrFallback(Res.string.import_failed, "Import failed: ${e.message}", e.message ?: "")
                 )

@@ -11,6 +11,10 @@ import com.together.newverse.ui.state.BuyMainScreenAction
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.together.newverse.util.Log
+
+
+private const val TAG = "BuyVMMain"
 
 /**
  * Main Screen extension functions for BuyAppViewModel
@@ -118,7 +122,7 @@ internal fun BuyAppViewModel.startNewOrder() {
                 )
             )
         }
-        println("🛒 Started new order - basket cleared")
+        Log.d(TAG) { "Started new order - basket cleared" }
     }
 }
 
@@ -146,9 +150,9 @@ internal fun BuyAppViewModel.selectMainScreenArticle(article: Article) {
     // Check if this product is already in the basket
     val basketItems = basketRepository.observeBasket().value
 
-    println("🎯 selectMainScreenArticle: Looking for article.id=${article.id} in ${basketItems.size} basket items")
+    Log.d(TAG) { "selectMainScreenArticle: Looking for article.id=${article.id} in ${basketItems.size} basket items" }
     basketItems.forEach { item ->
-        println("🎯   Basket item: id='${item.id}', productId='${item.productId}', name='${item.productName}', qty=${item.amountCount}")
+        Log.d(TAG) { "Basket item: id='${item.id}', productId='${item.productId}', name='${item.productName}', qty=${item.amountCount}" }
     }
 
     val existingItem = basketItems.find { it.id == article.id || it.productId == article.id }
@@ -165,7 +169,7 @@ internal fun BuyAppViewModel.selectMainScreenArticle(article: Article) {
         )
     }
 
-    println("🎯 BuyAppViewModel.selectMainScreenArticle: Selected ${article.productName}, existingItem=${existingItem != null}, quantity: $initialQuantity")
+    Log.d(TAG) { "selectMainScreenArticle: Selected ${article.productName}, existingItem=${existingItem != null}, quantity: $initialQuantity" }
 }
 
 internal fun BuyAppViewModel.updateMainScreenQuantity(quantity: Double) {
@@ -204,7 +208,7 @@ internal fun BuyAppViewModel.addMainScreenToCart() {
         viewModelScope.launch {
             basketRepository.updateQuantity(selectedArticle.id, quantity)
         }
-        println("🛒 BuyAppViewModel.addMainScreenToCart: Updated ${selectedArticle.productName} to ${quantity} ${selectedArticle.unit}")
+        Log.d(TAG) { "addMainScreenToCart: Updated ${selectedArticle.productName} to ${quantity} ${selectedArticle.unit}" }
     } else {
         // Create new OrderedProduct from selected article and quantity
         val orderedProduct = OrderedProduct(
@@ -226,7 +230,7 @@ internal fun BuyAppViewModel.addMainScreenToCart() {
         viewModelScope.launch {
             basketRepository.addItem(orderedProduct)
         }
-        println("🛒 BuyAppViewModel.addMainScreenToCart: Added ${selectedArticle.productName} (${quantity} ${selectedArticle.unit}) to basket")
+        Log.d(TAG) { "addMainScreenToCart: Added ${selectedArticle.productName} (${quantity} ${selectedArticle.unit}) to basket" }
     }
 }
 
@@ -243,20 +247,20 @@ internal fun BuyAppViewModel.removeMainScreenFromBasket() {
         }
     }
 
-    println("🗑️ BuyAppViewModel.removeMainScreenFromBasket: Removed ${selectedArticle.productName} from basket")
+    Log.d(TAG) { "removeMainScreenFromBasket: Removed ${selectedArticle.productName} from basket" }
 }
 
 internal fun BuyAppViewModel.toggleMainScreenFavourite(articleId: String) {
     viewModelScope.launch {
         try {
-            println("⭐ BuyAppViewModel.toggleMainScreenFavourite: START - articleId=$articleId")
+            Log.d(TAG) { "toggleMainScreenFavourite: START - articleId=$articleId" }
 
             // Get current buyer profile
             val profileResult = profileRepository.getBuyerProfile()
             val currentProfile = profileResult.getOrNull()
 
             if (currentProfile == null) {
-                println("❌ BuyAppViewModel.toggleMainScreenFavourite: No buyer profile found")
+                Log.e(TAG) { "toggleMainScreenFavourite: No buyer profile found" }
                 return@launch
             }
 
@@ -270,14 +274,14 @@ internal fun BuyAppViewModel.toggleMainScreenFavourite(articleId: String) {
                 currentProfile.favouriteArticles + articleId
             }
 
-            println("⭐ BuyAppViewModel.toggleMainScreenFavourite: ${if (isFavourite) "Removing" else "Adding"} article")
+            Log.d(TAG) { "toggleMainScreenFavourite: ${if (isFavourite) "Removing" else "Adding"} article" }
 
             // Update profile with new favourites list
             val updatedProfile = currentProfile.copy(favouriteArticles = updatedFavourites)
             val saveResult = profileRepository.saveBuyerProfile(updatedProfile)
 
             saveResult.onSuccess {
-                println("✅ BuyAppViewModel.toggleMainScreenFavourite: Successfully updated favourites")
+                Log.d(TAG) { "toggleMainScreenFavourite: Successfully updated favourites" }
                 // Update local state immediately for instant UI feedback
                 _state.update { current ->
                     current.copy(
@@ -287,11 +291,11 @@ internal fun BuyAppViewModel.toggleMainScreenFavourite(articleId: String) {
                     )
                 }
             }.onFailure { error ->
-                println("❌ BuyAppViewModel.toggleMainScreenFavourite: Failed to save - ${error.message}")
+                Log.e(TAG) { "toggleMainScreenFavourite: Failed to save - ${error.message}" }
             }
 
         } catch (e: Exception) {
-            println("❌ BuyAppViewModel.toggleMainScreenFavourite: Exception - ${e.message}")
+            Log.e(TAG) { "toggleMainScreenFavourite: Exception - ${e.message}" }
             e.printStackTrace()
         }
     }
@@ -306,7 +310,7 @@ internal fun BuyAppViewModel.refreshMainScreen() {
  */
 internal fun BuyAppViewModel.loadMainScreenArticles() {
     viewModelScope.launch {
-        println("🎬 BuyAppViewModel.loadMainScreenArticles: START")
+        Log.d(TAG) { "loadMainScreenArticles: START" }
 
         _state.update { current ->
             current.copy(
@@ -316,15 +320,15 @@ internal fun BuyAppViewModel.loadMainScreenArticles() {
                 )
             )
         }
-        println("🎬 BuyAppViewModel.loadMainScreenArticles: Set loading state to true")
+        Log.d(TAG) { "loadMainScreenArticles: Set loading state to true" }
 
         // Load articles for a specific seller or use empty string for current user
         val sellerId = sellerConfig.sellerId
-        println("🎬 BuyAppViewModel.loadMainScreenArticles: Calling articleRepository.getArticles(sellerId='$sellerId')")
+        Log.d(TAG) { "loadMainScreenArticles: Calling articleRepository.getArticles(sellerId='$sellerId')" }
 
         articleRepository.getArticles(sellerId)
             .catch { e ->
-                println("❌ BuyAppViewModel.loadMainScreenArticles: ERROR - ${e.message}")
+                Log.e(TAG) { "loadMainScreenArticles: ERROR - ${e.message}" }
                 e.printStackTrace()
                 _state.update { current ->
                     current.copy(
@@ -339,7 +343,7 @@ internal fun BuyAppViewModel.loadMainScreenArticles() {
                 }
             }
             .collect { article ->
-                println("🎬 BuyAppViewModel.loadMainScreenArticles: Received article event - mode=${article.mode}, id=${article.id}, name=${article.productName}, available=${article.available}")
+                Log.d(TAG) { "loadMainScreenArticles: Received article event - mode=${article.mode}, id=${article.id}, name=${article.productName}, available=${article.available}" }
 
                 // Update state atomically to avoid race conditions
                 _state.update { current ->
@@ -352,32 +356,32 @@ internal fun BuyAppViewModel.loadMainScreenArticles() {
                             val existingIndex = currentArticles.indexOfFirst { it.id == article.id }
                             if (existingIndex >= 0) {
                                 currentArticles[existingIndex] = article
-                                println("🎬 BuyAppViewModel.loadMainScreenArticles: UPDATED existing article '${article.productName}' at index $existingIndex")
+                                Log.d(TAG) { "loadMainScreenArticles: UPDATED existing article '${article.productName}' at index $existingIndex" }
                             } else {
                                 currentArticles.add(article)
-                                println("🎬 BuyAppViewModel.loadMainScreenArticles: ADDED article '${article.productName}' (id=${article.id})")
+                                Log.d(TAG) { "loadMainScreenArticles: ADDED article '${article.productName}' (id=${article.id})" }
                             }
                         }
                         Article.MODE_CHANGED -> {
                             val index = currentArticles.indexOfFirst { it.id == article.id }
                             if (index >= 0) {
                                 currentArticles[index] = article
-                                println("🎬 BuyAppViewModel.loadMainScreenArticles: CHANGED article '${article.productName}' at index $index, available=${article.available}")
+                                Log.d(TAG) { "loadMainScreenArticles: CHANGED article '${article.productName}' at index $index, available=${article.available}" }
                             } else {
                                 // Article wasn't in list (maybe was filtered before), add it now
                                 currentArticles.add(article)
-                                println("🎬 BuyAppViewModel.loadMainScreenArticles: CHANGED but not found, ADDED article '${article.productName}' (id=${article.id}), available=${article.available}")
+                                Log.d(TAG) { "loadMainScreenArticles: CHANGED but not found, ADDED article '${article.productName}' (id=${article.id}), available=${article.available}" }
                             }
                         }
                         Article.MODE_REMOVED -> {
                             currentArticles.removeAll { it.id == article.id }
-                            println("🎬 BuyAppViewModel.loadMainScreenArticles: REMOVED article '${article.productName}' (id=${article.id})")
+                            Log.d(TAG) { "loadMainScreenArticles: REMOVED article '${article.productName}' (id=${article.id})" }
                         }
                         // MODE_MOVED typically doesn't need special handling
                     }
 
                     val afterCount = currentArticles.size
-                    println("🎬 BuyAppViewModel.loadMainScreenArticles: Article count: $beforeCount → $afterCount")
+                    Log.d(TAG) { "loadMainScreenArticles: Article count: $beforeCount → $afterCount" }
 
                     current.copy(
                         mainScreen = current.mainScreen.copy(
@@ -393,7 +397,7 @@ internal fun BuyAppViewModel.loadMainScreenArticles() {
                 val currentArticles = _state.value.mainScreen.articles
                 if (currentSelectedArticle == null && currentArticles.isNotEmpty()) {
                     val firstArticle = currentArticles.first()
-                    println("🎬 BuyAppViewModel.loadMainScreenArticles: Auto-selecting first article: ${firstArticle.productName}")
+                    Log.d(TAG) { "loadMainScreenArticles: Auto-selecting first article: ${firstArticle.productName}" }
                     selectMainScreenArticle(firstArticle)  // ✅ Use proper selection method
                 }
             }

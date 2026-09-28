@@ -7,12 +7,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.time.Clock
+import com.together.newverse.util.Log
 
 /**
  * In-memory implementation of BasketRepository
  * Stores basket items in memory during app session
  */
 class InMemoryBasketRepository : BasketRepository {
+
+    private companion object {
+        private const val TAG = "BasketRepo"
+    }
 
     private val _basket = MutableStateFlow<List<OrderedProduct>>(emptyList())
     private var _loadedOrderId: String? = null
@@ -41,12 +46,12 @@ class InMemoryBasketRepository : BasketRepository {
         }
 
         _basket.value = currentItems
-        println("🛒 BasketRepository.addItem: Added ${item.productName}, basket now has ${currentItems.size} items")
+        Log.d(TAG) { "BasketRepository.addItem: Added ${item.productName}, basket now has ${currentItems.size} items" }
     }
 
     override suspend fun removeItem(productId: String) {
         _basket.value = _basket.value.filter { it.id != productId && it.productId != productId }
-        println("🛒 BasketRepository.removeItem: Removed product $productId, basket now has ${_basket.value.size} items")
+        Log.d(TAG) { "BasketRepository.removeItem: Removed product $productId, basket now has ${_basket.value.size} items" }
     }
 
     override suspend fun updateQuantity(productId: String, newQuantity: Double) {
@@ -68,7 +73,7 @@ class InMemoryBasketRepository : BasketRepository {
                 piecesCount = newPiecesCount
             )
             _basket.value = currentItems
-            println("🛒 BasketRepository.updateQuantity: Updated product $productId to quantity $newQuantity (pieces: $newPiecesCount)")
+            Log.d(TAG) { "BasketRepository.updateQuantity: Updated product $productId to quantity $newQuantity (pieces: $newPiecesCount)" }
         }
     }
 
@@ -76,7 +81,7 @@ class InMemoryBasketRepository : BasketRepository {
         _basket.value = emptyList()
         _loadedOrderId = null
         _loadedOrderDate = null
-        println("🛒 BasketRepository.clearBasket: Basket cleared")
+        Log.d(TAG) { "BasketRepository.clearBasket: Basket cleared" }
     }
 
     override fun getTotal(): Double {
@@ -91,7 +96,7 @@ class InMemoryBasketRepository : BasketRepository {
         _basket.value = items
         _loadedOrderId = orderId
         _loadedOrderDate = orderDate
-        println("🛒 BasketRepository.loadOrderItems: Loaded ${items.size} items from order $orderId (date: $orderDate)")
+        Log.d(TAG) { "BasketRepository.loadOrderItems: Loaded ${items.size} items from order $orderId (date: $orderDate)" }
     }
 
     override fun getLoadedOrderInfo(): Pair<String, String>? {
@@ -112,7 +117,7 @@ class InMemoryBasketRepository : BasketRepository {
         // Draft baskets are not tied to any order
         _loadedOrderId = null
         _loadedOrderDate = null
-        println("🛒 BasketRepository.loadFromProfile: Loaded ${draftBasket.items.size} items from draft basket")
+        Log.d(TAG) { "BasketRepository.loadFromProfile: Loaded ${draftBasket.items.size} items from draft basket" }
     }
 
     override fun toDraftBasket(selectedPickupDate: String?): DraftBasket {

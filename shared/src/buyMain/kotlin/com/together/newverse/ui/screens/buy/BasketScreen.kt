@@ -72,6 +72,10 @@ import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import com.together.newverse.util.formatString
 import kotlinx.datetime.DayOfWeek
+import com.together.newverse.util.Log
+
+
+private const val TAG = "BasketScreen"
 
 /**
  * Basket Screen - Now receives state and callbacks from parent
@@ -88,7 +92,7 @@ fun BasketScreen(
     // Load order if provided and not already loaded
     LaunchedEffect(orderId, orderDate) {
         if (orderId != null && orderDate != null && state.orderId != orderId) {
-            println("🛒 BasketScreen: Loading order - orderId=$orderId, date=$orderDate")
+            Log.d(TAG) { "BasketScreen: Loading order - orderId=$orderId, date=$orderDate" }
             onAction(BuyBasketScreenAction.LoadOrder(orderId, orderDate))
         }
     }

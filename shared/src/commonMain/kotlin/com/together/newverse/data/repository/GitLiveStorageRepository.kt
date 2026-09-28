@@ -5,6 +5,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.storage.storage
 import dev.gitlive.firebase.storage.StorageReference
 import kotlinx.coroutines.flow.first
+import com.together.newverse.util.Log
 
 /**
  * GitLive implementation of StorageRepository for cross-platform storage
@@ -16,6 +17,7 @@ class GitLiveStorageRepository : StorageRepository {
     private val storageRef = storage.reference
 
     companion object {
+        private const val TAG = "StorageRepo"
         private const val IMAGES_PATH = "images/"
     }
 
@@ -32,7 +34,7 @@ class GitLiveStorageRepository : StorageRepository {
         onProgress: ((Float) -> Unit)?
     ): Result<String> {
         return try {
-            println("🔐 GitLiveStorageRepository.uploadImage: START")
+            Log.d(TAG) { "uploadImage: START" }
 
             val path = if (filename.isEmpty()) {
                 generateImagePath()
@@ -61,11 +63,11 @@ class GitLiveStorageRepository : StorageRepository {
             // Get download URL
             val downloadUrl = imageRef.getDownloadUrl()
 
-            println("✅ GitLiveStorageRepository.uploadImage: Success - $downloadUrl")
+            Log.d(TAG) { "uploadImage: Success - $downloadUrl" }
             Result.success(downloadUrl)
 
         } catch (e: Exception) {
-            println("❌ GitLiveStorageRepository.uploadImage: Error - ${e.message}")
+            Log.e(TAG) { "uploadImage: Error - ${e.message}" }
             e.printStackTrace()
             Result.failure(e)
         }
@@ -82,22 +84,22 @@ class GitLiveStorageRepository : StorageRepository {
                 return Result.success(Unit)
             }
 
-            println("🔐 GitLiveStorageRepository.deleteImage: START - $imageUrl")
+            Log.d(TAG) { "deleteImage: START - $imageUrl" }
 
             // Extract the path from the URL
             // GitLive doesn't have getReferenceFromUrl, so we need to parse manually
             val storageReference = parseStorageReference(imageUrl)
             if (storageReference != null) {
                 storageReference.delete()
-                println("✅ GitLiveStorageRepository.deleteImage: Success")
+                Log.d(TAG) { "deleteImage: Success" }
                 Result.success(Unit)
             } else {
-                println("⚠️ GitLiveStorageRepository.deleteImage: Could not parse URL, skipping delete")
+                Log.w(TAG) { "deleteImage: Could not parse URL, skipping delete" }
                 Result.success(Unit)
             }
 
         } catch (e: Exception) {
-            println("❌ GitLiveStorageRepository.deleteImage: Error - ${e.message}")
+            Log.e(TAG) { "deleteImage: Error - ${e.message}" }
             e.printStackTrace()
             Result.failure(e)
         }
@@ -133,7 +135,7 @@ class GitLiveStorageRepository : StorageRepository {
                 null
             }
         } catch (e: Exception) {
-            println("⚠️ GitLiveStorageRepository.parseStorageReference: Error parsing URL - ${e.message}")
+            Log.w(TAG) { "parseStorageReference: Error parsing URL - ${e.message}" }
             null
         }
     }

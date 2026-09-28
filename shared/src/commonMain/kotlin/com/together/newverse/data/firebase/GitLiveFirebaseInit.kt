@@ -1,10 +1,13 @@
 package com.together.newverse.data.firebase
 
+import com.together.newverse.util.Log
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
 import dev.gitlive.firebase.FirebaseOptions
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.database.database
+
+private const val TAG = "FirebaseInit"
 
 /**
  * GitLive Firebase initialization and configuration.
@@ -23,7 +26,7 @@ object GitLiveFirebaseInit {
      */
     fun initialize() {
         if (isInitialized) {
-            println("🔥 GitLiveFirebaseInit: Already initialized")
+            Log.d(TAG) { "Already initialized" }
             return
         }
 
@@ -32,21 +35,21 @@ object GitLiveFirebaseInit {
             // GitLive will use the existing Firebase configuration
             // For iOS, this would initialize from GoogleService-Info.plist
 
-            println("🔥 GitLiveFirebaseInit: Initializing GitLive Firebase SDK")
+            Log.d(TAG) { "Initializing GitLive Firebase SDK" }
 
             // Verify Firebase is available
             // Note: GitLive SDK doesn't expose Firebase.app directly in common code
-            println("🔥 GitLiveFirebaseInit: Firebase configured")
+            Log.d(TAG) { "Firebase configured" }
 
             // Initialize Firebase services for GitLive
             initializeAuth()
             initializeDatabase()
 
             isInitialized = true
-            println("✅ GitLiveFirebaseInit: Successfully initialized")
+            Log.d(TAG) { "Successfully initialized" }
 
         } catch (e: Exception) {
-            println("❌ GitLiveFirebaseInit: Failed to initialize - ${e.message}")
+            Log.e(TAG) { "Failed to initialize - ${e.message}" }
             e.printStackTrace()
         }
     }
@@ -57,13 +60,13 @@ object GitLiveFirebaseInit {
     private fun initializeAuth() {
         try {
             val auth = Firebase.auth
-            println("🔥 GitLiveFirebaseInit: Auth initialized ${auth.currentUser}")
+            Log.d(TAG) { "Auth initialized ${auth.currentUser}" }
 
             // Set auth settings if needed
             // auth.useEmulator("localhost", 9099) // For testing with emulator
 
         } catch (e: Exception) {
-            println("❌ GitLiveFirebaseInit: Auth initialization failed - ${e.message}")
+            Log.e(TAG) { "Auth initialization failed - ${e.message}" }
         }
     }
 
@@ -73,7 +76,7 @@ object GitLiveFirebaseInit {
     private fun initializeDatabase() {
         try {
             val database = Firebase.database
-            println("🔥 GitLiveFirebaseInit: Database initialized ${database.reference()}")
+            Log.d(TAG) { "Database initialized ${database.reference()}" }
 
             // Persistence is enabled at platform level (NewverseApp.kt / NewverseApp.swift)
             // GitLive SDK uses the underlying Firebase persistence automatically
@@ -82,7 +85,7 @@ object GitLiveFirebaseInit {
             // database.useEmulator("localhost", 9000) // For testing with emulator
 
         } catch (e: Exception) {
-            println("❌ GitLiveFirebaseInit: Database initialization failed - ${e.message}")
+            Log.e(TAG) { "Database initialization failed - ${e.message}" }
         }
     }
 

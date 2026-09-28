@@ -9,11 +9,11 @@ actual object AppleSignInManager {
      */
     actual fun clearCachedState() {
         try {
-            println("[AppleSignInManager] 🗑️ Clearing Apple Sign-In cached state on iOS")
+            Log.d(TAG) { "[AppleSignInManager] 🗑️ Clearing Apple Sign-In cached state on iOS" }
             AppleSignInHelper.shared.clearCachedState()
-            println("[AppleSignInManager] ✅ Successfully cleared Apple Sign-In state")
+            Log.d(TAG) { "[AppleSignInManager] ✅ Successfully cleared Apple Sign-In state" }
         } catch (e: Exception) {
-            println("[AppleSignInManager] Failed to clear Apple Sign-In state: ${e.message}")
+            Log.d(TAG) { "[AppleSignInManager] Failed to clear Apple Sign-In state: ${e.message}" }
         }
     }
 }

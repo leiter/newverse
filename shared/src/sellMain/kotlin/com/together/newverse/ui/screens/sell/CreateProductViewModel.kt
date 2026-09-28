@@ -18,6 +18,7 @@ import com.together.newverse.ui.state.core.formStateOf
 import com.together.newverse.ui.state.core.rejectSubmit
 import com.together.newverse.ui.state.core.submitFailure
 import com.together.newverse.ui.state.core.submitSuccess
+import com.together.newverse.util.Log
 import com.together.newverse.ui.state.core.submitting
 import com.together.newverse.ui.state.core.updateField
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val TAG = "CreateProductVM"
 
 /**
  * Data class representing the product creation form fields.
@@ -204,10 +207,7 @@ class CreateProductViewModel(
             result.onSuccess { sellerArticle ->
                 val article = sellerArticle.article
                 val sellerData = sellerArticle.sellerData
-                println(
-                    "✅ CreateProductViewModel.loadArticle: $articleId '${article.productName}', " +
-                        "seller-only data: ${if (sellerData == null) "none" else "acquirePrice=${sellerData.acquirePrice}"}"
-                )
+                Log.d(TAG) { "loadArticle: $articleId '${article.productName}', seller-only data: ${if (sellerData == null) "none" else "acquirePrice=${sellerData.acquirePrice}"}" }
                 editingArticleId = article.id
                 loadedSellerData = sellerData
                 _formState.value = formStateOf(
@@ -232,7 +232,7 @@ class CreateProductViewModel(
             }.onFailure { error ->
                 // Not entering edit mode keeps a half-loaded form from being saved
                 // over the stored article.
-                println("❌ CreateProductViewModel.loadArticle: $articleId - ${error.message}")
+                Log.e(TAG) { "loadArticle: $articleId - ${error.message}" }
                 _formState.update { it.submitFailure("Failed to load product: ${error.message}") }
             }
         }
@@ -342,11 +342,11 @@ class CreateProductViewModel(
      * Uploads image first (if provided), then saves product to database
      */
     fun saveProduct() {
-        println("📝 CreateProductViewModel.saveProduct: START (editMode=$isEditMode, articleId=$editingArticleId)")
+        Log.d(TAG) { "saveProduct: START (editMode=$isEditMode, articleId=$editingArticleId)" }
         // Validate inputs
         val errors = validateFormData(_formState.value.data)
         if (errors.isNotEmpty()) {
-            println("❌ CreateProductViewModel.saveProduct: Validation failed: $errors")
+            Log.e(TAG) { "saveProduct: Validation failed: $errors" }
             _formState.update { it.rejectSubmit(errors) }
             return
         }
@@ -415,7 +415,7 @@ class CreateProductViewModel(
                 }
 
             } catch (e: Exception) {
-                println("❌ CreateProductViewModel.saveProduct: Error - ${e.message}")
+                Log.e(TAG) { "saveProduct: Error - ${e.message}" }
                 e.printStackTrace()
                 _formState.update { it.submitFailure(e.message ?: "Failed to save product") }
             }

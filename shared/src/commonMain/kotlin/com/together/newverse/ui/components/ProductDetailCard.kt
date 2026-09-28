@@ -27,6 +27,10 @@ import com.together.newverse.util.formatPrice
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import com.together.newverse.util.Log
+
+
+private const val TAG = "ProductDetail"
 
 @Composable
 fun ProductDetailCard(
@@ -64,7 +68,7 @@ fun ProductDetailCard(
 
             // Product Image
             if (imageUrl.isNotEmpty()) {
-                println("🖼️ ProductDetailCard: Loading image for '$productName' from URL: $imageUrl")
+                Log.d(TAG) { "ProductDetailCard: Loading image for '$productName' from URL: $imageUrl" }
                 SubcomposeAsyncImage(
                     model = imageUrl,
                     contentDescription = productName,
@@ -102,7 +106,7 @@ fun ProductDetailCard(
                     }
                 )
             } else {
-                println("🖼️ ProductDetailCard: No image URL for '$productName', showing placeholder")
+                Log.d(TAG) { "ProductDetailCard: No image URL for '$productName', showing placeholder" }
                 // Placeholder when no image is available
                 Box(
                     modifier = Modifier

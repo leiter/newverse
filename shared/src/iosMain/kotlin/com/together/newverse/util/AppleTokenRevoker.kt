@@ -2,6 +2,7 @@ package com.together.newverse.util
 
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import com.together.newverse.util.Log
 
 /**
  * iOS implementation. The work itself happens in Swift
@@ -45,7 +46,7 @@ object AppleRevokeBridge {
 
     /** Called from Swift at startup. */
     fun setHandler(handler: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit) {
-        println("[AppleRevokeBridge] Handler registered")
+        Log.d(TAG) { "[AppleRevokeBridge] Handler registered" }
         this.handler = handler
     }
 
@@ -59,14 +60,14 @@ object AppleRevokeBridge {
                 {
                     if (!settled) {
                         settled = true
-                        println("[AppleRevokeBridge] ✅ Apple token revoked")
+                        Log.d(TAG) { "[AppleRevokeBridge] ✅ Apple token revoked" }
                         continuation.resume(Result.success(Unit))
                     }
                 },
                 { message ->
                     if (!settled) {
                         settled = true
-                        println("[AppleRevokeBridge] ⚠️ Apple token revocation failed: $message")
+                        Log.d(TAG) { "[AppleRevokeBridge] ⚠️ Apple token revocation failed: $message" }
                         continuation.resume(Result.failure(Exception(message)))
                     }
                 }

@@ -7,6 +7,7 @@ import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
+import com.together.newverse.util.Log
 
 /**
  * Firebase Realtime Database implementation of BuyerContactRepository.
@@ -16,6 +17,10 @@ import kotlin.time.Clock
  * - buyer_blocked/{buyerId}/{blockedUserId}: true - block list
  */
 class GitLiveBuyerContactRepository : BuyerContactRepository {
+
+    private companion object {
+        private const val TAG = "BuyerContactRepo"
+    }
 
     private val database = Firebase.database
     private val contactsRef = database.reference("buyer_contacts")
@@ -36,7 +41,7 @@ class GitLiveBuyerContactRepository : BuyerContactRepository {
                         )
                     )
                 } catch (e: Exception) {
-                    println("Failed to parse contact: ${e.message}")
+                    Log.d(TAG) { "Failed to parse contact: ${e.message}" }
                 }
             }
             contacts.sortedByDescending { it.addedAt }
@@ -52,10 +57,10 @@ class GitLiveBuyerContactRepository : BuyerContactRepository {
                 if (contact.addedAt > 0) contact.addedAt
                 else Clock.System.now().toEpochMilliseconds()
             )
-            println("Contact added: ${contact.userId} for buyer $buyerId")
+            Log.d(TAG) { "Contact added: ${contact.userId} for buyer $buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("Failed to add contact: ${e.message}")
+            Log.d(TAG) { "Failed to add contact: ${e.message}" }
             Result.failure(e)
         }
     }
@@ -63,10 +68,10 @@ class GitLiveBuyerContactRepository : BuyerContactRepository {
     override suspend fun removeContact(buyerId: String, contactUserId: String): Result<Unit> {
         return try {
             contactsRef.child(buyerId).child(contactUserId).removeValue()
-            println("Contact removed: $contactUserId for buyer $buyerId")
+            Log.d(TAG) { "Contact removed: $contactUserId for buyer $buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("Failed to remove contact: ${e.message}")
+            Log.d(TAG) { "Failed to remove contact: ${e.message}" }
             Result.failure(e)
         }
     }
@@ -74,10 +79,10 @@ class GitLiveBuyerContactRepository : BuyerContactRepository {
     override suspend fun blockContact(buyerId: String, contactUserId: String): Result<Unit> {
         return try {
             blockedRef.child(buyerId).child(contactUserId).setValue(true)
-            println("Contact blocked: $contactUserId by buyer $buyerId")
+            Log.d(TAG) { "Contact blocked: $contactUserId by buyer $buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("Failed to block contact: ${e.message}")
+            Log.d(TAG) { "Failed to block contact: ${e.message}" }
             Result.failure(e)
         }
     }
@@ -85,10 +90,10 @@ class GitLiveBuyerContactRepository : BuyerContactRepository {
     override suspend fun unblockContact(buyerId: String, contactUserId: String): Result<Unit> {
         return try {
             blockedRef.child(buyerId).child(contactUserId).removeValue()
-            println("Contact unblocked: $contactUserId by buyer $buyerId")
+            Log.d(TAG) { "Contact unblocked: $contactUserId by buyer $buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
-            println("Failed to unblock contact: ${e.message}")
+            Log.d(TAG) { "Failed to unblock contact: ${e.message}" }
             Result.failure(e)
         }
     }
