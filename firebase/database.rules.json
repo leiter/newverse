@@ -89,6 +89,22 @@
         }
       }
     },
+    "invite_tokens": {
+      "$sellerId": {
+        ".read": "auth != null && auth.uid === $sellerId",
+        ".write": "auth != null && auth.uid === $sellerId",
+        "$token": {
+          ".read": "auth != null && (auth.uid === $sellerId || !data.child('redeemedBy').exists() || data.child('redeemedBy').val() === auth.uid)",
+          ".write": "auth != null && (auth.uid === $sellerId || (data.exists() && newData.exists() && !data.child('redeemedBy').exists() && newData.child('redeemedBy').val() === auth.uid && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('expiresAt').val() === data.child('expiresAt').val() && newData.child('displayNameHint').val() === data.child('displayNameHint').val() && now < data.child('expiresAt').val()))",
+          ".validate": "newData.hasChildren(['createdAt', 'expiresAt'])",
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "expiresAt": { ".validate": "newData.isNumber()" },
+          "redeemedBy": { ".validate": "newData.isString()" },
+          "displayNameHint": { ".validate": "newData.isString()" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
     "buyer_access_status": {
       "$sellerId": {
         "$buyerUUID": {
