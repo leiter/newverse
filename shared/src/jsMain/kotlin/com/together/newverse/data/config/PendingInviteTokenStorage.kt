@@ -2,14 +2,14 @@ package com.together.newverse.data.config
 
 import kotlinx.browser.localStorage
 
-actual class BuyerUUIDStorage {
+actual class PendingInviteTokenStorage {
 
     private var activeUserId: String? = null
 
     private fun key(k: String) = activeUserId?.let { "newverse_user_${it}_$k" } ?: k
 
     actual fun get(): String? = localStorage.getItem(key(KEY))
-    actual fun set(uuid: String) { localStorage.setItem(key(KEY), uuid) }
+    actual fun set(token: String) { localStorage.setItem(key(KEY), token) }
     actual fun clear() { localStorage.removeItem(key(KEY)) }
 
     actual fun setActiveUserId(userId: String) { activeUserId = userId }
@@ -27,6 +27,6 @@ actual class BuyerUUIDStorage {
     }
 
     companion object {
-        private const val KEY = "buyer_uuid"
+        private const val KEY = "pending_invite_token"
     }
 }

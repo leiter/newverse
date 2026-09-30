@@ -1,8 +1,9 @@
 package com.together.newverse.data.repository
 
-import com.together.newverse.data.config.BuyerUUIDStorage
+import com.together.newverse.data.config.PendingInviteTokenStorage
 import com.together.newverse.domain.model.AccessRequest
 import com.together.newverse.domain.model.AccessStatus
+import com.together.newverse.domain.model.BuyerAccess
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
@@ -17,11 +18,17 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.database.DataSnapshot
 import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * GitLive implementation of ProfileRepository for cross-platform profile management.
@@ -29,7 +36,7 @@ import kotlin.time.Clock
  */
 class GitLiveProfileRepository(
     private val authRepository: AuthRepository,
-    private val buyerUUIDStorage: BuyerUUIDStorage? = null
+    private val pendingTokenStorage: PendingInviteTokenStorage? = null
 ) : ProfileRepository {
 
     private companion object {
@@ -42,6 +49,7 @@ class GitLiveProfileRepository(
     private val sellersRef = database.reference("seller_profile")
     private val accessRequestsRef = database.reference("access_requests")
     private val buyerAccessStatusRef = database.reference("buyer_access_status")
+    private val inviteTokensRef = database.reference("invite_tokens")
 
     // Local cache for performance
     private val _buyerProfile = MutableStateFlow<BuyerProfile?>(null)
@@ -118,7 +126,7 @@ class GitLiveProfileRepository(
             _buyerProfile.value = profileWithCorrectId
 
             if (profileWithCorrectId.displayName != previousDisplayName) {
-                syncDisplayNameToLinkedSellers(userId, profileWithCorrectId.buyerUUID, profileWithCorrectId.displayName)
+                syncDisplayNameToLinkedSellers(userId, profileWithCorrectId.displayName)
             }
 
             Log.d(TAG) { "saveBuyerProfile: Success" }
@@ -326,77 +334,6 @@ class GitLiveProfileRepository(
         }
     }
 
-    override suspend fun addKnownClient(sellerId: String, buyerId: String): Result<Unit> {
-        return try {
-            sellersRef.child(sellerId).child("knownClientIds").child(buyerId).setValue(true)
-            // Update cache
-            sellerProfileCache[sellerId]?.let { cached ->
-                if (buyerId !in cached.knownClientIds) {
-                    sellerProfileCache[sellerId] = cached.copy(
-                        knownClientIds = cached.knownClientIds + buyerId
-                    )
-                }
-            }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG) { "addKnownClient: Error - ${e.message}" }
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun blockClient(sellerId: String, buyerId: String): Result<Unit> {
-        return try {
-            // Remove from known, add to blocked
-            sellersRef.child(sellerId).child("knownClientIds").child(buyerId).removeValue()
-            sellersRef.child(sellerId).child("blockedClientIds").child(buyerId).setValue(true)
-            // Update cache
-            sellerProfileCache[sellerId]?.let { cached ->
-                sellerProfileCache[sellerId] = cached.copy(
-                    knownClientIds = cached.knownClientIds - buyerId,
-                    blockedClientIds = cached.blockedClientIds + (buyerId to "")
-                )
-            }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG) { "blockClient: Error - ${e.message}" }
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun unblockClient(sellerId: String, buyerId: String): Result<Unit> {
-        return try {
-            // Remove from blocked, add to known
-            sellersRef.child(sellerId).child("blockedClientIds").child(buyerId).removeValue()
-            sellersRef.child(sellerId).child("knownClientIds").child(buyerId).setValue(true)
-            // Update cache
-            sellerProfileCache[sellerId]?.let { cached ->
-                sellerProfileCache[sellerId] = cached.copy(
-                    blockedClientIds = cached.blockedClientIds - buyerId,
-                    knownClientIds = cached.knownClientIds + buyerId
-                )
-            }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG) { "unblockClient: Error - ${e.message}" }
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun isClientBlocked(sellerId: String, buyerId: String): Boolean {
-        return try {
-            // Check cache first
-            sellerProfileCache[sellerId]?.let { cached ->
-                return buyerId in cached.blockedClientIds
-            }
-            // Fetch from Firebase
-            val snapshot = sellersRef.child(sellerId).child("blockedClientIds").child(buyerId).valueEvents.first()
-            snapshot.exists
-        } catch (e: Exception) {
-            Log.e(TAG) { "isClientBlocked: Error - ${e.message}" }
-            false
-        }
-    }
-
     override suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit> {
         return try {
             Log.d(TAG) { "saveDraftBasket: START - ${draftBasket.items.size} items" }
@@ -460,7 +397,7 @@ class GitLiveProfileRepository(
 
                 val uuid = value["buyerUUID"] as? String ?: ""
                 if (uuid.isNotEmpty()) {
-                    buyerUUIDStorage?.set(uuid)
+                    pendingTokenStorage?.set(uuid)
                 }
 
                 BuyerProfile(
@@ -481,7 +418,6 @@ class GitLiveProfileRepository(
                     favouriteArticles = (value["favouriteArticles"] as? List<*>)
                         ?.mapNotNull { it?.toString() } ?: emptyList(),
                     draftBasket = draftBasket,
-                    buyerUUID = uuid,
                     street = value["street"] as? String ?: "",
                     houseNumber = value["houseNumber"] as? String ?: "",
                     isSelfPickup = value["isSelfPickup"] as? Boolean ?: false
@@ -555,10 +491,7 @@ class GitLiveProfileRepository(
                     lng = value["lng"] as? String ?: "",
                     sellerId = value["sellerId"] as? String ?: sellerId,
                     markets = markets,
-                    urls = (value["urls"] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
-                    knownClientIds = parseClientIds(value["knownClientIds"]),
-                    blockedClientIds = parseClientMap(value["blockedClientIds"]),
-                    approvedBuyerIds = parseClientMap(value["approvedBuyerIds"])
+                    urls = (value["urls"] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList()
                 )
             }
             else -> createMockSellerProfile(sellerId)
@@ -609,7 +542,6 @@ class GitLiveProfileRepository(
             "placedOrderIds" to profile.placedOrderIds,
             "favouriteArticles" to profile.favouriteArticles,
             "draftBasket" to profile.draftBasket?.let { draftBasketToMap(it) },
-            "buyerUUID" to profile.buyerUUID.ifEmpty { null },
             "street" to profile.street,
             "houseNumber" to profile.houseNumber,
             "isSelfPickup" to profile.isSelfPickup
@@ -666,10 +598,7 @@ class GitLiveProfileRepository(
             "lng" to profile.lng,
             "sellerId" to profile.sellerId,
             "markets" to marketsData,
-            "urls" to profile.urls,
-            "knownClientIds" to profile.knownClientIds.associateWith { true },
-            "blockedClientIds" to profile.blockedClientIds.mapValues { (_, name) -> if (name.isBlank()) true as Any else name as Any },
-            "approvedBuyerIds" to profile.approvedBuyerIds.mapValues { (_, name) -> if (name.isBlank()) true as Any else name as Any }
+            "urls" to profile.urls
         )
     }
 
@@ -688,47 +617,30 @@ class GitLiveProfileRepository(
         )
     }
 
-    override suspend fun saveBuyerUUID(uuid: String): Result<Unit> {
-        return try {
-            val userId = authRepository.getCurrentUserId()
-                ?: return Result.failure(Exception("User not authenticated"))
-            buyersRef.child(userId).child("buyerUUID").setValue(uuid)
-            buyerUUIDStorage?.set(uuid)
-            Log.d(TAG) { "saveBuyerUUID: saved uuid=$uuid for userId=$userId" }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG) { "saveBuyerUUID: Error - ${e.message}" }
-            Result.failure(e)
-        }
-    }
+    // --- buyer side -------------------------------------------------------
 
-    override suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
+    override suspend fun submitAccessRequest(sellerId: String, displayName: String): Result<Unit> {
         return try {
+            val uid = authRepository.getCurrentUserId()
+                ?: return Result.failure(Exception("User not authenticated"))
             val now = Clock.System.now().toEpochMilliseconds()
-            val authUID = authRepository.getCurrentUserId() ?: ""
-            // Write access request
-            accessRequestsRef.child(sellerId).child(buyerUUID).setValue(mapOf(
-                "buyerUUID" to buyerUUID,
-                "displayName" to displayName,
-                "requestedAt" to now,
-                // The rules bind the request to its author through this field;
-                // buyerUUID is buyer-supplied and cannot be trusted for that.
-                "authUID" to authUID
-            ))
-            // Write initial status = PENDING, include authUID so the seller can resolve the buyer profile
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).setValue(mapOf(
-                "status" to AccessStatus.PENDING.name,
-                "updatedAt" to now,
-                "buyerUUID" to buyerUUID,
-                "displayName" to displayName,
-                "authUID" to authUID
-            ))
-            // Remember this seller so a later display-name change can be pushed to
-            // buyer_access_status too - see syncDisplayNameToLinkedSellers.
-            if (authUID.isNotBlank()) {
-                buyersRef.child(authUID).child("linkedSellerIds").child(sellerId).setValue(true)
-            }
-            Log.d(TAG) { "submitAccessRequest: Success - sellerId=$sellerId, uuid=$buyerUUID" }
+
+            accessRequestsRef.child(sellerId).child(uid).setValue(
+                mapOf(
+                    "displayName" to displayName,
+                    "requestedAt" to now
+                )
+            )
+            buyerAccessStatusRef.child(sellerId).child(uid).setValue(
+                mapOf(
+                    "status" to AccessStatus.PENDING.name,
+                    "displayName" to displayName,
+                    "updatedAt" to now
+                )
+            )
+            rememberLinkedSeller(uid, sellerId)
+
+            Log.d(TAG) { "submitAccessRequest: sellerId=$sellerId uid=$uid" }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG) { "submitAccessRequest: Error - ${e.message}" }
@@ -736,11 +648,13 @@ class GitLiveProfileRepository(
         }
     }
 
-    override suspend fun cancelAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> {
+    override suspend fun cancelAccessRequest(sellerId: String): Result<Unit> {
         return try {
-            accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).removeValue()
-            Log.d(TAG) { "cancelAccessRequest: cancelled uuid=$buyerUUID" }
+            val uid = authRepository.getCurrentUserId()
+                ?: return Result.failure(Exception("User not authenticated"))
+            accessRequestsRef.child(sellerId).child(uid).removeValue()
+            buyerAccessStatusRef.child(sellerId).child(uid).removeValue()
+            Log.d(TAG) { "cancelAccessRequest: sellerId=$sellerId" }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG) { "cancelAccessRequest: Error - ${e.message}" }
@@ -748,36 +662,90 @@ class GitLiveProfileRepository(
         }
     }
 
-    override suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus {
+    override suspend fun redeemInviteToken(
+        sellerId: String,
+        token: String,
+        displayName: String
+    ): Result<Unit> {
         return try {
-            val snapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).valueEvents.first()
-            if (!snapshot.exists) return AccessStatus.NONE
-            val data = snapshot.value as? Map<*, *> ?: return AccessStatus.NONE
-            val statusStr = data["status"] as? String ?: return AccessStatus.NONE
-            AccessStatus.entries.firstOrNull { it.name == statusStr } ?: AccessStatus.NONE
+            val uid = authRepository.getCurrentUserId()
+                ?: return Result.failure(Exception("User not authenticated"))
+            val now = Clock.System.now().toEpochMilliseconds()
+
+            // Claiming the token is the step the rules allow only while it is
+            // unclaimed, so a second redemption - or an expired one - fails here and
+            // the access record below is never written.
+            inviteTokensRef.child(sellerId).child(token).child("redeemedBy").setValue(uid)
+
+            // The access record cites the token it was granted by; the rules check
+            // that token was redeemed by this same uid, so approval is verifiable.
+            buyerAccessStatusRef.child(sellerId).child(uid).setValue(
+                mapOf(
+                    "status" to AccessStatus.APPROVED.name,
+                    "displayName" to displayName,
+                    "updatedAt" to now,
+                    "viaToken" to token
+                )
+            )
+            rememberLinkedSeller(uid, sellerId)
+
+            Log.d(TAG) { "redeemInviteToken: redeemed for sellerId=$sellerId uid=$uid" }
+            Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG) { "getAccessStatus: Error - ${e.message}" }
+            Log.w(TAG) { "redeemInviteToken: Failed for sellerId=$sellerId - ${e.message}" }
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getAccessStatus(sellerId: String): AccessStatus {
+        return try {
+            val uid = authRepository.getCurrentUserId() ?: return AccessStatus.NONE
+            parseStatus(buyerAccessStatusRef.child(sellerId).child(uid).valueEvents.first())
+        } catch (e: Exception) {
+            Log.w(TAG) { "getAccessStatus: sellerId=$sellerId - ${e.message}" }
             AccessStatus.NONE
         }
     }
 
-    override fun observeAccessStatus(buyerUUID: String, sellerId: String): Flow<AccessStatus> {
-        return buyerAccessStatusRef.child(sellerId).child(buyerUUID).valueEvents.map { snapshot ->
-            if (!snapshot.exists) return@map AccessStatus.NONE
-            val data = snapshot.value as? Map<*, *> ?: return@map AccessStatus.NONE
-            val statusStr = data["status"] as? String ?: return@map AccessStatus.NONE
-            AccessStatus.entries.firstOrNull { it.name == statusStr } ?: AccessStatus.NONE
+    override fun observeAccessStatus(sellerId: String): Flow<AccessStatus> = flow {
+        val uid = authRepository.getCurrentUserId()
+        if (uid == null) {
+            emit(AccessStatus.NONE)
+            return@flow
+        }
+        emitAll(
+            buyerAccessStatusRef.child(sellerId).child(uid).valueEvents
+                .map { parseStatus(it) }
+                .catch { e ->
+                    Log.w(TAG) { "observeAccessStatus: sellerId=$sellerId - ${e.message}" }
+                    emit(AccessStatus.NONE)
+                }
+        )
+    }
+
+    override suspend fun updateOwnDisplayName(sellerId: String, displayName: String): Result<Unit> {
+        return try {
+            val uid = authRepository.getCurrentUserId()
+                ?: return Result.failure(Exception("User not authenticated"))
+            buyerAccessStatusRef.child(sellerId).child(uid).child("displayName").setValue(displayName)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG) { "updateOwnDisplayName: sellerId=$sellerId - ${e.message}" }
+            Result.failure(e)
         }
     }
+
+    // --- seller side ------------------------------------------------------
 
     override fun observeAccessRequests(sellerId: String): Flow<List<AccessRequest>> {
         return accessRequestsRef.child(sellerId).valueEvents.map { snapshot ->
             if (!snapshot.exists) return@map emptyList()
             snapshot.children.mapNotNull { child ->
+                val buyerId = child.key ?: return@mapNotNull null
                 val data = child.value as? Map<*, *> ?: return@mapNotNull null
                 AccessRequest(
                     sellerId = sellerId,
-                    buyerUUID = data["buyerUUID"] as? String ?: child.key ?: return@mapNotNull null,
+                    buyerId = buyerId,
                     buyerDisplayName = data["displayName"] as? String ?: "",
                     requestedAt = (data["requestedAt"] as? Number)?.toLong() ?: 0L
                 )
@@ -785,16 +753,40 @@ class GitLiveProfileRepository(
         }
     }
 
-    override suspend fun approveAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> {
+    override fun observeBuyers(sellerId: String): Flow<List<BuyerAccess>> {
+        return buyerAccessStatusRef.child(sellerId).valueEvents.map { snapshot ->
+            if (!snapshot.exists) return@map emptyList()
+            snapshot.children.mapNotNull { child ->
+                val buyerId = child.key ?: return@mapNotNull null
+                val data = child.value as? Map<*, *> ?: return@mapNotNull null
+                val statusName = data["status"] as? String ?: return@mapNotNull null
+                val status = AccessStatus.entries.firstOrNull { it.name == statusName }
+                    ?: return@mapNotNull null
+                BuyerAccess(
+                    buyerId = buyerId,
+                    displayName = data["displayName"] as? String ?: "",
+                    status = status,
+                    updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: 0L
+                )
+            }
+        }
+    }
+
+    override suspend fun approveAccessRequest(
+        sellerId: String,
+        buyerId: String,
+        displayName: String
+    ): Result<Unit> {
         return try {
-            val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).updateChildren(mapOf(
-                "status" to AccessStatus.APPROVED.name,
-                "updatedAt" to now,
-                "buyerUUID" to buyerUUID
-            ))
-            accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
-            Log.d(TAG) { "approveAccessRequest: approved uuid=$buyerUUID" }
+            buyerAccessStatusRef.child(sellerId).child(buyerId).updateChildren(
+                mapOf(
+                    "status" to AccessStatus.APPROVED.name,
+                    "displayName" to displayName,
+                    "updatedAt" to Clock.System.now().toEpochMilliseconds()
+                )
+            )
+            accessRequestsRef.child(sellerId).child(buyerId).removeValue()
+            Log.d(TAG) { "approveAccessRequest: approved buyerId=$buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG) { "approveAccessRequest: Error - ${e.message}" }
@@ -802,29 +794,16 @@ class GitLiveProfileRepository(
         }
     }
 
-    override suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
+    override suspend fun blockBuyer(sellerId: String, buyerId: String): Result<Unit> {
         return try {
-            val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).updateChildren(mapOf(
-                "status" to AccessStatus.BLOCKED.name,
-                "updatedAt" to now,
-                "buyerUUID" to buyerUUID
-            ))
-            accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
-            // Carry display name from approved list to blocked list
-            val displayName = sellerProfileCache[sellerId]?.approvedBuyerIds?.get(buyerUUID) ?: ""
-            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).removeValue()
-            sellersRef.child(sellerId).child("blockedClientIds").child(buyerUUID)
-                .setValue((if (displayName.isBlank()) true else displayName) as Any)
-            // Update cache
-            sellerProfileCache[sellerId]?.let { cached ->
-                sellerProfileCache[sellerId] = cached.copy(
-                    approvedBuyerIds = cached.approvedBuyerIds - buyerUUID,
-                    blockedClientIds = cached.blockedClientIds + (buyerUUID to displayName)
+            buyerAccessStatusRef.child(sellerId).child(buyerId).updateChildren(
+                mapOf(
+                    "status" to AccessStatus.BLOCKED.name,
+                    "updatedAt" to Clock.System.now().toEpochMilliseconds()
                 )
-            }
-            Log.d(TAG) { "blockBuyer: blocked uuid=$buyerUUID" }
-
+            )
+            accessRequestsRef.child(sellerId).child(buyerId).removeValue()
+            Log.d(TAG) { "blockBuyer: blocked buyerId=$buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG) { "blockBuyer: Error - ${e.message}" }
@@ -832,128 +811,86 @@ class GitLiveProfileRepository(
         }
     }
 
-    override suspend fun approveAccessRequestWithTracking(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
+    override suspend fun unblockBuyer(sellerId: String, buyerId: String): Result<Unit> {
+        return try {
+            buyerAccessStatusRef.child(sellerId).child(buyerId).updateChildren(
+                mapOf(
+                    "status" to AccessStatus.APPROVED.name,
+                    "updatedAt" to Clock.System.now().toEpochMilliseconds()
+                )
+            )
+            Log.d(TAG) { "unblockBuyer: unblocked buyerId=$buyerId" }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG) { "unblockBuyer: Error - ${e.message}" }
+            Result.failure(e)
+        }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    override suspend fun createInviteToken(
+        sellerId: String,
+        displayNameHint: String,
+        ttlMillis: Long,
+        token: String?
+    ): Result<String> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).updateChildren(mapOf(
-                "status" to AccessStatus.APPROVED.name,
-                "updatedAt" to now,
-                "buyerUUID" to buyerUUID,
-                "displayName" to displayName
-            ))
-            accessRequestsRef.child(sellerId).child(buyerUUID).removeValue()
-            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID)
-                .setValue((if (displayName.isBlank()) true else displayName) as Any)
-            // Update cache
-            sellerProfileCache[sellerId]?.let { cached ->
-                if (buyerUUID !in cached.approvedBuyerIds) {
-                    sellerProfileCache[sellerId] = cached.copy(
-                        approvedBuyerIds = cached.approvedBuyerIds + (buyerUUID to displayName)
-                    )
-                }
-            }
-            Log.d(TAG) { "approveAccessRequestWithTracking: approved uuid=$buyerUUID" }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG) { "approveAccessRequestWithTracking: Error - ${e.message}" }
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun updateApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
-        return try {
-            val authUID = authRepository.getCurrentUserId() ?: ""
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("displayName").setValue(displayName)
-            if (authUID.isNotBlank()) {
-                buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("authUID").setValue(authUID)
-            }
-            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue((if (displayName.isBlank()) true else displayName) as Any)
-            // Update cache
-            sellerProfileCache[sellerId]?.let { cached ->
-                if (buyerUUID in cached.approvedBuyerIds) {
-                    sellerProfileCache[sellerId] = cached.copy(
-                        approvedBuyerIds = cached.approvedBuyerIds + (buyerUUID to displayName)
-                    )
-                }
-            }
-            Log.d(TAG) { "updateApprovedBuyerDisplayName: updated uuid=$buyerUUID name=$displayName" }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG) { "updateApprovedBuyerDisplayName: Error - ${e.message}" }
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun correctApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
-        return try {
-            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID).setValue(displayName)
-            sellerProfileCache[sellerId]?.let { cached ->
-                sellerProfileCache[sellerId] = cached.copy(
-                    approvedBuyerIds = cached.approvedBuyerIds + (buyerUUID to displayName)
+            val id = token ?: Uuid.random().toString()
+            inviteTokensRef.child(sellerId).child(id).setValue(
+                mapOf(
+                    "createdAt" to now,
+                    "expiresAt" to now + ttlMillis,
+                    "displayNameHint" to displayNameHint
                 )
-            }
-            Log.d(TAG) { "correctApprovedBuyerDisplayName: uuid=$buyerUUID name=$displayName" }
-            Result.success(Unit)
+            )
+            Log.d(TAG) { "createInviteToken: minted a token for sellerId=$sellerId" }
+            Result.success(id)
         } catch (e: Exception) {
-            Log.e(TAG) { "correctApprovedBuyerDisplayName: Error - ${e.message}" }
+            Log.e(TAG) { "createInviteToken: Error - ${e.message}" }
             Result.failure(e)
         }
     }
 
-    override fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>> {
-        return sellersRef.child(sellerId).child("approvedBuyerIds").valueEvents.map { snapshot ->
-            if (!snapshot.exists) return@map emptyMap()
-            parseClientMap(snapshot.value)
-        }
+    // --- helpers ----------------------------------------------------------
+
+    private fun parseStatus(snapshot: DataSnapshot): AccessStatus {
+        if (!snapshot.exists) return AccessStatus.NONE
+        val data = snapshot.value as? Map<*, *> ?: return AccessStatus.NONE
+        val statusName = data["status"] as? String ?: return AccessStatus.NONE
+        return AccessStatus.entries.firstOrNull { it.name == statusName } ?: AccessStatus.NONE
     }
 
-    override suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
-        return try {
-            val now = Clock.System.now().toEpochMilliseconds()
-            buyerAccessStatusRef.child(sellerId).child(buyerUUID).updateChildren(mapOf(
-                "status" to AccessStatus.APPROVED.name,
-                "updatedAt" to now,
-                "buyerUUID" to buyerUUID
-            ))
-            // Carry display name from blocked list back to approved list
-            val displayName = sellerProfileCache[sellerId]?.blockedClientIds?.get(buyerUUID) ?: ""
-            sellersRef.child(sellerId).child("blockedClientIds").child(buyerUUID).removeValue()
-            sellersRef.child(sellerId).child("approvedBuyerIds").child(buyerUUID)
-                .setValue((if (displayName.isBlank()) true else displayName) as Any)
-            // Update cache
-            sellerProfileCache[sellerId]?.let { cached ->
-                val name = cached.blockedClientIds[buyerUUID] ?: ""
-                sellerProfileCache[sellerId] = cached.copy(
-                    blockedClientIds = cached.blockedClientIds - buyerUUID,
-                    approvedBuyerIds = cached.approvedBuyerIds + (buyerUUID to name)
-                )
-            }
-            Log.d(TAG) { "unblockApprovedBuyer: unblocked uuid=$buyerUUID" }
-            Result.success(Unit)
+    /**
+     * Note which sellers this buyer has an access record with, so a later rename can
+     * be pushed to each of them. Best effort: losing a link only means a stale name.
+     */
+    private suspend fun rememberLinkedSeller(uid: String, sellerId: String) {
+        try {
+            buyersRef.child(uid).child("linkedSellerIds").child(sellerId).setValue(true)
         } catch (e: Exception) {
-            Log.e(TAG) { "unblockApprovedBuyer: Error - ${e.message}" }
-            Result.failure(e)
+            Log.w(TAG) { "rememberLinkedSeller: sellerId=$sellerId - ${e.message}" }
         }
     }
 
     /**
-     * Push a buyer's new display name to buyer_access_status for every seller they've
-     * ever requested access from. buyer_access_status is the only buyer-writable node a
-     * seller can read (buyer_profile is owner-only), so it's the sole path by which a
-     * rename can ever reach the seller side - without this, the seller's approved/blocked
-     * buyer lists keep showing the name from the moment access was first requested.
+     * Push a buyer's new display name into every seller access record they hold.
+     *
+     * buyer_access_status is the only buyer-writable node a seller can read, so this
+     * is the sole path by which a rename reaches the seller side today. The
+     * seller_events sync channel is meant to replace it.
      */
-    private suspend fun syncDisplayNameToLinkedSellers(userId: String, buyerUUID: String, displayName: String) {
-        if (buyerUUID.isBlank()) return
+    private suspend fun syncDisplayNameToLinkedSellers(userId: String, displayName: String) {
         try {
             val linksSnapshot = buyersRef.child(userId).child("linkedSellerIds").valueEvents.first()
             val sellerIds = (linksSnapshot.value as? Map<*, *>)?.keys?.filterIsInstance<String>() ?: return
             for (sellerId in sellerIds) {
                 try {
-                    buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("displayName").setValue(displayName)
+                    buyerAccessStatusRef.child(sellerId).child(userId)
+                        .child("displayName").setValue(displayName)
                 } catch (e: Exception) {
-                    // A blocked seller relationship rejects this write - that's expected and
-                    // must not stop the name from reaching the buyer's other sellers.
+                    // A blocked seller relationship rejects this write - expected, and
+                    // it must not stop the name reaching the buyer's other sellers.
                     Log.w(TAG) { "syncDisplayNameToLinkedSellers: sellerId=$sellerId - ${e.message}" }
                 }
             }
@@ -962,30 +899,6 @@ class GitLiveProfileRepository(
             Log.e(TAG) { "syncDisplayNameToLinkedSellers: Error - ${e.message}" }
         }
     }
-
-    override suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String {
-        return try {
-            // Read displayName from buyer_access_status — the seller owns this path and the buyer
-            // writes their real name here via updateApprovedBuyerDisplayName on connect.
-            // buyer_profile is protected by Firebase rules (owner-only), so it cannot be read here.
-            val snapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("displayName").valueEvents.first()
-            snapshot.value as? String ?: ""
-        } catch (e: Exception) {
-            Log.e(TAG) { "getBuyerDisplayName: Error sellerId=$sellerId uuid=$buyerUUID - ${e.message}" }
-            ""
-        }
-    }
-
-    override suspend fun getBuyerAuthUID(sellerId: String, buyerUUID: String): String {
-        return try {
-            val snapshot = buyerAccessStatusRef.child(sellerId).child(buyerUUID).child("authUID").valueEvents.first()
-            snapshot.value as? String ?: ""
-        } catch (e: Exception) {
-            Log.e(TAG) { "getBuyerAuthUID: Error sellerId=$sellerId uuid=$buyerUUID - ${e.message}" }
-            ""
-        }
-    }
-
     private fun createMockSellerProfile(sellerId: String): SellerProfile {
         return SellerProfile(
             id = sellerId,
@@ -1005,8 +918,7 @@ class GitLiveProfileRepository(
             lng = "13.404954",
             sellerId = sellerId,
             markets = emptyList(),
-            urls = emptyList(),
-            knownClientIds = emptyList()
+            urls = emptyList()
         )
     }
 }

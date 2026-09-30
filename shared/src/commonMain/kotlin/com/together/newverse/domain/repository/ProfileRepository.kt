@@ -2,6 +2,7 @@ package com.together.newverse.domain.repository
 
 import com.together.newverse.domain.model.AccessRequest
 import com.together.newverse.domain.model.AccessStatus
+import com.together.newverse.domain.model.BuyerAccess
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
@@ -83,37 +84,6 @@ interface ProfileRepository {
     suspend fun deleteBuyerProfile(userId: String): Result<Unit>
 
     /**
-     * Add a buyer as a known client to a seller's profile.
-     * @param sellerId The seller's ID
-     * @param buyerId The buyer's ID to register
-     */
-    suspend fun addKnownClient(sellerId: String, buyerId: String): Result<Unit>
-
-    /**
-     * Block a buyer from placing orders with a seller.
-     * Moves from knownClientIds to blockedClientIds.
-     * @param sellerId The seller's ID
-     * @param buyerId The buyer's ID to block
-     */
-    suspend fun blockClient(sellerId: String, buyerId: String): Result<Unit>
-
-    /**
-     * Unblock a buyer, allowing them to place orders again.
-     * Moves from blockedClientIds to knownClientIds.
-     * @param sellerId The seller's ID
-     * @param buyerId The buyer's ID to unblock
-     */
-    suspend fun unblockClient(sellerId: String, buyerId: String): Result<Unit>
-
-    /**
-     * Check if a buyer is blocked by a seller.
-     * @param sellerId The seller's ID
-     * @param buyerId The buyer's ID to check
-     * @return true if blocked
-     */
-    suspend fun isClientBlocked(sellerId: String, buyerId: String): Boolean
-
-    /**
      * Save draft basket to buyer profile
      * @param draftBasket The draft basket to save
      * @return Success or failure result
@@ -127,33 +97,51 @@ interface ProfileRepository {
      */
     suspend fun clearDraftBasket(): Result<Unit>
 
-    /**
-     * Persist buyerUUID to the buyer's Firebase profile so security rules can verify ownership.
-     * Must be called before observeAccessStatus to ensure the read is permitted.
-     */
-    suspend fun saveBuyerUUID(uuid: String): Result<Unit>
+    // --- buyer side -------------------------------------------------------
+    // Every access record is keyed by the buyer's own auth uid, so these take no
+    // buyer identifier: the repository reads it from the auth session.
 
     /**
-     * Submit an access request from a buyer to a seller.
-     * Writes to access_requests/{sellerId}/{buyerUUID} and sets status to PENDING.
+     * Submit an access request to a seller.
+     * Writes access_requests/{sellerId}/{uid} and a PENDING buyer_access_status record.
      */
-    suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit>
+    suspend fun submitAccessRequest(sellerId: String, displayName: String): Result<Unit>
 
     /**
-     * Cancel a previously submitted access request.
-     * Removes access_requests/{sellerId}/{buyerUUID} and buyer_access_status/{sellerId}/{buyerUUID}.
+     * Withdraw a previously submitted access request, clearing both nodes.
      */
-    suspend fun cancelAccessRequest(sellerId: String, buyerUUID: String): Result<Unit>
+    suspend fun cancelAccessRequest(sellerId: String): Result<Unit>
 
     /**
-     * One-shot read of the buyer's access status for a specific seller.
+     * Redeem a seller's invite token, granting immediate approval.
+     *
+     * Marks the token as redeemed by this buyer and writes an APPROVED
+     * buyer_access_status record citing it. The rules verify the cited token was
+     * redeemed by this same uid, so the approval is provable rather than asserted;
+     * a token that is already redeemed, expired or unknown fails.
      */
-    suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus
+    suspend fun redeemInviteToken(sellerId: String, token: String, displayName: String): Result<Unit>
 
     /**
-     * Observe real-time access status updates for a buyer/seller pair.
+     * One-shot read of this buyer's access status for a seller.
      */
-    fun observeAccessStatus(buyerUUID: String, sellerId: String): Flow<AccessStatus>
+    suspend fun getAccessStatus(sellerId: String): AccessStatus
+
+    /**
+     * Observe this buyer's access status for a seller.
+     */
+    fun observeAccessStatus(sellerId: String): Flow<AccessStatus>
+
+    /**
+     * Push this buyer's current display name into their access record, so the
+     * seller's customer list reflects a rename.
+     *
+     * Interim mechanism: the buyer writing into a seller-read node is what the
+     * seller_events sync channel is meant to replace.
+     */
+    suspend fun updateOwnDisplayName(sellerId: String, displayName: String): Result<Unit>
+
+    // --- seller side ------------------------------------------------------
 
     /**
      * Observe all pending access requests for a seller.
@@ -161,59 +149,35 @@ interface ProfileRepository {
     fun observeAccessRequests(sellerId: String): Flow<List<AccessRequest>>
 
     /**
-     * Approve an access request — sets status to APPROVED and removes the request.
+     * Observe every buyer this seller has an access record for, whatever its status.
+     * Replaces the approvedBuyerIds / blockedClientIds maps.
      */
-    suspend fun approveAccessRequest(sellerId: String, buyerUUID: String): Result<Unit>
+    fun observeBuyers(sellerId: String): Flow<List<BuyerAccess>>
 
     /**
-     * Block a buyer — sets status to BLOCKED and removes the request.
+     * Approve a buyer's request and clear it from the pending list.
      */
-    suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit>
+    suspend fun approveAccessRequest(sellerId: String, buyerId: String, displayName: String): Result<Unit>
 
     /**
-     * Approve an access request and track the buyer in the seller's approvedBuyerIds list.
+     * Block a buyer, clearing any pending request. A blocked buyer cannot order,
+     * cannot reset their own status, and cannot append to the event log.
      */
-    suspend fun approveAccessRequestWithTracking(sellerId: String, buyerUUID: String, displayName: String): Result<Unit>
+    suspend fun blockBuyer(sellerId: String, buyerId: String): Result<Unit>
 
     /**
-     * Unblock a previously approved buyer — sets status back to APPROVED and moves them
-     * from blockedClientIds back to approvedBuyerIds.
+     * Return a blocked buyer to APPROVED.
      */
-    suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit>
+    suspend fun unblockBuyer(sellerId: String, buyerId: String): Result<Unit>
 
     /**
-     * Update the display name of an approved buyer in both buyer_access_status and approvedBuyerIds.
-     * Used when a QR-pre-approved buyer connects and their real name becomes available.
+     * Mint an invite token for a buyer who does not exist yet, for a QR code or link.
+     * @return the token, to embed in the link.
      */
-    suspend fun updateApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit>
-
-    /**
-     * Correct the display name of an approved buyer in the seller's approvedBuyerIds list.
-     * Only updates seller_profile — does not touch buyer_access_status.
-     * Called by the seller after resolving a QR-link placeholder via getBuyerDisplayName.
-     */
-    suspend fun correctApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit>
-
-    /**
-     * Observe the approved buyer IDs for a seller in real-time.
-     * Emits a map of buyerUUID to displayName. Empty string means name is unknown.
-     */
-    fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>>
-
-    /**
-     * Resolve the display name for a buyer identified by their UUID token.
-     * Reads authUID from buyer_access_status/{sellerId}/{buyerUUID}/authUID,
-     * then fetches the display name from buyer_profile/{authUID}/displayName.
-     * Returns empty string if the buyer has not connected yet (knowledge gap).
-     */
-    suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String
-
-    /**
-     * Resolve the Firebase auth uid backing a buyer's UUID identity for a seller.
-     * Reads authUID from buyer_access_status/{sellerId}/{buyerUUID}/authUID.
-     * This is the id orders are keyed by (Order.buyerProfile.id), so it's how a
-     * seller correlates a buyerUUID from the access list with that buyer's orders.
-     * Returns empty string if the buyer has not connected yet.
-     */
-    suspend fun getBuyerAuthUID(sellerId: String, buyerUUID: String): String
+    suspend fun createInviteToken(
+        sellerId: String,
+        displayNameHint: String,
+        ttlMillis: Long,
+        token: String? = null
+    ): Result<String>
 }

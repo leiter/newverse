@@ -52,7 +52,7 @@
         "$date": {
           "$orderId": {
             ".read": "auth != null && ($sellerId === auth.uid || data.child('buyerId').val() === auth.uid)",
-            ".write": "auth != null && ($sellerId === auth.uid || (data.child('buyerId').val() === auth.uid || !data.exists()) && !root.child('seller_profile').child($sellerId).child('blockedClientIds').child(auth.uid).exists())",
+            ".write": "auth != null && ($sellerId === auth.uid || (data.child('buyerId').val() === auth.uid || !data.exists()) && root.child('buyer_access_status').child($sellerId).child(auth.uid).child('status').val() !== 'BLOCKED')",
             ".validate": "auth.uid === $sellerId || newData.child('buyerId').val() === auth.uid"
           }
         }
@@ -108,9 +108,11 @@
     },
     "buyer_access_status": {
       "$sellerId": {
+        ".read": "auth != null && auth.uid === $sellerId",
         "$buyerUid": {
           ".read": "auth != null && (auth.uid === $sellerId || $buyerUid === auth.uid)",
-          ".write": "auth != null && (auth.uid === $sellerId || ($buyerUid === auth.uid && (!data.exists() ? newData.child('status').val() === 'PENDING' : (data.child('status').val() !== 'BLOCKED' && (!newData.exists() || newData.child('status').val() === data.child('status').val())))))"
+          ".write": "auth != null && (auth.uid === $sellerId || ($buyerUid === auth.uid && (!data.exists() ? (newData.child('status').val() === 'PENDING' || (newData.child('status').val() === 'APPROVED' && newData.child('viaToken').exists() && root.child('invite_tokens').child($sellerId).child(newData.child('viaToken').val()).child('redeemedBy').val() === auth.uid)) : (data.child('status').val() !== 'BLOCKED' && (!newData.exists() || newData.child('status').val() === data.child('status').val())))))",
+          "viaToken": { ".validate": "newData.isString()" }
         }
       }
     },
@@ -118,7 +120,7 @@
       "$sellerId": {
         ".read": "auth != null && auth.uid === $sellerId",
         "$eventId": {
-          ".write": "auth != null && ((!data.exists() && newData.exists() && newData.child('firebaseUserId').val() === auth.uid && root.child('seller_profile').child($sellerId).child('approvedBuyerIds').child(auth.uid).exists()) || (auth.uid === $sellerId && !newData.exists()))",
+          ".write": "auth != null && ((!data.exists() && newData.exists() && newData.child('firebaseUserId').val() === auth.uid && root.child('buyer_access_status').child($sellerId).child(auth.uid).child('status').val() === 'APPROVED') || (auth.uid === $sellerId && !newData.exists()))",
           ".validate": "newData.hasChildren(['id', 'sellerId', 'type', 'buyerId', 'firebaseUserId', 'timestamp', 'timestampIso']) && newData.child('sellerId').val() === $sellerId"
         }
       }

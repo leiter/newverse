@@ -89,7 +89,7 @@ class SellerProfileViewModel(
         loadProfile()
         loadStats()
         observeAccessRequests()
-        observeApprovedBuyers()
+        observeBuyers()
     }
 
     private fun observeAccessRequests() {
@@ -101,112 +101,76 @@ class SellerProfileViewModel(
         }
     }
 
-    private fun observeApprovedBuyers() {
+    /**
+     * buyer_access_status is the whole customer roster. Names arrive in the record
+     * itself - written by the buyer on request or redemption - so there is nothing to
+     * resolve per entry, and both lists come from one observer.
+     */
+    private fun observeBuyers() {
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            profileRepository.observeApprovedBuyerIds(sellerId)
-                .catch { e -> Log.e(TAG) { "observeApprovedBuyers: ${e.message}" } }
-                .collect { map ->
-                    Log.d(TAG) { "observeApprovedBuyers: ${map.size} approved buyers" }
-                    val entries = map.map { (id, name) -> BuyerEntry(id, name, AccessStatus.APPROVED) }
-                    val enriched = enrichWithDisplayNames(sellerId, entries)
-                    _customerState.update { state -> state.copy(approvedBuyers = enriched) }
+            profileRepository.observeBuyers(sellerId)
+                .catch { e -> Log.e(TAG) { "observeBuyers: ${e.message}" } }
+                .collect { buyers ->
+                    Log.d(TAG) { "observeBuyers: ${buyers.size} access records" }
+                    _customerState.value = CustomerManagementState(
+                        approvedBuyers = buyers
+                            .filter { it.status == AccessStatus.APPROVED }
+                            .map { BuyerEntry(it.buyerId, it.displayName, it.status) },
+                        blockedBuyers = buyers
+                            .filter { it.status == AccessStatus.BLOCKED }
+                            .map { BuyerEntry(it.buyerId, it.displayName, it.status) }
+                    )
                 }
-        }
-    }
-
-    @OptIn(ExperimentalUuidApi::class)
-    fun generateBuyerLink() {
-        viewModelScope.launch {
-            val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            val uuid = Uuid.random().toString()
-            val link = "https://cutthecrap.link/connect?seller=$sellerId&token=$uuid"
-            Log.d(TAG) { "generateBuyerLink: sellerId=$sellerId uuid=$uuid link=$link" }
-            _generatedBuyerLink.value = link
-            // Pre-approve in background so the buyer is immediately APPROVED upon scanning/clicking
-            launch {
-                profileRepository.approveAccessRequestWithTracking(sellerId, uuid, QR_LINK_PLACEHOLDER)
-                    .onFailure { e -> Log.e(TAG) { "Pre-approve for buyer link failed: ${e.message}" } }
-            }
-        }
-    }
-
-    fun approveRequest(buyerUUID: String) {
-        viewModelScope.launch {
-            val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            val displayName = _accessRequests.value.find { it.buyerUUID == buyerUUID }?.buyerDisplayName ?: ""
-            profileRepository.approveAccessRequestWithTracking(sellerId, buyerUUID, displayName)
-                .onFailure { e -> Log.e(TAG) { "approveRequest: ${e.message}" } }
-        }
-    }
-
-    fun blockBuyer(buyerUUID: String) {
-        viewModelScope.launch {
-            val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            profileRepository.blockBuyer(sellerId, buyerUUID)
-                .onFailure { e -> Log.e(TAG) { "blockBuyer: ${e.message}" } }
-        }
-    }
-
-    fun blockApprovedBuyer(buyerUUID: String) {
-        viewModelScope.launch {
-            val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            // Grab display name before the repo call removes the entry
-            val displayName = _customerState.value.approvedBuyers
-                .find { it.id == buyerUUID }?.displayName ?: ""
-            profileRepository.blockBuyer(sellerId, buyerUUID)
-                .onSuccess {
-                    // Only update blockedBuyers; approvedBuyers is handled by the Firebase observer
-                    _customerState.update { state ->
-                        state.copy(
-                            blockedBuyers = state.blockedBuyers + BuyerEntry(
-                                buyerUUID, displayName, AccessStatus.BLOCKED
-                            )
-                        )
-                    }
-                }
-                .onFailure { e -> Log.e(TAG) { "blockApprovedBuyer: ${e.message}" } }
-        }
-    }
-
-    fun unblockApprovedBuyer(buyerUUID: String) {
-        viewModelScope.launch {
-            val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            profileRepository.unblockApprovedBuyer(sellerId, buyerUUID)
-                .onSuccess {
-                    // Only update blockedBuyers; approvedBuyers is handled by the Firebase observer
-                    _customerState.update { state ->
-                        state.copy(
-                            blockedBuyers = state.blockedBuyers.filter { it.id != buyerUUID }
-                        )
-                    }
-                }
-                .onFailure { e -> Log.e(TAG) { "unblockApprovedBuyer: ${e.message}" } }
         }
     }
 
     /**
-     * Always re-resolves against buyer_access_status rather than only when the stored
-     * name is blank/placeholder: a buyer can rename themselves after being approved, and
-     * that update lands in buyer_access_status without ever touching approvedBuyerIds,
-     * so this list would otherwise keep showing the name from approval time forever.
+     * Mint an invite token and build the link around it. The token is written first
+     * and the link only published once it exists, so a scanned code can always be
+     * redeemed - the old flow pre-approved a bare uuid in the background, which the
+     * buyer then had no way to claim.
      */
-    private suspend fun enrichWithDisplayNames(sellerId: String, entries: List<BuyerEntry>): List<BuyerEntry> =
-        coroutineScope {
-            entries.map { entry ->
-                async {
-                    val name = profileRepository.getBuyerDisplayName(sellerId, entry.id)
-                    val isResolved = name.isNotBlank() && name != QR_LINK_PLACEHOLDER
-                    if (isResolved && name != entry.displayName && entry.status == AccessStatus.APPROVED) {
-                        // Persist the resolved name so future loads and the observer see the real name.
-                        // Only approvedBuyerIds is corrected here - a blocked buyer can no longer write
-                        // buyer_access_status, and correcting blockedClientIds isn't supported by the repo.
-                        profileRepository.correctApprovedBuyerDisplayName(sellerId, entry.id, name)
-                    }
-                    entry.copy(displayName = if (isResolved) name else entry.displayName)
+    fun generateBuyerLink() {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.createInviteToken(sellerId, QR_LINK_HINT, INVITE_TOKEN_TTL_MILLIS)
+                .onSuccess { token ->
+                    _generatedBuyerLink.value =
+                        "https://cutthecrap.link/connect?seller=$sellerId&token=$token"
+                    Log.d(TAG) { "generateBuyerLink: minted a token for sellerId=$sellerId" }
                 }
-            }.awaitAll()
+                .onFailure { e -> Log.e(TAG) { "generateBuyerLink: ${e.message}" } }
         }
+    }
+
+    fun approveRequest(buyerId: String) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            val displayName = _accessRequests.value.find { it.buyerId == buyerId }?.buyerDisplayName ?: ""
+            profileRepository.approveAccessRequest(sellerId, buyerId, displayName)
+                .onFailure { e -> Log.e(TAG) { "approveRequest: ${e.message}" } }
+        }
+    }
+
+    // No optimistic local update: observeBuyers is the single source of truth and
+    // reflects the write as soon as Firebase echoes it back.
+
+    fun blockBuyer(buyerId: String) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.blockBuyer(sellerId, buyerId)
+                .onFailure { e -> Log.e(TAG) { "blockBuyer: ${e.message}" } }
+        }
+    }
+
+    fun unblockBuyer(buyerId: String) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.unblockBuyer(sellerId, buyerId)
+                .onFailure { e -> Log.e(TAG) { "unblockBuyer: ${e.message}" } }
+        }
+    }
 
     fun clearGeneratedLink() {
         _generatedBuyerLink.value = null
@@ -224,16 +188,9 @@ class SellerProfileViewModel(
 
             profileRepository.getSellerProfile(sellerId).fold(
                 onSuccess = { profile ->
+                    // The customer roster is not part of the profile any more;
+                    // observeBuyers owns _customerState.
                     _profileState.value = AsyncState.Success(profile)
-                    val blockedEntries = profile.blockedClientIds.map { (id, name) -> BuyerEntry(id, name, AccessStatus.BLOCKED) }
-                    val approvedEntries = profile.approvedBuyerIds.map { (id, name) -> BuyerEntry(id, name, AccessStatus.APPROVED) }
-                    val enrichedBlocked = enrichWithDisplayNames(sellerId, blockedEntries)
-                    val enrichedApproved = enrichWithDisplayNames(sellerId, approvedEntries)
-                    _customerState.value = CustomerManagementState(
-                        knownClientIds = profile.knownClientIds,
-                        blockedBuyers = enrichedBlocked,
-                        approvedBuyers = enrichedApproved
-                    )
                 },
                 onFailure = { e ->
                     _profileState.value = AsyncState.Error(
@@ -344,34 +301,6 @@ class SellerProfileViewModel(
         _dialogState.update { it.copy(showPaymentInfo = false) }
     }
 
-    fun blockCustomer(buyerId: String) {
-        viewModelScope.launch {
-            val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            profileRepository.blockClient(sellerId, buyerId).onSuccess {
-                _customerState.update {
-                    it.copy(
-                        knownClientIds = it.knownClientIds - buyerId,
-                        blockedBuyers = it.blockedBuyers + BuyerEntry(buyerId, "", AccessStatus.BLOCKED)
-                    )
-                }
-            }
-        }
-    }
-
-    fun unblockCustomer(buyerId: String) {
-        viewModelScope.launch {
-            val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            profileRepository.unblockClient(sellerId, buyerId).onSuccess {
-                _customerState.update {
-                    it.copy(
-                        blockedBuyers = it.blockedBuyers.filter { b -> b.id != buyerId },
-                        knownClientIds = it.knownClientIds + buyerId
-                    )
-                }
-            }
-        }
-    }
-
     fun generateInvitation(expiryMinutes: Int = 1440) {
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
@@ -394,10 +323,12 @@ class SellerProfileViewModel(
                             isGenerating = false
                         )
                     }
-                    // Pre-approve in background so the buyer is immediately APPROVED upon accepting
+                    // The invitation doubles as its own invite token, so accepting it
+                    // redeems through exactly the same path as a scanned QR link.
                     launch {
-                        profileRepository.approveAccessRequestWithTracking(sellerId, invitation.id, "Invitation")
-                            .onFailure { e -> Log.e(TAG) { "Pre-approve for invitation failed: ${e.message}" } }
+                        profileRepository.createInviteToken(
+                            sellerId, "Invitation", INVITE_TOKEN_TTL_MILLIS, token = invitation.id
+                        ).onFailure { e -> Log.e(TAG) { "Invite token for invitation failed: ${e.message}" } }
                     }
                 },
                 onFailure = { e ->
@@ -482,7 +413,11 @@ data class ProfileDialogState(
 )
 
 /** Placeholder display name assigned to QR-link pre-approved buyers before they connect. */
-const val QR_LINK_PLACEHOLDER = "QR-Link"
+/** Placeholder name on a minted token, until the buyer redeems it and supplies theirs. */
+const val QR_LINK_HINT = "QR-Link"
+
+/** Invite links are meant to be scanned at a market stall, not hoarded. */
+const val INVITE_TOKEN_TTL_MILLIS = 30L * 24 * 60 * 60 * 1000
 
 /**
  * A buyer entry with id, display name, and access status.
@@ -497,13 +432,9 @@ data class BuyerEntry(
  * Customer management state for the seller profile screen
  */
 data class CustomerManagementState(
-    val knownClientIds: List<String> = emptyList(),
     val approvedBuyers: List<BuyerEntry> = emptyList(),
     val blockedBuyers: List<BuyerEntry> = emptyList()
-) {
-    val allClientIds: List<String>
-        get() = knownClientIds + blockedBuyers.map { it.id }
-}
+)
 
 /**
  * Invitation management state for the seller profile screen

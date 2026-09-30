@@ -2,6 +2,7 @@ package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.AccessRequest
 import com.together.newverse.domain.model.AccessStatus
+import com.together.newverse.domain.model.BuyerAccess
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
@@ -103,17 +104,6 @@ class MockProfileRepository : ProfileRepository {
         }
     }
 
-    override suspend fun addKnownClient(sellerId: String, buyerId: String): Result<Unit> =
-        Result.success(Unit)
-
-    override suspend fun blockClient(sellerId: String, buyerId: String): Result<Unit> =
-        Result.success(Unit)
-
-    override suspend fun unblockClient(sellerId: String, buyerId: String): Result<Unit> =
-        Result.success(Unit)
-
-    override suspend fun isClientBlocked(sellerId: String, buyerId: String): Boolean = false
-
     override suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit> {
         return try {
             delay(100)
@@ -140,45 +130,38 @@ class MockProfileRepository : ProfileRepository {
         }
     }
 
-    override suspend fun saveBuyerUUID(uuid: String): Result<Unit> = Result.success(Unit)
-
-    override suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> =
+    override suspend fun submitAccessRequest(sellerId: String, displayName: String): Result<Unit> =
         Result.success(Unit)
 
-    override suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus =
-        AccessStatus.NONE
+    override suspend fun cancelAccessRequest(sellerId: String): Result<Unit> =
+        Result.success(Unit)
 
-    override fun observeAccessStatus(buyerUUID: String, sellerId: String): Flow<AccessStatus> =
+    override suspend fun redeemInviteToken(sellerId: String, token: String, displayName: String): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun getAccessStatus(sellerId: String): AccessStatus = AccessStatus.NONE
+
+    override fun observeAccessStatus(sellerId: String): Flow<AccessStatus> =
         flowOf(AccessStatus.NONE)
+
+    override suspend fun updateOwnDisplayName(sellerId: String, displayName: String): Result<Unit> =
+        Result.success(Unit)
 
     override fun observeAccessRequests(sellerId: String): Flow<List<AccessRequest>> =
         flowOf(emptyList())
 
-    override suspend fun approveAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> =
+    override fun observeBuyers(sellerId: String): Flow<List<BuyerAccess>> =
+        flowOf(emptyList())
+
+    override suspend fun approveAccessRequest(sellerId: String, buyerId: String, displayName: String): Result<Unit> =
         Result.success(Unit)
 
-    override suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit> =
+    override suspend fun blockBuyer(sellerId: String, buyerId: String): Result<Unit> =
         Result.success(Unit)
 
-    override suspend fun approveAccessRequestWithTracking(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> =
+    override suspend fun unblockBuyer(sellerId: String, buyerId: String): Result<Unit> =
         Result.success(Unit)
 
-    override suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit> =
-        Result.success(Unit)
-
-    override suspend fun updateApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> =
-        Result.success(Unit)
-
-    override fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>> =
-        flowOf(emptyMap())
-
-    override suspend fun cancelAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> =
-        Result.success(Unit)
-
-    override suspend fun correctApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> =
-        Result.success(Unit)
-
-    override suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String = ""
-
-    override suspend fun getBuyerAuthUID(sellerId: String, buyerUUID: String): String = ""
+    override suspend fun createInviteToken(sellerId: String, displayNameHint: String, ttlMillis: Long, token: String?): Result<String> =
+        Result.success(token ?: "mock-token")
 }

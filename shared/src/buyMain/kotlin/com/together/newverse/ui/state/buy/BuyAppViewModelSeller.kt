@@ -188,17 +188,10 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
             // Check if buyer is blocked by this seller
             val buyerId = authRepository.getCurrentUserId()
             if (buyerId != null) {
-                val isBlocked = profileRepository.isClientBlocked(sellerId, buyerId)
+                val isBlocked = profileRepository.getAccessStatus(sellerId) == AccessStatus.BLOCKED
                 if (isBlocked) {
                     showSnackBar("You have been blocked by this seller", SnackbarType.ERROR)
                     return@launch
-                }
-
-                // Register as known client (non-fatal — may fail for demo/unapproved buyers)
-                try {
-                    profileRepository.addKnownClient(sellerId, buyerId)
-                } catch (e: Exception) {
-                    Log.d(TAG) { "performConnection: addKnownClient failed (non-fatal) - ${e.message}" }
                 }
             }
 

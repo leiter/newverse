@@ -148,9 +148,6 @@ class GitLiveInvitationRepository(
             ref.child("status").setValue(InvitationStatus.ACCEPTED.name)
             ref.child("buyerId").setValue(buyerId)
 
-            // Register buyer as known client
-            profileRepository.addKnownClient(invitation.sellerId, buyerId)
-
             // Remove from buyer_invitations index
             buyerInvitationsRef.child(buyerId).child(invitationId).removeValue()
 

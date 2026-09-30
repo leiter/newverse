@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -71,41 +72,18 @@ class CustomerDetailViewModel(
             return@flow
         }
 
-        // The access list (approvedBuyerIds/blockedClientIds) is the source of truth for
-        // status and the fallback name - the same maps SellerProfileScreen shows.
-        val sellerProfile = profileRepository.getSellerProfile(sellerId).getOrNull()
-        val (fallbackName, status) = when {
-            sellerProfile == null -> "" to AccessStatus.NONE
-            buyerId in sellerProfile.approvedBuyerIds -> sellerProfile.approvedBuyerIds[buyerId].orEmpty() to AccessStatus.APPROVED
-            buyerId in sellerProfile.blockedClientIds -> sellerProfile.blockedClientIds[buyerId].orEmpty() to AccessStatus.BLOCKED
-            else -> "" to AccessStatus.NONE
-        }
-
-        val authUID = profileRepository.getBuyerAuthUID(sellerId, buyerId)
-        if (authUID.isBlank()) {
-            // Buyer requested access but has never connected - no orders to correlate yet.
-            emit(
-                AsyncState.Success(
-                    CustomerDetailData(
-                        buyerId = buyerId,
-                        displayName = fallbackName,
-                        status = status,
-                        emailAddress = "",
-                        telephoneNumber = "",
-                        orderCount = 0,
-                        totalSpent = 0.0,
-                        lastOrderDate = null,
-                        orders = emptyList()
-                    )
-                )
-            )
-            return@flow
-        }
+        // buyer_access_status is the source of truth for status and the fallback name.
+        // Its key is the buyer's auth uid, which is also what orders are keyed by, so
+        // there is no correlation step and no "requested but never connected" gap.
+        val access = profileRepository.observeBuyers(sellerId).first()
+            .firstOrNull { it.buyerId == buyerId }
+        val fallbackName = access?.displayName.orEmpty()
+        val status = access?.status ?: AccessStatus.NONE
 
         emitAll(
             orderRepository.observeSellerOrders(sellerId).map { orders ->
                 val buyerOrders = orders
-                    .filter { it.buyerProfile.id == authUID }
+                    .filter { it.buyerProfile.id == buyerId }
                     .sortedByDescending { it.pickUpDate }
                 val moneyOrders = buyerOrders.filter { it.status in MONEY_COUNTING_STATUSES }
                 val contact = buyerOrders.firstOrNull()?.buyerProfile

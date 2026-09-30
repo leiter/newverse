@@ -250,7 +250,7 @@ internal fun BuyAppViewModel.logout() {
         authRepository.signOut()
             .onSuccess {
                 // Clear per-user storage
-                buyerUUIDStorage?.clearActiveUserId()
+                pendingTokenStorage?.clearActiveUserId()
                 (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.clearActiveUser()
 
                 // Drop cached profiles; they outlive the session otherwise
@@ -395,7 +395,7 @@ internal fun BuyAppViewModel.confirmGuestLogout() {
             Log.d(TAG) { "Cleared local basket" }
 
             // Step 3: Clear per-user storage
-            buyerUUIDStorage?.clearActiveUserId()
+            pendingTokenStorage?.clearActiveUserId()
             (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.clearActiveUser()
             Log.d(TAG) { "Cleared per-user storage" }
 
@@ -506,8 +506,8 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
                 // Migrate anonymous user storage to real account
                 val previousUserId = (_state.value.user as? UserState.LoggedIn)?.id
                 if (previousUserId != null && previousUserId != userId) {
-                    buyerUUIDStorage?.renameUserId(previousUserId, userId)
-                    buyerUUIDStorage?.setActiveUserId(userId)
+                    pendingTokenStorage?.renameUserId(previousUserId, userId)
+                    pendingTokenStorage?.setActiveUserId(userId)
                     (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.migrateAnonymousUser(previousUserId, userId)
                     Log.d(TAG) { "Migrated per-user storage from anonymous $previousUserId to real $userId" }
                 }
@@ -694,7 +694,7 @@ internal fun BuyAppViewModel.confirmDeleteAccount() {
             profileRepository.clearCache()
 
             // Clear per-user storage, same as the guest wipe
-            buyerUUIDStorage?.clearActiveUserId()
+            pendingTokenStorage?.clearActiveUserId()
             (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.clearActiveUser()
 
             // Record the deletion in the seller's book keeping log.
@@ -1027,7 +1027,7 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             // Activate per-user storage
             val userId = authUserInfo?.id ?: authRepository.getCurrentUserId()
             if (userId != null) {
-                buyerUUIDStorage?.setActiveUserId(userId)
+                pendingTokenStorage?.setActiveUserId(userId)
                 (sellerConfig as? com.together.newverse.data.config.BuyerSellerConfig)?.setActiveUserId(userId)
                 Log.d(TAG) { "Activated per-user storage for userId=$userId" }
             }
@@ -1053,12 +1053,12 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             // locally even though it still exists in Firebase. Without it,
             // startObservingAccessStatus() immediately marks the buyer as demo mode,
             // causing loadCurrentOrder() to look in demo_orders/ and miss the real order.
-            val localUUID = buyerUUIDStorage?.get()
+            val localUUID = pendingTokenStorage?.get()
             if (localUUID == null) {
                 val profileUUID = _state.value.customerProfile.profile?.buyerUUID
                 if (!profileUUID.isNullOrBlank()) {
                     Log.d(TAG) { "resumeInitializationAfterAuth: Restoring buyerUUID from Firebase profile after reinstall" }
-                    buyerUUIDStorage?.set(profileUUID)
+                    pendingTokenStorage?.set(profileUUID)
                 }
             }
 

@@ -1,6 +1,6 @@
 package com.together.newverse.di
 
-import com.together.newverse.data.config.BuyerUUIDStorage
+import com.together.newverse.data.config.PendingInviteTokenStorage
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.data.config.DefaultProductCatalogConfig
 import com.together.newverse.data.config.DefaultSellerConfig
@@ -37,7 +37,7 @@ val androidDomainModule = module {
     // Configs
     single { SellerIdStorage(get()) }
     single { DemoOrderStorage(get()) }
-    single { BuyerUUIDStorage(get()) }
+    single { PendingInviteTokenStorage(get()) }
     single<SellerConfig> { DefaultSellerConfig() }
     single<OrderScheduleConfig> { DefaultOrderScheduleConfig() }
     single<ProductCatalogConfig> { DefaultProductCatalogConfig() }
@@ -73,7 +73,7 @@ val androidDomainModule = module {
 
     // Profile Repository - GitLive cross-platform implementation
     single<ProfileRepository> {
-        GitLiveProfileRepository(get<AuthRepository>(), get<BuyerUUIDStorage>())
+        GitLiveProfileRepository(get<AuthRepository>(), get<PendingInviteTokenStorage>())
     }
 
     // Storage Repository - Native Firebase Storage (Android-specific, no GitLive equivalent)

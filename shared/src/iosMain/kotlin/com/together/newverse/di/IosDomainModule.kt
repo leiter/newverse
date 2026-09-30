@@ -1,6 +1,6 @@
 package com.together.newverse.di
 
-import com.together.newverse.data.config.BuyerUUIDStorage
+import com.together.newverse.data.config.PendingInviteTokenStorage
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.data.config.DefaultProductCatalogConfig
 import com.together.newverse.data.config.DefaultSellerConfig
@@ -35,7 +35,7 @@ val iosDomainModule = module {
     // Configs
     single { SellerIdStorage() }
     single { DemoOrderStorage() }
-    single { BuyerUUIDStorage() }
+    single { PendingInviteTokenStorage() }
     single<SellerConfig> { DefaultSellerConfig() }
     single<OrderScheduleConfig> { DefaultOrderScheduleConfig() }
     single<ProductCatalogConfig> { DefaultProductCatalogConfig() }
@@ -71,6 +71,6 @@ val iosDomainModule = module {
 
     // Profile Repository - GitLive cross-platform implementation
     single<ProfileRepository> {
-        GitLiveProfileRepository(get<AuthRepository>(), get<BuyerUUIDStorage>())
+        GitLiveProfileRepository(get<AuthRepository>(), get<PendingInviteTokenStorage>())
     }
 }

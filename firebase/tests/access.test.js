@@ -75,6 +75,71 @@ describe("access requests and approval", () => {
     );
   });
 
+  // --- redemption grants access -------------------------------------------
+
+  it("allows a buyer who redeemed a token to approve themselves through it", async () => {
+    // Pre-approval has to land the buyer on APPROVED without the seller present,
+    // but a buyer may otherwise only create a PENDING record. The record cites the
+    // token it was granted by, and the rule checks that token was redeemed by this
+    // very uid — so the grant is verifiable rather than self-asserted.
+    await seed(env, (db) =>
+      db.ref(`invite_tokens/${SELLER}/tok1`).set({
+        createdAt: 1, expiresAt: 9999999999999, redeemedBy: ALICE
+      })
+    );
+    await assertSucceeds(
+      asUser(env, ALICE).ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+        status: "APPROVED", updatedAt: 2, displayName: "Alice", viaToken: "tok1"
+      })
+    );
+  });
+
+  it("denies approving yourself through a token somebody else redeemed", async () => {
+    await seed(env, (db) =>
+      db.ref(`invite_tokens/${SELLER}/tok1`).set({
+        createdAt: 1, expiresAt: 9999999999999, redeemedBy: BOB
+      })
+    );
+    await assertFails(
+      asUser(env, MALLORY).ref(`buyer_access_status/${SELLER}/${MALLORY}`).set({
+        status: "APPROVED", updatedAt: 2, viaToken: "tok1"
+      })
+    );
+  });
+
+  it("denies approving yourself through an unredeemed or missing token", async () => {
+    await seed(env, (db) =>
+      db.ref(`invite_tokens/${SELLER}/tok1`).set({ createdAt: 1, expiresAt: 9999999999999 })
+    );
+    const mallory = asUser(env, MALLORY);
+    await assertFails(
+      mallory.ref(`buyer_access_status/${SELLER}/${MALLORY}`).set({
+        status: "APPROVED", updatedAt: 2, viaToken: "tok1"
+      })
+    );
+    await assertFails(
+      mallory.ref(`buyer_access_status/${SELLER}/${MALLORY}`).set({
+        status: "APPROVED", updatedAt: 2, viaToken: "no-such-token"
+      })
+    );
+  });
+
+  it("denies approving yourself with no token cited at all", async () => {
+    await assertFails(
+      asUser(env, MALLORY).ref(`buyer_access_status/${SELLER}/${MALLORY}`).set({
+        status: "APPROVED", updatedAt: 2
+      })
+    );
+  });
+
+  it("allows the seller to list every buyer's access status", async () => {
+    await assertSucceeds(asUser(env, SELLER).ref(`buyer_access_status/${SELLER}`).once("value"));
+  });
+
+  it("denies a buyer listing every buyer's access status", async () => {
+    await assertFails(asUser(env, ALICE).ref(`buyer_access_status/${SELLER}`).once("value"));
+  });
+
   // --- blanket write nodes -------------------------------------------------
 
   it("denies a stranger wiping a seller's pending access requests", async () => {
