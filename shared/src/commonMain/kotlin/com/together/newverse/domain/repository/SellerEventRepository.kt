@@ -22,7 +22,6 @@ interface SellerEventRepository {
         type: SellerEventType,
         buyerId: String,
         firebaseUserId: String,
-        buyerUUID: String = "",
         buyerName: String = "",
         buyerEmail: String = "",
         cancelledOrderCount: Int = 0,

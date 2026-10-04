@@ -33,5 +33,5 @@ val webDomainModule = module {
     single<BasketRepository> { InMemoryBasketRepository() }
     single<ArticleRepository> { GitLiveArticleRepository(get()) }
     single<OrderRepository> { GitLiveOrderRepository(get(), get()) }
-    single<ProfileRepository> { GitLiveProfileRepository(get(), get()) }
+    single<ProfileRepository> { GitLiveProfileRepository(get()) }
 }

@@ -550,7 +550,6 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
                     audit = BuyerAuditSnapshot(
                         buyerId = userId,
                         firebaseUserId = userId,
-                        buyerUUID = updatedProfile?.buyerUUID ?: "",
                         buyerName = updatedProfile?.displayName ?: "",
                         buyerEmail = email
                     ),
@@ -754,7 +753,6 @@ internal data class BuyerAuditSnapshot(
     val buyerId: String = "",
     /** Firebase Auth uid, read from the auth session rather than UI state. */
     val firebaseUserId: String = "",
-    val buyerUUID: String = "",
     val buyerName: String = "",
     val buyerEmail: String = ""
 )
@@ -770,7 +768,6 @@ internal suspend fun BuyAppViewModel.captureBuyerAudit(userId: String?): BuyerAu
     return BuyerAuditSnapshot(
         buyerId = userId ?: profile?.id ?: firebaseUserId,
         firebaseUserId = firebaseUserId,
-        buyerUUID = profile?.buyerUUID ?: "",
         buyerName = profile?.displayName ?: "",
         buyerEmail = profile?.emailAddress ?: ""
     )
@@ -797,7 +794,6 @@ internal suspend fun BuyAppViewModel.logSellerEvent(
         type = type,
         buyerId = audit.buyerId,
         firebaseUserId = audit.firebaseUserId,
-        buyerUUID = audit.buyerUUID,
         buyerName = audit.buyerName,
         buyerEmail = audit.buyerEmail,
         cancelledOrderCount = cancelledOrderCount,
@@ -1048,19 +1044,11 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
             // Load user profile and update with auth provider info if available
             loadUserProfile(authUserInfo)
 
-            // Restore buyerUUID from Firebase profile if local storage is empty.
-            // On iOS, NSUserDefaults is wiped on uninstall/reinstall, so the UUID is lost
-            // locally even though it still exists in Firebase. Without it,
-            // startObservingAccessStatus() immediately marks the buyer as demo mode,
-            // causing loadCurrentOrder() to look in demo_orders/ and miss the real order.
-            val localUUID = pendingTokenStorage?.get()
-            if (localUUID == null) {
-                val profileUUID = _state.value.customerProfile.profile?.buyerUUID
-                if (!profileUUID.isNullOrBlank()) {
-                    Log.d(TAG) { "resumeInitializationAfterAuth: Restoring buyerUUID from Firebase profile after reinstall" }
-                    pendingTokenStorage?.set(profileUUID)
-                }
-            }
+            // No identity has to be restored after a reinstall any more: access is
+            // keyed by the auth uid, so buyer_access_status/{sellerId}/{uid} is found
+            // again as soon as the session is back, however the device was wiped.
+            // What local storage still holds is an unredeemed invite token, which is
+            // meaningless once redeemed and must not be rebuilt from the profile.
 
             // Load seller display name if connected to a seller
             val currentSellerId = sellerConfig.sellerId

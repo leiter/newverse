@@ -126,7 +126,7 @@ fun NavGraph(
                 connectedSellerDisplayName = appState.connectedSellerDisplayName,
                 isDemoMode = appState.isDemoMode,
                 accessStatus = appState.accessStatus,
-                buyerUUID = appState.customerProfile.profile?.buyerUUID ?: "",
+                buyerId = appState.customerProfile.profile?.id ?: "",
                 isRequestingAccess = appState.isRequestingAccess,
                 pendingInvitations = appState.pendingInvitations,
                 showConnectionConfirmDialog = appState.showConnectionConfirmDialog,

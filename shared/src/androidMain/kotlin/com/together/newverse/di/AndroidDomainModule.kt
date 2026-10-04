@@ -73,7 +73,7 @@ val androidDomainModule = module {
 
     // Profile Repository - GitLive cross-platform implementation
     single<ProfileRepository> {
-        GitLiveProfileRepository(get<AuthRepository>(), get<PendingInviteTokenStorage>())
+        GitLiveProfileRepository(get<AuthRepository>())
     }
 
     // Storage Repository - Native Firebase Storage (Android-specific, no GitLive equivalent)

@@ -26,7 +26,7 @@ enum class SellerEventType {
  * Firebase structure: `seller_events/{sellerId}/{eventId}`
  *
  * Buyers may only append new events; the seller alone can read the log.
- * Records are intentionally denormalised (buyer name and UUID are copied in)
+ * Records are intentionally denormalised (the buyer's name is copied in)
  * because the buyer profile is usually deleted in the same operation.
  */
 data class SellerEvent(
@@ -36,7 +36,6 @@ data class SellerEvent(
     val buyerId: String = "",
     /** Firebase Auth uid of the buyer, read straight from the auth session. */
     val firebaseUserId: String = "",
-    val buyerUUID: String = "",
     val buyerName: String = "",
     val buyerEmail: String = "",
     val timestamp: Long = 0L,

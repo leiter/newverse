@@ -39,8 +39,8 @@ private val MONEY_COUNTING_STATUSES = setOf(OrderStatus.PLACED, OrderStatus.LOCK
 /**
  * Shows a single buyer's contact info (sourced from their most recent order snapshot,
  * since buyer_profile itself is owner-only and unreadable by the seller) and order
- * history summary. buyerId here is the buyerUUID shown in the seller's access list,
- * which is resolved to the auth uid orders are keyed by via buyer_access_status.
+ * history summary. buyerId here is the buyer's auth uid — the same id their orders
+ * are keyed by, so no resolution step is needed.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CustomerDetailViewModel(

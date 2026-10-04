@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order

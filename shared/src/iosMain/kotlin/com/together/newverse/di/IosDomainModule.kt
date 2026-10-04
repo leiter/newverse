@@ -71,6 +71,6 @@ val iosDomainModule = module {
 
     // Profile Repository - GitLive cross-platform implementation
     single<ProfileRepository> {
-        GitLiveProfileRepository(get<AuthRepository>(), get<PendingInviteTokenStorage>())
+        GitLiveProfileRepository(get<AuthRepository>())
     }
 }

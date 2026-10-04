@@ -99,7 +99,7 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
 
 /**
  * Request access from the connected seller.
- * Generates a buyerUUID if not already assigned, persists it, and submits an access request.
+ * The request is keyed by the buyer's auth uid, so there is no identifier to mint.
  */
 @OptIn(ExperimentalUuidApi::class)
 internal fun BuyAppViewModel.requestAccess() {

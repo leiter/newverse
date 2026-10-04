@@ -1,6 +1,5 @@
 package com.together.newverse.data.repository
 
-import com.together.newverse.data.config.PendingInviteTokenStorage
 import com.together.newverse.domain.model.AccessRequest
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.BuyerAccess
@@ -35,8 +34,7 @@ import kotlin.uuid.Uuid
  * This version uses the correct GitLive Firebase SDK APIs.
  */
 class GitLiveProfileRepository(
-    private val authRepository: AuthRepository,
-    private val pendingTokenStorage: PendingInviteTokenStorage? = null
+    private val authRepository: AuthRepository
 ) : ProfileRepository {
 
     private companion object {
@@ -394,11 +392,6 @@ class GitLiveProfileRepository(
                 // Parse draft basket if exists
                 val draftBasketData = value["draftBasket"] as? Map<*, *>
                 val draftBasket = draftBasketData?.let { parseDraftBasket(it) }
-
-                val uuid = value["buyerUUID"] as? String ?: ""
-                if (uuid.isNotEmpty()) {
-                    pendingTokenStorage?.set(uuid)
-                }
 
                 BuyerProfile(
                     id = userId,
