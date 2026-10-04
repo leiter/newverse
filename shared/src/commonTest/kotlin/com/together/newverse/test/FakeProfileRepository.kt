@@ -2,6 +2,7 @@ package com.together.newverse.test
 
 import com.together.newverse.domain.model.AccessRequest
 import com.together.newverse.domain.model.AccessStatus
+import com.together.newverse.domain.model.BuyerAccess
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
@@ -10,7 +11,8 @@ import com.together.newverse.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 
 /**
  * Fake implementation of ProfileRepository for testing.
@@ -69,6 +71,10 @@ class FakeProfileRepository : ProfileRepository {
         shouldFailGetBuyerProfile = false
         shouldFailSaveBuyerProfile = false
         failureMessage = "Test error"
+        _accessRequests.value = emptyList()
+        _buyers.value = emptyMap()
+        redeemedTokens.clear()
+        currentBuyerId = "test-buyer-uid"
     }
 
     override fun observeBuyerProfile(): Flow<BuyerProfile?> {
@@ -145,31 +151,6 @@ class FakeProfileRepository : ProfileRepository {
         _buyerProfile.value = null
         return Result.success(Unit)
     }
-
-    private val knownClients = mutableMapOf<String, MutableSet<String>>()
-    private val blockedClients = mutableMapOf<String, MutableSet<String>>()
-
-    override suspend fun addKnownClient(sellerId: String, buyerId: String): Result<Unit> {
-        knownClients.getOrPut(sellerId) { mutableSetOf() }.add(buyerId)
-        return Result.success(Unit)
-    }
-
-    override suspend fun blockClient(sellerId: String, buyerId: String): Result<Unit> {
-        knownClients[sellerId]?.remove(buyerId)
-        blockedClients.getOrPut(sellerId) { mutableSetOf() }.add(buyerId)
-        return Result.success(Unit)
-    }
-
-    override suspend fun unblockClient(sellerId: String, buyerId: String): Result<Unit> {
-        blockedClients[sellerId]?.remove(buyerId)
-        knownClients.getOrPut(sellerId) { mutableSetOf() }.add(buyerId)
-        return Result.success(Unit)
-    }
-
-    override suspend fun isClientBlocked(sellerId: String, buyerId: String): Boolean {
-        return blockedClients[sellerId]?.contains(buyerId) == true
-    }
-
     override suspend fun saveDraftBasket(draftBasket: DraftBasket): Result<Unit> {
         val currentProfile = _buyerProfile.value
         if (currentProfile != null) {
@@ -186,81 +167,134 @@ class FakeProfileRepository : ProfileRepository {
         return Result.success(Unit)
     }
 
-    // Access request state for tests
+    // --- access records ---------------------------------------------------
+    // One record per buyer, keyed by their auth uid, mirroring
+    // buyer_access_status/{sellerId}/{buyerId}. Replaces the knownClients /
+    // approvedBuyers / blockedClients maps the seller profile used to carry.
+
     private val _accessRequests = MutableStateFlow<List<AccessRequest>>(emptyList())
-    private val _accessStatus = mutableMapOf<String, AccessStatus>()
+    private val _buyers = MutableStateFlow<Map<String, Map<String, BuyerAccess>>>(emptyMap())
+    private val redeemedTokens = mutableMapOf<String, String>()
 
-    fun setAccessStatus(buyerUUID: String, sellerId: String, status: AccessStatus) {
-        _accessStatus["$buyerUUID/$sellerId"] = status
+    /**
+     * The uid the fake answers buyer-side calls as. The real repository reads it
+     * from the auth session; tests that care set it here.
+     */
+    var currentBuyerId: String = "test-buyer-uid"
+
+    /** Seed an access record, as a seller or a redemption would have written it. */
+    fun setAccessStatus(
+        sellerId: String,
+        buyerId: String,
+        status: AccessStatus,
+        displayName: String = ""
+    ) {
+        putAccess(sellerId, BuyerAccess(buyerId, displayName, status, updatedAt = 1L))
     }
 
-    override suspend fun saveBuyerUUID(uuid: String): Result<Unit> {
+    /** Seed a pending request, as a buyer would have submitted it. */
+    fun setAccessRequests(requests: List<AccessRequest>) {
+        _accessRequests.value = requests
+    }
+
+    private fun putAccess(sellerId: String, access: BuyerAccess) {
+        _buyers.update { all ->
+            all + (sellerId to (all[sellerId].orEmpty() + (access.buyerId to access)))
+        }
+    }
+
+    private fun accessOf(sellerId: String, buyerId: String): BuyerAccess? =
+        _buyers.value[sellerId]?.get(buyerId)
+
+    private fun clearRequest(buyerId: String) {
+        _accessRequests.update { requests -> requests.filter { it.buyerId != buyerId } }
+    }
+
+    // --- buyer side -------------------------------------------------------
+
+    override suspend fun submitAccessRequest(sellerId: String, displayName: String): Result<Unit> {
+        putAccess(sellerId, BuyerAccess(currentBuyerId, displayName, AccessStatus.PENDING, 1L))
+        _accessRequests.update { requests ->
+            requests + AccessRequest(sellerId, currentBuyerId, displayName, requestedAt = 1L)
+        }
         return Result.success(Unit)
     }
 
-    override suspend fun submitAccessRequest(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
-        _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.PENDING
+    override suspend fun cancelAccessRequest(sellerId: String): Result<Unit> {
+        _buyers.update { all ->
+            all + (sellerId to (all[sellerId].orEmpty() - currentBuyerId))
+        }
+        clearRequest(currentBuyerId)
         return Result.success(Unit)
     }
 
-    override suspend fun getAccessStatus(buyerUUID: String, sellerId: String): AccessStatus {
-        return _accessStatus["$buyerUUID/$sellerId"] ?: AccessStatus.NONE
-    }
-
-    override fun observeAccessStatus(buyerUUID: String, sellerId: String): Flow<AccessStatus> {
-        return flowOf(_accessStatus["$buyerUUID/$sellerId"] ?: AccessStatus.NONE)
-    }
-
-    override fun observeAccessRequests(sellerId: String): Flow<List<AccessRequest>> {
-        return _accessRequests.asStateFlow()
-    }
-
-    override suspend fun approveAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> {
-        _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.APPROVED
-        _accessRequests.value = _accessRequests.value.filter { it.buyerUUID != buyerUUID }
+    override suspend fun redeemInviteToken(
+        sellerId: String,
+        token: String,
+        displayName: String
+    ): Result<Unit> {
+        val alreadyRedeemedBy = redeemedTokens[token]
+        if (alreadyRedeemedBy != null) {
+            return Result.failure(IllegalStateException("Token already redeemed by $alreadyRedeemedBy"))
+        }
+        redeemedTokens[token] = currentBuyerId
+        putAccess(sellerId, BuyerAccess(currentBuyerId, displayName, AccessStatus.APPROVED, 1L))
         return Result.success(Unit)
     }
 
-    override suspend fun blockBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
-        _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.BLOCKED
-        _accessRequests.value = _accessRequests.value.filter { it.buyerUUID != buyerUUID }
-        approvedBuyers.getOrPut(sellerId) { mutableMapOf() }.remove(buyerUUID)
-        blockedClients.getOrPut(sellerId) { mutableSetOf() }.add(buyerUUID)
+    override suspend fun getAccessStatus(sellerId: String): AccessStatus =
+        accessOf(sellerId, currentBuyerId)?.status ?: AccessStatus.NONE
+
+    override fun observeAccessStatus(sellerId: String): Flow<AccessStatus> =
+        _buyers.map { all -> all[sellerId]?.get(currentBuyerId)?.status ?: AccessStatus.NONE }
+
+    override suspend fun updateOwnDisplayName(sellerId: String, displayName: String): Result<Unit> {
+        val existing = accessOf(sellerId, currentBuyerId) ?: return Result.success(Unit)
+        putAccess(sellerId, existing.copy(displayName = displayName))
         return Result.success(Unit)
     }
 
-    private val approvedBuyers = mutableMapOf<String, MutableMap<String, String>>()
+    // --- seller side ------------------------------------------------------
 
-    override suspend fun approveAccessRequestWithTracking(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
-        _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.APPROVED
-        _accessRequests.value = _accessRequests.value.filter { it.buyerUUID != buyerUUID }
-        approvedBuyers.getOrPut(sellerId) { mutableMapOf() }[buyerUUID] = displayName
+    override fun observeAccessRequests(sellerId: String): Flow<List<AccessRequest>> =
+        _accessRequests.asStateFlow()
+
+    override fun observeBuyers(sellerId: String): Flow<List<BuyerAccess>> =
+        _buyers.map { all -> all[sellerId]?.values?.toList() ?: emptyList() }
+
+    override suspend fun approveAccessRequest(
+        sellerId: String,
+        buyerId: String,
+        displayName: String
+    ): Result<Unit> {
+        putAccess(sellerId, BuyerAccess(buyerId, displayName, AccessStatus.APPROVED, 1L))
+        clearRequest(buyerId)
         return Result.success(Unit)
     }
 
-    override suspend fun unblockApprovedBuyer(sellerId: String, buyerUUID: String): Result<Unit> {
-        _accessStatus["$buyerUUID/$sellerId"] = AccessStatus.APPROVED
-        blockedClients[sellerId]?.remove(buyerUUID)
-        approvedBuyers.getOrPut(sellerId) { mutableMapOf() }[buyerUUID] = ""
+    override suspend fun blockBuyer(sellerId: String, buyerId: String): Result<Unit> {
+        val existing = accessOf(sellerId, buyerId)
+        putAccess(
+            sellerId,
+            BuyerAccess(buyerId, existing?.displayName ?: "", AccessStatus.BLOCKED, 1L)
+        )
+        clearRequest(buyerId)
         return Result.success(Unit)
     }
 
-    override suspend fun updateApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> {
-        approvedBuyers[sellerId]?.put(buyerUUID, displayName)
+    override suspend fun unblockBuyer(sellerId: String, buyerId: String): Result<Unit> {
+        val existing = accessOf(sellerId, buyerId)
+        putAccess(
+            sellerId,
+            BuyerAccess(buyerId, existing?.displayName ?: "", AccessStatus.APPROVED, 1L)
+        )
         return Result.success(Unit)
     }
 
-    override fun observeApprovedBuyerIds(sellerId: String): Flow<Map<String, String>> {
-        return flowOf(approvedBuyers[sellerId]?.toMap() ?: emptyMap())
-    }
-
-    override suspend fun cancelAccessRequest(sellerId: String, buyerUUID: String): Result<Unit> =
-        Result.success(Unit)
-
-    override suspend fun correctApprovedBuyerDisplayName(sellerId: String, buyerUUID: String, displayName: String): Result<Unit> =
-        Result.success(Unit)
-
-    override suspend fun getBuyerDisplayName(sellerId: String, buyerUUID: String): String = ""
-
-    override suspend fun getBuyerAuthUID(sellerId: String, buyerUUID: String): String = ""
+    override suspend fun createInviteToken(
+        sellerId: String,
+        displayNameHint: String,
+        ttlMillis: Long,
+        token: String?
+    ): Result<String> = Result.success(token ?: "fake-invite-token")
 }
