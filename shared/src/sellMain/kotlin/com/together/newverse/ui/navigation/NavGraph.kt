@@ -185,8 +185,6 @@ fun NavGraphBuilder.navGraph(
                 }
             },
             onDeleteMarket = { marketId -> profileViewModel.removeMarket(marketId) },
-            onBlockCustomer = { buyerId -> profileViewModel.blockCustomer(buyerId) },
-            onUnblockCustomer = { buyerId -> profileViewModel.unblockCustomer(buyerId) },
             onGenerateInvitation = { minutes -> profileViewModel.generateInvitation(minutes) },
             onSendInvitationToBuyer = { buyerId -> profileViewModel.sendInvitationToBuyer(buyerId) },
             onRevokeInvitation = { invitationId -> profileViewModel.revokeInvitation(invitationId) },
@@ -195,8 +193,8 @@ fun NavGraphBuilder.navGraph(
             onGenerateBuyerLink = { profileViewModel.generateBuyerLink() },
             onApproveRequest = { uuid -> profileViewModel.approveRequest(uuid) },
             onBlockBuyer = { uuid -> profileViewModel.blockBuyer(uuid) },
-            onBlockApprovedBuyer = { uuid -> profileViewModel.blockApprovedBuyer(uuid) },
-            onUnblockApprovedBuyer = { uuid -> profileViewModel.unblockApprovedBuyer(uuid) },
+            onBlockApprovedBuyer = { buyerId -> profileViewModel.blockBuyer(buyerId) },
+            onUnblockApprovedBuyer = { buyerId -> profileViewModel.unblockBuyer(buyerId) },
             onClearGeneratedLink = { profileViewModel.clearGeneratedLink() },
             onRetry = { profileViewModel.refresh() },
             onBuyerClick = { entry ->

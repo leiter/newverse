@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlin.test.AfterTest
@@ -51,6 +52,14 @@ class AbrechnungViewModelTest {
     private val berlin = TimeZone.of("Europe/Berlin")
     private val today = LocalDate(2026, 9, 24)
 
+    /**
+     * [today] as a timestamp, for whatever the view model stamps with the clock.
+     * Pinned like the date: left on the system clock, a cancellation is booked on
+     * the real day the suite runs, which falls outside the period under test as
+     * soon as that month is over.
+     */
+    private val nowMillis = LocalDateTime(today, LocalTime(17, 0)).toInstant(berlin).toEpochMilliseconds()
+
     @BeforeTest
     fun setup() {
         dispatcherRule.setup()
@@ -78,7 +87,8 @@ class AbrechnungViewModelTest {
         saleRepository = saleRepository,
         fileSharer = fileSharer,
         timeZone = berlin,
-        today = { today }
+        today = { today },
+        now = { nowMillis }
     )
 
     private fun millis(year: Int, month: Int, day: Int, hour: Int = 17) =

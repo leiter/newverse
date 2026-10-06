@@ -133,6 +133,22 @@ object OrderDateUtils {
     }
 
     /**
+     * The last moment of the pickup day: pickup day at 23:59:59.999 local time.
+     *
+     * [calculateNextPickupDate] returns the pickup day at 00:00, so comparing a
+     * timestamp against the pickup instant itself treats the order as picked up
+     * from midnight on — for the whole of the day the pickup actually happens.
+     */
+    private fun endOfPickupDay(
+        pickupDate: Instant,
+        timeZone: TimeZone = TimeZone.currentSystemDefault()
+    ): Instant {
+        val pickupLocalDate = pickupDate.toLocalDateTime(timeZone).date
+        return pickupLocalDate.atTime(23, 59, 59, 999_000_000)
+            .toInstant(timeZone)
+    }
+
+    /**
      * Get the status of an order window based on current time
      */
     fun getOrderWindowStatus(
@@ -145,7 +161,7 @@ object OrderDateUtils {
 
         return when {
             now <= deadline -> OrderWindowStatus.OPEN
-            now > pickupDate -> OrderWindowStatus.PICKUP_PASSED
+            now > endOfPickupDay(pickupDate, timeZone) -> OrderWindowStatus.PICKUP_PASSED
             else -> OrderWindowStatus.DEADLINE_PASSED
         }
     }
@@ -295,7 +311,7 @@ object OrderDateUtils {
                 .atStartOfDayIn(timeZone)
         }
 
-        return dates.take(2)
+        return dates
     }
 
     /**

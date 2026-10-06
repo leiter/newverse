@@ -27,6 +27,10 @@ describe("seller profile, orders and the event log", () => {
       await db.ref(`orders/${SELLER}/${DATE}/order1`).set({
         id: "order1", buyerId: ALICE, pickUpDate: 9999999999999, status: "PLACED"
       });
+      // Alice is an approved buyer; Bob is a known client who never got approved.
+      await db.ref(`buyer_access_status/${SELLER}/${ALICE}`).set({
+        status: "APPROVED", updatedAt: 1, displayName: "Alice Schmidt"
+      });
     });
   });
 
@@ -119,11 +123,11 @@ describe("seller profile, orders and the event log", () => {
     );
   });
 
-  it("denies a known client who is not an approved buyer appending", async () => {
-    // Bob is in knownClientIds but not approvedBuyerIds. The write gate moved to
-    // approvedBuyerIds so that eligibility matches the access list the seller
-    // actually manages, rather than knownClientIds which is populated from two
-    // call sites and allowed to fail silently on one of them.
+  it("denies a client who is not an approved buyer appending", async () => {
+    // Eligibility reads buyer_access_status, the authoritative access record, not a
+    // denormalised roster in seller_profile. That matters because seller_profile is
+    // seller-writable only, so a buyer who just redeemed an invite token would
+    // otherwise be ineligible until the seller happened to be running the app.
     await assertFails(
       asUser(env, BOB).ref(`seller_events/${SELLER}/evt1`).set(event(BOB))
     );

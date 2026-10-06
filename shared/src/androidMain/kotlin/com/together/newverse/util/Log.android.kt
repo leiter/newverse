@@ -1,6 +1,10 @@
 package com.together.newverse.util
 
-internal fun androidLogInit() {
+/**
+ * Route [Log] at android.util.Log. Called from the Application class in the app
+ * module, so it cannot be internal — same as [initDebugFlag] beside it.
+ */
+fun androidLogInit() {
     Log.printImpl = { level, tag, message ->
         when (level) {
             LogLevel.DEBUG -> android.util.Log.d(tag, message)

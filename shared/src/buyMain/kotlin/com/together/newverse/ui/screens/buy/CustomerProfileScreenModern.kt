@@ -189,7 +189,7 @@ fun CustomerProfileScreenModern(
     connectedSellerDisplayName: String = "",
     isDemoMode: Boolean = true,
     accessStatus: AccessStatus = AccessStatus.NONE,
-    buyerUUID: String = "",
+    buyerId: String = "",
     isRequestingAccess: Boolean = false,
     pendingInvitations: List<Invitation> = emptyList(),
     showConnectionConfirmDialog: ConnectionConfirmation? = null,
@@ -418,7 +418,7 @@ fun CustomerProfileScreenModern(
                     Box(modifier = Modifier.bringIntoViewRequester(bringIntoViewRequester)) {
                         AccessStatusCard(
                             accessStatus = accessStatus,
-                            buyerUUID = buyerUUID,
+                            buyerId = buyerId,
                             isRequestingAccess = isRequestingAccess,
                             onRequestAccess = {
                                 onAction(BuySellerAction.RequestAccess)
@@ -1505,7 +1505,7 @@ private fun ModernTextField(
 @Composable
 private fun AccessStatusCard(
     accessStatus: AccessStatus,
-    buyerUUID: String,
+    buyerId: String,
     isRequestingAccess: Boolean = false,
     onRequestAccess: () -> Unit = {},
     onScanQrCode: () -> Unit = {}
@@ -1565,11 +1565,11 @@ private fun AccessStatusCard(
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                 )
             }
-            if (buyerUUID.isNotEmpty()) {
+            if (buyerId.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
-                val accessIdLabel = stringResource(Res.string.a11y_access_id, buyerUUID)
+                val accessIdLabel = stringResource(Res.string.a11y_access_id, buyerId)
                 Text(
-                    text = buyerUUID,
+                    text = buyerId,
                     style = MaterialTheme.typography.labelSmall,
                     color = contentColor.copy(alpha = 0.7f),
                     // Frame the raw id so a screen reader does not just spell it out unlabelled.

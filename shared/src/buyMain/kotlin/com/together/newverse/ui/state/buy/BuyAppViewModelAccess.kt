@@ -67,21 +67,20 @@ internal fun buildMissingFieldsMessage(missing: MissingProfileData): String {
  * Called after auth+seller connection is confirmed.
  */
 internal fun BuyAppViewModel.startObservingAccessStatus() {
-    val uuid = buyerUUIDStorage?.get()
     val sellerId = sellerConfig.sellerId
     if (sellerId.isEmpty()) return
 
-    if (uuid == null) {
-        // No personal invite — buyer is in demo mode, show banner immediately
-        _state.update { it.copy(isAccessStatusLoaded = true) }
-        return
-    }
-
+    // No token gate: the access record is keyed by this buyer's own uid, so the
+    // observer always has something to watch. An absent record reports NONE, which
+    // is what puts the buyer in demo mode.
     viewModelScope.launch {
-        profileRepository.observeAccessStatus(uuid, sellerId)
-            .catch { e -> Log.e(TAG) { "observeAccessStatus error (permission?): ${e.message}" } }
+        profileRepository.observeAccessStatus(sellerId)
+            .catch { e ->
+                Log.e(TAG) { "observeAccessStatus error: ${e.message}" }
+                _state.update { it.copy(isAccessStatusLoaded = true) }
+            }
             .collect { status ->
-                Log.d(TAG) { "observeAccessStatus: status=$status uuid=$uuid" }
+                Log.d(TAG) { "observeAccessStatus: status=$status" }
                 val wasDemoMode = _state.value.isDemoMode
                 _state.update { it.copy(accessStatus = status, isAccessStatusLoaded = true) }
                 when {
@@ -100,7 +99,7 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
 
 /**
  * Request access from the connected seller.
- * Generates a buyerUUID if not already assigned, persists it, and submits an access request.
+ * The request is keyed by the buyer's auth uid, so there is no identifier to mint.
  */
 @OptIn(ExperimentalUuidApi::class)
 internal fun BuyAppViewModel.requestAccess() {
@@ -130,19 +129,10 @@ internal fun BuyAppViewModel.requestAccess() {
 
     viewModelScope.launch {
         try {
-            // Reuse existing UUID or generate a new one
-            val uuid = buyerUUIDStorage?.get() ?: Uuid.random().toString()
-
-            // Persist UUID locally and in Firebase profile
-            buyerUUIDStorage?.set(uuid)
-            profileRepository.saveBuyerUUID(uuid)
-
-            // Get display name from profile or default
             val displayName = _state.value.customerProfile.profile?.displayName
                 ?.takeIf { it.isNotBlank() } ?: "Guest"
 
-            // Submit the access request
-            profileRepository.submitAccessRequest(sellerId, uuid, displayName)
+            profileRepository.submitAccessRequest(sellerId, displayName)
                 .onSuccess {
                     _state.update { it.copy(isRequestingAccess = false) }
                     startObservingAccessStatus()
@@ -217,66 +207,66 @@ internal fun BuyAppViewModel.retryPendingConnection() {
     }
 }
 
-internal fun BuyAppViewModel.applyPreApprovedAccess(uuid: String) {
-    buyerUUIDStorage?.set(uuid)
-    viewModelScope.launch {
-        profileRepository.saveBuyerUUID(uuid)
-        startObservingAccessStatus()
-    }
+/**
+ * Redeem an invitation, which doubles as its own invite token.
+ * Same path as a scanned QR link - see [connectWithToken].
+ */
+internal fun BuyAppViewModel.applyPreApprovedAccess(token: String) {
+    connectWithToken(sellerConfig.sellerId, token)
 }
 
 /**
- * Handle deep link: newverse://connect?seller={sellerId}&token={buyerToken}
+ * Handle a connect deep link: newverse://connect?seller={sellerId}&token={token}
  *
- * 1. Persist the buyerUUID from the token
- * 2. Connect to seller (reload products, reset screens)
- * 3. Submit an access request if current status is NONE/absent
- * 4. Start observing access status for real-time updates
+ * The token is a bearer ticket the seller minted before this buyer existed. Redeeming
+ * it marks it used and writes an APPROVED access record citing it, which the rules
+ * verify against the token's redeemedBy. If the token is already spent, expired or
+ * unknown, redemption fails and the buyer falls back to a normal access request.
  */
-internal fun BuyAppViewModel.connectWithToken(sellerId: String, buyerToken: String) {
-    // Check profile completeness before connecting
+internal fun BuyAppViewModel.connectWithToken(sellerId: String, token: String) {
+    if (sellerId.isEmpty() || token.isEmpty()) return
+
     val missing = checkProfileCompleteness()
     if (!missing.isComplete) {
-        // Store the pending token for later retry
-        _state.update { it.copy(
-            pendingConnectToken = Pair(sellerId, buyerToken),
-            showProfileIncompleteDialog = true
-        ) }
+        // Hold the token so redemption can be retried once the profile is complete.
+        _state.update {
+            it.copy(
+                pendingConnectToken = Pair(sellerId, token),
+                showProfileIncompleteDialog = true
+            )
+        }
         return
     }
 
-    val oldUUID = buyerUUIDStorage?.get()
-    buyerUUIDStorage?.set(buyerToken)
+    pendingTokenStorage?.set(token)
 
-    // Bypass the demo mode gate — having a valid token means the seller has authorized this buyer.
-    // connectToSeller would block a demo-mode buyer from connecting to a real seller.
+    // Bypass the demo mode gate: holding a token means the seller authorised this buyer.
     performConnection(sellerId)
 
     viewModelScope.launch {
-        // Cancel any previously submitted request under a different UUID
-        if (oldUUID != null && oldUUID != buyerToken) {
-            profileRepository.cancelAccessRequest(sellerId, oldUUID)
-                .onFailure { e -> Log.e(TAG) { "connectWithToken: Failed to cancel old request ($oldUUID) - ${e.message}" } }
-        }
+        val displayName = _state.value.customerProfile.profile?.displayName
+            ?.takeIf { it.isNotBlank() } ?: "Guest"
 
-        // Ensure buyerUUID is persisted in Firebase profile so security rules allow reading status
-        profileRepository.saveBuyerUUID(buyerToken)
-
-        // Fetch current status first — never overwrite APPROVED or BLOCKED
-        val currentStatus = profileRepository.getAccessStatus(buyerToken, sellerId)
-        Log.d(TAG) { "connectWithToken: currentStatus=$currentStatus uuid=$buyerToken" }
-
-        val displayName = _state.value.customerProfile.profile?.displayName?.takeIf { it.isNotBlank() } ?: "Guest"
-
-        if (currentStatus == AccessStatus.NONE) {
-            profileRepository.submitAccessRequest(sellerId, buyerToken, displayName)
-                .onSuccess { Log.d(TAG) { "connectWithToken: Access request submitted" } }
-                .onFailure { e -> Log.e(TAG) { "connectWithToken: Failed to submit request - ${e.message}" } }
-        } else if (currentStatus == AccessStatus.APPROVED) {
-            // QR pre-approval case: update display name from placeholder to real name
-            profileRepository.updateApprovedBuyerDisplayName(sellerId, buyerToken, displayName)
-                .onSuccess { Log.d(TAG) { "connectWithToken: Updated buyer display name" } }
-                .onFailure { e -> Log.e(TAG) { "connectWithToken: Failed to update display name - ${e.message}" } }
+        when (profileRepository.getAccessStatus(sellerId)) {
+            AccessStatus.APPROVED, AccessStatus.BLOCKED -> {
+                // Already settled with this seller; never overwrite it with a redemption.
+                Log.d(TAG) { "connectWithToken: access already settled, skipping redemption" }
+                pendingTokenStorage?.clear()
+            }
+            else -> {
+                profileRepository.redeemInviteToken(sellerId, token, displayName)
+                    .onSuccess {
+                        // The ticket is spent; identity is the auth uid from here on.
+                        pendingTokenStorage?.clear()
+                        Log.d(TAG) { "connectWithToken: token redeemed, access approved" }
+                    }
+                    .onFailure { e ->
+                        Log.w(TAG) { "connectWithToken: redemption failed - ${e.message}" }
+                        profileRepository.submitAccessRequest(sellerId, displayName)
+                            .onSuccess { Log.d(TAG) { "connectWithToken: fell back to an access request" } }
+                            .onFailure { err -> Log.e(TAG) { "connectWithToken: request failed - ${err.message}" } }
+                    }
+            }
         }
 
         startObservingAccessStatus()

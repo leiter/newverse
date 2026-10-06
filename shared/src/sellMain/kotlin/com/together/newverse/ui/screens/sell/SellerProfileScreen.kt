@@ -57,8 +57,6 @@ fun SellerProfileScreen(
     onHideMarketDialog: () -> Unit = {},
     onSaveMarket: (Market) -> Unit = {},
     onDeleteMarket: (String) -> Unit = {},
-    onBlockCustomer: (String) -> Unit = {},
-    onUnblockCustomer: (String) -> Unit = {},
     onGenerateInvitation: (Int) -> Unit = {},
     onSendInvitationToBuyer: (String) -> Unit = {},
     onRevokeInvitation: (String) -> Unit = {},
@@ -254,33 +252,9 @@ fun SellerProfileScreen(
                         )
                     }
 
-                    // Connected Customers Card
-                    if (customerState.knownClientIds.isNotEmpty()) {
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.customer_management_title),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.semantics { heading() }
-                                )
-
-                                customerState.knownClientIds.forEach { buyerId ->
-                                    CustomerListItem(
-                                        buyerId = buyerId,
-                                        isBlocked = false,
-                                        onBlock = { onBlockCustomer(buyerId) },
-                                        onUnblock = {}
-                                    )
-                                }
-
-                            }
-                        }
-                    }
+                    // The approved and blocked lists below cover every customer, with
+                    // real names rather than bare uids, so there is no separate
+                    // "connected clients" card any more.
 
                     // Generate Buyer Link Card
                     GenerateBuyerLinkCard(
@@ -1063,7 +1037,7 @@ private fun AccessRequestsCard(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
-                                text = request.buyerUUID,
+                                text = request.buyerId,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.clearAndSetSemantics { }
@@ -1080,13 +1054,13 @@ private fun AccessRequestsCard(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Button(
-                                    onClick = { onApprove(request.buyerUUID) },
+                                    onClick = { onApprove(request.buyerId) },
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Text(stringResource(Res.string.access_requests_approve))
                                 }
                                 OutlinedButton(
-                                    onClick = { buyerToBlock = request.buyerUUID },
+                                    onClick = { buyerToBlock = request.buyerId },
                                     modifier = Modifier.weight(1f),
                                     colors = ButtonDefaults.outlinedButtonColors(
                                         contentColor = MaterialTheme.colorScheme.error

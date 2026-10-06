@@ -175,6 +175,45 @@ class OrderDateUtilsTest {
         assertEquals(OrderWindowStatus.PICKUP_PASSED, status)
     }
 
+    @Test
+    fun `getOrderWindowStatus DEADLINE_PASSED on pickup day morning`() {
+        // The pickup instant is Thursday 00:00, but the pickup itself is still ahead
+        val status = OrderDateUtils.getOrderWindowStatus(thisThursday, thursdayMorning, utc, defaultConfig)
+        assertEquals(OrderWindowStatus.DEADLINE_PASSED, status)
+    }
+
+    @Test
+    fun `getOrderWindowStatus DEADLINE_PASSED at the last moment of pickup day`() {
+        val endOfThursday = Instant.parse("2024-01-11T23:59:59.999Z")
+        val status = OrderDateUtils.getOrderWindowStatus(thisThursday, endOfThursday, utc, defaultConfig)
+        assertEquals(OrderWindowStatus.DEADLINE_PASSED, status)
+    }
+
+    @Test
+    fun `getOrderWindowStatus PICKUP_PASSED once pickup day is over`() {
+        val startOfFriday = Instant.parse("2024-01-12T00:00:00Z")
+        val status = OrderDateUtils.getOrderWindowStatus(thisThursday, startOfFriday, utc, defaultConfig)
+        assertEquals(OrderWindowStatus.PICKUP_PASSED, status)
+    }
+
+    @Test
+    fun `getOrderWindowStatus uses the pickup day in the given time zone`() {
+        // Berlin is UTC+1 in January, so Berlin's Thursday ends at 22:59:59.999Z
+        val berlinThursday = LocalDate(2024, 1, 11).atTime(0, 0).toInstant(berlinTz)
+
+        val lateThursdayBerlin = Instant.parse("2024-01-11T22:00:00Z")
+        assertEquals(
+            OrderWindowStatus.DEADLINE_PASSED,
+            OrderDateUtils.getOrderWindowStatus(berlinThursday, lateThursdayBerlin, berlinTz, defaultConfig)
+        )
+
+        val fridayBerlin = Instant.parse("2024-01-11T23:30:00Z")
+        assertEquals(
+            OrderWindowStatus.PICKUP_PASSED,
+            OrderDateUtils.getOrderWindowStatus(berlinThursday, fridayBerlin, berlinTz, defaultConfig)
+        )
+    }
+
     // =========================================================================
     // D. canEditOrder Tests
     // =========================================================================
@@ -329,6 +368,13 @@ class OrderDateUtilsTest {
     fun `getAvailablePickupDates returns correct count`() {
         val dates = OrderDateUtils.getAvailablePickupDates(5, mondayMorning, utc, defaultConfig)
         assertEquals(5, dates.size)
+    }
+
+    @Test
+    fun `getAvailablePickupDates honours counts above and below the default`() {
+        assertEquals(1, OrderDateUtils.getAvailablePickupDates(1, mondayMorning, utc, defaultConfig).size)
+        assertEquals(3, OrderDateUtils.getAvailablePickupDates(3, mondayMorning, utc, defaultConfig).size)
+        assertEquals(8, OrderDateUtils.getAvailablePickupDates(8, mondayMorning, utc, defaultConfig).size)
     }
 
     @Test

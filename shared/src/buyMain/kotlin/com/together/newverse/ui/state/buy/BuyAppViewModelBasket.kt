@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
@@ -585,7 +586,7 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
             }
 
             // Check if buyer is blocked by seller
-            val isBlocked = profileRepository.isClientBlocked(sellerConfig.sellerId, currentUserId)
+            val isBlocked = profileRepository.getAccessStatus(sellerConfig.sellerId) == AccessStatus.BLOCKED
             if (isBlocked) {
                 setBasketError("You have been blocked by this seller")
                 return@launch

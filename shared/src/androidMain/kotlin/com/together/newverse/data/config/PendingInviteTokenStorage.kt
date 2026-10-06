@@ -5,21 +5,21 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 
 /**
- * Android implementation of [BuyerUUIDStorage] using SharedPreferences.
+ * Android implementation of [PendingInviteTokenStorage] using SharedPreferences.
  * Per-user storage: each userId gets their own prefs file `newverse_user_<userId>`.
  */
-actual class BuyerUUIDStorage(private val context: Context) {
+actual class PendingInviteTokenStorage(private val context: Context) {
 
     private var prefs: SharedPreferences = noopPrefs()
 
-    actual fun get(): String? = prefs.getString(KEY_BUYER_UUID, null)
+    actual fun get(): String? = prefs.getString(KEY_PENDING_TOKEN, null)
 
-    actual fun set(uuid: String) {
-        prefs.edit { putString(KEY_BUYER_UUID, uuid) }
+    actual fun set(token: String) {
+        prefs.edit { putString(KEY_PENDING_TOKEN, token) }
     }
 
     actual fun clear() {
-        prefs.edit { remove(KEY_BUYER_UUID) }
+        prefs.edit { remove(KEY_PENDING_TOKEN) }
     }
 
     actual fun setActiveUserId(userId: String) {
@@ -27,15 +27,15 @@ actual class BuyerUUIDStorage(private val context: Context) {
     }
 
     actual fun clearActiveUserId() {
-        prefs.edit { remove(KEY_BUYER_UUID) }
+        prefs.edit { remove(KEY_PENDING_TOKEN) }
         prefs = noopPrefs()
     }
 
     actual fun renameUserId(fromId: String, toId: String) {
         val from = context.getSharedPreferences(prefsName(fromId), Context.MODE_PRIVATE)
         val to = context.getSharedPreferences(prefsName(toId), Context.MODE_PRIVATE)
-        from.getString(KEY_BUYER_UUID, null)?.let { uuid ->
-            to.edit { putString(KEY_BUYER_UUID, uuid) }
+        from.getString(KEY_PENDING_TOKEN, null)?.let { token ->
+            to.edit { putString(KEY_PENDING_TOKEN, token) }
         }
         from.edit { clear() }
     }
@@ -44,7 +44,7 @@ actual class BuyerUUIDStorage(private val context: Context) {
         context.getSharedPreferences(NOOP_PREFS_FILE, Context.MODE_PRIVATE)
 
     companion object {
-        private const val KEY_BUYER_UUID = "buyer_uuid"
+        private const val KEY_PENDING_TOKEN = "pending_invite_token"
         private const val NOOP_PREFS_FILE = "newverse_noop"
         fun prefsName(userId: String) = "newverse_user_$userId"
     }

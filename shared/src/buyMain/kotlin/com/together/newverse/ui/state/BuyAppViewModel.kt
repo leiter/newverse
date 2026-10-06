@@ -2,7 +2,7 @@ package com.together.newverse.ui.state
 
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
-import com.together.newverse.data.config.BuyerUUIDStorage
+import com.together.newverse.data.config.PendingInviteTokenStorage
 import com.together.newverse.domain.config.MutableSellerConfig
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
@@ -88,7 +88,7 @@ class BuyAppViewModel(
     authRepository: AuthRepository,
     internal val basketRepository: BasketRepository,
     internal val sellerConfig: MutableSellerConfig,
-    internal val buyerUUIDStorage: BuyerUUIDStorage? = null,
+    internal val pendingTokenStorage: PendingInviteTokenStorage? = null,
     internal val invitationRepository: InvitationRepository? = null,
     internal val messageRepository: MessageRepository? = null,
     internal val buyerContactRepository: BuyerContactRepository? = null,

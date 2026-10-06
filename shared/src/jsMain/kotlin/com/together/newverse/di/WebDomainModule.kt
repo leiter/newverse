@@ -1,6 +1,6 @@
 package com.together.newverse.di
 
-import com.together.newverse.data.config.BuyerUUIDStorage
+import com.together.newverse.data.config.PendingInviteTokenStorage
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.data.config.DefaultProductCatalogConfig
 import com.together.newverse.data.config.DefaultSellerConfig
@@ -24,7 +24,7 @@ import org.koin.dsl.module
 val webDomainModule = module {
     single { SellerIdStorage() }
     single { DemoOrderStorage() }
-    single { BuyerUUIDStorage() }
+    single { PendingInviteTokenStorage() }
     single<SellerConfig> { DefaultSellerConfig() }
     single<OrderScheduleConfig> { DefaultOrderScheduleConfig() }
     single<ProductCatalogConfig> { DefaultProductCatalogConfig() }
@@ -33,5 +33,5 @@ val webDomainModule = module {
     single<BasketRepository> { InMemoryBasketRepository() }
     single<ArticleRepository> { GitLiveArticleRepository(get()) }
     single<OrderRepository> { GitLiveOrderRepository(get(), get()) }
-    single<ProfileRepository> { GitLiveProfileRepository(get(), get()) }
+    single<ProfileRepository> { GitLiveProfileRepository(get()) }
 }
