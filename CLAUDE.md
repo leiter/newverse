@@ -193,6 +193,7 @@ All docs in `doc/` directory:
 - `navigation.md` - Route structure
 - `ordering-business-rules.md` - Order logic
 - `iOS-Setup-Guide.md` - iOS build setup
+- `pre-release-checklist.md` - What must happen before a release build reaches a user
 - `order-ready-notification-design.md` - Options for buyer order notifications: order-ready alerts + a configurable status-checking reminder worker
 
 ## Current Status

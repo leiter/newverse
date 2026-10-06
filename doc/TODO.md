@@ -97,6 +97,11 @@ The following features are planned but not yet implemented, or are only partiall
     - Run the remaining steps on a device, mark each verdict, then fix the confirmed ones — E2 next.
 
 ### High Priority: Release
+
+> **Before any release, work `doc/pre-release-checklist.md`.** It gates the items below
+> behind the rules deploy to `bodenschaetze-a988e`: `main` now needs six undeployed
+> rules commits, and a release build without them is broadly broken. The release
+> project also holds data that has never been inventoried.
 - **Android: versionCode**
   - **Status:** Fixed 2026-09-23 — each flavor has its own counter in `androidApp/version.properties` (`VERSION_CODE_BUY`, `VERSION_CODE_SELL`), read by Gradle and bumped per flavor by the fastlane lanes
   - **Tasks:**
