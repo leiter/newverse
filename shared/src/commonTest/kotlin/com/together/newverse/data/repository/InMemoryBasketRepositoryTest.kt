@@ -487,4 +487,62 @@ class InMemoryBasketRepositoryTest {
         assertNotNull(flow.value)
         assertTrue(flow.value.isEmpty())
     }
+
+    // =========================================================================
+    // Conflation: why a stale screen could not recover without an app restart
+    // =========================================================================
+
+    @Test
+    fun `loading the same items twice emits only once`() = runTest {
+        val items = listOf(createOrderedProduct(id = "1", productId = "p1"))
+
+        repository.observeBasket().test {
+            assertTrue(awaitItem().isEmpty())
+
+            repository.loadOrderItems(items, orderId = "order1", orderDate = "20240111")
+            assertEquals(1, awaitItem().size)
+
+            // Same order, reloaded — as happens when a buyer signs back in. The basket is
+            // a StateFlow, which conflates a structurally equal value, so nothing is
+            // emitted. Anything that rebuilt its own state from these emissions rather
+            // than reading the value stays empty until something actually changes.
+            repository.loadOrderItems(items, orderId = "order1", orderDate = "20240111")
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `clearing first makes a reload of the same items emit again`() = runTest {
+        val items = listOf(createOrderedProduct(id = "1", productId = "p1"))
+        repository.loadOrderItems(items, orderId = "order1", orderDate = "20240111")
+
+        repository.observeBasket().test {
+            assertEquals(1, awaitItem().size)
+
+            // What sign-out must do. empty -> items is a real change, so the reload after
+            // signing back in reaches every collector.
+            repository.clearBasket()
+            assertTrue(awaitItem().isEmpty())
+
+            repository.loadOrderItems(items, orderId = "order1", orderDate = "20240111")
+            assertEquals(1, awaitItem().size)
+        }
+    }
+
+    @Test
+    fun `clearBasket also drops the loaded order reference`() = runTest {
+        repository.loadOrderItems(
+            listOf(createOrderedProduct(id = "1", productId = "p1")),
+            orderId = "order1",
+            orderDate = "20240111"
+        )
+        assertNotNull(repository.getLoadedOrderInfo())
+
+        repository.clearBasket()
+
+        // Left behind, the next session would treat a fresh basket as an edit of the
+        // previous user's order.
+        assertNull(repository.getLoadedOrderInfo())
+    }
+
 }

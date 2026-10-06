@@ -256,9 +256,17 @@ internal fun BuyAppViewModel.logout() {
                 // Drop cached profiles; they outlive the session otherwise
                 profileRepository.clearCache()
 
-                // Clear basket and every other trace of the signed-out user.
-                // customerProfile and favourites are per-user: leaving them in
-                // place shows the next user the previous one's name and email.
+                // Clear the actual basket repository, not just the screen state below.
+                // It drives the cart badge directly, so leaving it shows the next user
+                // the previous one's item count. It also has to change for the basket
+                // screen to recover: its items come from this StateFlow, which conflates
+                // an equal value, so signing back in and reloading the same order would
+                // emit nothing and leave the screen empty while the badge showed a count.
+                basketRepository.clearBasket()
+
+                // Clear every other trace of the signed-out user. customerProfile and
+                // favourites are per-user: leaving them in place shows the next user the
+                // previous one's name and email.
                 _state.update { current ->
                     current.clearedForSignOut().copy(
                         user = UserState.Guest,
