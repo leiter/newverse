@@ -199,6 +199,12 @@ All docs in `doc/` directory:
 
 - Android: Functional for both flavors
 - iOS: In progress with known issues
+- Web: **Not maintained.** The `js(IR)` browser target and `webApp` module are still
+  in the build, but nothing is kept working there and the target does not currently
+  compile (three `jsMain` files call `Log.d(TAG)` without a `TAG`, left behind by the
+  Log refactor in `d659337`). Do not treat a web break as a regression, and do not
+  spend effort keeping `jsMain` compiling unless the platform is picked up again.
+  Earlier assessment, now stale: `doc/web-implementation-audit.md`.
 - Localization: German (primary), English
 
 ## Debug Tips
