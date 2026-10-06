@@ -38,6 +38,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import org.koin.android.ext.android.inject
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.core.content.ContextCompat
+import android.os.Build
+import android.content.pm.PackageManager
+import android.Manifest
 
 /**
  * Buy flavor MainActivity
@@ -54,6 +58,16 @@ class BuyMainActivity : ComponentActivity() {
 
     // ImagePicker must be initialized before activity is started
     private lateinit var imagePicker: ImagePicker
+
+    /**
+     * POST_NOTIFICATIONS, needed from Android 13 on before the order reminder can be
+     * shown. A denial is not an error here: the reminder settings already tell the buyer
+     * that notifications are off for the app.
+     */
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            Log.d("BuyMainActivity", "POST_NOTIFICATIONS granted=$granted")
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -357,6 +371,10 @@ class BuyMainActivity : ComponentActivity() {
                         Log.d("BuyMainActivity", "Handling ScanQrCode action")
                         launchQrScanner(viewModel)
                     }
+                    is PlatformAction.RequestNotificationPermission -> {
+                        Log.d("BuyMainActivity", "Handling RequestNotificationPermission action")
+                        requestNotificationPermission()
+                    }
                     is PlatformAction.ShareText -> {
                         Log.d("BuyMainActivity", "Handling ShareText action")
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -369,4 +387,21 @@ class BuyMainActivity : ComponentActivity() {
             }
         )
     }
+
+    /**
+     * Ask for notification permission, but only when it is actually needed and could
+     * succeed. Below Android 13 the permission is granted at install time, and once the
+     * buyer has denied it the system stops showing the prompt — pointing them at the app
+     * settings is then the only honest option, which the profile screen already does.
+     */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) return
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
 }

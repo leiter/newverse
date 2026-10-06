@@ -212,6 +212,10 @@ internal fun BuyAppViewModel.loadOpenOrderAfterAuth() {
             profileResult.onSuccess { buyerProfile ->
                 val placedOrderIds = buyerProfile.placedOrderIds
 
+                // Refresh the reminder's offline snapshot before any early return, so a
+                // buyer whose last order was cancelled stops looking like they ordered.
+                syncReminderOrderSnapshot(buyerProfile.id, placedOrderIds.keys)
+
                 if (placedOrderIds.isEmpty()) {
                     Log.d(TAG) { "loadOpenOrderAfterAuth: No placed orders found" }
                     return@launch

@@ -3,6 +3,7 @@ package com.together.newverse.ui.state
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderReminderSettings
 
 /**
  * Flattened state for Buy/Customer flavor.
@@ -58,6 +59,16 @@ data class BuyAppState(
     val mainScreen: MainScreenState = MainScreenState(),
     val basketScreen: BasketScreenState = BasketScreenState(),
     val customerProfile: CustomerProfileScreenState = CustomerProfileScreenState(),
+    /**
+     * The buyer's order-reminder settings. Device-local, not part of the Firebase
+     * profile, so it lives beside [customerProfile] rather than inside it.
+     */
+    val orderReminder: OrderReminderSettings = OrderReminderSettings(),
+    /**
+     * True when the reminder is switched on but the system will not show notifications
+     * for this app, so the UI can say so instead of silently never reminding anyone.
+     */
+    val notificationsBlocked: Boolean = false,
     val orderHistory: OrderHistoryScreenState = OrderHistoryScreenState(),
 
     // Messaging

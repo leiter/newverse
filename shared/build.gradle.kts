@@ -165,6 +165,8 @@ kotlin {
             implementation("androidx.appcompat:appcompat:1.7.0")
             implementation("androidx.core:core-ktx:1.15.0")
             implementation("androidx.exifinterface:exifinterface:1.3.7")
+            // Background scheduling for the buyer's order reminder
+            implementation("androidx.work:work-runtime-ktx:2.9.0")
 
             // Compose UI Tooling for Previews
             implementation(compose.preview)

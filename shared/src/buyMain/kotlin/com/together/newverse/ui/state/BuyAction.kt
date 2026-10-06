@@ -4,6 +4,7 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.navigation.NavRoutes
+import kotlinx.datetime.DayOfWeek
 
 /**
  * Base interface for all buyer app actions.
@@ -114,6 +115,17 @@ sealed interface BuyProfileAction : BuyAction {
     data object MergeHistoryOrder : BuyProfileAction
     data object DiscardAndLoadHistoryOrder : BuyProfileAction
     data object HideHistoryMergeDialog : BuyProfileAction
+}
+
+// ===== Order Reminder Actions =====
+sealed interface BuyReminderAction : BuyAction {
+    /** Read the stored settings and arm the next reminder. Safe to repeat. */
+    data object LoadReminderSettings : BuyReminderAction
+    data class SetReminderEnabled(val enabled: Boolean) : BuyReminderAction
+    /** Add or remove one weekday. */
+    data class ToggleReminderDay(val day: DayOfWeek) : BuyReminderAction
+    data class SetReminderTime(val hour: Int, val minute: Int) : BuyReminderAction
+    data class SetReminderOnlyWhenNotOrdered(val onlyWhenNotOrdered: Boolean) : BuyReminderAction
 }
 
 // ===== Main Screen Actions =====

@@ -988,4 +988,28 @@
     <string name="pickup_msg_already_booked">This order is already booked</string>
     <string name="pickup_msg_save_failed">Booking failed</string>
     <string name="pickup_msg_status_failed">Could not update the order status</string>
+    <!-- Order reminder -->
+    <string name="order_reminder_section_title">Order reminder</string>
+    <string name="order_reminder_section_subtitle">Get a nudge to order in time</string>
+    <string name="order_reminder_enabled">Reminder on</string>
+    <string name="order_reminder_days">Days</string>
+    <string name="order_reminder_time">Time</string>
+    <string name="order_reminder_only_when_not_ordered">Only when I have not ordered yet</string>
+    <string name="order_reminder_summary_off">No reminder</string>
+    <string name="order_reminder_summary">%1$s at %2$s</string>
+    <string name="order_reminder_no_days">Pick at least one day</string>
+    <string name="order_reminder_deadline_hint">Orders close Tuesday 23:59 for Thursday pickup</string>
+    <string name="order_reminder_permission_needed">Notifications are turned off for this app. Please allow them in the system settings.</string>
+    <string name="order_reminder_channel_name">Order reminder</string>
+    <string name="order_reminder_channel_description">Reminds you to order before the deadline</string>
+    <string name="order_reminder_notification_title">Ordered yet?</string>
+    <string name="order_reminder_notification_text">Orders close Tuesday 23:59. After that the next pickup is a week away.</string>
+    <string name="order_reminder_time_picker_title">Pick a time</string>
+    <string name="day_short_monday">Mon</string>
+    <string name="day_short_tuesday">Tue</string>
+    <string name="day_short_wednesday">Wed</string>
+    <string name="day_short_thursday">Thu</string>
+    <string name="day_short_friday">Fri</string>
+    <string name="day_short_saturday">Sat</string>
+    <string name="day_short_sunday">Sun</string>
 </resources>

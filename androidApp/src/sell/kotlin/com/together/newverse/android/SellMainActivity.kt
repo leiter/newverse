@@ -203,6 +203,11 @@ class SellMainActivity : ComponentActivity() {
                         Log.d("SellMainActivity", "Handling ScanQrCode action")
                         // Sell app does not scan QR codes
                     }
+                    is PlatformAction.RequestNotificationPermission -> {
+                        // Buyer-only: the order reminder is a buy-flavor feature, and
+                        // nothing in the seller app dispatches this.
+                        Log.d("SellMainActivity", "Ignoring RequestNotificationPermission (buy-only)")
+                    }
                     is PlatformAction.ShareText -> {
                         Log.d("SellMainActivity", "Handling ShareText action: ${action.text}")
                         // Sell app does not share text

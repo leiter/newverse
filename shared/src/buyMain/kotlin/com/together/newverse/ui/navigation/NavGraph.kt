@@ -127,6 +127,11 @@ fun NavGraph(
                 isDemoMode = appState.isDemoMode,
                 accessStatus = appState.accessStatus,
                 buyerId = appState.customerProfile.profile?.id ?: "",
+                orderReminder = appState.orderReminder,
+                onRequestNotificationPermission = {
+                    onPlatformAction(PlatformAction.RequestNotificationPermission)
+                },
+                notificationsBlocked = appState.notificationsBlocked,
                 isRequestingAccess = appState.isRequestingAccess,
                 pendingInvitations = appState.pendingInvitations,
                 showConnectionConfirmDialog = appState.showConnectionConfirmDialog,

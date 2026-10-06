@@ -68,6 +68,10 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.snackbar_added_to_basket
 import org.jetbrains.compose.resources.getString
 import com.together.newverse.util.Log
+import com.together.newverse.ui.state.buy.loadReminderSettings
+import com.together.newverse.ui.state.buy.handleReminderAction
+import com.together.newverse.domain.reminder.OrderReminderScheduler
+import com.together.newverse.data.config.OrderReminderStorage
 
 
 private const val TAG = "BuyVM"
@@ -92,7 +96,9 @@ class BuyAppViewModel(
     internal val invitationRepository: InvitationRepository? = null,
     internal val messageRepository: MessageRepository? = null,
     internal val buyerContactRepository: BuyerContactRepository? = null,
-    internal val sellerEventRepository: SellerEventRepository? = null
+    internal val sellerEventRepository: SellerEventRepository? = null,
+    internal val orderReminderStorage: OrderReminderStorage? = null,
+    internal val orderReminderScheduler: OrderReminderScheduler? = null
 ) : BaseAppViewModel<BuyAppState, BuyAction>(authRepository) {
 
     /**
@@ -135,6 +141,11 @@ class BuyAppViewModel(
 
         // Observe Apple Sign-In completion to force-refresh auth state on iOS
         observeAppleSignInCompletion()
+
+        // Read the order-reminder settings and re-arm the background work. Done here
+        // rather than when the profile screen opens: a buyer who never visits that
+        // screen must still be reminded, and the system can drop pending work.
+        loadReminderSettings()
 
         // Observe Google Sign-In completion (iOS path: token emitted by GoogleSignInState)
         observeGoogleSignInCompletion()
@@ -192,6 +203,8 @@ class BuyAppViewModel(
 
             // Profile actions
             is BuyProfileAction -> handleProfileAction(action)
+
+            is BuyReminderAction -> handleReminderAction(action)
 
             // Main Screen actions
             is BuyMainScreenAction -> handleMainScreenAction(action)

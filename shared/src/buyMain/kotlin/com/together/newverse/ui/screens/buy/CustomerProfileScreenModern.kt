@@ -172,6 +172,30 @@ import newverse.shared.generated.resources.section_personal_info
 import newverse.shared.generated.resources.seller_connection_scan_qr
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import kotlinx.datetime.DayOfWeek
+import com.together.newverse.ui.state.BuyReminderAction
+import com.together.newverse.domain.model.OrderReminderSettings
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import org.jetbrains.compose.resources.StringResource
+import newverse.shared.generated.resources.day_short_friday
+import newverse.shared.generated.resources.day_short_monday
+import newverse.shared.generated.resources.day_short_saturday
+import newverse.shared.generated.resources.day_short_sunday
+import newverse.shared.generated.resources.day_short_thursday
+import newverse.shared.generated.resources.day_short_tuesday
+import newverse.shared.generated.resources.day_short_wednesday
+import newverse.shared.generated.resources.order_reminder_days
+import newverse.shared.generated.resources.order_reminder_deadline_hint
+import newverse.shared.generated.resources.order_reminder_enabled
+import newverse.shared.generated.resources.order_reminder_no_days
+import newverse.shared.generated.resources.order_reminder_only_when_not_ordered
+import newverse.shared.generated.resources.order_reminder_permission_needed
+import newverse.shared.generated.resources.order_reminder_section_title
+import newverse.shared.generated.resources.order_reminder_time
+import newverse.shared.generated.resources.order_reminder_time_picker_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,6 +214,10 @@ fun CustomerProfileScreenModern(
     isDemoMode: Boolean = true,
     accessStatus: AccessStatus = AccessStatus.NONE,
     buyerId: String = "",
+    orderReminder: OrderReminderSettings = OrderReminderSettings(),
+    onRequestNotificationPermission: () -> Unit = {},
+    notificationsBlocked: Boolean = false,
+    reminderAvailable: Boolean = true,
     isRequestingAccess: Boolean = false,
     pendingInvitations: List<Invitation> = emptyList(),
     showConnectionConfirmDialog: ConnectionConfirmation? = null,
@@ -300,6 +328,13 @@ fun CustomerProfileScreenModern(
         )
     }
 
+    // Re-read the reminder settings whenever this screen is shown. Picks up a
+    // notification permission the buyer granted in the system settings since last time,
+    // so the "notifications are off" warning does not linger until an app restart.
+    LaunchedEffect(Unit) {
+        onAction(BuyReminderAction.LoadReminderSettings)
+    }
+
     // Scroll to access card if requested, then reset the trigger
     LaunchedEffect(triggerScrollToAccess) {
         if (triggerScrollToAccess) {
@@ -401,6 +436,28 @@ fun CustomerProfileScreenModern(
                     )
 
                     // Demo Mode Card
+                    // Order reminder — device-local, so it sits apart from the
+                    // Firebase-backed profile cards above.
+                    if (reminderAvailable) {
+                        OrderReminderCard(
+                            settings = orderReminder,
+                            notificationsBlocked = notificationsBlocked,
+                            onEnabledChange = { enabled ->
+                                onAction(BuyReminderAction.SetReminderEnabled(enabled))
+                                // Ask at the moment the buyer opts in, which is when the
+                                // prompt makes sense to them — not at app start.
+                                if (enabled) onRequestNotificationPermission()
+                            },
+                            onDayToggle = { onAction(BuyReminderAction.ToggleReminderDay(it)) },
+                            onTimeChange = { hour, minute ->
+                                onAction(BuyReminderAction.SetReminderTime(hour, minute))
+                            },
+                            onOnlyWhenNotOrderedChange = {
+                                onAction(BuyReminderAction.SetReminderOnlyWhenNotOrdered(it))
+                            }
+                        )
+                    }
+
                     DemoModeCard(isDemoMode = isDemoMode)
 
                     // Pending Invitations Card
@@ -1399,6 +1456,188 @@ private fun SaveConfirmationDialog(
             )
         }
     )
+}
+
+/**
+ * The buyer's order reminder: a switch, the weekdays it may fire on, and the time of day.
+ *
+ * The ordering week is fixed (deadline Tuesday 23:59, pickup Thursday), so the days are
+ * offered in the order they matter for the coming pickup — Saturday through Tuesday —
+ * rather than as a full week the buyer has to reason about.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OrderReminderCard(
+    settings: OrderReminderSettings,
+    notificationsBlocked: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    onDayToggle: (DayOfWeek) -> Unit,
+    onTimeChange: (Int, Int) -> Unit,
+    onOnlyWhenNotOrderedChange: (Boolean) -> Unit
+) {
+    var showTimePicker by remember { mutableStateOf(false) }
+    val time = "${settings.hour.toString().padStart(2, '0')}:" +
+        settings.minute.toString().padStart(2, '0')
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SectionHeader(
+                icon = Icons.Default.Notifications,
+                title = stringResource(Res.string.order_reminder_section_title),
+                iconColor = MaterialTheme.colorScheme.secondary
+            )
+
+            Text(
+                text = stringResource(Res.string.order_reminder_deadline_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(Res.string.order_reminder_enabled),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Switch(checked = settings.enabled, onCheckedChange = onEnabledChange)
+            }
+
+            if (notificationsBlocked && settings.enabled) {
+                Text(
+                    text = stringResource(Res.string.order_reminder_permission_needed),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            // The controls stay visible but inert when off, so the buyer can see what
+            // they are turning on rather than a card that collapses to one switch.
+            val controlsEnabled = settings.enabled
+
+            Text(
+                text = stringResource(Res.string.order_reminder_days),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (controlsEnabled) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                REMINDER_DAY_ORDER.forEach { day ->
+                    FilterChip(
+                        selected = day in settings.days,
+                        onClick = { onDayToggle(day) },
+                        enabled = controlsEnabled,
+                        label = { Text(stringResource(day.shortLabel())) }
+                    )
+                }
+            }
+
+            if (controlsEnabled && settings.days.isEmpty()) {
+                Text(
+                    text = stringResource(Res.string.order_reminder_no_days),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(Res.string.order_reminder_time),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (controlsEnabled) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                )
+                TextButton(onClick = { showTimePicker = true }, enabled = controlsEnabled) {
+                    Text(time, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(Res.string.order_reminder_only_when_not_ordered),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                    color = if (controlsEnabled) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                )
+                Switch(
+                    checked = settings.onlyWhenNotOrdered,
+                    onCheckedChange = onOnlyWhenNotOrderedChange,
+                    enabled = controlsEnabled
+                )
+            }
+        }
+    }
+
+    if (showTimePicker) {
+        val pickerState = rememberTimePickerState(
+            initialHour = settings.hour,
+            initialMinute = settings.minute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text(stringResource(Res.string.order_reminder_time_picker_title)) },
+            text = { TimePicker(state = pickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onTimeChange(pickerState.hour, pickerState.minute)
+                    showTimePicker = false
+                }) { Text(stringResource(Res.string.button_save)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text(stringResource(Res.string.button_cancel))
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Saturday first, Tuesday last: the run-up to the Tuesday 23:59 deadline, in the order a
+ * buyer lives it. Wednesday to Friday are left out — a reminder then would be about a
+ * pickup over a week away, which is not what this feature is for.
+ */
+private val REMINDER_DAY_ORDER = listOf(
+    DayOfWeek.SATURDAY,
+    DayOfWeek.SUNDAY,
+    DayOfWeek.MONDAY,
+    DayOfWeek.TUESDAY
+)
+
+private fun DayOfWeek.shortLabel(): StringResource = when (this) {
+    DayOfWeek.MONDAY -> Res.string.day_short_monday
+    DayOfWeek.TUESDAY -> Res.string.day_short_tuesday
+    DayOfWeek.WEDNESDAY -> Res.string.day_short_wednesday
+    DayOfWeek.THURSDAY -> Res.string.day_short_thursday
+    DayOfWeek.FRIDAY -> Res.string.day_short_friday
+    DayOfWeek.SATURDAY -> Res.string.day_short_saturday
+    else -> Res.string.day_short_sunday
 }
 
 @Composable

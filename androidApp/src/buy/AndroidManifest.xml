@@ -2,9 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- WorkManager AAR injects these; Buy has no boot receiver or foreground service -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"
-        tools:node="remove" />
+    <!-- Order reminder: a local notification, and WorkManager restores its queue after
+         a reboot only if it can receive BOOT_COMPLETED. Both are needed for a reminder
+         to arrive without the buyer opening the app. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Still unused by Buy: no foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"
         tools:node="remove" />
 

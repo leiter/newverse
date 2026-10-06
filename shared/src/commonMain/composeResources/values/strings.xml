@@ -1046,4 +1046,28 @@
     <string name="pickup_msg_already_booked">Diese Bestellung ist bereits verbucht</string>
     <string name="pickup_msg_save_failed">Buchung fehlgeschlagen</string>
     <string name="pickup_msg_status_failed">Status der Bestellung konnte nicht aktualisiert werden</string>
+    <!-- Bestellerinnerung -->
+    <string name="order_reminder_section_title">Bestellerinnerung</string>
+    <string name="order_reminder_section_subtitle">Lass dich erinnern, rechtzeitig zu bestellen</string>
+    <string name="order_reminder_enabled">Erinnerung aktiv</string>
+    <string name="order_reminder_days">Tage</string>
+    <string name="order_reminder_time">Uhrzeit</string>
+    <string name="order_reminder_only_when_not_ordered">Nur wenn ich noch nicht bestellt habe</string>
+    <string name="order_reminder_summary_off">Keine Erinnerung</string>
+    <string name="order_reminder_summary">%1$s um %2$s</string>
+    <string name="order_reminder_no_days">Bitte mindestens einen Tag wählen</string>
+    <string name="order_reminder_deadline_hint">Bestellschluss ist Dienstag 23:59 für die Abholung am Donnerstag</string>
+    <string name="order_reminder_permission_needed">Benachrichtigungen sind für diese App ausgeschaltet. Bitte in den Systemeinstellungen erlauben.</string>
+    <string name="order_reminder_channel_name">Bestellerinnerung</string>
+    <string name="order_reminder_channel_description">Erinnert daran, vor dem Bestellschluss zu bestellen</string>
+    <string name="order_reminder_notification_title">Schon bestellt?</string>
+    <string name="order_reminder_notification_text">Bestellschluss ist Dienstag 23:59. Danach gibt es erst nächste Woche wieder etwas.</string>
+    <string name="order_reminder_time_picker_title">Uhrzeit wählen</string>
+    <string name="day_short_monday">Mo</string>
+    <string name="day_short_tuesday">Di</string>
+    <string name="day_short_wednesday">Mi</string>
+    <string name="day_short_thursday">Do</string>
+    <string name="day_short_friday">Fr</string>
+    <string name="day_short_saturday">Sa</string>
+    <string name="day_short_sunday">So</string>
 </resources>
