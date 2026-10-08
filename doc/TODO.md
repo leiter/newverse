@@ -200,8 +200,14 @@ The following features are planned but not yet implemented, or are only partiall
 - **Orphaned `bottomnav_new` string**
   - **Status:** Fixed 2026-09-25 — removed from `strings.xml` (German); it was left over after the "Neu" bottom-nav tab was replaced by the plus button on Overview (07d5ed6) and was never present in the English strings file.
 - **Default seller id**
-  - **Status:** Open
-  - **Issue:** `GitLiveArticleRepository.getFirstSellerId()` still returns the deprecated `DEFAULT_SELLER_ID` instead of the configured or connected seller.
+  - **Status:** Fixed 2026-10-08 — the constant no longer hardcodes the development seller. `DEFAULT_SELLER_ID` and `DefaultSellerConfig.sellerId` now resolve through `defaultSellerId`, an expect/actual set per build type (`buildConfigField` in `shared/build.gradle.kts` on Android, `Platform.isDebugBinary` on iOS), so it follows the Firebase project the build talks to. Before this, a release build read `/articles/cPkcZSiF3LMXjWoqW6AqpA9paoO2`, which does not exist in `bodenschaetze-a988e`, and showed an empty catalogue; it also wiped any seller connection on every launch, because `BuyerSellerConfig` clears a stored id that differs from `demoSellerId`. See `doc/build-identity-and-firebase-wiring.md`.
+  - **Still open:** `getFirstSellerId()` returns the build default rather than the *connected* seller. Correct while there is one seller per project, wrong the moment there are two.
+- **Buyer article loading hangs on an empty catalogue**
+  - **Status:** Open — a fix was written on 2026-10-08 and reverted on request; the approach needs deciding first.
+  - **Issue:** `loadMainScreenArticles` and `loadProducts` clear `isLoading` only inside `.collect` (and `.catch`). `observeArticles` turns each Firebase snapshot into per-article ADDED/CHANGED/REMOVED events, so a seller with no articles produces no emission and throws nothing — neither branch runs and the spinner stays up forever. Any genuinely empty catalogue hangs the buy app. This is what made the wrong-seller bug above present as "stuck loading" rather than "no products".
+  - **Constraint:** the buyer should **not** keep a live listener on article changes the way it does now. A one-shot read on screen entry, with an explicit refresh, is the preferred direction — decide this before writing code, because it also removes the diffing the ViewModels currently carry.
+  - **Reverted attempt:** added `ArticleRepository.observeArticleSnapshots(): Flow<List<Article>>` emitting the whole list per snapshot (empty list included) and switched both buy loaders to it. It worked and was covered by two regression tests, but it kept the buyer on a live `valueEvents` listener, which is the part to change. Patch kept at `tmp/wip/fix2-article-snapshots.patch` (gitignored, ephemeral) for reference only.
+  - **Note:** the sell app does want incremental events — `SellerProfileViewModel` and the overview path rely on the mode flags — so whatever the buyer moves to, `observeArticles` stays for sell.
 - **CSV export: trailing spaces in article names**
   - **Status:** Fixed 2026-09-25 (cosmetic) — names now trimmed at both write points: `CreateProductViewModel` (manual create/edit) and `BnnParser` (import, the actual source of "Teesieb "). Existing DB records keep their trailing space until re-saved or re-imported.
 - **Known failing unit tests**
