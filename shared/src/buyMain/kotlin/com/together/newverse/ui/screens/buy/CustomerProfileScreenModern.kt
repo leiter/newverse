@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LocationOn
@@ -92,6 +93,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
+import com.together.newverse.domain.model.MissingProfileData
 import com.together.newverse.ui.screens.buy.components.ConnectionConfirmDialog
 import com.together.newverse.ui.screens.buy.components.DeleteAccountDialog
 import com.together.newverse.ui.screens.buy.components.EmailLinkingDialog
@@ -151,14 +153,18 @@ import newverse.shared.generated.resources.label_pickup_time_hint
 import newverse.shared.generated.resources.label_self_pickup
 import newverse.shared.generated.resources.label_self_pickup_hint
 import newverse.shared.generated.resources.label_street
-import newverse.shared.generated.resources.mode_demo
-import newverse.shared.generated.resources.mode_production
 import newverse.shared.generated.resources.payment_cash_only_info
 import newverse.shared.generated.resources.pickup_time_empty
 import newverse.shared.generated.resources.pickup_time_format
 import newverse.shared.generated.resources.pickup_time_invalid_format
 import newverse.shared.generated.resources.pickup_time_outside_hours
 import newverse.shared.generated.resources.profile_incomplete_dialog_message
+import newverse.shared.generated.resources.access_requires_profile
+import newverse.shared.generated.resources.label_name
+import newverse.shared.generated.resources.missing_fields_list
+import newverse.shared.generated.resources.mode_demo
+import newverse.shared.generated.resources.mode_production
+import newverse.shared.generated.resources.profile_incomplete_fill_now
 import newverse.shared.generated.resources.profile_incomplete_dialog_title
 import newverse.shared.generated.resources.profile_address_optional_self_pickup
 import newverse.shared.generated.resources.profile_incomplete_go_to_profile
@@ -212,6 +218,7 @@ fun CustomerProfileScreenModern(
     connectedSellerId: String = "",
     connectedSellerDisplayName: String = "",
     isDemoMode: Boolean = true,
+    missingProfileData: MissingProfileData = MissingProfileData(),
     accessStatus: AccessStatus = AccessStatus.NONE,
     buyerId: String = "",
     orderReminder: OrderReminderSettings = OrderReminderSettings(),
@@ -251,6 +258,7 @@ fun CustomerProfileScreenModern(
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val personalInfoViewRequester = remember { BringIntoViewRequester() }
 
     // Logout Warning Dialog
     if (state.showLogoutWarningDialog) {
@@ -386,6 +394,21 @@ fun CustomerProfileScreenModern(
                         .padding(bottom = if (isEditing) 80.dp else 0.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
+                    // Required data the buyer still has to supply. It sits at the
+                    // top of this page rather than on the home screen: it is their
+                    // task, and this is where the fields are.
+                    if (!missingProfileData.isComplete) {
+                        ProfileIncompleteNotice(
+                            missing = missingProfileData,
+                            onFillInClick = {
+                                coroutineScope.launch {
+                                    profileViewModel.startEditing()
+                                    personalInfoViewRequester.bringIntoView()
+                                }
+                            }
+                        )
+                    }
+
                     // Profile Header Card
                     ProfileHeaderCard(
                         displayName = displayName.ifEmpty { stringResource(Res.string.profile_new_customer) },
@@ -397,30 +420,32 @@ fun CustomerProfileScreenModern(
                     )
 
                     // Personal Information Card
-                    PersonalInfoCard(
-                        displayName = displayName,
-                        email = email,
-                        phone = phone,
-                        street = street,
-                        houseNumber = houseNumber,
-                        isSelfPickup = isSelfPickup,
-                        isEditing = isEditingPersonalInfo,
-                        isSubmitting = formState.isSubmitting,
-                        emailError = formState.getFieldError(ProfileValidation.FIELD_EMAIL),
-                        phoneError = formState.getFieldError(ProfileValidation.FIELD_PHONE),
-                        onDisplayNameChange = { profileViewModel.onDisplayNameChange(it) },
-                        onEmailChange = { profileViewModel.onEmailChange(it) },
-                        onPhoneChange = { profileViewModel.onPhoneChange(it) },
-                        onStreetChange = { profileViewModel.onStreetChange(it) },
-                        onHouseNumberChange = { profileViewModel.onHouseNumberChange(it) },
-                        onEditClick = { profileViewModel.startEditing() },
-                        onSaveClick = {
-                            profileViewModel.saveProfile()
-                        },
-                        onCancelClick = {
-                            profileViewModel.cancelEditing()
-                        }
-                    )
+                    Box(modifier = Modifier.bringIntoViewRequester(personalInfoViewRequester)) {
+                        PersonalInfoCard(
+                            displayName = displayName,
+                            email = email,
+                            phone = phone,
+                            street = street,
+                            houseNumber = houseNumber,
+                            isSelfPickup = isSelfPickup,
+                            isEditing = isEditingPersonalInfo,
+                            isSubmitting = formState.isSubmitting,
+                            emailError = formState.getFieldError(ProfileValidation.FIELD_EMAIL),
+                            phoneError = formState.getFieldError(ProfileValidation.FIELD_PHONE),
+                            onDisplayNameChange = { profileViewModel.onDisplayNameChange(it) },
+                            onEmailChange = { profileViewModel.onEmailChange(it) },
+                            onPhoneChange = { profileViewModel.onPhoneChange(it) },
+                            onStreetChange = { profileViewModel.onStreetChange(it) },
+                            onHouseNumberChange = { profileViewModel.onHouseNumberChange(it) },
+                            onEditClick = { profileViewModel.startEditing() },
+                            onSaveClick = {
+                                profileViewModel.saveProfile()
+                            },
+                            onCancelClick = {
+                                profileViewModel.cancelEditing()
+                            }
+                        )
+                    }
 
                     // Gemüsedate Card
                     GemusedateCard(
@@ -435,7 +460,6 @@ fun CustomerProfileScreenModern(
                         onSelfPickupToggle = { profileViewModel.onSelfPickupToggle(it) }
                     )
 
-                    // Demo Mode Card
                     // Order reminder — device-local, so it sits apart from the
                     // Firebase-backed profile cards above.
                     if (reminderAvailable) {
@@ -458,8 +482,6 @@ fun CustomerProfileScreenModern(
                         )
                     }
 
-                    DemoModeCard(isDemoMode = isDemoMode)
-
                     // Pending Invitations Card
                     PendingInvitationsCard(
                         invitations = pendingInvitations,
@@ -475,6 +497,8 @@ fun CustomerProfileScreenModern(
                     Box(modifier = Modifier.bringIntoViewRequester(bringIntoViewRequester)) {
                         AccessStatusCard(
                             accessStatus = accessStatus,
+                            isDemoMode = isDemoMode,
+                            missingProfileData = missingProfileData,
                             buyerId = buyerId,
                             isRequestingAccess = isRequestingAccess,
                             onRequestAccess = {
@@ -1104,58 +1128,76 @@ private fun GemusedateCard(
     }
 }
 
+/**
+ * Comma separated list of the required fields that are still empty.
+ */
 @Composable
-private fun DemoModeCard(isDemoMode: Boolean) {
-    val modeText = if (isDemoMode) {
-        stringResource(Res.string.mode_demo)
-    } else {
-        stringResource(Res.string.mode_production)
-    }
-    // Read as one node that names what it is ("Modus: …") and speaks up when the
-    // mode changes while the screen is open.
-    val modeDescription = formatString(stringResource(Res.string.a11y_current_mode), modeText)
+private fun missingFieldsText(missing: MissingProfileData): String {
+    val fields = mutableListOf<String>()
+    if (missing.name) fields.add(stringResource(Res.string.label_name))
+    if (missing.pickupTime) fields.add(stringResource(Res.string.label_pickup_time))
+    if (missing.street) fields.add(stringResource(Res.string.label_street))
+    if (missing.houseNumber) fields.add(stringResource(Res.string.label_house_number))
+    return fields.joinToString(", ")
+}
+
+/**
+ * Names the profile data that is still missing and opens the form that holds it.
+ *
+ * This is the buyer's own task — the same data the access gate in
+ * `requestAccess()` requires — so it is stated once, here, and nowhere else.
+ */
+@Composable
+private fun ProfileIncompleteNotice(
+    missing: MissingProfileData,
+    onFillInClick: () -> Unit
+) {
+    val fields = missingFieldsText(missing)
+    val message = formatString(stringResource(Res.string.missing_fields_list), fields)
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clearAndSetSemantics {
-                contentDescription = modeDescription
-                liveRegion = LiveRegionMode.Polite
-            },
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            val modeColor = if (isDemoMode) {
-                MaterialTheme.colorScheme.secondary
-            } else {
-                MaterialTheme.colorScheme.primary
-            }
-
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
-                    if (isDemoMode) Icons.Default.Info else Icons.Default.Check,
+                    imageVector = Icons.Default.Warning,
                     contentDescription = null,
-                    tint = modeColor,
-                    modifier = Modifier.size(24.dp)
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(20.dp)
                 )
-                Column {
-                    Text(
-                        text = modeText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = modeColor
-                    )
-                }
+                Text(
+                    text = stringResource(Res.string.profile_incomplete_dialog_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            TextButton(
+                onClick = onFillInClick,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(
+                    text = stringResource(Res.string.profile_incomplete_fill_now),
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
             }
         }
     }
@@ -1744,6 +1786,8 @@ private fun ModernTextField(
 @Composable
 private fun AccessStatusCard(
     accessStatus: AccessStatus,
+    isDemoMode: Boolean,
+    missingProfileData: MissingProfileData,
     buyerId: String,
     isRequestingAccess: Boolean = false,
     onRequestAccess: () -> Unit = {},
@@ -1777,11 +1821,32 @@ private fun AccessStatusCard(
         )
     }
 
+    // Demo mode is simply "access not yet approved", so this card is also the
+    // mode indicator - there is no second source for it.
+    val modeText = if (isDemoMode) {
+        stringResource(Res.string.mode_demo)
+    } else {
+        stringResource(Res.string.mode_production)
+    }
+    val modeDescription = formatString(stringResource(Res.string.a11y_current_mode), modeText)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = modeText,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = contentColor,
+                // Named as a mode, and announced when it flips while the screen is open.
+                modifier = Modifier.semantics {
+                    contentDescription = modeDescription
+                    liveRegion = LiveRegionMode.Polite
+                }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1813,6 +1878,20 @@ private fun AccessStatusCard(
                     color = contentColor.copy(alpha = 0.7f),
                     // Frame the raw id so a screen reader does not just spell it out unlabelled.
                     modifier = Modifier.semantics { contentDescription = accessIdLabel }
+                )
+            }
+            // The access gate in requestAccess() refuses while profile data is
+            // missing, so the requirement is stated here, next to the button it
+            // blocks, instead of only after the buyer has tapped it.
+            if (accessStatus == AccessStatus.NONE && !missingProfileData.isComplete) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = formatString(
+                        stringResource(Res.string.access_requires_profile),
+                        missingFieldsText(missingProfileData)
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor
                 )
             }
             if (accessStatus != AccessStatus.APPROVED) {

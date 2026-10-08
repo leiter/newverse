@@ -735,9 +735,8 @@
     <string name="contacts_remove_confirm">Moechten Sie diesen Kontakt wirklich entfernen?</string>
 
     <!-- Demo Mode -->
-    <string name="demo_mode_banner_message">Demo-Modus — Zugang anfragen um alle Funktionen freizuschalten</string>
-    <string name="demo_mode_banner_action">Zugang anfragen</string>
     <string name="demo_limit_reached">Demo-Limit erreicht. Bitte Zugang anfragen.</string>
+    <string name="basket_demo_order_notice">Demo-Bestellung — unverbindlich</string>
     <string name="demo_orders_clear_button">Demo-Bestellungen löschen (&gt; 1 Monat)</string>
     <string name="demo_orders_clear_result">%1$d Demo-Bestellungen gelöscht</string>
     <string name="demo_orders_clear_none">Keine alten Demo-Bestellungen gefunden</string>
@@ -771,8 +770,6 @@
     <string name="label_self_pickup_hint">Ich hole meine Bestellung selbst ab</string>
 
     <!-- Profile Incomplete -->
-    <string name="demo_banner_profile_incomplete">Bitte vervollständige dein Profil (Name, Adresse, Abholzeit)</string>
-    <string name="demo_banner_complete_profile">Profil vervollständigen</string>
     <string name="profile_incomplete_dialog_title">Profil unvollständig</string>
     <string name="profile_incomplete_dialog_message">Bitte fülle Name, Straße, Hausnummer und Abholzeit aus, bevor du Zugang anfragst.</string>
     <string name="missing_field_name">Name fehlt</string>
@@ -780,6 +777,11 @@
     <string name="missing_field_house_number">Hausnummer fehlt</string>
     <string name="missing_field_pickup_time">Abholzeit fehlt</string>
     <string name="profile_incomplete_go_to_profile">Zum Profil</string>
+    <!-- Lists the still-empty required fields: %1$s = comma separated field names -->
+    <string name="missing_fields_list">Fehlende Angaben: %1$s</string>
+    <string name="profile_incomplete_fill_now">Jetzt ausfüllen</string>
+    <!-- Precondition shown above the access request button: %1$s = missing fields -->
+    <string name="access_requires_profile">Für die Anfrage fehlen noch: %1$s</string>
 
     <!-- ========================================= -->
     <!-- APP INITIALIZATION STEPS -->
@@ -908,6 +910,8 @@
     <string name="a11y_toggle_address">Adresse ein- oder ausblenden</string>
     <!-- Frames the demo/production mode indicator: %s = mode name -->
     <string name="a11y_current_mode">Modus: %s</string>
+    <!-- Dot badge on the profile tab while required profile data is missing -->
+    <string name="a11y_profile_incomplete_badge">Profil unvollständig</string>
     <string name="a11y_choose_time">Uhrzeit wählen</string>
     <!-- Invitation action buttons name the seller they act on: %1$s = seller -->
     <string name="a11y_invitation_accept_from">Einladung von %1$s annehmen</string>

@@ -1,5 +1,6 @@
 package com.together.newverse.ui.screens.buy
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,16 +11,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,6 +50,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
@@ -86,6 +91,9 @@ fun BasketScreen(
     currentArticles: List<Article>,
     onAction: (BuyBasketScreenAction) -> Unit,
     onNavigateToOrders: () -> Unit = {},
+    isDemoMode: Boolean = false,
+    canRequestAccess: Boolean = false,
+    onRequestAccess: () -> Unit = {},
     orderId: String? = null,
     orderDate: String? = null
 ) {
@@ -101,7 +109,10 @@ fun BasketScreen(
         state = state,
         currentArticles = currentArticles,
         onAction = onAction,
-        onNavigateToOrders = onNavigateToOrders
+        onNavigateToOrders = onNavigateToOrders,
+        isDemoMode = isDemoMode,
+        canRequestAccess = canRequestAccess,
+        onRequestAccess = onRequestAccess
     )
 }
 
@@ -112,13 +123,19 @@ fun BasketScreen(
  * @param currentArticles The list of currently loaded articles with current prices
  * @param onAction Callback for user actions
  * @param onNavigateToOrders Callback to navigate to order history
+ * @param isDemoMode Whether this order would be placed as a demo order
+ * @param canRequestAccess Whether requesting access is still an option (AccessStatus.NONE)
+ * @param onRequestAccess Opens the access card on the profile page
  */
 @Composable
 fun BasketContent(
     state: BasketScreenState,
     currentArticles: List<Article>,
     onAction: (BuyBasketScreenAction) -> Unit,
-    onNavigateToOrders: () -> Unit = {}
+    onNavigateToOrders: () -> Unit = {},
+    isDemoMode: Boolean = false,
+    canRequestAccess: Boolean = false,
+    onRequestAccess: () -> Unit = {}
 ) {
     // Show dialogs outside the LazyColumn
     if (state.showDatePicker) {
@@ -185,7 +202,14 @@ fun BasketContent(
     // On Expanded windows (tablet landscape) show items on the left and a
     // fixed summary column (date, total, actions) on the right.
     if (LocalWindowWidthClass.current == WindowWidthClass.Expanded) {
-        BasketTwoPane(state = state, onAction = onAction, onNavigateToOrders = onNavigateToOrders)
+        BasketTwoPane(
+            state = state,
+            onAction = onAction,
+            onNavigateToOrders = onNavigateToOrders,
+            isDemoMode = isDemoMode,
+            canRequestAccess = canRequestAccess,
+            onRequestAccess = onRequestAccess
+        )
         return
     }
 
@@ -414,6 +438,14 @@ fun BasketContent(
 
             // Action buttons
             if (state.orderId == null) {
+                if (isDemoMode) {
+                    item {
+                        DemoOrderNotice(
+                            canRequestAccess = canRequestAccess,
+                            onRequestAccess = onRequestAccess
+                        )
+                    }
+                }
                 item {
                     Button(
                         onClick = { onAction(BuyBasketScreenAction.Checkout) },
@@ -437,7 +469,10 @@ fun BasketContent(
 private fun BasketTwoPane(
     state: BasketScreenState,
     onAction: (BuyBasketScreenAction) -> Unit,
-    onNavigateToOrders: () -> Unit
+    onNavigateToOrders: () -> Unit,
+    isDemoMode: Boolean,
+    canRequestAccess: Boolean,
+    onRequestAccess: () -> Unit
 ) {
     // Without an explicit traversal order a screen reader walks the two panes by
     // geometry and interleaves the item rows on the left with the summary rows on
@@ -528,6 +563,13 @@ private fun BasketTwoPane(
 
             // Checkout only for new orders (existing-order actions live in OrderInfoCard)
             if (state.orderId == null && state.items.isNotEmpty()) {
+                if (isDemoMode) {
+                    DemoOrderNotice(
+                        canRequestAccess = canRequestAccess,
+                        onRequestAccess = onRequestAccess
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 Button(
                     onClick = { onAction(BuyBasketScreenAction.Checkout) },
                     modifier = Modifier.fillMaxWidth(),
@@ -535,6 +577,56 @@ private fun BasketTwoPane(
                 ) {
                     Text(if (state.isCheckingOut) stringResource(Res.string.basket_checkout_processing) else stringResource(Res.string.basket_checkout_proceed))
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Says what checkout is about to do while the buyer is in demo mode.
+ *
+ * Demo orders are real records - the first two are even written to Firebase
+ * `demo_orders/` for the seller to see (see BuyAppViewModelBasket) - they are
+ * simply not binding, which is the one thing the buyer needs to know here.
+ */
+@Composable
+private fun DemoOrderNotice(
+    canRequestAccess: Boolean,
+    onRequestAccess: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.tertiaryContainer)
+            .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = stringResource(Res.string.basket_demo_order_notice),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        }
+        // A blocked buyer has nothing to request, so the link would be a dead end.
+        if (canRequestAccess) {
+            TextButton(onClick = onRequestAccess) {
+                Text(
+                    text = stringResource(Res.string.access_request_button),
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
             }
         }
     }

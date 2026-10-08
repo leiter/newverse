@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.savedstate.read
+import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.ui.screens.buy.BasketScreen
 import com.together.newverse.ui.screens.buy.AddBuyerContactScreen
 import com.together.newverse.ui.screens.buy.BuyerContactsScreen
@@ -81,6 +82,12 @@ fun NavGraph(
                 currentArticles = appState.mainScreen.articles,
                 onAction = { action -> onAction(action) },
                 onNavigateToOrders = { navController.navigate(NavRoutes.Buy.OrderHistory.route) },
+                isDemoMode = appState.isDemoMode,
+                // BLOCKED and PENDING buyers have nothing left to request.
+                canRequestAccess = appState.accessStatus == AccessStatus.NONE,
+                onRequestAccess = {
+                    onAction(BuyNavigationAction.TriggerScrollToAccessInProfile)
+                },
                 orderId = orderIdArg ?: appState.basket.currentOrderId,
                 orderDate = orderDateArg ?: appState.basket.currentOrderDate
             )
@@ -125,6 +132,7 @@ fun NavGraph(
                 connectedSellerId = appState.connectedSellerId,
                 connectedSellerDisplayName = appState.connectedSellerDisplayName,
                 isDemoMode = appState.isDemoMode,
+                missingProfileData = appState.missingProfileData,
                 accessStatus = appState.accessStatus,
                 buyerId = appState.customerProfile.profile?.id ?: "",
                 orderReminder = appState.orderReminder,

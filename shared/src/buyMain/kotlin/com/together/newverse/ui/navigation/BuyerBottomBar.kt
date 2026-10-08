@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.contentDescription
 import com.together.newverse.util.formatString
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
+import newverse.shared.generated.resources.a11y_profile_incomplete_badge
 import newverse.shared.generated.resources.nav_customer_profile
 import newverse.shared.generated.resources.nav_home
 import newverse.shared.generated.resources.nav_shopping_basket
@@ -68,6 +69,7 @@ val BuyerBottomNavItems = listOf(
 fun BuyerBottomNavigationBar(
     currentRoute: String,
     basketItemCount: Int,
+    showProfileBadge: Boolean = false,
     onNavigate: (String) -> Unit
 ) {
     // Shake animation for the cart icon
@@ -99,6 +101,11 @@ fun BuyerBottomNavigationBar(
                 else -> 0
             }
 
+            // Unfinished profile data is the buyer's own task, so it is marked on
+            // the tab that holds it. Demo mode is not: it needs the seller.
+            val showAttentionDot = showProfileBadge &&
+                item.route == NavRoutes.Buy.Profile.route
+
             val isCartItem = item.route == NavRoutes.Buy.Basket.route
 
             NavigationBarItem(
@@ -111,6 +118,7 @@ fun BuyerBottomNavigationBar(
                     BuyerNavItemIcon(
                         item = item,
                         badgeCount = badgeCount,
+                        showAttentionDot = showAttentionDot,
                         modifier = iconModifier
                     )
                 },
@@ -132,6 +140,7 @@ fun BuyerBottomNavigationBar(
 fun BuyerNavigationRail(
     currentRoute: String,
     basketItemCount: Int,
+    showProfileBadge: Boolean = false,
     onNavigate: (String) -> Unit
 ) {
     NavigationRail(
@@ -148,9 +157,20 @@ fun BuyerNavigationRail(
                 else -> 0
             }
 
+            // Unfinished profile data is the buyer's own task, so it is marked on
+            // the tab that holds it. Demo mode is not: it needs the seller.
+            val showAttentionDot = showProfileBadge &&
+                item.route == NavRoutes.Buy.Profile.route
+
             NavigationRailItem(
                 modifier = Modifier.padding(horizontal = 12.dp),
-                icon = { BuyerNavItemIcon(item = item, badgeCount = badgeCount) },
+                icon = {
+                    BuyerNavItemIcon(
+                        item = item,
+                        badgeCount = badgeCount,
+                        showAttentionDot = showAttentionDot
+                    )
+                },
                 label = { Text(label) },
                 selected = isSelected,
                 onClick = {
@@ -166,35 +186,59 @@ fun BuyerNavigationRail(
 private fun BuyerNavItemIcon(
     item: BuyerBottomNavItem,
     badgeCount: Int,
+    showAttentionDot: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     // The icon is decorative: NavigationBarItem's always-visible text label carries
     // the name, and the item itself supplies the Tab role and selected state.
-    if (badgeCount > 0) {
-        val badgeDescription = formatString(
-            stringResource(Res.string.a11y_basket_item_count),
-            badgeCount
-        )
-        BadgedBox(
-            badge = {
-                Badge(
-                    modifier = Modifier.clearAndSetSemantics {
-                        contentDescription = badgeDescription
-                    }
-                ) { Text(badgeCount.toString()) }
+    val countDescription = formatString(
+        stringResource(Res.string.a11y_basket_item_count),
+        badgeCount
+    )
+    val attentionDescription = stringResource(Res.string.a11y_profile_incomplete_badge)
+
+    when {
+        badgeCount > 0 -> {
+            BadgedBox(
+                badge = {
+                    Badge(
+                        modifier = Modifier.clearAndSetSemantics {
+                            contentDescription = countDescription
+                        }
+                    ) { Text(badgeCount.toString()) }
+                }
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = null,
+                    modifier = modifier
+                )
             }
-        ) {
+        }
+        // A dot rather than a number: it marks a state, it does not count anything.
+        showAttentionDot -> {
+            BadgedBox(
+                badge = {
+                    Badge(
+                        modifier = Modifier.clearAndSetSemantics {
+                            contentDescription = attentionDescription
+                        }
+                    )
+                }
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = null,
+                    modifier = modifier
+                )
+            }
+        }
+        else -> {
             Icon(
                 imageVector = item.icon,
                 contentDescription = null,
                 modifier = modifier
             )
         }
-    } else {
-        Icon(
-            imageVector = item.icon,
-            contentDescription = null,
-            modifier = modifier
-        )
     }
 }

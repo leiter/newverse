@@ -2,6 +2,8 @@ package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
+import com.together.newverse.domain.model.MissingProfileData
+import com.together.newverse.domain.model.missingProfileData
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderReminderSettings
 
@@ -92,8 +94,28 @@ data class BuyAppState(
     // App metadata
     val meta: AppMetaState = AppMetaState()
 ) {
-    /** Only show demo banner once the real status has been loaded from Firebase. */
+    /** Only treat the buyer as a demo buyer once the real status has been loaded from Firebase. */
     val isDemoMode: Boolean get() = isAccessStatusLoaded && accessStatus != AccessStatus.APPROVED
+
+    /**
+     * The one completeness rule, shared by the access gate and every prompt
+     * about it. See [MissingProfileData].
+     */
+    val missingProfileData: MissingProfileData get() = customerProfile.profile.missingProfileData()
+
+    val isProfileIncomplete: Boolean get() = !missingProfileData.isComplete
+
+    /**
+     * Whether the profile tab carries an attention badge.
+     *
+     * A badge promises a task the buyer can finish, so it appears only once the
+     * missing data actually stands in their way: in production, where real
+     * orders carry it to the seller, or after a seller token has been parked
+     * waiting for it. A demo buyer who is only browsing is not nagged.
+     */
+    val showProfileAttentionBadge: Boolean
+        get() = isProfileIncomplete &&
+            (accessStatus == AccessStatus.APPROVED || pendingConnectToken != null)
 }
 
 /**

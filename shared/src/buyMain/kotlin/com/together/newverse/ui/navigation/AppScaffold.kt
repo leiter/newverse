@@ -379,6 +379,7 @@ private fun AppScaffoldContent(
                 BuyerBottomNavigationBar(
                     currentRoute = currentRoute,
                     basketItemCount = basketItems.size,
+                    showProfileBadge = appState.showProfileAttentionBadge,
                     onNavigate = onNavigateToTab
                 )
             }
@@ -609,6 +610,7 @@ private fun AppScaffoldContent(
                 BuyerNavigationRail(
                     currentRoute = currentRoute,
                     basketItemCount = basketItems.size,
+                    showProfileBadge = appState.showProfileAttentionBadge,
                     onNavigate = onNavigateToTab
                 )
             }

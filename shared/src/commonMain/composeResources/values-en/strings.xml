@@ -681,9 +681,8 @@
     <string name="contacts_remove_confirm">Are you sure you want to remove this contact?</string>
 
     <!-- Demo Mode -->
-    <string name="demo_mode_banner_message">Demo mode — request access to unlock all features</string>
-    <string name="demo_mode_banner_action">Request Access</string>
     <string name="demo_limit_reached">Demo limit reached. Please request access.</string>
+    <string name="basket_demo_order_notice">Demo order — not binding</string>
     <string name="demo_orders_clear_button">Clear demo orders (&gt; 1 month)</string>
     <string name="demo_orders_clear_result">%1$d demo order(s) deleted</string>
     <string name="demo_orders_clear_none">No old demo orders found</string>
@@ -719,8 +718,6 @@
     <string name="label_self_pickup_hint">I will pick up my order myself</string>
 
     <!-- Profile Incomplete -->
-    <string name="demo_banner_profile_incomplete">Please complete your profile (name, address, pickup time)</string>
-    <string name="demo_banner_complete_profile">Complete Profile</string>
     <string name="profile_incomplete_dialog_title">Profile Incomplete</string>
     <string name="profile_incomplete_dialog_message">Please fill in name, street, house number, and pickup time before requesting access.</string>
     <string name="missing_field_name">Name missing</string>
@@ -728,6 +725,11 @@
     <string name="missing_field_house_number">House number missing</string>
     <string name="missing_field_pickup_time">Pickup time missing</string>
     <string name="profile_incomplete_go_to_profile">Go to Profile</string>
+    <!-- Lists the still-empty required fields: %1$s = comma separated field names -->
+    <string name="missing_fields_list">Missing: %1$s</string>
+    <string name="profile_incomplete_fill_now">Fill in now</string>
+    <!-- Precondition shown above the access request button: %1$s = missing fields -->
+    <string name="access_requires_profile">Still needed for the request: %1$s</string>
 
     <!-- ========================================= -->
     <!-- APP INITIALIZATION STEPS -->
@@ -856,6 +858,8 @@
     <string name="a11y_toggle_address">Show or hide the address</string>
     <!-- Frames the demo/production mode indicator: %s = mode name -->
     <string name="a11y_current_mode">Mode: %s</string>
+    <!-- Dot badge on the profile tab while required profile data is missing -->
+    <string name="a11y_profile_incomplete_badge">Profile incomplete</string>
     <string name="a11y_choose_time">Choose a time</string>
     <!-- Invitation action buttons name the seller they act on: %1$s = seller -->
     <string name="a11y_invitation_accept_from">Accept invitation from %1$s</string>

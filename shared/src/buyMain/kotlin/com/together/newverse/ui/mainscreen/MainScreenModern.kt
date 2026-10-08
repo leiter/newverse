@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -24,7 +22,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -41,12 +38,7 @@ import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyMainScreenAction
-import com.together.newverse.ui.state.BuyNavigationAction
 import newverse.shared.generated.resources.Res
-import newverse.shared.generated.resources.demo_banner_complete_profile
-import newverse.shared.generated.resources.demo_banner_profile_incomplete
-import newverse.shared.generated.resources.demo_mode_banner_action
-import newverse.shared.generated.resources.demo_mode_banner_message
 import newverse.shared.generated.resources.main_order_locked_snackbar
 import newverse.shared.generated.resources.main_section_fresh_subtitle
 import newverse.shared.generated.resources.main_section_fresh_title
@@ -64,63 +56,13 @@ import org.jetbrains.compose.resources.stringResource
 fun MainScreenModern(
     state: MainScreenState,
     onAction: (BuyAction) -> Unit,
-    isDemoMode: Boolean = false,
-    isProfileIncomplete: Boolean = false,
     onNavigateToProductDetail: (String) -> Unit = {}
 ) {
     MainScreenModernContent(
         state = state,
         onAction = onAction,
-        isDemoMode = isDemoMode,
-        isProfileIncomplete = isProfileIncomplete,
         onNavigateToProductDetail = onNavigateToProductDetail,
     )
-}
-
-@Composable
-private fun DemoModeBanner(
-    isProfileIncomplete: Boolean,
-    onRequestAccessClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.tertiaryContainer)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Warning,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-            Text(
-                text = if (isProfileIncomplete) {
-                    stringResource(Res.string.demo_banner_profile_incomplete)
-                } else {
-                    stringResource(Res.string.demo_mode_banner_message)
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-        }
-        TextButton(onClick = onRequestAccessClick) {
-            Text(
-                text = if (isProfileIncomplete) {
-                    stringResource(Res.string.demo_banner_complete_profile)
-                } else {
-                    stringResource(Res.string.demo_mode_banner_action)
-                },
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-        }
-    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -128,8 +70,6 @@ private fun DemoModeBanner(
 private fun MainScreenModernContent(
     state: MainScreenState,
     onAction: (BuyAction) -> Unit,
-    isDemoMode: Boolean,
-    isProfileIncomplete: Boolean,
     onNavigateToProductDetail: (String) -> Unit,
 ) {
     val products = state.filteredArticles
@@ -170,12 +110,6 @@ private fun MainScreenModernContent(
             color = MaterialTheme.colorScheme.background
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-            if (isDemoMode) {
-                DemoModeBanner(
-                    isProfileIncomplete = isProfileIncomplete,
-                    onRequestAccessClick = { onAction(BuyNavigationAction.TriggerScrollToAccessInProfile) }
-                )
-            }
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)

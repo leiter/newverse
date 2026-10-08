@@ -255,9 +255,14 @@ private fun OrderHistoryCard(
         else -> if (canEdit) stringResource(Res.string.order_status_editable) else stringResource(Res.string.order_status_scheduled)
     }
 
+    // Demo orders are kept locally (or in demo_orders/) and are not binding, so
+    // they stay distinguishable from real ones in the history.
+    val demoText = stringResource(Res.string.order_status_demo)
+
     // One deliberate node for the whole card instead of ~8 text fragments.
     val cardDescription = buildString {
         append(orderIdText)
+        if (order.isDemoOrder) { append(", "); append(demoText) }
         append(", "); append(statusText)
         append(", "); append(pickupText)
         daysText?.let { append(", "); append(it) }
@@ -305,6 +310,21 @@ private fun OrderHistoryCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (order.isDemoOrder) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer
+                        ) {
+                            Text(
+                                text = demoText,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                 }
 
                 // Status badge

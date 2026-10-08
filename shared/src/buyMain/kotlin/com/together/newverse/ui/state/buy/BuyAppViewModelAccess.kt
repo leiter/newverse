@@ -2,6 +2,7 @@ package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.AccessStatus
+import com.together.newverse.domain.model.MissingProfileData
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.SnackbarType
 import kotlin.uuid.ExperimentalUuidApi
@@ -15,31 +16,11 @@ import com.together.newverse.util.Log
 private const val TAG = "BuyVMAccess"
 
 /**
- * Tracks which required profile fields are missing.
+ * The buyer's missing profile fields, read from state so the gate below and the
+ * badge/prompts in the UI can never disagree.
  */
-internal data class MissingProfileData(
-    val name: Boolean = false,
-    val pickupTime: Boolean = false,
-    val street: Boolean = false,     // only relevant if !isSelfPickup
-    val houseNumber: Boolean = false  // only relevant if !isSelfPickup
-) {
-    val isComplete: Boolean get() = !name && !pickupTime && !street && !houseNumber
-    val allMissing: Boolean get() = name && pickupTime && (street || houseNumber)
-}
-
-/**
- * Check whether the buyer profile has all required fields filled.
- */
-internal fun BuyAppViewModel.checkProfileCompleteness(): MissingProfileData {
-    val profile = _state.value.customerProfile.profile
-    val isSelfPickup = profile?.isSelfPickup ?: false
-    return MissingProfileData(
-        name = profile?.displayName.isNullOrBlank(),
-        pickupTime = profile?.defaultPickUpTime.isNullOrBlank(),
-        street = if (isSelfPickup) false else profile?.street.isNullOrBlank(),
-        houseNumber = if (isSelfPickup) false else profile?.houseNumber.isNullOrBlank()
-    )
-}
+internal fun BuyAppViewModel.checkProfileCompleteness(): MissingProfileData =
+    _state.value.missingProfileData
 
 /**
  * Build a user-facing message listing which fields are still missing.
