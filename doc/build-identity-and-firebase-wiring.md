@@ -141,60 +141,29 @@ each flavor there is exactly one identifier covering both backends. Effects:
 
 ## Finding 3 — no `.firebaserc`
 
-There are no Firebase CLI project aliases. `firebase.json` points `database.rules` at
-`firebase/database.rules.json` with no per-project targets, so every
-`firebase deploy --only database` depends on remembering the right `--project`.
+**Fixed 2026-10-08.** There were no project aliases, so every
+`firebase deploy --only database` depended on remembering the right `--project`, with
+six rules commits still undeployed and a day spent switching between the two projects.
 
-Given the undeployed rules work tracked in `doc/pre-release-checklist.md`, a
-wrong-project rules deploy is the highest-consequence mistake currently available. This
-item is independent of the identity question and can be done at any time.
+`.firebaserc` now defines `dev` -> `fire-one-58ddc` and `prod` ->
+`bodenschaetze-a988e`, with **`default` pointing at dev** so a forgotten `-P` lands on
+the harmless project rather than on production.
 
----
+```
+firebase deploy --only database -P prod
+```
 
-## Finding 4 — `src/main/google-services.json` is a silent fallback
+## Finding 4 — `src/main/google-services.json` was a silent fallback
 
-It points at dev. Any build type added later inherits the dev backend with no error.
-Deleting it makes a missing configuration fail the build instead. Minor, and
-independent of everything else.
+**Fixed 2026-10-08.** It pointed at the development project, so any build type added
+later would have inherited that backend with no error. Everything this app gets right
+about environments now rests on build-type-specific config -- the seller id, the Google
+Sign-In client id, the iOS plist -- and this file sat underneath that as a trapdoor.
 
----
-
-## Finding 5 — the default seller id is a third per-environment value
-
-**Fixed 2026-10-08.** Found while debugging "no articles, stuck loading" on a
-production build.
-
-The marketplace has one seller, but its auth uid differs per Firebase project:
-`cPkcZSiF3LMXjWoqW6AqpA9paoO2` in `fire-one-58ddc`, `2e2h2VdsyqM7QakqUfCVLkFCsUh1` in
-`bodenschaetze-a988e`. Both `GitLiveArticleRepository.DEFAULT_SELLER_ID` and
-`DefaultSellerConfig.sellerId` hardcoded the **dev** uid, so a production build read
-`/articles/cPkcZSiF3LMXjWoqW6AqpA9paoO2` — a node that does not exist there — and
-showed an empty catalogue. It worked in dev only by coincidence, because there the
-hardcoded uid is the real seller.
-
-It also broke seller connection permanently in production. `BuyerSellerConfig.init`
-clears any stored seller id that differs from `demoSellerId`, and in production every
-valid id differs from the dev uid, so a connection made through `newverse://connect`
-was wiped on the next launch.
-
-The fix treats the seller id as following the backend, like `google-services.json` and
-the plist:
-
-- `shared/build.gradle.kts` sets `buildConfigField("String", "DEFAULT_SELLER_ID", …)`
-  per build type, next to named `DEV_SELLER_ID` / `PROD_SELLER_ID` constants.
-- `expect val defaultSellerId` (`shared/src/commonMain/.../data/config/DefaultSellerId.kt`)
-  with four actuals: Android reads `BuildConfig`; iOS keys off `Platform.isDebugBinary`,
-  the same debug/release distinction `copy-firebase-plist.sh` uses; js takes the dev
-  value.
-- `DefaultSellerConfig.sellerId` and `GitLiveArticleRepository.DEFAULT_SELLER_ID`
-  resolve through it, which also repairs the `BuyerSellerConfig.init` comparison.
-
-**Whenever a build's Firebase project changes, this value changes with it.** Three
-things now travel together per environment: `google-services.json` / the plist, the
-Google Sign-In URL scheme on iOS, and the default seller id.
-
-Verified on a Pixel 7a with a locally signed `buyRelease`: the production catalogue
-loads, and the first article shown (`Milan`, 3,80 EUR/kg) matches the production export.
+Deleted. `src/debug/` and `src/release/` cover every variant, verified by building
+`buyDebug`, `buyRelease` and `sellRelease` afterwards and reading back the resolved
+database URL for each. A build type without its own config now fails instead of
+quietly reaching development.
 
 ---
 
