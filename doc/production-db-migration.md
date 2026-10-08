@@ -2,7 +2,9 @@
 
 **Written:** 2026-10-08
 **Source:** `bodenschaetze-a988e` export, 204 KB, taken 2026-10-08
-**Output:** `tmp/db-migration/bodenschaetze-a988e-migrated.json` (+ `changes.log`)
+**Output:** `tmp/db-migration/bodenschaetze-a988e-migrated-with-buyerid.json` — the
+file to import. Intermediates beside it: `bodenschaetze-a988e-migrated.json` (articles
+and seller profile only) and `changes.log`.
 **Status:** produced and verified, **not applied**
 
 `tmp/` is gitignored and both files stay there: the export carries real customer
@@ -45,8 +47,30 @@ entries, 48 unique pairs, covering all 48 orders with no gaps, no duplicates and
 two buyers claiming the same order. One pass writing
 `/orders/{sellerId}/{day}/{orderId}/buyerId = {authUid}` closes it.
 
-**It has to run before the rules deploy**, not after — afterwards only the seller
-account can still write those nodes.
+**Scripted:** `firebase/scripts/backfill-order-buyerid.mjs`, dry run by default,
+`--apply` to write, matching the conventions of `backfill-authuid.mjs`. It also takes
+`--from-export <file>` to rehearse against a snapshot without touching a project.
+
+Rehearsed against the 2026-10-08 export: all 48 orders resolve to a buyer, with no
+unclaimed order, no order claimed by two profiles, and no existing `buyerId` to
+conflict with. The script never overwrites a `buyerId` that is already set, and
+reports rather than guesses when two profiles claim one order.
+
+Run it **before** the rules deploy. The script itself works either way, since it goes
+through the firebase CLI's admin credentials and those bypass rules; but deploying
+first opens a window in which buyers cannot see their own order history.
+
+**Applied to the export, not to the database.** `--from-export <in> --out <out>` writes
+a copy of an export with the values filled in and contacts no project;
+`bodenschaetze-a988e-migrated-with-buyerid.json` is the migrated export with all 48
+`buyerId` values set. Verified against its input: `articles`, `buyer_profile` and
+`seller_profile` byte-identical, same 48 orders with the same keys, `buyerId` the only
+field added, no existing order field altered, and every value a profile whose
+`placedOrderIds` claims that order. 14 distinct buyers, the busiest holding 11 orders.
+
+The live database is untouched. Importing that file is what applies the backfill, so
+B1 is carried by the same import as the article migration rather than needing a
+separate `--apply` run.
 
 ### B2 — `buyer_access_status` does not exist
 
