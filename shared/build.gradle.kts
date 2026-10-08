@@ -12,6 +12,11 @@ plugins {
     kotlin("plugin.serialization")
 }
 
+// Seller identity per Firebase project. fire-one-58ddc (dev) and bodenschaetze-a988e
+// (release) each hold a single seller, under different auth uids.
+val DEV_SELLER_ID = "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+val PROD_SELLER_ID = "2e2h2VdsyqM7QakqUfCVLkFCsUh1"
+
 kotlin {
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -221,6 +226,24 @@ android {
 
     defaultConfig {
         minSdk = 23
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    // The marketplace has exactly one seller, and which one depends on the Firebase
+    // project the build talks to -- the same debug/release axis that selects
+    // androidApp/src/{debug,release}/google-services.json. Keep these two in step:
+    // pointing at a seller that does not exist in the active project leaves the buyer
+    // app with an empty catalogue. See doc/build-identity-and-firebase-wiring.md.
+    buildTypes {
+        getByName("debug") {
+            buildConfigField("String", "DEFAULT_SELLER_ID", "\"$DEV_SELLER_ID\"")
+        }
+        getByName("release") {
+            buildConfigField("String", "DEFAULT_SELLER_ID", "\"$PROD_SELLER_ID\"")
+        }
     }
 
     compileOptions {

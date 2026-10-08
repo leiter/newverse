@@ -3,8 +3,9 @@ package com.together.newverse.data.config
 import com.together.newverse.domain.config.SellerConfig
 
 /**
- * Default seller configuration with the current hardcoded seller ID.
+ * Seller configuration backed by the build's own [defaultSellerId], which follows the
+ * Firebase project this build talks to.
  */
 class DefaultSellerConfig : SellerConfig {
-    override val sellerId: String = "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+    override val sellerId: String = defaultSellerId
 }

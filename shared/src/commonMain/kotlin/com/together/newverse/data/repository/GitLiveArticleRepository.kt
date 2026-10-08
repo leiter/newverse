@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.data.firebase.ArticleNodes
+import com.together.newverse.data.config.defaultSellerId
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.model.Article.Companion.MODE_CHANGED
@@ -274,7 +275,7 @@ class GitLiveArticleRepository(
             "Use SellerConfig.sellerId instead. Inject SellerConfig via DI.",
             ReplaceWith("sellerConfig.sellerId")
         )
-        const val DEFAULT_SELLER_ID = "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
+        val DEFAULT_SELLER_ID: String get() = defaultSellerId
     }
 
     /**
