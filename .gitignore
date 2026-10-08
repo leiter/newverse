@@ -20,7 +20,11 @@ local.properties
 bin/
 gen/
 out/
-release/
+# Build output only. Does NOT cover androidApp/src/release/, which holds the
+# release google-services.json and must stay in version control -- it drifted
+# eleven months out of date while unversioned.
+/*/release/
+!androidApp/src/release/
 
 # Gradle
 .gradle/

@@ -1,0 +1,115 @@
+{
+  "project_info": {
+    "project_number": "335968806240",
+    "firebase_url": "https://bodenschaetze-a988e-default-rtdb.firebaseio.com",
+    "project_id": "bodenschaetze-a988e",
+    "storage_bucket": "bodenschaetze-a988e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:335968806240:android:b2449d0a53f24f2ea7ea05",
+        "android_client_info": {
+          "package_name": "com.together.buy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "335968806240-7jf7lnh4vd4pkq5td0fctq6lfdi50moc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.together.buy",
+            "certificate_hash": "112089160a9ce8a3c0930a551246038695f04fd7"
+          }
+        },
+        {
+          "client_id": "335968806240-9iaf1ecp9ljevotk0btl7d9s14lpd1u7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.together.buy",
+            "certificate_hash": "3f90de3b04d9979c6fedb92461b45399ab61e3cf"
+          }
+        },
+        {
+          "client_id": "335968806240-1s7dlpm6u517ab6p9jvjlhsk2jef9gsa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDx3z1QYVRtPUONrzX_IJ7x3S1rmWMiO80"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "335968806240-1s7dlpm6u517ab6p9jvjlhsk2jef9gsa.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "335968806240-88m0ld5h7l4c8ce6gihdspefvml9m1fn.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "man.droid.unlabled"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:335968806240:android:4724196935ed5edba7ea05",
+        "android_client_info": {
+          "package_name": "com.together.sell"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "335968806240-jmtgkoqrb9k6hmm25ahisa8htnm3h6c0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.together.sell",
+            "certificate_hash": "3f90de3b04d9979c6fedb92461b45399ab61e3cf"
+          }
+        },
+        {
+          "client_id": "335968806240-nqghppfofndrfa8nsf1pls5fjeeq3i8u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.together.sell",
+            "certificate_hash": "caebd269a477d72d4f480e09b0f82118a4a35f97"
+          }
+        },
+        {
+          "client_id": "335968806240-1s7dlpm6u517ab6p9jvjlhsk2jef9gsa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDx3z1QYVRtPUONrzX_IJ7x3S1rmWMiO80"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "335968806240-1s7dlpm6u517ab6p9jvjlhsk2jef9gsa.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "335968806240-88m0ld5h7l4c8ce6gihdspefvml9m1fn.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "man.droid.unlabled"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
