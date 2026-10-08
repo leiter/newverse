@@ -5,7 +5,10 @@
 **Output:** `tmp/db-migration/bodenschaetze-a988e-migrated-with-buyerid.json` — the
 file to import. Intermediates beside it: `bodenschaetze-a988e-migrated.json` (articles
 and seller profile only) and `changes.log`.
-**Status:** produced and verified, **not applied**
+**Status:** **applied** 2026-10-08 — the articles sit under the new seller uid
+`x64pN9m4wcYlZqB2qMTxpwIm9DD2` (rewritten export `bodenschaetze-a988e-FINAL.json`, see
+`402ce5c`), and the pending rules are deployed. B1 and B2 below were **dropped**, not
+applied: see that section.
 
 `tmp/` is gitignored and both files stay there: the export carries real customer
 email addresses and phone numbers and must not be committed.
@@ -24,8 +27,14 @@ to migrate.
 
 ## Deferred: the two buyer-facing migrations
 
-**Both are needed before the pending rules reach production. Neither is in the
-migrated file — `buyer_profile` and `orders` are carried over byte-identical.**
+**Dropped 2026-10-08, not applied.** Every existing buyer profile is stale and points
+at the old seller id, so the legacy buyers and their order history are written off
+rather than migrated. The rules were deployed without either step. What follows is
+kept as the record of what was found and what it would have taken.
+
+Consequence, accepted: historical orders carry no `buyerId` and stay invisible to the
+buyers who placed them; a returning legacy buyer has no
+access record and lands in demo mode until they connect again.
 
 ### B1 — no order carries `buyerId`
 
@@ -229,8 +238,8 @@ anything written since would be lost.
 2. Import `bodenschaetze-a988e-migrated.json` at the database root.
 3. Spot-check in the seller app: category chips, unit display, the two `Rote Beete`
    articles under search.
-4. B1 and B2 above remain open and still block the rules deploy described in
-   `doc/pre-release-checklist.md`.
+4. ~~B1 and B2 above remain open and still block the rules deploy.~~ Both dropped
+   (legacy buyer data is stale); rules deployed 2026-10-08.
 
 ## Related
 

@@ -16,12 +16,20 @@ release build cut from `main` today talks to `bodenschaetze-a988e`, where none o
 rules exist, and would be broadly broken with most failures swallowed rather than
 surfaced. Merging the work did not make it releasable.
 
+*Update 2026-10-08:* the rules are now deployed to `bodenschaetze-a988e` and the data
+migrated (Gate 1). What remains of that gap is shipping the builds that match.
+
 ---
 
 ## Gate 1 — Rules and data on the release project
 
-Nothing else matters until this is settled. **Six rules commits have never been
-deployed anywhere but dev:**
+**Status 2026-10-08: rules deployed, data migrated; only the matching build remains.**
+`firebase/database.rules.json` as of `c173ab2` is published to `bodenschaetze-a988e`, so
+the six rules commits below are live there, and the articles are
+imported under the new seller uid (`doc/production-db-migration.md`). Legacy buyer
+data was written off rather than migrated.
+
+These six rules commits had, until then, been deployed only to dev:
 
 ```
 c173ab2  Identify buyers by their auth uid
@@ -37,27 +45,37 @@ QR redemption denied (no `invite_tokens` rules), uid-keyed `buyer_access_status`
 denied, `seller_articles` writes denied **including article deletion**, and sale
 booking denied.
 
-- [ ] **Export `bodenschaetze-a988e` before anything else.** The "everything is test
+- [x] **Export `bodenschaetze-a988e` before anything else.** Done 2026-10-08. The "everything is test
       and developer data" clearance in `doc/seller-buyer-identity-migration-plan.md`
       was confirmed for `fire-one-58ddc` **only**. A shallow read on 2026-10-06 shows
       the release project holds `articles`, `buyer_profile`, **`orders`** and
-      `seller_profile`. Its contents have not been inventoried.
-- [ ] **Inventory that export** the way the dev one was: which nodes exist, whether
+      `seller_profile`.
+- [x] **Inventory that export** the way the dev one was: which nodes exist, whether
       `buyer_profile` is already uid-keyed (key == id), whether any `orders` or
       `sales` records are real rather than test. The dev wipe turned out to be
       unnecessary; do not assume the same here, in either direction.
-- [ ] **Decide the wipe question for this project on that evidence.** Real orders or
+      Done: `doc/production-db-migration.md` — one seller, 104 articles, 20 buyers,
+      48 orders (2021-03 → 2025-01), no `sales`.
+- [x] **Decide the wipe question for this project on that evidence.** Real orders or
       booked sales change it from a cleanup into data loss — and `sales` /
       `sale_index` are add-only by rule precisely because they are tax records.
+      Decided: articles and seller profile migrated; the 20 buyer profiles are stale
+      (they point at the old seller id) and were written off along with their order
+      history. The `buyerId` backfill (B1) and access seeding (B2) were dropped.
 - [ ] **Deploy rules and ship the matching app build together.** A deployed ruleset
       that disagrees with the installed app rejects writes outright
       (`firebase/tests/README.md`). Deploying rules alone breaks every install.
-- [ ] **Establish who has an existing install.** `version.properties` has
+      **Half done:** rules deployed 2026-10-08; the matching builds (iOS TestFlight,
+      Android buy/sell) have not shipped yet, so every existing install is broken
+      until they do.
+- [x] **Establish who has an existing install.** `version.properties` has
       `VERSION_CODE_BUY=38` / `VERSION_CODE_SELL=23` and uploads have been done by
       hand, so installs exist. Any install predating the rekey stops working when the
       rules land: order history reads empty (the `orders` read narrowed to per-order),
       and access writes are denied. There is no compatibility path — this was a
       deliberate decision, not an oversight.
+      Settled by writing off the legacy buyers: their installs break and that is
+      accepted.
 
 ## Gate 2 — Device verification that has never run against deployed rules
 
@@ -149,3 +167,8 @@ Detail is in TODO.md under **High Priority: Release**; the blockers in short:
 6. Gate 4, flavor by flavor.
 
 Keep `bodenschaetze-a988e` untouched until step 2 is done and its contents are known.
+
+*As it actually went (2026-10-08):* steps 2 and 4's rules deploy happened ahead of
+step 3, so the two Gate 3 items that would change the rules file (order write gating,
+`/orders` `.validate`) now need a second rules deploy. The matching builds from step 4
+are still outstanding.
