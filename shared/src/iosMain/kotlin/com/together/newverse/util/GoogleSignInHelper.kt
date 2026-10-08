@@ -9,6 +9,8 @@ import kotlin.coroutines.resumeWithException
 import com.together.newverse.util.GoogleSignInState
 import com.together.newverse.util.Log
 
+private const val TAG = "GoogleSignInHelper"
+
 /**
  * iOS Google Sign-In Helper
  *

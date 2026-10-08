@@ -25,6 +25,8 @@ import platform.darwin.NSObject
 import kotlin.coroutines.resume
 import com.together.newverse.util.Log
 
+private const val TAG = "ImagePicker"
+
 /**
  * iOS implementation of ImagePicker
  * Uses UIImagePickerController for photo selection and camera capture

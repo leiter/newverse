@@ -8,6 +8,8 @@ import com.together.newverse.ui.theme.NewverseTheme
 import platform.UIKit.UIViewController
 import com.together.newverse.util.Log
 
+private const val TAG = "MainViewController"
+
 /**
  * Called from Swift `.onOpenURL` to forward a deep link URL into the Kotlin layer.
  */
@@ -53,6 +55,8 @@ fun MainViewControllerWithCallback(
                         is PlatformAction.ScanQrCode -> onScanQrCodeRequested()
                         is PlatformAction.ShareText -> onShareRequested(action.text)
                         is PlatformAction.GoogleSignOut -> { /* handled by Kotlin layer */ }
+                        // Not wired to UNUserNotificationCenter yet; iOS shows no permission prompt.
+                        is PlatformAction.RequestNotificationPermission -> { }
                     }
                 }
             )

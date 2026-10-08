@@ -5,6 +5,8 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import com.together.newverse.util.Log
 
+private const val TAG = "AppleSignInHelper"
+
 /**
  * iOS Apple Sign-In Helper
  *

@@ -20,6 +20,8 @@ import platform.darwin.NSObject
 import kotlin.coroutines.resume
 import com.together.newverse.util.Log
 
+private const val TAG = "DocumentPicker"
+
 /**
  * iOS implementation of DocumentPicker
  * Uses UIDocumentPickerViewController for document selection

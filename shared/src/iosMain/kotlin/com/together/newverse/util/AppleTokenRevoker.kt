@@ -4,6 +4,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import com.together.newverse.util.Log
 
+private const val TAG = "AppleTokenRevoker"
+
 /**
  * iOS implementation. The work itself happens in Swift
  * (NativeAppleSignInHelper.reauthenticateAndRevoke), which the app registers

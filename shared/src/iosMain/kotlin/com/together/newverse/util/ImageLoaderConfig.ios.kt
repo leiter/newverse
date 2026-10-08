@@ -16,6 +16,8 @@ import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUserDomainMask
 import com.together.newverse.util.Log
 
+private const val TAG = "ImageLoaderConfig"
+
 /**
  * iOS-specific ImageLoader configuration
  * Configures memory and disk caching for optimal performance

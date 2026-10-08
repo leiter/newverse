@@ -1,5 +1,7 @@
 package com.together.newverse.util
 
+private const val TAG = "GoogleSignInManager"
+
 /**
  * iOS implementation of Google Sign-In management
  */

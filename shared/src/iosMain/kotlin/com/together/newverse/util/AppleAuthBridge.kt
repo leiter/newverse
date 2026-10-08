@@ -9,6 +9,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import com.together.newverse.util.Log
 
+private const val TAG = "AppleAuthBridge"
+
 /**
  * Bridge object for completing Apple Sign-In with Firebase Auth.
  *

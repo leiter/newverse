@@ -1,5 +1,7 @@
 package com.together.newverse.util
 
+private const val TAG = "AppleSignInManager"
+
 /**
  * iOS implementation of Apple Sign-In management
  */
