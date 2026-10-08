@@ -27,7 +27,9 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.352833414422-llkofcdstuc7pcf0qubpratujmkrj106</string>
+				<!-- Set per build configuration; copy-firebase-plist.sh checks it against
+				     the GoogleService-Info plist that configuration selects. -->
+				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
 			</array>
 		</dict>
 		<dict>

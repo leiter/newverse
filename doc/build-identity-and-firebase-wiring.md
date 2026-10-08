@@ -68,29 +68,41 @@ Two separate causes:
 
 Consequence: an iOS release build today talks to the development project, silently.
 
-### Planned change
+### Change made 2026-10-08 (not yet verified in Xcode)
 
-The fix needs four plists on a 2x2 grid (debug/release x buy/sell). Two of them do not
-exist and cannot be produced from the repo — they have to be downloaded from the
-Firebase console, which likely means first registering two iOS apps in
-`bodenschaetze-a988e`. That project was Android-first and probably has no iOS apps at
-all. **Unverified: check the console.**
+The buy app was registered as an Apple app in `bodenschaetze-a988e` and its
+`GoogleService-Info.plist` downloaded. **The sell flavor on iOS is deliberately out of
+scope for now**, so no production plist exists for it and `Release-Sell` fails the
+build by design.
 
-Worth doing even before those files exist, because it converts a silent wrong-backend
-ship into a build error:
+Plists now follow both axes:
 
-- [ ] Rewrite `copy-firebase-plist.sh` to resolve both axes to
-      `GoogleService-Info-{Debug,Release}-{Buy,Sell}.plist`.
-- [ ] Rename the two existing plists to their `Debug-` names.
-- [ ] `exit 1` when the resolved file is missing, naming the file and the Firebase
-      project to pull it from.
-- [ ] Drop the "unknown configuration defaults to Buy" fallback — an unrecognised
-      configuration should fail, not guess.
-- [ ] Delete the stray `GoogleService-Info.plist`.
-- [ ] Extend the build phase `inputPaths` to list all four plists.
+| Configuration | File | Project |
+|---|---|---|
+| `Debug-Buy` | `GoogleService-Info-Debug-Buy.plist` | `fire-one-58ddc` |
+| `Release-Buy` | `GoogleService-Info-Release-Buy.plist` | `bodenschaetze-a988e` |
+| `Debug-Sell` | `GoogleService-Info-Debug-Sell.plist` | `fire-one-58ddc` |
+| `Release-Sell` | *(absent)* | build fails with a message |
 
-Net effect: iOS debug builds behave exactly as now; iOS release builds become
-impossible until the production plists land. That is the correct failure direction.
+- `copy-firebase-plist.sh` resolves all four configurations, and exits non-zero on an
+  unknown configuration or a missing plist instead of defaulting to Buy.
+- The stray unreferenced `GoogleService-Info.plist` was deleted.
+- The build phase's `inputPaths` lists all four plists.
+
+The Google Sign-In URL scheme is handled by a build setting rather than by patching the
+built `Info.plist`: the "Copy Firebase Plist" phase runs second, before `Resources`, so
+the bundle's `Info.plist` does not exist when it runs. `Info.plist` therefore contains
+`$(GOOGLE_REVERSED_CLIENT_ID)`, defined per configuration in the Xcode project.
+
+That makes the reversed client id two copies of one fact, which is the drift that caused
+the Android bug below, so the script **verifies** the build setting against the selected
+plist's `REVERSED_CLIENT_ID` and fails the build if they disagree.
+
+**Unverified:** none of this has been run through Xcode -- it was written on Linux. The
+shell logic was exercised directly (correct file per configuration; non-zero exit for an
+unknown configuration, a missing plist and a mismatched client id) and the pbxproj was
+checked for balanced structure and dangling references, but the first real macOS build
+may still need adjustment.
 
 ### Also part of Finding 1 — the Google Sign-In URL scheme is hardcoded
 

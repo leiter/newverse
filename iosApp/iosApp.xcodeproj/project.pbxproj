@@ -35,11 +35,11 @@
 		391C7094D31349C5E547EA1D /* Pods-iosApp.release-sell.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp.release-sell.xcconfig"; path = "Target Support Files/Pods-iosApp/Pods-iosApp.release-sell.xcconfig"; sourceTree = "<group>"; };
 		3BED7924BCBBDAEBBD3FD944 /* Pods_iosApp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iosApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		66EED40178E44AE3863F156B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		7737A09674644F13A003196C /* GoogleService-Info-Sell.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info-Sell.plist"; sourceTree = "<group>"; };
+		7737A09674644F13A003196C /* GoogleService-Info-Debug-Sell.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info-Debug-Sell.plist"; sourceTree = "<group>"; };
 		888185EE72D643D0A628F17E /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B25F993706BC4826911169B7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		E25FEA60E5134588A3464E9B /* NewverseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewverseApp.swift; sourceTree = "<group>"; };
-		F5F6E96D91B5444691C647EE /* GoogleService-Info-Buy.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info-Buy.plist"; sourceTree = "<group>"; };
+		F5F6E96D91B5444691C647EE /* GoogleService-Info-Debug-Buy.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info-Debug-Buy.plist"; sourceTree = "<group>"; };
 		FC3A9625D65841618D0CDC82 /* iosApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iosApp.entitlements; sourceTree = "<group>"; };
 		FDE9F4A0C1EE4148AA36449E /* AppleSignInHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInHelper.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -86,8 +86,8 @@
 				66EED40178E44AE3863F156B /* Assets.xcassets */,
 				B25F993706BC4826911169B7 /* Info.plist */,
 				FC3A9625D65841618D0CDC82 /* iosApp.entitlements */,
-				F5F6E96D91B5444691C647EE /* GoogleService-Info-Buy.plist */,
-				7737A09674644F13A003196C /* GoogleService-Info-Sell.plist */,
+				F5F6E96D91B5444691C647EE /* GoogleService-Info-Debug-Buy.plist */,
+				7737A09674644F13A003196C /* GoogleService-Info-Debug-Sell.plist */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -202,8 +202,10 @@
 			files = (
 			);
 			inputPaths = (
-				"$(PROJECT_DIR)/iosApp/GoogleService-Info-Buy.plist",
-				"$(PROJECT_DIR)/iosApp/GoogleService-Info-Sell.plist",
+				"$(PROJECT_DIR)/iosApp/GoogleService-Info-Debug-Buy.plist",
+				"$(PROJECT_DIR)/iosApp/GoogleService-Info-Release-Buy.plist",
+				"$(PROJECT_DIR)/iosApp/GoogleService-Info-Debug-Sell.plist",
+				"$(PROJECT_DIR)/iosApp/GoogleService-Info-Release-Sell.plist",
 			);
 			name = "Copy Firebase Plist";
 			outputPaths = (
@@ -350,6 +352,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
+				GOOGLE_REVERSED_CLIENT_ID = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.together.sell;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -387,6 +390,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
+				GOOGLE_REVERSED_CLIENT_ID = "com.googleusercontent.apps.352833414422-llkofcdstuc7pcf0qubpratujmkrj106";
 				PRODUCT_BUNDLE_IDENTIFIER = com.together.buy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -552,6 +556,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
+				GOOGLE_REVERSED_CLIENT_ID = "com.googleusercontent.apps.335968806240-amtv30e7psf3mfkn5eni2gomcvvd1lu4";
 				PRODUCT_BUNDLE_IDENTIFIER = com.together.buy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -644,6 +649,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
+				GOOGLE_REVERSED_CLIENT_ID = "com.googleusercontent.apps.352833414422-q6e11olakcubrhj6kc9r8442mfs61uqu";
 				PRODUCT_BUNDLE_IDENTIFIER = com.together.sell;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
