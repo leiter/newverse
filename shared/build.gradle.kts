@@ -15,7 +15,7 @@ plugins {
 // Seller identity per Firebase project. fire-one-58ddc (dev) and bodenschaetze-a988e
 // (release) each hold a single seller, under different auth uids.
 val DEV_SELLER_ID = "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
-val PROD_SELLER_ID = "2e2h2VdsyqM7QakqUfCVLkFCsUh1"
+val PROD_SELLER_ID = "x64pN9m4wcYlZqB2qMTxpwIm9DD2"
 
 kotlin {
     androidTarget {
