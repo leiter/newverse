@@ -68,3 +68,7 @@ plf.bnn
 firebase-debug.log
 database-debug.log
 .rules-baseline.json
+
+# Local bookkeeping scenario sandbox (simulated figures, not app code)
+/scripts/bookkeeping-scenarios/
+__pycache__/
