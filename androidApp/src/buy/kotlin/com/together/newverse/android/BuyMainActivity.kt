@@ -53,8 +53,11 @@ class BuyMainActivity : ComponentActivity() {
 
     private val authRepository: AuthRepository by inject()
 
-    // Web Client ID from Firebase Console (google-services.json)
-    private val webClientId = "352833414422-4qt81mifve0h0v5pu1em0tnarjmq0j7j.apps.googleusercontent.com"
+    // Generated per build type by the google-services plugin from the variant's
+    // google-services.json, so it follows the Firebase project this build talks to.
+    // Hardcoding it pinned release builds to the development OAuth client, and
+    // Google Sign-In then failed with "Failed to record the consent".
+    private val webClientId by lazy { getString(R.string.default_web_client_id) }
 
     // ImagePicker must be initialized before activity is started
     private lateinit var imagePicker: ImagePicker
