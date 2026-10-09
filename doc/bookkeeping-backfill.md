@@ -149,7 +149,7 @@ the database rules reject that combination anyway
   that will only ever come from the farm's own invoices, not from Terra.
 - 18 articles have no certification and 12 no origin, because neither their own text,
   a Terra row, nor a sibling offered one.
-- The export writes `weighPerPiece`, while the current model reads `weightPerPiece`.
-  Every one of the 104 articles has the old spelling and none has the new one, so the
-  app reads them all as 0.0. Unrelated to bookkeeping, but it is sitting in the same
-  file and wants fixing in the same migration.
+- ~~The export writes `weighPerPiece`, while the current model reads
+  `weightPerPiece`.~~ Fixed in the migration itself (`migrate_prod_db.py`), not here:
+  the field is renamed and its value kept, recovering the 76 non-zero weights the app
+  was reading as 0.0. See `doc/production-db-migration.md`.

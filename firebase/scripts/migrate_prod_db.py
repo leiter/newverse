@@ -58,6 +58,16 @@ for sid, arts in d.get('articles', {}).items():
         if a.get('id') != aid:
             log.append(f"id      {p}/id: {a.get('id')!r} -> {aid!r}"); a['id'] = aid; changes['article_id'] += 1
 
+        # Production only ever wrote weighPerPiece; the model reads weightPerPiece
+        # (Article.kt, ArticleNodes.articleFromMap) with no fallback, so every
+        # article reads back as 0.0 and the buyer's piece count for kg goods is
+        # lost. Rename, keeping the value. Only /articles carries the field —
+        # order lines hold their own denormalized copies and are untouched.
+        if 'weighPerPiece' in a and 'weightPerPiece' not in a:
+            a['weightPerPiece'] = a.pop('weighPerPiece')
+            log.append(f"field   {p}: weighPerPiece -> weightPerPiece ({a['weightPerPiece']})")
+            changes['weight_field'] += 1
+
 for sid, sp in d.get('seller_profile', {}).items():
     p = f"seller_profile/{sid}"
     trim_node(sp, p, ['displayName','firstName','lastName','street','city','zipCode','houseNumber','telephoneNumber'])

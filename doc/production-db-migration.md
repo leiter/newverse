@@ -1,17 +1,63 @@
 # Production Realtime Database Migration
 
-**Written:** 2026-10-08
+**Written:** 2026-10-08, pipeline re-run 2026-10-09
 **Source:** `bodenschaetze-a988e` export, 204 KB, taken 2026-10-08
-**Output:** `tmp/db-migration/bodenschaetze-a988e-migrated-with-buyerid.json` — the
-file to import. Intermediates beside it: `bodenschaetze-a988e-migrated.json` (articles
-and seller profile only) and `changes.log`.
-**Status:** **applied** 2026-10-08 — the articles sit under the new seller uid
-`x64pN9m4wcYlZqB2qMTxpwIm9DD2` (rewritten export `bodenschaetze-a988e-FINAL.json`, see
-`402ce5c`), and the pending rules are deployed. B1 and B2 below were **dropped**, not
-applied: see that section.
+**Output:** `tmp/db-migration/bodenschaetze-a988e-with-bookkeeping.json` — the file to
+import. Intermediates beside it, one per step below, and `changes.log`.
+**Status:** **partly applied.** `bodenschaetze-a988e-FINAL.json` — steps 1-3 as they
+stood on 2026-10-08, *without* the `weightPerPiece` rename — was imported 2026-10-08
+and the pending rules deployed; the articles sit under the new seller uid
+`x64pN9m4wcYlZqB2qMTxpwIm9DD2` (see `402ce5c`). B1 and B2 below were **dropped**, not
+applied: see that section. Two later changes are in the pipeline but **not in
+production** — see "Still to apply" below.
 
-`tmp/` is gitignored and both files stay there: the export carries real customer
-email addresses and phone numbers and must not be committed.
+Four steps, all offline — nothing contacts a Firebase project. Each writes the next
+file in `tmp/db-migration/`:
+
+```bash
+# 1. articles and seller profile: categories, units, whitespace, ids, weight field
+python3 firebase/scripts/migrate_prod_db.py <export.json> \
+    bodenschaetze-a988e-migrated.json changes.log
+
+# 2. fill buyerId on all 48 orders, which the pending rules gate buyer access on
+node firebase/scripts/backfill-order-buyerid.mjs \
+    --from-export bodenschaetze-a988e-migrated.json \
+    --out bodenschaetze-a988e-migrated-with-buyerid.json
+
+# 3. point the seller's three nodes at the uid Firebase Auth actually assigned
+python3 firebase/scripts/rename_seller_uid.py \
+    bodenschaetze-a988e-migrated-with-buyerid.json bodenschaetze-a988e-FINAL.json \
+    2e2h2VdsyqM7QakqUfCVLkFCsUh1 x64pN9m4wcYlZqB2qMTxpwIm9DD2
+
+# 4. reconstruct the seller-only half (doc/bookkeeping-backfill.md)
+python3 firebase/scripts/backfill_bookkeeping.py \
+    bodenschaetze-a988e-FINAL.json ../plf.bnn \
+    bodenschaetze-a988e-with-bookkeeping.json bookkeeping-review.csv
+```
+
+Step 3 prints a reminder that `PROD_SELLER_ID` in `shared/build.gradle.kts` has to
+match the new uid, or release builds read the old, now non-existent node. It already
+does (`shared/build.gradle.kts:18`); it is only worth re-checking if the seller's uid
+ever changes again.
+
+`tmp/` is gitignored and every one of these files stays there: the export carries real
+customer email addresses and phone numbers, and the price list is supplier data.
+Neither may be committed.
+
+## Still to apply
+
+The import ran before the pipeline was finished, so two things the scripts now produce
+have never reached live data. Neither can be delivered by re-importing: the database
+has been written to since 2026-10-08, and a root import would discard everything since.
+Both need a targeted update against the live node instead.
+
+- **The `weightPerPiece` rename.** Production only ever wrote `weighPerPiece`, and the
+  model reads `weightPerPiece` with no fallback, so all 104 live articles read back
+  `0.0` and 76 real values are being ignored. The buyer's piece count for goods sold by
+  weight comes from that field, so this is live data loss, not a cosmetic nit.
+- **The `seller_articles` bookkeeping half** (step 4, `doc/bookkeeping-backfill.md`).
+  Production has no `seller_articles` node at all, so the CSV tax export has nothing to
+  read. This one is add-only and so is the safer of the two to apply.
 
 ## What production contains
 
@@ -120,7 +166,7 @@ the 14 with order history) avoids it.
 
 ## Applied: articles and seller profile
 
-264 edits. Every one is listed in `tmp/db-migration/changes.log`.
+368 edits. Every one is listed in `tmp/db-migration/changes.log`.
 
 ### Categories: 51 legacy values to 8 canonical ones (85 articles)
 
@@ -190,6 +236,22 @@ Trailing spaces trimmed from 10 text fields — 2 article `detailInfo`, and the 
 name/city fields. `seller_profile/{id}/id` was `""` and is now the node key;
 `sellerId` was already correct.
 
+### `weighPerPiece` renamed to `weightPerPiece` (104 articles)
+
+Production only ever wrote **`weighPerPiece`**, missing the `t`. The model reads
+`weightPerPiece` (`Article.kt`, `ArticleNodes.articleFromMap`) and has no fallback for
+the old spelling, so every one of the 104 articles was reading back as `0.0` and
+76 real values were being thrown away. The buyer's piece count for goods sold by
+weight is derived from it, so this was silent data loss, not a cosmetic nit.
+
+The field is renamed and the value kept. Only `/articles` carries it — order lines
+hold their own denormalized copies and were checked: the misspelling appears exactly
+104 times in the export, all of them under `/articles`.
+
+`verify_prod_migration.py` asserts the rename rather than tolerating it: field sets
+must match with the rename normalised away, and every value must come through
+unchanged under the new name.
+
 ### Deliberately left alone
 
 - **`productId`** — 6 duplicate values including the empty string. These are BNN
@@ -199,9 +261,12 @@ name/city fields. `seller_profile/{id}/id` was `""` and is now the node key;
   Harmless, because order lines carry denormalized copies, but anything resolving a
   line back to an article by id must tolerate the miss.
 - **`mode: -1`** everywhere, meaning unknown. Left as found.
-- **`seller_articles`** — not created. The bookkeeping split needs purchase price and
-  markup per article, and none of that exists anywhere. All 104 articles will start
-  with no seller-side half.
+- **`seller_articles`** — not created by this script. The bookkeeping split needs a
+  purchase price and markup per article and none of that exists in the export, so this
+  migration leaves all 104 articles without a seller-side half. It is reconstructed
+  afterwards from the article descriptions and the Terra price list by
+  `backfill_bookkeeping.py`, as a separate step on this file — see
+  `doc/bookkeeping-backfill.md`.
 
 ---
 
@@ -228,18 +293,23 @@ All 104 `imageUrl`s point at `bodenschaetze-a988e.appspot.com`, so no dev-bucket
 leaked into production. Every `marketId` on an order and every `defaultMarket` on a
 buyer resolves to one of the seller's three markets; no orphans.
 
-## Applying it
+## How it was applied, and why that route is now closed
 
-The file is a full-database export, so importing it **replaces the entire database**.
-Take a fresh export first — the source here is a snapshot from 2026-10-08 09:12 and
-anything written since would be lost.
+These files are full-database exports, so importing one **replaces the entire
+database**. That was acceptable on 2026-10-08, when the database had been dormant for
+21 months. What was done:
 
-1. Fresh export from the console, diff it against the source to confirm nothing moved.
-2. Import `bodenschaetze-a988e-migrated.json` at the database root.
-3. Spot-check in the seller app: category chips, unit display, the two `Rote Beete`
+1. Fresh export from the console, diffed against the source to confirm nothing moved.
+2. `bodenschaetze-a988e-FINAL.json` imported at the database root.
+3. Spot-checked in the seller app: category chips, unit display, the two `Rote Beete`
    articles under search.
 4. ~~B1 and B2 above remain open and still block the rules deploy.~~ Both dropped
    (legacy buyer data is stale); rules deployed 2026-10-08.
+
+The database has been in use since, so the two items under "Still to apply" cannot
+follow the same route: a root import would discard every order and profile change made
+after that snapshot. They need a targeted multi-path update against the live nodes,
+written from the pipeline output rather than imported as a whole.
 
 ## Related
 

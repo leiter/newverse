@@ -7,9 +7,18 @@ ok("top-level nodes unchanged", sorted(a)==sorted(b))
 ok("buyer_profile byte-identical", a['buyer_profile']==b['buyer_profile'])
 ok("orders byte-identical", a['orders']==b['orders'])
 ok("104 articles, same keys", set(sa)==set(sb) and len(sb)==104)
-ok("no field added/removed", all(set(sa[k])==set(sb[k]) for k in sa))
-for f in ('price','imageUrl','available','productId','weighPerPiece','mode'):
+# weighPerPiece -> weightPerPiece is the one intended field rename, so compare the
+# field sets with it normalised away; anything else added or removed is a bug.
+renamed = lambda v: {('weightPerPiece' if f=='weighPerPiece' else f) for f in v}
+ok("no field added/removed (bar the weight rename)",
+   all(renamed(sa[k])==renamed(sb[k]) for k in sa))
+for f in ('price','imageUrl','available','productId','mode'):
     ok(f"{f} untouched", all(sa[k].get(f)==sb[k].get(f) for k in sa))
+# The value has to survive the rename: the model reads weightPerPiece and production
+# only ever wrote weighPerPiece, so every article was reading back as 0.0.
+ok("weighPerPiece -> weightPerPiece, every value carried over",
+   all('weighPerPiece' not in sb[k] and
+       sb[k].get('weightPerPiece')==sa[k].get('weighPerPiece') for k in sa))
 # detailInfo is trimmed by design; assert nothing but whitespace changed
 ok("detailInfo whitespace-trim only",
    all(sa[k].get('detailInfo','').strip()==sb[k].get('detailInfo','') for k in sa))
