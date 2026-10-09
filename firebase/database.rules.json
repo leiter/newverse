@@ -37,6 +37,44 @@
         }
       }
     },
+    "stock_movements": {
+      "$sellerId": {
+        ".read": "auth != null && auth.uid === $sellerId",
+        "$month": {
+          "$movementId": {
+            ".write": "auth != null && auth.uid === $sellerId && !data.exists()",
+            ".validate": "$month.matches(/^[0-9]{6}$/) && newData.hasChildren(['articleId', 'quantity', 'unit', 'kind', 'source', 'recordedAt']) && (newData.child('kind').val() !== 'STOCKTAKE' || newData.child('countedTo').exists())",
+            "id": { ".validate": "newData.isString()" },
+            "articleId": { ".validate": "newData.isString() && newData.val().length > 0" },
+            "productId": { ".validate": "newData.isString()" },
+            "quantity": { ".validate": "newData.isNumber()" },
+            "unit": { ".validate": "newData.isString() && newData.val().length > 0" },
+            "kind": { ".validate": "newData.val() === 'INTAKE' || newData.val() === 'STOCKTAKE' || newData.val() === 'SALE' || newData.val() === 'LOSS'" },
+            "source": { ".validate": "newData.val() === 'MANUAL' || newData.val() === 'SCALE' || newData.val() === 'ORDERED'" },
+            "recordedAt": { ".validate": "newData.isNumber()" },
+            "countedTo": { ".validate": "newData.isNumber()" },
+            "note": { ".validate": "newData.isString()" },
+            "saleId": { ".validate": "newData.isString()" },
+            "$other": { ".validate": false }
+          }
+        }
+      }
+    },
+    "stock": {
+      "$sellerId": {
+        ".read": "auth != null && auth.uid === $sellerId",
+        ".write": "auth != null && auth.uid === $sellerId",
+        "$articleId": {
+          ".validate": "newData.hasChildren(['onHand', 'unit'])",
+          "onHand": { ".validate": "newData.isNumber()" },
+          "unit": { ".validate": "newData.isString() && newData.val().length > 0" },
+          "lastMovementAt": { ".validate": "newData.isNumber()" },
+          "lastCountedAt": { ".validate": "newData.isNumber()" },
+          "lastSource": { ".validate": "newData.val() === 'MANUAL' || newData.val() === 'SCALE' || newData.val() === 'ORDERED'" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
     "seller_profile": {
       "$sellerId": {
         ".read": "auth != null && auth.uid === $sellerId",

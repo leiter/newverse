@@ -16,8 +16,18 @@ data class SellerArticleData(
     val certification: String = "",     // BNN IK code (DD, DB, EG, …)
     val quality: String = "",           // Handelsklasse
     val barcode: String = "",           // EAN, empty if unknown
-    val packageSize: Double = 0.0       // Gebinde size in [Article.unit]
+    val packageSize: Double = 0.0,      // Gebinde size in [Article.unit]
+    /**
+     * Refill below this amount, in [Article.unit]. 0 = not watched, the default:
+     * stock is still counted, the seller is simply never warned about it.
+     *
+     * Seller-only because it is a business decision, not something buyers see.
+     */
+    val reorderLevel: Double = 0.0
 ) {
+    /** Whether the seller asked to be warned when this article runs low. */
+    val isWatched: Boolean get() = reorderLevel > 0.0
+
     /** Whether a purchase price was recorded. Zero means unknown, never free. */
     val hasAcquirePrice: Boolean get() = acquirePrice > 0.0
 }

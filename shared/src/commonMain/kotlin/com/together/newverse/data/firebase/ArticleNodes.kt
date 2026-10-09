@@ -51,7 +51,8 @@ internal object ArticleNodes {
         "certification" to data.certification,
         "quality" to data.quality,
         "barcode" to data.barcode,
-        "packageSize" to data.packageSize
+        "packageSize" to data.packageSize,
+        "reorderLevel" to data.reorderLevel
     )
 
     /**
@@ -102,7 +103,9 @@ internal object ArticleNodes {
         certification = value.string("certification"),
         quality = value.string("quality"),
         barcode = value.string("barcode"),
-        packageSize = value.double("packageSize") ?: 0.0
+        packageSize = value.double("packageSize") ?: 0.0,
+        // Articles saved before refill watching existed are simply not watched.
+        reorderLevel = value.double("reorderLevel") ?: 0.0
     )
 
     /**
