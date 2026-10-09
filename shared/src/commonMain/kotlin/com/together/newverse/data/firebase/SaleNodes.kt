@@ -3,9 +3,6 @@ package com.together.newverse.data.firebase
 import com.together.newverse.domain.model.Sale
 import com.together.newverse.domain.model.SaleLine
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 
 /**
  * How sales are laid out in the Realtime Database. Both nodes are seller-only.
@@ -31,30 +28,15 @@ internal object SaleNodes {
     fun orderIndexPath(sellerId: String, orderId: String) = "$INDEX_ROOT/$sellerId/$orderId"
 
     /** The booking month of an instant, "yyyyMM", in the seller's time zone. */
-    fun monthKey(epochMillis: Long, timeZone: TimeZone): String {
-        val date = Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(timeZone).date
-        return "${date.year}${date.month.number.toString().padStart(2, '0')}"
-    }
+    fun monthKey(epochMillis: Long, timeZone: TimeZone): String =
+        MonthKeys.of(epochMillis, timeZone)
 
     /**
      * Every month touched by the period [fromMillis, untilMillis) — the month nodes
      * to read for a week or month export. A week can span two months.
      */
-    fun monthKeys(fromMillis: Long, untilMillis: Long, timeZone: TimeZone): List<String> {
-        require(untilMillis > fromMillis) { "Empty period" }
-        val first = monthKey(fromMillis, timeZone)
-        val last = monthKey(untilMillis - 1, timeZone)
-        val keys = mutableListOf<String>()
-        var year = first.take(4).toInt()
-        var month = first.takeLast(2).toInt()
-        while (true) {
-            val key = "$year${month.toString().padStart(2, '0')}"
-            keys += key
-            if (key == last) return keys
-            month++
-            if (month > 12) { month = 1; year++ }
-        }
-    }
+    fun monthKeys(fromMillis: Long, untilMillis: Long, timeZone: TimeZone): List<String> =
+        MonthKeys.range(fromMillis, untilMillis, timeZone)
 
     /** The update map that records [sale] under [saleId]: the sale and its index entry. */
     fun recordUpdate(sellerId: String, saleId: String, sale: Sale, timeZone: TimeZone): Map<String, Any?> {

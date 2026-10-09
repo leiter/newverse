@@ -14,6 +14,7 @@ import com.together.newverse.data.repository.GitLiveAuthRepository
 import com.together.newverse.data.repository.GitLiveOrderRepository
 import com.together.newverse.data.repository.GitLiveProfileRepository
 import com.together.newverse.data.repository.GitLiveSaleRepository
+import com.together.newverse.data.repository.GitLiveStockRepository
 import com.together.newverse.data.repository.GitLiveSellerArticleRepository
 import com.together.newverse.data.repository.InMemoryBasketRepository
 import com.together.newverse.data.repository.PlatformStorageRepository
@@ -26,6 +27,7 @@ import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.SaleRepository
+import com.together.newverse.domain.repository.StockRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.domain.repository.StorageRepository
 import com.together.newverse.util.FileSharer
@@ -66,6 +68,11 @@ val androidDomainModule = module {
     // Booked sales: seller-only, add-only
     single<SaleRepository> {
         GitLiveSaleRepository(get<AuthRepository>())
+    }
+
+    // Stock ledger: seller-only, add-only, with the derived level beside it
+    single<StockRepository> {
+        GitLiveStockRepository(get<AuthRepository>())
     }
 
     // Share sheet for exported files (CSV bookkeeping export)

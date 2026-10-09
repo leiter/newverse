@@ -28,8 +28,22 @@ interface StockRepository {
      */
     fun observeMovements(sellerId: String, fromMillis: Long, untilMillis: Long): Flow<List<StockMovement>>
 
-    /** Every movement recorded for one article, newest first. */
-    suspend fun movementsForArticle(sellerId: String, articleId: String): Result<List<StockMovement>>
+    /**
+     * Movements recorded for one article in the period [fromMillis, untilMillis),
+     * newest first — how a level came about.
+     *
+     * Bounded by a period on purpose. The ledger is keyed by month and has no
+     * per-article index, so "every movement ever" would mean scanning every month
+     * node that exists. The question this answers is why the number is what it is
+     * today, which recent history covers; a second index node to serve the
+     * unbounded version would double the write path for no one's benefit.
+     */
+    suspend fun movementsForArticle(
+        sellerId: String,
+        articleId: String,
+        fromMillis: Long,
+        untilMillis: Long
+    ): Result<List<StockMovement>>
 
     /** Records one movement and returns it with its assigned id. */
     suspend fun recordMovement(sellerId: String, movement: StockMovement): Result<StockMovement>

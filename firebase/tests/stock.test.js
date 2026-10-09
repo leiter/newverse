@@ -190,6 +190,60 @@ describe("stock movements and levels", () => {
     await assertFails(asUser(env, ALICE).ref(`stock/${SELLER}/apple`).set(level()));
   });
 
+  // --- the shape GitLiveStockRepository actually sends ----------------------
+
+  /**
+   * The repository appends the movement and writes the level's fields as separate
+   * leaf paths in one multi-path update, with onHand as a server-side increment
+   * (a plain number here — the rules see the resolved value either way). These
+   * tests pin that exact shape, so a rule tightened later cannot quietly break
+   * the only writer.
+   */
+  const repositoryUpdate = (sellerId, id, over = {}, article = "apple") => ({
+    [path(sellerId, id)]: movement({ articleId: article, ...over }),
+    [`stock/${sellerId}/${article}/onHand`]: 15,
+    [`stock/${sellerId}/${article}/unit`]: "kg",
+    [`stock/${sellerId}/${article}/lastMovementAt`]: 1791500000000,
+    [`stock/${sellerId}/${article}/lastSource`]: "SCALE"
+  });
+
+  it("accepts the multi-path update the repository sends", async () => {
+    await assertSucceeds(asUser(env, SELLER).ref().update(repositoryUpdate(SELLER, "r1")));
+  });
+
+  it("accepts that update for an article with no level node yet", async () => {
+    await assertSucceeds(
+      asUser(env, SELLER).ref().update(repositoryUpdate(SELLER, "r2", {}, "quince"))
+    );
+  });
+
+  it("accepts a stocktake update, which sets the level outright", async () => {
+    const article = "apple";
+    await assertSucceeds(asUser(env, SELLER).ref().update({
+      [path(SELLER, "r3")]: movement({ kind: "STOCKTAKE", quantity: -2.6, countedTo: 12.4 }),
+      [`stock/${SELLER}/${article}/onHand`]: 12.4,
+      [`stock/${SELLER}/${article}/unit`]: "kg",
+      [`stock/${SELLER}/${article}/lastMovementAt`]: 1791500000000,
+      [`stock/${SELLER}/${article}/lastCountedAt`]: 1791500000000,
+      [`stock/${SELLER}/${article}/lastSource`]: "SCALE"
+    }));
+  });
+
+  it("denies that update when the movement in it is malformed", async () => {
+    await assertFails(
+      asUser(env, SELLER).ref().update(repositoryUpdate(SELLER, "r4", { kind: "SHRINKAGE" }))
+    );
+  });
+
+  it("denies that update from anyone but the seller", async () => {
+    await assertFails(asUser(env, ALICE).ref().update(repositoryUpdate(SELLER, "r5")));
+    await assertFails(asUser(env, OTHER_SELLER).ref().update(repositoryUpdate(SELLER, "r6")));
+  });
+
+  it("denies reusing a movement id, so an append cannot overwrite", async () => {
+    await assertFails(asUser(env, SELLER).ref().update(repositoryUpdate(SELLER, "m1")));
+  });
+
   it("denies another seller writing levels here", async () => {
     await assertFails(asUser(env, OTHER_SELLER).ref(`stock/${SELLER}/apple`).set(level()));
   });
