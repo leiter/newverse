@@ -21,7 +21,11 @@ import java.util.Random
 class TestContainerActivity : AppCompatActivity(), FirebaseAuth.AuthStateListener {
 
     private val authRepository: AuthRepository by inject()
-    private val sellerArticleRepository: SellerArticleRepository by inject()
+    /**
+     * Exposed for instrumentation tests that have to know what is already stored —
+     * the catalog upload reuses the image URLs of articles it uploaded before.
+     */
+    val sellerArticleRepository: SellerArticleRepository by inject()
 
     /** Exposed for instrumentation tests that upload article images before saving. */
     val storageRepository: StorageRepository by inject()

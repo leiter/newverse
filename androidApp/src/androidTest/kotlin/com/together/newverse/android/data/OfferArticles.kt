@@ -76,7 +76,9 @@ fun offerArticle(
     )
     val price = ProductPricing.sellPrice(acquirePrice, markupFactor, taxRate.rate)
     val article = Article(
-        id = "",
+        // Keyed by Terra article number, like the generated catalog rows, so the
+        // hand-picked offer upserts on a re-run too.
+        id = productId,
         productId = productId,
         productName = OFFER_NAME_PREFIX + productName,
         available = true,

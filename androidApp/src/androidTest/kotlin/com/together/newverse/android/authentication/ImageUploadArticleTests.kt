@@ -8,6 +8,7 @@ import com.together.newverse.android.R
 import com.together.newverse.android.data.IMAGE_UPLOAD_ARTICLE_IDS
 import com.together.newverse.android.data.imageAssetPath
 import com.together.newverse.android.data.offerArticles
+import com.together.newverse.android.data.terraImageStoragePath
 import com.together.newverse.android.utils.BaseTest
 import com.together.newverse.domain.model.SellerArticle
 import kotlinx.coroutines.runBlocking
@@ -17,8 +18,9 @@ import org.junit.Test
 import java.io.FileNotFoundException
 
 /**
- * Proves the article-plus-image upload path on a handful of [offerArticles] before wiring all
- * 317 Terra articles: for each picked article, uploads its Terra image via [StorageRepository]
+ * Proves the article-plus-image upload path on a handful of [offerArticles]. [CatalogUploadTests]
+ * now does the same for the whole price list; this stays as the cheap check to run first.
+ * For each picked article, uploads its Terra image via [StorageRepository]
  * first, attaches the resulting download URL, then saves the article like the other
  * upload tests.
  *
@@ -68,7 +70,7 @@ class ImageUploadArticleTests : BaseTest() {
             loadPickedArticles().map { sellerArticle ->
                 val imageData = readImageBytes(sellerArticle.article.productId)
                 val imageUrl = activity.storageRepository
-                    .uploadImage(imageData, "${sellerArticle.article.productId}.webp")
+                    .uploadImage(imageData, terraImageStoragePath(sellerArticle.article.productId))
                     .getOrElse {
                         fail("Image upload failed for ${sellerArticle.article.productId}: ${it.message}")
                         return@getOrElse ""

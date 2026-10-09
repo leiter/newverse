@@ -266,7 +266,9 @@ private fun fromBnn(product: Product, rule: PriceRule): SellerArticle {
     val acquirePrice = roundCents(product.acquirePrice / piecesPerCase)
     val markup = rule.tier.markupFactor
     val article = Article(
-        id = "",
+        // The Terra article number is the database key: a re-run upserts instead of
+        // creating a second copy of the catalog. See CatalogUploadTests.
+        id = product.productId,
         productId = product.productId,
         productName = OFFER_NAME_PREFIX + displayName(product.productName, bnnUnit),
         available = false,
