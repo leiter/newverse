@@ -72,6 +72,7 @@ sealed class NavRoutes(val route: String) {
             }
         }
         data object Abrechnung : Sell("sell/abrechnung")
+        data object Stock : Sell("sell/stock")
         data object CustomerDetail : Sell("sell/customer/{buyerId}") {
             fun createRoute(buyerId: String): String {
                 return "sell/customer/$buyerId"
@@ -101,6 +102,7 @@ sealed class NavRoutes(val route: String) {
             Sell.Overview,
             Sell.Orders,
             Sell.Abrechnung,
+            Sell.Stock,
             Sell.Create,
             Sell.Profile,
             Sell.PickDay,
@@ -175,6 +177,7 @@ sealed class NavRoutes(val route: String) {
             Sell.Conversations -> Res.string.nav_messages
             Sell.ConversationDetail -> Res.string.nav_messages
             Sell.Abrechnung -> Res.string.topbar_abrechnung
+            Sell.Stock -> Res.string.topbar_stock
             Sell.CustomerDetail -> Res.string.customer_detail_title
         }
 

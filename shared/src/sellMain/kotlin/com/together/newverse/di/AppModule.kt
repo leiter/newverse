@@ -1,11 +1,14 @@
 package com.together.newverse.di
 
 import com.together.newverse.data.service.BnnProductImportService
+import com.together.newverse.domain.scale.NoWeightSource
+import com.together.newverse.domain.scale.WeightSource
 import com.together.newverse.domain.service.ProductImportService
 import com.together.newverse.ui.screens.sell.CreateProductViewModel
 import com.together.newverse.ui.screens.sell.OrdersViewModel
 import com.together.newverse.ui.screens.sell.OverviewViewModel
 import com.together.newverse.ui.screens.sell.PickupViewModel
+import com.together.newverse.ui.screens.sell.StockViewModel
 import com.together.newverse.ui.screens.sell.WalkInSaleViewModel
 import com.together.newverse.data.repository.GitLiveInvitationRepository
 import com.together.newverse.data.repository.GitLiveMessageRepository
@@ -29,6 +32,10 @@ import org.koin.dsl.module
  * This is in sellMain source set, so it's ONLY compiled for Sell flavor.
  */
 val appModule = module {
+    // No scale is connected: screens that can take a weight bind the no-op source
+    // and hide the affordance. See doc/cas-scale-integration.md.
+    single<WeightSource> { NoWeightSource }
+
     // Product import service
     single<ProductImportService> { BnnProductImportService(get()) }
 
@@ -55,6 +62,7 @@ val appModule = module {
     viewModel { OrdersViewModel(get(), get()) }
     viewModel { PickupViewModel(get(), get(), get(), get(), get()) }
     viewModel { WalkInSaleViewModel(get(), get(), get(), get()) }
+    viewModel { StockViewModel(get(), get(), get(), get()) }
     viewModel { CreateProductViewModel(get(), get(), get(), get()) }
     viewModel { SellerProfileViewModel(get(), get(), get(), get(), get()) }
 

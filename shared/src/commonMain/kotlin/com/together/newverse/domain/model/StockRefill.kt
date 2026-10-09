@@ -45,7 +45,16 @@ data class RefillNeed(
     val reorderLevel: Double,
     val state: RefillState,
     /** Epoch milliseconds the level was last confirmed by a count; null if never. */
-    val lastCountedAt: Long? = null
+    val lastCountedAt: Long? = null,
+    /**
+     * Whether the ledger has any movement for this article.
+     *
+     * Needed because [onHand] is 0.0 both for an article known to be empty and for
+     * one nothing is known about, and showing "0 kg" for the second is a lie the
+     * seller would act on. [RefillState.UNCOUNTED] only says this for watched
+     * articles; an unwatched one needs it too.
+     */
+    val hasLevel: Boolean = false
 ) {
     /** How much to bring to reach the reorder level again; 0 when nothing is needed. */
     val shortfall: Double
@@ -80,7 +89,8 @@ fun SellerArticle.refillNeed(level: StockLevel?): RefillNeed {
         onHand = onHand,
         reorderLevel = reorderLevel,
         state = state,
-        lastCountedAt = level?.lastCountedAt
+        lastCountedAt = level?.lastCountedAt,
+        hasLevel = level != null
     )
 }
 

@@ -39,6 +39,7 @@ data class ProductFormData(
     val price: String = "",
     val acquirePrice: String = "",
     val markupPercent: String = "",       // Aufschlag in %, stored as a factor
+    val reorderLevel: String = "",        // Nachfüllen unter dieser Menge; leer = nicht überwacht
     val taxRate: TaxRate = TaxRate.REDUCED,
     val unit: String = "",
     val category: String = "",
@@ -58,6 +59,7 @@ data class ProductFormData(
                 price == other.price &&
                 acquirePrice == other.acquirePrice &&
                 markupPercent == other.markupPercent &&
+                reorderLevel == other.reorderLevel &&
                 taxRate == other.taxRate &&
                 unit == other.unit &&
                 category == other.category &&
@@ -75,6 +77,7 @@ data class ProductFormData(
         result = 31 * result + price.hashCode()
         result = 31 * result + acquirePrice.hashCode()
         result = 31 * result + markupPercent.hashCode()
+        result = 31 * result + reorderLevel.hashCode()
         result = 31 * result + taxRate.hashCode()
         result = 31 * result + unit.hashCode()
         result = 31 * result + category.hashCode()
@@ -217,6 +220,9 @@ class CreateProductViewModel(
                         searchTerms = article.searchTerms,
                         price = if (article.price > 0) article.price.toString() else "",
                         acquirePrice = if (sellerData?.hasAcquirePrice == true) sellerData.acquirePrice.toString() else "",
+                        reorderLevel = if (sellerData?.isWatched == true) {
+                            ProductPricing.formatQuantity(sellerData.reorderLevel)
+                        } else "",
                         markupPercent = if (sellerData?.hasAcquirePrice == true && sellerData.markupFactor > 0) {
                             ProductPricing.formatPercent(ProductPricing.factorToPercent(sellerData.markupFactor))
                         } else "",
@@ -277,6 +283,11 @@ class CreateProductViewModel(
         _formState.update { state ->
             state.updateField { data -> data.copy(markupPercent = value) }.derivePrice()
         }
+    }
+
+    /** Empty means the seller does not want to be warned about this article. */
+    fun onReorderLevelChange(value: String) {
+        _formState.update { state -> state.updateField { data -> data.copy(reorderLevel = value) } }
     }
 
     fun onTaxRateChange(taxRate: TaxRate) {
@@ -433,10 +444,23 @@ class CreateProductViewModel(
     private fun sellerDataForSave(form: ProductFormData): SellerArticleData? {
         val acquire = ProductPricing.parseDecimal(form.acquirePrice)
         val markup = ProductPricing.parseDecimal(form.markupPercent)?.let(ProductPricing::percentToFactor) ?: 1.0
+        // Blank or unreadable means not watched, which is also how 0 is stored.
+        val reorder = ProductPricing.parseDecimal(form.reorderLevel)?.takeIf { it > 0.0 } ?: 0.0
         val loaded = loadedSellerData
         return when {
-            loaded != null -> loaded.copy(acquirePrice = acquire ?: 0.0, markupFactor = markup)
-            acquire != null && acquire > 0 -> SellerArticleData(acquirePrice = acquire, markupFactor = markup)
+            loaded != null -> loaded.copy(
+                acquirePrice = acquire ?: 0.0,
+                markupFactor = markup,
+                reorderLevel = reorder
+            )
+            acquire != null && acquire > 0 -> SellerArticleData(
+                acquirePrice = acquire,
+                markupFactor = markup,
+                reorderLevel = reorder
+            )
+            // A reorder level alone is reason enough to store the seller-only half:
+            // without it the article could never be watched.
+            reorder > 0.0 -> SellerArticleData(markupFactor = markup, reorderLevel = reorder)
             else -> null
         }
     }

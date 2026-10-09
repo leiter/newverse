@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
@@ -29,7 +30,8 @@ fun SellerBottomNavigationBar(
     currentRoute: String,
     onNavigate: (String) -> Unit,
     pendingOrdersCount: Int = 0,
-    pendingAccessRequestCount: Int = 0
+    pendingAccessRequestCount: Int = 0,
+    refillCount: Int = 0
 ) {
     NavigationBar {
         SellerBottomNavItems.forEach { item ->
@@ -37,6 +39,7 @@ fun SellerBottomNavigationBar(
             val badgeCount = when (item.route) {
                 NavRoutes.Sell.Orders.route -> pendingOrdersCount
                 NavRoutes.Sell.Profile.route -> pendingAccessRequestCount
+                NavRoutes.Sell.Stock.route -> refillCount
                 else -> 0
             }
             val badgeDescription = sellerBadgeDescription(item.route, badgeCount)
@@ -69,7 +72,8 @@ fun SellerNavigationRail(
     currentRoute: String,
     onNavigate: (String) -> Unit,
     pendingOrdersCount: Int = 0,
-    pendingAccessRequestCount: Int = 0
+    pendingAccessRequestCount: Int = 0,
+    refillCount: Int = 0
 ) {
     NavigationRail(
         containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -80,6 +84,7 @@ fun SellerNavigationRail(
             val badgeCount = when (item.route) {
                 NavRoutes.Sell.Orders.route -> pendingOrdersCount
                 NavRoutes.Sell.Profile.route -> pendingAccessRequestCount
+                NavRoutes.Sell.Stock.route -> refillCount
                 else -> 0
             }
             val badgeDescription = sellerBadgeDescription(item.route, badgeCount)
@@ -118,6 +123,8 @@ private fun sellerBadgeDescription(route: String, badgeCount: Int): String? {
             formatString(stringResource(Res.string.a11y_pending_orders_badge), badgeCount)
         NavRoutes.Sell.Profile.route ->
             formatString(stringResource(Res.string.a11y_access_requests_badge), badgeCount)
+        NavRoutes.Sell.Stock.route ->
+            formatString(stringResource(Res.string.a11y_refill_badge), badgeCount)
         else -> null
     }
 }
@@ -168,6 +175,11 @@ private val SellerBottomNavItems = listOf(
         route = NavRoutes.Sell.Abrechnung.route,
         labelRes = Res.string.bottomnav_abrechnung,
         icon = Icons.Default.BarChart
+    ),
+    BottomNavItem(
+        route = NavRoutes.Sell.Stock.route,
+        labelRes = Res.string.bottomnav_stock,
+        icon = Icons.Default.Inventory2
     ),
     BottomNavItem(
         route = NavRoutes.Sell.Profile.route,

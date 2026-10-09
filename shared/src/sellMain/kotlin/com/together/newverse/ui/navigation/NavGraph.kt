@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.savedstate.read
 import com.together.newverse.ui.screens.sell.AbrechnungScreen
+import com.together.newverse.ui.screens.sell.StockScreen
 import com.together.newverse.ui.screens.sell.CreateProductScreen
 import com.together.newverse.ui.screens.sell.CustomerDetailScreen
 import com.together.newverse.ui.screens.sell.ImportPreviewScreen
@@ -120,6 +121,10 @@ fun NavGraphBuilder.navGraph(
 
     composable(NavRoutes.Sell.Abrechnung.route) {
         AbrechnungScreen()
+    }
+
+    composable(NavRoutes.Sell.Stock.route) {
+        StockScreen()
     }
 
     composable(

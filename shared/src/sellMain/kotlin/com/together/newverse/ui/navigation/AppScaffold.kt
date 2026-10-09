@@ -37,6 +37,7 @@ import com.together.newverse.ui.state.SellUiAction
 import com.together.newverse.ui.state.SellUserAction
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.ui.screens.sell.OrdersViewModel
+import com.together.newverse.ui.screens.sell.StockViewModel
 import com.together.newverse.domain.model.OrderStatus
 import kotlin.time.Clock
 import com.together.newverse.util.DocumentPickerResult
@@ -75,6 +76,12 @@ private fun AppScaffoldContent(
     // Get orders ViewModel for pending orders count
     val ordersViewModel = koinViewModel<OrdersViewModel>()
     val ordersState by ordersViewModel.ordersState.collectAsState()
+
+    // The refill badge: how many watched articles want attention. Read here so the
+    // seller sees it without opening the stock screen, which is the whole point.
+    val stockViewModel = koinViewModel<StockViewModel>()
+    val stockState by stockViewModel.state.collectAsState()
+    val refillCount = stockState.refillNeeds.size
 
     // Calculate pending orders count from orders state
     val pendingOrdersCount = when (val orders = ordersState) {
@@ -259,6 +266,7 @@ private fun AppScaffoldContent(
                     currentRoute = currentRoute,
                     pendingOrdersCount = pendingOrdersCount,
                     pendingAccessRequestCount = state.pendingAccessRequestCount,
+                    refillCount = refillCount,
                     onNavigate = onNavigateToTab
                 )
             }
@@ -277,7 +285,8 @@ private fun AppScaffoldContent(
                     currentRoute = currentRoute,
                     onNavigate = onNavigateToTab,
                     pendingOrdersCount = pendingOrdersCount,
-                    pendingAccessRequestCount = state.pendingAccessRequestCount
+                    pendingAccessRequestCount = state.pendingAccessRequestCount,
+                    refillCount = refillCount
                 )
             }
             NavHost(

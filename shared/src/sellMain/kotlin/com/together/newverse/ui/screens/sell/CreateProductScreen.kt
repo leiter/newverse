@@ -95,6 +95,7 @@ fun CreateProductScreen(
     val price = formData.price
     val acquirePrice = formData.acquirePrice
     val markupPercent = formData.markupPercent
+    val reorderLevel = formData.reorderLevel
     val taxRate = formData.taxRate
     val unit = formData.unit
     val category = formData.category
@@ -297,6 +298,18 @@ fun CreateProductScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            // Refill threshold (optional): empty means this article is not watched
+            OutlinedTextField(
+                value = reorderLevel,
+                onValueChange = viewModel::onReorderLevelChange,
+                label = { Text(stringResource(Res.string.create_product_reorder_level)) },
+                suffix = { if (unit.isNotEmpty()) Text(unit) },
+                supportingText = { Text(stringResource(Res.string.create_product_reorder_level_hint)) },
+                keyboardOptions = decimalKeyboard,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
 
             // Weight per piece (required for countable units)
             val unitEnum = ProductUnit.fromDisplayName(unit)
