@@ -39,6 +39,15 @@ object ProductPricing {
         return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
     }
 
+    /** A quantity rounded to the gram, the finest division a retail scale reports. */
+    fun roundQuantity(value: Double): Double = roundTo(value, 3)
+
+    /** A quantity for display or for a quantity field: "1.5", "2", never "2.000". */
+    fun formatQuantity(value: Double): String {
+        val rounded = roundQuantity(value)
+        return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
+    }
+
     /** Rounds half away from zero, as prices are rounded (kotlin.math.round rounds half to even). */
     private fun roundTo(value: Double, decimals: Int): Double {
         var factor = 1.0
