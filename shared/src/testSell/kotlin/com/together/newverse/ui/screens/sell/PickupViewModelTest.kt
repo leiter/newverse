@@ -12,6 +12,7 @@ import com.together.newverse.test.FakeAuthRepository
 import com.together.newverse.test.FakeOrderRepository
 import com.together.newverse.test.FakeSaleRepository
 import com.together.newverse.test.FakeSellerArticleRepository
+import com.together.newverse.test.FakeStockRepository
 import com.together.newverse.test.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -30,6 +31,7 @@ class PickupViewModelTest {
     private val dispatcherRule = MainDispatcherRule()
     private lateinit var saleRepository: FakeSaleRepository
     private lateinit var articleRepository: FakeSellerArticleRepository
+    private lateinit var stockRepository: FakeStockRepository
     private lateinit var orderRepository: FakeOrderRepository
     private lateinit var authRepository: FakeAuthRepository
     private var clock = 10_000L
@@ -53,6 +55,7 @@ class PickupViewModelTest {
         dispatcherRule.setup()
         saleRepository = FakeSaleRepository()
         articleRepository = FakeSellerArticleRepository()
+        stockRepository = FakeStockRepository()
         orderRepository = FakeOrderRepository()
         authRepository = FakeAuthRepository()
         authRepository.setCurrentUserId("seller_123")
@@ -67,6 +70,7 @@ class PickupViewModelTest {
     fun tearDown() {
         saleRepository.reset()
         articleRepository.reset()
+        stockRepository.reset()
         orderRepository.reset()
         authRepository.reset()
         dispatcherRule.tearDown()
@@ -75,6 +79,7 @@ class PickupViewModelTest {
     private fun createViewModel() = PickupViewModel(
         saleRepository = saleRepository,
         sellerArticleRepository = articleRepository,
+        stockRepository = stockRepository,
         orderRepository = orderRepository,
         authRepository = authRepository,
         now = { clock }

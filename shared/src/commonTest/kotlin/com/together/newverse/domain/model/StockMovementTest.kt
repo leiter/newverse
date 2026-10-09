@@ -99,6 +99,59 @@ class StockMovementTest {
     }
 
     @Test
+    fun `only watched articles of a sale reach the ledger`() {
+        val sale = Sale(
+            id = "sale_1", orderId = "order_1", confirmedAt = 5_000L, pickUpDate = 5_000L,
+            lines = listOf(
+                SaleLine(apples, "301", "Äpfel", "kg", 2.0, 350, 0.07),
+                SaleLine("nuts", "351", "Nüsse", "kg", 1.0, 900, 0.07)
+            )
+        )
+        val catalog = mapOf(
+            apples to SellerArticle(Article(id = apples, unit = "kg"), SellerArticleData(reorderLevel = 5.0)),
+            "nuts" to SellerArticle(Article(id = "nuts", unit = "kg"), SellerArticleData(reorderLevel = 0.0))
+        )
+
+        val movements = stockMovementsForSale(sale, catalog)
+        assertEquals(listOf(apples), movements.map { it.articleId })
+        assertEquals(-2.0, movements.single().quantity)
+    }
+
+    @Test
+    fun `an article missing from the catalog counts as unwatched`() {
+        val sale = Sale(
+            id = "sale_1", orderId = "order_1", confirmedAt = 5_000L, pickUpDate = 5_000L,
+            lines = listOf(SaleLine(apples, "301", "Äpfel", "kg", 2.0, 350, 0.07))
+        )
+        assertTrue(stockMovementsForSale(sale, emptyMap()).isEmpty())
+    }
+
+    @Test
+    fun `an article whose seller half is unknown counts as unwatched`() {
+        val sale = Sale(
+            id = "sale_1", orderId = "order_1", confirmedAt = 5_000L, pickUpDate = 5_000L,
+            lines = listOf(SaleLine(apples, "301", "Äpfel", "kg", 2.0, 350, 0.07))
+        )
+        // sellerData is null while the private half has not arrived; treating that as
+        // a zero reorder level would be a guess.
+        val catalog = mapOf(apples to SellerArticle(Article(id = apples, unit = "kg"), sellerData = null))
+        assertTrue(stockMovementsForSale(sale, catalog).isEmpty())
+    }
+
+    @Test
+    fun `a cancellation of a watched article adds back`() {
+        val sale = Sale(
+            id = "sale_1", orderId = "order_1", confirmedAt = 5_000L, pickUpDate = 5_000L,
+            lines = listOf(SaleLine(apples, "301", "Äpfel", "kg", 2.0, 350, 0.07))
+        )
+        val catalog = mapOf(
+            apples to SellerArticle(Article(id = apples, unit = "kg"), SellerArticleData(reorderLevel = 5.0))
+        )
+        val back = stockMovementsForSale(sale.reversal(confirmedAt = 6_000L), catalog)
+        assertEquals(2.0, back.single().quantity)
+    }
+
+    @Test
     fun `a level reports its newest movement and its newest count`() {
         val movements = listOf(
             StockMovement.intake(apples, weighed(15.0), recordedAt = 1_000L),

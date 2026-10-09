@@ -155,6 +155,29 @@ data class StockMovement(
 }
 
 /**
+ * The movements a booked [sale] takes out of storage, limited to the articles the
+ * seller watches.
+ *
+ * Only watched articles are recorded, for two reasons. The ledger exists to answer
+ * when to refill, and movements for an article nobody watches are noise in a catalog
+ * of hundreds. And an article sold without ever being stocked would drive its level
+ * negative, which reads as a data error rather than as the "never counted" it really
+ * is. Nothing is lost by waiting: a seller who starts watching an article
+ * establishes its level with a [StockMovementKind.STOCKTAKE] anyway, which sets the
+ * level outright rather than adjusting it.
+ *
+ * An article the catalog no longer knows, or whose seller-only half has not arrived,
+ * counts as unwatched — [SellerArticle.sellerData] may be null, and treating that as
+ * "not watched" is right, where treating it as a zero reorder level would be a
+ * guess.
+ */
+fun stockMovementsForSale(
+    sale: Sale,
+    catalog: Map<String, SellerArticle>
+): List<StockMovement> = StockMovement.forSale(sale)
+    .filter { movement -> catalog[movement.articleId]?.sellerData?.isWatched == true }
+
+/**
  * What is in storage for one article right now.
  *
  * Derived from the movements, never written on its own. [source] and [lastCountedAt]

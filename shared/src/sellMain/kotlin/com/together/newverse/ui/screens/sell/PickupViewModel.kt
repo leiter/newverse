@@ -6,12 +6,15 @@ import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.Sale
+import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.activeSale
 import com.together.newverse.domain.model.toSale
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.SaleRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
+import com.together.newverse.domain.repository.StockRepository
+import com.together.newverse.util.Log
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +35,7 @@ import kotlin.time.Instant
 class PickupViewModel(
     private val saleRepository: SaleRepository,
     private val sellerArticleRepository: SellerArticleRepository,
+    private val stockRepository: StockRepository,
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() }
@@ -137,9 +141,7 @@ class PickupViewModel(
                 return@launch
             }
 
-            val catalog = try {
-                sellerArticleRepository.observeSellerArticles(sellerId).first().associateBy { it.id }
-            } catch (e: Exception) {
+            val catalog = loadCatalog(sellerId) ?: run {
                 failWith(PickupMessage.SAVE_FAILED); return@launch
             }
             val sale = order.toSale(handedOver, catalog, confirmedAt = now())
@@ -150,7 +152,10 @@ class PickupViewModel(
                         it.copy(isSaving = false, isEditing = false, lines = emptyList(),
                             status = PickupStatus.Booked(stored))
                     }
-                    // The sale is booked either way; the status only tells the buyer.
+                    // Both of these follow a booked sale and neither may undo it:
+                    // the status only tells the buyer, and the stock ledger is
+                    // repaired by a stocktake if this write is lost.
+                    stockRepository.bookSale(sellerId, stored, catalog)
                     setOrderStatus(sellerId, order, OrderStatus.COMPLETED)
                 }
                 .onFailure { failWith(PickupMessage.SAVE_FAILED) }
@@ -191,8 +196,13 @@ class PickupViewModel(
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
             _state.update { it.copy(isSaving = true) }
             saleRepository.recordSale(sellerId, booked.reversal(confirmedAt = now()))
-                .onSuccess {
+                .onSuccess { reversal ->
                     _state.update { it.copy(isSaving = false, status = PickupStatus.Open) }
+                    // The cancellation's lines are negative, so these movements add
+                    // back what the sale took out. A catalog that cannot be read
+                    // leaves the level to the next stocktake rather than failing a
+                    // cancellation that is already booked.
+                    stockRepository.bookSale(sellerId, reversal, loadCatalog(sellerId).orEmpty())
                     setOrderStatus(sellerId, order, OrderStatus.LOCKED)
                 }
                 .onFailure { failWith(PickupMessage.SAVE_FAILED) }
@@ -204,6 +214,14 @@ class PickupViewModel(
     }
 
     // ----- Helpers -----
+
+    /** The seller's articles by id, or null when they cannot be read. */
+    private suspend fun loadCatalog(sellerId: String): Map<String, SellerArticle>? = try {
+        sellerArticleRepository.observeSellerArticles(sellerId).first().associateBy { it.id }
+    } catch (e: Exception) {
+        Log.w(TAG) { "loadCatalog: Error - ${e.message}" }
+        null
+    }
 
     private suspend fun setOrderStatus(sellerId: String, order: Order, status: OrderStatus): Boolean {
         val dateKey = OrderDateUtils.formatDateKey(Instant.fromEpochMilliseconds(order.pickUpDate))
@@ -220,6 +238,8 @@ class PickupViewModel(
         if (quantity == quantity.toLong().toDouble()) quantity.toLong().toString() else quantity.toString()
 
     companion object {
+        private const val TAG = "PickupViewModel"
+
         private val NOT_BOOKABLE = setOf(OrderStatus.DRAFT, OrderStatus.CANCELLED, OrderStatus.DEMO_ORDER)
 
         /** The sale currently standing for an order: the latest one not cancelled. */

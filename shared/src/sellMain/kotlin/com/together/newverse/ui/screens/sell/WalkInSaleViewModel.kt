@@ -11,6 +11,7 @@ import com.together.newverse.domain.model.walkInSale
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.SaleRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
+import com.together.newverse.domain.repository.StockRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +28,7 @@ import kotlin.time.Clock
 class WalkInSaleViewModel(
     private val sellerArticleRepository: SellerArticleRepository,
     private val saleRepository: SaleRepository,
+    private val stockRepository: StockRepository,
     private val authRepository: AuthRepository,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() }
 ) : ViewModel() {
@@ -120,6 +122,9 @@ class WalkInSaleViewModel(
                     _state.update {
                         it.copy(isSaving = false, lines = emptyList(), query = "", results = catalog, booked = stored)
                     }
+                    // Follows the booked sale and cannot undo it; the next stocktake
+                    // repairs the level if this write is lost.
+                    stockRepository.bookSale(sellerId, stored, catalog.associateBy { it.id })
                 }
                 .onFailure {
                     _state.update { it.copy(isSaving = false, message = WalkInMessage.SAVE_FAILED) }
