@@ -4,13 +4,14 @@
 **Source:** `bodenschaetze-a988e` export, 204 KB, taken 2026-10-08
 **Output:** `tmp/db-migration/bodenschaetze-a988e-with-bookkeeping.json` — the file to
 import. Intermediates beside it, one per step below, and `changes.log`.
-**Status:** **partly applied.** `bodenschaetze-a988e-FINAL.json` — steps 1-3 as they
-stood on 2026-10-08, *without* the `weightPerPiece` rename — was imported 2026-10-08
-and the pending rules deployed; the articles sit under the new seller uid
-`x64pN9m4wcYlZqB2qMTxpwIm9DD2` (see `402ce5c`). B1 and B2 below were **dropped**, not
-applied: see that section. The `weightPerPiece` rename was applied separately on
-2026-10-10; the `seller_articles` bookkeeping half is still outstanding — see
-"Still to apply" below.
+**Status:** **applied**, in two stages. `bodenschaetze-a988e-FINAL.json` — steps 1-3
+as they stood on 2026-10-08, *without* the `weightPerPiece` rename — was imported
+2026-10-08 and the pending rules deployed; the articles sit under the new seller uid
+`x64pN9m4wcYlZqB2qMTxpwIm9DD2` (see `402ce5c`). The `weightPerPiece` rename and the
+`seller_articles` bookkeeping half followed on 2026-10-10 as targeted updates against
+the live nodes, since by then a root import was no longer safe — see that section
+below. Production now matches the pipeline output. B1 and B2 below were **dropped**,
+not applied: see that section.
 
 Four steps, all offline — nothing contacts a Firebase project. Each writes the next
 file in `tmp/db-migration/`:
@@ -45,24 +46,35 @@ ever changes again.
 customer email addresses and phone numbers, and the price list is supplier data.
 Neither may be committed.
 
-## Still to apply
+## Applied after the import, as targeted updates
 
-The import ran before the pipeline was finished, so two things the scripts now produce
-never reached live data. Neither could be delivered by re-importing: the database has
-been written to since 2026-10-08, and a root import would discard everything since, so
-each needs a targeted update against the live nodes. One is done.
+The import ran before the pipeline was finished, so two of the things the scripts
+produce did not reach live data with it. Neither could be delivered by re-importing:
+the database has been written to since 2026-10-08, and a root import would discard
+everything since. Both were applied as targeted multi-path updates instead, and the
+pipeline output now matches production.
 
-- ~~**The `weightPerPiece` rename.**~~ **Applied 2026-10-10** with
+- **The `weightPerPiece` rename**, 2026-10-10, with
   `firebase/scripts/fix-weight-per-piece.mjs --project prod --apply --atomic`: one
-  multi-path update, 208 paths, 104 values moved to the correct key and 104 stale keys
-  dropped. Verified against the pre-change capture — no stale key left, every value
-  carried over, 76 of them non-zero, the result identical to what the offline pipeline
-  produces, and no other field touched on any article. The census taken first found all
-  104 articles in state A, meaning nothing had been edited since the import.
-- **The `seller_articles` bookkeeping half** (step 4, `doc/bookkeeping-backfill.md`).
-  Production has no `seller_articles` node at all, so the CSV tax export has nothing to
-  read. This one is add-only, which makes it the safer of the two, and the same
-  one-multi-path-update approach applies.
+  update, 208 paths, 104 values moved to the correct key and 104 stale keys dropped.
+  The census taken first found all 104 articles in state A, so nothing had been edited
+  since the import and there were no hand-typed weights to reconcile. Verified against
+  the pre-change capture: no stale key left, every value carried over, 76 of them
+  non-zero, the result identical to what the offline pipeline produces, and no other
+  field touched.
+- **The `seller_articles` bookkeeping half**, 2026-10-10, with
+  `firebase/scripts/backfill-seller-articles.mjs --project prod --apply`: one update,
+  936 paths, all 104 entries added. The node had not existed in production at all, and
+  the census confirmed it empty, so nothing of the seller's was skipped or merged into.
+  Verified: 104 entries byte-identical to the source, 36 of them carrying a purchase
+  price, every id with its public article, `/articles` untouched, and the stored price
+  invariant `price == acquirePrice × markupFactor × (1 + taxRate)` holding across all
+  36 public/private pairs.
+
+Two things in `doc/bookkeeping-backfill.md` remain open, neither of them a migration:
+the 33 SPECIES rows still hold their reference price in `bookkeeping-review.csv` for a
+human to confirm or reject, and `Spitzpaprika` (1.009) and `Mangold` (1.013) sit below
+the 1.15 markup floor, which records two mismatched sources rather than a real margin.
 
 ## What production contains
 
@@ -311,10 +323,11 @@ database**. That was acceptable on 2026-10-08, when the database had been dorman
 4. ~~B1 and B2 above remain open and still block the rules deploy.~~ Both dropped
    (legacy buyer data is stale); rules deployed 2026-10-08.
 
-The database has been in use since, so the two items under "Still to apply" cannot
-follow the same route: a root import would discard every order and profile change made
-after that snapshot. They need a targeted multi-path update against the live nodes,
-written from the pipeline output rather than imported as a whole.
+The database has been in use since, so this route is closed: a root import would now
+discard every order and profile change made after that snapshot. That is why the two
+remaining pieces went in as targeted multi-path updates written from the pipeline
+output — see "Applied after the import" above — and why anything further has to go the
+same way.
 
 ## Related
 
