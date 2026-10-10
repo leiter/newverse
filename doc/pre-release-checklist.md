@@ -23,11 +23,24 @@ migrated (Gate 1). What remains of that gap is shipping the builds that match.
 
 ## Gate 1 — Rules and data on the release project
 
-**Status 2026-10-08: rules deployed, data migrated; only the matching build remains.**
-`firebase/database.rules.json` as of `c173ab2` is published to `bodenschaetze-a988e`, so
-the six rules commits below are live there, and the articles are
+**Status 2026-10-10: rules deployed, data migrated; only the matching build remains.**
+`firebase/database.rules.json` is published to `bodenschaetze-a988e` as of this date,
+so the six rules commits below are live there, and the articles are
 imported under the new seller uid (`doc/production-db-migration.md`). Legacy buyer
 data was written off rather than migrated.
+
+*Re-deployed 2026-10-10.* The 2026-10-08 deploy published the file as of `c173ab2`.
+The stock ledger (`79035d1`) added `/stock` and `/stock_movements` afterwards and was
+merged to `main` on 2026-10-10, so between those dates the deployed ruleset had no
+stock nodes at all: a release build cut from `main` would have had every write from
+the stock screen (`c980946`) denied, with the failures swallowed rather than surfaced.
+`firebase deploy --only database --project prod` closes that. `seller_articles` was
+unchanged across the window, so the hand-published version from 2026-09-21 was
+correct.
+
+The lesson is the one Gate 1 already states and this still managed to miss: a rules
+commit is not live because it is on `main`. The 136 tests in `firebase/tests` pass
+against the file, never against what is deployed.
 
 These six rules commits had, until then, been deployed only to dev:
 
