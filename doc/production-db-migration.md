@@ -8,8 +8,9 @@ import. Intermediates beside it, one per step below, and `changes.log`.
 stood on 2026-10-08, *without* the `weightPerPiece` rename — was imported 2026-10-08
 and the pending rules deployed; the articles sit under the new seller uid
 `x64pN9m4wcYlZqB2qMTxpwIm9DD2` (see `402ce5c`). B1 and B2 below were **dropped**, not
-applied: see that section. Two later changes are in the pipeline but **not in
-production** — see "Still to apply" below.
+applied: see that section. The `weightPerPiece` rename was applied separately on
+2026-10-10; the `seller_articles` bookkeeping half is still outstanding — see
+"Still to apply" below.
 
 Four steps, all offline — nothing contacts a Firebase project. Each writes the next
 file in `tmp/db-migration/`:
@@ -47,17 +48,21 @@ Neither may be committed.
 ## Still to apply
 
 The import ran before the pipeline was finished, so two things the scripts now produce
-have never reached live data. Neither can be delivered by re-importing: the database
-has been written to since 2026-10-08, and a root import would discard everything since.
-Both need a targeted update against the live node instead.
+never reached live data. Neither could be delivered by re-importing: the database has
+been written to since 2026-10-08, and a root import would discard everything since, so
+each needs a targeted update against the live nodes. One is done.
 
-- **The `weightPerPiece` rename.** Production only ever wrote `weighPerPiece`, and the
-  model reads `weightPerPiece` with no fallback, so all 104 live articles read back
-  `0.0` and 76 real values are being ignored. The buyer's piece count for goods sold by
-  weight comes from that field, so this is live data loss, not a cosmetic nit.
+- ~~**The `weightPerPiece` rename.**~~ **Applied 2026-10-10** with
+  `firebase/scripts/fix-weight-per-piece.mjs --project prod --apply --atomic`: one
+  multi-path update, 208 paths, 104 values moved to the correct key and 104 stale keys
+  dropped. Verified against the pre-change capture — no stale key left, every value
+  carried over, 76 of them non-zero, the result identical to what the offline pipeline
+  produces, and no other field touched on any article. The census taken first found all
+  104 articles in state A, meaning nothing had been edited since the import.
 - **The `seller_articles` bookkeeping half** (step 4, `doc/bookkeeping-backfill.md`).
   Production has no `seller_articles` node at all, so the CSV tax export has nothing to
-  read. This one is add-only and so is the safer of the two to apply.
+  read. This one is add-only, which makes it the safer of the two, and the same
+  one-multi-path-update approach applies.
 
 ## What production contains
 
