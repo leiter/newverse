@@ -28,16 +28,31 @@
  * human can say whether the new value is a deliberate correction, and overwriting it
  * would destroy the one piece of information here that is not recoverable.
  *
- * Writes happen new-key-first, old-key-second, so an interrupted run leaves the value
- * present under both names rather than neither. Re-running is idempotent.
+ * There are two ways to write, and they trade atomicity against resumability.
+ *
+ * Per article (the default) sets the new key and removes the old one in two calls,
+ * new key first, so an interrupted run leaves the value present under both names
+ * rather than neither. Re-running picks up where it stopped. It costs two CLI
+ * invocations per article - 208 of them for the 104 production articles, a few
+ * minutes - and the catalog is briefly half migrated.
+ *
+ * --atomic instead sends one multi-path update per seller: every new value and every
+ * `null` that drops an old key, in a single PATCH against /articles/{sellerId}. It is
+ * the same shape the app itself writes (`ArticleNodes.saveUpdate`), it lands in one
+ * request, and it cannot half-apply. The catch is that it is all or nothing - there
+ * is no partial progress to resume from - so a failure means starting over rather
+ * than continuing. With a clean census and no conflicts, prefer it.
+ *
+ * Both paths write exactly the same values; only the delivery differs.
  *
  * This script uses the firebase CLI's admin credentials, which bypass rules.
  *
  * Dry run by default. Pass --apply to write.
  *
- *   node fix-weight-per-piece.mjs --project <projectId>            # report only
- *   node fix-weight-per-piece.mjs --project <projectId> --apply    # write
- *   node fix-weight-per-piece.mjs --from-export <export.json>      # offline check
+ *   node fix-weight-per-piece.mjs --project <projectId>              # report only
+ *   node fix-weight-per-piece.mjs --project <projectId> --apply      # write
+ *   node fix-weight-per-piece.mjs --project <p> --apply --atomic     # one PATCH
+ *   node fix-weight-per-piece.mjs --from-export <export.json>        # offline check
  *
  * --from-export reads a database export from disk instead of the live database and
  * never contacts a project.
@@ -52,6 +67,7 @@ const NEW = "weightPerPiece";
 
 const args = process.argv.slice(2);
 const apply = args.includes("--apply");
+const atomic = args.includes("--atomic");
 const exportPath = args.includes("--from-export")
   ? args[args.indexOf("--from-export") + 1]
   : null;
@@ -61,9 +77,13 @@ if (exportPath && apply) {
   console.error("--from-export is read-only; it cannot be combined with --apply.");
   process.exit(2);
 }
+if (atomic && !apply) {
+  console.error("--atomic selects how --apply writes; it does nothing on its own.");
+  process.exit(2);
+}
 if (!exportPath && (!project || project.startsWith("--"))) {
   console.error(
-    "Usage: node fix-weight-per-piece.mjs --project <projectId> [--apply]\n" +
+    "Usage: node fix-weight-per-piece.mjs --project <projectId> [--apply [--atomic]]\n" +
     "       node fix-weight-per-piece.mjs --from-export <export.json>"
   );
   process.exit(2);
@@ -86,7 +106,11 @@ if (exportPath) {
   };
   console.log(`Project: ${project}`);
 }
-console.log(apply ? "Mode:   APPLY (writing to the database)\n" : "Mode:   dry run (no writes)\n");
+console.log(
+  apply
+    ? `Mode:   APPLY (writing to the database, ${atomic ? "one multi-path update per seller" : "per article"})\n`
+    : "Mode:   dry run (no writes)\n"
+);
 
 // --- classify every article ----------------------------------------------------
 
@@ -117,15 +141,15 @@ for (const [sellerId, bySeller] of Object.entries(articles)) {
 
     if (newValue === undefined || newValue === null) {
       // A: untouched since the import.
-      planned.push({ base, where, name, value: oldValue, state: "A", dropOnly: false });
+      planned.push({ base, sellerId, articleId, where, name, value: oldValue, state: "A", dropOnly: false });
     } else if (typeof newValue !== "number" || !Number.isFinite(newValue)) {
       malformed.push({ where, name, oldValue, newValue });
     } else if (newValue === 0) {
       // B: the app read 0.0 and wrote it straight back. The real value is the old one.
-      planned.push({ base, where, name, value: oldValue, state: "B", dropOnly: false });
+      planned.push({ base, sellerId, articleId, where, name, value: oldValue, state: "B", dropOnly: false });
     } else if (newValue === oldValue) {
       // C, agreeing: the stale key is simply redundant.
-      planned.push({ base, where, name, value: newValue, state: "C", dropOnly: true });
+      planned.push({ base, sellerId, articleId, where, name, value: newValue, state: "C", dropOnly: true });
     } else {
       // C, disagreeing: not ours to resolve.
       conflicts.push({ where, name, oldValue, newValue });
@@ -189,27 +213,56 @@ if (!apply) {
 // takes a different path through the CLI and works. backfill-order-buyerid.mjs had
 // the same latent bug, never hit because it has only ever been run as a dry run.
 const scratch = mkdtempSync(join(tmpdir(), "fix-weight-"));
-const valueFile = join(scratch, "value.json");
+const payloadFile = join(scratch, "payload.json");
 
-// New key first, then the old one: an interrupted run leaves the value under both
-// names, never under neither.
 let renamed = 0;
 let dropped = 0;
 try {
-  for (const { base, value, dropOnly } of planned) {
-    if (!dropOnly) {
-      writeFileSync(valueFile, JSON.stringify(value));
+  if (atomic) {
+    // One PATCH per seller. Keys are relative paths under /articles/{sellerId}, which
+    // is what makes this a multi-path update rather than a node overwrite: an article
+    // not named here is untouched, and a null drops just that one key. Every value
+    // and every deletion in a seller's catalog lands together or not at all.
+    const bySeller = new Map();
+    for (const p of planned) {
+      if (!bySeller.has(p.sellerId)) bySeller.set(p.sellerId, {});
+      const update = bySeller.get(p.sellerId);
+      if (!p.dropOnly) {
+        update[`${p.articleId}/${NEW}`] = p.value;
+        renamed++;
+      }
+      update[`${p.articleId}/${OLD}`] = null;
+      dropped++;
+    }
+    for (const [sellerId, update] of bySeller) {
+      writeFileSync(payloadFile, JSON.stringify(update));
       execFileSync(
         "firebase",
-        ["database:set", `${base}/${NEW}`, valueFile, "--project", project, "--force"],
+        ["database:update", `/articles/${sellerId}`, payloadFile, "--project", project, "--force"],
         { encoding: "utf8" }
       );
-      renamed++;
+      console.log(
+        `  ${sellerId}: ${Object.keys(update).length} path(s) in one update`
+      );
     }
-    execFileSync("firebase", ["database:remove", `${base}/${OLD}`, "--project", project, "--force"], {
-      encoding: "utf8"
-    });
-    dropped++;
+  } else {
+    // New key first, then the old one: an interrupted run leaves the value under both
+    // names, never under neither.
+    for (const { base, value, dropOnly } of planned) {
+      if (!dropOnly) {
+        writeFileSync(payloadFile, JSON.stringify(value));
+        execFileSync(
+          "firebase",
+          ["database:set", `${base}/${NEW}`, payloadFile, "--project", project, "--force"],
+          { encoding: "utf8" }
+        );
+        renamed++;
+      }
+      execFileSync("firebase", ["database:remove", `${base}/${OLD}`, "--project", project, "--force"], {
+        encoding: "utf8"
+      });
+      dropped++;
+    }
   }
 } finally {
   rmSync(scratch, { recursive: true, force: true });
