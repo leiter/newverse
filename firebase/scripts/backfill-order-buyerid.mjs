@@ -29,7 +29,9 @@
  * the export with the buyerId values filled in, for importing later.
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const args = process.argv.slice(2);
 const apply = args.includes("--apply");
@@ -192,12 +194,25 @@ if (!apply) {
   process.exit(0);
 }
 
+// `database:set <path> -` reads the value from stdin, but firebase-tools 11.29.1
+// cannot stream a stdin body on Node 22 - the PUT dies with "Failed to make request"
+// while every other call on the same credentials succeeds. Writing from a real file
+// takes a different path through the CLI and works.
+const scratch = mkdtempSync(join(tmpdir(), "backfill-buyerid-"));
+const valueFile = join(scratch, "value.json");
+
 let written = 0;
-for (const { path, buyerId } of planned) {
-  execFileSync("firebase", ["database:set", path, "-", "--project", project, "--force"], {
-    input: JSON.stringify(buyerId),
-    encoding: "utf8"
-  });
-  written++;
+try {
+  for (const { path, buyerId } of planned) {
+    writeFileSync(valueFile, JSON.stringify(buyerId));
+    execFileSync(
+      "firebase",
+      ["database:set", path, valueFile, "--project", project, "--force"],
+      { encoding: "utf8" }
+    );
+    written++;
+  }
+} finally {
+  rmSync(scratch, { recursive: true, force: true });
 }
 console.log(`\nWrote ${written} buyerId value(s).`);
