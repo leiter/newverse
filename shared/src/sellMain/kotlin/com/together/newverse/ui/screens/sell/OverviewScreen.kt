@@ -1,6 +1,11 @@
 package com.together.newverse.ui.screens.sell
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -26,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.width
+import com.together.newverse.ui.components.CategoryChipRow
 import com.together.newverse.ui.components.ProductListItem
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.ui.state.core.AsyncStateContent
@@ -50,6 +56,21 @@ fun OverviewScreen(
 ) {
     val overviewState by viewModel.overviewState.collectAsState()
     val importState by viewModel.importState.collectAsState()
+
+    // The search field is in the top bar and writes to SellAppViewModel, the one view
+    // model the bar and this screen share. Mirror it into the list's own view model
+    // so all three filters are applied in one testable place.
+    val isSearchExpanded by sellAppViewModel.searchExpanded.collectAsState()
+    val searchQuery by sellAppViewModel.searchQuery.collectAsState()
+    val selectedCategory by sellAppViewModel.selectedCategory.collectAsState()
+    LaunchedEffect(searchQuery) { viewModel.setSearchQuery(searchQuery) }
+    LaunchedEffect(selectedCategory) { viewModel.setSelectedCategory(selectedCategory) }
+
+    // No back-press handling: Compose Multiplatform's common BackHandler is both
+    // experimental and already deprecated in favour of a NavigationEventHandler that
+    // 1.10.3 does not ship, and a deprecated API behind a new dependency is a poor
+    // trade for a convenience. The expanded field's close button in the top bar is
+    // the way out, and collapsing clears the query, so nothing stays hidden.
 
     // Observe pending import content directly from SellAppViewModel (survives config changes)
     val pendingImportContent by sellAppViewModel.pendingImportContent.collectAsState()
@@ -112,6 +133,13 @@ fun OverviewScreen(
                     data = data,
                     currentFilter = currentFilter,
                     onFilterChange = { viewModel.setFilter(it) },
+                    isSearchExpanded = isSearchExpanded,
+                    onSelectCategory = sellAppViewModel::setSelectedCategory,
+                    onResetFilters = {
+                        sellAppViewModel.setSearchQuery("")
+                        sellAppViewModel.setSelectedCategory(null)
+                        viewModel.setFilter(ProductFilter.ALL)
+                    },
                     isSelectionMode = isSelectionMode || isAvailabilityMode,
                     selectedArticleIds = selectedArticleIds,
                     onArticleSelectionToggle = { articleId ->
@@ -439,6 +467,9 @@ private fun SuccessContent(
     data: OverviewData,
     currentFilter: ProductFilter = ProductFilter.ALL,
     onFilterChange: (ProductFilter) -> Unit = {},
+    isSearchExpanded: Boolean = false,
+    onSelectCategory: (String?) -> Unit = {},
+    onResetFilters: () -> Unit = {},
     isSelectionMode: Boolean = false,
     selectedArticleIds: Set<String> = emptySet(),
     onArticleSelectionToggle: (String) -> Unit = {},
@@ -447,9 +478,29 @@ private fun SuccessContent(
 ) {
     var filterExpanded by remember { mutableStateOf(false) }
 
+    // Empty because of a filter, or empty because there is nothing? All three filters
+    // count here, including the dropdown — "Nicht verfügbar" with nothing unavailable
+    // is a narrowed list, not an empty catalog.
+    val isFiltered = data.isSearchNarrowed || currentFilter != ProductFilter.ALL
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
+        // The chip row rides with the search field: one expand gesture, both appear.
+        // It sits here rather than in the scaffold's topBar slot because the
+        // categories come from the catalog, which only this screen's view model has.
+        AnimatedVisibility(
+            visible = isSearchExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            CategoryChipRow(
+                categories = data.categories,
+                selected = data.selectedCategory,
+                onSelect = onSelectCategory
+            )
+        }
+
         // Stats Cards
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -570,17 +621,32 @@ private fun SuccessContent(
                         style = MaterialTheme.typography.displayMedium,
                         modifier = Modifier.clearAndSetSemantics { }
                     )
+                    // An empty catalog and a filter that matches nothing look the
+                    // same but need opposite advice: "create your first product" is
+                    // wrong and alarming when the seller has 104 articles and has
+                    // simply typed a query that matches none of them.
                     Text(
-                        text = stringResource(Res.string.overview_no_products),
+                        text = stringResource(
+                            if (isFiltered) Res.string.products_search_no_results
+                            else Res.string.overview_no_products
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = stringResource(Res.string.overview_create_first),
+                        text = stringResource(
+                            if (isFiltered) Res.string.overview_no_match_hint
+                            else Res.string.overview_create_first
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
+                    if (isFiltered) {
+                        TextButton(onClick = onResetFilters) {
+                            Text(stringResource(Res.string.overview_reset_filters))
+                        }
+                    }
                 }
             }
         } else {

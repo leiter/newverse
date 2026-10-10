@@ -1,11 +1,13 @@
 package com.together.newverse.ui.components
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -42,6 +44,10 @@ fun SellerTopBar(
     pendingOrdersCount: Int,
     isSelectionMode: Boolean = false,
     isAvailabilityMode: Boolean = false,
+    isSearchExpanded: Boolean = false,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    onToggleSearch: () -> Unit = {},
     onNavigateBack: () -> Unit,
     onNavigateToOrders: () -> Unit,
     onRefresh: () -> Unit = {},
@@ -52,6 +58,11 @@ fun SellerTopBar(
     var showOverflowMenu by remember { mutableStateOf(false) }
 
     val isInSelectionMode = isSelectionMode || isAvailabilityMode
+    // Selection and availability mode both take over the whole bar, so search gives
+    // way to them rather than competing: three independent bar states would each
+    // need to know about the other two.
+    val showSearchField = isSearchExpanded && !isInSelectionMode
+    val searchAvailable = currentRoute == NavRoutes.Sell.Overview.route && !isInSelectionMode
 
     // Get localized titles
     val sortimentTitle = stringResource(Res.string.topbar_sortiment)
@@ -68,6 +79,14 @@ fun SellerTopBar(
 
     TopAppBar(
         title = {
+            if (showSearchField) {
+                SellerSearchField(
+                    query = searchQuery,
+                    onQueryChange = onSearchQueryChange,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                return@TopAppBar
+            }
             Text(
                 text = if (isInSelectionMode) {
                     if (isSelectionMode) selectDeleteTitle else changeAvailabilityTitle
@@ -112,6 +131,18 @@ fun SellerTopBar(
             }
         },
         actions = {
+            // While searching, the field needs the whole bar: cart, refresh and
+            // overflow beside a full-width text field leave it a few characters wide
+            // on a phone. Close is the only action that still makes sense.
+            if (showSearchField) {
+                IconButton(onClick = onToggleSearch) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(Res.string.cd_close_search)
+                    )
+                }
+                return@TopAppBar
+            }
             // Hide normal actions when in selection mode for cleaner UI
             if (!isInSelectionMode) {
                 if (pendingOrdersCount > 0) {
@@ -136,6 +167,15 @@ fun SellerTopBar(
                                 contentDescription = stringResource(Res.string.topbar_orders)
                             )
                         }
+                    }
+                }
+
+                if (searchAvailable) {
+                    IconButton(onClick = onToggleSearch) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = stringResource(Res.string.cd_open_search)
+                        )
                     }
                 }
 

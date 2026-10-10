@@ -3,6 +3,7 @@ package com.together.newverse.ui.state
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Conversation
+import com.together.newverse.domain.model.filterByQuery
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.navigation.NavRoutes
@@ -499,16 +500,9 @@ data class MainScreenState(
 
     val filteredArticles: List<Article>
         get() {
-            var filtered = articles.filter { it.available }
-
-            if (searchQuery.isNotBlank()) {
-                val query = searchQuery.trim().lowercase()
-                filtered = filtered.filter { article ->
-                    article.productName.lowercase().contains(query) ||
-                    article.searchTerms.lowercase().contains(query) ||
-                    article.category.lowercase().contains(query)
-                }
-            }
+            // Buyers only ever see what can be ordered; the seller list deliberately
+            // does not apply this baseline. The matching itself is shared.
+            val filtered = articles.filter { it.available }.filterByQuery(searchQuery)
 
             return when (activeFilter) {
                 ProductFilter.ALL -> filtered

@@ -73,6 +73,13 @@ private fun AppScaffoldContent(
     val viewModel = koinViewModel<SellAppViewModel>()
     val state by viewModel.state.collectAsState()
 
+    // Product search. It lives in SellAppViewModel because the field is in the top
+    // bar here while the list it filters is a nav destination, and this is the one
+    // view model both of them already share.
+    val isSearchExpanded by viewModel.searchExpanded.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
+
     // Get orders ViewModel for pending orders count
     val ordersViewModel = koinViewModel<OrdersViewModel>()
     val ordersState by ordersViewModel.ordersState.collectAsState()
@@ -218,6 +225,10 @@ private fun AppScaffoldContent(
                 pendingOrdersCount = pendingOrdersCount,
                 isSelectionMode = isSelectionMode,
                 isAvailabilityMode = isAvailabilityMode,
+                isSearchExpanded = isSearchExpanded,
+                searchQuery = searchQuery,
+                onSearchQueryChange = viewModel::setSearchQuery,
+                onToggleSearch = viewModel::toggleSearch,
                 onNavigateBack = {
                     navController.popBackStack()
                 },

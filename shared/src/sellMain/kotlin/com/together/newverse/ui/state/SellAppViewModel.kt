@@ -43,6 +43,53 @@ class SellAppViewModel(
         _pendingImportContent.value = content
     }
 
+    // Product search. The field lives in the top bar and the list it filters lives in
+    // a nav destination, so neither owns this: a `viewModel { }` resolved inside a
+    // composable(…) block is scoped to that back stack entry and would hand the two
+    // of them different instances. It sits here, where both already share one, and
+    // survives configuration changes for free.
+    private val _searchExpanded = MutableStateFlow(false)
+    val searchExpanded: StateFlow<Boolean> = _searchExpanded.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _selectedCategory = MutableStateFlow<String?>(null)
+    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun setSelectedCategory(category: String?) {
+        _selectedCategory.value = category
+    }
+
+    /**
+     * Collapsing clears both the query and the category chip.
+     *
+     * Leaving them set would hide most of the catalog behind a magnifier icon with
+     * nothing on screen to say why the list is short — the seller's own articles
+     * simply appear to be missing. Expanding starts clean for the same reason.
+     */
+    fun toggleSearch() {
+        val expanded = !_searchExpanded.value
+        _searchExpanded.value = expanded
+        if (!expanded) {
+            _searchQuery.value = ""
+            _selectedCategory.value = null
+        }
+    }
+
+    /** Collapse without the toggle, for a back press or leaving the screen. */
+    fun collapseSearch() {
+        if (_searchExpanded.value) {
+            _searchExpanded.value = false
+            _searchQuery.value = ""
+            _selectedCategory.value = null
+        }
+    }
+
     init {
         Log.d(TAG) { "init: START" }
 

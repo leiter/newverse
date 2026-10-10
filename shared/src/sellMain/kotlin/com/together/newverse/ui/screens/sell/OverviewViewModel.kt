@@ -9,6 +9,8 @@ import com.together.newverse.domain.model.OrderStatus
 import kotlin.time.Clock
 import com.together.newverse.domain.model.Product
 import com.together.newverse.domain.model.SellerArticle
+import com.together.newverse.domain.model.filterByQuery
+import com.together.newverse.domain.model.presentCategories
 import com.together.newverse.domain.model.toSellerArticle
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
@@ -46,6 +48,12 @@ class OverviewViewModel(
 
     private val _currentFilter = MutableStateFlow(ProductFilter.ALL)
     val currentFilter: StateFlow<ProductFilter> = _currentFilter.asStateFlow()
+
+    // Driven from the UI exactly as [setFilter] is: the search field sits in the top
+    // bar and the chip row in the screen, and both forward to here so that all three
+    // filters are applied in one place and can be tested without a composition.
+    private val _searchQuery = MutableStateFlow("")
+    private val _selectedCategory = MutableStateFlow<String?>(null)
 
     private var articles = listOf<SellerArticle>()
     private var activeOrdersCount = 0
@@ -104,11 +112,22 @@ class OverviewViewModel(
 
     private fun updateUiState() {
         val publicArticles = articles.map { it.article }
-        val filteredArticles = when (_currentFilter.value) {
+
+        // The three filters narrow, they do not override: the availability dropdown,
+        // the category chip and the search query all have to hold at once, so
+        // Verfügbar + Obst + "apfel" is the available apples and nothing else.
+        val byAvailability = when (_currentFilter.value) {
             ProductFilter.ALL -> publicArticles
             ProductFilter.AVAILABLE -> publicArticles.filter { it.available }
             ProductFilter.NOT_AVAILABLE -> publicArticles.filter { !it.available }
         }
+        val category = _selectedCategory.value
+        val byCategory =
+            if (category == null) byAvailability
+            else byAvailability.filter { it.category.equals(category, ignoreCase = true) }
+        // includeProductId: the seller has the Terra article number on the invoice in
+        // front of them, so it is a search key here even though it is not for buyers.
+        val filteredArticles = byCategory.filterByQuery(_searchQuery.value, includeProductId = true)
 
         _overviewState.value = AsyncState.Success(
             OverviewData(
@@ -116,6 +135,11 @@ class OverviewViewModel(
                 activeOrders = activeOrdersCount,
                 totalRevenue = calculateTotalRevenue(),
                 recentArticles = filteredArticles,
+                // From the whole catalog on purpose: derived from the filtered list,
+                // picking a chip would leave that chip as the only one on screen.
+                categories = publicArticles.presentCategories(),
+                selectedCategory = category,
+                searchQuery = _searchQuery.value,
                 recentOrders = allOrders
                     .filter { isUpcomingPlacedOrder(it) }
                     .sortedByDescending { it.pickUpDate }
@@ -139,6 +163,19 @@ class OverviewViewModel(
 
     fun setFilter(filter: ProductFilter) {
         _currentFilter.value = filter
+        updateUiState()
+    }
+
+    fun setSearchQuery(query: String) {
+        if (_searchQuery.value == query) return
+        _searchQuery.value = query
+        updateUiState()
+    }
+
+    /** null clears the chip, showing every category the other two filters allow. */
+    fun setSelectedCategory(category: String?) {
+        if (_selectedCategory.value == category) return
+        _selectedCategory.value = category
         updateUiState()
     }
 
@@ -346,9 +383,25 @@ data class OverviewData(
     val totalProducts: Int,
     val activeOrders: Int,
     val totalRevenue: Double,
+    /** The list after availability, category and query have all been applied. */
     val recentArticles: List<Article>,
-    val recentOrders: List<Order>
-)
+    val recentOrders: List<Order>,
+    /** Every category in use in the catalog, for the chip row. */
+    val categories: List<String> = emptyList(),
+    val selectedCategory: String? = null,
+    val searchQuery: String = ""
+) {
+    /**
+     * Whether the search is narrowing the list — the query or the category chip.
+     *
+     * The availability dropdown is deliberately not part of this: it carries its own
+     * visible label, so the screen can say what it is doing without asking here. A
+     * caller deciding whether an empty list means "no articles" has to consider the
+     * dropdown as well.
+     */
+    val isSearchNarrowed: Boolean
+        get() = selectedCategory != null || searchQuery.isNotBlank()
+}
 
 /**
  * Filter options for product list

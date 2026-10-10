@@ -1047,4 +1047,12 @@
     <string name="bottomnav_stock">Stock</string>
     <string name="topbar_stock">Stock</string>
     <string name="a11y_refill_badge">%d articles to refill</string>
+    <!-- Seller product search: the top-bar field and the category chip row -->
+    <string name="cd_open_search">Open search</string>
+    <string name="cd_close_search">Close search</string>
+    <string name="overview_category_all">All</string>
+    <!-- Screen-reader label for a category chip: %1$s = category name -->
+    <string name="a11y_category_filter">Category: %1$s</string>
+    <string name="overview_reset_filters">Reset filters</string>
+    <string name="overview_no_match_hint">No article matches the search, category and availability.</string>
 </resources>

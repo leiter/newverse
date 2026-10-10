@@ -84,15 +84,20 @@ class OverviewViewModelTest {
         name: String = "Test Product",
         available: Boolean = true,
         price: Double = 10.0,
-        mode: Int = MODE_ADDED
+        mode: Int = MODE_ADDED,
+        category: String = "",
+        searchTerms: String = "",
+        productId: String = "prod_$id"
     ): Article {
         return Article(
             id = id,
-            productId = "prod_$id",
+            productId = productId,
             productName = name,
             available = available,
             price = price,
-            mode = mode
+            mode = mode,
+            category = category,
+            searchTerms = searchTerms
         )
     }
 
@@ -977,6 +982,218 @@ class OverviewViewModelTest {
             assertEquals(ProductFilter.AVAILABLE, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ===== Search and category, and how they compose with availability =====
+
+    /** Four articles spanning both categories and both availabilities. */
+    private suspend fun seedCatalog(viewModel: OverviewViewModel) {
+        emitArticle(createArticle("1", "Topaz Apfel", available = true, category = "Obst"))
+        emitArticle(createArticle("2", "Braeburn Apfel", available = false, category = "Obst"))
+        emitArticle(createArticle("3", "Möhren", available = true, category = "Gemüse",
+            searchTerms = "karotte,wurzel"))
+        emitArticle(createArticle("4", "Lauch", available = true, category = "Gemüse",
+            productId = "124505"))
+    }
+
+    private suspend fun names(viewModel: OverviewViewModel): List<String> {
+        val state = viewModel.overviewState.value
+        assertIs<AsyncState.Success<OverviewData>>(state)
+        return state.data.recentArticles.map { it.productName }
+    }
+
+    @Test
+    fun `a query narrows the list the way the buyer list does`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSearchQuery("apfel")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Topaz Apfel", "Braeburn Apfel"), names(viewModel))
+    }
+
+    @Test
+    fun `a query matches the search terms as well as the name`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSearchQuery("karotte")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Möhren"), names(viewModel))
+    }
+
+    @Test
+    fun `a query matches the Terra article number, which the seller has on the invoice`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSearchQuery("124505")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Lauch"), names(viewModel))
+    }
+
+    @Test
+    fun `an unavailable article is still findable, because that is the one to fix`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSearchQuery("braeburn")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Braeburn Apfel"), names(viewModel))
+    }
+
+    @Test
+    fun `a category chip narrows to that category`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSelectedCategory("Gemüse")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Möhren", "Lauch"), names(viewModel))
+    }
+
+    @Test
+    fun `availability and category and query all have to hold at once`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        // Verfügbar + Obst + "apfel": Braeburn matches the other two but is not
+        // available, so it must drop out.
+        viewModel.setFilter(ProductFilter.AVAILABLE)
+        viewModel.setSelectedCategory("Obst")
+        viewModel.setSearchQuery("apfel")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Topaz Apfel"), names(viewModel))
+    }
+
+    @Test
+    fun `NOT_AVAILABLE with a category and a query keeps only the unavailable one`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setFilter(ProductFilter.NOT_AVAILABLE)
+        viewModel.setSelectedCategory("Obst")
+        viewModel.setSearchQuery("apfel")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Braeburn Apfel"), names(viewModel))
+    }
+
+    @Test
+    fun `a combination that matches nothing yields an empty list, not everything`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSelectedCategory("Obst")
+        viewModel.setSearchQuery("lauch")
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), names(viewModel))
+    }
+
+    @Test
+    fun `clearing the query and the chip restores the full list`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSelectedCategory("Obst")
+        viewModel.setSearchQuery("topaz")
+        advanceUntilIdle()
+        assertEquals(1, names(viewModel).size)
+
+        viewModel.setSelectedCategory(null)
+        viewModel.setSearchQuery("")
+        advanceUntilIdle()
+
+        assertEquals(4, names(viewModel).size)
+    }
+
+    @Test
+    fun `the chip row lists the categories in use and survives a selection`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSelectedCategory("Obst")
+        viewModel.setSearchQuery("topaz")
+        advanceUntilIdle()
+
+        val state = viewModel.overviewState.value
+        assertIs<AsyncState.Success<OverviewData>>(state)
+        // Both chips stay offered even though the list is now one Obst article.
+        assertEquals(listOf("Obst", "Gemüse"), state.data.categories)
+        assertEquals("Obst", state.data.selectedCategory)
+        assertTrue(state.data.isSearchNarrowed)
+    }
+
+    @Test
+    fun `isSearchNarrowed is false when only the availability dropdown is set`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setFilter(ProductFilter.AVAILABLE)
+        advanceUntilIdle()
+
+        val state = viewModel.overviewState.value
+        assertIs<AsyncState.Success<OverviewData>>(state)
+        // The dropdown has its own visible label, so it is not search narrowing;
+        // the screen combines this with the dropdown when it needs both.
+        assertTrue(!state.data.isSearchNarrowed)
+    }
+
+    @Test
+    fun `totalProducts stays the whole catalog while the list is filtered`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSearchQuery("apfel")
+        advanceUntilIdle()
+
+        val state = viewModel.overviewState.value
+        assertIs<AsyncState.Success<OverviewData>>(state)
+        assertEquals(4, state.data.totalProducts)
+        assertEquals(2, state.data.recentArticles.size)
     }
 }
 
