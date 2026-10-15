@@ -241,6 +241,8 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
 
             // Phone
             val callLabel = stringResource(Res.string.action_call)
+            // Dial what is displayed: the two drifted apart while the number was a literal.
+            val phoneNumber = stringResource(Res.string.about_phone).filter { it.isDigit() || it == '+' }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -262,7 +264,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                         .clickable(
                             onClickLabel = callLabel,
                             role = Role.Button,
-                            onClick = { uriHandler.openUri("tel:03020249477") }
+                            onClick = { uriHandler.openUri("tel:$phoneNumber") }
                         )
                         .padding(vertical = 12.dp)
                 )
@@ -272,6 +274,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
 
             // Email
             val emailLabel = stringResource(Res.string.action_email)
+            val emailAddress = stringResource(Res.string.about_email)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -293,7 +296,7 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                         .clickable(
                             onClickLabel = emailLabel,
                             role = Role.Button,
-                            onClick = { uriHandler.openUri("mailto:bodenschaetze@cutthecrap.link") }
+                            onClick = { uriHandler.openUri("mailto:$emailAddress") }
                         )
                         .padding(vertical = 12.dp)
                 )

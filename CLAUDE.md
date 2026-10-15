@@ -203,6 +203,7 @@ All docs in `doc/` directory:
 - `pre-release-checklist.md` - What must happen before a release build reaches a user
 - `order-ready-notification-design.md` - Options for buyer order notifications: order-ready alerts + a configurable status-checking reminder worker
 - `market-pricing-and-access-design.md` - Design only: making `Market` a real entity, per-market price conditions, per-market eligibility, pickup slots and no-market days
+- `seller-contact-design.md` - Design only: seller-editable contact channels in Firebase, market-scoped, hidden from demo users
 
 ## Current Status
 
