@@ -202,6 +202,7 @@ All docs in `doc/` directory:
 - `iOS-Setup-Guide.md` - iOS build setup
 - `pre-release-checklist.md` - What must happen before a release build reaches a user
 - `order-ready-notification-design.md` - Options for buyer order notifications: order-ready alerts + a configurable status-checking reminder worker
+- `market-pricing-and-access-design.md` - Design only: making `Market` a real entity, per-market price conditions, per-market eligibility, pickup slots and no-market days
 
 ## Current Status
 
