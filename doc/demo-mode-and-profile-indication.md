@@ -50,7 +50,7 @@ state where it blocks the buyer.
 | Profile page (`CustomerProfileScreenModern.kt:461`) | `DemoModeCard` — one line, "Einkaufsdemo" or "Produktivmodus" | Says strictly less than the `AccessStatusCard` directly below it |
 | Profile page | `AccessStatusCard` — status text, buyer id, "Zugang anfragen", QR scan | Never mentions that a complete profile is required before that button can succeed |
 | Bottom navigation | Basket count badge only | No signal that anything needs attention on the profile tab |
-| Basket / checkout | Nothing | The order silently becomes `OrderStatus.DEMO_ORDER` (`BuyAppViewModelBasket.kt:688`); the buyer is never told |
+| Basket / checkout | Nothing | The order silently becomes `OrderOrigin.DEMO` (`BuyAppViewModelBasket.kt`, `demoOrProduction()`); the buyer is never told |
 | Buy order history | Nothing | Demo and real orders look identical; `order_status_demo` is rendered only in the **seller** app (`sell/OrderDetailScreen.kt:466`) |
 | — | `demo_limit_reached` string exists in both locales | Never referenced from Kotlin; the 2-write Firebase demo budget (`BuyerSellerConfig.kt:43`) is invisible to the buyer |
 
@@ -144,6 +144,11 @@ Pair it with a "Demo" chip on demo orders in the buy order history, so past
 demo orders stay distinguishable from real ones. `order_status_demo` already
 exists in both locales.
 
+> Since 2026-10-15 the routing described here is unchanged, but the orders themselves
+> carry `OrderOrigin` rather than `isDemoOrder` + `OrderStatus.DEMO_ORDER`, and demo
+> orders now follow the buyer into production on approval. See
+> `doc/demo-order-provenance.md`.
+
 ### 6. Optional: always-on marker in the top app bar
 
 If demo mode should be visible on every screen without costing feed space, a
@@ -170,7 +175,8 @@ action label.
 `demo_banner_profile_incomplete`, `demo_banner_complete_profile` (home banner),
 `mode_demo` / `mode_production` (`DemoModeCard`), unless reused by the new
 Access-card headline.
-**Already present, newly used:** `order_status_demo` in the buy flavor.
+**Already present, newly used:** `order_status_demo` in the buy flavor. Since 2026-10-15
+it is driven by `order.origin.isDemo` rather than the removed `OrderStatus.DEMO_ORDER`.
 **Still unused afterwards:** `demo_limit_reached` — surfacing the 2-write demo
 budget is a separate question, not part of this proposal.
 

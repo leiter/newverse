@@ -22,9 +22,10 @@
 - **A lightweight status-write path already exists:**
   `OrderRepository.updateOrderStatus(sellerId, date, orderId, status)` — a
   natural place to model a "mark as packed" write.
-- `OrderStatus` = `DRAFT, PLACED, LOCKED, COMPLETED, CANCELLED, DEMO_ORDER`.
+- `OrderStatus` = `DRAFT, PLACED, LOCKED, COMPLETED, CANCELLED, NOT_PICKED_UP`.
   This enum drives `isEditable()`, `isFinalized()`, and the auto-transition
-  logic in `Order.updatedStatusOrNull()`.
+  logic in `Order.updatedStatusOrNull()`. Lifecycle only — whether an order is a
+  demo one is `Order.origin` (`doc/demo-order-provenance.md`), not a status.
 
 The design splits into two independent decisions: **how "packed" is stored**
 and **how the buyer is told**.

@@ -49,7 +49,7 @@ class PickupViewModel(
     /** Show the pickup state of [order]. Called again whenever the order changes. */
     fun load(order: Order) {
         this.order = order
-        if (order.isDemoOrder || order.status in NOT_BOOKABLE) {
+        if (order.origin.isDemo || order.status in NOT_BOOKABLE) {
             _state.value = PickupUiState(status = PickupStatus.Unavailable)
             return
         }
@@ -240,7 +240,7 @@ class PickupViewModel(
     companion object {
         private const val TAG = "PickupViewModel"
 
-        private val NOT_BOOKABLE = setOf(OrderStatus.DRAFT, OrderStatus.CANCELLED, OrderStatus.DEMO_ORDER)
+        private val NOT_BOOKABLE = setOf(OrderStatus.DRAFT, OrderStatus.CANCELLED)
 
         /** The sale currently standing for an order: the latest one not cancelled. */
         fun activeSale(sales: List<Sale>): Sale? = sales.activeSale()

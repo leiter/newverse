@@ -1,6 +1,6 @@
 # Newverse Feature Status
 
-**Last Updated:** 2026-10-04
+**Last Updated:** 2026-10-15
 
 *Note: This file replaces the previous TODO.md. The TODO.md file in the root directory is now obsolete and should be deleted.*
 
@@ -217,6 +217,41 @@ The following features are planned but not yet implemented, or are only partiall
     - `BuyAppViewModelTest` (4): navigation and initial auth state.
     - `SellAppViewModelTest` (1): initial state is `Loading`, test expects `Guest`.
   - **Fixed 2026-10-04:** `getAvailablePickupDates` count (B1 above), and `AbrechnungViewModelTest > cancelling a walk-in sale books its reversal` — the fixture pinned `today` but left `AbrechnungViewModel`'s `now` on the system clock, so the reversal was stamped with the real date and fell outside the September 2026 period under test once that month was over. It was green when written and broke on 2026-10-01 with nothing committed.
+
+### Medium Priority: Demo Order Containment
+Implemented on 2026-10-15: `Order.origin` (`DEMO` / `TRANSITIONED` / `PRODUCTION`), the
+atomic demo→production move on approval, and `origin` validation in the rules. Full design
+and reasoning in `doc/demo-order-provenance.md`. What was deliberately left open:
+
+- **The demo write budget is not a control**
+  - **Status:** Open
+  - **Issue:** `DEMO_FIREBASE_WRITE_LIMIT = 2` is a local counter, reset by clearing app
+    data or reinstalling. The rules cap nothing: any signed-in (typically anonymous) user
+    may write unlimited orders under `demo_orders/{anySellerId}/{anyDate}/{anyOrderId}`.
+  - **Tasks:** Enable **App Check** (highest leverage, protects every node); optionally
+    constrain `$date` to a plausible window and cap article count in the rules. A real
+    per-buyer cap needs a Cloud Function — RTDB rules cannot count.
+- **`orders/` is not closed to unapproved buyers**
+  - **Status:** Open
+  - **Issue:** The write rule gates on `status !== 'BLOCKED'`, and an unapproved buyer is
+    `NONE`. The path split is a traffic boundary and a convention, not a write-permission
+    boundary.
+  - **Tasks:** Decide whether to require `APPROVED`; check first that no legitimate
+    pre-approval write depends on today's behaviour.
+- **Does `demo_orders/` earn its place in Firebase?**
+  - **Status:** Open decision
+  - **Issue:** The two Firebase demo writes exist "for seller observability", but nothing
+    in the seller app displays them — `observeSellerOrders` reads only `orders/`, and the
+    only reference is the `clearOldDemoOrders` button. The benefit is currently zero.
+  - **Tasks:** Either make demo orders local-only (deletes the node, its rules, the budget
+    and the abuse question), or build the seller-side "prospective buyers" view that
+    justifies them. The current middle state is the one that is not defensible.
+- **Dead defensive `origin.isDemo` checks in the seller app**
+  - **Status:** Open, cosmetic
+  - **Issue:** `AppScaffold`, `OverviewViewModel`, `AbrechnungViewModel` and
+    `PickupViewModel` all guard on `origin.isDemo`, which can no longer fire — the seller
+    reads only `orders/`, where the rules reject `DEMO`. Kept as cheap guards; delete if
+    the item above settles on local-only demo orders.
 
 ### Low Priority & On Hold
 - **Twitter Sign-In**

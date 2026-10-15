@@ -3,6 +3,7 @@ package com.together.newverse.ui.state.buy
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.MissingProfileData
+import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.SnackbarType
 import kotlin.uuid.ExperimentalUuidApi
@@ -66,8 +67,8 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
                 _state.update { it.copy(accessStatus = status, isAccessStatusLoaded = true) }
                 when {
                     wasDemoMode && status == AccessStatus.APPROVED -> {
-                        // Demo → Production: migrate local demo orders to Firebase orders/
-                        migrateLocalDemoOrdersToProduction()
+                        // Demo → Production: move demo orders into orders/ as TRANSITIONED
+                        transitionDemoOrdersToProduction()
                     }
                     !wasDemoMode && status != AccessStatus.APPROVED -> {
                         // Production → Demo: reset counter so the 2-Firebase-order rule applies again
@@ -143,40 +144,61 @@ internal fun BuyAppViewModel.dismissProfileIncompleteDialog() {
 }
 
 /**
- * Retry connecting with a previously stored pending token after profile is completed.
+ * Move this buyer's demo orders into production when the seller approves them.
+ *
+ * Demo orders sit in two places — the first ones under Firebase `demo_orders/`, everything
+ * after the local-mode switch in local storage — and both are handed to the repository in
+ * one call, which writes them under `orders/` as [OrderOrigin.TRANSITIONED] in a single
+ * multi-path update. Either all of them move or none do; the local copies are cleared only
+ * once the write has succeeded, so a failure here leaves the buyer with their demo orders
+ * intact and the next approval emission can retry.
+ *
+ * The buyer's `placedOrderIds` are rewritten to the new production ids, which is what makes
+ * the moved orders show up in their history again — reading a production order from the
+ * demo ids would find nothing.
+ *
+ * Orders whose pickup day has already passed are not moved; see `canTransitionToProduction`.
  */
-/**
- * Migrate all locally stored demo orders to the production Firebase orders/ path.
- * Called when a buyer transitions from demo mode to APPROVED status.
- * Clears local demo storage and resets the demo counter after successful upload.
- */
-internal fun BuyAppViewModel.migrateLocalDemoOrdersToProduction() {
+internal fun BuyAppViewModel.transitionDemoOrdersToProduction() {
     viewModelScope.launch {
         val localOrders = sellerConfig.loadDemoOrders()
-        if (localOrders.isEmpty()) {
+        val profile = profileRepository.getBuyerProfile().getOrNull()
+        val remoteOrderIds = profile?.placedOrderIds ?: emptyMap()
+
+        if (localOrders.isEmpty() && remoteOrderIds.isEmpty()) {
             sellerConfig.clearDemoOrders()
             sellerConfig.resetDemoOrderState()
             return@launch
         }
-        Log.d(TAG) { "migrateLocalDemoOrdersToProduction: Migrating ${localOrders.size} orders to production Firebase" }
-        var migratedCount = 0
-        for (demoOrder in localOrders) {
-            orderRepository.placeOrder(demoOrder.copy(isDemoOrder = false))
-                .onSuccess {
-                    migratedCount++
-                    Log.d(TAG) { "migrateLocalDemoOrdersToProduction: Migrated order ${demoOrder.id}" }
-                }
-                .onFailure { e ->
-                    Log.d(TAG) { "migrateLocalDemoOrdersToProduction: Failed for ${demoOrder.id}: ${e.message}" }
-                }
+
+        Log.d(TAG) { "transitionDemoOrders: ${remoteOrderIds.size} remote, ${localOrders.size} local" }
+
+        orderRepository.transitionDemoOrdersToProduction(
+            sellerId = sellerConfig.sellerId,
+            remoteOrderIds = remoteOrderIds,
+            localOrders = localOrders
+        ).onSuccess { placedOrderIds ->
+            if (profile != null) {
+                profileRepository.saveBuyerProfile(profile.copy(placedOrderIds = placedOrderIds))
+            }
+            sellerConfig.clearDemoOrders()
+            sellerConfig.resetDemoOrderState()
+            loadOrderHistory()
+            Log.d(TAG) { "transitionDemoOrders: ${placedOrderIds.size} order(s) now in production" }
+        }.onFailure { e ->
+            // Nothing was written, nothing was cleared — the demo orders are still there.
+            Log.e(TAG) { "transitionDemoOrders: failed, demo orders left in place — ${e.message}" }
+            showSnackBar(
+                "Demo-Bestellungen konnten nicht übernommen werden",
+                SnackbarType.WARNING
+            )
         }
-        sellerConfig.clearDemoOrders()
-        sellerConfig.resetDemoOrderState()
-        loadOrderHistory()
-        Log.d(TAG) { "migrateLocalDemoOrdersToProduction: Done — $migratedCount/${localOrders.size} migrated" }
     }
 }
 
+/**
+ * Retry connecting with a previously stored pending token after profile is completed.
+ */
 internal fun BuyAppViewModel.retryPendingConnection() {
     val pending = _state.value.pendingConnectToken
     _state.update { it.copy(

@@ -108,6 +108,78 @@ describe("seller profile, orders and the event log", () => {
     await assertSucceeds(asUser(env, SELLER).ref(`orders/${SELLER}`).once("value"));
   });
 
+  // --- origin: the path and the flag must agree ----------------------------
+
+  it("allows a production and a transitioned order under orders/", async () => {
+    const alice = asUser(env, ALICE);
+    for (const origin of ["PRODUCTION", "TRANSITIONED"]) {
+      await assertSucceeds(
+        alice.ref(`orders/${SELLER}/${DATE}/order_${origin}`).set({
+          id: `order_${origin}`, buyerId: ALICE, pickUpDate: 9999999999999,
+          status: "PLACED", origin
+        })
+      );
+    }
+  });
+
+  it("denies a demo order written into orders/", async () => {
+    // demo_orders/ is the access and traffic boundary. An order carrying DEMO has no
+    // business in the tree the seller subscribes to and books from.
+    await assertFails(
+      asUser(env, ALICE).ref(`orders/${SELLER}/${DATE}/order_demo`).set({
+        id: "order_demo", buyerId: ALICE, pickUpDate: 9999999999999,
+        status: "PLACED", origin: "DEMO"
+      })
+    );
+  });
+
+  it("denies a buyer promoting their own order out of demo_orders/", async () => {
+    await seed(env, (db) =>
+      db.ref(`demo_orders/${SELLER}/${DATE}/order_d1`).set({
+        id: "order_d1", buyerId: ALICE, pickUpDate: 9999999999999,
+        status: "PLACED", origin: "DEMO"
+      })
+    );
+    await assertFails(
+      asUser(env, ALICE).ref(`demo_orders/${SELLER}/${DATE}/order_d1/origin`).set("PRODUCTION")
+    );
+  });
+
+  it("allows the approval move: one update writes orders/ and clears demo_orders/", async () => {
+    await seed(env, (db) =>
+      db.ref(`demo_orders/${SELLER}/${DATE}/order_d2`).set({
+        id: "order_d2", buyerId: ALICE, pickUpDate: 9999999999999,
+        status: "PLACED", origin: "DEMO"
+      })
+    );
+    await assertSucceeds(
+      asUser(env, ALICE).ref().update({
+        [`orders/${SELLER}/${DATE}/order_d2`]: {
+          id: "order_d2", buyerId: ALICE, pickUpDate: 9999999999999,
+          status: "PLACED", origin: "TRANSITIONED"
+        },
+        [`demo_orders/${SELLER}/${DATE}/order_d2`]: null
+      })
+    );
+  });
+
+  it("denies an order written into demo_orders/ claiming to be production", async () => {
+    await assertFails(
+      asUser(env, ALICE).ref(`demo_orders/${SELLER}/${DATE}/order_d3`).set({
+        id: "order_d3", buyerId: ALICE, pickUpDate: 9999999999999,
+        status: "PLACED", origin: "PRODUCTION"
+      })
+    );
+  });
+
+  it("still accepts an order from a version that writes no origin", async () => {
+    await assertSucceeds(
+      asUser(env, ALICE).ref(`orders/${SELLER}/${DATE}/order_old`).set({
+        id: "order_old", buyerId: ALICE, pickUpDate: 9999999999999, status: "PLACED"
+      })
+    );
+  });
+
   // --- the book keeping log ------------------------------------------------
 
   const event = (uid) => ({

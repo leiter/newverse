@@ -262,7 +262,7 @@ private fun OrderHistoryCard(
     // One deliberate node for the whole card instead of ~8 text fragments.
     val cardDescription = buildString {
         append(orderIdText)
-        if (order.isDemoOrder) { append(", "); append(demoText) }
+        if (order.origin.isDemo) { append(", "); append(demoText) }
         append(", "); append(statusText)
         append(", "); append(pickupText)
         daysText?.let { append(", "); append(it) }
@@ -310,7 +310,7 @@ private fun OrderHistoryCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (order.isDemoOrder) {
+                    if (order.origin.isDemo) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Surface(
                             shape = RoundedCornerShape(20.dp),

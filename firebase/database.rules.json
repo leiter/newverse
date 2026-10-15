@@ -91,7 +91,8 @@
           "$orderId": {
             ".read": "auth != null && ($sellerId === auth.uid || data.child('buyerId').val() === auth.uid)",
             ".write": "auth != null && ($sellerId === auth.uid || (data.child('buyerId').val() === auth.uid || !data.exists()) && root.child('buyer_access_status').child($sellerId).child(auth.uid).child('status').val() !== 'BLOCKED')",
-            ".validate": "auth.uid === $sellerId || newData.child('buyerId').val() === auth.uid"
+            ".validate": "auth.uid === $sellerId || newData.child('buyerId').val() === auth.uid",
+            "origin": { ".validate": "newData.val() === 'PRODUCTION' || newData.val() === 'TRANSITIONED'" }
           }
         }
       }
@@ -102,7 +103,8 @@
         "$date": {
           "$orderId": {
             ".write": "auth != null && (data.child('buyerId').val() === auth.uid || !data.exists())",
-            ".validate": "newData.child('buyerId').val() === auth.uid"
+            ".validate": "newData.child('buyerId').val() === auth.uid",
+            "origin": { ".validate": "newData.val() === 'DEMO'" }
           }
         }
       }

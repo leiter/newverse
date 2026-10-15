@@ -1,6 +1,7 @@
 package com.together.newverse.domain.repository
 
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.domain.model.OrderStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -130,4 +131,31 @@ interface OrderRepository {
      * @return Success or failure result
      */
     suspend fun updateOrderStatus(sellerId: String, date: String, orderId: String, status: OrderStatus, isDemo: Boolean = false): Result<Unit>
+
+    /**
+     * Move a buyer's demo orders into production when the seller approves them.
+     *
+     * Demo orders live in two places — under `demo_orders/` in Firebase (the first writes a
+     * buyer makes) and in local storage (everything after the local-mode switch). Both are
+     * passed in and both land under `orders/` carrying [OrderOrigin.TRANSITIONED] and a real
+     * lifecycle status, in **one multi-path update**: nothing is half-moved, and a failure
+     * leaves every demo order exactly where it was.
+     *
+     * Orders whose pickup has already passed are not moved — see
+     * [com.together.newverse.domain.model.canTransitionToProduction]. They describe a pickup
+     * that never happened, and planting them in `orders/` would put a sale that was never
+     * made into the seller's books. The remote ones among them are deleted in the same
+     * update.
+     *
+     * @param sellerId The seller's ID
+     * @param remoteOrderIds Map of date (yyyyMMdd) to orderId under `demo_orders/`
+     * @param localOrders Demo orders held only in local storage
+     * @return Map of date to orderId for the orders now live under `orders/`, for the
+     *         caller to store as the buyer's `placedOrderIds`
+     */
+    suspend fun transitionDemoOrdersToProduction(
+        sellerId: String,
+        remoteOrderIds: Map<String, String>,
+        localOrders: List<Order>
+    ): Result<Map<String, String>>
 }

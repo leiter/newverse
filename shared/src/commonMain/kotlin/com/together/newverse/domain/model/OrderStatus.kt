@@ -1,7 +1,12 @@
 package com.together.newverse.domain.model
 
 /**
- * Represents the lifecycle status of an order
+ * Represents the lifecycle status of an order.
+ *
+ * Lifecycle only — whether an order is a demo, a transitioned or a production order is
+ * [OrderOrigin], carried separately on [Order]. The former `DEMO_ORDER` value mixed the
+ * two and is gone; records that still hold it are read as [PLACED] by `storedOrderStatus`,
+ * with the demo-ness recovered into the origin.
  */
 enum class OrderStatus {
     /**
@@ -38,13 +43,7 @@ enum class OrderStatus {
      * The seller marked that nobody collected the order. Nothing was sold, so nothing
      * is booked. App versions that predate this status read it as DRAFT.
      */
-    NOT_PICKED_UP,
-
-    /**
-     * A temporary order created by a demo/anonymous user.
-     * These orders are filtered out once the user signs up.
-     */
-    DEMO_ORDER
+    NOT_PICKED_UP
 }
 
 /**

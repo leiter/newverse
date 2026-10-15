@@ -5,6 +5,7 @@ import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.prepareForReorder
 import com.together.newverse.ui.state.BasketMergeMode
@@ -27,6 +28,14 @@ import com.together.newverse.util.Log
 
 
 private const val TAG = "BuyVMBasket"
+
+/**
+ * The provenance an order placed right now carries: [OrderOrigin.DEMO] while the buyer is
+ * not yet approved by the seller, [OrderOrigin.PRODUCTION] once they are.
+ * [OrderOrigin.TRANSITIONED] is never set here — only the approval itself mints it.
+ */
+internal fun BuyAppViewModel.demoOrProduction(): OrderOrigin =
+    if (_state.value.isDemoMode) OrderOrigin.DEMO else OrderOrigin.PRODUCTION
 
 /**
  * Basket Screen extension functions for BuyAppViewModel
@@ -523,7 +532,7 @@ internal fun BuyAppViewModel.basketScreenLoadHistoryOrderAsReorder(order: Order)
 
         val draftOrder = order.prepareForReorder(
             freshBuyerProfile = freshProfile,
-            isDemoOrder = _state.value.isDemoMode
+            origin = demoOrProduction()
         )
 
         val correctedArticles = draftOrder.articles.map { item ->
@@ -684,8 +693,8 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 pickUpDate = selectedDate,
                 message = "",
                 articles = items,
-                isDemoOrder = _state.value.isDemoMode,
-                status = if (_state.value.isDemoMode) com.together.newverse.domain.model.OrderStatus.DEMO_ORDER else com.together.newverse.domain.model.OrderStatus.PLACED
+                origin = demoOrProduction(),
+                status = com.together.newverse.domain.model.OrderStatus.PLACED
             )
 
             // Demo mode routing:
@@ -934,7 +943,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                     pickUpDate = pickupDate,
                     message = "",
                     articles = items,
-                    isDemoOrder = true
+                    origin = OrderOrigin.DEMO
                 )
             } else {
                 // Change the stored order, not a rebuilt one: updateOrder writes the

@@ -149,7 +149,7 @@ class OverviewViewModel(
     }
 
     private fun isUpcomingPlacedOrder(order: Order): Boolean {
-        if (order.isDemoOrder) return false
+        if (order.origin.isDemo) return false
         if (order.status != OrderStatus.PLACED && order.status != OrderStatus.LOCKED) return false
         return order.pickUpDate > Clock.System.now().toEpochMilliseconds()
     }

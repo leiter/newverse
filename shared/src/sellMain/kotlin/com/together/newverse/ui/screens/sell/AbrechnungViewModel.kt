@@ -97,7 +97,7 @@ class AbrechnungViewModel(
                         _pickupSummary.value = AsyncState.Error("Bestellungen konnten nicht geladen werden")
                     }
                     .collect { orders ->
-                        allOrders = orders.filter { !it.isDemoOrder }
+                        allOrders = orders.filter { it.origin.isReal }
                         recalculate()
                     }
             }

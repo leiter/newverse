@@ -2,7 +2,9 @@ package com.together.newverse.test
 
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
+import com.together.newverse.domain.model.canTransitionToProduction
 import com.together.newverse.domain.repository.OrderRepository
+import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,6 +60,8 @@ class FakeOrderRepository : OrderRepository {
         _hiddenOrders.clear()
         shouldFailUpdateStatus = false
         shouldFailHideOrder = false
+        shouldFailTransition = false
+        transitions.clear()
         failureMessage = "Test error"
     }
 
@@ -201,6 +205,36 @@ class FakeOrderRepository : OrderRepository {
 
     override suspend fun deleteDemoOrders(sellerId: String, dateToOrderId: Map<String, String>): Result<Unit> {
         return Result.success(Unit)
+    }
+
+    /** Records every transition call so tests can assert what was moved in one update. */
+    val transitions = mutableListOf<Transition>()
+    var shouldFailTransition: Boolean = false
+
+    data class Transition(
+        val sellerId: String,
+        val remoteOrderIds: Map<String, String>,
+        val localOrders: List<Order>
+    )
+
+    override suspend fun transitionDemoOrdersToProduction(
+        sellerId: String,
+        remoteOrderIds: Map<String, String>,
+        localOrders: List<Order>
+    ): Result<Map<String, String>> {
+        transitions.add(Transition(sellerId, remoteOrderIds, localOrders))
+        if (shouldFailTransition) return Result.failure(Exception(failureMessage))
+
+        val now = kotlin.time.Clock.System.now()
+        val moved = remoteOrderIds.filterValues { orderId ->
+            _ordersFlow.value.find { it.id == orderId }?.canTransitionToProduction(now) != false
+        }.toMutableMap()
+        localOrders.filter { it.canTransitionToProduction(now) }.forEach { order ->
+            moved[OrderDateUtils.formatDateKey(
+                kotlin.time.Instant.fromEpochMilliseconds(order.pickUpDate)
+            )] = "transitioned_${order.id}"
+        }
+        return Result.success(moved)
     }
 
     override suspend fun updateOrderStatus(

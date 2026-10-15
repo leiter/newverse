@@ -16,7 +16,9 @@ data class DemoOrderDto(
     val pickUpDate: Long,
     val message: String,
     val status: String,
-    val articles: List<DemoOrderedProductDto>
+    val articles: List<DemoOrderedProductDto>,
+    /** Absent in records written before [OrderOrigin] existed; those are all demo orders. */
+    val origin: String = OrderOrigin.DEMO.name
 )
 
 @Serializable
@@ -40,7 +42,8 @@ fun Order.toDemoDto(): DemoOrderDto = DemoOrderDto(
     pickUpDate = pickUpDate,
     message = message,
     status = status.name,
-    articles = articles.map { it.toDemoDto() }
+    articles = articles.map { it.toDemoDto() },
+    origin = origin.name
 )
 
 fun DemoOrderDto.toOrder(): Order = Order(
@@ -51,9 +54,10 @@ fun DemoOrderDto.toOrder(): Order = Order(
     marketId = marketId,
     pickUpDate = pickUpDate,
     message = message,
-    status = try { OrderStatus.valueOf(status) } catch (_: Exception) { OrderStatus.PLACED },
+    // A stored "DEMO_ORDER" predates the status/origin split and means PLACED.
+    status = OrderStatus.entries.find { it.name == status } ?: OrderStatus.PLACED,
     articles = articles.map { it.toOrderedProduct() },
-    isDemoOrder = true
+    origin = OrderOrigin.entries.find { it.name == origin } ?: OrderOrigin.DEMO
 )
 
 private fun OrderedProduct.toDemoDto(): DemoOrderedProductDto = DemoOrderedProductDto(

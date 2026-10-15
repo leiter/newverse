@@ -193,6 +193,12 @@ class MockOrderRepository : OrderRepository {
         return Result.success(Unit)
     }
 
+    override suspend fun transitionDemoOrdersToProduction(
+        sellerId: String,
+        remoteOrderIds: Map<String, String>,
+        localOrders: List<Order>
+    ): Result<Map<String, String>> = Result.success(remoteOrderIds)
+
     override suspend fun updateOrderStatus(
         sellerId: String,
         date: String,

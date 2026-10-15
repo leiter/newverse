@@ -2,6 +2,7 @@ package com.together.newverse.ui.screens.sell
 
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.SellerArticle
@@ -102,7 +103,7 @@ class PickupViewModelTest {
     fun `drafts, cancelled and demo orders cannot be booked`() = runTest {
         val viewModel = createViewModel()
         for (o in listOf(order.copy(status = OrderStatus.DRAFT), order.copy(status = OrderStatus.CANCELLED),
-            order.copy(isDemoOrder = true))) {
+            order.copy(origin = OrderOrigin.DEMO))) {
             viewModel.load(o)
             advanceUntilIdle()
             assertEquals(PickupStatus.Unavailable, viewModel.state.value.status, "$o")

@@ -463,5 +463,4 @@ private fun OrderStatus.labelRes(): StringResource = when (this) {
     OrderStatus.COMPLETED -> Res.string.order_status_completed
     OrderStatus.CANCELLED -> Res.string.order_status_cancelled
     OrderStatus.NOT_PICKED_UP -> Res.string.order_status_not_picked_up
-    OrderStatus.DEMO_ORDER -> Res.string.order_status_demo
 }

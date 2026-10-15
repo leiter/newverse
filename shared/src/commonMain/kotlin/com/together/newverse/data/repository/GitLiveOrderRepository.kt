@@ -2,8 +2,11 @@ package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.model.canTransitionToProduction
+import com.together.newverse.domain.model.statusAfterTransition
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
@@ -37,12 +40,21 @@ class GitLiveOrderRepository(
 
     private companion object {
         private const val TAG = "OrderRepo"
+        const val ORDERS_ROOT = "orders"
+        const val DEMO_ORDERS_ROOT = "demo_orders"
+
+        fun orderPath(sellerId: String, date: String, orderId: String) =
+            "$ORDERS_ROOT/$sellerId/$date/$orderId"
+
+        fun demoOrderPath(sellerId: String, date: String, orderId: String) =
+            "$DEMO_ORDERS_ROOT/$sellerId/$date/$orderId"
     }
 
     // GitLive Firebase Database references
     private val database = Firebase.database
-    private val ordersRootRef = database.reference("orders")
-    private val demoOrdersRootRef = database.reference("demo_orders")
+    private val rootRef = database.reference()
+    private val ordersRootRef = database.reference(ORDERS_ROOT)
+    private val demoOrdersRootRef = database.reference(DEMO_ORDERS_ROOT)
 
     private fun rootRef(isDemo: Boolean) = if (isDemo) demoOrdersRootRef else ordersRootRef
 
@@ -125,9 +137,11 @@ class GitLiveOrderRepository(
         return combine(perOrder) { orders ->
             orders.filterNotNull()
                 .filter { !it.hiddenByBuyer }
-                .map { it.copy(isDemoOrder = isDemo) }
+                // The path is authoritative: anything under demo_orders/ is a demo order,
+                // including records written before the field existed.
+                .map { if (isDemo) it.copy(origin = OrderOrigin.DEMO) else it }
                 // For non-demo users, drop anything still marked as a demo order.
-                .filter { isDemo || it.status != OrderStatus.DEMO_ORDER }
+                .filter { isDemo || it.origin.isReal }
                 .also { Log.d(TAG) { "observeBuyerOrders: Emitting ${it.size} orders" } }
         }
     }
@@ -172,7 +186,7 @@ class GitLiveOrderRepository(
                     if (snapshot.exists) {
                         val order = mapSnapshotToOrder(snapshot)
                         if (order != null) {
-                            val finalOrder = order.copy(isDemoOrder = isDemo)
+                            val finalOrder = if (isDemo) order.copy(origin = OrderOrigin.DEMO) else order
                             orders.add(finalOrder)
                             ordersCache[orderId] = finalOrder
                         }
@@ -182,11 +196,7 @@ class GitLiveOrderRepository(
                 }
             }
 
-            val finalOrders = if (!isDemo) {
-                orders.filter { it.status != OrderStatus.DEMO_ORDER }
-            } else {
-                orders
-            }
+            val finalOrders = if (!isDemo) orders.filter { it.origin.isReal } else orders
 
             Log.d(TAG) { "getBuyerOrders: Found ${finalOrders.size} orders after filtering" }
             Result.success(finalOrders)
@@ -222,7 +232,7 @@ class GitLiveOrderRepository(
             }
 
             // Get reference to the date node (demo orders go to separate path)
-            val dateRef = rootRef(order.isDemoOrder).child(targetSellerId).child(dateString)
+            val dateRef = rootRef(order.origin.isDemo).child(targetSellerId).child(dateString)
 
             // Determine order ID and reference based on whether this is a new order
             val (orderId, orderRef) = if (order.id.isEmpty()) {
@@ -302,7 +312,7 @@ class GitLiveOrderRepository(
             val orderMap = orderToMap(placed)
 
             // Save to GitLive Firebase using the existing order ID
-            val orderRef = rootRef(placed.isDemoOrder).child(targetSellerId).child(dateString).child(placed.id)
+            val orderRef = rootRef(placed.origin.isDemo).child(targetSellerId).child(dateString).child(placed.id)
             orderRef.setValue(orderMap)
 
             // Update cache
@@ -327,7 +337,7 @@ class GitLiveOrderRepository(
         isDemo: Boolean
     ): Result<Boolean> {
         return try {
-            val rootName = if (isDemo) "demo_orders" else "orders"
+            val rootName = if (isDemo) DEMO_ORDERS_ROOT else ORDERS_ROOT
             val path = "$rootName/$sellerId/$date/$orderId"
             Log.d(TAG) { "cancelOrder: START" }
             Log.d(TAG) { "cancelOrder: sellerId=$sellerId" }
@@ -565,7 +575,11 @@ class GitLiveOrderRepository(
                         status = storedOrderStatus(value["status"] as? String),
                         hiddenBySeller = value["hiddenBySeller"] as? Boolean == true,
                         hiddenByBuyer = value["hiddenByBuyer"] as? Boolean == true,
-                        isDemoOrder = value["isDemoOrder"] as? Boolean ?: false
+                        origin = storedOrderOrigin(
+                            raw = value["origin"] as? String,
+                            legacyIsDemoOrder = value["isDemoOrder"] as? Boolean,
+                            legacyStatus = value["status"] as? String
+                        )
                     )
                 } catch (e: Exception) {
                     Log.e(TAG) { "Error mapping order snapshot: ${e.message}" }
@@ -606,7 +620,7 @@ class GitLiveOrderRepository(
             "status" to order.status.name,
             "hiddenBySeller" to order.hiddenBySeller,
             "hiddenByBuyer" to order.hiddenByBuyer,
-            "isDemoOrder" to order.isDemoOrder
+            "origin" to order.origin.name
         )
     }
 
@@ -676,6 +690,104 @@ class GitLiveOrderRepository(
             Result.failure(e)
         }
     }
+
+    /**
+     * Move a buyer's demo orders into production in one atomic multi-path update.
+     *
+     * Both halves of the move are expressed as paths against the database root — the new
+     * record under `orders/`, the removal under `demo_orders/` — so an order is never
+     * written in one place and left behind in the other. Same shape as the two-half article
+     * write in `ArticleNodes`.
+     */
+    override suspend fun transitionDemoOrdersToProduction(
+        sellerId: String,
+        remoteOrderIds: Map<String, String>,
+        localOrders: List<Order>
+    ): Result<Map<String, String>> {
+        return try {
+            Log.d(TAG) { "transitionDemoOrders: START - ${remoteOrderIds.size} remote, ${localOrders.size} local" }
+
+            val userId = authRepository.getCurrentUserId()
+                ?: return Result.failure(Exception("User not authenticated"))
+
+            val targetSellerId = sellerId.ifEmpty { getFirstSellerId() }
+            val now = Clock.System.now()
+            val update = mutableMapOf<String, Any?>()
+            val transitioned = mutableMapOf<String, String>()
+            var expired = 0
+
+            // Orders already in Firebase: read, re-key under orders/, drop from demo_orders/.
+            remoteOrderIds.forEach { (date, orderId) ->
+                val demoPath = demoOrderPath(targetSellerId, date, orderId)
+                val snapshot = demoOrdersRootRef.child(targetSellerId).child(date).child(orderId)
+                    .valueEvents.first()
+                if (!snapshot.exists) {
+                    Log.d(TAG) { "transitionDemoOrders: $date/$orderId is gone, nothing to move" }
+                    return@forEach
+                }
+                // Whatever the record says, it came out of demo_orders/ — it is a demo order.
+                val order = mapSnapshotToOrder(snapshot)?.copy(origin = OrderOrigin.DEMO)
+                if (order == null) {
+                    // Left where it is: a record this version cannot read is not one to
+                    // delete. deleteOldDemoOrders sweeps it up after a month.
+                    Log.w(TAG) { "transitionDemoOrders: $date/$orderId unreadable, left in place" }
+                    return@forEach
+                }
+                update[demoPath] = null
+                if (!order.canTransitionToProduction(now)) {
+                    expired++
+                    Log.d(TAG) { "transitionDemoOrders: $date/$orderId pickup has passed, not moved" }
+                    return@forEach
+                }
+                update[orderPath(targetSellerId, date, orderId)] = orderToMap(order.toProduction(userId, now))
+                transitioned[date] = orderId
+            }
+
+            // Orders held only on this device: they have no Firebase id yet, so mint one.
+            localOrders.forEach { local ->
+                if (!local.canTransitionToProduction(now)) {
+                    expired++
+                    Log.d(TAG) { "transitionDemoOrders: local ${local.id} pickup has passed, not moved" }
+                    return@forEach
+                }
+                val date = formatDate(local.pickUpDate)
+                val orderId = ordersRootRef.child(targetSellerId).child(date).push().key
+                    ?: return Result.failure(IllegalStateException("Failed to generate order ID"))
+                val order = local.copy(id = orderId, sellerId = targetSellerId).toProduction(userId, now)
+                update[orderPath(targetSellerId, date, orderId)] = orderToMap(order)
+                transitioned[date] = orderId
+            }
+
+            if (update.isEmpty()) {
+                Log.d(TAG) { "transitionDemoOrders: nothing to move" }
+                return Result.success(emptyMap())
+            }
+
+            rootRef.updateChildren(update)
+
+            Log.d(TAG) { "transitionDemoOrders: moved ${transitioned.size} order(s), $expired past pickup dropped" }
+            Result.success(transitioned)
+        } catch (e: Exception) {
+            Log.e(TAG) { "transitionDemoOrders: Error - ${e.message}" }
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * A demo order as it should look once it lives under `orders/`.
+     *
+     * The buyer id is restamped with the current uid. A demo order is usually placed while
+     * anonymous, and an anonymous account that signs in with a provider rather than being
+     * linked comes back with a different uid (hence `migrateAnonymousUser`). Both the write
+     * rule and the buyer's own read rule on `orders/` key on `buyerId === auth.uid`, so
+     * carrying the stale uid over would have the whole update rejected — or, if it slipped
+     * through, leave the buyer unable to read the order they just had adopted.
+     */
+    private fun Order.toProduction(userId: String, now: Instant) = copy(
+        origin = OrderOrigin.TRANSITIONED,
+        status = statusAfterTransition(now),
+        buyerProfile = buyerProfile.copy(id = userId)
+    )
 
     /**
      * Delete demo orders older than 1 month from demo_orders path.
@@ -856,6 +968,28 @@ class GitLiveOrderRepository(
  * status or one this app version does not know are all read as PLACED; the usual
  * date-based transitions then take it to LOCKED or COMPLETED.
  */
+/**
+ * The [OrderOrigin] of a stored order record.
+ *
+ * Records written before the origin field existed carry the demo flag in one of two older
+ * shapes — the boolean `isDemoOrder`, or the status value `DEMO_ORDER` — and both are read
+ * back as [OrderOrigin.DEMO]. Everything else, including an unknown value written by a
+ * newer app version, reads as [OrderOrigin.PRODUCTION]: the ordinary case, and the one that
+ * keeps an unrecognised order visible and bookable rather than silently filtered away.
+ */
+internal fun storedOrderOrigin(
+    raw: String?,
+    legacyIsDemoOrder: Boolean? = null,
+    legacyStatus: String? = null
+): OrderOrigin {
+    OrderOrigin.entries.find { it.name == raw }?.let { return it }
+    if (legacyIsDemoOrder == true || legacyStatus == LEGACY_DEMO_STATUS) return OrderOrigin.DEMO
+    return OrderOrigin.PRODUCTION
+}
+
+/** The status value that used to carry demo-ness before [OrderOrigin] existed. */
+internal const val LEGACY_DEMO_STATUS = "DEMO_ORDER"
+
 internal fun storedOrderStatus(raw: String?): OrderStatus {
     val status = raw?.let { name -> OrderStatus.entries.find { it.name == name } }
     return if (status == null || status == OrderStatus.DRAFT) OrderStatus.PLACED else status

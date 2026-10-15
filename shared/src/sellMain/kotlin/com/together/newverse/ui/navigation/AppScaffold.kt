@@ -95,7 +95,7 @@ private fun AppScaffoldContent(
         is AsyncState.Success -> {
             val nowMs = Clock.System.now().toEpochMilliseconds()
             orders.data.count { order ->
-                !order.isDemoOrder &&
+                order.origin.isReal &&
                 (order.status == OrderStatus.PLACED || order.status == OrderStatus.LOCKED) &&
                 order.pickUpDate > nowMs
             }

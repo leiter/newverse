@@ -477,7 +477,9 @@ OrderFilter.PENDING -> orders.filter { it.status.isActive() && !it.status.isFina
 ```
 
 `isFinalized()` is true for `LOCKED`, `COMPLETED`, `CANCELLED` (`OrderStatus.kt:57-59`).
-So PENDING resolves to `{DRAFT, PLACED, DEMO_ORDER}` — **`LOCKED` is excluded.**
+So PENDING resolves to `{DRAFT, PLACED}` — **`LOCKED` is excluded.**
+(It also held `DEMO_ORDER` until that status was removed on 2026-10-15; demo-ness is
+`Order.origin` now, and the seller never reads the tree demo orders live in.)
 
 **Hypothesis.** `LOCKED` is the state an order occupies from Tuesday 23:59 until pickup
 on Thursday — precisely the window in which the seller must pick and pack it. Those
