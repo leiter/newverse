@@ -31,7 +31,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import com.together.newverse.util.formatString
+import androidx.compose.ui.semantics.semantics
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
 import newverse.shared.generated.resources.a11y_profile_incomplete_badge
@@ -39,6 +39,7 @@ import newverse.shared.generated.resources.nav_customer_profile
 import newverse.shared.generated.resources.nav_home
 import newverse.shared.generated.resources.nav_shopping_basket
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 data class BuyerBottomNavItem(
@@ -106,9 +107,12 @@ fun BuyerBottomNavigationBar(
             val showAttentionDot = showProfileBadge &&
                 item.route == NavRoutes.Buy.Profile.route
 
+            val badgeText = badgeDescription(badgeCount, showAttentionDot)
+
             val isCartItem = item.route == NavRoutes.Buy.Basket.route
 
             NavigationBarItem(
+                modifier = itemSemantics(label, badgeText),
                 icon = {
                     val iconModifier = if (isCartItem) {
                         Modifier.graphicsLayer { rotationZ = cartShake.value }
@@ -162,8 +166,12 @@ fun BuyerNavigationRail(
             val showAttentionDot = showProfileBadge &&
                 item.route == NavRoutes.Buy.Profile.route
 
+            val badgeText = badgeDescription(badgeCount, showAttentionDot)
+
             NavigationRailItem(
-                modifier = Modifier.padding(horizontal = 12.dp),
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+                    .then(itemSemantics(label, badgeText)),
                 icon = {
                     BuyerNavItemIcon(
                         item = item,
@@ -191,20 +199,14 @@ private fun BuyerNavItemIcon(
 ) {
     // The icon is decorative: NavigationBarItem's always-visible text label carries
     // the name, and the item itself supplies the Tab role and selected state.
-    val countDescription = formatString(
-        stringResource(Res.string.a11y_basket_item_count),
-        badgeCount
-    )
-    val attentionDescription = stringResource(Res.string.a11y_profile_incomplete_badge)
-
+    // The badge is muted here and described by the item instead, so that the tab
+    // name is announced before its count rather than after it.
     when {
         badgeCount > 0 -> {
             BadgedBox(
                 badge = {
                     Badge(
-                        modifier = Modifier.clearAndSetSemantics {
-                            contentDescription = countDescription
-                        }
+                        modifier = Modifier.clearAndSetSemantics { }
                     ) { Text(badgeCount.toString()) }
                 }
             ) {
@@ -220,9 +222,7 @@ private fun BuyerNavItemIcon(
             BadgedBox(
                 badge = {
                     Badge(
-                        modifier = Modifier.clearAndSetSemantics {
-                            contentDescription = attentionDescription
-                        }
+                        modifier = Modifier.clearAndSetSemantics { }
                     )
                 }
             ) {
@@ -242,3 +242,32 @@ private fun BuyerNavItemIcon(
         }
     }
 }
+
+/**
+ * Screen-reader text for an item's badge, or null when it carries none.
+ * Pluralised, so a basket holding one article does not read as "1 items".
+ */
+@Composable
+private fun badgeDescription(badgeCount: Int, showAttentionDot: Boolean): String? = when {
+    badgeCount > 0 -> pluralStringResource(
+        Res.plurals.a11y_basket_item_count,
+        badgeCount,
+        badgeCount
+    )
+    showAttentionDot -> stringResource(Res.string.a11y_profile_incomplete_badge)
+    else -> null
+}
+
+/**
+ * Describes a badged item as "name, badge". A description on the item replaces its
+ * label for screen readers, which is what fixes the order; the Tab role and the
+ * selected state are separate semantics and survive untouched. Items without a
+ * badge keep their plain label.
+ */
+@Composable
+private fun itemSemantics(label: String, badgeText: String?): Modifier =
+    if (badgeText == null) {
+        Modifier
+    } else {
+        Modifier.semantics { contentDescription = "$label, $badgeText" }
+    }

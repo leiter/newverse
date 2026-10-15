@@ -77,6 +77,7 @@ import newverse.shared.generated.resources.app_name
 import newverse.shared.generated.resources.back
 import newverse.shared.generated.resources.contacts_title
 import newverse.shared.generated.resources.nav_shopping_basket
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -409,7 +410,11 @@ private fun AppScaffoldContent(
                         // Fragments ("Warenkorb (3)" + "7,50 €") read as one heading.
                         val basketTitleDescription = listOf(
                             stringResource(Res.string.nav_shopping_basket),
-                            formatString(stringResource(Res.string.a11y_basket_item_count), basketCount),
+                            pluralStringResource(
+                                Res.plurals.a11y_basket_item_count,
+                                basketCount,
+                                basketCount
+                            ),
                             formatString(
                                 stringResource(Res.string.a11y_hero_total),
                                 appState.basketScreen.total.formatPrice()

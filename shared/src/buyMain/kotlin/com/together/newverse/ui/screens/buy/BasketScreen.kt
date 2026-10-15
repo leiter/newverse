@@ -74,6 +74,7 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import com.together.newverse.util.formatString
 import kotlinx.datetime.DayOfWeek
@@ -1555,7 +1556,11 @@ fun OrderMergeDialog(
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        val itemCountLabel = stringResource(Res.string.a11y_basket_item_count, existingOrder.articles.size)
+                        val itemCountLabel = pluralStringResource(
+                            Res.plurals.a11y_basket_item_count,
+                            existingOrder.articles.size,
+                            existingOrder.articles.size
+                        )
                         val totalPrice = existingOrder.articles.sumOf { it.price * it.amountCount }.formatPrice()
                         Text(
                             text = "$itemCountLabel, $totalPrice €",
