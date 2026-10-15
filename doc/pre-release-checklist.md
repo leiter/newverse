@@ -112,6 +112,56 @@ paths were **not** covered and have only ever run against unit tests and the emu
       to five weeks out. Nothing downstream — seller views, Abrechnung, the picker's
       own layout — has ever seen that.
 
+### Backup and auth persistence — buy flavor (added 2026-10-15)
+
+`android:allowBackup="false"` plus `androidApp/src/main/res/xml/data_extraction_rules.xml`
+landed on 2026-10-15 to stop Android's restore-at-install from destroying the signed-in
+user (TODO.md → *Backup restore silently destroyed the signed-in user*). The symptom was a
+buyer silently losing their identity, their seller approval and their order history on
+every cold start, with no error anywhere — so this is a release blocker on the buy flavor,
+and the behaviour below has **not** been proven on a release build.
+
+Already verified, do not redo:
+
+- Debug buy build, on a Pixel 7a: uninstall + install logs `restoreAtInstall` but then only
+  `initiateOneRestore packageName=@pm@` — no `RestoreDescription{com.together.buy : STREAM}`
+  and no `Clearing app data preparatory to full restore`. Guest sign-in then survived two
+  cold starts with the same uid.
+- `bmgr backupnow com.together.buy` → `Backup is not allowed`, so backups are no longer
+  created, not merely ignored on restore.
+- Packaged **release** APK, after R8 and resource shrinking: `allowBackup=false` present and
+  `dataExtractionRules` resolves to a rules file whose `<cloud-backup>` and
+  `<device-transfer>` sections are both intact. Build-pipeline failure modes are ruled out;
+  runtime behaviour is not.
+
+Still to do, on a release build:
+
+- [ ] **Device-to-device transfer.** The `<device-transfer>` half is the production scenario
+      that motivated the whole change and is the one carrying the most reasoning and the
+      least evidence — `allowBackup="false"` alone does **not** cover it on API 31+. Needs
+      two phones and Google's real migration flow: set up phone B from phone A with the buy
+      app installed and signed in, then confirm phone B starts at the login screen rather
+      than in a half-restored state, and that signing in there yields a working session.
+- [ ] **Uninstall + reinstall of the release APK** on a device, repeating the debug check
+      above: no `Clearing app data preparatory to full restore` in the log, and a session
+      that survives two cold starts afterwards.
+- [ ] **`bmgr backupnow` against the release build** returns `Backup is not allowed`.
+- [ ] **Nothing depended on restored data.** Reasoned but never exercised: profile, orders,
+      favourites and access status are server-side and keyed by the account, so only the
+      local cache is lost. Confirm the one user-visible casualty is acceptable — the order
+      reminder settings reset to default on a new device — and that the connected seller id
+      and demo orders rebuilding themselves breaks nothing.
+
+Related decision: turning backup off removes one way a guest's session could have
+survived a device change, which sharpens the open question in Gate 3 about guest data
+being unrecoverable. A credentialed buyer is unaffected — their uid is stable per provider
+identity, so signing in again restores everything server-side.
+
+Note for whoever runs these: a device already in the poisoned state is cured by
+`adb shell pm clear <package>`, **not** by reinstalling — the reinstall is what triggers the
+restore. And before treating a report of "the app crashed" as a crash, check
+`adb logcat -b events` for `am_crash`; this entire episode had none.
+
 ## Gate 3 — Decisions to make before strangers use it
 
 - [ ] **Any signed-in user can write an order to any seller.** The `orders` write rule
@@ -126,6 +176,27 @@ paths were **not** covered and have only ever run against unit tests and the emu
       cross-buyer exposure; the field itself is still copied into each record.
 - [ ] **No `.validate` whitelist on `/orders`** — same doc, §4. Phase 4 of the
       migration plan was going to add it while the rules file was open.
+- [ ] **A guest's data is unrecoverable, and nothing nudges them to upgrade**
+      (added 2026-10-15). An anonymous account's only credential is the persisted
+      session itself — no password, no provider. Lose it and the uid is unreachable
+      forever: the account still holds the buyer's profile, their orders and the
+      seller's approval, but nobody can ever sign into it again. The session is lost on
+      clear-storage, on uninstall/reinstall, and on moving to a new phone (more so now
+      that backup is off, see Gate 2). A Google or email buyer is unaffected by all
+      three — the uid is stable per provider identity, so signing in again restores
+      `/buyer_profile/{uid}`, `/buyer_access_status/{sellerId}/{uid}` and their orders;
+      only the local cache goes.
+      The upgrade path exists and is correct: `linkWithEmail` / `linkWithGoogle` use
+      `linkWithCredential`, which **keeps the uid**, so orders and approval survive, and
+      `BuyAppViewModelAuth.kt:514-520` migrates per-user local storage as a backstop.
+      But it only ever opens from a user action (`BuyAccountAction.ShowLinkAccountDialog`
+      on the profile screen). Nothing prompts at the moment the stakes change — in
+      particular right after the seller approves the buyer, which is when a guest first
+      holds something irreplaceable. The 2026-10-15 incident is a worked example of what
+      that loss looks like: seven orphaned guest identities on one device.
+      **Decide:** prompt a guest to link on approval (and/or on first order), or accept
+      guest data as disposable and say so in the UI. The first is a dialog that already
+      exists and a trigger; the second is wording.
 - [ ] **Tax advisor questions** (TODO.md, Bookkeeping & Tax). Regular VAT or
       Kleinunternehmer §19 — the CSV export assumes regular VAT and its VAT columns
       would be wrong under §19. Whether the records satisfy GoBD / KassenSichV at all,

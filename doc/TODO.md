@@ -253,6 +253,49 @@ and reasoning in `doc/demo-order-provenance.md`. What was deliberately left open
     reads only `orders/`, where the rules reject `DEMO`. Kept as cheap guards; delete if
     the item above settles on local-only demo orders.
 
+### Fixed 2026-10-15: Backup restore silently destroyed the signed-in user
+- **Status:** Fixed — `android:allowBackup="false"` plus
+  `androidApp/src/main/res/xml/data_extraction_rules.xml` in the main manifest.
+- **Symptom:** The buy app showed the login screen on *every* cold start and came back as a
+  brand-new guest each time, losing the seller approval and the order history with it.
+  It looked like a crash; it was not. Across the whole episode there were zero `am_crash`
+  and zero `am_anr` events — every process death was an installer kill or a recents swipe.
+- **Cause:** FirebaseAuth persists the signed-in user in `shared_prefs`, encrypted with a
+  device keystore key that is deliberately never backed up. A fresh install triggers
+  Android's restore-at-install, whose first step is literally
+  `BackupManagerService: Clearing app data preparatory to full restore` — the live data
+  directory is wiped (`keystore2: clearNamespace(APP, nspace=…)` takes the key with it) and
+  an **old encrypted auth blob** is written back in its place. Firebase then cannot decrypt
+  it, reports `currentUser = null` at every launch, and the app falls back to
+  `signInAnonymously`, minting a new uid each time. The device had accumulated seven
+  abandoned `newverse_user_<uid>.xml` files this way.
+- **Why `allowBackup="false"` is not enough on its own:** on API 31+ it stops cloud backup
+  but not device-to-device transfer, which is exactly the new-phone case. Hence the
+  extraction rules, which exclude both.
+- **Why the exclusion is total rather than targeted at the Firebase files:** backup rules
+  support no wildcards, and the auth file name embeds a base64 of the Firebase app id,
+  which differs per flavor and per Firebase project. A hardcoded name would quietly stop
+  matching the next time `google-services.json` changes. Nothing of value is lost — profile,
+  orders, favourites and access status live in Firebase keyed by the account; the reminder
+  settings, connected seller id and demo orders are a local cache that rebuilds itself.
+- **This was a production bug, not only a dev annoyance.** A real buyer restoring to a new
+  phone hit the same path: encrypted blob restored, keystore key absent, silently signed out
+  with a new identity.
+- **Verified on a Pixel 7a:** uninstall + install of the fixed APK logs `restoreAtInstall`
+  but then only `initiateOneRestore packageName=@pm@` and `No more packages` — no
+  `RestoreDescription{com.together.buy : STREAM}`, no "Clearing app data preparatory to full
+  restore". Guest sign-in then survived two cold starts with the same uid.
+- **Recovery for a device already in the broken state:** `adb shell pm clear <package>`.
+  A plain clear with no restore in the mix leaves a clean slate; a reinstall does not,
+  because that is what triggers the restore.
+- **Note:** this also explains an earlier mis-reading — auto-login (documented in
+  `doc/forced-login-implementation.md:59` and `doc/feature-report.md:305`) appeared to be
+  missing. It was not; the broken auth store was forcing a fresh guest account each launch.
+- **Still gated for release:** the behaviour above was proven on a *debug* buy build only.
+  Device-to-device transfer — the scenario the change exists for — is untested, as is the
+  release build on a device. See `doc/pre-release-checklist.md` → Gate 2 → *Backup and auth
+  persistence — buy flavor*.
+
 ### Low Priority & On Hold
 - **Twitter Sign-In**
   - **Status:** Stubbed

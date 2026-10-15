@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Keep this app's local data out of cloud backup and device-to-device transfer.
+
+  FirebaseAuth persists the signed-in user in shared_prefs, encrypted with a key held in
+  the device keystore. That key is deliberately never backed up and cannot leave the
+  device. If the encrypted blob is restored onto a device that does not hold the key —
+  a new phone, or a reinstall after the keystore namespace was cleared — Firebase cannot
+  decrypt it, reports no current user, and the app falls back to creating a fresh guest
+  account on every launch. The buyer silently loses their identity, their seller approval
+  and their order history, with no error anywhere.
+
+  Backup rules cannot express "exclude only the Firebase auth files": wildcards are not
+  supported and the file name embeds a base64 of the Firebase app id, which differs per
+  flavor and per Firebase project, so a hardcoded name would quietly stop matching. We
+  therefore exclude everything. Nothing of value is lost: profile, orders, favourites and
+  access status all live in Firebase keyed by the account, and what stays local (reminder
+  settings, the connected seller id, demo orders) is a cache that rebuilds itself.
+
+  Note that android:allowBackup="false" alone is not enough on API 31+; it stops cloud
+  backup but not device-to-device transfer, which is exactly the new-phone case.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>
