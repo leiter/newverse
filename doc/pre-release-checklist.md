@@ -42,6 +42,32 @@ The lesson is the one Gate 1 already states and this still managed to miss: a ru
 commit is not live because it is on `main`. The 136 tests in `firebase/tests` pass
 against the file, never against what is deployed.
 
+*Re-deployed 2026-10-15 to **both** projects*, adding the two `origin` validators from
+`e2e0f7d`. Verified this time by reading `/.settings/rules.json` back from each live
+database and diffing it against `HEAD` rather than trusting the deploy output: both now
+report 87 of 87 rules, nothing missing, nothing extra, nothing differing.
+
+That read-back immediately earned itself. **Dev was 26 rules behind, not 2** — it was
+missing the entire stock ledger (`/stock`, `/stock_movements`, 24 rules from `79035d1`)
+as well as the two new ones. The 2026-10-10 remedy above deployed only to `prod`, so for
+five days `fire-one-58ddc` — the project every debug build talks to — had no stock rules
+at all and was *behind* production, which inverts the assumption everyone makes about
+dev. Both are level now.
+
+So the lesson above gains a second half: a rules commit is not live because it is on
+`main`, **and a deploy is not verified because the CLI said "released successfully"** —
+it says that whichever project you aimed it at. Read the rules back:
+
+```sh
+curl -s -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  "https://<db>.firebaseio.com/.settings/rules.json"
+```
+
+(dev is `fire-one-58ddc.firebaseio.com`, prod is
+`bodenschaetze-a988e-default-rtdb.firebaseio.com`; the URLs differ in shape because the
+databases are in different regions, and `firebase database:settings:get` cannot read
+rules.)
+
 These six rules commits had, until then, been deployed only to dev:
 
 ```
