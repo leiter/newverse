@@ -5,12 +5,35 @@ import kotlin.math.abs
 
 /**
  * Platform-specific string formatting.
- * Replaces %s and %d placeholders with provided arguments.
+ * Replaces %s and %d placeholders, in both their bare and their positional
+ * ("%1$s") form, with the provided arguments.
  *
  * On Android: Uses String.format()
- * On iOS: Uses NSString stringWithFormat with converted placeholders
+ * On other platforms: [substituteFormatArgs]
  */
 expect fun formatString(format: String, vararg args: Any): String
+
+private val FormatSpecifier = Regex("""%(?:(\d+)\$)?([sd%])""")
+
+/**
+ * Formatting for platforms with no java.lang.String.format, covering the forms this
+ * app's string resources actually use: %s and %d, their positional "%1$s" spellings,
+ * and %% for a literal percent sign. Both spellings have to be understood, because
+ * Compose resources substitutes only the positional one and the German and English
+ * resources use both.
+ *
+ * A specifier with no matching argument is left in place: a missing argument then
+ * shows up in the UI instead of silently collapsing the sentence around it.
+ */
+internal fun substituteFormatArgs(format: String, args: Array<out Any>): String {
+    var nextArg = 0
+    return FormatSpecifier.replace(format) { match ->
+        val (position, conversion) = match.destructured
+        if (conversion == "%") return@replace "%"
+        val index = if (position.isEmpty()) nextArg++ else position.toInt() - 1
+        args.getOrNull(index)?.toString() ?: match.value
+    }
+}
 
 /**
  * Format a double value to a string with 2 decimal places

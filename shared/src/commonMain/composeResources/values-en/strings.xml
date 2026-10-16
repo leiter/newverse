@@ -445,7 +445,7 @@
     <string name="ordered_products">Ordered Products</string>
     <string name="total_amount">Total Amount</string>
     <string name="delete_order_title">Hide Order?</string>
-    <string name="delete_order_confirmation">Are you sure you want to hide the order from %s? It will no longer be shown in your orders list.</string>
+    <string name="delete_order_confirmation">Are you sure you want to hide the order from %1$s? It will no longer be shown in your orders list.</string>
     <string name="delete">Hide</string>
 
     <!-- ========================================= -->
@@ -470,7 +470,7 @@
     <string name="create_product_additional_info">Additional Information</string>
     <string name="create_product_additional_info_hint">Origin, quality, organic certification, etc.</string>
     <string name="create_product_available">Available</string>
-    <string name="create_product_uploading">Uploading: %d%%</string>
+    <string name="create_product_uploading">Uploading: %1$d%</string>
     <string name="create_product_image">Product Image</string>
     <string name="create_product_change_photo">Change Photo</string>
     <string name="create_product_new_photo">New Photo</string>
@@ -517,14 +517,14 @@
     <string name="overview_available">Available</string>
     <string name="overview_not_available">Not available</string>
     <string name="overview_delete_products_title">Delete Products</string>
-    <string name="overview_delete_products_confirm">Are you sure you want to delete %d selected product(s)? This action cannot be undone.</string>
+    <string name="overview_delete_products_confirm">Are you sure you want to delete %1$d selected product(s)? This action cannot be undone.</string>
     <string name="overview_set_available_title">Set Products as Available</string>
-    <string name="overview_set_available_confirm">Are you sure you want to mark %d selected product(s) as available?</string>
+    <string name="overview_set_available_confirm">Are you sure you want to mark %1$d selected product(s) as available?</string>
     <string name="overview_set_unavailable_title">Set Products as Unavailable</string>
-    <string name="overview_set_unavailable_confirm">Are you sure you want to mark %d selected product(s) as unavailable?</string>
+    <string name="overview_set_unavailable_confirm">Are you sure you want to mark %1$d selected product(s) as unavailable?</string>
     <string name="overview_import_success">Import successful</string>
-    <string name="overview_import_result">%d products imported, %d errors</string>
-    <string name="overview_import_result_success">%d products successfully imported</string>
+    <string name="overview_import_result">%1$d products imported, %2$d errors</string>
+    <string name="overview_import_result_success">%1$d products successfully imported</string>
     <string name="overview_import_failed">Import failed</string>
     <string name="overview_parsing">Reading file...</string>
     <string name="overview_loading">Loading overview...</string>
@@ -740,7 +740,7 @@
     <string name="init_loading_order">Loading current order...</string>
     <string name="init_loading_articles">Loading products...</string>
     <string name="init_complete">Ready!</string>
-    <string name="init_failed">Error: %s</string>
+    <string name="init_failed">Error: %1$s</string>
 
     <!-- ========================================= -->
     <!-- DIALOG LABELS -->
@@ -785,7 +785,7 @@
     <string name="import_preview_title">Import Preview</string>
     <string name="import_select_none">Select none</string>
     <string name="import_select_all">Select all</string>
-    <string name="import_count_button">Import %d</string>
+    <string name="import_count_button">Import %1$d</string>
     <string name="import_products_found_label">products found</string>
     <string name="import_selected_label">selected</string>
 
@@ -829,8 +829,8 @@
     <string name="cd_product_search">Search products</string>
     <!-- Screen-reader description for the basket tab's item-count badge -->
     <plurals name="a11y_basket_item_count">
-        <item quantity="one">%d item</item>
-        <item quantity="other">%d items</item>
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
     </plurals>
     <!-- Screen-reader descriptions for the seller nav/top-bar count badges -->
     <string name="a11y_pending_orders_badge">%d pending orders</string>
@@ -897,9 +897,9 @@
     <string name="topbar_abrechnung">Settlement</string>
     <string name="abrechnung_tab_pickup">Next Pickup</string>
     <string name="abrechnung_tab_period">Period</string>
-    <string name="abrechnung_pickup_date">Pickup on %s</string>
-    <string name="abrechnung_orders_count">%d order(s)</string>
-    <string name="abrechnung_customers_count">%d customer(s)</string>
+    <string name="abrechnung_pickup_date">Pickup on %1$s</string>
+    <string name="abrechnung_orders_count">%1$d order(s)</string>
+    <string name="abrechnung_customers_count">%1$d customer(s)</string>
     <string name="abrechnung_no_orders">No active orders for the next pickup</string>
     <string name="abrechnung_article_list">Ordered Articles</string>
     <string name="abrechnung_financial_summary">Financial Summary</string>
@@ -910,8 +910,8 @@
     <string name="abrechnung_acquire_cost">Purchase Cost (net)</string>
     <string name="abrechnung_gross_profit">Gross Profit</string>
     <plurals name="abrechnung_gross_profit_incomplete">
-        <item quantity="one">Gross profit incomplete: %d item without a purchase price</item>
-        <item quantity="other">Gross profit incomplete: %d items without a purchase price</item>
+        <item quantity="one">Gross profit incomplete: %1$d item without a purchase price</item>
+        <item quantity="other">Gross profit incomplete: %1$d items without a purchase price</item>
     </plurals>
     <string name="abrechnung_period_week">Week</string>
     <string name="abrechnung_period_month">Month</string>
@@ -964,12 +964,12 @@
         <item>December</item>
     </string-array>
     <plurals name="abrechnung_sales_count">
-        <item quantity="one">%d sale</item>
-        <item quantity="other">%d sales</item>
+        <item quantity="one">%1$d sale</item>
+        <item quantity="other">%1$d sales</item>
     </plurals>
     <plurals name="abrechnung_cancellations_count">
-        <item quantity="one">%d cancellation</item>
-        <item quantity="other">%d cancellations</item>
+        <item quantity="one">%1$d cancellation</item>
+        <item quantity="other">%1$d cancellations</item>
     </plurals>
 
     <!-- Pickup confirmation (seller) -->
