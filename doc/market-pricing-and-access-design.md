@@ -482,6 +482,11 @@ for each eligible market:
 merge chronologically, take count
 ```
 
+**The weekday label was a literal.** `DateOption` printed `day_thursday` beside every
+date, which was true only while every pickup was a Thursday. It now derives the weekday
+from the date, and shows the market's name when there is more than one to choose
+between.
+
 **The generator needed a horizon — fixed.** `getAvailablePickupDates` looped
 `while (dates.size < count)` with no iteration bound. That terminated only because every
 Thursday eventually qualified; once a seller can close days, a sufficiently closed
@@ -548,8 +553,13 @@ not silence their reminder.
    seller a *choice* between cancelling and rescheduling the orders that block a closure,
    rather than only refusing. That needs buyer notification, so it waits on
    `doc/order-ready-notification-design.md`.
-3. **Per-market schedule and the slot picker** (§4). Replaces the date picker rather
-   than adding to it.
+3. **Per-market schedule and the slot picker** (§4). **Partly done 2026-10-19**: a
+   market carries its own pickup day and deadline, `PickupSlots.next` merges each
+   market's dates into one chronological list, and the basket offers and selects
+   slots — picking a date picks the stall it belongs to. Still open: the persisted
+   `DraftBasket.selectedPickupDate` is still a bare date rather than a slot, and
+   `Order.canEdit`/`getEditDeadline`/`getWindowStatus` still use the app-wide
+   schedule rather than the order's own market.
 4. **Eligibility + invite scoping** (§3). Determines who ever sees a second market's
    prices.
 5. **Pricing conditions and the breakdown UI** (§2).

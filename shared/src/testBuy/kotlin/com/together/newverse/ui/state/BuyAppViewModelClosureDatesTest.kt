@@ -4,6 +4,9 @@ import com.together.newverse.domain.model.MarketClosure
 import com.together.newverse.test.FakeArticleRepository
 import com.together.newverse.test.FakeAuthRepository
 import com.together.newverse.test.FakeBasketRepository
+import com.together.newverse.domain.model.Market
+import com.together.newverse.domain.model.PickupSlots
+import com.together.newverse.test.FakeMarketRepository
 import com.together.newverse.test.FakeOrderRepository
 import com.together.newverse.test.FakeProfileRepository
 import com.together.newverse.test.FakeSellerConfig
@@ -140,5 +143,146 @@ class BuyAppViewModelClosureDatesTest {
         advanceUntilIdle()
 
         assertEquals(scheduledDates(), viewModel.state.value.basketScreen.availablePickupDates)
+    }
+}
+
+/**
+ * The basket offers slots — a market and a date together — not bare dates.
+ *
+ * With one market, or none configured, the offered dates are exactly what the
+ * date picker always gave, which is the case every seller is in today.
+ */
+class BuyAppViewModelSlotTest {
+
+    private val dispatcherRule = MainDispatcherRule()
+
+    private lateinit var articleRepository: FakeArticleRepository
+    private lateinit var orderRepository: FakeOrderRepository
+    private lateinit var profileRepository: FakeProfileRepository
+    private lateinit var authRepository: FakeAuthRepository
+    private lateinit var basketRepository: FakeBasketRepository
+    private lateinit var marketRepository: FakeMarketRepository
+
+    @BeforeTest
+    fun setUp() {
+        dispatcherRule.setup()
+        articleRepository = FakeArticleRepository()
+        orderRepository = FakeOrderRepository()
+        profileRepository = FakeProfileRepository()
+        authRepository = FakeAuthRepository()
+        basketRepository = FakeBasketRepository()
+        marketRepository = FakeMarketRepository()
+    }
+
+    @AfterTest
+    fun tearDown() {
+        articleRepository.reset()
+        orderRepository.reset()
+        profileRepository.reset()
+        authRepository.reset()
+        basketRepository.reset()
+        marketRepository.reset()
+        dispatcherRule.tearDown()
+    }
+
+    private fun createViewModel() = BuyAppViewModel(
+        articleRepository = articleRepository,
+        orderRepository = orderRepository,
+        profileRepository = profileRepository,
+        authRepository = authRepository,
+        basketRepository = basketRepository,
+        sellerConfig = FakeSellerConfig(),
+        marketRepository = marketRepository
+    )
+
+    private fun startSession() {
+        profileRepository.setSellerProfile(SellerProfile(sellerId = "demo_seller_id"))
+        authRepository.setCurrentUserId("buyer_1")
+    }
+
+    @Test
+    fun `with no markets configured the offered dates are the scheduled ones`() = runTest {
+        startSession()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val expected = OrderDateUtils.getAvailablePickupDates(count = 5).map { it.toEpochMilliseconds() }
+        assertEquals(expected, viewModel.state.value.basketScreen.availablePickupDates)
+        // A slot still exists for each date, just without a market to name.
+        assertTrue(viewModel.state.value.basketScreen.availableSlots.all { it.marketId.isEmpty() })
+    }
+
+    @Test
+    fun `two markets interleave in the offered slots`() = runTest {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(id = "m1", name = "Kreuzberg", dayIndex = 3),   // Thursday
+            Market(id = "m2", name = "Neukölln", dayIndex = 5)     // Saturday
+        )
+        startSession()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val slots = viewModel.state.value.basketScreen.availableSlots
+        assertEquals(5, slots.size)
+        assertTrue(slots.any { it.marketId == "m1" }, "no Kreuzberg slot")
+        assertTrue(slots.any { it.marketId == "m2" }, "no Neukölln slot")
+        assertEquals(slots.map { it.date }.sorted(), slots.map { it.date })
+        assertEquals(
+            mapOf("m1" to "Kreuzberg", "m2" to "Neukölln"),
+            viewModel.state.value.basketScreen.marketNames
+        )
+    }
+
+    // The market is never chosen on its own: picking a date picks the stall it
+    // belongs to, which is what makes the pair a slot rather than two choices.
+    @Test
+    fun `choosing a date also chooses its market`() = runTest {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(id = "m1", name = "Kreuzberg", dayIndex = 3),
+            Market(id = "m2", name = "Neukölln", dayIndex = 5)
+        )
+        startSession()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val slot = viewModel.state.value.basketScreen.availableSlots.first { it.marketId == "m2" }
+        viewModel.dispatch(BuyBasketScreenAction.SelectPickupDate(slot.date))
+        advanceUntilIdle()
+
+        val basket = viewModel.state.value.basketScreen
+        assertEquals(slot.date, basket.selectedPickupDate)
+        assertEquals("m2", basket.selectedMarketId)
+    }
+
+    @Test
+    fun `a market the seller closed for one day drops only that slot`() = runTest {
+        val thursdayMarket = Market(id = "m1", name = "Kreuzberg", dayIndex = 3)
+        marketRepository.seed("demo_seller_id", thursdayMarket, Market(id = "m2", name = "Neukölln", dayIndex = 5))
+
+        val firstThursday = PickupSlots.next(listOf(thursdayMarket), count = 1).single()
+        profileRepository.setSellerProfile(
+            SellerProfile(
+                sellerId = "demo_seller_id",
+                closures = listOf(
+                    MarketClosure(
+                        MarketClosure.dateKey(
+                            Instant.fromEpochMilliseconds(firstThursday.date),
+                            TimeZone.currentSystemDefault()
+                        ),
+                        "m1"
+                    )
+                )
+            )
+        )
+        authRepository.setCurrentUserId("buyer_1")
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val slots = viewModel.state.value.basketScreen.availableSlots
+        assertFalse(slots.contains(firstThursday), "the closed Kreuzberg day is still offered")
+        assertTrue(slots.any { it.marketId == "m2" }, "Neukölln was dropped too")
     }
 }

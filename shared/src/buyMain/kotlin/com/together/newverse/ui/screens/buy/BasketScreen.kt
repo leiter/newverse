@@ -75,6 +75,8 @@ import kotlinx.datetime.toLocalDateTime
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.pluralStringResource
+import com.together.newverse.domain.model.PickupSlot
+import com.together.newverse.ui.components.displayName
 import org.jetbrains.compose.resources.stringResource
 import com.together.newverse.util.formatString
 import kotlinx.datetime.DayOfWeek
@@ -143,6 +145,8 @@ fun BasketContent(
         DatePickerDialog(
             availableDates = state.availablePickupDates,
             selectedDate = state.selectedPickupDate,
+            slots = state.availableSlots,
+            marketNames = state.marketNames,
             onDateSelected = { date ->
                 onAction(BuyBasketScreenAction.SelectPickupDate(date))
             },
@@ -1204,8 +1208,13 @@ fun DatePickerDialog(
     availableDates: List<Long>,
     selectedDate: Long?,
     onDateSelected: (Long) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    /** Slot per offered date, when the seller runs more than one market. */
+    slots: List<PickupSlot> = emptyList(),
+    marketNames: Map<String, String> = emptyMap(),
 ) {
+    // The stall only earns a line when there is a choice to be made about it.
+    val showMarket = slots.map { it.marketId }.filter { it.isNotEmpty() }.distinct().size > 1
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -1236,10 +1245,12 @@ fun DatePickerDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(availableDates) { date ->
+                        val marketId = slots.firstOrNull { it.date == date }?.marketId
                         DateOption(
                             date = date,
                             isSelected = date == selectedDate,
-                            onSelected = { onDateSelected(date) }
+                            onSelected = { onDateSelected(date) },
+                            marketName = if (showMarket) marketNames[marketId].orEmpty() else ""
                         )
                     }
                 }
@@ -1305,10 +1316,15 @@ private fun Modifier.optionSemantics(isSelected: Boolean): Modifier =
 private fun DateOption(
     date: Long,
     isSelected: Boolean,
-    onSelected: () -> Unit
+    onSelected: () -> Unit,
+    /** The stall this date belongs to. Empty, or a lone market, draws no name. */
+    marketName: String = "",
 ) {
     val instant = Instant.fromEpochMilliseconds(date)
     val formatted = OrderDateUtils.formatDisplayDate(instant)
+    // Derived from the date, not assumed: each market keeps its own pickup day, so
+    // this row is no longer always a Thursday.
+    val weekday = instant.toLocalDateTime(TimeZone.currentSystemDefault()).dayOfWeek.displayName()
     val deadline = OrderDateUtils.calculateEditDeadline(instant)
     val deadlineFormatted = OrderDateUtils.formatDisplayDateTime(deadline)
     val timeRemaining = OrderDateUtils.formatTimeUntilDeadline(instant)
@@ -1342,15 +1358,28 @@ private fun DateOption(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "${stringResource(Res.string.day_thursday)}, $formatted",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
+                Column {
+                    Text(
+                        text = "$weekday, $formatted",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                    if (marketName.isNotBlank()) {
+                        Text(
+                            text = marketName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            }
+                        )
                     }
-                )
+                }
                 if (isSelected) {
                     // Selection is conveyed by the option's semantics; icon is decorative
                     Icon(

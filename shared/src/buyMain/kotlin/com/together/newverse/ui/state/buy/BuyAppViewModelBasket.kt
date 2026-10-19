@@ -15,6 +15,8 @@ import com.together.newverse.ui.state.MergeConflict
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
+import com.together.newverse.domain.model.PickupSlot
+import com.together.newverse.domain.model.PickupSlots
 import com.together.newverse.util.OrderDateUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
@@ -692,11 +694,12 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 buyerProfile = buyerProfile,
                 createdDate = Clock.System.now().toEpochMilliseconds(),
                 sellerId = sellerConfig.sellerId,
-                // Where this order is collected. Empty when the seller runs several
-                // markets and the buyer has not said which — the slot picker that
-                // makes them choose is step 3 of the markets design. The rules accept
+                // Where this order is collected: the market named by the slot the
+                // buyer picked, falling back to their contextual market while a
+                // single-market seller has nothing to choose. The rules accept
                 // empty, and reject an id that names no market.
-                marketId = _state.value.contextualMarketId.orEmpty(),
+                marketId = _state.value.basketScreen.selectedMarketId
+                    .ifEmpty { _state.value.contextualMarketId.orEmpty() },
                 pickUpDate = selectedDate,
                 message = "",
                 articles = items,
@@ -946,7 +949,8 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                     buyerProfile = buyerProfile,
                     createdDate = createdDate,
                     sellerId = sellerConfig.sellerId,
-                    marketId = _state.value.contextualMarketId.orEmpty(),
+                    marketId = _state.value.basketScreen.selectedMarketId
+                        .ifEmpty { _state.value.contextualMarketId.orEmpty() },
                     pickUpDate = pickupDate,
                     message = "",
                     articles = items,
@@ -1112,15 +1116,27 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
 
 internal fun BuyAppViewModel.basketScreenLoadAvailableDates() {
     bLog("📅 BuyAppViewModel.basketScreenLoadAvailableDates: START")
-    // Days the seller has closed are never offered.
-    val dates = OrderDateUtils.getAvailablePickupDates(
-        count = 5,
-        closures = _state.value.sellerClosures
-    )
+    val state = _state.value
+    val markets = state.sellerMarkets
+
+    // Each market offers its own day. With none configured the app falls back to
+    // the single scheduled pickup day, which is every seller today.
+    val slots = PickupSlots.next(
+        markets = markets,
+        closures = state.sellerClosures,
+        count = 5
+    ).ifEmpty {
+        OrderDateUtils.getAvailablePickupDates(count = 5, closures = state.sellerClosures)
+            .map { PickupSlot(marketId = "", date = it.toEpochMilliseconds()) }
+    }
+
     _state.update { current ->
         current.copy(
             basketScreen = current.basketScreen.copy(
-                availablePickupDates = dates.map { it.toEpochMilliseconds() }
+                availableSlots = slots,
+                // Kept in step for everything that still reads dates alone.
+                availablePickupDates = slots.map { it.date }.distinct(),
+                marketNames = markets.associate { it.id to it.name }
             )
         )
     }
@@ -1151,10 +1167,18 @@ internal fun BuyAppViewModel.basketScreenHideDatePicker() {
 }
 
 internal fun BuyAppViewModel.basketScreenSelectPickupDate(date: Long) {
-    val isValid = OrderDateUtils.isPickupDateValid(
-        Instant.fromEpochMilliseconds(date),
-        closures = _state.value.sellerClosures
-    )
+    val state = _state.value
+    // The slot this date belongs to, so the market is chosen with it rather than
+    // after it. With one market there is exactly one slot per date.
+    val slot = state.basketScreen.availableSlots.firstOrNull { it.date == date }
+    val isValid = if (slot != null && slot.marketId.isNotEmpty()) {
+        PickupSlots.isValid(slot, state.sellerMarkets, state.sellerClosures)
+    } else {
+        OrderDateUtils.isPickupDateValid(
+            Instant.fromEpochMilliseconds(date),
+            closures = state.sellerClosures
+        )
+    }
     if (!isValid) {
         _state.update { current ->
             current.copy(
@@ -1173,6 +1197,7 @@ internal fun BuyAppViewModel.basketScreenSelectPickupDate(date: Long) {
         current.copy(
             basketScreen = current.basketScreen.copy(
                 selectedPickupDate = date,
+                selectedMarketId = slot?.marketId.orEmpty(),
                 showDatePicker = false,
                 orderError = null
             )

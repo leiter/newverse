@@ -5,6 +5,7 @@ import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Conversation
 import com.together.newverse.domain.model.filterByQuery
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.PickupSlot
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.core.AsyncState
@@ -355,6 +356,19 @@ data class BasketScreenState(
     val hasChanges: Boolean = false,
     val selectedPickupDate: Long? = null,
     val availablePickupDates: List<Long> = emptyList(),
+    /**
+     * The market the selected date belongs to, set with it and never on its own.
+     *
+     * Together with [selectedPickupDate] this is the chosen `PickupSlot`. They are
+     * two fields rather than one object only because every existing caller reads
+     * the date; nothing writes one without the other. Empty while the seller runs a
+     * single market, where the market is implied.
+     */
+    val selectedMarketId: String = "",
+    /** One row per market-and-date the buyer may choose, already in date order. */
+    val availableSlots: List<PickupSlot> = emptyList(),
+    /** Names for the slot rows, by market id. Only drawn when there is more than one. */
+    val marketNames: Map<String, String> = emptyMap(),
     val showDatePicker: Boolean = false,
     val isCancelling: Boolean = false,
     val cancelSuccess: Boolean = false,
