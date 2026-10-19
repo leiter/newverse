@@ -84,7 +84,20 @@ object OrderDateUtils {
     /**
      * Calculate the edit deadline for a given pickup date.
      *
-     * @param pickupDate The pickup date
+     * The deadline is a fixed offset before pickup — the distance from
+     * [OrderScheduleConfig.deadlineDay] to [OrderScheduleConfig.pickupDay] — so it is
+     * well defined for *any* date, not only the configured pickup day.
+     *
+     * This used to `require` the pickup day and was commented out in `cb0884c` without
+     * the reason being written down. The reason is sound: four of the call sites are
+     * inside composables in `BasketScreen`, so a stored order carrying an unexpected
+     * weekday — legacy data, or a timezone shift moving it a day — would not be
+     * rejected, it would crash the screen that displays it. Tolerating the date and
+     * returning a sensible deadline is the behaviour the app depends on, and it becomes
+     * mandatory once each market has its own pickup day
+     * (`doc/market-pricing-and-access-design.md` §4).
+     *
+     * @param pickupDate The pickup date; need not fall on [OrderScheduleConfig.pickupDay]
      * @param timeZone Time zone for calculations (defaults to system)
      * @param config Order schedule configuration
      * @return Instant representing the deadline day at the configured time
@@ -95,13 +108,6 @@ object OrderDateUtils {
         config: OrderScheduleConfig = defaultConfig
     ): Instant {
         val pickupLocalDate = pickupDate.toLocalDateTime(timeZone).date
-
-        // Verify it's the configured pickup day
-        /*
-        require(pickupLocalDate.dayOfWeek == config.pickupDay) {
-            "Pickup date must be a ${config.pickupDay}, got ${pickupLocalDate.dayOfWeek}"
-        }
-        */
 
         // Calculate days from deadline day to pickup day
         val deadlineToPickup = daysBetween(config.deadlineDay, config.pickupDay)

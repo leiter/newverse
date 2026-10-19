@@ -138,13 +138,21 @@ class OrderDateUtilsTest {
         assertEquals(0, deadlineLocal.minute)
     }
 
+    // A stored order can carry a weekday the schedule does not expect, and four of the
+    // callers are composables, so the deadline is computed rather than rejected: the
+    // same fixed offset before whatever date it is handed.
     @Test
-    fun `calculateEditDeadline throws for non-pickup day`() {
+    fun `calculateEditDeadline tolerates a non-pickup day`() {
         val wednesday = Instant.parse("2024-01-10T00:00:00Z")
 
-        assertFailsWith<IllegalArgumentException> {
-            OrderDateUtils.calculateEditDeadline(wednesday, utc, defaultConfig)
-        }
+        val deadline = OrderDateUtils.calculateEditDeadline(wednesday, utc, defaultConfig)
+        val local = deadline.toLocalDateTime(utc)
+
+        // Tuesday to Thursday is two days, so a Wednesday pickup deadlines on Monday.
+        assertEquals(DayOfWeek.MONDAY, local.dayOfWeek)
+        assertEquals(8, local.dayOfMonth)
+        assertEquals(23, local.hour)
+        assertEquals(59, local.minute)
     }
 
     // =========================================================================

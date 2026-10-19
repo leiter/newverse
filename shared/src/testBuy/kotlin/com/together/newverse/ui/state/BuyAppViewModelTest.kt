@@ -95,13 +95,26 @@ class BuyAppViewModelTest {
         )
     }
 
-    // ===== A. Initial State (5 tests) =====
+    // ===== A. Initial State (6 tests) =====
 
+    // The user starts Loading on purpose and settles once auth answers. The default
+    // matters: a real account holder must not be shown the guest branch, with its
+    // account-wiping button, while the answer is still in flight. This test used to
+    // assert the settled value against the state one line after construction, and had
+    // been failing since Loading became the initial value.
     @Test
-    fun `initial state has unauthenticated user`() = runTest {
+    fun `user starts out loading`() = runTest {
         val viewModel = createViewModel()
 
-        // Initial user state is either Guest or NotAuthenticated depending on auth initialization
+        assertEquals(UserState.Loading, viewModel.state.value.user)
+    }
+
+    @Test
+    fun `user settles to an unauthenticated state once auth answers`() = runTest {
+        val viewModel = createViewModel()
+
+        advanceUntilIdle()
+
         val user = viewModel.state.value.user
         assertTrue(
             user == UserState.Guest || user == UserState.NotAuthenticated,
@@ -141,36 +154,38 @@ class BuyAppViewModelTest {
 
     // ===== B. Navigation Actions (5 tests) =====
 
+    // The buy app does not model its own back stack: Compose Navigation owns routing,
+    // and the ViewModel only *requests* a destination through pendingRoute, which
+    // NavGraph consumes and then clears. These tests used to assert a currentRoute and
+    // backStack the ViewModel no longer maintains, and had been failing since.
+
     @Test
-    fun `NavigateTo updates current route`() = runTest {
+    fun `NavigateTo requests the route`() = runTest {
         val viewModel = createViewModel()
 
         viewModel.dispatch(BuyNavigationAction.NavigateTo(NavRoutes.Buy.Basket))
 
-        assertEquals(NavRoutes.Buy.Basket, viewModel.state.value.navigation.currentRoute)
+        assertEquals(NavRoutes.Buy.Basket, viewModel.state.value.navigation.pendingRoute)
     }
 
     @Test
-    fun `NavigateTo adds to back stack`() = runTest {
+    fun `the latest request wins`() = runTest {
         val viewModel = createViewModel()
 
         viewModel.dispatch(BuyNavigationAction.NavigateTo(NavRoutes.Buy.Profile))
         viewModel.dispatch(BuyNavigationAction.NavigateTo(NavRoutes.Buy.OrderHistory))
 
-        assertTrue(viewModel.state.value.navigation.backStack.contains(NavRoutes.Buy.Profile))
-        assertTrue(viewModel.state.value.navigation.backStack.contains(NavRoutes.Buy.OrderHistory))
+        assertEquals(NavRoutes.Buy.OrderHistory, viewModel.state.value.navigation.pendingRoute)
     }
 
     @Test
-    fun `NavigateBack pops from back stack`() = runTest {
+    fun `a handled request is cleared so it cannot fire twice`() = runTest {
         val viewModel = createViewModel()
 
-        viewModel.dispatch(BuyNavigationAction.NavigateTo(NavRoutes.Buy.Profile))
         viewModel.dispatch(BuyNavigationAction.NavigateTo(NavRoutes.Buy.Basket))
+        viewModel.dispatch(BuyNavigationAction.ClearPendingNavigation)
 
-        viewModel.dispatch(BuyNavigationAction.NavigateBack)
-
-        assertEquals(NavRoutes.Buy.Profile, viewModel.state.value.navigation.currentRoute)
+        assertNull(viewModel.state.value.navigation.pendingRoute)
     }
 
     @Test
@@ -373,16 +388,10 @@ class BuyAppViewModelTest {
     // ===== G. Edge Cases (3 tests) =====
 
     @Test
-    fun `NavigateBack does nothing when only Home in back stack`() = runTest {
+    fun `no route is requested until something asks for one`() = runTest {
         val viewModel = createViewModel()
 
-        assertEquals(1, viewModel.state.value.navigation.backStack.size)
-        assertEquals(NavRoutes.Home, viewModel.state.value.navigation.currentRoute)
-
-        viewModel.dispatch(BuyNavigationAction.NavigateBack)
-
-        assertEquals(1, viewModel.state.value.navigation.backStack.size)
-        assertEquals(NavRoutes.Home, viewModel.state.value.navigation.currentRoute)
+        assertNull(viewModel.state.value.navigation.pendingRoute)
     }
 
     @Test

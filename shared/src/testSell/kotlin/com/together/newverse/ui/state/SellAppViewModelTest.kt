@@ -54,11 +54,24 @@ class SellAppViewModelTest {
         profileRepository = FakeProfileRepository()
     )
 
-    // ===== A. Initial State (3 tests) =====
+    // ===== A. Initial State (4 tests) =====
+
+    // SellAppState declares Guest as its default, but the auth observer supersedes it
+    // with Loading before anything can read it, so Loading is the value a caller
+    // actually sees first. The test asserted the declared default and had been failing
+    // since. Both halves are kept: the state before auth answers, and after.
+    @Test
+    fun `user starts out loading`() = runTest {
+        val viewModel = createViewModel()
+
+        assertEquals(UserState.Loading, viewModel.state.value.user)
+    }
 
     @Test
-    fun `initial state has Guest user`() = runTest {
+    fun `user settles to Guest once auth answers`() = runTest {
         val viewModel = createViewModel()
+
+        advanceUntilIdle()
 
         assertEquals(UserState.Guest, viewModel.state.value.user)
     }
