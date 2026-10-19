@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
+import newverse.shared.generated.resources.a11y_label_with_badge
 import newverse.shared.generated.resources.a11y_profile_incomplete_badge
 import newverse.shared.generated.resources.nav_customer_profile
 import newverse.shared.generated.resources.nav_home
@@ -263,11 +264,13 @@ private fun badgeDescription(badgeCount: Int, showAttentionDot: Boolean): String
  * label for screen readers, which is what fixes the order; the Tab role and the
  * selected state are separate semantics and survive untouched. Items without a
  * badge keep their plain label.
+ *
+ * The two parts are joined by a resource rather than in code, so a locale that
+ * separates them differently can say so.
  */
 @Composable
-private fun itemSemantics(label: String, badgeText: String?): Modifier =
-    if (badgeText == null) {
-        Modifier
-    } else {
-        Modifier.semantics { contentDescription = "$label, $badgeText" }
-    }
+private fun itemSemantics(label: String, badgeText: String?): Modifier {
+    if (badgeText == null) return Modifier
+    val description = stringResource(Res.string.a11y_label_with_badge, label, badgeText)
+    return Modifier.semantics { contentDescription = description }
+}
