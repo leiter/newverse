@@ -25,6 +25,15 @@ expect class OrderReminderStorage {
     fun cachedPlacedCycles(): Set<String>
     fun cachePlacedCycles(cycles: Set<String>)
 
+    /**
+     * The pickup cycles (`yyyyMMdd`) the seller has closed, as the app last saw
+     * them. Cached for the same reason as [cachedPlacedCycles]: the worker wakes
+     * with no Firebase, and a reminder about a market day that will not happen is
+     * worse than no reminder.
+     */
+    fun cachedClosedCycles(): Set<String>
+    fun cacheClosedCycles(cycles: Set<String>)
+
     /** The uid these settings belong to, or null when nothing has been stored yet. */
     fun ownerUserId(): String?
 

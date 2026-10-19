@@ -33,6 +33,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.MarketClosure
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
+import com.together.newverse.util.formatString
+import newverse.shared.generated.resources.closures_orders_blocked
+import newverse.shared.generated.resources.closures_range_backwards
+import newverse.shared.generated.resources.closures_range_empty
+import newverse.shared.generated.resources.closures_until_hint
 import org.jetbrains.compose.resources.stringResource
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.button_save
@@ -58,10 +67,14 @@ fun MarketClosuresCard(
     closures: List<MarketClosure>,
     markets: List<Market>,
     isSaving: Boolean,
+    /** Live orders per pickup day, `yyyyMMdd` to count. A day with orders cannot be closed. */
+    ordersByCycle: Map<String, Int> = emptyMap(),
+    pickupDay: DayOfWeek = DayOfWeek.THURSDAY,
     onSave: (List<MarketClosure>) -> Unit,
 ) {
     var draft by remember(closures) { mutableStateOf(closures) }
     var dateInput by remember { mutableStateOf("") }
+    var untilInput by remember { mutableStateOf("") }
     var reasonInput by remember { mutableStateOf("") }
     var marketInput by remember { mutableStateOf("") }
     var marketMenuOpen by remember { mutableStateOf(false) }
@@ -69,6 +82,9 @@ fun MarketClosuresCard(
 
     val invalidDate = stringResource(Res.string.closures_invalid_date)
     val allMarkets = stringResource(Res.string.closures_all_markets)
+    val rangeBackwards = stringResource(Res.string.closures_range_backwards)
+    val rangeEmpty = stringResource(Res.string.closures_range_empty)
+    val ordersBlocked = stringResource(Res.string.closures_orders_blocked)
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -131,6 +147,14 @@ fun MarketClosuresCard(
             )
 
             OutlinedTextField(
+                value = untilInput,
+                onValueChange = { untilInput = it; error = null },
+                label = { Text(stringResource(Res.string.closures_until_hint)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            OutlinedTextField(
                 value = reasonInput,
                 onValueChange = { reasonInput = it },
                 label = { Text(stringResource(Res.string.closures_reason_hint)) },
@@ -178,17 +202,34 @@ fun MarketClosuresCard(
             }
 
             TextButton(onClick = {
-                val key = parseClosureDate(dateInput)
-                if (key == null) {
-                    error = invalidDate
-                } else {
-                    // Replacing rather than appending keeps one entry per day and
-                    // scope, so entering the same day twice is a correction.
-                    draft = draft.filterNot { it.date == key && it.marketId == marketInput } +
-                        MarketClosure(date = key, marketId = marketInput, reason = reasonInput.trim())
-                    dateInput = ""
-                    reasonInput = ""
-                    error = null
+                when (
+                    val outcome = resolveClosureAddition(
+                        fromInput = dateInput,
+                        untilInput = untilInput,
+                        markets = markets,
+                        marketId = marketInput,
+                        pickupDay = pickupDay,
+                        ordersByCycle = ordersByCycle
+                    )
+                ) {
+                    ClosureAddition.InvalidDate -> error = invalidDate
+                    ClosureAddition.Backwards -> error = rangeBackwards
+                    ClosureAddition.NoMarketDay -> error = rangeEmpty
+                    is ClosureAddition.HasOrders ->
+                        error = formatString(ordersBlocked, outcome.orderCount)
+                    is ClosureAddition.Days -> {
+                        // Replacing rather than appending keeps one entry per day and
+                        // scope, so entering the same day twice is a correction.
+                        draft = draft.filterNot { existing ->
+                            existing.marketId == marketInput && existing.date in outcome.keys
+                        } + outcome.keys.map {
+                            MarketClosure(date = it, marketId = marketInput, reason = reasonInput.trim())
+                        }
+                        dateInput = ""
+                        untilInput = ""
+                        reasonInput = ""
+                        error = null
+                    }
                 }
             }) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -234,3 +275,113 @@ internal fun parseClosureDate(input: String): String? {
 internal fun formatClosureDate(key: String): String =
     if (key.length != 8) key
     else "${key.substring(6, 8)}.${key.substring(4, 6)}.${key.substring(0, 4)}"
+
+/**
+ * The market days inside an inclusive date range.
+ *
+ * A fortnight of vacation is two to four actual market days, so the seller enters a
+ * range and it is stored as those individual days. Expanding to *every* date would
+ * fill the list with days on which nothing was going to happen anyway.
+ *
+ * Which weekdays count depends on the scope: one market contributes its own day,
+ * and a seller-wide closure covers every market's day — falling back to the single
+ * configured pickup day when no markets are set up yet.
+ */
+internal fun expandClosureRange(
+    fromKey: String,
+    toKey: String,
+    markets: List<Market>,
+    marketId: String,
+    fallbackDay: DayOfWeek,
+): List<String> {
+    val from = keyToLocalDate(fromKey) ?: return emptyList()
+    val to = keyToLocalDate(toKey) ?: return emptyList()
+    if (to < from) return emptyList()
+
+    val scoped = if (marketId.isEmpty()) markets else markets.filter { it.id == marketId }
+    val days: Set<DayOfWeek> = scoped
+        .mapNotNull { dayOfWeekFor(it.dayIndex) }
+        .toSet()
+        .ifEmpty { setOf(fallbackDay) }
+
+    val keys = mutableListOf<String>()
+    var date = from
+    // Bounded by the range itself, but a wide range is still worth capping so a
+    // mistyped year cannot produce tens of thousands of records.
+    var guard = 0
+    while (date <= to && guard < MAX_RANGE_DAYS) {
+        guard++
+        if (date.dayOfWeek in days) keys += MarketClosure.dateKey(date)
+        date = date.plus(1, DateTimeUnit.DAY)
+    }
+    return keys
+}
+
+/** Two years: long enough for any real closure, short enough to catch a typo. */
+internal const val MAX_RANGE_DAYS = 730
+
+/** The market dialog stores Monday as 0; [DayOfWeek] counts from 1. */
+internal fun dayOfWeekFor(dayIndex: Int): DayOfWeek? =
+    if (dayIndex in 0..6) DayOfWeek(dayIndex + 1) else null
+
+internal fun keyToLocalDate(key: String): LocalDate? {
+    if (key.length != 8) return null
+    val year = key.substring(0, 4).toIntOrNull() ?: return null
+    val month = key.substring(4, 6).toIntOrNull() ?: return null
+    val day = key.substring(6, 8).toIntOrNull() ?: return null
+    return runCatching { LocalDate(year, month, day) }.getOrNull()
+}
+
+/** What entering a closure date, or a range of them, comes to. */
+sealed interface ClosureAddition {
+    /** The days to close. */
+    data class Days(val keys: List<String>) : ClosureAddition
+
+    data object InvalidDate : ClosureAddition
+    data object Backwards : ClosureAddition
+    data object NoMarketDay : ClosureAddition
+
+    /**
+     * At least one day in the range already has orders on it.
+     *
+     * The closure is refused rather than written with a warning: those buyers would
+     * arrive at a market that is not there, and once the edit deadline has passed
+     * they cannot move their own orders — only the seller can. [date] is the first
+     * such day, so the message can name what is in the way.
+     */
+    data class HasOrders(val date: String, val orderCount: Int) : ClosureAddition
+}
+
+/**
+ * Decide what the seller's input means, without touching any state.
+ *
+ * Pulled out of the click handler so the refusal rules — a backwards range, a range
+ * with no market day in it, a day that already has orders — can be tested without a
+ * composition.
+ */
+internal fun resolveClosureAddition(
+    fromInput: String,
+    untilInput: String,
+    markets: List<Market>,
+    marketId: String,
+    pickupDay: DayOfWeek,
+    ordersByCycle: Map<String, Int>,
+): ClosureAddition {
+    val fromKey = parseClosureDate(fromInput) ?: return ClosureAddition.InvalidDate
+    val toKey = if (untilInput.isBlank()) fromKey
+    else parseClosureDate(untilInput) ?: return ClosureAddition.InvalidDate
+
+    if (toKey < fromKey) return ClosureAddition.Backwards
+
+    // A single day stays that day even when it is not a market day: the seller may
+    // know something the schedule does not. A range expands to market days only.
+    val keys = if (toKey == fromKey) listOf(fromKey)
+    else expandClosureRange(fromKey, toKey, markets, marketId, pickupDay)
+
+    if (keys.isEmpty()) return ClosureAddition.NoMarketDay
+
+    val blocked = keys.firstOrNull { (ordersByCycle[it] ?: 0) > 0 }
+    if (blocked != null) return ClosureAddition.HasOrders(blocked, ordersByCycle.getValue(blocked))
+
+    return ClosureAddition.Days(keys)
+}

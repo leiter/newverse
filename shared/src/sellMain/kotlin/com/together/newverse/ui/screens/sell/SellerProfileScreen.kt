@@ -65,6 +65,7 @@ fun SellerProfileScreen(
     onDeleteMarket: (String) -> Unit = {},
     onSaveSellerContacts: (List<SellerContact>) -> Unit = {},
     onSaveClosures: (List<MarketClosure>) -> Unit = {},
+    ordersByCycle: Map<String, Int> = emptyMap(),
     onGenerateInvitation: (Int) -> Unit = {},
     onSendInvitationToBuyer: (String) -> Unit = {},
     onRevokeInvitation: (String) -> Unit = {},
@@ -170,6 +171,7 @@ fun SellerProfileScreen(
                         closures = profile?.closures ?: emptyList(),
                         markets = profile?.markets ?: emptyList(),
                         isSaving = isSaving,
+                        ordersByCycle = ordersByCycle,
                         onSave = onSaveClosures
                     )
 

@@ -48,6 +48,13 @@ actual class OrderReminderStorage(context: Context) {
         prefs.edit { putStringSet(KEY_PLACED_CYCLES, cycles.toSet()) }
     }
 
+    actual fun cachedClosedCycles(): Set<String> =
+        prefs.getStringSet(KEY_CLOSED_CYCLES, emptySet())?.toSet() ?: emptySet()
+
+    actual fun cacheClosedCycles(cycles: Set<String>) {
+        prefs.edit { putStringSet(KEY_CLOSED_CYCLES, cycles.toSet()) }
+    }
+
     actual fun ownerUserId(): String? = prefs.getString(KEY_OWNER, null)
 
     actual fun setOwnerUserId(userId: String) {
@@ -64,6 +71,7 @@ actual class OrderReminderStorage(context: Context) {
 
     private companion object {
         const val PREFS_FILE = "newverse_order_reminder"
+        const val KEY_CLOSED_CYCLES = "closedCycles"
         const val KEY_ENABLED = "enabled"
         const val KEY_DAYS = "days"
         const val KEY_HOUR = "hour"

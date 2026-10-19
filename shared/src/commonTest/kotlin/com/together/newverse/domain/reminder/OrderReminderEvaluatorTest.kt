@@ -1,12 +1,15 @@
 package com.together.newverse.domain.reminder
 
+import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.domain.config.OrderScheduleConfig
+import com.together.newverse.domain.model.MarketClosure
 import com.together.newverse.domain.model.OrderReminderSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
@@ -180,6 +183,103 @@ class OrderReminderEvaluatorTest {
         assertEquals(
             Instant.parse("2024-01-08T17:00:00Z"),
             OrderReminderEvaluator.nextOccurrence(settings, Instant.parse("2024-01-08T16:00:00Z"), berlin)
+        )
+    }
+}
+
+/**
+ * A reminder must not nag a buyer to order for a market day that will not happen.
+ * See `doc/market-pricing-and-access-design.md` §4.
+ */
+class OrderReminderClosureTest {
+
+    private val utc = TimeZone.UTC
+    private val config = DefaultOrderScheduleConfig()
+
+    // Monday 2024-01-08; the next Thursday pickup is the 11th, then the 18th.
+    private val mondayAt1800 = Instant.parse("2024-01-08T18:00:00Z")
+
+    private val settings = OrderReminderSettings(
+        enabled = true,
+        days = setOf(DayOfWeek.MONDAY),
+        hour = 18,
+        minute = 0,
+        onlyWhenNotOrdered = true
+    )
+
+    @Test
+    fun `with nothing closed the next cycle is the next pickup`() {
+        assertEquals(
+            "20240111",
+            OrderReminderEvaluator.nextOpenPickupCycle(mondayAt1800, utc, config)
+        )
+    }
+
+    @Test
+    fun `a closed pickup rolls the cycle to the following week`() {
+        assertEquals(
+            "20240118",
+            OrderReminderEvaluator.nextOpenPickupCycle(mondayAt1800, utc, config, setOf("20240111"))
+        )
+    }
+
+    @Test
+    fun `the reminder still fires, about the next open day`() {
+        // The 11th is closed and the 18th is not ordered for: there is something to
+        // remind about, so the reminder stands.
+        assertTrue(
+            OrderReminderEvaluator.isDue(
+                settings, emptySet(), mondayAt1800, utc, config, closedCycles = setOf("20240111")
+            )
+        )
+    }
+
+    @Test
+    fun `an order for the next open day suppresses the reminder`() {
+        assertFalse(
+            OrderReminderEvaluator.isDue(
+                settings, setOf("20240118"), mondayAt1800, utc, config,
+                closedCycles = setOf("20240111")
+            )
+        )
+    }
+
+    @Test
+    fun `an order for the closed day does not suppress it`() {
+        // The buyer ordered for the 11th, which is now cancelled. They have nothing
+        // for the 18th, so the reminder is exactly what they need.
+        assertTrue(
+            OrderReminderEvaluator.isDue(
+                settings, setOf("20240111"), mondayAt1800, utc, config,
+                closedCycles = setOf("20240111")
+            )
+        )
+    }
+
+    @Test
+    fun `everything closed means no reminder at all`() {
+        val allClosed = (0 until 40).map { week ->
+            val day = Instant.parse("2024-01-11T00:00:00Z") + (week * 7).days
+            MarketClosure.dateKey(day, utc)
+        }.toSet()
+
+        assertNull(OrderReminderEvaluator.nextOpenPickupCycle(mondayAt1800, utc, config, allClosed))
+        assertFalse(
+            OrderReminderEvaluator.isDue(settings, emptySet(), mondayAt1800, utc, config, allClosed)
+        )
+    }
+
+    @Test
+    fun `hasOrderedForUpcomingPickup follows the open cycle`() {
+        assertTrue(
+            OrderReminderEvaluator.hasOrderedForUpcomingPickup(
+                setOf("20240118"), mondayAt1800, utc, config, setOf("20240111")
+            )
+        )
+        assertFalse(
+            OrderReminderEvaluator.hasOrderedForUpcomingPickup(
+                setOf("20240111"), mondayAt1800, utc, config, setOf("20240111")
+            )
         )
     }
 }

@@ -94,3 +94,19 @@ internal fun BuyAppViewModel.syncReminderOrderSnapshot(userId: String?, placedCy
     storage.cachePlacedCycles(placedCycles)
     Log.d(TAG) { "syncReminderOrderSnapshot: ${placedCycles.size} placed cycles cached" }
 }
+
+/**
+ * Keep the worker's local snapshot of the seller's closed market days in step.
+ *
+ * Same reasoning as [syncReminderOrderSnapshot]: the worker has no Firebase when it
+ * wakes, so a day the seller closed is only known to it if the app cached the key
+ * while it was open. Scoped to the buyer's contextual market, so a closure that
+ * shuts a stall they do not use does not suppress their reminder.
+ */
+internal fun BuyAppViewModel.syncReminderClosureSnapshot() {
+    val storage = orderReminderStorage ?: return
+    val marketId = _state.value.contextualMarketId
+    val keys = _state.value.sellerClosures.closedCycles(marketId)
+    storage.cacheClosedCycles(keys)
+    Log.d(TAG) { "syncReminderClosureSnapshot: ${keys.size} closed cycles cached" }
+}

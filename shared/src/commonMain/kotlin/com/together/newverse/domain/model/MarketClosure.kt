@@ -62,6 +62,14 @@ class MarketClosures(closures: List<MarketClosure> = emptyList()) {
     fun isClosed(instant: Instant, timeZone: TimeZone, marketId: String? = null): Boolean =
         isClosed(MarketClosure.dateKey(instant, timeZone), marketId)
 
+    /**
+     * Every closed date key that applies to [marketId] — seller-wide closures plus
+     * that market's own. Used to hand the reminder worker a flat snapshot it can
+     * evaluate offline.
+     */
+    fun closedCycles(marketId: String? = null): Set<String> =
+        byDate.filterValues { closures -> closures.any { it.appliesTo(marketId) } }.keys
+
     /** Why the day is shut, for the buyer. Empty when nothing was given. */
     fun reasonFor(dateKey: String, marketId: String? = null): String =
         byDate[dateKey]?.firstOrNull { it.appliesTo(marketId) }?.reason.orEmpty()

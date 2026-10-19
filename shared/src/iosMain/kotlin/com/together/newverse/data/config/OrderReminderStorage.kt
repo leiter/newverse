@@ -51,6 +51,14 @@ actual class OrderReminderStorage {
         defaults.setObject(cycles.toList(), forKey = KEY_PLACED_CYCLES)
     }
 
+    @Suppress("UNCHECKED_CAST")
+    actual fun cachedClosedCycles(): Set<String> =
+        (defaults.arrayForKey(KEY_CLOSED_CYCLES) as? List<String>)?.toSet() ?: emptySet()
+
+    actual fun cacheClosedCycles(cycles: Set<String>) {
+        defaults.setObject(cycles.toList(), forKey = KEY_CLOSED_CYCLES)
+    }
+
     actual fun ownerUserId(): String? = defaults.stringForKey(KEY_OWNER)
 
     actual fun setOwnerUserId(userId: String) {
@@ -74,6 +82,7 @@ actual class OrderReminderStorage {
         const val KEY_ONLY_NOT_ORDERED = "newverse_reminder_only_not_ordered"
         const val KEY_LAST_FIRED = "newverse_reminder_last_fired"
         const val KEY_PLACED_CYCLES = "newverse_reminder_placed_cycles"
+        const val KEY_CLOSED_CYCLES = "newverse_reminder_closed_cycles"
         const val KEY_OWNER = "newverse_reminder_owner"
     }
 }

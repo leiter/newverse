@@ -50,7 +50,14 @@ class OrderReminderWorker(
             val timeZone = TimeZone.currentSystemDefault()
             val now = Clock.System.now()
 
-            if (OrderReminderEvaluator.isDue(settings, storage.cachedPlacedCycles(), now, timeZone)) {
+            if (OrderReminderEvaluator.isDue(
+                    settings = settings,
+                    placedCycles = storage.cachedPlacedCycles(),
+                    now = now,
+                    timeZone = timeZone,
+                    closedCycles = storage.cachedClosedCycles()
+                )
+            ) {
                 val today = now.toLocalDateTime(timeZone).date.toString()
                 if (notify()) {
                     // Only record the fire when it was actually shown, so a buyer who

@@ -9,6 +9,7 @@ import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.InvitationStatus
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.MarketClosure
+import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.SellerContact
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ArticleRepository
@@ -28,6 +29,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import com.together.newverse.util.Log
@@ -60,6 +63,17 @@ class SellerProfileViewModel(
     // Stats state
     private val _statsState = MutableStateFlow(ProfileStats())
     val statsState: StateFlow<ProfileStats> = _statsState.asStateFlow()
+
+    /**
+     * How many live orders sit on each pickup day, keyed `yyyyMMdd`.
+     *
+     * Counted per date rather than per market: `Order.marketId` is not yet filled in
+     * (see `doc/market-pricing-and-access-design.md` §1), so a day is treated as
+     * having orders regardless of which stall they belong to. That errs towards
+     * refusing a closure, which is the safe direction.
+     */
+    private val _ordersByCycle = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val ordersByCycle: StateFlow<Map<String, Int>> = _ordersByCycle.asStateFlow()
 
     // Dialog/UI state
     private val _dialogState = MutableStateFlow(ProfileDialogState())
@@ -231,6 +245,19 @@ class SellerProfileViewModel(
                 orderRepository.observeSellerOrders(sellerId)
                     .collect { orders ->
                         _statsState.update { it.copy(orderCount = orders.size) }
+
+                        // Which pickup days already have orders on them. Closing one
+                        // of those days would send buyers to a market that is not
+                        // there, so the closures editor refuses it.
+                        _ordersByCycle.value = orders
+                            .filter { it.status != OrderStatus.CANCELLED }
+                            .groupingBy {
+                                MarketClosure.dateKey(
+                                    Instant.fromEpochMilliseconds(it.pickUpDate),
+                                    TimeZone.currentSystemDefault()
+                                )
+                            }
+                            .eachCount()
                     }
             }
         }

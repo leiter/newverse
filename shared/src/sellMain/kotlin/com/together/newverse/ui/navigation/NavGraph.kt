@@ -166,6 +166,7 @@ fun NavGraphBuilder.navGraph(
         val customerState = profileViewModel.customerState.collectAsState()
         val invitationState = profileViewModel.invitationState.collectAsState()
         val isSaving = profileViewModel.isSaving.collectAsState()
+        val ordersByCycle = profileViewModel.ordersByCycle.collectAsState()
         val accessRequests = profileViewModel.accessRequests.collectAsState()
         val generatedBuyerLink = profileViewModel.generatedBuyerLink.collectAsState()
 
@@ -192,6 +193,7 @@ fun NavGraphBuilder.navGraph(
             onDeleteMarket = { marketId -> profileViewModel.removeMarket(marketId) },
             onSaveSellerContacts = { contacts -> profileViewModel.saveSellerContacts(contacts) },
             onSaveClosures = { closures -> profileViewModel.saveClosures(closures) },
+            ordersByCycle = ordersByCycle.value,
             onGenerateInvitation = { minutes -> profileViewModel.generateInvitation(minutes) },
             onSendInvitationToBuyer = { buyerId -> profileViewModel.sendInvitationToBuyer(buyerId) },
             onRevokeInvitation = { invitationId -> profileViewModel.revokeInvitation(invitationId) },

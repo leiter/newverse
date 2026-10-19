@@ -383,8 +383,13 @@ Two choices from the design survived:
 - **`yyyyMMdd` strings, not epoch millis.** Matches the existing `/orders` key
   convention, carries no timezone, and is legible in the Firebase console.
 - **Discrete dates stored, ranges only in the UI.** A fortnight of vacation is two to
-  four actual market days. Range entry is **not yet built**: the seller enters one day
-  at a time, which is the open piece of this section.
+  four actual market days, and `expandClosureRange` stores exactly those: the days in the
+  range that are market days for the chosen scope — one market contributes its own
+  weekday, a seller-wide closure every market's, falling back to the configured pickup
+  day when no markets exist yet. A single date is taken at face value even when it is not
+  a market day, since the seller may know something the schedule does not. The expansion
+  is capped at `MAX_RANGE_DAYS` (two years) so a mistyped year cannot write thousands of
+  records.
 
 Closures are a filter on the generated slots, not new machinery:
 
@@ -407,40 +412,60 @@ and asserts an empty result, so the hang cannot come back.
 before the seller closed it, and the existing stale-date path in the basket already
 resets to the picker with an error.
 
-### NOT BUILT: closing a day that already has orders
+### Closing a day that already has orders — built
 
 The hard case, and the one most likely to be skipped. The seller blacks out 23.10 and
 fourteen orders already exist at `/orders/{sellerId}/20241023/`.
 
 Silently stranding them is not acceptable: the buyers would arrive at a market that is not
-there. The seller app must resolve the conflict **at the moment of entry** — show the
-count, and require an explicit choice between cancelling the orders and moving them to the
-next open slot. A closure that leaves orders behind should not be writable from the UI at
-all.
+there. The closure is therefore **refused at the moment of entry**, naming the count, and
+is not writable from the UI at all — `ClosureAddition.HasOrders`. A range is refused whole
+rather than part-applied, because closing half a vacation silently is worse than refusing
+it.
 
-Worse if the closure lands after the edit deadline: the affected buyers cannot move their
-own orders, because `canEdit()` is already false. Responsibility for rescheduling is then
-entirely the seller's, and the buyers have to be told — which needs the notification
-engine that `doc/order-ready-notification-design.md` describes and which is not built. A
-closure feature without buyer notification is only half of one; at minimum the buy app
-must show the cancellation prominently in the order list.
+`SellerProfileViewModel.ordersByCycle` counts live orders per `yyyyMMdd` off the order
+stream the screen already observes, dropping `CANCELLED`. It counts **per date, not per
+market**, because `Order.marketId` is still empty (§1): a day is treated as having orders
+whichever stall they belong to, which errs towards refusing, the safe direction. Narrowing
+it to the market waits on §1.
 
-### NOT BUILT: the reminder worker has to read closures too
+What is *not* built is the other half the design asked for: an explicit choice between
+cancelling those orders and moving them to the next open slot. Today the seller is told no
+and has to resolve the orders by hand first.
 
-`OrderReminderEvaluator.hasOrderedForUpcomingPickup` derives the upcoming pickup cycle
-from the schedule config alone. If that cycle is closed it will nag buyers to order for a
-market day that will not happen. It must consult the same closure list, or the reminder
-becomes actively misleading on exactly the weeks it matters most.
+Refusing at entry also removes the worst case, where a closure lands after the edit
+deadline and the affected buyers cannot move their own orders because `canEdit()` is
+already false. Telling buyers about a cancellation still needs the notification engine in
+`doc/order-ready-notification-design.md`, which is not built — but with the refusal in
+place there is no longer a path that silently cancels on them.
+
+### The reminder worker reads closures too — built
+
+`OrderReminderEvaluator.hasOrderedForUpcomingPickup` derived the upcoming pickup cycle
+from the schedule config alone, so on exactly the weeks the seller was away it would nag
+buyers to order for a market day that was not going to happen.
+
+Both it and `isDue` now go through `nextOpenPickupCycle`, which skips closed days and
+returns null when the whole horizon is shut — then no reminder fires at all. A buyer who
+ordered for a day that has since been closed is *not* treated as covered: their order is
+for a market that will not happen, so the reminder about the next open day is exactly
+what they need.
+
+The worker has no Firebase when it wakes, so closures travel the way `placedCycles`
+already does: `OrderReminderStorage.cacheClosedCycles`, written by the buy app whenever
+it loads them, scoped to the buyer's contextual market so another stall's closure does
+not silence their reminder.
 
 ---
 
 ## Suggested order of work
 
 1. **Market as an entity** (§1). Independently correct; unblocks everything else.
-2. ~~**Closures** (§4).~~ **Done 2026-10-19**, except the two sections marked NOT BUILT
-   above — the order-conflict check when closing a day that already has orders, and
-   teaching `OrderReminderEvaluator` about closures. Range entry is also still per-day.
-   Those three are the next things to pick up here.
+2. ~~**Closures** (§4).~~ **Done 2026-10-19**, including the order-conflict refusal,
+   range entry and the reminder worker. One piece of the design remains: offering the
+   seller a *choice* between cancelling and rescheduling the orders that block a closure,
+   rather than only refusing. That needs buyer notification, so it waits on
+   `doc/order-ready-notification-design.md`.
 3. **Per-market schedule and the slot picker** (§4). Replaces the date picker rather
    than adding to it.
 4. **Eligibility + invite scoping** (§3). Determines who ever sees a second market's

@@ -1080,5 +1080,8 @@
     <string name="closures_all_markets">All markets</string>
     <string name="closures_market">Market</string>
     <string name="closures_invalid_date">Please enter a valid date</string>
-    <string name="closures_orders_warning">This day already has orders. Move or cancel them first.</string>
+    <string name="closures_until_hint">until (optional)</string>
+    <string name="closures_range_empty">No market day falls in that range</string>
+    <string name="closures_range_backwards">The end date is before the start date</string>
+    <string name="closures_orders_blocked">%1$d order(s) on this day — move or cancel them first</string>
 </resources>

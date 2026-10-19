@@ -2,6 +2,8 @@ package com.together.newverse.domain.reminder
 
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.domain.config.OrderScheduleConfig
+import com.together.newverse.domain.model.MarketClosure
+import com.together.newverse.domain.model.MarketClosures
 import com.together.newverse.domain.model.OrderReminderSettings
 import com.together.newverse.util.OrderDateUtils
 import kotlin.time.Duration.Companion.hours
@@ -51,7 +53,8 @@ object OrderReminderEvaluator {
         placedCycles: Set<String>,
         now: Instant,
         timeZone: TimeZone,
-        config: OrderScheduleConfig = defaultConfig
+        config: OrderScheduleConfig = defaultConfig,
+        closedCycles: Set<String> = emptySet()
     ): Boolean {
         if (!settings.isActive) return false
 
@@ -67,10 +70,43 @@ object OrderReminderEvaluator {
         if (now < slot) return false
         if (now >= slot + GRACE_HOURS.hours) return false
 
-        if (settings.onlyWhenNotOrdered && hasOrderedForUpcomingPickup(placedCycles, now, timeZone, config)) {
-            return false
-        }
+        // Nothing to remind about when no market day inside the search horizon is
+        // open: a reminder to order for a day that will not happen is worse than
+        // silence, and it would arrive on exactly the weeks the seller is away.
+        val upcoming = nextOpenPickupCycle(now, timeZone, config, closedCycles) ?: return false
+
+        if (settings.onlyWhenNotOrdered && upcoming in placedCycles) return false
         return true
+    }
+
+    /**
+     * The cycle key (`yyyyMMdd`) of the next pickup that is both orderable and
+     * actually taking place, or null when the seller has closed every market day
+     * within [OrderDateUtils.MAX_PICKUP_CANDIDATES].
+     *
+     * [closedCycles] are the keys the buy app last cached — the worker cannot read
+     * Firebase when it wakes, so closures travel the same way `placedCycles` does.
+     */
+    fun nextOpenPickupCycle(
+        now: Instant,
+        timeZone: TimeZone,
+        config: OrderScheduleConfig = defaultConfig,
+        closedCycles: Set<String> = emptySet()
+    ): String? {
+        if (closedCycles.isEmpty()) {
+            return OrderDateUtils.formatDateKey(
+                OrderDateUtils.calculateNextPickupDate(now, timeZone, config),
+                timeZone
+            )
+        }
+        val open = OrderDateUtils.getAvailablePickupDates(
+            count = 1,
+            now = now,
+            timeZone = timeZone,
+            config = config,
+            closures = MarketClosures(closedCycles.map { MarketClosure(date = it) })
+        ).firstOrNull() ?: return null
+        return OrderDateUtils.formatDateKey(open, timeZone)
     }
 
     /**
@@ -84,10 +120,13 @@ object OrderReminderEvaluator {
         placedCycles: Set<String>,
         now: Instant,
         timeZone: TimeZone,
-        config: OrderScheduleConfig = defaultConfig
+        config: OrderScheduleConfig = defaultConfig,
+        closedCycles: Set<String> = emptySet()
     ): Boolean {
-        val upcoming = OrderDateUtils.calculateNextPickupDate(now, timeZone, config)
-        return OrderDateUtils.formatDateKey(upcoming, timeZone) in placedCycles
+        // A closed day is skipped rather than reported as un-ordered: the cycle the
+        // buyer could act on is the next one that happens.
+        val upcoming = nextOpenPickupCycle(now, timeZone, config, closedCycles) ?: return true
+        return upcoming in placedCycles
     }
 
     /**

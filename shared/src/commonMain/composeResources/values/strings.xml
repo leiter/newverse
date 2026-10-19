@@ -1138,5 +1138,8 @@
     <string name="closures_all_markets">Alle Märkte</string>
     <string name="closures_market">Markt</string>
     <string name="closures_invalid_date">Bitte ein gültiges Datum eingeben</string>
-    <string name="closures_orders_warning">An diesem Tag liegen bereits Bestellungen vor. Bitte zuerst umbuchen oder stornieren.</string>
+    <string name="closures_until_hint">bis (optional)</string>
+    <string name="closures_range_empty">In diesem Zeitraum liegt kein Markttag</string>
+    <string name="closures_range_backwards">Das Enddatum liegt vor dem Startdatum</string>
+    <string name="closures_orders_blocked">%1$d Bestellung(en) an diesem Tag — bitte zuerst umbuchen oder stornieren</string>
 </resources>
