@@ -18,6 +18,15 @@
  *
  * Markets carry their contacts, so those travel with them unchanged.
  *
+ * dayIndex is repaired on the way through. The live dev data counts Sunday=1..
+ * Saturday=7, while the app's market dialog has counted Monday=0..Sunday=6 for as long
+ * as it has existed, so a Thursday market is stored as 5 and reads back as Saturday.
+ * The new rules also cap the field at 6, so a 7 would be refused and the seller could
+ * never edit that market again. dayOfWeek is the day a human typed and is therefore
+ * authoritative: where the two disagree, the index is rebuilt from the name and the
+ * correction reported. A record whose name is unrecognised keeps whatever index it has,
+ * and is reported when that index is out of range.
+ *
  * Every market needs an id, because it becomes the key. A list entry without one
  * cannot be moved and is reported rather than given a generated id: a fresh id would
  * not match the one an order or a closure already refers to.
@@ -51,6 +60,25 @@ const KNOWN_FIELDS = [
   "id", "name", "street", "houseNumber", "city", "zipCode",
   "dayOfWeek", "begin", "end", "dayIndex", "active", "contacts"
 ];
+
+/** The app's own order: the market dialog lists Monday first and stores 0..6. */
+const DAY_NAMES = [
+  ["montag", "monday"],
+  ["dienstag", "tuesday"],
+  ["mittwoch", "wednesday"],
+  ["donnerstag", "thursday"],
+  ["freitag", "friday"],
+  ["samstag", "sonnabend", "saturday"],
+  ["sonntag", "sunday"]
+];
+
+/** 0..6 for a day name in either locale, or null when it is not a day. */
+const dayIndexFromName = (name) => {
+  const needle = String(name ?? "").trim().toLowerCase();
+  if (needle === "") return null;
+  const found = DAY_NAMES.findIndex((names) => names.includes(needle));
+  return found === -1 ? null : found;
+};
 
 const args = process.argv.slice(2);
 const apply = args.includes("--apply");
@@ -99,6 +127,9 @@ const planned = [];   // { sellerId, marketId, name, fields }
 const occupied = [];  // already in the node
 const unnamed = [];   // no id, so no key
 const extras = [];    // field this script does not know about
+const reindexed = []; // dayIndex rebuilt from dayOfWeek
+const badIndex = [];  // out of range and no day name to rebuild from
+const trimmed = [];   // leading or trailing whitespace removed
 
 /** RTDB returns a sparse list as an index-keyed map, so accept both shapes. */
 const rows = (value) => {
@@ -140,7 +171,27 @@ for (const [sellerId, profile] of Object.entries(profiles)) {
     }
     fields.id = marketId;
 
-    planned.push({ sellerId, marketId, name, fields });
+    // Whitespace a seller typed into a name or an address, which then shows up in
+    // the buy app exactly as stored.
+    for (const key of ["name", "street", "houseNumber", "city", "zipCode", "dayOfWeek"]) {
+      if (typeof fields[key] !== "string") continue;
+      const tidy = fields[key].trim();
+      if (tidy !== fields[key]) {
+        trimmed.push({ sellerId, marketId, key, from: fields[key], to: tidy });
+        fields[key] = tidy;
+      }
+    }
+
+    const byName = dayIndexFromName(fields.dayOfWeek);
+    const stored = typeof fields.dayIndex === "number" ? fields.dayIndex : null;
+    if (byName !== null && stored !== byName) {
+      reindexed.push({ sellerId, marketId, day: fields.dayOfWeek, from: stored, to: byName });
+      fields.dayIndex = byName;
+    } else if (byName === null && (stored === null || stored < -1 || stored > 6)) {
+      badIndex.push({ sellerId, marketId, day: fields.dayOfWeek, stored });
+    }
+
+    planned.push({ sellerId, marketId, name: fields.name ?? name, fields });
   });
 }
 
@@ -185,6 +236,33 @@ if (unnamed.length > 0) {
     "\nNot written. The id becomes the key, and minting a fresh one would not match\n" +
     "what an order or a closure already refers to. Give them an id in the app first."
   );
+}
+
+if (reindexed.length > 0) {
+  console.log(`\n${reindexed.length} market(s) had a dayIndex that disagreed with their day name:`);
+  for (const { sellerId, marketId, day, from, to } of reindexed) {
+    console.log(`  ${sellerId}/${marketId}  ${day}: ${from} -> ${to}`);
+  }
+  console.log(
+    "\nRebuilt from the name, which is what a human typed. The app counts Monday=0,\n" +
+    "and the new rules refuse anything above 6, so an index of 7 would also have made\n" +
+    "the market uneditable."
+  );
+}
+
+if (badIndex.length > 0) {
+  console.log(`\n${badIndex.length} market(s) have an unusable dayIndex and no day name to rebuild from:`);
+  for (const { sellerId, marketId, day, stored } of badIndex) {
+    console.log(`  ${sellerId}/${marketId}  dayOfWeek=${JSON.stringify(day)} dayIndex=${stored}`);
+  }
+  console.log("\nWritten as they are, but the rules will refuse the seller's next edit.");
+}
+
+if (trimmed.length > 0) {
+  console.log(`\n${trimmed.length} field(s) had surrounding whitespace removed:`);
+  for (const { sellerId, marketId, key, from, to } of trimmed) {
+    console.log(`  ${sellerId}/${marketId}  ${key}: ${JSON.stringify(from)} -> ${JSON.stringify(to)}`);
+  }
 }
 
 if (extras.length > 0) {

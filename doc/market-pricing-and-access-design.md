@@ -112,6 +112,28 @@ A list entry with no `id` cannot be moved — the id becomes the key, and mintin
 one would not match what an order or closure already refers to. Those are reported for
 the seller to fix in the app.
 
+**`dayIndex` was wrong in both live databases.** The dry run against dev and prod found
+every market storing Sunday=1..Saturday=7, while the market dialog has counted
+Monday=0..Sunday=6 for as long as it has existed:
+
+| Stored | `dayOfWeek` | Correct |
+|---|---|---|
+| 5 | Donnerstag | 3 |
+| 6 | Freitag | 4 |
+| 7 | Samstag | 5 |
+
+Two consequences, both silent until now. The new rules cap the field at 6, so a Saturday
+market would have been refused on the seller's next edit. And `expandClosureRange` reads
+the index to decide which days a vacation covers (§4), so closing a fortnight would have
+picked the wrong days for every market in both databases.
+
+The migration repairs it from `dayOfWeek`, which is what a human typed and is therefore
+authoritative, and reports every correction. Both German and English names are
+recognised, `Sonnabend` included. A record whose day name is unrecognisable keeps its
+index and is reported separately — written as it stands, but the rules will refuse the
+seller's next edit of it. Surrounding whitespace is trimmed on the way through; prod and
+dev both carry a `"Fürstenwalde "` with a trailing space in its name and city.
+
 Reads fall back to `seller_profile/{sellerId}/markets` while both shapes exist. The
 profile list is deliberately **not** deleted by the migration: a released app still reads
 it. `--drop-legacy` clears it in a second pass, once that fallback comes out.
