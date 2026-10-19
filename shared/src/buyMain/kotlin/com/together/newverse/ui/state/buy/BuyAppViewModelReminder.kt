@@ -110,3 +110,14 @@ internal fun BuyAppViewModel.syncReminderClosureSnapshot() {
     storage.cacheClosedCycles(keys)
     Log.d(TAG) { "syncReminderClosureSnapshot: ${keys.size} closed cycles cached" }
 }
+
+/**
+ * Rebuild the offered pickup dates now that the seller's closed days are known.
+ *
+ * The basket screen builds its first list in `init`, before Firebase has answered,
+ * so without this a day closed by the seller stays on offer until the list happens
+ * to be rebuilt for another reason.
+ */
+internal fun BuyAppViewModel.refreshDatesForClosures() {
+    basketScreenLoadAvailableDates()
+}

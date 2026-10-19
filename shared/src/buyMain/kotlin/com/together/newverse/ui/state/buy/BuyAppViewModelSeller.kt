@@ -258,6 +258,7 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
             }
 
             syncReminderClosureSnapshot()
+            refreshDatesForClosures()
 
             // Reload all seller-dependent data
             loadProducts()

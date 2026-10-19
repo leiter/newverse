@@ -1127,9 +1127,14 @@ internal fun BuyAppViewModel.basketScreenLoadAvailableDates() {
 }
 
 internal fun BuyAppViewModel.basketScreenShowDatePicker() {
-    if (_state.value.basketScreen.availablePickupDates.isEmpty()) {
-        basketScreenLoadAvailableDates()
-    }
+    // Always recompute, never just when the list is empty.
+    //
+    // The dates are a pure function of the clock, the schedule and the seller's
+    // closures, and all three move after init() builds the first list: closures
+    // arrive from Firebase moments later, and an app left open crosses the Tuesday
+    // deadline and midnight. Caching the list and only refilling it when empty meant
+    // a day the seller had closed stayed on offer for the rest of the session.
+    basketScreenLoadAvailableDates()
     _state.update { current ->
         current.copy(
             basketScreen = current.basketScreen.copy(showDatePicker = true)

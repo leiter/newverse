@@ -1080,6 +1080,7 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
                         sellerMarkets = sellerMarkets
                     )}
                     syncReminderClosureSnapshot()
+                    refreshDatesForClosures()
                 } catch (e: Exception) {
                     Log.d(TAG) { "resumeInitializationAfterAuth: getSellerDisplayName failed (non-fatal) - ${e.message}" }
                 }
