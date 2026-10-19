@@ -103,14 +103,22 @@ built from those orders. This settles open question 5.
 
 | | Rules | Migration |
 |---|---|---|
-| dev `fire-one-58ddc` | deployed 2026-10-19, read back | applied 2026-10-19, 6 markets |
-| prod `bodenschaetze-a988e` | **not deployed** | **not applied**, 3 markets waiting |
+| dev `fire-one-58ddc` | deployed 2026-10-19 | applied 2026-10-19, 6 markets |
+| prod `bodenschaetze-a988e` | deployed 2026-10-19 | applied 2026-10-19, 3 markets |
 
 Both live rulesets were byte-identical to the repo before the change and to each other,
 so the deploy was purely additive: the `markets` node and the `orders/marketId`
-validator. Dev was read back after deploying and the migration re-run to confirm it is
-idempotent — the second pass moved nothing and skipped all six. The profile list is
-still in place on dev, as the fallback needs.
+validator.
+
+Both were read back afterwards and the migration re-run against each: the second pass
+moved nothing and skipped everything, so it is idempotent. Every record's key matches
+its own id, carries `active: true`, and has the repaired `dayIndex` (3/4/5 for
+Donnerstag/Freitag/Samstag). The profile list is still in place in both projects, as the
+fallback needs.
+
+Prod went through the console rather than the CLI, from the file `--out` produces. That
+flag writes the whole planned node, so importing it at `/markets` is a replace rather
+than a merge — equivalent only while nothing else has written there, which was the case.
 
 **Order matters.** The rules go first: an app writing to `/markets` against a ruleset
 without the node gets permission denied. Deploying the rules before such an app exists

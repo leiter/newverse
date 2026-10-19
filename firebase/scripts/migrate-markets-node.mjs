@@ -43,6 +43,13 @@
  *   node migrate-markets-node.mjs --project <id> --apply
  *   node migrate-markets-node.mjs --from-export <export.json>
  *   node migrate-markets-node.mjs --project <id> --drop-legacy --apply
+ *   node migrate-markets-node.mjs --project <id> --out markets.json
+ *
+ * --out writes the planned /markets node to a file instead of applying it, for
+ * pasting into the Firebase console when a CLI deploy is not available. It writes
+ * the whole node, so importing it at /markets in the console is the same operation
+ * this script performs — but as a replace, not a merge: it is only equivalent while
+ * nothing else has written there.
  *
  * --from-export reads the target state from a file instead of a live project, so the
  * whole plan can be checked without contacting anything.
@@ -85,6 +92,7 @@ const apply = args.includes("--apply");
 const dropLegacy = args.includes("--drop-legacy");
 const flag = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
 const exportPath = flag("--from-export");
+const outPath = flag("--out");
 const project = flag("--project");
 
 if (exportPath && apply) {
@@ -282,6 +290,20 @@ if (dropLegacy) {
     .map(([sellerId]) => sellerId))];
   console.log(`\n--drop-legacy: will also clear seller_profile/<id>/markets for ${sellers.length} seller(s).`);
   console.log("Only safe once no released app still reads the profile list as a fallback.");
+}
+
+if (outPath) {
+  // The node as it should end up: what the plan writes, merged onto whatever is
+  // already there, so importing the file at /markets is a faithful replacement.
+  const node = JSON.parse(JSON.stringify(liveMarkets));
+  for (const { sellerId, marketId, fields } of planned) {
+    node[sellerId] = { ...(node[sellerId] ?? {}), [marketId]: fields };
+  }
+  writeFileSync(outPath, JSON.stringify(node, null, 2) + "\n");
+  const total = Object.values(node).reduce((n, s) => n + Object.keys(s).length, 0);
+  console.log(`\nWrote ${total} market(s) across ${Object.keys(node).length} seller(s) to ${outPath}.`);
+  console.log("Import it at /markets in the Firebase console. It replaces that node.");
+  process.exit(0);
 }
 
 if (!apply) {
