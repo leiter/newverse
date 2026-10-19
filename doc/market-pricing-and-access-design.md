@@ -406,8 +406,21 @@ Neukölln  · Sa 25.10.
 field real (today it is written as `""`).
 
 **With one market the picker degenerates to today's date list**, and the market shows as a
-label rather than a control. Most buyers will be in that case; the market row should be
-conditional on more than one eligible market, not always present.
+label rather than a control. Most buyers will be in that case; the market row is therefore
+conditional on more than one market being on offer, not always present.
+
+### A saved basket remembers its slot — built
+
+`DraftBasket` stores `selectedPickupDate` plus `selectedMarketId`. The market needed **no
+migration**: absent means "none chosen", which is exactly what every draft written before
+the picker meant and what a single-market seller's draft still means.
+
+On restore the slot is re-checked rather than trusted — the market still offered, the day
+not closed, the deadline not passed. A basket sits in `buyer_profile` across all three of
+those changing. Any of them drops the slot and keeps the items, so the buyer picks again
+instead of discovering at checkout that the old one was dead; the reasons are
+distinguished in the log, because "your pickup was cleared" is a different conversation
+depending on which it was.
 
 ### Two different picks
 
