@@ -99,6 +99,23 @@ means true, so every legacy record reads as live. `removeMarket` flips the flag 
 of dropping the row, because orders reference a market by id and the seller's books are
 built from those orders. This settles open question 5.
 
+### Deployed and migrated
+
+| | Rules | Migration |
+|---|---|---|
+| dev `fire-one-58ddc` | deployed 2026-10-19, read back | applied 2026-10-19, 6 markets |
+| prod `bodenschaetze-a988e` | **not deployed** | **not applied**, 3 markets waiting |
+
+Both live rulesets were byte-identical to the repo before the change and to each other,
+so the deploy was purely additive: the `markets` node and the `orders/marketId`
+validator. Dev was read back after deploying and the migration re-run to confirm it is
+idempotent — the second pass moved nothing and skipped all six. The profile list is
+still in place on dev, as the fallback needs.
+
+**Order matters.** The rules go first: an app writing to `/markets` against a ruleset
+without the node gets permission denied. Deploying the rules before such an app exists
+is harmless.
+
 ### Migration
 
 Two paths, deliberately. `firebase/scripts/migrate-markets-node.mjs` moves existing data

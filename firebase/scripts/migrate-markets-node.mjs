@@ -317,7 +317,8 @@ try {
 
   for (const [sellerId, patch] of bySeller) {
     writeFileSync(payloadFile, JSON.stringify(patch));
-    fbWrite(["database:update", `/${MARKETS_ROOT}/${sellerId}`, payloadFile]);
+    // --force: the CLI refuses a write without it when stdin is not a terminal.
+    fbWrite(["database:update", `/${MARKETS_ROOT}/${sellerId}`, payloadFile, "--force"]);
     const count = new Set(Object.keys(patch).map((k) => k.split("/")[0])).size;
     written += count;
     console.log(`  wrote ${count} market(s) for ${sellerId}`);
