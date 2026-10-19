@@ -171,3 +171,69 @@ describe("market eligibility", () => {
     );
   });
 });
+
+/**
+ * A request to place real orders is bound to a market: the buyer asks to collect
+ * at a stall, usually the one they are standing in front of, and approving it
+ * grants that stall.
+ */
+describe("a request names the market it is for", () => {
+  let env;
+
+  before(async () => { env = await createTestEnv(); });
+  after(async () => { await env.cleanup(); });
+
+  beforeEach(async () => {
+    await env.clearDatabase();
+    await seed(env, async (db) => {
+      await db.ref(`markets/${SELLER}/m1`).set({ id: "m1", name: "Kreuzberg" });
+    });
+  });
+
+  const request = (overrides = {}) => ({
+    displayName: "Alice", requestedAt: Date.now(), ...overrides
+  });
+
+  it("lets a buyer ask to collect at a market that exists", async () => {
+    await assertSucceeds(
+      asUser(env, ALICE).ref(`access_requests/${SELLER}/${ALICE}`).set(request({ marketId: "m1" }))
+    );
+  });
+
+  // A request naming a stall that is not there cannot be answered, and would
+  // grant a dangling id on approval.
+  it("denies a request naming a market that does not exist", async () => {
+    await assertFails(
+      asUser(env, ALICE).ref(`access_requests/${SELLER}/${ALICE}`).set(request({ marketId: "ghost" }))
+    );
+  });
+
+  it("denies a request naming another seller's market", async () => {
+    await seed(env, async (db) => {
+      await db.ref(`markets/otherSellerUid000000000000/m9`).set({ id: "m9", name: "Elsewhere" });
+    });
+    await assertFails(
+      asUser(env, ALICE).ref(`access_requests/${SELLER}/${ALICE}`).set(request({ marketId: "m9" }))
+    );
+  });
+
+  // A single-market seller's buyer, and every request made before requests
+  // carried a market, asks to order anywhere.
+  it("accepts a request naming no market", async () => {
+    await assertSucceeds(
+      asUser(env, ALICE).ref(`access_requests/${SELLER}/${ALICE}`).set(request({ marketId: "" }))
+    );
+  });
+
+  it("accepts a request with no market field at all", async () => {
+    await assertSucceeds(
+      asUser(env, ALICE).ref(`access_requests/${SELLER}/${ALICE}`).set(request())
+    );
+  });
+
+  it("denies a buyer writing a request for someone else", async () => {
+    await assertFails(
+      asUser(env, MALLORY).ref(`access_requests/${SELLER}/${ALICE}`).set(request({ marketId: "m1" }))
+    );
+  });
+});

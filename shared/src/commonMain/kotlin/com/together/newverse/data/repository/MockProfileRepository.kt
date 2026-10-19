@@ -139,8 +139,11 @@ class MockProfileRepository : ProfileRepository {
         }
     }
 
-    override suspend fun submitAccessRequest(sellerId: String, displayName: String): Result<Unit> =
-        Result.success(Unit)
+    override suspend fun submitAccessRequest(
+        sellerId: String,
+        displayName: String,
+        marketId: String
+    ): Result<Unit> = Result.success(Unit)
 
     override suspend fun cancelAccessRequest(sellerId: String): Result<Unit> =
         Result.success(Unit)
@@ -164,7 +167,7 @@ class MockProfileRepository : ProfileRepository {
     override fun observeBuyers(sellerId: String): Flow<List<BuyerAccess>> =
         flowOf(emptyList())
 
-    override suspend fun approveAccessRequest(sellerId: String, buyerId: String, displayName: String): Result<Unit> =
+    override suspend fun approveAccessRequest(sellerId: String, buyerId: String, displayName: String, allowedMarkets: List<String>): Result<Unit> =
         Result.success(Unit)
 
     override suspend fun blockBuyer(sellerId: String, buyerId: String): Result<Unit> =

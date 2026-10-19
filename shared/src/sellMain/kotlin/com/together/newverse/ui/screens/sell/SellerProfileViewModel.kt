@@ -182,11 +182,25 @@ class SellerProfileViewModel(
         }
     }
 
-    fun approveRequest(buyerId: String) {
+    /**
+     * Admit a buyer who asked to place real orders.
+     *
+     * The grant comes from the request: a buyer asks to collect at a particular
+     * stall, and approving says yes to that, not to everywhere. [allowedMarkets]
+     * overrides it only when the seller deliberately widens or narrows the answer.
+     * A request naming no market asks to order anywhere, which is what a
+     * single-market seller's buyers mean and what every request made before
+     * requests carried a market meant.
+     */
+    fun approveRequest(buyerId: String, allowedMarkets: List<String>? = null) {
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            val displayName = _accessRequests.value.find { it.buyerId == buyerId }?.buyerDisplayName ?: ""
-            profileRepository.approveAccessRequest(sellerId, buyerId, displayName)
+            val request = _accessRequests.value.find { it.buyerId == buyerId }
+            val granted = allowedMarkets
+                ?: listOfNotNull(request?.marketId?.takeIf { it.isNotBlank() })
+            profileRepository.approveAccessRequest(
+                sellerId, buyerId, request?.buyerDisplayName ?: "", granted
+            )
                 .onFailure { e -> Log.e(TAG) { "approveRequest: ${e.message}" } }
         }
     }

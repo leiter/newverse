@@ -212,6 +212,9 @@ class FakeProfileRepository : ProfileRepository {
         }
     }
 
+    /** The stored access record, for assertions. */
+    fun accessFor(sellerId: String, buyerId: String): BuyerAccess? = accessOf(sellerId, buyerId)
+
     private fun accessOf(sellerId: String, buyerId: String): BuyerAccess? =
         _buyers.value[sellerId]?.get(buyerId)
 
@@ -221,10 +224,19 @@ class FakeProfileRepository : ProfileRepository {
 
     // --- buyer side -------------------------------------------------------
 
-    override suspend fun submitAccessRequest(sellerId: String, displayName: String): Result<Unit> {
+    /** The market the last request named, for assertions. */
+    var lastRequestedMarketId: String = ""
+        private set
+
+    override suspend fun submitAccessRequest(
+        sellerId: String,
+        displayName: String,
+        marketId: String
+    ): Result<Unit> {
+        lastRequestedMarketId = marketId
         putAccess(sellerId, BuyerAccess(currentBuyerId, displayName, AccessStatus.PENDING, updatedAt = 1L))
         _accessRequests.update { requests ->
-            requests + AccessRequest(sellerId, currentBuyerId, displayName, requestedAt = 1L)
+            requests + AccessRequest(sellerId, currentBuyerId, displayName, marketId, requestedAt = 1L)
         }
         return Result.success(Unit)
     }
@@ -281,9 +293,13 @@ class FakeProfileRepository : ProfileRepository {
     override suspend fun approveAccessRequest(
         sellerId: String,
         buyerId: String,
-        displayName: String
+        displayName: String,
+        allowedMarkets: List<String>
     ): Result<Unit> {
-        putAccess(sellerId, BuyerAccess(buyerId, displayName, AccessStatus.APPROVED, updatedAt = 1L))
+        putAccess(
+            sellerId,
+            BuyerAccess(buyerId, displayName, AccessStatus.APPROVED, allowedMarkets, updatedAt = 1L)
+        )
         clearRequest(buyerId)
         return Result.success(Unit)
     }

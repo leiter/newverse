@@ -1,8 +1,9 @@
 # Markets: Pricing, Access, Scheduling and Communication
 
-**Status:** §1 (markets as an entity), §2 (pricing), §3 (eligibility) and §4
-(schedules, slots, closures) are implemented, 2026-10-19. Production requests
-remain design only, and the rules for §2 and §3 are **not deployed**.
+**Status:** implemented 2026-10-19 — §1 markets as an entity, §2 pricing, §3
+eligibility and production requests, §4 schedules, slots and closures. The rule
+validating a request's market is **not deployed**; everything else is live in both
+projects.
 **Scope (proposed):** `shared/src/commonMain` (model + pricing + schedule + repository),
 `buyMain` (slot picker, price breakdown), `sellMain` (market, condition and closure
 editing), `firebase/database.rules.json`
@@ -390,21 +391,38 @@ A token minted before scoping has no `grantsMarkets`; redeeming it grants every 
 which is what it always meant. `market-eligibility.test.js` covers all of this — 14
 tests, including each escalation attempt.
 
-### Production requests
+### Production requests — and what they actually are
 
-A buyer committing to volume on something not normally stocked, with a longer lead time,
-in exchange for a better price. This is an **order-level** condition, not an article
-property:
+**This section used to describe something else entirely.** It read a production request
+as a buyer committing to volume on unstocked goods for a better price, and designed a
+`VOLUME_COMMITMENT` condition around it. That was a guess, flagged at the time as the
+least certain part of this document, and it was wrong.
 
-- a lead time longer than the ordinary Tuesday deadline,
-- a committed quantity the buyer cannot reduce after the deadline,
-- and a `VOLUME_COMMITMENT` condition applied at resolution.
+A **production request is a buyer asking to be able to place real orders** — to stop
+being a demo buyer. "Production" is `OrderOrigin.PRODUCTION`: a real order rather than a
+demo one. It is the access request flow, and it has existed since well before this
+document:
 
-It belongs beside `OrderOrigin` as a separate axis — an order can be a production request
-*and* `TRANSITIONED` — not as another `OrderStatus` value. Squatting in the status slot is
-the mistake `OrderOrigin` was extracted to undo.
+| | |
+|---|---|
+| Buyer asks | `BuySellerAction.RequestAccess` → `submitAccessRequest` → `access_requests/{sellerId}/{buyerId}`, status `PENDING` |
+| Seller sees it | `AccessRequestsCard` |
+| Seller approves | `approveAccessRequest` → `APPROVED`, request removed |
+| Effect | orders go to `/orders` as `PRODUCTION`, and existing demo orders transition — `doc/demo-order-provenance.md` |
 
-*This section is the least certain in this document; see open question 1.*
+### A request is bound to a market
+
+What asking the question *did* find was a gap this document opened. A buyer asks to
+collect **at a stall** — usually the one they are standing in front of — so
+`AccessRequest.marketId` records it and approving grants exactly that market. Before this,
+an invite link could be scoped to one stall but approving a request silently admitted the
+buyer to every market: two routes to the same `APPROVED` state that granted different
+things.
+
+The seller can still override the scope when approving, to widen or narrow the answer.
+A request naming no market asks to order anywhere, which is what a single-market seller's
+buyers mean and what every request written before this one meant. The rules reject a
+request naming a market that does not exist, so an approval cannot grant a dangling id.
 
 ---
 
@@ -637,8 +655,9 @@ not silence their reminder.
 5. ~~**Pricing conditions and the breakdown UI** (§2).~~ **Done 2026-10-19.** Rules
    **not deployed**: `priceConditions` and `pricingRevision` are declared in the repo
    only, and the market rule rejects unknown fields, so these go out before the build.
-6. **Production requests.** Last — it depends on both the schedule decision and the
-   condition model.
+6. ~~**Production requests.**~~ Not a feature: it is the access request flow, which was
+   already built. Binding a request to a market, and approving what was asked for rather
+   than everything, was done 2026-10-19. Rules for it are **not deployed**.
 
 Step 2 is the one to start with. It is small, it needs none of the model changes above,
 and it is the only item here that a seller would notice next week.
@@ -647,13 +666,11 @@ and it is the only item here that a seller would notice next week.
 
 ## Still open
 
-### 1. What exactly is a production request?
+### 1. ~~What exactly is a production request?~~ — settled
 
-The reading in §3 — pre-order of unstocked goods, volume commitment, longer lead time, a
-better price — is an interpretation and may be wrong. If it instead means the seller
-requesting production from a supplier, it is a sourcing feature closer to
-`doc/stock-keeping-design.md` and belongs in `seller_articles`, not in the order model at
-all. Settle this before anything in §3 is built.
+A buyer asking to be able to place real orders: the access request flow, which already
+existed. Both readings offered here — volume commitment, and seller-to-supplier sourcing —
+were wrong. See §3.
 
 ### 2. ~~One basket or one per market?~~ — settled
 

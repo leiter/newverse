@@ -217,7 +217,8 @@
         ".write": "auth != null && auth.uid === $sellerId",
         "$buyerUid": {
           ".read": "auth != null && $buyerUid === auth.uid",
-          ".write": "auth != null && $buyerUid === auth.uid && root.child('buyer_access_status').child($sellerId).child($buyerUid).child('status').val() !== 'BLOCKED'"
+          ".write": "auth != null && $buyerUid === auth.uid && root.child('buyer_access_status').child($sellerId).child($buyerUid).child('status').val() !== 'BLOCKED'",
+          "marketId": { ".validate": "newData.isString() && (newData.val() === '' || root.child('markets').child($sellerId).child(newData.val()).exists())" }
         }
       }
     },

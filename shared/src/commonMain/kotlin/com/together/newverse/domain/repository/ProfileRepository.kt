@@ -119,10 +119,18 @@ interface ProfileRepository {
     // buyer identifier: the repository reads it from the auth session.
 
     /**
-     * Submit an access request to a seller.
+     * Submit an access request to a seller — a buyer asking to place real orders.
      * Writes access_requests/{sellerId}/{uid} and a PENDING buyer_access_status record.
+     *
+     * @param marketId the market the buyer is asking to collect at. Approving the
+     *   request grants exactly this market. Empty asks to order anywhere, which is
+     *   what a single-market seller's buyer means.
      */
-    suspend fun submitAccessRequest(sellerId: String, displayName: String): Result<Unit>
+    suspend fun submitAccessRequest(
+        sellerId: String,
+        displayName: String,
+        marketId: String = ""
+    ): Result<Unit>
 
     /**
      * Withdraw a previously submitted access request, clearing both nodes.
@@ -182,7 +190,19 @@ interface ProfileRepository {
     /**
      * Approve a buyer's request and clear it from the pending list.
      */
-    suspend fun approveAccessRequest(sellerId: String, buyerId: String, displayName: String): Result<Unit>
+    suspend fun approveAccessRequest(
+        sellerId: String,
+        buyerId: String,
+        displayName: String,
+        /**
+         * The markets this buyer may collect at. Empty grants all of them.
+         *
+         * Approving a request and redeeming an invite reach the same APPROVED
+         * state, so they have to be able to grant the same thing — otherwise the
+         * only way to admit someone to a single stall is to send them a link.
+         */
+        allowedMarkets: List<String> = emptyList()
+    ): Result<Unit>
 
     /**
      * Block a buyer, clearing any pending request. A blocked buyer cannot order,

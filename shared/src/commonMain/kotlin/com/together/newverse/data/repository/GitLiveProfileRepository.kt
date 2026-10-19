@@ -752,7 +752,11 @@ class GitLiveProfileRepository(
 
     // --- buyer side -------------------------------------------------------
 
-    override suspend fun submitAccessRequest(sellerId: String, displayName: String): Result<Unit> {
+    override suspend fun submitAccessRequest(
+        sellerId: String,
+        displayName: String,
+        marketId: String
+    ): Result<Unit> {
         return try {
             val uid = authRepository.getCurrentUserId()
                 ?: return Result.failure(Exception("User not authenticated"))
@@ -761,6 +765,10 @@ class GitLiveProfileRepository(
             accessRequestsRef.child(sellerId).child(uid).setValue(
                 mapOf(
                     "displayName" to displayName,
+                    // The stall the buyer is asking to collect at. Approving the
+                    // request grants this market, so the seller answers the
+                    // question that was asked rather than inventing a scope.
+                    "marketId" to marketId,
                     "requestedAt" to now
                 )
             )
@@ -905,6 +913,9 @@ class GitLiveProfileRepository(
                     sellerId = sellerId,
                     buyerId = buyerId,
                     buyerDisplayName = data["displayName"] as? String ?: "",
+                    // Absent on requests made before they carried a market, which
+                    // asked to order anywhere — and still do.
+                    marketId = data["marketId"] as? String ?: "",
                     requestedAt = (data["requestedAt"] as? Number)?.toLong() ?: 0L
                 )
             }
@@ -953,13 +964,15 @@ class GitLiveProfileRepository(
     override suspend fun approveAccessRequest(
         sellerId: String,
         buyerId: String,
-        displayName: String
+        displayName: String,
+        allowedMarkets: List<String>
     ): Result<Unit> {
         return try {
             buyerAccessStatusRef.child(sellerId).child(buyerId).updateChildren(
                 mapOf(
                     "status" to AccessStatus.APPROVED.name,
                     "displayName" to displayName,
+                    "allowedMarkets" to MarketScope.encode(allowedMarkets),
                     "updatedAt" to Clock.System.now().toEpochMilliseconds()
                 )
             )

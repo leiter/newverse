@@ -128,7 +128,12 @@ internal fun BuyAppViewModel.requestAccess() {
             val displayName = _state.value.customerProfile.profile?.displayName
                 ?.takeIf { it.isNotBlank() } ?: "Guest"
 
-            profileRepository.submitAccessRequest(sellerId, displayName)
+            // The request names the stall the buyer wants to collect at, so the
+            // seller approves that rather than guessing. Empty when the seller runs
+            // one market, or when this buyer has not settled on one.
+            val marketId = _state.value.contextualMarketId.orEmpty()
+
+            profileRepository.submitAccessRequest(sellerId, displayName, marketId)
                 .onSuccess {
                     _state.update { it.copy(isRequestingAccess = false) }
                     startObservingAccessStatus()
@@ -279,7 +284,9 @@ internal fun BuyAppViewModel.connectWithToken(sellerId: String, token: String) {
                     }
                     .onFailure { e ->
                         Log.w(TAG) { "connectWithToken: redemption failed - ${e.message}" }
-                        profileRepository.submitAccessRequest(sellerId, displayName)
+                        profileRepository.submitAccessRequest(
+                            sellerId, displayName, _state.value.contextualMarketId.orEmpty()
+                        )
                             .onSuccess { Log.d(TAG) { "connectWithToken: fell back to an access request" } }
                             .onFailure { err -> Log.e(TAG) { "connectWithToken: request failed - ${err.message}" } }
                     }
