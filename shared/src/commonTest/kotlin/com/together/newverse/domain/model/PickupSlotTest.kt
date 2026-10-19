@@ -9,6 +9,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
 /**
@@ -183,5 +184,64 @@ class PickupSlotTest {
 
         // Not the 13th: that Saturday's deadline passed on Thursday the 11th.
         assertEquals(20, dayOf(slots.single()).dayOfMonth)
+    }
+}
+
+/**
+ * An order's deadline is already market-correct without being told the market.
+ *
+ * `calculateEditDeadline` subtracts the config's deadline-to-pickup distance from
+ * the order's own pickup date, and `Market.scheduleConfig` preserves that distance.
+ * So a Saturday order deadlines on Thursday whether it is asked with the app
+ * default or with its market's schedule, and `Order.canEdit` needs no market.
+ *
+ * This holds only while every market shares one lead time. Give markets their own
+ * and these assertions are what will tell you that `Order` must start resolving its
+ * market.
+ */
+class OrderDeadlineIsMarketRelativeTest {
+
+    private val utc = TimeZone.UTC
+    private val default = DefaultOrderScheduleConfig()
+
+    private fun bothAgree(pickup: Instant, dayIndex: Int) {
+        val market = Market(id = "m", name = "M", dayIndex = dayIndex)
+        assertEquals(
+            OrderDateUtils.calculateEditDeadline(pickup, utc, default),
+            OrderDateUtils.calculateEditDeadline(pickup, utc, market.scheduleConfig(default)),
+            "deadline differs for dayIndex $dayIndex"
+        )
+    }
+
+    @Test
+    fun `every weekday's deadline is the same under either config`() {
+        // 2024-01-08 is a Monday, so these run Monday through Sunday.
+        repeat(7) { offset ->
+            val pickup = Instant.parse("2024-01-08T00:00:00Z") + (offset * 24).hours
+            bothAgree(pickup, offset)
+        }
+    }
+
+    @Test
+    fun `a Saturday order deadlines on the Thursday before it`() {
+        val saturday = Instant.parse("2024-01-13T00:00:00Z")
+        val deadline = OrderDateUtils.calculateEditDeadline(saturday, utc, default)
+        val local = deadline.toLocalDateTime(utc)
+
+        assertEquals(DayOfWeek.THURSDAY, local.dayOfWeek)
+        assertEquals(11, local.dayOfMonth)
+    }
+
+    @Test
+    fun `canEdit follows the order's own day without being given a market`() {
+        val saturday = Instant.parse("2024-01-13T00:00:00Z")
+        // Thursday 18:00, before that Saturday's Thursday 23:59 deadline.
+        assertTrue(
+            OrderDateUtils.canEditOrder(saturday, Instant.parse("2024-01-11T18:00:00Z"), utc)
+        )
+        // Friday: gone.
+        assertFalse(
+            OrderDateUtils.canEditOrder(saturday, Instant.parse("2024-01-12T09:00:00Z"), utc)
+        )
     }
 }

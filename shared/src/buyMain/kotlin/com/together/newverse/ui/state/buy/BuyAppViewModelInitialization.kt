@@ -411,25 +411,36 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
             if (draftBasket != null && draftBasket.items.isNotEmpty()) {
                 Log.d(TAG) { "loadCurrentOrder: Found draft basket with ${draftBasket.items.size} items" }
 
-                // Check if the draft's selected pickup date has expired
+                // A stored slot can go stale in more ways than one: the deadline
+                // passes, the seller closes that day, or they retire the stall. Any
+                // of those makes the slot unorderable, and a basket that silently
+                // keeps it would fail at checkout instead of at restore.
                 val selectedDateKey = draftBasket.selectedPickupDate
-                if (selectedDateKey != null) {
-                    val pickupTimestamp = parsePickupDateFromKey(selectedDateKey)
-                    if (pickupTimestamp != null) {
-                        val pickupInstant = Instant.fromEpochMilliseconds(pickupTimestamp)
-                        if (!OrderDateUtils.canEditOrder(pickupInstant)) {
-                            // Deadline passed - clear the pickup date from draft
-                            Log.w(TAG) { "loadCurrentOrder: Draft pickup date expired, clearing..." }
-                            val clearedDraft = draftBasket.copy(selectedPickupDate = null)
-                            profileRepository.saveDraftBasket(clearedDraft)
-                            basketRepository.loadFromProfile(clearedDraft)
-                            Log.d(TAG) { "loadCurrentOrder: Loaded draft basket with cleared pickup date" }
-                            return@onSuccess
-                        }
+                val staleReason = selectedDateKey?.let { key ->
+                    val pickupTimestamp = parsePickupDateFromKey(key) ?: return@let null
+                    val pickup = Instant.fromEpochMilliseconds(pickupTimestamp)
+                    val marketId = draftBasket.selectedMarketId
+                    val markets = _state.value.sellerMarkets
+                    when {
+                        marketId.isNotEmpty() && markets.none { it.id == marketId && it.active } ->
+                            "its market is no longer offered"
+                        _state.value.sellerClosures.isClosed(key, marketId.ifEmpty { null }) ->
+                            "the seller has closed that day"
+                        !OrderDateUtils.canEditOrder(pickup) -> "the deadline has passed"
+                        else -> null
                     }
                 }
 
+                if (staleReason != null) {
+                    Log.w(TAG) { "loadCurrentOrder: dropping the draft's pickup slot - $staleReason" }
+                    val clearedDraft = draftBasket.copy(selectedPickupDate = null, selectedMarketId = "")
+                    profileRepository.saveDraftBasket(clearedDraft)
+                    basketRepository.loadFromProfile(clearedDraft)
+                    return@onSuccess
+                }
+
                 basketRepository.loadFromProfile(draftBasket)
+                restoreDraftSlotSelection(draftBasket)
                 Log.d(TAG) { "loadCurrentOrder: Loaded draft basket" }
                 return@onSuccess
             }
@@ -591,7 +602,7 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
  * Parse a pickup date key (yyyyMMdd) back to timestamp
  * Returns null if parsing fails
  */
-private fun parsePickupDateFromKey(dateKey: String): Long? {
+internal fun parsePickupDateFromKey(dateKey: String): Long? {
     return try {
         if (dateKey.length != 8) return null
         val year = dateKey.substring(0, 4).toInt()

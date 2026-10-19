@@ -7,6 +7,15 @@ package com.together.newverse.domain.model
 data class DraftBasket(
     val items: List<OrderedProduct> = emptyList(),
     val selectedPickupDate: String? = null,
+    /**
+     * The market of the chosen slot, stored beside its date.
+     *
+     * Empty on every record written before markets had their own day, and on every
+     * single-market seller, where there is nothing to choose — so an absent value
+     * means the same thing as it always did and needs no conversion. Together with
+     * [selectedPickupDate] this is the stored `PickupSlot`.
+     */
+    val selectedMarketId: String = "",
     val lastModified: Long = 0L
 ) {
     /**

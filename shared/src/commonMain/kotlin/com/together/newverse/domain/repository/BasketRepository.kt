@@ -82,5 +82,5 @@ interface BasketRepository {
      * @param selectedPickupDate Optional pickup date to include
      * @return DraftBasket representation of current basket
      */
-    fun toDraftBasket(selectedPickupDate: String? = null): DraftBasket
+    fun toDraftBasket(selectedPickupDate: String? = null, selectedMarketId: String = ""): DraftBasket
 }

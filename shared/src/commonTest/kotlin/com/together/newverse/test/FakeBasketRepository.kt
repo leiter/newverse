@@ -123,10 +123,11 @@ class FakeBasketRepository : BasketRepository {
         _basketItems.value = draftBasket.items
     }
 
-    override fun toDraftBasket(selectedPickupDate: String?): DraftBasket {
+    override fun toDraftBasket(selectedPickupDate: String?, selectedMarketId: String): DraftBasket {
         return DraftBasket(
             items = _basketItems.value,
             selectedPickupDate = selectedPickupDate,
+            selectedMarketId = selectedMarketId,
             lastModified = System.currentTimeMillis()
         )
     }

@@ -120,10 +120,11 @@ class InMemoryBasketRepository : BasketRepository {
         Log.d(TAG) { "BasketRepository.loadFromProfile: Loaded ${draftBasket.items.size} items from draft basket" }
     }
 
-    override fun toDraftBasket(selectedPickupDate: String?): DraftBasket {
+    override fun toDraftBasket(selectedPickupDate: String?, selectedMarketId: String): DraftBasket {
         return DraftBasket(
             items = _basket.value,
             selectedPickupDate = selectedPickupDate,
+            selectedMarketId = selectedMarketId,
             lastModified = Clock.System.now().toEpochMilliseconds()
         )
     }

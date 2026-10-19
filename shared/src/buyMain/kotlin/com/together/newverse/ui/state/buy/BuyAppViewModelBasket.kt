@@ -15,6 +15,7 @@ import com.together.newverse.ui.state.MergeConflict
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
+import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.PickupSlot
 import com.together.newverse.domain.model.PickupSlots
 import com.together.newverse.util.OrderDateUtils
@@ -216,7 +217,10 @@ internal suspend fun BuyAppViewModel.saveDraftBasketToProfile() {
 
     val selectedDateTimestamp = _state.value.basketScreen.selectedPickupDate
     val selectedDateKey = selectedDateTimestamp?.let { basketScreenFormatDateKey(it) }
-    val draftBasket = basketRepository.toDraftBasket(selectedDateKey)
+    val draftBasket = basketRepository.toDraftBasket(
+        selectedPickupDate = selectedDateKey,
+        selectedMarketId = _state.value.basketScreen.selectedMarketId
+    )
 
     if (draftBasket.items.isEmpty()) {
         // Clear draft basket if empty
@@ -1111,6 +1115,26 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
         } catch (e: Exception) {
             setBasketError(e.message ?: "Ein Fehler ist aufgetreten")
         }
+    }
+}
+
+/**
+ * Put a restored draft's slot back on the basket screen.
+ *
+ * The basket repository carries the items; the chosen market and date live in
+ * screen state, so without this a restored draft comes back with its slot blank
+ * and the buyer has to pick it again.
+ */
+internal fun BuyAppViewModel.restoreDraftSlotSelection(draft: DraftBasket) {
+    val key = draft.selectedPickupDate ?: return
+    val date = parsePickupDateFromKey(key) ?: return
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                selectedPickupDate = date,
+                selectedMarketId = draft.selectedMarketId
+            )
+        )
     }
 }
 

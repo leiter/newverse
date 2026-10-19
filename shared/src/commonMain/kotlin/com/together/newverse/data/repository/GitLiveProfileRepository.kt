@@ -510,6 +510,9 @@ class GitLiveProfileRepository(
         return DraftBasket(
             items = items,
             selectedPickupDate = data["selectedPickupDate"] as? String,
+            // Absent on drafts written before the slot picker, which is correct:
+            // those were single-market sellers with nothing to record.
+            selectedMarketId = data["selectedMarketId"] as? String ?: "",
             lastModified = (data["lastModified"] as? Number)?.toLong() ?: 0L
         )
     }
@@ -682,6 +685,7 @@ class GitLiveProfileRepository(
                 )
             },
             "selectedPickupDate" to draftBasket.selectedPickupDate,
+            "selectedMarketId" to draftBasket.selectedMarketId,
             "lastModified" to draftBasket.lastModified
         )
     }
