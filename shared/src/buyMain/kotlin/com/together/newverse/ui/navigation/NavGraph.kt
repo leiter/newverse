@@ -134,6 +134,7 @@ fun NavGraph(
                 isDemoMode = appState.isDemoMode,
                 missingProfileData = appState.missingProfileData,
                 accessStatus = appState.accessStatus,
+                sellerContacts = appState.sellerContacts.sellerContacts.filter { it.isUsable },
                 buyerId = appState.customerProfile.profile?.id ?: "",
                 orderReminder = appState.orderReminder,
                 onRequestNotificationPermission = {

@@ -39,7 +39,9 @@ fun NavGraphBuilder.commonNavGraph(
     // Common Screens
     composable(NavRoutes.About.route) {
         AboutScreenModern(
-            onBackClick = { navController.popBackStack() }
+            onBackClick = { navController.popBackStack() },
+            // The directory: every buyer, demo included, sees all of it.
+            contacts = appState.sellerContacts
         )
     }
 

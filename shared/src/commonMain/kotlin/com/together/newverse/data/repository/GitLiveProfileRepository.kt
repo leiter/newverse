@@ -7,9 +7,15 @@ import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.Market
+import com.together.newverse.domain.model.MarketClosure
+import com.together.newverse.domain.model.MarketClosures
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.OrderStatus
+import com.together.newverse.domain.model.ContactChannel
+import com.together.newverse.domain.model.SellerContact
+import com.together.newverse.domain.model.SellerContactDirectory
 import com.together.newverse.domain.model.SellerProfile
+import com.together.newverse.domain.model.toContactDirectory
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.util.Log
@@ -154,6 +160,63 @@ class GitLiveProfileRepository(
             Result.success(displayName)
         } catch (e: Exception) {
             Log.e(TAG) { "getSellerDisplayName: Error - ${e.message}" }
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getSellerContacts(sellerId: String): Result<SellerContactDirectory> {
+        return try {
+            if (sellerId.isEmpty()) return Result.success(SellerContactDirectory())
+
+            sellerProfileCache[sellerId]?.let { return Result.success(it.toContactDirectory()) }
+
+            // Two child reads, not one node read: a buyer may read the individual
+            // fields of a seller profile but not the profile itself, which also
+            // carries lat/lng and the seller's own address.
+            val contacts = parseContacts(
+                sellersRef.child(sellerId).child("contacts").valueEvents.first().value
+            )
+            val marketsValue = sellersRef.child(sellerId).child("markets").valueEvents.first().value
+            val marketRows = when (marketsValue) {
+                is List<*> -> marketsValue
+                is Map<*, *> -> marketsValue.values.toList()
+                else -> emptyList()
+            }
+
+            val marketContacts = mutableMapOf<String, List<SellerContact>>()
+            val marketNames = mutableMapOf<String, String>()
+            marketRows.forEach { row ->
+                val fields = row as? Map<*, *> ?: return@forEach
+                val id = fields["id"] as? String ?: return@forEach
+                if (id.isEmpty()) return@forEach
+                marketNames[id] = fields["name"] as? String ?: ""
+                val own = parseContacts(fields["contacts"])
+                if (own.isNotEmpty()) marketContacts[id] = own
+            }
+
+            Result.success(
+                SellerContactDirectory(
+                    sellerContacts = contacts,
+                    marketContacts = marketContacts,
+                    marketNames = marketNames
+                )
+            )
+        } catch (e: Exception) {
+            Log.e(TAG) { "getSellerContacts: Error - ${e.message}" }
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getSellerClosures(sellerId: String): Result<MarketClosures> {
+        return try {
+            if (sellerId.isEmpty()) return Result.success(MarketClosures.NONE)
+            sellerProfileCache[sellerId]?.let { return Result.success(MarketClosures(it.closures)) }
+
+            // One more public child, read the same way as the contacts.
+            val raw = sellersRef.child(sellerId).child("closures").valueEvents.first().value
+            Result.success(MarketClosures(parseClosures(raw)))
+        } catch (e: Exception) {
+            Log.e(TAG) { "getSellerClosures: Error - ${e.message}" }
             Result.failure(e)
         }
     }
@@ -462,7 +525,8 @@ class GitLiveProfileRepository(
                                 dayOfWeek = marketData["dayOfWeek"] as? String ?: "",
                                 begin = marketData["begin"] as? String ?: "",
                                 end = marketData["end"] as? String ?: "",
-                                dayIndex = (marketData["dayIndex"] as? Number)?.toInt() ?: -1
+                                dayIndex = (marketData["dayIndex"] as? Number)?.toInt() ?: -1,
+                                contacts = parseContacts(marketData["contacts"])
                             )
                             else -> null
                         }
@@ -484,12 +548,68 @@ class GitLiveProfileRepository(
                     lng = value["lng"] as? String ?: "",
                     sellerId = value["sellerId"] as? String ?: sellerId,
                     markets = markets,
-                    urls = (value["urls"] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList()
+                    urls = (value["urls"] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+                    contacts = parseContacts(value["contacts"]),
+                    closures = parseClosures(value["closures"])
                 )
             }
             else -> createMockSellerProfile(sellerId)
         }
     }
+
+    /**
+     * Read a stored contact list.
+     *
+     * A record whose channel this version does not know is dropped rather than
+     * guessed at, so a list written by a newer app degrades to the entries this one
+     * understands instead of failing to parse at all.
+     */
+    private fun parseContacts(data: Any?): List<SellerContact> {
+        val rows = when (data) {
+            is List<*> -> data
+            // RTDB returns a sparse list as a map keyed by index.
+            is Map<*, *> -> data.values.toList()
+            else -> return emptyList()
+        }
+        return rows.mapNotNull { row ->
+            val fields = row as? Map<*, *> ?: return@mapNotNull null
+            val channel = ContactChannel.fromStored(fields["channel"] as? String) ?: return@mapNotNull null
+            val value = fields["value"] as? String ?: return@mapNotNull null
+            if (value.isBlank()) return@mapNotNull null
+            SellerContact(
+                channel = channel,
+                value = value,
+                label = fields["label"] as? String ?: ""
+            )
+        }
+    }
+
+    private fun parseClosures(data: Any?): List<MarketClosure> {
+        val rows = when (data) {
+            is List<*> -> data
+            is Map<*, *> -> data.values.toList()
+            else -> return emptyList()
+        }
+        return rows.mapNotNull { row ->
+            val fields = row as? Map<*, *> ?: return@mapNotNull null
+            val date = fields["date"] as? String ?: return@mapNotNull null
+            if (date.isBlank()) return@mapNotNull null
+            MarketClosure(
+                date = date,
+                marketId = fields["marketId"] as? String ?: "",
+                reason = fields["reason"] as? String ?: ""
+            )
+        }
+    }
+
+    private fun contactsToList(contacts: List<SellerContact>): List<Map<String, Any?>> =
+        contacts.filter { it.isUsable }.map { contact ->
+            mapOf(
+                "channel" to contact.channel.name,
+                "value" to contact.value,
+                "label" to contact.label
+            )
+        }
 
     /**
      * Parse client IDs from Firebase.
@@ -573,7 +693,8 @@ class GitLiveProfileRepository(
                 "dayOfWeek" to market.dayOfWeek,
                 "begin" to market.begin,
                 "end" to market.end,
-                "dayIndex" to market.dayIndex
+                "dayIndex" to market.dayIndex,
+                "contacts" to contactsToList(market.contacts)
             )
         }
 
@@ -591,7 +712,15 @@ class GitLiveProfileRepository(
             "lng" to profile.lng,
             "sellerId" to profile.sellerId,
             "markets" to marketsData,
-            "urls" to profile.urls
+            "urls" to profile.urls,
+            "contacts" to contactsToList(profile.contacts),
+            "closures" to profile.closures.filter { it.date.isNotBlank() }.map { closure ->
+                mapOf(
+                    "date" to closure.date,
+                    "marketId" to closure.marketId,
+                    "reason" to closure.reason
+                )
+            }
         )
     }
 

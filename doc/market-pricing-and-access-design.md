@@ -1,6 +1,7 @@
 # Markets: Pricing, Access, Scheduling and Communication
 
-**Status:** Design only — nothing below is implemented
+**Status:** §4's closures are implemented (2026-10-19), marked below. Everything
+else is design only.
 **Scope (proposed):** `shared/src/commonMain` (model + pricing + schedule + repository),
 `buyMain` (slot picker, price breakdown), `sellMain` (market, condition and closure
 editing), `firebase/database.rules.json`
@@ -366,20 +367,24 @@ data class MarketClosure(
 )
 ```
 
-Stored at `market_closures/{sellerId}/{yyyyMMdd}/{marketId}`, with the literal key `ALL`
-for a seller-wide closure. Read by any signed-in user, written by the seller — the same
-shape as `market_pricing`.
+**BUILT DIFFERENTLY — stored as `seller_profile/{sellerId}/closures`, a list.**
 
-Three deliberate choices:
+The design called for a node of its own at `market_closures/{sellerId}/{yyyyMMdd}/{marketId}`,
+keyed by date so the filter would be a child lookup rather than a scan. Building the
+contact feature first showed the better answer: the field-level read rule on
+`seller_profile` already lets any signed-in buyer read an individual child, so a
+`closures` list beside `contacts` needs **no new node, no rules block and no rules
+deploy**. A seller has perhaps ten to thirty closures a year, so the scan the keyed
+layout was avoiding is a list of a few dozen entries read once and indexed in memory by
+`MarketClosures`. The empty `marketId` replaces the literal `ALL` key.
+
+Two choices from the design survived:
 
 - **`yyyyMMdd` strings, not epoch millis.** Matches the existing `/orders` key
   convention, carries no timezone, and is legible in the Firebase console.
-- **Date as the key, not a field.** The filter is then a direct child lookup rather than
-  a scan, which RTDB does badly. Checking a candidate slot is one map hit.
 - **Discrete dates stored, ranges only in the UI.** A fortnight of vacation is two to
-  four actual market days, so the seller enters a range and the app expands it to
-  individual records on save. The model stays one record per day and the query stays a
-  lookup.
+  four actual market days. Range entry is **not yet built**: the seller enters one day
+  at a time, which is the open piece of this section.
 
 Closures are a filter on the generated slots, not new machinery:
 
@@ -391,13 +396,18 @@ for each eligible market:
 merge chronologically, take count
 ```
 
-**The generator needs a horizon.** `getAvailablePickupDates` loops `while (dates.size <
-count)` with no iteration bound. That terminates today because every Thursday eventually
-qualifies. With closures a seller can black out every candidate and the loop spins
-forever. Any implementation must cap the search — 26 weeks is more than enough — and
-return a short list rather than hang.
+**The generator needed a horizon — fixed.** `getAvailablePickupDates` looped
+`while (dates.size < count)` with no iteration bound. That terminated only because every
+Thursday eventually qualified; once a seller can close days, a sufficiently closed
+calendar made it spin forever. It now stops after `MAX_PICKUP_CANDIDATES` (26) and
+returns a short or empty list. `MarketClosureTest` closes every candidate in the horizon
+and asserts an empty result, so the hang cannot come back.
 
-### Closing a day that already has orders
+`isPickupDateValid` consults closures too: a draft basket can hold a date chosen days
+before the seller closed it, and the existing stale-date path in the basket already
+resets to the picker with an error.
+
+### NOT BUILT: closing a day that already has orders
 
 The hard case, and the one most likely to be skipped. The seller blacks out 23.10 and
 fourteen orders already exist at `/orders/{sellerId}/20241023/`.
@@ -415,7 +425,7 @@ engine that `doc/order-ready-notification-design.md` describes and which is not 
 closure feature without buyer notification is only half of one; at minimum the buy app
 must show the cancellation prominently in the order list.
 
-### The reminder worker has to read closures too
+### NOT BUILT: the reminder worker has to read closures too
 
 `OrderReminderEvaluator.hasOrderedForUpcomingPickup` derives the upcoming pickup cycle
 from the schedule config alone. If that cycle is closed it will nag buyers to order for a
@@ -427,9 +437,10 @@ becomes actively misleading on exactly the weeks it matters most.
 ## Suggested order of work
 
 1. **Market as an entity** (§1). Independently correct; unblocks everything else.
-2. **Closures** (§4). The only part that is useful on its own, today, with a single
-   market and a single pickup day — the seller can already cancel a Thursday. Build it
-   against `getAvailablePickupDates` before slots exist, and it carries over unchanged.
+2. ~~**Closures** (§4).~~ **Done 2026-10-19**, except the two sections marked NOT BUILT
+   above — the order-conflict check when closing a day that already has orders, and
+   teaching `OrderReminderEvaluator` about closures. Range entry is also still per-day.
+   Those three are the next things to pick up here.
 3. **Per-market schedule and the slot picker** (§4). Replaces the date picker rather
    than adding to it.
 4. **Eligibility + invite scoping** (§3). Determines who ever sees a second market's

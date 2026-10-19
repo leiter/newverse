@@ -68,8 +68,6 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
 import newverse.shared.generated.resources.a11y_contact_options
 import newverse.shared.generated.resources.a11y_hero_total
-import newverse.shared.generated.resources.about_email
-import newverse.shared.generated.resources.about_phone
 import newverse.shared.generated.resources.action_call
 import newverse.shared.generated.resources.action_email
 import newverse.shared.generated.resources.action_orders
@@ -78,6 +76,8 @@ import newverse.shared.generated.resources.back
 import newverse.shared.generated.resources.contacts_title
 import newverse.shared.generated.resources.nav_shopping_basket
 import org.jetbrains.compose.resources.pluralStringResource
+import com.together.newverse.ui.components.displayName
+import com.together.newverse.ui.components.icon
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -510,12 +510,19 @@ private fun AppScaffoldContent(
                             )
                         }
                     }
-                    // Show more menu (Call/Email) on Profile and Home screens
-                    if (currentRoute == NavRoutes.Buy.Profile.route || currentRoute == NavRoutes.Home.route) {
+                    // The seller's own contact channels, on Profile and Home.
+                    //
+                    // Shown only to approved buyers: a one-tap call button handed to
+                    // every anonymous installer is unvetted inbound noise for a small
+                    // business. Everyone still reaches the same numbers through About.
+                    // Hidden entirely when the seller has published none, rather than
+                    // opening an empty menu.
+                    val contacts = appState.topBarContacts
+                    if (contacts.isNotEmpty() &&
+                        (currentRoute == NavRoutes.Buy.Profile.route || currentRoute == NavRoutes.Home.route)
+                    ) {
                         val uriHandler = LocalUriHandler.current
                         var showContactMenu by remember { mutableStateOf(false) }
-                        val phone = stringResource(Res.string.about_phone).filter { it.isDigit() || it == '+' }
-                        val email = stringResource(Res.string.about_email)
 
                         Box(modifier = Modifier.padding(end = 8.dp)) {
                             IconButton(onClick = { showContactMenu = true }) {
@@ -530,44 +537,28 @@ private fun AppScaffoldContent(
                                 expanded = showContactMenu,
                                 onDismissRequest = { showContactMenu = false }
                             ) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Email,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                            Text(stringResource(Res.string.action_email))
+                                contacts.forEach { contact ->
+                                    val label = contact.label.ifBlank { contact.channel.displayName() }
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Icon(
+                                                    contact.channel.icon(),
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                                Text(label)
+                                            }
+                                        },
+                                        onClick = {
+                                            uriHandler.openUri(contact.toUri())
+                                            showContactMenu = false
                                         }
-                                    },
-                                    onClick = {
-                                        uriHandler.openUri("mailto:$email")
-                                        showContactMenu = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Phone,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.tertiary
-                                            )
-                                            Text(stringResource(Res.string.action_call))
-                                        }
-                                    },
-                                    onClick = {
-                                        uriHandler.openUri("tel:$phone")
-                                        showContactMenu = false
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                     }

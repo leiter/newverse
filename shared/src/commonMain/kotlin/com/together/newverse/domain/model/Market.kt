@@ -14,4 +14,10 @@ data class Market(
     val begin: String = "",
     val end: String = "",
     val dayIndex: Int = -1,
+    /**
+     * How to reach *this stall*, set in the market dialog next to its address and
+     * hours. Additive to [SellerProfile.contacts], never a replacement for them —
+     * see `doc/seller-contact-design.md`.
+     */
+    val contacts: List<SellerContact> = emptyList(),
 )

@@ -36,7 +36,13 @@ import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.components.QrCodeImage
 import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.button_save
+import newverse.shared.generated.resources.contact_section_market
+import newverse.shared.generated.resources.contact_section_seller
 import newverse.shared.generated.resources.*
+import androidx.compose.material3.HorizontalDivider
+import com.together.newverse.domain.model.MarketClosure
+import com.together.newverse.domain.model.SellerContact
 import org.jetbrains.compose.resources.stringResource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -57,6 +63,8 @@ fun SellerProfileScreen(
     onHideMarketDialog: () -> Unit = {},
     onSaveMarket: (Market) -> Unit = {},
     onDeleteMarket: (String) -> Unit = {},
+    onSaveSellerContacts: (List<SellerContact>) -> Unit = {},
+    onSaveClosures: (List<MarketClosure>) -> Unit = {},
     onGenerateInvitation: (Int) -> Unit = {},
     onSendInvitationToBuyer: (String) -> Unit = {},
     onRevokeInvitation: (String) -> Unit = {},
@@ -151,6 +159,19 @@ fun SellerProfileScreen(
                             }
                         }
                     }
+
+                    SellerContactsCard(
+                        contacts = profile?.contacts ?: emptyList(),
+                        isSaving = isSaving,
+                        onSave = onSaveSellerContacts
+                    )
+
+                    MarketClosuresCard(
+                        closures = profile?.closures ?: emptyList(),
+                        markets = profile?.markets ?: emptyList(),
+                        isSaving = isSaving,
+                        onSave = onSaveClosures
+                    )
 
                     Text(
                         text = stringResource(Res.string.seller_profile_stats_title),
@@ -663,6 +684,7 @@ private fun MarketEditDialog(
     var begin by remember { mutableStateOf(market?.begin ?: "") }
     var end by remember { mutableStateOf(market?.end ?: "") }
     var showDayPicker by remember { mutableStateOf(false) }
+    var contacts by remember { mutableStateOf(market?.contacts ?: emptyList()) }
     var validationError by remember { mutableStateOf<String?>(null) }
 
     val errorFillAll = stringResource(Res.string.market_validation_fill_all)
@@ -802,6 +824,14 @@ private fun MarketEditDialog(
                     )
                 }
 
+                HorizontalDivider()
+
+                ContactListEditor(
+                    title = stringResource(Res.string.contact_section_market),
+                    contacts = contacts,
+                    onContactsChange = { contacts = it }
+                )
+
                 validationError?.let { error ->
                     Text(
                         text = error,
@@ -835,7 +865,8 @@ private fun MarketEditDialog(
                                 dayOfWeek = dayOfWeek,
                                 begin = begin.trim(),
                                 end = end.trim(),
-                                dayIndex = dayIndex
+                                dayIndex = dayIndex,
+                                contacts = contacts.normalizedForSave()
                             )
                             onSave(newMarket)
                             onDismiss()
@@ -852,6 +883,44 @@ private fun MarketEditDialog(
             }
         }
     )
+}
+
+/**
+ * The business's own contacts — the ones shown for every market.
+ *
+ * A market's own number is set in [MarketEditDialog] instead; this card is the
+ * default those add to.
+ */
+@Composable
+private fun SellerContactsCard(
+    contacts: List<SellerContact>,
+    isSaving: Boolean,
+    onSave: (List<SellerContact>) -> Unit,
+) {
+    // Re-seeded whenever the stored list changes, so a save elsewhere is picked up
+    // rather than silently overwritten by a stale draft.
+    var draft by remember(contacts) { mutableStateOf(contacts) }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ContactListEditor(
+                title = stringResource(Res.string.contact_section_seller),
+                contacts = draft,
+                onContactsChange = { draft = it }
+            )
+
+            Button(
+                onClick = { onSave(draft.normalizedForSave()) },
+                enabled = !isSaving && draft.normalizedForSave() != contacts,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(stringResource(Res.string.button_save))
+            }
+        }
+    }
 }
 
 @Composable

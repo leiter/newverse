@@ -2,6 +2,7 @@ package com.together.newverse.util
 
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.domain.config.OrderScheduleConfig
+import com.together.newverse.domain.model.MarketClosures
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.*
@@ -291,16 +292,26 @@ object OrderDateUtils {
         count: Int = 5,
         now: Instant = Clock.System.now(),
         timeZone: TimeZone = TimeZone.currentSystemDefault(),
-        config: OrderScheduleConfig = defaultConfig
+        config: OrderScheduleConfig = defaultConfig,
+        closures: MarketClosures = MarketClosures.NONE,
+        marketId: String? = null
     ): List<Instant> {
         val dates = mutableListOf<Instant>()
         var currentDate = now
+        var candidates = 0
 
-        while (dates.size < count) {
+        // Bounded on purpose. Every pickup day used to qualify, so walking until
+        // `count` were found always terminated; a seller who can close days can
+        // close every candidate, and an unbounded loop would then hang the app
+        // instead of simply offering fewer dates.
+        while (dates.size < count && candidates < MAX_PICKUP_CANDIDATES) {
+            candidates++
             val nextPickup = calculateNextPickupDate(currentDate, timeZone, config)
 
             // Check if deadline has passed for this pickup date
-            if (canEditOrder(nextPickup, now, timeZone, config)) {
+            val withinWindow = canEditOrder(nextPickup, now, timeZone, config)
+            val open = !closures.isClosed(nextPickup, timeZone, marketId)
+            if (withinWindow && open) {
                 dates.add(nextPickup)
             }
 
@@ -313,6 +324,13 @@ object OrderDateUtils {
 
         return dates
     }
+
+    /**
+     * How many pickup days ahead [getAvailablePickupDates] will look before giving
+     * up. Half a year of weekly markets — far beyond any order window, and short
+     * enough that an all-closed calendar returns promptly rather than spinning.
+     */
+    const val MAX_PICKUP_CANDIDATES = 26
 
     /**
      * Check if a selected pickup date is still valid
@@ -328,10 +346,17 @@ object OrderDateUtils {
         pickupDate: Instant,
         now: Instant = Clock.System.now(),
         timeZone: TimeZone = TimeZone.currentSystemDefault(),
-        config: OrderScheduleConfig = defaultConfig
+        config: OrderScheduleConfig = defaultConfig,
+        closures: MarketClosures = MarketClosures.NONE,
+        marketId: String? = null
     ): Boolean {
         // Must be in future
         if (pickupDate <= now) return false
+
+        // A date the buyer picked before the seller closed that day is no longer
+        // selectable. Re-checked here rather than only at generation time, because
+        // a draft basket can hold a date chosen days ago.
+        if (closures.isClosed(pickupDate, timeZone, marketId)) return false
 
         // Deadline must not have passed
         return canEditOrder(pickupDate, now, timeZone, config)

@@ -80,11 +80,25 @@ import newverse.shared.generated.resources.app_icon
 import newverse.shared.generated.resources.app_name
 import newverse.shared.generated.resources.app_tagline_full
 import org.jetbrains.compose.resources.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.together.newverse.domain.model.ContactChannel
+import com.together.newverse.domain.model.SellerContactDirectory
+import com.together.newverse.ui.components.displayName
+import com.together.newverse.ui.components.icon
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun AboutScreenModern(
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    /**
+     * What the seller has published. Empty — not loaded yet, offline, or nothing
+     * entered — falls back to the bundled strings, so a cold start on a bad
+     * connection still shows a way to get in touch.
+     *
+     * This is the directory: everything, including each market's own contacts,
+     * and shown to every buyer. The top bar is the shortcut and is narrower.
+     */
+    contacts: SellerContactDirectory = SellerContactDirectory(),
 ) {
     val scrollState = rememberScrollState()
     val uriHandler = LocalUriHandler.current
@@ -120,7 +134,7 @@ fun AboutScreenModern(
                 HeroSection()
 
                 // Contact Card
-                ContactCard(uriHandler = uriHandler)
+                ContactCard(uriHandler = uriHandler, contacts = contacts)
 
                 // Legal Information Card
                 LegalInfoCard()
@@ -197,7 +211,10 @@ private fun HeroSection() {
 }
 
 @Composable
-private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
+private fun ContactCard(
+    uriHandler: androidx.compose.ui.platform.UriHandler,
+    contacts: SellerContactDirectory,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -239,67 +256,62 @@ private fun ContactCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Phone
-            val callLabel = stringResource(Res.string.action_call)
-            // Dial what is displayed: the two drifted apart while the number was a literal.
-            val phoneNumber = stringResource(Res.string.about_phone).filter { it.isDigit() || it == '+' }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Phone,
-                    contentDescription = null,
-                    tint = FabGreen,
-                    modifier = Modifier.size(20.dp)
-                )
+            val fallbackPhone = stringResource(Res.string.about_phone)
+            val fallbackEmail = stringResource(Res.string.about_email)
 
-                Text(
-                    text = stringResource(Res.string.about_phone),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = FabGreen,
-                    fontWeight = FontWeight.Medium,
-                    textDecoration = TextDecoration.Underline,
-                    modifier = Modifier
-                        .clickable(
-                            onClickLabel = callLabel,
-                            role = Role.Button,
-                            onClick = { uriHandler.openUri("tel:$phoneNumber") }
+            if (contacts.isEmpty) {
+                // Nothing published yet: the bundled defaults. Dial what is shown.
+                ContactLine(
+                    icon = Icons.Default.Phone,
+                    text = fallbackPhone,
+                    actionLabel = stringResource(Res.string.action_call),
+                    onClick = {
+                        uriHandler.openUri(
+                            ContactChannel.PHONE.scheme + ContactChannel.PHONE.normalize(fallbackPhone)
                         )
-                        .padding(vertical = 12.dp)
+                    }
                 )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Email
-            val emailLabel = stringResource(Res.string.action_email)
-            val emailAddress = stringResource(Res.string.about_email)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Email,
-                    contentDescription = null,
-                    tint = FabGreen,
-                    modifier = Modifier.size(20.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+                ContactLine(
+                    icon = Icons.Default.Email,
+                    text = fallbackEmail,
+                    actionLabel = stringResource(Res.string.action_email),
+                    onClick = { uriHandler.openUri(ContactChannel.EMAIL.scheme + fallbackEmail) }
                 )
+            } else {
+                contacts.sellerContacts.filter { it.isUsable }.forEach { contact ->
+                    ContactLine(
+                        icon = contact.channel.icon(),
+                        text = contact.label.ifBlank { contact.value },
+                        actionLabel = contact.channel.displayName(),
+                        onClick = { uriHandler.openUri(contact.toUri()) }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
-                Text(
-                    text = stringResource(Res.string.about_email),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = FabGreen,
-                    fontWeight = FontWeight.Medium,
-                    textDecoration = TextDecoration.Underline,
-                    modifier = Modifier
-                        .clickable(
-                            onClickLabel = emailLabel,
-                            role = Role.Button,
-                            onClick = { uriHandler.openUri("mailto:$emailAddress") }
+                // Each market as its own group — a stall's number only means
+                // something next to the stall's name.
+                contacts.marketContacts.forEach { (marketId, marketContacts) ->
+                    val usable = marketContacts.filter { it.isUsable }
+                    if (usable.isEmpty()) return@forEach
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = contacts.marketNames[marketId].orEmpty(),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    usable.forEach { contact ->
+                        ContactLine(
+                            icon = contact.channel.icon(),
+                            text = contact.label.ifBlank { contact.value },
+                            actionLabel = contact.channel.displayName(),
+                            onClick = { uriHandler.openUri(contact.toUri()) }
                         )
-                        .padding(vertical = 12.dp)
-                )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -548,6 +560,43 @@ private fun InfoSection(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
             lineHeight = 22.sp
+        )
+    }
+}
+
+/**
+ * One tappable way to reach the seller.
+ *
+ * Extracted because the published list, each market's group and the bundled
+ * fallback are the same row three times, and they used to drift: the dialled
+ * number was a literal that no longer matched the number on screen.
+ */
+@Composable
+private fun ContactLine(
+    icon: ImageVector,
+    text: String,
+    actionLabel: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = FabGreen,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = FabGreen,
+            fontWeight = FontWeight.Medium,
+            textDecoration = TextDecoration.Underline,
+            modifier = Modifier
+                .clickable(onClickLabel = actionLabel, role = Role.Button, onClick = onClick)
+                .padding(vertical = 12.dp)
         )
     }
 }

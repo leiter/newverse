@@ -9,6 +9,8 @@ import com.together.newverse.ui.state.CustomerProfileScreenState
 import com.together.newverse.ui.state.InitializationStep
 import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.BuyAccountAction
+import com.together.newverse.domain.model.MarketClosures
+import com.together.newverse.domain.model.SellerContactDirectory
 import com.together.newverse.domain.model.SellerEventType
 import com.together.newverse.util.AppleTokenRevoker
 import com.together.newverse.ui.state.AuthProvider
@@ -1064,9 +1066,15 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
                 try {
                     val sellerDisplayName = profileRepository.getSellerDisplayName(currentSellerId)
                         .getOrNull() ?: ""
+                    val sellerContacts = profileRepository.getSellerContacts(currentSellerId)
+                        .getOrNull() ?: SellerContactDirectory()
+                    val sellerClosures = profileRepository.getSellerClosures(currentSellerId)
+                        .getOrNull() ?: MarketClosures.NONE
                     _state.update { it.copy(
                         connectedSellerId = currentSellerId,
-                        connectedSellerDisplayName = sellerDisplayName
+                        connectedSellerDisplayName = sellerDisplayName,
+                        sellerContacts = sellerContacts,
+                        sellerClosures = sellerClosures
                     )}
                 } catch (e: Exception) {
                     Log.d(TAG) { "resumeInitializationAfterAuth: getSellerDisplayName failed (non-fatal) - ${e.message}" }

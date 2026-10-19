@@ -126,8 +126,6 @@ import newverse.shared.generated.resources.access_status_pending
 import newverse.shared.generated.resources.action_favorites
 import newverse.shared.generated.resources.action_orders
 import newverse.shared.generated.resources.action_payment
-import newverse.shared.generated.resources.about_phone
-import newverse.shared.generated.resources.about_email
 import newverse.shared.generated.resources.action_help
 import newverse.shared.generated.resources.auth_provider_anonymous
 import newverse.shared.generated.resources.auth_provider_apple
@@ -176,6 +174,9 @@ import newverse.shared.generated.resources.quick_actions_title
 import newverse.shared.generated.resources.section_delivery_preferences
 import newverse.shared.generated.resources.section_personal_info
 import newverse.shared.generated.resources.seller_connection_scan_qr
+import com.together.newverse.domain.model.SellerContact
+import com.together.newverse.ui.components.displayName
+import com.together.newverse.ui.components.icon
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlinx.datetime.DayOfWeek
@@ -220,6 +221,7 @@ fun CustomerProfileScreenModern(
     isDemoMode: Boolean = true,
     missingProfileData: MissingProfileData = MissingProfileData(),
     accessStatus: AccessStatus = AccessStatus.NONE,
+    sellerContacts: List<SellerContact> = emptyList(),
     buyerId: String = "",
     orderReminder: OrderReminderSettings = OrderReminderSettings(),
     onRequestNotificationPermission: () -> Unit = {},
@@ -501,6 +503,9 @@ fun CustomerProfileScreenModern(
                             missingProfileData = missingProfileData,
                             buyerId = buyerId,
                             isRequestingAccess = isRequestingAccess,
+                            // Always the seller-level list here: an unapproved buyer
+                            // has no market eligibility, so no contextual market.
+                            sellerContacts = sellerContacts,
                             onRequestAccess = {
                                 onAction(BuySellerAction.RequestAccess)
                             },
@@ -1324,92 +1329,6 @@ private fun ActionButton(
 }
 
 @Composable
-private fun ContactActionButton(modifier: Modifier = Modifier) {
-    val uriHandler = LocalUriHandler.current
-    var showMenu by remember { mutableStateOf(false) }
-    val phoneNumber = stringResource(Res.string.about_phone).filter { it.isDigit() || it == '+' }
-    val email = stringResource(Res.string.about_email)
-
-    Box(modifier = modifier) {
-        Card(
-            onClick = { showMenu = true },
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    Icons.Default.AccountCircle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Mehr",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-
-        DropdownMenu(
-            expanded = showMenu,
-            onDismissRequest = { showMenu = false }
-        ) {
-            DropdownMenuItem(
-                text = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Email,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text("E-Mail")
-                    }
-                },
-                onClick = {
-                    uriHandler.openUri("mailto:$email")
-                    showMenu = false
-                }
-            )
-
-            DropdownMenuItem(
-                text = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Phone,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.tertiary
-                        )
-                        Text("Anrufen")
-                    }
-                },
-                onClick = {
-                    uriHandler.openUri("tel:$phoneNumber")
-                    showMenu = false
-                }
-            )
-        }
-    }
-}
-
-@Composable
 private fun SaveBottomBar(
     onSave: () -> Unit,
     onCancel: () -> Unit
@@ -1790,6 +1709,7 @@ private fun AccessStatusCard(
     missingProfileData: MissingProfileData,
     buyerId: String,
     isRequestingAccess: Boolean = false,
+    sellerContacts: List<SellerContact> = emptyList(),
     onRequestAccess: () -> Unit = {},
     onScanQrCode: () -> Unit = {}
 ) {
@@ -1880,6 +1800,33 @@ private fun AccessStatusCard(
                     modifier = Modifier.semantics { contentDescription = accessIdLabel }
                 )
             }
+            // The buyer who most needs to reach the seller is the one who cannot
+            // order yet and wants to ask how to become a customer — and they are
+            // exactly who the top-bar shortcut is hidden from. Put it here, where
+            // the question arises, rather than leaving them to find About.
+            if (accessStatus != AccessStatus.APPROVED && sellerContacts.isNotEmpty()) {
+                val uriHandler = LocalUriHandler.current
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    sellerContacts.forEach { contact ->
+                        val label = contact.label.ifBlank { contact.channel.displayName() }
+                        TextButton(onClick = { uriHandler.openUri(contact.toUri()) }) {
+                            Icon(
+                                contact.channel.icon(),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = contentColor
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(label, color = contentColor)
+                        }
+                    }
+                }
+            }
+
             // The access gate in requestAccess() refuses while profile data is
             // missing, so the requirement is stated here, next to the button it
             // blocks, instead of only after the buyer has tapped it.

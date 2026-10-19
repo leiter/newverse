@@ -6,6 +6,8 @@ import com.together.newverse.domain.model.BuyerAccess
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
+import com.together.newverse.domain.model.MarketClosures
+import com.together.newverse.domain.model.SellerContactDirectory
 import com.together.newverse.domain.model.SellerProfile
 import kotlinx.coroutines.flow.Flow
 
@@ -46,6 +48,21 @@ interface ProfileRepository {
      * lists - so this reads the single public child instead.
      */
     suspend fun getSellerDisplayName(sellerId: String): Result<String>
+
+    /**
+     * Get the ways a buyer may reach this seller: the business's own contacts and
+     * each market's.
+     *
+     * Reads the two public children rather than the profile node, for the same
+     * reason as [getSellerDisplayName].
+     */
+    suspend fun getSellerContacts(sellerId: String): Result<SellerContactDirectory>
+
+    /**
+     * Get the days on which this seller's markets do not happen, so they can be
+     * left out of the pickup dates offered to the buyer.
+     */
+    suspend fun getSellerClosures(sellerId: String): Result<MarketClosures>
 
     /**
      * Drop every cached profile.

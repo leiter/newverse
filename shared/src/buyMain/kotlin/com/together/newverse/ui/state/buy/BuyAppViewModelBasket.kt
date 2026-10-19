@@ -623,7 +623,10 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 return@launch
             }
 
-            val isDateValid = OrderDateUtils.isPickupDateValid(Instant.fromEpochMilliseconds(selectedDate))
+            val isDateValid = OrderDateUtils.isPickupDateValid(
+                Instant.fromEpochMilliseconds(selectedDate),
+                closures = _state.value.sellerClosures
+            )
             if (!isDateValid) {
                 _state.update { current ->
                     current.copy(
@@ -1105,7 +1108,11 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
 
 internal fun BuyAppViewModel.basketScreenLoadAvailableDates() {
     bLog("📅 BuyAppViewModel.basketScreenLoadAvailableDates: START")
-    val dates = OrderDateUtils.getAvailablePickupDates(count = 5)
+    // Days the seller has closed are never offered.
+    val dates = OrderDateUtils.getAvailablePickupDates(
+        count = 5,
+        closures = _state.value.sellerClosures
+    )
     _state.update { current ->
         current.copy(
             basketScreen = current.basketScreen.copy(
@@ -1135,7 +1142,10 @@ internal fun BuyAppViewModel.basketScreenHideDatePicker() {
 }
 
 internal fun BuyAppViewModel.basketScreenSelectPickupDate(date: Long) {
-    val isValid = OrderDateUtils.isPickupDateValid(Instant.fromEpochMilliseconds(date))
+    val isValid = OrderDateUtils.isPickupDateValid(
+        Instant.fromEpochMilliseconds(date),
+        closures = _state.value.sellerClosures
+    )
     if (!isValid) {
         _state.update { current ->
             current.copy(
@@ -1195,7 +1205,10 @@ internal fun BuyAppViewModel.basketScreenReorderWithNewDate(newPickupDate: Long,
         }
 
         try {
-            val isDateValid = OrderDateUtils.isPickupDateValid(Instant.fromEpochMilliseconds(newPickupDate))
+            val isDateValid = OrderDateUtils.isPickupDateValid(
+                Instant.fromEpochMilliseconds(newPickupDate),
+                closures = _state.value.sellerClosures
+            )
             if (!isDateValid) {
                 _state.update { current ->
                     current.copy(

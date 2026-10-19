@@ -1,6 +1,7 @@
 # Seller Contact: Channels, Market Scope and Visibility
 
-**Status:** Design only — nothing below is implemented
+**Status:** Implemented 2026-10-19. The design below is what was built; the two
+deviations found while building it are marked **BUILT DIFFERENTLY**.
 **Scope (proposed):** `shared/src/commonMain` (model + repository + About screen),
 `buyMain` (top-bar menu, profile card), `sellMain` (contact editor),
 `firebase/database.rules.json`
@@ -72,8 +73,8 @@ but the profile is not. (Separately, the `sellerId.isEmpty()` branch does
 
 ## The rule
 
-> **The channel decides the scheme. A contact without a market belongs to every market.
-> The shortcut is earned; the directory is not.**
+> **The channel decides the scheme. A contact belongs to the thing it is edited on — a
+> market, or the seller. The shortcut is earned; the directory is not.**
 
 ---
 
@@ -85,12 +86,9 @@ The seller wants to add and remove options, so the model is a list, not a fixed 
 enum class ContactChannel { PHONE, EMAIL, WHATSAPP, SIGNAL, WEB, INSTAGRAM }
 
 data class SellerContact(
-    val id: String = "",
     val channel: ContactChannel = ContactChannel.PHONE,
-    val value: String = "",          // number, address or handle — never a full URI
-    val label: String = "",          // optional override: "Bestellhotline"
-    val marketId: String? = null,    // null = every market
-    val position: Int = 0,
+    val value: String = "",     // number, address or handle — never a full URI
+    val label: String = "",     // optional override: "Bestellhotline"
 )
 ```
 
@@ -124,16 +122,52 @@ display string where a dialable one was needed.
 
 ---
 
-## 2. Market scope
+## 2. Two levels, each edited where it belongs
 
-A contact carries an optional `marketId`. `null` means every market — **the same
-convention as `MarketClosure.marketId`** in `doc/market-pricing-and-access-design.md`, so
-there is one rule to learn rather than two.
+A contact is **not** a record in a flat list tagged with a market id. It lives on the
+thing it describes, and is edited there:
 
-This is deliberately *not* the shape rejected for pricing. Per-market prices on an article
-are N copies of one fact that drift apart. A market-scoped contact is one record with an
-optional scope: the business email stays a single `null` record, and a stall mobile is one
-additional record. Nothing is duplicated for the common case.
+| Level | Held on | Edited in | Means |
+|---|---|---|---|
+| Seller | `SellerProfile` | the profile form that already exists | how to reach the business |
+| Market | `Market` | the market dialog, `SellerProfileScreen.kt:828` | how to reach *this stall* |
+
+The seller sets a stall's number while altering that stall, next to its address and
+opening hours, because that is where they are already thinking about it. No separate
+contact screen and no market dropdown.
+
+### Why not one flat list with a `marketId`
+
+It was the first shape proposed here and it is worse for this purpose. A flat
+`seller_contact/{sellerId}/{contactId}` list with an optional `marketId` needs its own
+node, its own rules, its own editor screen, and a market picker inside that editor — all
+to express a relationship the market dialog expresses by simply being open. It also
+leaves contacts behind when a market is deleted, which is extra cleanup. Nesting makes
+the market the owner, so the contacts go with it.
+
+### The duplication trap, and the way out
+
+If *every* contact were per-market, a seller with three stalls would enter their business
+email three times and change it in three places. That is precisely the drift that put a
+wrong phone number in the About screen (§Where it stands today).
+
+So the seller level is the default and the market level is additive. A seller who never
+opens a market dialog still has working contacts; a market only carries what is genuinely
+different about it.
+
+### Union, not override
+
+The buyer sees the seller's contacts **and** the contextual market's, deduplicated by
+`(channel, value)`:
+
+- Seller has one number, market adds nothing → one row. The common case, no noise.
+- Market repeats the seller's number → still one row, because the pair matches.
+- Market has its own mobile → two rows, distinguished by their labels
+  (`Büro` / `Stand Kreuzberg`).
+
+Override would have been the other option, and it is wrong here: a stall mobile that is
+only answered on market day does not replace the office line, it adds to it. Dedup by
+value means a seller who copies the same number into a market is not punished for it.
 
 ### What "the current market" means outside the basket
 
@@ -145,16 +179,16 @@ The contextual market resolves in this order, and the answer may be none:
 3. the buyer's only eligible market, if they have exactly one
 4. otherwise: none
 
-The menu then shows every `marketId == null` contact, plus the contextual market's own
-contacts if step 1–3 produced one. With no contextual market the buyer sees the
-seller-wide contacts, which is the correct answer rather than a fallback.
+The menu then shows the seller-level contacts, plus the contextual market's own if
+step 1–3 produced one, deduplicated as above. With no contextual market the buyer sees
+the seller-level contacts, which is the correct answer rather than a fallback.
 
 ### Shortcut and directory
 
 | | Shows | For whom |
 |---|---|---|
-| **Top-bar menu** | seller-wide + contextual market | approved buyers only (§3) |
-| **About screen** | everything, grouped by market | everyone |
+| **Top-bar menu** | seller level + contextual market, deduplicated | approved buyers only (§3) |
+| **About screen** | seller level, then every market as its own group | everyone |
 
 The top bar is a shortcut to the one or two ways you would actually reach this seller
 today. About is the directory and stays complete.
@@ -188,10 +222,11 @@ Absent until earned, never the reverse.
 
 ### This is friction, not protection
 
-`seller_contact` has to be readable by any signed-in user, because the About screen serves
-demo users too. The data is therefore in the database for anyone who can sign in. Hiding
-the menu reduces casual inbound contact; it is not an access control and must not later be
-mistaken for one.
+`seller_profile/{sellerId}/contacts` and `…/markets` have to be readable by any signed-in
+user, because the About screen serves demo users too — and under the existing `$field`
+rule they already are. The data is therefore in the database for anyone who can sign in.
+Hiding the menu reduces casual inbound contact; it is not an access control and must not
+later be mistaken for one.
 
 ### The one cohort with a real question
 
@@ -214,47 +249,77 @@ not interact awkwardly.
 
 ---
 
-## 4. Storage
+## 4. Storage: no new node
 
-`seller_contact/{sellerId}/{contactId}` — a separate node, not a field on the profile.
+Contacts ride on the structures that already exist. Nothing new is added to
+`database.rules.json`.
 
-```jsonc
-"seller_contact": {
-  "$sellerId": {
-    ".read": "auth != null",
-    ".write": "auth != null && $sellerId === auth.uid",
-    "$contactId": {
-      ".validate": "newData.hasChildren(['channel', 'value'])",
-      "channel":  { ".validate": "newData.isString()" },
-      "value":    { ".validate": "newData.isString() && newData.val().length <= 200" },
-      "label":    { ".validate": "newData.isString() && newData.val().length <= 60" },
-      "marketId": { ".validate": "newData.isString()" },
-      "position": { ".validate": "newData.isNumber()" },
-      "$other":   { ".validate": false }
-    }
-  }
-}
+```kotlin
+data class SellerProfile(
+    …
+    val contacts: List<SellerContact> = emptyList(),   // new
+)
+
+data class Market(
+    …
+    val contacts: List<SellerContact> = emptyList(),   // new
+)
 ```
 
-Same read/write shape as `articles`, which is the existing precedent for "public to signed-in
-users, written by the owner".
+Both serialize into `seller_profile/{sellerId}` — the profile's own list at
+`…/contacts`, and each market's inside the existing `…/markets` list, which already
+stores markets as a list of maps.
 
-### Why not reuse `seller_profile`
+### Buyers can already read this
 
-`SellerProfile` already has `telephoneNumber` and `urls: List<String>`, and relaxing the
-parent `.read` would be the shortest path. Rejected:
+The rule on the node is:
 
-- It would publish everything else in the node — `lat`, `lng`, the seller's private street
-  address — and make **every field added to the profile in future public by default**. The
-  three legacy maps are already explicitly excluded there, which is evidence the node was
-  never designed to be buyer-readable. This is the accident class catalogued in
-  `doc/buyer-profile-data-safety.md`.
-- The shape is wrong anyway: a contact list with add, remove and reorder is not a set of
-  fixed profile fields.
+```json
+"seller_profile": { "$sellerId": {
+    ".read": "auth != null && auth.uid === $sellerId",
+    "$field": { ".read": "auth != null && $field !== 'knownClientIds' && …" } } }
+```
 
-`SellerProfile.telephoneNumber` stays as the seller's own record of their number. If the
-seller app wants to offer it as a starting value when adding the first `PHONE` contact,
-that is a convenience at save time, not a live dependency.
+A `$field` read grants the whole subtree beneath that field, so a buyer may read
+`seller_profile/{sellerId}/markets` and `seller_profile/{sellerId}/contacts` today,
+without a rules change. What a buyer may *not* do is read the profile node itself — which
+is why `getSellerProfile` cannot be reused as-is (see §Where it stands today).
+
+So the buy app needs a narrow new method reading exactly those two fields:
+
+```kotlin
+suspend fun getSellerContacts(sellerId: String): Result<SellerContactDirectory>
+```
+
+Two child reads, no access to `lat`, `lng` or the seller's street address — the fields
+stay closed by default rather than being published wholesale, which was the objection to
+relaxing the parent `.read`.
+
+### What this costs
+
+`GitLiveProfileRepository` hand-rolls the market map in both directions
+(`mapSnapshotToSellerProfile` around line 452, `sellerProfileToMap` around line 565).
+A nested contact list adds roughly fifteen lines to each. That is the whole price of
+dropping a node, a rules block and an editor screen.
+
+### Why not a separate `seller_contact` node after all
+
+It was the first proposal here. Rejected once contacts became market-owned: a separate
+node would have to mirror the market relationship with a `marketId` foreign key, needs
+its own rules and validation, and orphans its rows when a market is deleted. Nesting
+gets ownership, atomic save and cascade delete for free.
+
+### BUILT DIFFERENTLY: one more public child, for closures
+
+`getSellerClosures` reads `seller_profile/{sellerId}/closures` the same way, added
+while building the markets work — see `doc/market-pricing-and-access-design.md` §4.
+Three public children now: `displayName`, `contacts`, `closures`, plus `markets`.
+
+### `SellerProfile.telephoneNumber` stays
+
+It remains the seller's own record of their number, unrelated to what is published. The
+seller app may offer it as the starting value when adding a first `PHONE` contact — a
+convenience at save time, not a live dependency.
 
 ### Fallback
 
@@ -271,19 +336,32 @@ empty dropdown is worse than no icon.
 
 1. ~~**Fix the dialled-number bug.**~~ Done: `AboutScreenModern` now dials and mails what
    it displays instead of two literals.
-2. **Model, node, rules, repository, DI.** Including the degradation path for unknown
-   channels.
-3. **Buy app read + the four call sites.** All four move together or the app shows
-   different numbers on different screens.
-4. **Seller editor** in `SellerProfileScreen` — add, remove, reorder. The market dialog at
-   `SellerProfileScreen.kt:828` is the pattern to copy. The largest single chunk.
-5. **Visibility rule** — `canContactSeller`, plus the contact link in `AccessStatusCard`.
-6. **Market scoping.** Last: it depends on `Market` being a real entity
-   (`doc/market-pricing-and-access-design.md` §1) and on the contextual-market resolution,
-   neither of which exists yet. Until then every contact is `marketId = null` and the
-   feature is complete without it.
+2. **`SellerContact` + serialization** in `GitLiveProfileRepository`, both directions,
+   including the skip-unknown-channel path. No rules change.
+3. **Seller editing** — a contact list in the profile form, and the same list inside the
+   market dialog (`SellerProfileScreen.kt:828`). One composable used twice. The largest
+   chunk.
+4. **Buy app read** — `getSellerContacts`, reading the two fields rather than the node,
+   plus the union-and-dedup resolution.
+5. **The four call sites.** All four move together or the app shows different numbers on
+   different screens.
+6. **Visibility rule** — `canContactSeller`, plus the contact link in `AccessStatusCard`.
 
-Steps 1–5 are independent of the markets work. Step 6 is the only part that waits.
+All six are done. **BUILT DIFFERENTLY:** the fourth call site,
+`ContactActionButton` in `CustomerProfileScreenModern`, turned out to be dead code —
+defined, never referenced anywhere in either flavor. It was deleted rather than
+ported, so three call sites now read the published list and the bundled strings
+survive only as the About screen's offline fallback.
+
+None of this waits on the markets work. Contacts attach to `Market` as it exists today —
+a value class in the profile's `markets` list — and move with it unchanged when markets
+become their own node (`doc/market-pricing-and-access-design.md` §1).
+
+The contextual-market resolution in §2 is the one part that stays degenerate until then:
+with no `Order.marketId` and no eligibility, step 3 of the resolution ("the buyer's only
+eligible market") is the only one that can fire, so a single-market seller works fully
+and a multi-market seller shows seller-level contacts in the top bar and everything on
+About. That is correct behaviour, not a stub.
 
 ---
 
@@ -297,21 +375,33 @@ label, two translations and a normalization rule. Shipping two and adding on dem
 probably right, but the enum should be defined with the full set from the start so stored
 values never need rewriting.
 
-### 2. Does the About screen group by market before markets exist?
+### 2. Ordering within a level
 
-Until `Market` is an entity, every contact is `marketId = null` and the grouping is a
-single ungrouped list. Worth building the About screen ungrouped and adding grouping with
-step 6, rather than writing grouping code against data that cannot yet vary.
+`position` was dropped from `SellerContact` along with `id` and `marketId`: list order in
+the stored array is the seller's order, which the market dialog already gives for free.
+That works until someone wants to reorder without retyping, at which point the editor
+needs drag-to-reorder. Fixed precedence by channel (phone, then email, then the rest)
+would avoid it entirely. Only worth deciding if a seller would really want email above
+phone.
 
-### 3. Is `position` worth it?
+### 3. Should an approved buyer see other markets' contacts in the menu?
 
-Explicit ordering means the seller editor needs drag-to-reorder, which is the fiddliest
-part of step 4. Ordering by channel with a fixed precedence (phone, then email, then the
-rest) would drop the field and the interaction. Only worth it if a seller would really
-want email above phone.
-
-### 4. Should an approved buyer see other markets' contacts in the menu?
-
-As specified, no — the menu shows seller-wide plus the contextual market, and About has
-the rest. A buyer who collects at two markets and wants the other stall's number has to
+As specified, no — the menu shows seller-level plus the contextual market, and About has
+everything. A buyer who collects at two markets and wants the other stall's number has to
 open About. Probably correct, but it is an assumption, not a finding.
+
+### 4. Does a market need to suppress a seller-level contact?
+
+Union means a market can only add. A stall that specifically should *not* be reached on
+the office line has no way to say so. A `hidden` flag or an explicit override mode would
+cover it, at the cost of the simplicity union buys. Nobody has asked for it; worth
+leaving out until they do.
+
+### 5. Does the seller-level list need a migration from `telephoneNumber`?
+
+A seller who has filled in `telephoneNumber` today gets an empty `contacts` list
+tomorrow, and the buy app falls back to the `about_*` strings rather than their actual
+number. Seeding the first `PHONE` contact from `telephoneNumber` on first load would
+avoid that, but writes to the profile on a read path. The alternative is leaving it to
+the seller to enter once. Low stakes with one seller; worth a thought before there are
+several.

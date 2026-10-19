@@ -1,6 +1,9 @@
 package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.AccessStatus
+import com.together.newverse.domain.model.MarketClosures
+import com.together.newverse.domain.model.SellerContact
+import com.together.newverse.domain.model.SellerContactDirectory
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.MissingProfileData
 import com.together.newverse.domain.model.missingProfileData
@@ -35,6 +38,9 @@ data class BuyAppState(
     val accessStatus: AccessStatus = AccessStatus.NONE,
     val isAccessStatusLoaded: Boolean = false,
     val isRequestingAccess: Boolean = false,
+    val sellerContacts: SellerContactDirectory = SellerContactDirectory(),
+    /** Days the seller has marked as not happening; filtered out of the pickup dates. */
+    val sellerClosures: MarketClosures = MarketClosures.NONE,
 
     // Invitation state
     val pendingInvitations: List<Invitation> = emptyList(),
@@ -98,6 +104,35 @@ data class BuyAppState(
     val isDemoMode: Boolean get() = isAccessStatusLoaded && accessStatus != AccessStatus.APPROVED
 
     /**
+     * Whether the top-bar contact shortcut is shown.
+     *
+     * Gated on approval being *known and granted*, not on `!isDemoMode`: that is
+     * false while the status is still loading, so it would show the menu at launch
+     * and take it away a moment later. Absent until earned, never the reverse.
+     *
+     * This is friction, not protection — the contacts are readable in the database
+     * by any signed-in user, and the About screen shows them to everyone.
+     */
+    val canContactSeller: Boolean
+        get() = isAccessStatusLoaded && accessStatus == AccessStatus.APPROVED
+
+    /**
+     * The market whose contacts join the seller's in the top bar.
+     *
+     * Only the "sole eligible market" step can fire until `Order.marketId` is real
+     * and eligibility exists — see `doc/market-pricing-and-access-design.md`. A
+     * single-market seller therefore works fully today.
+     */
+    val contextualMarketId: String?
+        get() = sellerContacts.marketContacts.keys.singleOrNull()
+            ?: customerProfile.profile?.defaultMarket?.takeIf { it.isNotEmpty() }
+
+    /** What the top-bar menu offers, already deduplicated. */
+    val topBarContacts: List<SellerContact>
+        get() = if (!canContactSeller) emptyList()
+        else sellerContacts.resolveFor(contextualMarketId)
+
+    /**
      * The one completeness rule, shared by the access gate and every prompt
      * about it. See [MissingProfileData].
      */
@@ -140,6 +175,8 @@ fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
     accessStatus = AccessStatus.NONE,
     isAccessStatusLoaded = false,
     isRequestingAccess = false,
+    sellerContacts = SellerContactDirectory(),
+    sellerClosures = MarketClosures.NONE,
     pendingInvitations = emptyList(),
     showConnectionConfirmDialog = null,
     basket = BasketState(),

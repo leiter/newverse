@@ -2,6 +2,8 @@ package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.AccessStatus
+import com.together.newverse.domain.model.MarketClosures
+import com.together.newverse.domain.model.SellerContactDirectory
 import com.together.newverse.domain.model.InvitationStatus
 import com.together.newverse.ui.state.BasketScreenState
 import com.together.newverse.ui.state.BasketState
@@ -215,11 +217,29 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
                 ""
             }
 
+            // Fetch the seller's contact channels. Non-fatal: the About screen falls
+            // back to the bundled strings and the top bar simply hides its icon.
+            val sellerContacts = try {
+                profileRepository.getSellerContacts(sellerId).getOrNull() ?: SellerContactDirectory()
+            } catch (e: Exception) {
+                Log.d(TAG) { "performConnection: getSellerContacts failed (non-fatal) - ${e.message}" }
+                SellerContactDirectory()
+            }
+
+            val sellerClosures = try {
+                profileRepository.getSellerClosures(sellerId).getOrNull() ?: MarketClosures.NONE
+            } catch (e: Exception) {
+                Log.d(TAG) { "performConnection: getSellerClosures failed (non-fatal) - ${e.message}" }
+                MarketClosures.NONE
+            }
+
             // Clear basket and reset screen states; reset accessStatus (will be re-observed)
             _state.update { current ->
                 current.copy(
                     connectedSellerId = sellerConfig.sellerId,
                     connectedSellerDisplayName = sellerDisplayName,
+                    sellerContacts = sellerContacts,
+                    sellerClosures = sellerClosures,
                     accessStatus = AccessStatus.NONE,
                     basket = BasketState(),
                     products = ProductsScreenState(),

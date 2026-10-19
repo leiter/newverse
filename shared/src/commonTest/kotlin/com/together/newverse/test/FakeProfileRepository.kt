@@ -6,6 +6,9 @@ import com.together.newverse.domain.model.BuyerAccess
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
+import com.together.newverse.domain.model.MarketClosures
+import com.together.newverse.domain.model.SellerContactDirectory
+import com.together.newverse.domain.model.toContactDirectory
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.Flow
@@ -108,6 +111,12 @@ class FakeProfileRepository : ProfileRepository {
 
     override suspend fun getSellerDisplayName(sellerId: String): Result<String> =
         Result.success(_sellerProfile.value?.displayName ?: "")
+
+    override suspend fun getSellerContacts(sellerId: String): Result<SellerContactDirectory> =
+        Result.success(_sellerProfile.value?.toContactDirectory() ?: SellerContactDirectory())
+
+    override suspend fun getSellerClosures(sellerId: String): Result<MarketClosures> =
+        Result.success(MarketClosures(_sellerProfile.value?.closures.orEmpty()))
 
     override suspend fun getSellerProfile(sellerId: String): Result<SellerProfile> {
         if (shouldFailGetSellerProfile) {

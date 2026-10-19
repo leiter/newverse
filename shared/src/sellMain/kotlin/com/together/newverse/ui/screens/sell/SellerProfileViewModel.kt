@@ -8,6 +8,8 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.InvitationStatus
 import com.together.newverse.domain.model.Market
+import com.together.newverse.domain.model.MarketClosure
+import com.together.newverse.domain.model.SellerContact
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
@@ -250,6 +252,18 @@ class SellerProfileViewModel(
                 }
             )
         }
+    }
+
+    /** Replace the business's own contact list — the markets' own lists are untouched. */
+    fun saveSellerContacts(contacts: List<SellerContact>) {
+        val currentProfile = (_profileState.value as? AsyncState.Success)?.data ?: return
+        saveProfile(currentProfile.copy(contacts = contacts))
+    }
+
+    /** Replace the list of days on which a market does not happen. */
+    fun saveClosures(closures: List<MarketClosure>) {
+        val currentProfile = (_profileState.value as? AsyncState.Success)?.data ?: return
+        saveProfile(currentProfile.copy(closures = closures))
     }
 
     fun addMarket(market: Market) {

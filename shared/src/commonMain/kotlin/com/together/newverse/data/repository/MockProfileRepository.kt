@@ -6,6 +6,9 @@ import com.together.newverse.domain.model.BuyerAccess
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
+import com.together.newverse.domain.model.MarketClosures
+import com.together.newverse.domain.model.SellerContactDirectory
+import com.together.newverse.domain.model.toContactDirectory
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.preview.PreviewData
@@ -56,6 +59,12 @@ class MockProfileRepository : ProfileRepository {
 
     override suspend fun getSellerDisplayName(sellerId: String): Result<String> =
         Result.success(PreviewData.sampleSellerProfile.displayName)
+
+    override suspend fun getSellerContacts(sellerId: String): Result<SellerContactDirectory> =
+        Result.success(PreviewData.sampleSellerProfile.toContactDirectory())
+
+    override suspend fun getSellerClosures(sellerId: String): Result<MarketClosures> =
+        Result.success(MarketClosures(PreviewData.sampleSellerProfile.closures))
 
     override suspend fun getSellerProfile(sellerId: String): Result<SellerProfile> {
         return try {

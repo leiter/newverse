@@ -18,4 +18,17 @@ data class SellerProfile(
     val sellerId: String = "",
     val markets: List<Market> = emptyList(),
     val urls: List<String> = emptyList(),
+    /**
+     * How to reach the business, shown for every market. [Market.contacts] adds to
+     * this per stall. [telephoneNumber] stays the seller's own record of their
+     * number and is not published through it.
+     */
+    val contacts: List<SellerContact> = emptyList(),
+    /**
+     * Days on which a market does not happen. An entry with no market id closes
+     * every market. Stored here rather than in a node of its own: a seller has a
+     * handful a year, and the existing field-level read rule already lets buyers
+     * see them without a rules change.
+     */
+    val closures: List<MarketClosure> = emptyList(),
 )

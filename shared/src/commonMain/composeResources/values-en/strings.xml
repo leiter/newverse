@@ -1058,4 +1058,27 @@
     <string name="a11y_category_filter">Category: %1$s</string>
     <string name="overview_reset_filters">Reset filters</string>
     <string name="overview_no_match_hint">No article matches the search, category and availability.</string>
+    <string name="contact_section_seller">Business contact</string>
+    <string name="contact_section_market">Contact for this market</string>
+    <string name="contact_add">Add contact</string>
+    <string name="contact_remove">Remove contact</string>
+    <string name="contact_channel">Type</string>
+    <string name="contact_value">Number or address</string>
+    <string name="contact_label_hint">Label (optional)</string>
+    <string name="contact_channel_phone">Phone</string>
+    <string name="contact_channel_email">Email</string>
+    <string name="contact_channel_whatsapp">WhatsApp</string>
+    <string name="contact_channel_signal">Signal</string>
+    <string name="contact_channel_web">Website</string>
+    <string name="contact_channel_instagram">Instagram</string>
+    <string name="closures_title">Days without a market</string>
+    <string name="closures_empty">No closures entered</string>
+    <string name="closures_add">Add a day</string>
+    <string name="closures_remove">Remove day</string>
+    <string name="closures_date_hint">Date (DD.MM.YYYY)</string>
+    <string name="closures_reason_hint">Reason (e.g. holiday)</string>
+    <string name="closures_all_markets">All markets</string>
+    <string name="closures_market">Market</string>
+    <string name="closures_invalid_date">Please enter a valid date</string>
+    <string name="closures_orders_warning">This day already has orders. Move or cancel them first.</string>
 </resources>

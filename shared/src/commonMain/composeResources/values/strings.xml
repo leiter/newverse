@@ -1116,4 +1116,27 @@
     <string name="a11y_category_filter">Kategorie: %1$s</string>
     <string name="overview_reset_filters">Filter zurücksetzen</string>
     <string name="overview_no_match_hint">Kein Artikel passt zu Suche, Kategorie und Verfügbarkeit.</string>
+    <string name="contact_section_seller">Kontakt zum Betrieb</string>
+    <string name="contact_section_market">Kontakt für diesen Markt</string>
+    <string name="contact_add">Kontakt hinzufügen</string>
+    <string name="contact_remove">Kontakt entfernen</string>
+    <string name="contact_channel">Art</string>
+    <string name="contact_value">Nummer oder Adresse</string>
+    <string name="contact_label_hint">Bezeichnung (optional)</string>
+    <string name="contact_channel_phone">Telefon</string>
+    <string name="contact_channel_email">E-Mail</string>
+    <string name="contact_channel_whatsapp">WhatsApp</string>
+    <string name="contact_channel_signal">Signal</string>
+    <string name="contact_channel_web">Webseite</string>
+    <string name="contact_channel_instagram">Instagram</string>
+    <string name="closures_title">Markttage, die entfallen</string>
+    <string name="closures_empty">Keine Ausfalltage eingetragen</string>
+    <string name="closures_add">Tag eintragen</string>
+    <string name="closures_remove">Tag entfernen</string>
+    <string name="closures_date_hint">Datum (TT.MM.JJJJ)</string>
+    <string name="closures_reason_hint">Grund (z. B. Feiertag)</string>
+    <string name="closures_all_markets">Alle Märkte</string>
+    <string name="closures_market">Markt</string>
+    <string name="closures_invalid_date">Bitte ein gültiges Datum eingeben</string>
+    <string name="closures_orders_warning">An diesem Tag liegen bereits Bestellungen vor. Bitte zuerst umbuchen oder stornieren.</string>
 </resources>
