@@ -134,10 +134,10 @@ class SellerProfileViewModel(
                     _customerState.value = CustomerManagementState(
                         approvedBuyers = buyers
                             .filter { it.status == AccessStatus.APPROVED }
-                            .map { BuyerEntry(it.buyerId, it.displayName, it.status) },
+                            .map { BuyerEntry(it.buyerId, it.displayName, it.status, it.allowedMarkets) },
                         blockedBuyers = buyers
                             .filter { it.status == AccessStatus.BLOCKED }
-                            .map { BuyerEntry(it.buyerId, it.displayName, it.status) }
+                            .map { BuyerEntry(it.buyerId, it.displayName, it.status, it.allowedMarkets) }
                     )
                 }
         }
@@ -149,16 +149,36 @@ class SellerProfileViewModel(
      * redeemed - the old flow pre-approved a bare uuid in the background, which the
      * buyer then had no way to claim.
      */
-    fun generateBuyerLink() {
+    /**
+     * Mint a buyer link, optionally scoped to particular markets.
+     *
+     * An empty list invites the buyer to every market, which is what a link meant
+     * before scoping existed. Scoping it is how "you are invited to the Kreuzberg
+     * stall" is expressed — and the link is meant to be scanned at a stall, so the
+     * market is usually known when it is generated.
+     */
+    fun generateBuyerLink(grantsMarkets: List<String> = emptyList()) {
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            profileRepository.createInviteToken(sellerId, QR_LINK_HINT, INVITE_TOKEN_TTL_MILLIS)
+            profileRepository.createInviteToken(
+                sellerId, QR_LINK_HINT, INVITE_TOKEN_TTL_MILLIS,
+                grantsMarkets = grantsMarkets
+            )
                 .onSuccess { token ->
                     _generatedBuyerLink.value =
                         "https://cutthecrap.link/connect?seller=$sellerId&token=$token"
                     Log.d(TAG) { "generateBuyerLink: minted a token for sellerId=$sellerId" }
                 }
                 .onFailure { e -> Log.e(TAG) { "generateBuyerLink: ${e.message}" } }
+        }
+    }
+
+    /** Narrow or widen where an approved buyer may collect. Empty means everywhere. */
+    fun setAllowedMarkets(buyerId: String, markets: List<String>) {
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            profileRepository.setAllowedMarkets(sellerId, buyerId, markets)
+                .onFailure { e -> Log.e(TAG) { "setAllowedMarkets: ${e.message}" } }
         }
     }
 
@@ -511,7 +531,9 @@ const val INVITE_TOKEN_TTL_MILLIS = 30L * 24 * 60 * 60 * 1000
 data class BuyerEntry(
     val id: String,
     val displayName: String,
-    val status: AccessStatus
+    val status: AccessStatus,
+    /** Which markets this buyer may collect at. Empty means all of them. */
+    val allowedMarkets: List<String> = emptyList()
 )
 
 /**

@@ -193,6 +193,9 @@ fun NavGraphBuilder.navGraph(
             onDeleteMarket = { marketId -> profileViewModel.removeMarket(marketId) },
             onSaveSellerContacts = { contacts -> profileViewModel.saveSellerContacts(contacts) },
             onSaveClosures = { closures -> profileViewModel.saveClosures(closures) },
+            onSetAllowedMarkets = { buyerId, markets ->
+                profileViewModel.setAllowedMarkets(buyerId, markets)
+            },
             ordersByCycle = ordersByCycle.value,
             onGenerateInvitation = { minutes -> profileViewModel.generateInvitation(minutes) },
             onSendInvitationToBuyer = { buyerId -> profileViewModel.sendInvitationToBuyer(buyerId) },

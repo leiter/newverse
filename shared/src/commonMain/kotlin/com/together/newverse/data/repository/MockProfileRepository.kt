@@ -150,6 +150,8 @@ class MockProfileRepository : ProfileRepository {
 
     override suspend fun getAccessStatus(sellerId: String): AccessStatus = AccessStatus.NONE
 
+    override fun observeAllowedMarkets(sellerId: String): Flow<List<String>> = flowOf(emptyList())
+
     override fun observeAccessStatus(sellerId: String): Flow<AccessStatus> =
         flowOf(AccessStatus.NONE)
 
@@ -171,6 +173,17 @@ class MockProfileRepository : ProfileRepository {
     override suspend fun unblockBuyer(sellerId: String, buyerId: String): Result<Unit> =
         Result.success(Unit)
 
-    override suspend fun createInviteToken(sellerId: String, displayNameHint: String, ttlMillis: Long, token: String?): Result<String> =
-        Result.success(token ?: "mock-token")
+    override suspend fun createInviteToken(
+        sellerId: String,
+        displayNameHint: String,
+        ttlMillis: Long,
+        token: String?,
+        grantsMarkets: List<String>
+    ): Result<String> = Result.success(token ?: "mock-token")
+
+    override suspend fun setAllowedMarkets(
+        sellerId: String,
+        buyerId: String,
+        markets: List<String>
+    ): Result<Unit> = Result.success(Unit)
 }

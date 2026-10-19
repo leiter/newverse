@@ -1,7 +1,8 @@
 # Markets: Pricing, Access, Scheduling and Communication
 
-**Status:** §1 (markets as an entity) and §4's closures are implemented
-(2026-10-19), marked below. §2, §3 and the rest of §4 are design only.
+**Status:** §1 (markets as an entity), §3 (eligibility) and §4 (schedules, slots,
+closures) are implemented, 2026-10-19. §2 (pricing) and production requests are
+design only.
 **Scope (proposed):** `shared/src/commonMain` (model + pricing + schedule + repository),
 `buyMain` (slot picker, price breakdown), `sellMain` (market, condition and closure
 editing), `firebase/database.rules.json`
@@ -288,7 +289,7 @@ this reason (`doc/demo-order-provenance.md`).
 
 ---
 
-## 3. Access: approval per seller, eligibility per market
+## 3. Access: approval per seller, eligibility per market — built
 
 ### Rejected: `BuyerAccess` keyed by (seller, market)
 
@@ -328,9 +329,35 @@ code as meant to be scanned at a stall (`SellerProfileViewModel.kt:419`), so the
 usually known at the moment the link is generated.
 
 The self-write rule on `buyer_access_status` lets a buyer create their own `APPROVED`
-record when `viaToken` names a token they redeemed. That rule must additionally require
-`allowedMarkets` to equal the token's `grantsMarkets`, or a redeemer grants themselves
-every market.
+record when `viaToken` names a token they redeemed. That rule now also requires
+`allowedMarkets` to equal the token's `grantsMarkets`, because without it redeeming a
+stall-scoped invite would be an invitation to grant yourself every market.
+
+### What was built, and the two holes it closed
+
+`BuyerAccess.allowedMarkets`, **empty meaning all** — so every record written before
+scoping keeps its meaning and no migration was needed. The buy app filters its markets
+through `BuyAppState.eligibleMarkets`, which feeds the slot generator and the contextual
+market, so a stall the buyer is not scoped to offers them nothing.
+
+The scope is stored as **one comma-joined string**, sorted and deduplicated, not a child
+map. RTDB rules can compare a string for equality but cannot walk a map to prove two of
+them match, and that comparison is the whole enforcement. `MarketScope` owns the
+encoding, and a test pins that two sellers ticking the same boxes in a different order
+produce the same string.
+
+Two escalations the rules now deny, both found while writing them:
+
+- **Widening on redemption.** A buyer writes their own `APPROVED` record, so without the
+  equality check they could claim `"m1,m2"` — or, worse, `""`, which means *every*
+  market — from a token granting only `m1`.
+- **Widening afterwards.** The update branch of that rule only pinned `status`, so an
+  approved buyer could rewrite their own `allowedMarkets` at any time. It now pins the
+  scope too, while still allowing the display-name change the buy app makes.
+
+A token minted before scoping has no `grantsMarkets`; redeeming it grants every market,
+which is what it always meant. `market-eligibility.test.js` covers all of this — 14
+tests, including each escalation attempt.
 
 ### Production requests
 
@@ -573,8 +600,9 @@ not silence their reminder.
    `DraftBasket.selectedPickupDate` is still a bare date rather than a slot, and
    `Order.canEdit`/`getEditDeadline`/`getWindowStatus` still use the app-wide
    schedule rather than the order's own market.
-4. **Eligibility + invite scoping** (§3). Determines who ever sees a second market's
-   prices.
+4. ~~**Eligibility + invite scoping** (§3).~~ **Done 2026-10-19.** Rules written and
+   tested but **not deployed**: `grantsMarkets`, `allowedMarkets` and the tightened
+   `buyer_access_status` write rule are in the repo only.
 5. **Pricing conditions and the breakdown UI** (§2).
 6. **Production requests.** Last — it depends on both the schedule decision and the
    condition model.

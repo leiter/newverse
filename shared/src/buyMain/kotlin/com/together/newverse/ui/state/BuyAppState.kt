@@ -42,6 +42,13 @@ data class BuyAppState(
     val sellerContacts: SellerContactDirectory = SellerContactDirectory(),
     /** The seller's active markets, as the buy app last read them. */
     val sellerMarkets: List<Market> = emptyList(),
+    /**
+     * Which of them this buyer may collect at, per the seller. Empty means all.
+     *
+     * Approval says whether they may order; this says where. Read [eligibleMarkets]
+     * rather than this — it applies the "empty means all" rule once.
+     */
+    val allowedMarkets: List<String> = emptyList(),
     /** Days the seller has marked as not happening; filtered out of the pickup dates. */
     val sellerClosures: MarketClosures = MarketClosures.NONE,
 
@@ -120,6 +127,16 @@ data class BuyAppState(
         get() = isAccessStatusLoaded && accessStatus == AccessStatus.APPROVED
 
     /**
+     * The markets this buyer may actually choose between.
+     *
+     * A seller's market the buyer is not scoped to is not theirs to order at, so it
+     * contributes no slots and cannot become their contextual market.
+     */
+    val eligibleMarkets: List<Market>
+        get() = if (allowedMarkets.isEmpty()) sellerMarkets
+        else sellerMarkets.filter { it.id in allowedMarkets }
+
+    /**
      * Where this buyer collects.
      *
      * Resolution order, from `doc/market-pricing-and-access-design.md` §4: the slot
@@ -130,8 +147,8 @@ data class BuyAppState(
      */
     val contextualMarketId: String?
         get() = customerProfile.profile?.defaultMarket
-            ?.takeIf { id -> id.isNotEmpty() && sellerMarkets.any { it.id == id } }
-            ?: sellerMarkets.singleOrNull()?.id
+            ?.takeIf { id -> id.isNotEmpty() && eligibleMarkets.any { it.id == id } }
+            ?: eligibleMarkets.singleOrNull()?.id
 
     /** What the top-bar menu offers, already deduplicated. */
     val topBarContacts: List<SellerContact>
@@ -183,6 +200,7 @@ fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
     isRequestingAccess = false,
     sellerContacts = SellerContactDirectory(),
     sellerMarkets = emptyList(),
+    allowedMarkets = emptyList(),
     sellerClosures = MarketClosures.NONE,
     pendingInvitations = emptyList(),
     showConnectionConfirmDialog = null,

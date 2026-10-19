@@ -1084,4 +1084,8 @@
     <string name="closures_range_empty">No market day falls in that range</string>
     <string name="closures_range_backwards">The end date is before the start date</string>
     <string name="closures_orders_blocked">%1$d order(s) on this day — move or cancel them first</string>
+    <string name="eligibility_title">Markets for this customer</string>
+    <string name="eligibility_all">All markets</string>
+    <string name="eligibility_summary_all">May collect at every market</string>
+    <string name="eligibility_invite_scope">This invitation is for</string>
 </resources>

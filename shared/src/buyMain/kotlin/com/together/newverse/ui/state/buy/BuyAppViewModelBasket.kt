@@ -1141,7 +1141,9 @@ internal fun BuyAppViewModel.restoreDraftSlotSelection(draft: DraftBasket) {
 internal fun BuyAppViewModel.basketScreenLoadAvailableDates() {
     bLog("📅 BuyAppViewModel.basketScreenLoadAvailableDates: START")
     val state = _state.value
-    val markets = state.sellerMarkets
+    // Only the markets this buyer may collect at: a stall they are not scoped to
+    // is not theirs to order at, so it must not appear among the slots.
+    val markets = state.eligibleMarkets
 
     // Each market offers its own day. With none configured the app falls back to
     // the single scheduled pickup day, which is every seller today.
@@ -1196,7 +1198,7 @@ internal fun BuyAppViewModel.basketScreenSelectPickupDate(date: Long) {
     // after it. With one market there is exactly one slot per date.
     val slot = state.basketScreen.availableSlots.firstOrNull { it.date == date }
     val isValid = if (slot != null && slot.marketId.isNotEmpty()) {
-        PickupSlots.isValid(slot, state.sellerMarkets, state.sellerClosures)
+        PickupSlots.isValid(slot, state.eligibleMarkets, state.sellerClosures)
     } else {
         OrderDateUtils.isPickupDateValid(
             Instant.fromEpochMilliseconds(date),

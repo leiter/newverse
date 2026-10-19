@@ -150,6 +150,14 @@ interface ProfileRepository {
     fun observeAccessStatus(sellerId: String): Flow<AccessStatus>
 
     /**
+     * The markets this buyer may collect at, as the seller has scoped them.
+     *
+     * Empty means all of them, which is every buyer who was approved before
+     * scoping existed and every buyer the seller has not restricted.
+     */
+    fun observeAllowedMarkets(sellerId: String): Flow<List<String>>
+
+    /**
      * Push this buyer's current display name into their access record, so the
      * seller's customer list reflects a rename.
      *
@@ -195,6 +203,23 @@ interface ProfileRepository {
         sellerId: String,
         displayNameHint: String,
         ttlMillis: Long,
-        token: String? = null
+        token: String? = null,
+        /**
+         * The markets this invite grants. Empty grants all of them, which is what
+         * every token minted before market scoping existed means.
+         */
+        grantsMarkets: List<String> = emptyList()
     ): Result<String>
+
+    /**
+     * Change which markets an approved buyer may collect at. Empty means all.
+     *
+     * Separate from approval on purpose: this is logistics, and changing it must
+     * not touch the trust state machine. Seller-only.
+     */
+    suspend fun setAllowedMarkets(
+        sellerId: String,
+        buyerId: String,
+        markets: List<String>
+    ): Result<Unit>
 }

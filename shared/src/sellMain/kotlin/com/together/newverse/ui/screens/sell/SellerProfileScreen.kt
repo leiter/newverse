@@ -39,6 +39,8 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.button_save
 import newverse.shared.generated.resources.contact_section_market
 import newverse.shared.generated.resources.contact_section_seller
+import newverse.shared.generated.resources.eligibility_title
+import newverse.shared.generated.resources.eligibility_summary_all
 import newverse.shared.generated.resources.*
 import androidx.compose.material3.HorizontalDivider
 import com.together.newverse.domain.model.MarketClosure
@@ -65,6 +67,7 @@ fun SellerProfileScreen(
     onDeleteMarket: (String) -> Unit = {},
     onSaveSellerContacts: (List<SellerContact>) -> Unit = {},
     onSaveClosures: (List<MarketClosure>) -> Unit = {},
+    onSetAllowedMarkets: (String, List<String>) -> Unit = { _, _ -> },
     ordersByCycle: Map<String, Int> = emptyMap(),
     onGenerateInvitation: (Int) -> Unit = {},
     onSendInvitationToBuyer: (String) -> Unit = {},
@@ -301,7 +304,9 @@ fun SellerProfileScreen(
                         actionLabel = stringResource(Res.string.customer_management_block),
                         actionColor = MaterialTheme.colorScheme.error,
                         onAction = onBlockApprovedBuyer,
-                        onBuyerClick = onBuyerClick
+                        onBuyerClick = onBuyerClick,
+                        markets = profile?.markets ?: emptyList(),
+                        onSetAllowedMarkets = onSetAllowedMarkets
                     )
 
                     // Blocked Buyers Card
@@ -1183,7 +1188,9 @@ private fun BuyerListCard(
     actionLabel: String,
     actionColor: androidx.compose.ui.graphics.Color,
     onAction: (String) -> Unit,
-    onBuyerClick: (BuyerEntry) -> Unit = {}
+    onBuyerClick: (BuyerEntry) -> Unit = {},
+    markets: List<Market> = emptyList(),
+    onSetAllowedMarkets: (String, List<String>) -> Unit = { _, _ -> },
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -1210,7 +1217,9 @@ private fun BuyerListCard(
                         actionLabel = actionLabel,
                         actionColor = actionColor,
                         onAction = { onAction(entry.id) },
-                        onClick = { onBuyerClick(entry) }
+                        onClick = { onBuyerClick(entry) },
+                        markets = markets,
+                        onSetAllowedMarkets = { scope -> onSetAllowedMarkets(entry.id, scope) }
                     )
                 }
             }
@@ -1224,8 +1233,12 @@ private fun BuyerListItem(
     actionLabel: String,
     actionColor: androidx.compose.ui.graphics.Color,
     onAction: () -> Unit,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    /** The seller's markets, so an approved buyer's eligibility can be edited here. */
+    markets: List<Market> = emptyList(),
+    onSetAllowedMarkets: (List<String>) -> Unit = {},
 ) {
+    var showScope by remember { mutableStateOf(false) }
     val statusColor = when (entry.status) {
         AccessStatus.APPROVED -> MaterialTheme.colorScheme.primary
         AccessStatus.BLOCKED -> MaterialTheme.colorScheme.error
@@ -1268,6 +1281,21 @@ private fun BuyerListItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = statusColor
                 )
+                // Only an approved buyer has anywhere to be scoped to, and only
+                // when the seller actually runs more than one stall.
+                if (entry.status == AccessStatus.APPROVED && markets.size > 1) {
+                    Text(
+                        text = if (entry.allowedMarkets.isEmpty()) {
+                            stringResource(Res.string.eligibility_summary_all)
+                        } else {
+                            markets.filter { it.id in entry.allowedMarkets }
+                                .joinToString(", ") { it.name }
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { showScope = !showScope }
+                    )
+                }
             }
             TextButton(onClick = onAction) {
                 Text(
@@ -1275,6 +1303,16 @@ private fun BuyerListItem(
                     color = actionColor
                 )
             }
+        }
+
+        if (showScope) {
+            MarketScopePicker(
+                title = stringResource(Res.string.eligibility_title),
+                markets = markets,
+                selected = entry.allowedMarkets,
+                onSelectedChange = onSetAllowedMarkets,
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+            )
         }
     }
 }

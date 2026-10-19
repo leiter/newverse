@@ -256,6 +256,59 @@ class BuyAppViewModelSlotTest {
         assertEquals("m2", basket.selectedMarketId)
     }
 
+    // Approval says whether, eligibility says where. A stall the buyer is not
+    // scoped to is not theirs to order at, so it offers them no slots at all.
+    @Test
+    fun `a market the buyer is not scoped to offers no slots`() = runTest {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(id = "m1", name = "Kreuzberg", dayIndex = 3),
+            Market(id = "m2", name = "Neukölln", dayIndex = 5)
+        )
+        profileRepository.setOwnAllowedMarkets(listOf("m1"))
+        startSession()
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val slots = viewModel.state.value.basketScreen.availableSlots
+        assertTrue(slots.isNotEmpty(), "expected Kreuzberg slots")
+        assertTrue(slots.all { it.marketId == "m1" }, "Neukölln slots leaked in: $slots")
+    }
+
+    @Test
+    fun `an unscoped buyer sees every market`() = runTest {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(id = "m1", name = "Kreuzberg", dayIndex = 3),
+            Market(id = "m2", name = "Neukölln", dayIndex = 5)
+        )
+        startSession()
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val slots = viewModel.state.value.basketScreen.availableSlots
+        assertTrue(slots.any { it.marketId == "m1" })
+        assertTrue(slots.any { it.marketId == "m2" })
+    }
+
+    @Test
+    fun `the sole eligible market becomes the contextual one`() = runTest {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(id = "m1", name = "Kreuzberg", dayIndex = 3),
+            Market(id = "m2", name = "Neukölln", dayIndex = 5)
+        )
+        profileRepository.setOwnAllowedMarkets(listOf("m2"))
+        startSession()
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals("m2", viewModel.state.value.contextualMarketId)
+    }
+
     @Test
     fun `a market the seller closed for one day drops only that slot`() = runTest {
         val thursdayMarket = Market(id = "m1", name = "Kreuzberg", dayIndex = 3)

@@ -420,7 +420,7 @@ internal suspend fun BuyAppViewModel.loadCurrentOrder() {
                     val pickupTimestamp = parsePickupDateFromKey(key) ?: return@let null
                     val pickup = Instant.fromEpochMilliseconds(pickupTimestamp)
                     val marketId = draftBasket.selectedMarketId
-                    val markets = _state.value.sellerMarkets
+                    val markets = _state.value.eligibleMarkets
                     when {
                         marketId.isNotEmpty() && markets.none { it.id == marketId && it.active } ->
                             "its market is no longer offered"

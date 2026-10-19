@@ -77,6 +77,20 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
                 }
             }
     }
+
+    // Watched separately from the status: the seller can narrow or widen where a
+    // buyer collects without touching their approval, and that has to reach an
+    // open app the same way a closure does.
+    viewModelScope.launch {
+        profileRepository.observeAllowedMarkets(sellerId)
+            .catch { e -> Log.e(TAG) { "observeAllowedMarkets error: ${e.message}" } }
+            .collect { markets ->
+                Log.d(TAG) { "observeAllowedMarkets: ${markets.size} market(s) allowed" }
+                _state.update { it.copy(allowedMarkets = markets) }
+                // The offered slots are drawn from the markets this buyer may use.
+                refreshDatesForClosures()
+            }
+    }
 }
 
 /**

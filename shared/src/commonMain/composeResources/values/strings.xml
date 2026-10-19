@@ -1142,4 +1142,8 @@
     <string name="closures_range_empty">In diesem Zeitraum liegt kein Markttag</string>
     <string name="closures_range_backwards">Das Enddatum liegt vor dem Startdatum</string>
     <string name="closures_orders_blocked">%1$d Bestellung(en) an diesem Tag — bitte zuerst umbuchen oder stornieren</string>
+    <string name="eligibility_title">Märkte für diesen Kunden</string>
+    <string name="eligibility_all">Alle Märkte</string>
+    <string name="eligibility_summary_all">Darf an allen Märkten abholen</string>
+    <string name="eligibility_invite_scope">Einladung gilt für</string>
 </resources>

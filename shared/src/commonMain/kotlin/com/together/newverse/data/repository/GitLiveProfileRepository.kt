@@ -7,6 +7,7 @@ import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.Market
+import com.together.newverse.domain.model.MarketScope
 import com.together.newverse.domain.model.MarketClosure
 import com.together.newverse.domain.model.MarketClosures
 import com.together.newverse.domain.model.OrderedProduct
@@ -809,6 +810,12 @@ class GitLiveProfileRepository(
             // the access record below is never written.
             inviteTokensRef.child(sellerId).child(token).child("redeemedBy").setValue(uid)
 
+            // Whatever the token grants is what the buyer gets. Read from the token
+            // rather than passed in, and the rules check the two match, so redeeming
+            // a stall-scoped invite cannot widen itself to every market.
+            val grantsMarkets = inviteTokensRef.child(sellerId).child(token)
+                .child("grantsMarkets").valueEvents.first().value as? String ?: ""
+
             // The access record cites the token it was granted by; the rules check
             // that token was redeemed by this same uid, so approval is verifiable.
             buyerAccessStatusRef.child(sellerId).child(uid).setValue(
@@ -816,7 +823,8 @@ class GitLiveProfileRepository(
                     "status" to AccessStatus.APPROVED.name,
                     "displayName" to displayName,
                     "updatedAt" to now,
-                    "viaToken" to token
+                    "viaToken" to token,
+                    "allowedMarkets" to grantsMarkets
                 )
             )
             rememberLinkedSeller(uid, sellerId)
@@ -837,6 +845,24 @@ class GitLiveProfileRepository(
             Log.w(TAG) { "getAccessStatus: sellerId=$sellerId - ${e.message}" }
             AccessStatus.NONE
         }
+    }
+
+    override fun observeAllowedMarkets(sellerId: String): Flow<List<String>> = flow {
+        val uid = authRepository.getCurrentUserId()
+        if (uid == null) {
+            emit(emptyList())
+            return@flow
+        }
+        emitAll(
+            buyerAccessStatusRef.child(sellerId).child(uid).child("allowedMarkets").valueEvents
+                .map { MarketScope.decode(it.value as? String) }
+                .catch { e ->
+                    // An unreadable scope must not silently narrow to nothing: a
+                    // buyer with no markets could not order at all.
+                    Log.w(TAG) { "observeAllowedMarkets: sellerId=$sellerId - ${e.message}" }
+                    emit(emptyList())
+                }
+        )
     }
 
     override fun observeAccessStatus(sellerId: String): Flow<AccessStatus> = flow {
@@ -898,9 +924,29 @@ class GitLiveProfileRepository(
                     buyerId = buyerId,
                     displayName = data["displayName"] as? String ?: "",
                     status = status,
+                    allowedMarkets = MarketScope.decode(data["allowedMarkets"] as? String),
                     updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: 0L
                 )
             }
+        }
+    }
+
+    override suspend fun setAllowedMarkets(
+        sellerId: String,
+        buyerId: String,
+        markets: List<String>
+    ): Result<Unit> {
+        return try {
+            buyerAccessStatusRef.child(sellerId).child(buyerId).updateChildren(
+                mapOf(
+                    "allowedMarkets" to MarketScope.encode(markets),
+                    "updatedAt" to Clock.System.now().toEpochMilliseconds()
+                )
+            )
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG) { "setAllowedMarkets: Error - ${e.message}" }
+            Result.failure(e)
         }
     }
 
@@ -964,7 +1010,8 @@ class GitLiveProfileRepository(
         sellerId: String,
         displayNameHint: String,
         ttlMillis: Long,
-        token: String?
+        token: String?,
+        grantsMarkets: List<String>
     ): Result<String> {
         return try {
             val now = Clock.System.now().toEpochMilliseconds()
@@ -973,7 +1020,10 @@ class GitLiveProfileRepository(
                 mapOf(
                     "createdAt" to now,
                     "expiresAt" to now + ttlMillis,
-                    "displayNameHint" to displayNameHint
+                    "displayNameHint" to displayNameHint,
+                    // One string, not a child map: the redemption rule has to compare
+                    // it whole against what the buyer writes about themselves.
+                    "grantsMarkets" to MarketScope.encode(grantsMarkets)
                 )
             )
             Log.d(TAG) { "createInviteToken: minted a token for sellerId=$sellerId" }

@@ -222,7 +222,7 @@ class FakeProfileRepository : ProfileRepository {
     // --- buyer side -------------------------------------------------------
 
     override suspend fun submitAccessRequest(sellerId: String, displayName: String): Result<Unit> {
-        putAccess(sellerId, BuyerAccess(currentBuyerId, displayName, AccessStatus.PENDING, 1L))
+        putAccess(sellerId, BuyerAccess(currentBuyerId, displayName, AccessStatus.PENDING, updatedAt = 1L))
         _accessRequests.update { requests ->
             requests + AccessRequest(sellerId, currentBuyerId, displayName, requestedAt = 1L)
         }
@@ -247,12 +247,19 @@ class FakeProfileRepository : ProfileRepository {
             return Result.failure(IllegalStateException("Token already redeemed by $alreadyRedeemedBy"))
         }
         redeemedTokens[token] = currentBuyerId
-        putAccess(sellerId, BuyerAccess(currentBuyerId, displayName, AccessStatus.APPROVED, 1L))
+        putAccess(sellerId, BuyerAccess(currentBuyerId, displayName, AccessStatus.APPROVED, updatedAt = 1L))
         return Result.success(Unit)
     }
 
     override suspend fun getAccessStatus(sellerId: String): AccessStatus =
         accessOf(sellerId, currentBuyerId)?.status ?: AccessStatus.NONE
+
+    private val _allowedMarkets = MutableStateFlow<List<String>>(emptyList())
+
+    override fun observeAllowedMarkets(sellerId: String): Flow<List<String>> = _allowedMarkets
+
+    /** Scope this buyer to a set of markets. Empty means all. */
+    fun setOwnAllowedMarkets(markets: List<String>) { _allowedMarkets.value = markets }
 
     override fun observeAccessStatus(sellerId: String): Flow<AccessStatus> =
         _buyers.map { all -> all[sellerId]?.get(currentBuyerId)?.status ?: AccessStatus.NONE }
@@ -276,7 +283,7 @@ class FakeProfileRepository : ProfileRepository {
         buyerId: String,
         displayName: String
     ): Result<Unit> {
-        putAccess(sellerId, BuyerAccess(buyerId, displayName, AccessStatus.APPROVED, 1L))
+        putAccess(sellerId, BuyerAccess(buyerId, displayName, AccessStatus.APPROVED, updatedAt = 1L))
         clearRequest(buyerId)
         return Result.success(Unit)
     }
@@ -285,7 +292,7 @@ class FakeProfileRepository : ProfileRepository {
         val existing = accessOf(sellerId, buyerId)
         putAccess(
             sellerId,
-            BuyerAccess(buyerId, existing?.displayName ?: "", AccessStatus.BLOCKED, 1L)
+            BuyerAccess(buyerId, existing?.displayName ?: "", AccessStatus.BLOCKED, updatedAt = 1L)
         )
         clearRequest(buyerId)
         return Result.success(Unit)
@@ -295,15 +302,35 @@ class FakeProfileRepository : ProfileRepository {
         val existing = accessOf(sellerId, buyerId)
         putAccess(
             sellerId,
-            BuyerAccess(buyerId, existing?.displayName ?: "", AccessStatus.APPROVED, 1L)
+            BuyerAccess(buyerId, existing?.displayName ?: "", AccessStatus.APPROVED, updatedAt = 1L)
         )
         return Result.success(Unit)
     }
+
+    /** The scope the last minted token was given, for assertions. */
+    var lastGrantedMarkets: List<String> = emptyList()
+        private set
 
     override suspend fun createInviteToken(
         sellerId: String,
         displayNameHint: String,
         ttlMillis: Long,
-        token: String?
-    ): Result<String> = Result.success(token ?: "fake-invite-token")
+        token: String?,
+        grantsMarkets: List<String>
+    ): Result<String> {
+        lastGrantedMarkets = grantsMarkets
+        return Result.success(token ?: "fake-invite-token")
+    }
+
+    /** The scope the seller last set, by buyer id. */
+    val allowedMarketsByBuyer = mutableMapOf<String, List<String>>()
+
+    override suspend fun setAllowedMarkets(
+        sellerId: String,
+        buyerId: String,
+        markets: List<String>
+    ): Result<Unit> {
+        allowedMarketsByBuyer[buyerId] = markets
+        return Result.success(Unit)
+    }
 }
