@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.MarketClosure
+import com.together.newverse.domain.model.dayOfWeekFor
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -319,10 +320,6 @@ internal fun expandClosureRange(
 
 /** Two years: long enough for any real closure, short enough to catch a typo. */
 internal const val MAX_RANGE_DAYS = 730
-
-/** The market dialog stores Monday as 0; [DayOfWeek] counts from 1. */
-internal fun dayOfWeekFor(dayIndex: Int): DayOfWeek? =
-    if (dayIndex in 0..6) DayOfWeek(dayIndex + 1) else null
 
 internal fun keyToLocalDate(key: String): LocalDate? {
     if (key.length != 8) return null

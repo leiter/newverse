@@ -2,6 +2,7 @@ package com.together.newverse.util
 
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.domain.config.OrderScheduleConfig
+import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.MarketClosures
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -294,6 +295,9 @@ object OrderDateUtils {
      * @param config Order schedule configuration
      * @return List of Instants representing available pickup dates
      */
+    /** [market]'s own schedule, falling back to the app default when it has no day. */
+    fun marketConfig(market: Market): OrderScheduleConfig = market.scheduleConfig(defaultConfig)
+
     fun getAvailablePickupDates(
         count: Int = 5,
         now: Instant = Clock.System.now(),

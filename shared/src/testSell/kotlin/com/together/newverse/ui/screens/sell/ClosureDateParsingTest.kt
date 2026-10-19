@@ -1,6 +1,7 @@
 package com.together.newverse.ui.screens.sell
 
 import com.together.newverse.domain.model.Market
+import com.together.newverse.domain.model.dayOfWeekFor
 import kotlinx.datetime.DayOfWeek
 import kotlin.test.Test
 import kotlin.test.assertEquals
