@@ -110,6 +110,19 @@
               "$other": { ".validate": false }
             }
           },
+          "pricingRevision": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "priceConditions": {
+            "$index": {
+              ".validate": "newData.hasChildren(['cause', 'effect', 'amount'])",
+              "cause": { ".validate": "newData.isString()" },
+              "scopeType": { ".validate": "newData.isString()" },
+              "scopeValue": { ".validate": "newData.isString() && newData.val().length <= 200" },
+              "effect": { ".validate": "newData.val() === 'FACTOR' || newData.val() === 'SURCHARGE' || newData.val() === 'DISCOUNT'" },
+              "amount": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000" },
+              "note": { ".validate": "newData.isString() && newData.val().length <= 200" },
+              "$other": { ".validate": false }
+            }
+          },
           "$other": { ".validate": false }
         }
       }

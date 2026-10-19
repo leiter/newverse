@@ -1,8 +1,8 @@
 # Markets: Pricing, Access, Scheduling and Communication
 
-**Status:** §1 (markets as an entity), §3 (eligibility) and §4 (schedules, slots,
-closures) are implemented, 2026-10-19. §2 (pricing) and production requests are
-design only.
+**Status:** §1 (markets as an entity), §2 (pricing), §3 (eligibility) and §4
+(schedules, slots, closures) are implemented, 2026-10-19. Production requests
+remain design only, and the rules for §2 and §3 are **not deployed**.
 **Scope (proposed):** `shared/src/commonMain` (model + pricing + schedule + repository),
 `buyMain` (slot picker, price breakdown), `sellMain` (market, condition and closure
 editing), `firebase/database.rules.json`
@@ -180,7 +180,16 @@ The obvious shape — `Article.prices: Map<marketId, Double>` — is wrong here:
   the buyer has to be told. The explanation would then have to be authored separately
   and kept in sync with the numbers, which it would not be.
 
-### Proposed: conditions at `market_pricing/{sellerId}/{marketId}`
+### Built: conditions on the market
+
+**BUILT DIFFERENTLY — stored on the market, not at `market_pricing/{sellerId}/{marketId}`.**
+Once §1 made a market a real node there was nowhere better: a condition belongs to the
+stall whose costs it describes, the node is already readable by any signed-in user, and
+the alternative was a third node mirroring the same relationship with a foreign key. The
+market's `$other: false` rule means the two new fields had to be declared, which is how
+`priceConditions` and `pricingRevision` get validated per field.
+
+The design below is otherwise what was built.
 
 A market carries a handful of conditions, each a cause + a scope + an effect:
 
@@ -248,6 +257,28 @@ Rules to pin down in the implementation, because they are the whole of the behav
   worse than no breakdown.
 - **Floor.** A discount may not take gross below `acquirePrice`. The seller app should
   warn at edit time, not silently clamp at read time.
+
+### How those four turned out
+
+**Rounding went the other way from the design.** "Round once at the end, round components
+for display" can produce a breakdown that does not add up. Instead every component is
+rounded to cents and **the gross is their sum** — so the explanation is arithmetically
+true on screen, at a cost of at most a cent against the unrounded total. A breakdown whose
+figures disagree with the price is worse than no breakdown.
+
+**Factors are not compounded.** Each is taken against the base and the deltas sum, so a
+seller setting 8% and 5% means 13% of the base rather than 13.4%, and — the real reason —
+the answer cannot depend on what order the conditions happen to be stored in. A test pins
+that reordering changes nothing.
+
+**The floor is zero, not `acquirePrice`.** The purchase price is seller-only data the buy
+app never sees, so it cannot be enforced in `resolvePrice`. Zero is.
+
+**`BuyerTerms` was dropped**, settling open question 4: it would have been an
+always-`Standard` argument. `resolvePrice(article, pricing)` is the whole signature.
+
+A component that rounds away to nothing is omitted rather than rendered, because
+"+0,00 € Transport" explains nothing.
 
 ### Communicating the difference
 
@@ -603,7 +634,9 @@ not silence their reminder.
 4. ~~**Eligibility + invite scoping** (§3).~~ **Done 2026-10-19.** Rules written and
    tested but **not deployed**: `grantsMarkets`, `allowedMarkets` and the tightened
    `buyer_access_status` write rule are in the repo only.
-5. **Pricing conditions and the breakdown UI** (§2).
+5. ~~**Pricing conditions and the breakdown UI** (§2).~~ **Done 2026-10-19.** Rules
+   **not deployed**: `priceConditions` and `pricingRevision` are declared in the repo
+   only, and the market rule rejects unknown fields, so these go out before the build.
 6. **Production requests.** Last — it depends on both the schedule decision and the
    condition model.
 
@@ -642,12 +675,11 @@ the prices of a market they are not eligible for. Probably fine, possibly not if
 neighborhood rates are meant to be discreet. If they are not public, pricing has to move
 behind the access check and the demo/unapproved catalog needs a fallback price.
 
-### 4. Does `BuyerTerms` exist, or is it premature?
+### 4. ~~Does `BuyerTerms` exist, or is it premature?~~ — settled
 
-`resolvePrice` takes a `terms` parameter above so that buyer-specific conditions (a
-wholesale rate, a long-standing customer) have somewhere to go. Nothing requires it today.
-It may be better to drop the parameter and add it when a real case appears, rather than
-ship an always-`Standard` argument.
+Dropped. It would have been an always-`Standard` argument; the signature is
+`resolvePrice(article, pricing)`. Buyer-specific rates can be added when a real case
+appears.
 
 ### 5. ~~Orphan markets~~ — settled
 

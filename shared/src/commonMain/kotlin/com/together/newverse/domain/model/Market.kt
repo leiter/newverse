@@ -32,7 +32,21 @@ data class Market(
      * so `Order.marketId` resolves, and simply stops being offered.
      */
     val active: Boolean = true,
+    /**
+     * Why this market's prices differ, if they do. Empty means they do not.
+     *
+     * Stored on the market rather than in a node of its own: the market is already
+     * the thing a condition belongs to, and is already readable by any signed-in
+     * user, so a buyer can price the catalogue before being approved.
+     */
+    val priceConditions: List<PriceCondition> = emptyList(),
+    /** Bumped whenever [priceConditions] change; snapshotted into each order. */
+    val pricingRevision: Long = 0L,
 ) {
+    /** This market's pricing, in the shape [resolvePrice] takes. */
+    val pricing: MarketPricing
+        get() = MarketPricing(marketId = id, revision = pricingRevision, conditions = priceConditions)
+
     /**
      * The day this market runs, or null when the seller never set one.
      *

@@ -16,6 +16,11 @@ import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
 import com.together.newverse.domain.model.DraftBasket
+import com.together.newverse.domain.model.MarketPricing
+import com.together.newverse.domain.model.PriceChange
+import com.together.newverse.domain.model.priceChanges
+import com.together.newverse.ui.state.PendingSlotPriceChange
+import com.together.newverse.ui.state.BuyAppState
 import com.together.newverse.domain.model.PickupSlot
 import com.together.newverse.domain.model.PickupSlots
 import com.together.newverse.util.OrderDateUtils
@@ -138,6 +143,8 @@ internal fun BuyAppViewModel.handleBasketScreenAction(action: BuyBasketScreenAct
         BuyBasketScreenAction.HideDatePicker -> basketScreenHideDatePicker()
         is BuyBasketScreenAction.SelectPickupDate -> basketScreenSelectPickupDate(action.date)
         BuyBasketScreenAction.LoadAvailableDates -> basketScreenLoadAvailableDates()
+        BuyBasketScreenAction.ConfirmSlotPriceChange -> basketScreenConfirmSlotPriceChange()
+        BuyBasketScreenAction.DismissSlotPriceChange -> basketScreenDismissSlotPriceChange()
         BuyBasketScreenAction.CancelOrder -> basketScreenCancelOrder()
         BuyBasketScreenAction.ShowReorderDatePicker -> basketScreenShowReorderDatePicker()
         BuyBasketScreenAction.HideReorderDatePicker -> basketScreenHideReorderDatePicker()
@@ -1219,6 +1226,25 @@ internal fun BuyAppViewModel.basketScreenSelectPickupDate(date: Long) {
         return
     }
 
+    // Switching to a market that prices this basket differently is shown and asked
+    // about, never applied quietly: the buyer has already read a total.
+    val changes = slotPriceChanges(state, slot)
+    if (changes.isNotEmpty()) {
+        _state.update { current ->
+            current.copy(
+                basketScreen = current.basketScreen.copy(
+                    showDatePicker = false,
+                    orderError = null,
+                    pendingSlotPriceChange = PendingSlotPriceChange(
+                        slot ?: PickupSlot("", date),
+                        changes
+                    )
+                )
+            )
+        }
+        return
+    }
+
     _state.update { current ->
         current.copy(
             basketScreen = current.basketScreen.copy(
@@ -1228,6 +1254,51 @@ internal fun BuyAppViewModel.basketScreenSelectPickupDate(date: Long) {
                 orderError = null
             )
         )
+    }
+}
+
+/**
+ * What moving the basket to [slot]'s market would do to its prices.
+ *
+ * Empty when nothing moves — same market, no conditions either side, or an empty
+ * basket — which is every seller today and stays silent.
+ */
+private fun slotPriceChanges(state: BuyAppState, slot: PickupSlot?): List<PriceChange> {
+    val toMarketId = slot?.marketId.orEmpty()
+    val fromMarketId = state.basketScreen.selectedMarketId
+    if (toMarketId == fromMarketId) return emptyList()
+
+    val pricingFor = { id: String ->
+        state.eligibleMarkets.firstOrNull { it.id == id }?.pricing ?: MarketPricing.NONE
+    }
+    // Priced against the catalogue entries the basket was built from.
+    val articles = state.basketScreen.items.mapNotNull { item ->
+        state.mainScreen.articles.firstOrNull { it.id == item.productId }
+    }
+    if (articles.isEmpty()) return emptyList()
+
+    return priceChanges(articles, pricingFor(fromMarketId), pricingFor(toMarketId))
+}
+
+/** The buyer accepted the new prices: apply the slot they had chosen. */
+internal fun BuyAppViewModel.basketScreenConfirmSlotPriceChange() {
+    val pending = _state.value.basketScreen.pendingSlotPriceChange ?: return
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                selectedPickupDate = pending.slot.date,
+                selectedMarketId = pending.slot.marketId,
+                pendingSlotPriceChange = null,
+                orderError = null
+            )
+        )
+    }
+}
+
+/** The buyer declined: the slot they had is kept, prices unchanged. */
+internal fun BuyAppViewModel.basketScreenDismissSlotPriceChange() {
+    _state.update { current ->
+        current.copy(basketScreen = current.basketScreen.copy(pendingSlotPriceChange = null))
     }
 }
 

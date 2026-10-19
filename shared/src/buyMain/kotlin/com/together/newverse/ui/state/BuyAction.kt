@@ -183,6 +183,12 @@ sealed interface BuyBasketScreenAction : BuyAction {
     data object ResetOrderState : BuyBasketScreenAction
     data object ShowDatePicker : BuyBasketScreenAction
     data object HideDatePicker : BuyBasketScreenAction
+
+    /** The buyer accepted the prices at the market they just chose. */
+    data object ConfirmSlotPriceChange : BuyBasketScreenAction
+
+    /** The buyer declined; the slot they already had is kept. */
+    data object DismissSlotPriceChange : BuyBasketScreenAction
     data class SelectPickupDate(val date: Long) : BuyBasketScreenAction
     data object LoadAvailableDates : BuyBasketScreenAction
     data object CancelOrder : BuyBasketScreenAction

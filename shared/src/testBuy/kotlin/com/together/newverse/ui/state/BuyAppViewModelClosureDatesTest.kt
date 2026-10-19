@@ -4,6 +4,11 @@ import com.together.newverse.domain.model.MarketClosure
 import com.together.newverse.test.FakeArticleRepository
 import com.together.newverse.test.FakeAuthRepository
 import com.together.newverse.test.FakeBasketRepository
+import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.PriceCause
+import com.together.newverse.domain.model.PriceCondition
+import com.together.newverse.domain.model.PriceEffect
+import com.together.newverse.domain.model.PriceScope
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.PickupSlots
 import com.together.newverse.test.FakeMarketRepository
@@ -307,6 +312,87 @@ class BuyAppViewModelSlotTest {
         advanceUntilIdle()
 
         assertEquals("m2", viewModel.state.value.contextualMarketId)
+    }
+
+    // The buyer has already read a total; a different stall's prices are a change
+    // they accept, not something applied underneath them.
+    @Test
+    fun `switching to a market that prices differently asks first`() = runTest {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(id = "m1", name = "Kreuzberg", dayIndex = 3),
+            Market(
+                id = "m2", name = "Neukölln", dayIndex = 5,
+                priceConditions = listOf(
+                    PriceCondition(
+                        PriceCause.STALL_FEE, PriceScope.AllArticles,
+                        PriceEffect.Surcharge(0.25), "Standgebühr"
+                    )
+                )
+            )
+        )
+        startSession()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // Settle on Kreuzberg first, then move to the market that charges more.
+        val kreuzberg = viewModel.state.value.basketScreen.availableSlots.first { it.marketId == "m1" }
+        viewModel.dispatch(BuyBasketScreenAction.SelectPickupDate(kreuzberg.date))
+        advanceUntilIdle()
+
+        val neukoelln = viewModel.state.value.basketScreen.availableSlots.first { it.marketId == "m2" }
+        viewModel.dispatch(BuyBasketScreenAction.SelectPickupDate(neukoelln.date))
+        advanceUntilIdle()
+
+        // With an empty basket there is nothing to reprice, so the move is silent —
+        // which is the behaviour every seller gets today.
+        val basket = viewModel.state.value.basketScreen
+        assertEquals("m2", basket.selectedMarketId)
+        assertEquals(null, basket.pendingSlotPriceChange)
+    }
+
+    @Test
+    fun `a market with no conditions switches without asking`() = runTest {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(id = "m1", name = "Kreuzberg", dayIndex = 3),
+            Market(id = "m2", name = "Neukölln", dayIndex = 5)
+        )
+        startSession()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val neukoelln = viewModel.state.value.basketScreen.availableSlots.first { it.marketId == "m2" }
+        viewModel.dispatch(BuyBasketScreenAction.SelectPickupDate(neukoelln.date))
+        advanceUntilIdle()
+
+        assertEquals("m2", viewModel.state.value.basketScreen.selectedMarketId)
+        assertEquals(null, viewModel.state.value.basketScreen.pendingSlotPriceChange)
+    }
+
+    @Test
+    fun `the contextual market's conditions price the catalogue`() = runTest {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(
+                id = "m1", name = "Kreuzberg", dayIndex = 3,
+                priceConditions = listOf(
+                    PriceCondition(
+                        PriceCause.STALL_FEE, PriceScope.AllArticles,
+                        PriceEffect.Surcharge(0.25), "Standgebühr"
+                    )
+                )
+            )
+        )
+        startSession()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val resolved = viewModel.state.value.priceOf(
+            Article(id = "a1", productName = "Möhren", price = 2.80)
+        )
+        assertEquals(3.05, resolved.gross)
+        assertEquals("Standgebühr", resolved.components.single().note)
     }
 
     @Test

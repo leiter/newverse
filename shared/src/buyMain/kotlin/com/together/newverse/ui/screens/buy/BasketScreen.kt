@@ -77,6 +77,11 @@ import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.pluralStringResource
 import com.together.newverse.domain.model.PickupSlot
 import com.together.newverse.ui.components.displayName
+import com.together.newverse.ui.components.formatEuro
+import com.together.newverse.ui.state.PendingSlotPriceChange
+import newverse.shared.generated.resources.price_change_body
+import newverse.shared.generated.resources.price_change_confirm
+import newverse.shared.generated.resources.price_change_title
 import org.jetbrains.compose.resources.stringResource
 import com.together.newverse.util.formatString
 import kotlinx.datetime.DayOfWeek
@@ -151,6 +156,15 @@ fun BasketContent(
                 onAction(BuyBasketScreenAction.SelectPickupDate(date))
             },
             onDismiss = { onAction(BuyBasketScreenAction.HideDatePicker) }
+        )
+    }
+
+    state.pendingSlotPriceChange?.let { pending ->
+        PriceChangeDialog(
+            pending = pending,
+            marketName = state.marketNames[pending.slot.marketId].orEmpty(),
+            onConfirm = { onAction(BuyBasketScreenAction.ConfirmSlotPriceChange) },
+            onDismiss = { onAction(BuyBasketScreenAction.DismissSlotPriceChange) }
         )
     }
 
@@ -1870,6 +1884,86 @@ fun DraftWarningDialog(
                 OutlinedButton(onClick = onDiscardAndContinue) {
                     Text(stringResource(Res.string.basket_draft_discard_continue))
                 }
+            }
+        }
+    )
+}
+
+/**
+ * What switching market does to the basket, before it is done.
+ *
+ * The buyer has already read a total, so a different stall's prices are shown as
+ * a change they accept rather than applied underneath them. Each line names the
+ * article and what it moves from and to, because "4 items changed" without the
+ * figures is not something anyone can agree to.
+ */
+@Composable
+private fun PriceChangeDialog(
+    pending: PendingSlotPriceChange,
+    marketName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(Res.string.price_change_title),
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.semantics { heading() }
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = formatString(
+                        stringResource(Res.string.price_change_body),
+                        pending.changes.size
+                    ),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (marketName.isNotBlank()) {
+                    Text(
+                        text = marketName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(pending.changes) { change ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = change.article.productName,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${formatEuro(change.from.gross)} \u2192 ${formatEuro(change.to.gross)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (change.isIncrease) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(Res.string.price_change_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.button_cancel))
             }
         }
     )

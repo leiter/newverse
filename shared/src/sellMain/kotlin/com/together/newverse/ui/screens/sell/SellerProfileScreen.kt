@@ -692,6 +692,7 @@ private fun MarketEditDialog(
     var end by remember { mutableStateOf(market?.end ?: "") }
     var showDayPicker by remember { mutableStateOf(false) }
     var contacts by remember { mutableStateOf(market?.contacts ?: emptyList()) }
+    var priceConditions by remember { mutableStateOf(market?.priceConditions ?: emptyList()) }
     var validationError by remember { mutableStateOf<String?>(null) }
 
     val errorFillAll = stringResource(Res.string.market_validation_fill_all)
@@ -839,6 +840,13 @@ private fun MarketEditDialog(
                     onContactsChange = { contacts = it }
                 )
 
+                HorizontalDivider()
+
+                PriceConditionEditor(
+                    conditions = priceConditions,
+                    onConditionsChange = { priceConditions = it }
+                )
+
                 validationError?.let { error ->
                     Text(
                         text = error,
@@ -873,7 +881,16 @@ private fun MarketEditDialog(
                                 begin = begin.trim(),
                                 end = end.trim(),
                                 dayIndex = dayIndex,
-                                contacts = contacts.normalizedForSave()
+                                contacts = contacts.normalizedForSave(),
+                                priceConditions = priceConditions.normalizedForSave(),
+                                // Bumped whenever the conditions actually differ, so
+                                // an order can be told apart from what the same
+                                // basket would cost under today's prices.
+                                pricingRevision = (market?.pricingRevision ?: 0L).let { current ->
+                                    if (priceConditions.normalizedForSave() == market?.priceConditions) current
+                                    else current + 1
+                                },
+                                active = market?.active ?: true
                             )
                             onSave(newMarket)
                             onDismiss()

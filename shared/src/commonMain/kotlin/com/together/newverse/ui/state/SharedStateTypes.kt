@@ -6,6 +6,7 @@ import com.together.newverse.domain.model.Conversation
 import com.together.newverse.domain.model.filterByQuery
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.PickupSlot
+import com.together.newverse.domain.model.PriceChange
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.navigation.NavRoutes
 import com.together.newverse.ui.state.core.AsyncState
@@ -369,6 +370,14 @@ data class BasketScreenState(
     val availableSlots: List<PickupSlot> = emptyList(),
     /** Names for the slot rows, by market id. Only drawn when there is more than one. */
     val marketNames: Map<String, String> = emptyMap(),
+    /**
+     * A market switch that would change prices, waiting to be confirmed.
+     *
+     * The buyer reviewed a total; recalculating it under them because they chose a
+     * different stall is the one thing this feature could do that would cost
+     * trust. See `doc/market-pricing-and-access-design.md` §2.
+     */
+    val pendingSlotPriceChange: PendingSlotPriceChange? = null,
     val showDatePicker: Boolean = false,
     val isCancelling: Boolean = false,
     val cancelSuccess: Boolean = false,
@@ -562,3 +571,16 @@ data class CheckoutData(
     val notes: String = "",
     val promoCode: String = ""
 )
+
+
+/**
+ * A slot the buyer picked whose market prices their basket differently, held until
+ * they say yes.
+ */
+data class PendingSlotPriceChange(
+    val slot: PickupSlot,
+    val changes: List<PriceChange>,
+) {
+    val increases: Int get() = changes.count { it.isIncrease }
+    val total: Double get() = changes.sumOf { it.difference }
+}

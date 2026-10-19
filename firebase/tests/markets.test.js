@@ -184,3 +184,98 @@ describe("an order's market", () => {
     );
   });
 });
+
+/**
+ * A market carries why its prices differ. The conditions are public, because the
+ * buy app has to price the catalogue and explain the figure it shows.
+ */
+describe("market price conditions", () => {
+  let env;
+
+  const market = (overrides = {}) => ({
+    id: "m1", name: "Markt Kreuzberg", dayIndex: 3, active: true, ...overrides
+  });
+
+  const condition = (overrides = {}) => ({
+    cause: "STALL_FEE", scopeType: "ALL", scopeValue: "",
+    effect: "SURCHARGE", amount: 0.25, note: "Standgebühr", ...overrides
+  });
+
+  before(async () => { env = await createTestEnv(); });
+  after(async () => { await env.cleanup(); });
+
+  beforeEach(async () => {
+    await env.clearDatabase();
+    await seed(env, async (db) => { await db.ref(`markets/${SELLER}/m1`).set(market()); });
+  });
+
+  it("lets the seller attach a condition", async () => {
+    await assertSucceeds(
+      asUser(env, SELLER).ref(`markets/${SELLER}/m1`).set(
+        market({ priceConditions: [condition()], pricingRevision: 1 })
+      )
+    );
+  });
+
+  it("lets a buyer read them, so the catalogue can be priced", async () => {
+    await seed(env, async (db) => {
+      await db.ref(`markets/${SELLER}/m1/priceConditions`).set([condition()]);
+    });
+    await assertSucceeds(asUser(env, ALICE).ref(`markets/${SELLER}/m1`).once("value"));
+  });
+
+  it("denies a buyer writing one", async () => {
+    await assertFails(
+      asUser(env, ALICE).ref(`markets/${SELLER}/m1/priceConditions`).set([condition()])
+    );
+  });
+
+  it("denies an effect that is not one of the three", async () => {
+    await assertFails(
+      asUser(env, SELLER).ref(`markets/${SELLER}/m1`).set(
+        market({ priceConditions: [condition({ effect: "MAGIC" })] })
+      )
+    );
+  });
+
+  // The amount is always positive; discount is expressed by the effect, so a
+  // negative surcharge cannot sneak a price up by being a double negative.
+  it("denies a negative amount", async () => {
+    await assertFails(
+      asUser(env, SELLER).ref(`markets/${SELLER}/m1`).set(
+        market({ priceConditions: [condition({ amount: -1 })] })
+      )
+    );
+  });
+
+  it("denies an absurd amount", async () => {
+    await assertFails(
+      asUser(env, SELLER).ref(`markets/${SELLER}/m1`).set(
+        market({ priceConditions: [condition({ amount: 99999 })] })
+      )
+    );
+  });
+
+  it("denies a condition with no amount at all", async () => {
+    const { amount, ...noAmount } = condition();
+    await assertFails(
+      asUser(env, SELLER).ref(`markets/${SELLER}/m1`).set(
+        market({ priceConditions: [noAmount] })
+      )
+    );
+  });
+
+  it("denies an unknown field on a condition", async () => {
+    await assertFails(
+      asUser(env, SELLER).ref(`markets/${SELLER}/m1`).set(
+        market({ priceConditions: [condition({ secretMultiplier: 3 })] })
+      )
+    );
+  });
+
+  it("denies a negative pricing revision", async () => {
+    await assertFails(
+      asUser(env, SELLER).ref(`markets/${SELLER}/m1`).set(market({ pricingRevision: -1 }))
+    );
+  });
+});

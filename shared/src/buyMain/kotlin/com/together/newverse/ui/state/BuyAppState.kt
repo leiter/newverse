@@ -1,6 +1,10 @@
 package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.AccessStatus
+import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.MarketPricing
+import com.together.newverse.domain.model.ResolvedPrice
+import com.together.newverse.domain.model.resolvePrice
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.MarketClosures
 import com.together.newverse.domain.model.SellerContact
@@ -125,6 +129,22 @@ data class BuyAppState(
      */
     val canContactSeller: Boolean
         get() = isAccessStatusLoaded && accessStatus == AccessStatus.APPROVED
+
+    /**
+     * The price conditions of the market this buyer is collecting at.
+     *
+     * [MarketPricing.NONE] whenever no market is settled — which is every
+     * single-market seller with no conditions set, so the common case costs
+     * nothing and shows nothing.
+     */
+    val activePricing: MarketPricing
+        get() = contextualMarketId
+            ?.let { id -> eligibleMarkets.firstOrNull { it.id == id } }
+            ?.pricing
+            ?: MarketPricing.NONE
+
+    /** What [article] costs here, and why. */
+    fun priceOf(article: Article): ResolvedPrice = resolvePrice(article, activePricing)
 
     /**
      * The markets this buyer may actually choose between.
