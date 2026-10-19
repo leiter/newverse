@@ -58,6 +58,65 @@ This document outlines the current implementation status of core features and a 
 The following features are planned but not yet implemented, or are only partially complete.
 
 ### High Priority: User Experience
+- **Pickup confirmation at checkout, one slot per market**
+  - **Status:** Decided 2026-10-16, not implemented. Reasoning in
+    `doc/ordering-business-rules.md` §2; what it does to the slot picker in
+    `doc/market-pricing-and-access-design.md` §4 ("One slot per market, confirmed at
+    checkout").
+  - **Issue:** The buyer is offered five dates per market and the pickup date is then
+    chosen in a dialog, which promises a catalogue and a price the seller cannot commit
+    to that far ahead — `OrderedProduct` snapshots both at order time. The decision is to
+    offer only the next open slot per market and to make the step a confirmation at the
+    moment of commitment.
+  - **Tasks:**
+    - Offer one slot per eligible market instead of five dates each — `count = 5` at
+      `BuyAppViewModelBasket.kt:1160` and `:1162`, defaults at `PickupSlot.kt:39` and
+      `OrderDateUtils.kt:302`. Keep `count` as the bound on the closure walk.
+    - Replace the checkout path's `showDatePicker` (`BuyAppViewModelBasket.kt:632`,
+      `:650`) with a confirmation shown before the order is placed.
+    - Put the edit deadline and the time remaining in it — `formatTimeUntilDeadline` and
+      `getDeadlineWarningLevel` exist and are unused at that moment.
+    - State that a reorder is priced today (`basketScreenReorder` already re-reads each
+      article, so this is wording, not logic), and add one line for demo buyers.
+    - No confirmation in edit mode; show the deadline inline on the basket instead.
+    - Settle the state shape first: `basketScreen.availablePickupDates: List<Long>` plus
+      a confirmed flag. A single confirmed slot was the answer before multi-market
+      shipped; with N markets the picker needs N rows.
+    - Announce the deadline to screen readers, not only colour it by
+      `DeadlineWarningLevel`.
+    - Strings in `values/` and `values-en/`, positional specifiers (`%1$s`) — see
+      `substituteFormatArgs` in `util/FormatUtils.kt`.
+    - Render `MarketClosure.reason` for a closed day instead of omitting the day
+      (market design doc, open question 7 — settled).
+
+- **Pickup date and deadline are computed in the device timezone**
+  - **Status:** Decided 2026-10-16, not implemented. Rule rewritten in
+    `doc/ordering-business-rules.md` §7.3, which used to prescribe the device zone.
+  - **Issue:** This is the cause of manual-test-plan **E2 (S1 critical)** below. A
+    market happens on its own calendar, but `OrderDateUtils` (14 uses of
+    `TimeZone.currentSystemDefault()`), `PickupSlot.kt` and `GitLiveOrderRepository`
+    derive the pickup day, the deadline and the `yyyyMMdd` path segment from the
+    device's zone, while `BasketScreen.kt:1083`/`:1120` and `DateFormattingUtils.kt:16`
+    are already Berlin-pinned (that split is E1).
+  - **Tasks:**
+    - Pin pickup, deadline and date-key arithmetic to the seller's zone; leave display
+      in the device zone.
+    - Check what existing orders hold before changing how keys are derived — a buyer
+      whose key was written in another zone is already orphaned.
+    - Then re-run manual-test-plan E1 and E2 on a device.
+
+- **One order per pickup date: the rule and the code disagree**
+  - **Status:** Open decision, raised 2026-10-16. Recorded in
+    `doc/ordering-business-rules.md` §7.5.
+  - **Issue:** §7.4/§7.5 say a date that already has an order cannot get a second
+    basket — load the order and edit it. The app builds a second basket and merges at
+    checkout (`BuyAppViewModelBasket.kt:695`, plus the history path at
+    `BuyAppViewModelHistory.kt:109`). With one orderable slot this becomes the normal
+    case rather than an edge, so it has to be settled either way.
+  - **Tasks:**
+    - Decide: route into edit mode and delete both merge paths, or amend §7.4/§7.5 and
+      keep merging. Recommendation is the former; it changes behaviour buyers have today.
+
 - **Push Notifications**
   - **Status:** Not Implemented — options written up in `doc/order-ready-notification-design.md` (in-app banner first, then FCM + Cloud Function, and a configurable WorkManager reminder engine)
   - **Tasks:**
@@ -84,7 +143,7 @@ The following features are planned but not yet implemented, or are only partiall
     - A1 (critical): ~~`formatPrice()` shows most prices one cent too low.~~ **Fixed** (`eafaf1e`) — rounds via `Money.toCents()` instead of truncating a Double.
     - E2 (critical, needs confirmation): a time-zone change can orphan a placed order.
     - A2: ~~kg amounts render 1 g short (`1,2 kg` → `1,199 kg`).~~ **Fixed 2026-09-25** — `OrderedProduct.getFormattedAmount()` rounded a Double then re-derived the fraction by subtraction, which reintroduced binary floating-point noise; now rounds directly into integer grams/cents, same pattern as `Money.toCents()`. Covered by `OrderedProductTest.kt`.
-    - B1: ~~the pickup date picker only ever offers 2 dates.~~ **Fixed 2026-10-04** (`ea5d84b`) — `OrderDateUtils.getAvailablePickupDates()` built up as many dates as `count` asked for and then returned `dates.take(2)`; it now returns them all. Its one caller already asked for 5.
+    - B1: ~~the pickup date picker only ever offers 2 dates.~~ **Fixed 2026-10-04** (`ea5d84b`) — `OrderDateUtils.getAvailablePickupDates()` built up as many dates as `count` asked for and then returned `dates.take(2)`; it now returns them all. Its one caller already asked for 5. **Superseded 2026-10-16:** the caller should ask for one slot per market, not five dates — see the pickup-confirmation entry above.
     - B2: ~~an order reads as "pickup passed" for all of pickup day.~~ **Fixed 2026-10-04** (`ea5d84b`) — `OrderDateUtils.getOrderWindowStatus()` compared `now` against `pickupDate`, which is always midnight at the *start* of pickup day, so the order read as passed from 00:00 on. It now compares against the end of the pickup day, resolved through the local date so the cutoff holds across a DST boundary.
     - C1: re-adding an item corrupts its displayed amount/unit.
     - C2: a quantity edit can set a negative piece count.
@@ -211,7 +270,8 @@ The following features are planned but not yet implemented, or are only partiall
 - **CSV export: trailing spaces in article names**
   - **Status:** Fixed 2026-09-25 (cosmetic) — names now trimmed at both write points: `CreateProductViewModel` (manual create/edit) and `BnnParser` (import, the actual source of "Teesieb "). Existing DB records keep their trailing space until re-saved or re-imported.
 - **Known failing unit tests**
-  - **Status:** Open — 6 distinct as of 2026-10-04 (buy 491 tests / 5 failed, sell 604 / 2; `OrderDateUtilsTest` is in `commonTest` and so runs, and fails, in both)
+  - **Status:** ~~Open~~ **Resolved 2026-10-19** (`71fa5a5`, "Assert what the app does, not what it used to") — both suites green: buy 0 failures, sell 872 tests / 0. The three entries below are kept for the reasoning, in particular the `require` decision in `OrderDateUtils`.
+  - **Was:** 6 distinct as of 2026-10-04 (buy 491 tests / 5 failed, sell 604 / 2; `OrderDateUtilsTest` is in `commonTest` and so runs, and fails, in both)
   - **Issue:**
     - `OrderDateUtilsTest` (1): `calculateEditDeadline throws for non-pickup day` expects a `require` that is commented out in `OrderDateUtils.kt`. Needs a decision, not a fix: restoring it makes the function throw for any stored pickup date that is not a Thursday, and `Order.getEditDeadline()` passes whatever the record holds. Either delete the test or decide the `require` belongs there.
     - `BuyAppViewModelTest` (4): navigation and initial auth state.

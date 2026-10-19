@@ -485,6 +485,30 @@ field real (today it is written as `""`).
 label rather than a control. Most buyers will be in that case; the market row is therefore
 conditional on more than one market being on offer, not always present.
 
+### One slot per market, confirmed at checkout — decided 2026-10-16, not built
+
+The list is **one row per eligible market — its next open date — and nothing further**,
+not five dates each. `doc/ordering-business-rules.md` §2 has the reasoning: the seller
+cannot promise a catalogue or a price weeks out, and the order snapshots both.
+
+What that does to this section:
+
+- `getAvailableSlots(count = 5)` becomes one slot per market. The function keeps its
+  `count`, because the closure walk still needs a bounded search per market
+  (`PickupSlot.kt:39`, `OrderDateUtils.kt:302`, caller at
+  `BuyAppViewModelBasket.kt:1160`).
+- **With one market there is nothing to pick**, so the step becomes a *confirmation at
+  checkout* rather than a picker: the date in full, the edit deadline and the time left
+  (`formatTimeUntilDeadline`, `getDeadlineWarningLevel` — both unused at that moment
+  today), that a reorder is priced today, and one line for demo buyers. With two or more
+  markets the same step still carries the choice of where, so it must be written to take
+  a list of one *or* several rows.
+- Edit mode gets no confirmation — the date is fixed by the order being edited — and
+  shows the deadline inline on the basket instead.
+- `basketScreen.availablePickupDates: List<Long>` plus a confirmed flag is the open part
+  of the state shape: a single confirmed slot was the Thursday answer, but multi-market
+  needs N rows, so this needs settling before the UI is written.
+
 ### A saved basket remembers its slot — built
 
 `DraftBasket` stores `selectedPickupDate` plus `selectedMarketId`. The market needed **no
@@ -711,15 +735,23 @@ The slot picker could simply list every market the buyer is eligible for, with
 markets; a standing subscription only earns its place when a seller runs five or six
 stalls and the picker gets long. Leaning toward skipping it initially.
 
-### 7. How far ahead may a closure be entered, and who sees it?
+### 7. ~~How far ahead may a closure be entered, and who sees it?~~ — settled
 
 A closure entered beyond the slot horizon is invisible to buyers until the day comes into
-range, which is harmless but means the seller gets no confirmation that it took. A closure
-entered for a day inside the horizon silently shortens the buyer's list. Neither is
-obviously wrong; the question is whether the buy app should *show* a closed day greyed out
-with its reason ("Do 23.10. — Feiertag, kein Markt") rather than omit it. Showing it is
-more informative and stops a buyer wondering where their usual day went, at the cost of a
-longer list.
+range, which is harmless but means the seller gets no confirmation that it took.
+
+**The buy app shows a closed day with its reason** ("Do 23.10. — Feiertag, kein Markt")
+rather than omitting it. Settled by the one-slot-per-market decision above: when five
+dates were offered, omitting one was invisible and the shorter list cost nothing. With a
+single slot per market, omitting it leaves the buyer looking at either nothing at all or
+a date a week later than they expected, with no stated reason — and no second date to
+fall back on. The reason has to be on screen.
+
+The cost that argued against showing it — a longer list — no longer exists, because the
+list is one row per market either way.
+
+Not built: `MarketClosure.reason` is stored and the seller enters it, but nothing in the
+buy app renders it.
 
 ### 8. Do closures need to survive the market being deleted?
 

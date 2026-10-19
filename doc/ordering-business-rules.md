@@ -3,12 +3,26 @@
 ## Core Rules
 
 ### 1. Pickup Schedule
-- **Pickup Day:** Always Thursday
+- **Pickup Day:** per market (`Market.dayOfWeek`); Thursday where a seller runs one market
 - **Pickup Time:** [To be defined - e.g., 10:00-18:00]
-- **Pickup Location:** [To be defined]
+- **Pickup Location:** the market the slot names (`Order.marketId`)
 
 ### 2. Order Placement Window
-- **Target Pickup:** Next Thursday from today
+
+**Decided 2026-10-16: a buyer may order for the next open slot only.** One slot per
+eligible market — its next date that is not closed and whose deadline has not passed —
+and nothing beyond it. The seller cannot promise a catalogue or a price weeks ahead,
+and `OrderedProduct` snapshots both at order time, so a longer horizon makes a promise
+the seller has no way to keep. A buyer who misses this week orders next week.
+
+There is no dead window: `calculateNextPickupDate` rolls past the deadline, so from
+Wednesday 00:00 the next open slot is already the following week's. Exactly one cycle
+is orderable at any moment.
+
+Not yet implemented — the picker still offers five dates per market
+(`BuyAppViewModelBasket.kt:1160`). See the pickup-confirmation entry in `doc/TODO.md`.
+
+- **Target Pickup:** the next open slot
 - **Order Deadline:** Tuesday 23:59 before pickup Thursday
 - **Example:**
   - Today: Monday, Nov 11
@@ -117,9 +131,27 @@ enum class OrderWindowStatus {
   - **Recommended:** Option B (strict enforcement)
 
 #### 7.3 Time Zone Handling
-- Use **local time zone** (user's device timezone)
-- Store pickup date as **midnight UTC of pickup day**
-- Store deadline as **23:59:59 in user's timezone**
+
+**Superseded 2026-10-16.** The rule below used to read "use the user's device timezone"
+and "store the deadline at 23:59:59 in the user's timezone". That is the cause of
+manual-test-plan **E2 (S1 critical)**: `pickUpDate` is an instant, and re-deriving a
+calendar day from it in a different zone yields a different `yyyyMMdd`, so the
+`/orders/{sellerId}/{yyyyMMdd}` path and the `placedOrderIds` key stop agreeing and the
+order vanishes from the buyer's list while the seller still sees it.
+
+The decided rule:
+
+- **Pickup day, deadline and date keys are computed in the seller's zone**
+  (Europe/Berlin). A market happens at a place, on that place's calendar; a buyer's
+  device clock does not move it.
+- **Display** may use the device zone — only the arithmetic is pinned.
+- Store the pickup date as **midnight of the pickup day in the seller's zone**, and the
+  deadline as **23:59:59.999 of the deadline day in the seller's zone**.
+
+Not yet implemented. Production still mixes both: `OrderDateUtils` (14 uses of
+`TimeZone.currentSystemDefault()`), `PickupSlot.kt` and `GitLiveOrderRepository` take
+the device zone, while `BasketScreen.kt:1083`/`:1120` and `DateFormattingUtils.kt:16`
+are already Berlin-pinned — which is manual-test-plan E1.
 
 #### 7.4 Order Exists for Next Thursday
 - User has order for Nov 14 (Thursday)
@@ -134,6 +166,26 @@ enum class OrderWindowStatus {
 - If order exists for Thursday Nov 14 → Edit it
 - If no order exists → Create new one
 - Cannot create second order for same pickup date
+
+> **The code does not do this — undecided, needs a ruling.**
+>
+> §7.4 and §7.5 say a second basket for a date that already has an order cannot exist:
+> load the order and edit it. The app instead builds a second basket and resolves it at
+> checkout with a merge dialog — `BuyAppViewModelBasket.kt:695` (and a second path from
+> the order history, `BuyAppViewModelHistory.kt:109`), over the conflicts computed by
+> `basketScreenCalculateMergeConflicts`.
+>
+> It matters now because with one orderable slot (§2) the collision stops being an edge
+> case: a buyer's second checkout in a week *always* lands on the order they already
+> have, so whichever answer is right becomes the main path.
+>
+> - **Follow the rule:** route into edit mode, delete both merge paths and the conflict
+>   model. Simpler, and it matches what §3.2 already says about a placed order.
+> - **Follow the code:** amend §7.4/§7.5 to allow a second basket, and keep merging as
+>   a real feature. It is built, tested and listed as implemented in `doc/TODO.md`.
+>
+> Recommendation: follow the rule — but this is a behaviour change for buyers who use
+> merging today, so it is a decision, not a cleanup.
 
 ### 8. User Experience Guidelines
 
