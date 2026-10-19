@@ -132,7 +132,6 @@ data class UserProfile(
     val email: String = "",
     val phone: String = "",
     val address: String = "",
-    val marketLocation: String = "",
     val pickupTime: String = "",
     val notificationsEnabled: Boolean = true,
     val newsletterEnabled: Boolean = false

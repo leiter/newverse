@@ -64,7 +64,7 @@ val appModule = module {
     viewModel { WalkInSaleViewModel(get(), get(), get(), get()) }
     viewModel { StockViewModel(get(), get(), get(), get()) }
     viewModel { CreateProductViewModel(get(), get(), get(), get()) }
-    viewModel { SellerProfileViewModel(get(), get(), get(), get(), get()) }
+    viewModel { SellerProfileViewModel(get(), get(), get(), get(), get(), get()) }
 
     // Messaging ViewModels
     viewModel { ConversationListViewModel(get(), get()) }

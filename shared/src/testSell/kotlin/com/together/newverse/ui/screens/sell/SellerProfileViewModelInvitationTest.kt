@@ -4,6 +4,7 @@ import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.test.FakeArticleRepository
 import com.together.newverse.test.FakeAuthRepository
 import com.together.newverse.test.FakeInvitationRepository
+import com.together.newverse.test.FakeMarketRepository
 import com.together.newverse.test.FakeOrderRepository
 import com.together.newverse.test.FakeProfileRepository
 import com.together.newverse.test.MainDispatcherRule
@@ -30,6 +31,7 @@ class SellerProfileViewModelInvitationTest {
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var articleRepository: FakeArticleRepository
     private lateinit var orderRepository: FakeOrderRepository
+    private lateinit var marketRepository: FakeMarketRepository
     private lateinit var invitationRepository: FakeInvitationRepository
 
     private val testSellerId = "seller-123"
@@ -45,6 +47,7 @@ class SellerProfileViewModelInvitationTest {
         authRepository = FakeAuthRepository()
         articleRepository = FakeArticleRepository()
         orderRepository = FakeOrderRepository()
+        marketRepository = FakeMarketRepository()
         invitationRepository = FakeInvitationRepository()
 
         // Set up seller auth and profile
@@ -58,6 +61,7 @@ class SellerProfileViewModelInvitationTest {
         authRepository.reset()
         articleRepository.reset()
         orderRepository.reset()
+        marketRepository.reset()
         invitationRepository.reset()
         dispatcherRule.tearDown()
     }
@@ -67,6 +71,7 @@ class SellerProfileViewModelInvitationTest {
         authRepository = authRepository,
         articleRepository = articleRepository,
         orderRepository = orderRepository,
+        marketRepository = marketRepository,
         invitationRepository = invitationRepository
     )
 

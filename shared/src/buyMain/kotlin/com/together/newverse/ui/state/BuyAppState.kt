@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.AccessStatus
+import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.MarketClosures
 import com.together.newverse.domain.model.SellerContact
 import com.together.newverse.domain.model.SellerContactDirectory
@@ -39,6 +40,8 @@ data class BuyAppState(
     val isAccessStatusLoaded: Boolean = false,
     val isRequestingAccess: Boolean = false,
     val sellerContacts: SellerContactDirectory = SellerContactDirectory(),
+    /** The seller's active markets, as the buy app last read them. */
+    val sellerMarkets: List<Market> = emptyList(),
     /** Days the seller has marked as not happening; filtered out of the pickup dates. */
     val sellerClosures: MarketClosures = MarketClosures.NONE,
 
@@ -117,15 +120,18 @@ data class BuyAppState(
         get() = isAccessStatusLoaded && accessStatus == AccessStatus.APPROVED
 
     /**
-     * The market whose contacts join the seller's in the top bar.
+     * Where this buyer collects.
      *
-     * Only the "sole eligible market" step can fire until `Order.marketId` is real
-     * and eligibility exists — see `doc/market-pricing-and-access-design.md`. A
-     * single-market seller therefore works fully today.
+     * Resolution order, from `doc/market-pricing-and-access-design.md` §4: the slot
+     * selected in the basket (not built yet — the slot picker is step 3), then the
+     * buyer's stated default, then the only market there is. Null when the seller
+     * runs several and the buyer has not said which, in which case they see the
+     * business's contacts and no market's.
      */
     val contextualMarketId: String?
-        get() = sellerContacts.marketContacts.keys.singleOrNull()
-            ?: customerProfile.profile?.defaultMarket?.takeIf { it.isNotEmpty() }
+        get() = customerProfile.profile?.defaultMarket
+            ?.takeIf { id -> id.isNotEmpty() && sellerMarkets.any { it.id == id } }
+            ?: sellerMarkets.singleOrNull()?.id
 
     /** What the top-bar menu offers, already deduplicated. */
     val topBarContacts: List<SellerContact>
@@ -176,6 +182,7 @@ fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
     isAccessStatusLoaded = false,
     isRequestingAccess = false,
     sellerContacts = SellerContactDirectory(),
+    sellerMarkets = emptyList(),
     sellerClosures = MarketClosures.NONE,
     pendingInvitations = emptyList(),
     showConnectionConfirmDialog = null,

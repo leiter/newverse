@@ -9,6 +9,7 @@ import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.test.FakeArticleRepository
 import com.together.newverse.test.FakeAuthRepository
+import com.together.newverse.test.FakeMarketRepository
 import com.together.newverse.test.FakeOrderRepository
 import com.together.newverse.test.FakeProfileRepository
 import com.together.newverse.test.MainDispatcherRule
@@ -45,6 +46,7 @@ class SellerProfileViewModelTest {
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var articleRepository: FakeArticleRepository
     private lateinit var orderRepository: FakeOrderRepository
+    private lateinit var marketRepository: FakeMarketRepository
 
     @BeforeTest
     fun setup() {
@@ -53,6 +55,7 @@ class SellerProfileViewModelTest {
         authRepository = FakeAuthRepository()
         articleRepository = FakeArticleRepository()
         orderRepository = FakeOrderRepository()
+        marketRepository = FakeMarketRepository()
     }
 
     @AfterTest
@@ -62,6 +65,7 @@ class SellerProfileViewModelTest {
         authRepository.reset()
         articleRepository.reset()
         orderRepository.reset()
+        marketRepository.reset()
         dispatcherRule.tearDown()
     }
 
@@ -69,7 +73,8 @@ class SellerProfileViewModelTest {
         profileRepository = profileRepository,
         authRepository = authRepository,
         articleRepository = articleRepository,
-        orderRepository = orderRepository
+        orderRepository = orderRepository,
+        marketRepository = marketRepository
     )
 
     // ===== Test Helpers =====
@@ -477,6 +482,74 @@ class SellerProfileViewModelTest {
             assertEquals(2, state.data.markets.size)
             assertEquals("Updated Market 1", state.data.markets.find { it.id == "m1" }?.name)
             assertEquals("Market 2", state.data.markets.find { it.id == "m2" }?.name)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // Markets moved into a node of their own. These cover what that changed: the
+    // seller's legacy list is carried across on first load, and removing a market
+    // deactivates it rather than deleting the row an order points at.
+
+    @Test
+    fun `markets still in the profile list are moved into the node on load`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val legacy = createMarket("m1", "Kreuzberg", city = "Berlin")
+        profileRepository.setSellerProfile(createSellerProfile(markets = listOf(legacy)))
+
+        createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf("m1"), marketRepository.stored("seller_123").map { it.id })
+    }
+
+    @Test
+    fun `a market already in the node is not overwritten by the legacy list`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        marketRepository.seed("seller_123", createMarket("m1", "Current name", city = "Berlin"))
+        profileRepository.setSellerProfile(
+            createSellerProfile(markets = listOf(createMarket("m1", "Stale name", city = "Berlin")))
+        )
+
+        createViewModel()
+        advanceUntilIdle()
+
+        assertEquals("Current name", marketRepository.stored("seller_123").single().name)
+    }
+
+    @Test
+    fun `removeMarket deactivates rather than deleting the row`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        profileRepository.setSellerProfile(
+            createSellerProfile(markets = listOf(createMarket("m1", "Kreuzberg", city = "Berlin")))
+        )
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.removeMarket("m1")
+        advanceUntilIdle()
+
+        // The row survives, so an order naming m1 still resolves and stays readable.
+        val stored = marketRepository.stored("seller_123").single()
+        assertEquals("m1", stored.id)
+        assertEquals(false, stored.active)
+    }
+
+    @Test
+    fun `a deactivated market is no longer offered`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        profileRepository.setSellerProfile(
+            createSellerProfile(markets = listOf(createMarket("m1", "Kreuzberg", city = "Berlin")))
+        )
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.removeMarket("m1")
+        advanceUntilIdle()
+
+        viewModel.profileState.test {
+            val state = awaitItem()
+            assertIs<AsyncState.Success<SellerProfile>>(state)
+            assertEquals(0, state.data.markets.size)
             cancelAndIgnoreRemainingEvents()
         }
     }

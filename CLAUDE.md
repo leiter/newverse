@@ -132,6 +132,7 @@ Realtime Database, top-level node first, then owner:
 /demo_orders/{sellerId}/{yyyyMMdd}/{id}   # Orders from buyers the seller has not approved
 /sales/{sellerId}/{yyyyMM}/{saleId}        # Booked sales (seller-only, add-only)
 /sale_index/{sellerId}/{orderId}/{saleId}  # = yyyyMM: which sales belong to an order
+/markets/{sellerId}/{marketId}            # Seller's markets, readable by every signed-in user
 /seller_profile/{sellerId}                # Seller profile
 /buyer_profile/{buyerId}                  # Buyer profile with order history
 ```

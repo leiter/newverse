@@ -12,6 +12,7 @@ import com.together.newverse.data.config.SellerIdStorage
 import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.data.repository.GitLiveAuthRepository
 import com.together.newverse.data.repository.GitLiveOrderRepository
+import com.together.newverse.data.repository.GitLiveMarketRepository
 import com.together.newverse.data.repository.GitLiveProfileRepository
 import com.together.newverse.data.repository.GitLiveSaleRepository
 import com.together.newverse.data.repository.GitLiveStockRepository
@@ -24,6 +25,7 @@ import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
+import com.together.newverse.domain.repository.MarketRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.SaleRepository
 import com.together.newverse.domain.repository.StockRepository
@@ -82,6 +84,8 @@ val iosDomainModule = module {
     }
 
     // Profile Repository - GitLive cross-platform implementation
+    single<MarketRepository> { GitLiveMarketRepository() }
+
     single<ProfileRepository> {
         GitLiveProfileRepository(get<AuthRepository>())
     }

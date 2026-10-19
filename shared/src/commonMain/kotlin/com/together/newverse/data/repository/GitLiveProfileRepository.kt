@@ -51,6 +51,7 @@ class GitLiveProfileRepository(
     private val database = Firebase.database
     private val buyersRef = database.reference("buyer_profile")
     private val sellersRef = database.reference("seller_profile")
+    private val marketsRef = database.reference("markets")
     private val accessRequestsRef = database.reference("access_requests")
     private val buyerAccessStatusRef = database.reference("buyer_access_status")
     private val inviteTokensRef = database.reference("invite_tokens")
@@ -176,7 +177,12 @@ class GitLiveProfileRepository(
             val contacts = parseContacts(
                 sellersRef.child(sellerId).child("contacts").valueEvents.first().value
             )
-            val marketsValue = sellersRef.child(sellerId).child("markets").valueEvents.first().value
+            // Markets moved to a node of their own; the profile's list is the
+            // fallback until the migration script has run — see
+            // `doc/market-pricing-and-access-design.md` §1.
+            val fromNode = marketsRef.child(sellerId).valueEvents.first().value
+            val marketsValue = fromNode
+                ?: sellersRef.child(sellerId).child("markets").valueEvents.first().value
             val marketRows = when (marketsValue) {
                 is List<*> -> marketsValue
                 is Map<*, *> -> marketsValue.values.toList()

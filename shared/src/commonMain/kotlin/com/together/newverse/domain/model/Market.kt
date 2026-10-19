@@ -20,4 +20,12 @@ data class Market(
      * see `doc/seller-contact-design.md`.
      */
     val contacts: List<SellerContact> = emptyList(),
+    /**
+     * Whether the market still runs.
+     *
+     * Markets are deactivated, never deleted: orders reference a market by id and
+     * historical orders have to stay readable. A deactivated market keeps its row
+     * so `Order.marketId` resolves, and simply stops being offered.
+     */
+    val active: Boolean = true,
 )

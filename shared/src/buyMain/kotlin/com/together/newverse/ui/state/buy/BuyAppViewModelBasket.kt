@@ -692,7 +692,11 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 buyerProfile = buyerProfile,
                 createdDate = Clock.System.now().toEpochMilliseconds(),
                 sellerId = sellerConfig.sellerId,
-                marketId = "",
+                // Where this order is collected. Empty when the seller runs several
+                // markets and the buyer has not said which — the slot picker that
+                // makes them choose is step 3 of the markets design. The rules accept
+                // empty, and reject an id that names no market.
+                marketId = _state.value.contextualMarketId.orEmpty(),
                 pickUpDate = selectedDate,
                 message = "",
                 articles = items,
@@ -942,7 +946,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                     buyerProfile = buyerProfile,
                     createdDate = createdDate,
                     sellerId = sellerConfig.sellerId,
-                    marketId = "",
+                    marketId = _state.value.contextualMarketId.orEmpty(),
                     pickUpDate = pickupDate,
                     message = "",
                     articles = items,

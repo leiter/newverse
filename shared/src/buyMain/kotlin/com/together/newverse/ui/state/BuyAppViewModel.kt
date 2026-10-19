@@ -13,6 +13,7 @@ import com.together.newverse.domain.repository.BuyerContactRepository
 import com.together.newverse.domain.repository.InvitationRepository
 import com.together.newverse.domain.repository.MessageRepository
 import com.together.newverse.domain.repository.OrderRepository
+import com.together.newverse.domain.repository.MarketRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.SellerEventRepository
 import com.together.newverse.ui.state.buy.clearPendingNavigation
@@ -98,7 +99,9 @@ class BuyAppViewModel(
     internal val buyerContactRepository: BuyerContactRepository? = null,
     internal val sellerEventRepository: SellerEventRepository? = null,
     internal val orderReminderStorage: OrderReminderStorage? = null,
-    internal val orderReminderScheduler: OrderReminderScheduler? = null
+    internal val orderReminderScheduler: OrderReminderScheduler? = null,
+    /** Optional so the existing tests, which do not care about markets, keep their shape. */
+    internal val marketRepository: MarketRepository? = null
 ) : BaseAppViewModel<BuyAppState, BuyAction>(authRepository) {
 
     /**

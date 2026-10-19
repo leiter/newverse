@@ -233,6 +233,13 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
                 MarketClosures.NONE
             }
 
+            val sellerMarkets = try {
+                marketRepository?.getMarkets(sellerId)?.getOrNull().orEmpty()
+            } catch (e: Exception) {
+                Log.d(TAG) { "performConnection: getMarkets failed (non-fatal) - ${e.message}" }
+                emptyList()
+            }
+
             // Clear basket and reset screen states; reset accessStatus (will be re-observed)
             _state.update { current ->
                 current.copy(
@@ -240,6 +247,7 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
                     connectedSellerDisplayName = sellerDisplayName,
                     sellerContacts = sellerContacts,
                     sellerClosures = sellerClosures,
+                    sellerMarkets = sellerMarkets,
                     accessStatus = AccessStatus.NONE,
                     basket = BasketState(),
                     products = ProductsScreenState(),

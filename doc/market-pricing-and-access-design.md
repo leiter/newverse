@@ -1,7 +1,7 @@
 # Markets: Pricing, Access, Scheduling and Communication
 
-**Status:** §4's closures are implemented (2026-10-19), marked below. Everything
-else is design only.
+**Status:** §1 (markets as an entity) and §4's closures are implemented
+(2026-10-19), marked below. §2, §3 and the rest of §4 are design only.
 **Scope (proposed):** `shared/src/commonMain` (model + pricing + schedule + repository),
 `buyMain` (slot picker, price breakdown), `sellMain` (market, condition and closure
 editing), `firebase/database.rules.json`
@@ -64,7 +64,7 @@ Four separable claims, in the order they have to be built.
 
 ---
 
-## 1. Promote `Market` to an entity first
+## 1. Promote `Market` to an entity first — built
 
 Nothing else here is buildable while a market id means nothing. The step is small and
 correct on its own merits:
@@ -79,8 +79,42 @@ correct on its own merits:
   `UserProfile.marketLocation` or point it at the same id. Three spellings of one
   concept is already one too many.
 
-Migration: read the existing list, write it as a map under the same ids, keep reading
-the list shape for one release (the same two-step as `storedOrderOrigin`).
+### What was built
+
+`markets/{sellerId}/{marketId}`, read by any signed-in user and written by the seller
+(`MarketRepository` / `GitLiveMarketRepository`). The rules key each record by its own
+id, reject unknown fields, and bound `dayIndex` to the week.
+
+`Order.marketId` is filled at checkout from the buyer's contextual market and
+**validated against the node**, so an order cannot name a market that does not exist.
+Empty stays legal — the buyer of a multi-market seller has nothing to choose with until
+the slot picker lands in §3, and orders written before the field existed carry it.
+
+`BuyerProfile.defaultMarket` is documented as a `Market.id` and resolved against the
+node rather than taken on trust. `UserProfile.marketLocation`, the third unrelated
+spelling of the same concept, was deleted: nothing read it.
+
+**Markets are deactivated, never deleted.** `Market.active` defaults to true and absent
+means true, so every legacy record reads as live. `removeMarket` flips the flag instead
+of dropping the row, because orders reference a market by id and the seller's books are
+built from those orders. This settles open question 5.
+
+### Migration
+
+Two paths, deliberately. `firebase/scripts/migrate-markets-node.mjs` moves existing data
+— dry run by default, `--apply` to write, `--from-export` to rehearse the whole plan
+offline. And `MarketRepository.migrateLegacyMarkets`, called the first time a seller
+opens their profile, so the app does not depend on the script having been run against
+their project. Both are **add-only**: a market already in the node is newer than the
+profile list and is reported and skipped, never merged into.
+
+A list entry with no `id` cannot be moved — the id becomes the key, and minting a fresh
+one would not match what an order or closure already refers to. Those are reported for
+the seller to fix in the app.
+
+Reads fall back to `seller_profile/{sellerId}/markets` while both shapes exist. The
+profile list is deliberately **not** deleted by the migration: a released app still reads
+it. `--drop-legacy` clears it in a second pass, once that fallback comes out.
 
 ---
 
@@ -460,7 +494,8 @@ not silence their reminder.
 
 ## Suggested order of work
 
-1. **Market as an entity** (§1). Independently correct; unblocks everything else.
+1. ~~**Market as an entity** (§1).~~ **Done 2026-10-19**, with both migration paths.
+   The profile-list fallback and `--drop-legacy` remain for a later release.
 2. ~~**Closures** (§4).~~ **Done 2026-10-19**, including the order-conflict refusal,
    range entry and the reminder worker. One piece of the design remains: offering the
    seller a *choice* between cancelling and rescheduling the orders that block a closure,
@@ -516,11 +551,11 @@ wholesale rate, a long-standing customer) have somewhere to go. Nothing requires
 It may be better to drop the parameter and add it when a real case appears, rather than
 ship an always-`Standard` argument.
 
-### 5. Orphan markets
+### 5. ~~Orphan markets~~ — settled
 
-Deleting a market that orders reference leaves `Order.marketId` dangling, and historical
-orders must stay readable. Markets therefore need soft deletion (`active: false`) rather
-than removal — `SellerProfileViewModel.removeMarket` currently drops the entry outright.
+Markets are deactivated, not deleted: `Market.active`, flipped by `removeMarket`. The row
+survives so `Order.marketId` keeps resolving and historical orders stay readable, and an
+inactive market is simply not offered.
 
 ### 6. Is the profile-level market multi-select worth v1?
 

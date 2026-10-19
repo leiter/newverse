@@ -59,7 +59,8 @@ val appModule = module {
             // getOrNull: the web target has no reminder implementation, so the UI shows
             // the section as unavailable instead of failing to construct the ViewModel.
             orderReminderStorage = getOrNull(),
-            orderReminderScheduler = getOrNull()
+            orderReminderScheduler = getOrNull(),
+            marketRepository = getOrNull()
         )
     }
 

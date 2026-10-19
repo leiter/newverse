@@ -15,6 +15,7 @@ import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.InvitationRepository
+import com.together.newverse.domain.repository.MarketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.state.core.AsyncState
@@ -46,6 +47,7 @@ class SellerProfileViewModel(
     private val authRepository: AuthRepository,
     private val articleRepository: ArticleRepository,
     private val orderRepository: OrderRepository,
+    private val marketRepository: MarketRepository,
     private val invitationRepository: InvitationRepository = object : InvitationRepository {
         override suspend fun createInvitation(sellerId: String, sellerDisplayName: String, expiresInMillis: Long, targetBuyerId: String?) = Result.failure<Invitation>(Exception("Not configured"))
         override suspend fun getInvitation(invitationId: String) = Result.failure<Invitation>(Exception("Not configured"))
@@ -202,11 +204,20 @@ class SellerProfileViewModel(
                 return@launch
             }
 
+            currentSellerId = sellerId
+
             profileRepository.getSellerProfile(sellerId).fold(
                 onSuccess = { profile ->
                     // The customer roster is not part of the profile any more;
                     // observeBuyers owns _customerState.
                     _profileState.value = AsyncState.Success(profile)
+
+                    // A seller whose markets are still in the profile list moves
+                    // them across the first time they open this screen, so the app
+                    // does not depend on the migration script having run against
+                    // their project. Add-only, so re-running changes nothing.
+                    marketRepository.migrateLegacyMarkets(sellerId, profile.markets)
+                    observeMarketsForSeller(sellerId)
                 },
                 onFailure = { e ->
                     _profileState.value = AsyncState.Error(
@@ -215,6 +226,26 @@ class SellerProfileViewModel(
                     )
                 }
             )
+        }
+    }
+
+    /** Set once the profile loads; market writes need it and are refused without it. */
+    private var currentSellerId: String? = null
+
+    /**
+     * Keep [profileState]'s markets in step with the node.
+     *
+     * The profile object stays the shape the screen reads, so nothing downstream had
+     * to change; only where the list comes from did.
+     */
+    private fun observeMarketsForSeller(sellerId: String) {
+        viewModelScope.launch {
+            marketRepository.observeMarkets(sellerId).collect { markets ->
+                _profileState.update { state ->
+                    val profile = (state as? AsyncState.Success)?.data ?: return@update state
+                    AsyncState.Success(profile.copy(markets = markets))
+                }
+            }
         }
     }
 
@@ -293,27 +324,41 @@ class SellerProfileViewModel(
         saveProfile(currentProfile.copy(closures = closures))
     }
 
-    fun addMarket(market: Market) {
-        val currentProfile = (_profileState.value as? AsyncState.Success)?.data ?: return
-        val updatedMarkets = currentProfile.markets + market
-        val updatedProfile = currentProfile.copy(markets = updatedMarkets)
-        saveProfile(updatedProfile)
-    }
+    /**
+     * Markets now live in their own node, so adding and editing one is a single
+     * write there rather than a rewrite of the whole profile. The profile's legacy
+     * list is left untouched: the migration script moves it, and
+     * [observeMarketsForSeller] keeps reading it until that has happened.
+     */
+    fun addMarket(market: Market) = persistMarket(market)
 
-    fun updateMarket(market: Market) {
-        val currentProfile = (_profileState.value as? AsyncState.Success)?.data ?: return
-        val updatedMarkets = currentProfile.markets.map {
-            if (it.id == market.id) market else it
+    fun updateMarket(market: Market) = persistMarket(market)
+
+    private fun persistMarket(market: Market) {
+        val sellerId = currentSellerId ?: return
+        viewModelScope.launch {
+            _isSaving.value = true
+            marketRepository.saveMarket(sellerId, market)
+                .onFailure { Log.e(TAG) { "persistMarket: ${it.message}" } }
+            _isSaving.value = false
         }
-        val updatedProfile = currentProfile.copy(markets = updatedMarkets)
-        saveProfile(updatedProfile)
     }
 
+    /**
+     * Stop offering a market, keeping its row.
+     *
+     * Deleting it would leave `Order.marketId` on every past order pointing at
+     * nothing, and those orders have to stay readable — the seller's books are
+     * built from them.
+     */
     fun removeMarket(marketId: String) {
-        val currentProfile = (_profileState.value as? AsyncState.Success)?.data ?: return
-        val updatedMarkets = currentProfile.markets.filter { it.id != marketId }
-        val updatedProfile = currentProfile.copy(markets = updatedMarkets)
-        saveProfile(updatedProfile)
+        val sellerId = currentSellerId ?: return
+        viewModelScope.launch {
+            _isSaving.value = true
+            marketRepository.deactivateMarket(sellerId, marketId)
+                .onFailure { Log.e(TAG) { "removeMarket: ${it.message}" } }
+            _isSaving.value = false
+        }
     }
 
     fun showMarketDialog(market: Market? = null) {
