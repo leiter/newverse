@@ -21,10 +21,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.ArticleScarcity
 import com.together.newverse.ui.a11y.productCardSemantics
 import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.components.ProductImage
 import com.together.newverse.util.formatPrice
+import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.product_scarcity_last_few
+import newverse.shared.generated.resources.product_scarcity_limited
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun ModernProductCard(
@@ -33,10 +38,18 @@ internal fun ModernProductCard(
     onClick: () -> Unit,
 ) {
     val isBio = product.productName.contains("Bio", ignoreCase = true)
+    // Browsing is where `LIMITED` earns its keep, so both bands show here — unlike
+    // the basket, which only ever says "nearly gone".
+    val scarcityLabel = when (product.scarcity) {
+        ArticleScarcity.LAST_FEW -> stringResource(Res.string.product_scarcity_last_few)
+        ArticleScarcity.LIMITED -> stringResource(Res.string.product_scarcity_limited)
+        ArticleScarcity.PLENTIFUL, ArticleScarcity.UNKNOWN -> null
+    }
     val cardDescription = buildString {
         append(product.productName)
         append(", ")
         append(productPriceLabel(product.price, product.unit))
+        scarcityLabel?.let { append(", "); append(it) }
         if (isBio) append(", Bio")
     }
 
@@ -93,6 +106,16 @@ internal fun ModernProductCard(
                     text = "/ ${product.unit}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            scarcityLabel?.let { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
