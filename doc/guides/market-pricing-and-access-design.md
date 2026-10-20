@@ -876,6 +876,12 @@ not silence their reminder.
    It stops being equivalent only if a market gains its own lead time or cut-off hour.
    That is the trigger to thread the config through the 14 call sites, and not before:
    doing it now would be 14 edits that change no behaviour.
+
+   **Pinned by `MarketDeadlineEquivalenceTest`** (7 cases), so the equivalence cannot be
+   broken silently. Four of them fail if `scheduleConfig` is changed to pin a weekday
+   instead of preserving the distance — checked by making that change and watching them
+   go red. When they do fail, the fourteen call sites are the work the failure is asking
+   for.
 4. ~~**Eligibility + invite scoping** (§3).~~ **Done 2026-10-19**, rules deployed
    2026-10-20: `grantsMarkets`, `allowedMarkets` and the tightened
    `buyer_access_status` write rule are live on dev and prod.
