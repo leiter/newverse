@@ -136,6 +136,15 @@
             ".write": "auth != null && ($sellerId === auth.uid || (data.child('buyerId').val() === auth.uid || !data.exists()) && root.child('buyer_access_status').child($sellerId).child(auth.uid).child('status').val() !== 'BLOCKED')",
             ".validate": "auth.uid === $sellerId || newData.child('buyerId').val() === auth.uid",
             "origin": { ".validate": "newData.val() === 'PRODUCTION' || newData.val() === 'TRANSITIONED'" },
+            "fulfilment": { ".validate": "newData.val() === 'PICKUP' || newData.val() === 'DELIVERY'" },
+            "deliveryAddress": {
+              ".validate": "newData.hasChildren(['street', 'houseNumber'])",
+              "street": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 200" },
+              "houseNumber": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 40" },
+              "zipCode": { ".validate": "newData.isString() && newData.val().length < 20" },
+              "city": { ".validate": "newData.isString() && newData.val().length < 120" },
+              "note": { ".validate": "newData.isString() && newData.val().length < 300" }
+            },
             "marketId": { ".validate": "newData.isString() && (newData.val() === '' || root.child('markets').child($sellerId).child(newData.val()).exists())" },
             "pricingRevision": { ".validate": "newData.isNumber() && newData.val() >= 0" }
           }
@@ -150,6 +159,15 @@
             ".write": "auth != null && (data.child('buyerId').val() === auth.uid || !data.exists())",
             ".validate": "newData.child('buyerId').val() === auth.uid",
             "origin": { ".validate": "newData.val() === 'DEMO'" },
+            "fulfilment": { ".validate": "newData.val() === 'PICKUP' || newData.val() === 'DELIVERY'" },
+            "deliveryAddress": {
+              ".validate": "newData.hasChildren(['street', 'houseNumber'])",
+              "street": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 200" },
+              "houseNumber": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 40" },
+              "zipCode": { ".validate": "newData.isString() && newData.val().length < 20" },
+              "city": { ".validate": "newData.isString() && newData.val().length < 120" },
+              "note": { ".validate": "newData.isString() && newData.val().length < 300" }
+            },
             "pricingRevision": { ".validate": "newData.isNumber() && newData.val() >= 0" }
           }
         }

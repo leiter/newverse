@@ -17,6 +17,8 @@ import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
 import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.MarketPricing
+import com.together.newverse.domain.model.DeliveryAddress
+import com.together.newverse.domain.model.Fulfilment
 import com.together.newverse.domain.model.PriceChange
 import com.together.newverse.domain.model.priceChanges
 import com.together.newverse.ui.state.PendingSlotPriceChange
@@ -136,6 +138,9 @@ internal fun BuyAppViewModel.handleBasketScreenAction(action: BuyBasketScreenAct
         BuyBasketScreenAction.Checkout -> basketScreenRequestCheckout()
         BuyBasketScreenAction.ConfirmCheckout -> basketScreenCheckout()
         BuyBasketScreenAction.DismissCheckout -> basketScreenDismissCheckout()
+        is BuyBasketScreenAction.SetFulfilment -> basketScreenSetFulfilment(action.fulfilment)
+        is BuyBasketScreenAction.SetDeliveryAddress ->
+            basketScreenSetDeliveryAddress(action.address)
         is BuyBasketScreenAction.LoadOrder -> basketScreenLoadOrder(action.orderId, action.date, forceLoad = true)
         BuyBasketScreenAction.UpdateOrder -> basketScreenUpdateOrder()
         BuyBasketScreenAction.EnableEditing -> basketScreenEnableEditing()
@@ -363,6 +368,11 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                                 orderDate = orderDate,
                                 pickupDate = order.pickUpDate,
                                 createdDate = order.createdDate,
+                                // From the order, not the profile: editing a delivery
+                                // must not quietly turn it back into a pickup because
+                                // the profile says self-pickup.
+                                fulfilment = order.fulfilment,
+                                deliveryAddress = order.deliveryAddress,
                                 isEditMode = false,
                                 canEdit = canEdit,
                                 originalOrderItems = order.articles,
@@ -622,10 +632,62 @@ internal fun BuyAppViewModel.basketScreenRequestCheckout() {
         return
     }
 
+    // A delivery the seller cannot deliver to must not reach the database. They cannot
+    // read `buyer_profile`, so an order with no address is an order with no destination
+    // and no way to recover one.
+    if (basket.fulfilment == Fulfilment.DELIVERY && !basket.deliveryAddress.isComplete) {
+        _state.update { current ->
+            current.copy(
+                basketScreen = current.basketScreen.copy(
+                    showCheckoutConfirm = true,
+                    orderError = "Bitte Lieferadresse angeben"
+                )
+            )
+        }
+        return
+    }
+
     _state.update { current ->
         current.copy(
             basketScreen = current.basketScreen.copy(
                 showCheckoutConfirm = true,
+                orderError = null
+            )
+        )
+    }
+}
+
+/**
+ * Pickup or delivery for this order.
+ *
+ * Switching to delivery seeds the address from the profile if nothing has been typed
+ * yet, so the common case — a buyer whose profile already holds their address — is one
+ * tap rather than retyping what the app knows.
+ */
+internal fun BuyAppViewModel.basketScreenSetFulfilment(fulfilment: Fulfilment) {
+    _state.update { current ->
+        val seeded = if (fulfilment == Fulfilment.DELIVERY &&
+            current.basketScreen.deliveryAddress.isEmpty
+        ) {
+            DeliveryAddress.fromProfile(current.customerProfile.profile)
+        } else {
+            current.basketScreen.deliveryAddress
+        }
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                fulfilment = fulfilment,
+                deliveryAddress = seeded,
+                orderError = null
+            )
+        )
+    }
+}
+
+internal fun BuyAppViewModel.basketScreenSetDeliveryAddress(address: DeliveryAddress) {
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                deliveryAddress = address,
                 orderError = null
             )
         )
@@ -766,6 +828,13 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 createdDate = Clock.System.now().toEpochMilliseconds(),
                 sellerId = sellerConfig.sellerId,
                 marketId = orderMarketId,
+                // Snapshotted, not looked up: the seller cannot read buyer_profile, and
+                // a buyer who moves house afterwards must not redirect an order that is
+                // already on its way.
+                fulfilment = _state.value.basketScreen.fulfilment,
+                deliveryAddress = if (_state.value.basketScreen.fulfilment == Fulfilment.DELIVERY) {
+                    _state.value.basketScreen.deliveryAddress
+                } else DeliveryAddress.NONE,
                 // Snapshotted beside the prices it produced: the seller may edit
                 // conditions tomorrow, and this is what says the articles above were
                 // priced against yesterday's.
@@ -911,6 +980,8 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                             orderDate = date,
                             pickupDate = order.pickUpDate,
                             createdDate = order.createdDate,
+                            fulfilment = order.fulfilment,
+                            deliveryAddress = order.deliveryAddress,
                             isEditMode = false,
                             canEdit = canEdit,
                             isLoadingOrder = false,
@@ -1050,6 +1121,13 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                 stored.copy(
                     buyerProfile = buyerProfile,
                     articles = items,
+                    // Re-snapshotted on an edit, which is the path a buyer takes to turn
+                    // a placed pickup into a delivery. Changing their profile does not
+                    // do it — see basketScreenFulfilmentDiffersFromProfile.
+                    fulfilment = basketState.fulfilment,
+                    deliveryAddress = if (basketState.fulfilment == Fulfilment.DELIVERY) {
+                        basketState.deliveryAddress
+                    } else DeliveryAddress.NONE,
                     marketId = keptMarketId,
                     pricingRevision = if (keptMarketId == stored.marketId) stored.pricingRevision
                     else _state.value.pricingRevisionOf(keptMarketId)

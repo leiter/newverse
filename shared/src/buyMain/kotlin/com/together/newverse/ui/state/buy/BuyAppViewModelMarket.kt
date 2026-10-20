@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.Fulfilment
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.util.Log
@@ -106,5 +107,52 @@ internal fun BuyAppViewModel.chooseDefaultMarket(marketId: String) {
                     SnackbarType.WARNING
                 )
             }
+    }
+}
+
+/**
+ * The buyer changed their profile's pickup/delivery preference while a placed order
+ * sits there, placed under the old one.
+ *
+ * The order keeps what it was placed with — the seller may already have packed it for
+ * the stall, or loaded it onto a van — so changing a *preference* must not silently
+ * re-aim an order that already exists. But saying nothing is worse: the buyer has just
+ * told the app they want delivery and would reasonably assume this week is included.
+ *
+ * So they are told, and pointed at the edit path, which re-snapshots the order's
+ * fulfilment and respects the deadline like any other change. If the deadline has
+ * passed there is nothing to offer and the message says only that the order stands.
+ *
+ * `doc/guides/ordering-business-rules.md` § Delivery.
+ */
+internal fun BuyAppViewModel.notifyProfileFulfilmentDiffersFromOrder(
+    profileWants: Fulfilment
+) {
+    val basket = _state.value.basketScreen
+
+    // No placed order in hand, nothing to reconcile.
+    val orderId = basket.orderId ?: return
+
+    if (profileWants == basket.fulfilment) return
+
+    val message = if (basket.canEdit) {
+        if (profileWants == Fulfilment.DELIVERY) {
+            "Deine bestehende Bestellung bleibt eine Abholung. Du kannst sie bis zum " +
+                "Änderungsschluss auf Lieferung umstellen."
+        } else {
+            "Deine bestehende Bestellung bleibt eine Lieferung. Du kannst sie bis zum " +
+                "Änderungsschluss auf Abholung umstellen."
+        }
+    } else {
+        "Deine bestehende Bestellung bleibt unverändert — der Änderungsschluss ist vorbei."
+    }
+
+    Log.d(TAG) {
+        "notifyProfileFulfilmentDiffersFromOrder: order $orderId is ${basket.fulfilment}, " +
+            "profile now wants $profileWants, canEdit=${basket.canEdit}"
+    }
+
+    viewModelScope.launch {
+        showSnackBar(message, SnackbarType.WARNING)
     }
 }

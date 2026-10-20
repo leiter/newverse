@@ -174,7 +174,13 @@ class CustomerProfileViewModel(
         return ProfileValidation.isTimeInBusinessHours(_pickupTime.value)
     }
 
-    fun savePickupTime() {
+    /**
+     * @param onSaved called with the stored `isSelfPickup` once the write succeeds, so
+     *        the app ViewModel can tell the buyer whether a placed order is affected.
+     *        Reported from here rather than observed, because the app's copy of the
+     *        profile refreshes asynchronously and would race this.
+     */
+    fun savePickupTime(onSaved: (Boolean) -> Unit = {}) {
         if (!isPickupTimeValid()) {
             validatePickupTime(_pickupTime.value)
             return
@@ -191,6 +197,7 @@ class CustomerProfileViewModel(
                     currentProfile = it
                     _pickupTimeError.value = null
                     _isEditingPickupTime.value = false
+                    onSaved(it.isSelfPickup)
                 }
                 .onFailure { /* keep editing open on failure */ }
         }

@@ -184,6 +184,11 @@ fun BasketContent(
             } else "",
             total = state.total,
             isDemoMode = isDemoMode,
+            fulfilment = state.fulfilment,
+            deliveryAddress = state.deliveryAddress,
+            orderError = state.orderError,
+            onFulfilmentChange = { onAction(BuyBasketScreenAction.SetFulfilment(it)) },
+            onDeliveryAddressChange = { onAction(BuyBasketScreenAction.SetDeliveryAddress(it)) },
             onConfirm = { onAction(BuyBasketScreenAction.ConfirmCheckout) },
             onChangeSlot = { onAction(BuyBasketScreenAction.ShowDatePicker) },
             onDismiss = { onAction(BuyBasketScreenAction.DismissCheckout) }

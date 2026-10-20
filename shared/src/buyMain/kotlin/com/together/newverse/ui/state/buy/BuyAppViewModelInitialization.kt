@@ -1,6 +1,8 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.DeliveryAddress
+import com.together.newverse.domain.model.Fulfilment
 import com.together.newverse.domain.repository.AuthUserInfo
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.ErrorState
@@ -362,12 +364,28 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
             }
 
             _state.update { current ->
+                // The profile supplies the *default* for a new basket only. An order
+                // already loaded for editing keeps what it was placed with, and a
+                // choice the buyer has made in this basket is not overwritten by a
+                // profile that happens to arrive afterwards.
+                val seedFulfilment = current.basketScreen.orderId == null &&
+                    current.basketScreen.deliveryAddress.isEmpty
+
                 current.copy(
                     customerProfile = current.customerProfile.copy(
                         profile = updatedProfile,
                         isLoading = false,
                         error = null
-                    )
+                    ),
+                    basketScreen = if (!seedFulfilment) current.basketScreen else {
+                        val fulfilment = Fulfilment.fromProfile(updatedProfile)
+                        current.basketScreen.copy(
+                            fulfilment = fulfilment,
+                            deliveryAddress = if (fulfilment == Fulfilment.DELIVERY) {
+                                DeliveryAddress.fromProfile(updatedProfile)
+                            } else DeliveryAddress.NONE
+                        )
+                    }
                 )
             }
         }.onFailure { error ->

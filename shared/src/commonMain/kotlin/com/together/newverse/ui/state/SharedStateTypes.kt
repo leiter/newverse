@@ -4,6 +4,8 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Conversation
 import com.together.newverse.domain.model.filterByQuery
+import com.together.newverse.domain.model.DeliveryAddress
+import com.together.newverse.domain.model.Fulfilment
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.PickupSlot
 import com.together.newverse.domain.model.PriceChange
@@ -388,6 +390,17 @@ data class BasketScreenState(
      * §4.
      */
     val showCheckoutConfirm: Boolean = false,
+    /**
+     * Pickup or delivery for *this* order, defaulted from the buyer's profile and
+     * changeable at the checkout confirmation.
+     *
+     * Per order rather than per profile: a buyer may collect this week and want it
+     * brought next. The profile supplies the default and is not rewritten by the
+     * choice — switching one order does not re-aim every future one.
+     */
+    val fulfilment: Fulfilment = Fulfilment.PICKUP,
+    /** The address this order would be delivered to, seeded from the profile. */
+    val deliveryAddress: DeliveryAddress = DeliveryAddress.NONE,
     val isCancelling: Boolean = false,
     val cancelSuccess: Boolean = false,
     val showReorderDatePicker: Boolean = false,

@@ -35,6 +35,7 @@ import com.together.newverse.ui.state.buy.loginWithApple
 import com.together.newverse.ui.state.buy.loginWithGoogle
 import com.together.newverse.ui.state.buy.loginWithTwitter
 import com.together.newverse.ui.state.buy.logout
+import com.together.newverse.ui.state.buy.notifyProfileFulfilmentDiffersFromOrder
 import com.together.newverse.ui.state.buy.navigateBack
 import com.together.newverse.ui.state.buy.navigateTo
 import com.together.newverse.ui.state.buy.observeAppleSignInCompletion
@@ -313,6 +314,11 @@ class BuyAppViewModel(
             is BuyProfileAction.HistoryOrderTapped -> handleHistoryOrderTap(action.order)
             is BuyProfileAction.MergeHistoryOrder -> mergeHistoryOrder()
             is BuyProfileAction.DiscardAndLoadHistoryOrder -> discardAndLoadHistoryOrder()
+            is BuyProfileAction.FulfilmentPreferenceSaved ->
+                notifyProfileFulfilmentDiffersFromOrder(
+                    if (action.isSelfPickup) com.together.newverse.domain.model.Fulfilment.PICKUP
+                    else com.together.newverse.domain.model.Fulfilment.DELIVERY
+                )
             is BuyProfileAction.HideHistoryMergeDialog -> hideHistoryMergeDialog()
         }
     }

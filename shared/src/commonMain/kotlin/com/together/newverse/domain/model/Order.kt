@@ -18,6 +18,17 @@ data class Order(
     val sellerId: String = "",
     val marketId: String = "",
     /**
+     * How this order reaches the buyer, as chosen when it was placed.
+     *
+     * Snapshotted rather than read from the buyer's profile, which the seller cannot
+     * read at all. A buyer who switches to delivery afterwards does not convert an
+     * order the seller may already have packed for the stall — they edit the order,
+     * which re-snapshots this and respects the deadline.
+     */
+    val fulfilment: Fulfilment = Fulfilment.PICKUP,
+    /** Where to deliver, for a [Fulfilment.DELIVERY] order. Empty for a pickup. */
+    val deliveryAddress: DeliveryAddress = DeliveryAddress.NONE,
+    /**
      * The [Market.pricingRevision] the articles were priced against.
      *
      * Snapshotted so a price that was charged can always be told apart from the price
@@ -35,6 +46,19 @@ data class Order(
     val hiddenByBuyer: Boolean = false,
     val origin: OrderOrigin = OrderOrigin.PRODUCTION
 ) {
+    /** Whether the seller has to take this order somewhere. */
+    val isDelivery: Boolean get() = fulfilment == Fulfilment.DELIVERY
+
+    /**
+     * A delivery order the seller cannot actually deliver.
+     *
+     * Should never reach the database — the checkout gate refuses it — but orders
+     * written before `fulfilment` existed carry neither flag nor address, and the
+     * seller's list needs to be able to say so rather than show a blank.
+     */
+    val isDeliveryWithoutAddress: Boolean
+        get() = isDelivery && !deliveryAddress.isComplete
+
     /**
      * Check if this order can be edited based on current time
      */

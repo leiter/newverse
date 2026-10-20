@@ -7,6 +7,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedTextField
+import com.together.newverse.domain.model.DeliveryAddress
+import com.together.newverse.domain.model.Fulfilment
+import newverse.shared.generated.resources.fulfilment_choose
+import newverse.shared.generated.resources.fulfilment_city
+import newverse.shared.generated.resources.fulfilment_delivery
+import newverse.shared.generated.resources.fulfilment_house_number
+import newverse.shared.generated.resources.fulfilment_note_hint
+import newverse.shared.generated.resources.fulfilment_pickup
+import newverse.shared.generated.resources.fulfilment_street
+import newverse.shared.generated.resources.fulfilment_zip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,10 +71,16 @@ fun CheckoutConfirmDialog(
     marketName: String,
     total: Double,
     isDemoMode: Boolean,
+    fulfilment: Fulfilment,
+    deliveryAddress: DeliveryAddress,
+    orderError: String?,
+    onFulfilmentChange: (Fulfilment) -> Unit,
+    onDeliveryAddressChange: (DeliveryAddress) -> Unit,
     onConfirm: () -> Unit,
     onChangeSlot: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val isDelivery = fulfilment == Fulfilment.DELIVERY
     val pickup = Instant.fromEpochMilliseconds(pickupDate)
 
     // The market's own schedule. This currently produces the same instant as the
@@ -94,10 +112,41 @@ fun CheckoutConfirmDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Pickup or delivery, for this order. First, because it decides
+                // whether the market and date below are even the relevant facts.
+                Text(
+                    text = stringResource(Res.string.fulfilment_choose),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Fulfilment.entries.forEach { option ->
+                        FilterChip(
+                            selected = option == fulfilment,
+                            onClick = { onFulfilmentChange(option) },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        if (option == Fulfilment.DELIVERY) Res.string.fulfilment_delivery
+                                        else Res.string.fulfilment_pickup
+                                    )
+                                )
+                            }
+                        )
+                    }
+                }
+
+                if (isDelivery) {
+                    DeliveryAddressFields(
+                        address = deliveryAddress,
+                        onChange = onDeliveryAddressChange
+                    )
+                }
+
                 // Named only when there is more than one market to be at: with a
                 // single stall the buyer knows where they are collecting and the row
-                // is noise.
-                if (marketName.isNotEmpty()) {
+                // is noise. Skipped entirely for a delivery — the market a delivery
+                // order is dispatched from is the seller's business, not the buyer's.
+                if (marketName.isNotEmpty() && !isDelivery) {
                     ConfirmRow(
                         label = stringResource(Res.string.market_choice_profile_label),
                         value = marketName
@@ -146,6 +195,14 @@ fun CheckoutConfirmDialog(
                     )
                 }
 
+                orderError?.let { error ->
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
                 TextButton(
                     onClick = onChangeSlot,
                     modifier = Modifier.padding(top = 4.dp)
@@ -180,5 +237,64 @@ private fun ConfirmRow(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(text = value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/**
+ * The address this order is delivered to.
+ *
+ * Seeded from the buyer's profile when they switch to delivery, and editable here
+ * because the order snapshots it: a one-off delivery somewhere else must not have to
+ * go through rewriting the profile, and rewriting the profile must not re-aim orders
+ * already placed.
+ *
+ * Street and number are what [DeliveryAddress.isComplete] requires; postcode and town
+ * are optional, since this is one seller serving one area.
+ */
+@Composable
+private fun DeliveryAddressFields(
+    address: DeliveryAddress,
+    onChange: (DeliveryAddress) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = address.street,
+                onValueChange = { onChange(address.copy(street = it)) },
+                label = { Text(stringResource(Res.string.fulfilment_street)) },
+                singleLine = true,
+                modifier = Modifier.weight(2f)
+            )
+            OutlinedTextField(
+                value = address.houseNumber,
+                onValueChange = { onChange(address.copy(houseNumber = it)) },
+                label = { Text(stringResource(Res.string.fulfilment_house_number)) },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = address.zipCode,
+                onValueChange = { onChange(address.copy(zipCode = it)) },
+                label = { Text(stringResource(Res.string.fulfilment_zip)) },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = address.city,
+                onValueChange = { onChange(address.copy(city = it)) },
+                label = { Text(stringResource(Res.string.fulfilment_city)) },
+                singleLine = true,
+                modifier = Modifier.weight(2f)
+            )
+        }
+        OutlinedTextField(
+            value = address.note,
+            onValueChange = { onChange(address.copy(note = it)) },
+            label = { Text(stringResource(Res.string.fulfilment_note_hint)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

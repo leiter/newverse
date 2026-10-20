@@ -307,6 +307,79 @@ enum class OrderStatus {
 - Deadline: Tuesday, Nov 12, 23:59 (48 hours away)
 - Can edit: Yes
 
+## Delivery
+
+**Built 2026-10-20.** An order is either collected at a market or delivered to an
+address, and it carries which — plus the address — as a **snapshot**.
+
+### Why a snapshot rather than a lookup
+
+The seller cannot read `buyer_profile` at all: its rule is
+`".read": "auth != null && $userId === auth.uid"`. So an order that does not carry its
+own destination has none, and there is no path by which the seller could find one.
+
+Before this, an order carried `buyerId`, `buyerName` and `buyerEmail` and nothing else.
+A delivery order was indistinguishable from a pickup, and since `BuyerProfile.isSelfPickup`
+defaults to **false**, every buyer who never touched that toggle was nominally a delivery
+customer the seller knew nothing about.
+
+Snapshotting also settles the awkward case. A buyer who moves house, or switches their
+preference, must not re-aim an order the seller has already packed for the stall or
+loaded onto a van. The order records what was true at the moment of commitment — the
+same discipline as `OrderedProduct.price` and `Order.pricingRevision`.
+
+### The choice is per order
+
+`Fulfilment` defaults from the profile (`Fulfilment.fromProfile`) and is changed at the
+checkout confirmation, not in the profile. A buyer may collect this week and want it
+brought next, and a one-off delivery somewhere else must not require rewriting their
+address — nor should rewriting their address re-aim orders already placed. Choosing for
+one order never writes the profile.
+
+Switching to delivery seeds the address from the profile when nothing has been typed,
+so the common case is one tap rather than retyping what the app already holds.
+
+### A delivery with no address cannot be placed
+
+`basketScreenRequestCheckout` refuses it before the confirmation can be accepted. This
+is the last line: there is no recovery after the write. `Order.isDeliveryWithoutAddress`
+exists for orders that predate the field — the seller's list and detail screen say so in
+red rather than showing a blank where an address belongs.
+
+### What the seller sees
+
+- **Order list:** a *Lieferung* badge and the address on the row, so a day's orders can
+  be split into what stays on the stall and what travels. Also in the row's merged
+  accessibility description, since a badge is invisible to a screen reader.
+- **Order detail:** a *Abholung oder Lieferung* section above the items, with the
+  address and any note the buyer added.
+
+### A placed order, and a preference changed afterwards
+
+The order keeps its snapshot. The buyer is **told**, by
+`notifyProfileFulfilmentDiffersFromOrder`, and pointed at the edit path — which
+re-snapshots the order's fulfilment and respects the deadline like any other change.
+Past the deadline the message says only that the order stands.
+
+The alternative, propagating to any still-editable order, was rejected: it changes an
+order the seller has already seen without the seller acting, and the seller has no
+notification channel to learn about it (`doc/design/order-ready-notification-design.md`
+is unbuilt).
+
+### Storage
+
+`fulfilment` is written on every order; `deliveryAddress` **only on a delivery** — a
+buyer's postal address is not data to scatter into orders it is irrelevant to, which is
+the class of finding in `doc/reports/buyer-profile-data-safety.md`. Both validated in
+`firebase/database.rules.json` on `orders` and `demo_orders`. **Not yet deployed.**
+
+### Still open
+
+- The seller cannot filter or group the order list by delivery, only see the badges.
+- Nothing routes or orders deliveries — no round planning, no sequence.
+- `CheckoutData.deliveryAddress` remains dead code from an older design;
+  `BuyOrderAction.PlaceOrder` is a no-op in both flavors.
+
 ## Order Editing
 
 An editable order is loaded into the basket at startup, so editing an order and

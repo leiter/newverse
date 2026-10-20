@@ -2,6 +2,8 @@ package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.DeliveryAddress
+import com.together.newverse.domain.model.Fulfilment
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.navigation.NavRoutes
 import kotlinx.datetime.DayOfWeek
@@ -115,6 +117,14 @@ sealed interface BuyProfileAction : BuyAction {
     data object MergeHistoryOrder : BuyProfileAction
     data object DiscardAndLoadHistoryOrder : BuyProfileAction
     data object HideHistoryMergeDialog : BuyProfileAction
+
+    /**
+     * The buyer saved a new pickup/delivery preference.
+     *
+     * Carries the value rather than having the app re-read the profile, which would
+     * race the save. A placed order is not re-aimed by it — the buyer is told.
+     */
+    data class FulfilmentPreferenceSaved(val isSelfPickup: Boolean) : BuyProfileAction
 }
 
 // ===== Order Reminder Actions =====
@@ -192,6 +202,12 @@ sealed interface BuyBasketScreenAction : BuyAction {
 
     /** Backed out of the confirmation. The basket is untouched. */
     data object DismissCheckout : BuyBasketScreenAction
+
+    /** Pickup or delivery, for this order only. */
+    data class SetFulfilment(val fulfilment: Fulfilment) : BuyBasketScreenAction
+
+    /** Edit the address this order is delivered to. */
+    data class SetDeliveryAddress(val address: DeliveryAddress) : BuyBasketScreenAction
         data class LoadOrder(val orderId: String, val date: String, val forceLoad: Boolean = false) : BuyBasketScreenAction
     data object UpdateOrder : BuyBasketScreenAction
     data object EnableEditing : BuyBasketScreenAction

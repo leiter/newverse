@@ -1,5 +1,10 @@
 package com.together.newverse.ui.screens.sell
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import newverse.shared.generated.resources.fulfilment_address_missing
+import newverse.shared.generated.resources.fulfilment_delivery
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -260,11 +265,18 @@ private fun SellerOrderCard(
         order.articles.size
     )
     val openLabel = stringResource(Res.string.a11y_open_order_details)
+    val deliveryLabel = stringResource(Res.string.fulfilment_delivery)
+    val addressMissingLabel = stringResource(Res.string.fulfilment_address_missing)
     // One stop per card, read in a deliberate order, instead of a stop each for
     // the name, count, pickup date, message and every product row.
     val cardDescription = buildString {
         append(order.buyerProfile.displayName)
         if (isCancelled) { append(", "); append(cancelledLabel) }
+        if (order.isDelivery) {
+            append(", "); append(deliveryLabel)
+            append(", ")
+            append(order.deliveryAddress.oneLine().ifBlank { addressMissingLabel })
+        }
         append(", "); append(productCountLabel)
         append(", "); append(order.getFormattedPickupDateAndTime())
         if (order.message.isNotEmpty()) { append(", "); append(order.message) }
@@ -309,6 +321,38 @@ private fun SellerOrderCard(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 8.dp)
                 )
+            }
+
+            // A delivery has to be told apart at a glance: the seller is sorting a
+            // day's orders into what stays on the stall and what goes on the van, and
+            // the address only lives on the detail screen.
+            if (order.isDelivery) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.fulfilment_delivery),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(MaterialTheme.colorScheme.tertiaryContainer)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                    Text(
+                        text = order.deliveryAddress.oneLine()
+                            .ifBlank { stringResource(Res.string.fulfilment_address_missing) },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (order.isDeliveryWithoutAddress) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

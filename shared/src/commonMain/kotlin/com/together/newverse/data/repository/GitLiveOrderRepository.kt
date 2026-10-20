@@ -2,6 +2,8 @@ package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.DemoTransitionResult
+import com.together.newverse.domain.model.DeliveryAddress
+import com.together.newverse.domain.model.Fulfilment
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.domain.model.OrderStatus
@@ -576,6 +578,10 @@ class GitLiveOrderRepository(
                         createdDate = (value["createdDate"] as? Number)?.toLong() ?: 0L,
                         sellerId = value["sellerId"] as? String ?: "",
                         marketId = value["marketId"] as? String ?: "",
+                        // Absent on every order written before delivery existed, which
+                        // reads as PICKUP — those orders were all collected at a stall.
+                        fulfilment = Fulfilment.stored(value["fulfilment"] as? String),
+                        deliveryAddress = storedDeliveryAddress(value["deliveryAddress"]),
                         pricingRevision = (value["pricingRevision"] as? Number)?.toLong() ?: 0L,
                         pickUpDate = (value["pickUpDate"] as? Number)?.toLong() ?: 0L,
                         message = value["message"] as? String ?: "",
@@ -597,6 +603,18 @@ class GitLiveOrderRepository(
             }
             else -> null
         }
+    }
+
+    /** Read back a delivery address; absent or unreadable gives [DeliveryAddress.NONE]. */
+    private fun storedDeliveryAddress(raw: Any?): DeliveryAddress {
+        val data = raw as? Map<*, *> ?: return DeliveryAddress.NONE
+        return DeliveryAddress(
+            street = data["street"] as? String ?: "",
+            houseNumber = data["houseNumber"] as? String ?: "",
+            zipCode = data["zipCode"] as? String ?: "",
+            city = data["city"] as? String ?: "",
+            note = data["note"] as? String ?: ""
+        )
     }
 
     /**
@@ -634,6 +652,21 @@ class GitLiveOrderRepository(
             "createdDate" to order.createdDate,
             "sellerId" to order.sellerId,
             "marketId" to order.marketId,
+            "fulfilment" to order.fulfilment.name,
+            // Written only for a delivery. A pickup order has no address to carry, and
+            // the buyer's postal address is not data to scatter into every order it is
+            // irrelevant to — see `doc/reports/buyer-profile-data-safety.md`.
+            "deliveryAddress" to order.deliveryAddress
+                .takeIf { order.isDelivery && !it.isEmpty }
+                ?.let { address ->
+                    mapOf(
+                        "street" to address.street,
+                        "houseNumber" to address.houseNumber,
+                        "zipCode" to address.zipCode,
+                        "city" to address.city,
+                        "note" to address.note
+                    )
+                },
             "pricingRevision" to order.pricingRevision,
             "pickUpDate" to order.pickUpDate,
             "message" to order.message,

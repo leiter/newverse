@@ -106,6 +106,7 @@ import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.BuyAccountAction
 import com.together.newverse.ui.state.BuyUserAction
 import com.together.newverse.ui.state.BuyAction
+import com.together.newverse.ui.state.BuyProfileAction
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.ui.state.ConnectionConfirmation
 import com.together.newverse.util.formatString
@@ -464,7 +465,13 @@ fun CustomerProfileScreenModern(
                         isSelfPickup = isSelfPickup,
                         isEditing = isEditingPickupTime,
                         onEditClick = { profileViewModel.startEditingPickupTime() },
-                        onSaveClick = { profileViewModel.savePickupTime() },
+                        onSaveClick = {
+                            profileViewModel.savePickupTime { isSelfPickup ->
+                                // Lets the app tell the buyer whether a placed order
+                                // is affected. It is not re-aimed by a preference.
+                                onAction(BuyProfileAction.FulfilmentPreferenceSaved(isSelfPickup))
+                            }
+                        },
                         onCancelClick = { profileViewModel.cancelEditingPickupTime() },
                         onPickupTimeChange = { profileViewModel.onPickupTimeChange(it) },
                         onSelfPickupToggle = { profileViewModel.onSelfPickupToggle(it) }

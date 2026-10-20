@@ -194,6 +194,45 @@ private fun OrderDetailContent(order: Order, pickupSection: @Composable () -> Un
             }
         }
 
+        // Where this order goes. First after the customer, and ahead of the items,
+        // because it changes what the seller physically does with the order — a
+        // delivery that reads as a pickup is a box nobody takes anywhere.
+        item {
+            OrderDetailSection(title = stringResource(Res.string.fulfilment_section)) {
+                OrderDetailRow(
+                    label = stringResource(Res.string.fulfilment_label),
+                    value = stringResource(
+                        if (order.isDelivery) Res.string.fulfilment_delivery
+                        else Res.string.fulfilment_pickup
+                    )
+                )
+                if (order.isDelivery) {
+                    val address = order.deliveryAddress
+                    if (address.isComplete) {
+                        OrderDetailRow(
+                            label = stringResource(Res.string.fulfilment_address),
+                            value = address.oneLine()
+                        )
+                        if (address.note.isNotBlank()) {
+                            OrderDetailRow(
+                                label = stringResource(Res.string.fulfilment_note),
+                                value = address.note
+                            )
+                        }
+                    } else {
+                        // Should be impossible — the checkout gate refuses it — but an
+                        // order written before fulfilment existed has neither flag nor
+                        // address, and a blank row would read as "no address needed".
+                        Text(
+                            text = stringResource(Res.string.fulfilment_address_missing),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+        }
+
         // Order information section
         item {
             OrderDetailSection(title = stringResource(Res.string.order_information)) {

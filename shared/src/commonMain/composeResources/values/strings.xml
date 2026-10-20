@@ -1208,4 +1208,19 @@
     <string name="price_preview_article">Artikel</string>
     <!-- %1$s = the unchanged price -->
     <string name="price_preview_unchanged">Unverändert bei %1$s</string>
+    <!-- Fulfilment: pickup at a market, or delivery to an address -->
+    <string name="fulfilment_section">Abholung oder Lieferung</string>
+    <string name="fulfilment_label">Art</string>
+    <string name="fulfilment_pickup">Abholung am Markt</string>
+    <string name="fulfilment_delivery">Lieferung</string>
+    <string name="fulfilment_address">Lieferadresse</string>
+    <string name="fulfilment_note">Hinweis</string>
+    <string name="fulfilment_address_missing">Lieferung ohne Adresse — bitte beim Kunden nachfragen</string>
+    <string name="fulfilment_choose">Wie möchtest du erhalten?</string>
+    <string name="fulfilment_address_required">Bitte Lieferadresse angeben</string>
+    <string name="fulfilment_street">Straße</string>
+    <string name="fulfilment_house_number">Nr.</string>
+    <string name="fulfilment_zip">PLZ</string>
+    <string name="fulfilment_city">Ort</string>
+    <string name="fulfilment_note_hint">Hinweis (Klingel, Tor, …)</string>
 </resources>
