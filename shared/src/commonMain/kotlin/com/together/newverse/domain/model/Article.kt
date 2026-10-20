@@ -26,7 +26,7 @@ data class Article(
      * A band and not a number: this node is readable by every signed-in user, and a
      * quantity would be both a promise the shop cannot keep once it is a few minutes
      * stale and a turnover feed for anyone who polls it. See
-     * `doc/design/stock-driven-availability-design.md` §4f.
+     * `doc/guides/stock-driven-availability-design.md` § "The scarcity band".
      */
     val scarcity: ArticleScarcity = ArticleScarcity.UNKNOWN,
     val mode: Int = MODE_UNDEFINED

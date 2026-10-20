@@ -571,7 +571,7 @@ private fun AppScaffoldContent(
                     // Restored because the seller can now start a conversation the
                     // buyer did not ask for — "part of your order is short" — and a
                     // message with no visible way in is a message the seller believes
-                    // was read. `doc/design/stock-driven-availability-design.md` §5.
+                    // was read. `doc/guides/stock-driven-availability-design.md` § "Telling a buyer their order is short".
                     //
                     // Gated on approval like the contact shortcut: an unapproved buyer
                     // has no real orders, so nothing to be told about, and a free

@@ -21,7 +21,7 @@ import kotlinx.datetime.toInstant
 
 /**
  * The refill reminder fires once per market cycle, after the edit deadline has frozen
- * the demand it reports. `doc/design/stock-driven-availability-design.md` §3.
+ * the demand it reports. `doc/guides/stock-driven-availability-design.md` § "The refill reminder".
  */
 class StockReminderEvaluatorTest {
 

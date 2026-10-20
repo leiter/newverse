@@ -28,7 +28,7 @@ import kotlin.test.assertTrue
  *
  * `Article.available` used to filter the catalogue and nothing else, so a basket
  * that outlived the withdrawal — a persisted draft, a reorder weeks later — could
- * still be placed. `doc/design/stock-driven-availability-design.md` §4c.
+ * still be placed. `doc/guides/stock-driven-availability-design.md` § "The gate at placement".
  */
 class BuyAppViewModelAvailabilityGateTest {
 

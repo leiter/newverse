@@ -9,7 +9,7 @@ package com.together.newverse.domain.model
  * so a number is a turnover curve for anyone who writes it down daily. A band tells
  * a competitor roughly what walking past the stall would.
  *
- * `doc/design/stock-driven-availability-design.md` §4f.
+ * `doc/guides/stock-driven-availability-design.md` § "The scarcity band".
  */
 enum class ArticleScarcity {
     /**

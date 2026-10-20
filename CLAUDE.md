@@ -147,6 +147,8 @@ Realtime Database, top-level node first, then owner:
 /demo_orders/{sellerId}/{yyyyMMdd}/{id}   # Orders from buyers the seller has not approved
 /sales/{sellerId}/{yyyyMM}/{saleId}        # Booked sales (seller-only, add-only)
 /sale_index/{sellerId}/{orderId}/{saleId}  # = yyyyMM: which sales belong to an order
+/stock_movements/{sellerId}/{yyyyMM}/{id}  # Stock ledger, append-only (seller-only)
+/stock/{sellerId}/{articleId}              # The level those movements add up to
 /markets/{sellerId}/{marketId}            # Seller's markets, readable by every signed-in user
 /seller_profile/{sellerId}                # Seller profile
 /buyer_profile/{buyerId}                  # Buyer profile with order history
@@ -227,6 +229,7 @@ Most-used:
 - `doc/guides/navigation.md` - Routes, per-flavor nav graphs
 - `doc/guides/auth-and-accounts.md` - Startup auth, guest accounts, linking, deletion
 - `doc/guides/ordering-business-rules.md` - Order logic, per-market pickup, editing
+- `doc/guides/stock-driven-availability-design.md` - Stock vs. demand, derived `available`, refill reminder
 - `doc/guides/build-flavors.md` - applicationIds, BuildKonfig, the combined build
 - `doc/guides/testing.md` - Source sets, fakes, how to run what
 - `doc/plans/TODO.md` - Feature status and roadmap

@@ -10,7 +10,7 @@ package com.together.newverse.domain.model
  * for an article that is sold out and for one the ledger has never seen, and
  * treating the second as the first would withdraw an article sitting there in full
  * view — on a fresh ledger, the whole catalogue. See [RefillNeed.hasLevel] and
- * `doc/design/stock-driven-availability-design.md` §4b.
+ * `doc/guides/stock-driven-availability-design.md` § "The buyer's side" → "`available` is derived, not edited".
  *
  * A unit mismatch leaves the demand out of the sum (see [SellerArticle.refillNeed]),
  * which means a gated article is judged on `onHand` alone until the seller resolves

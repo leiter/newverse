@@ -91,7 +91,7 @@ private fun bLog(message: String) {
  * Checked at the point of ordering rather than only when the catalogue is drawn: a
  * basket is persisted as a draft and reordered weeks later, and the seller can
  * withdraw an article in between. See
- * `doc/design/stock-driven-availability-design.md` §4c.
+ * `doc/guides/stock-driven-availability-design.md` § "The gate at placement".
  */
 internal fun BuyAppViewModel.unorderableInBasket(items: List<OrderedProduct>): List<UnorderableItem> =
     items.unorderableAgainst(_state.value.mainScreen.articles)

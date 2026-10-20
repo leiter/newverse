@@ -37,6 +37,7 @@ Current truth. Verified against `shared/src` on 2026-10-20 unless noted.
 | [image-loading.md](guides/image-loading.md) | Coil 3.3.0, caching, platform support |
 | [market-pricing-and-access-design.md](guides/market-pricing-and-access-design.md) | Markets as an entity, per-market pricing, eligibility, slots, closures (implemented 2026-10-19) |
 | [seller-contact-design.md](guides/seller-contact-design.md) | Seller contact channels, market scope, visibility (implemented 2026-10-19) |
+| [stock-driven-availability-design.md](guides/stock-driven-availability-design.md) | Committed demand, refill list, derived `available`, the placement gate, the refill reminder, the scarcity band (implemented 2026-10-20) |
 | [demo-order-provenance.md](guides/demo-order-provenance.md) | `Order.origin`, path as the traffic boundary, demo→production transition |
 | [demo-mode-and-profile-indication.md](guides/demo-mode-and-profile-indication.md) | Telling the buyer "finish this" vs. "not live yet" |
 | [bnn-parser-guide.md](guides/bnn-parser-guide.md) | BNN supplier catalog format and parser |
@@ -57,7 +58,6 @@ Proposed. Nothing in here is built unless its banner says which part is.
 |-----|-------|
 | [order-ready-notification-design.md](design/order-ready-notification-design.md) | Options, no decision taken |
 | [seller-buyer-sync-channel-design.md](design/seller-buyer-sync-channel-design.md) | Event direction built; generalized `PROFILE_CHANGED` channel blocked |
-| [stock-driven-availability-design.md](design/stock-driven-availability-design.md) | Ledger exists; demand, notification and derived `available` proposed |
 | [cas-scale-integration.md](design/cas-scale-integration.md) | Research only — no hardware, no code |
 
 ## plans/

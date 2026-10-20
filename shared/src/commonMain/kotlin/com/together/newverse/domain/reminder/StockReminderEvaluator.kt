@@ -26,7 +26,7 @@ import kotlinx.datetime.toLocalDateTime
  * can still add to their orders and the buy list can still grow, and after it the
  * numbers are frozen until the market happens. That also makes the reminder
  * once-per-cycle by construction, so no per-article "already told you" bookkeeping is
- * needed. See `doc/design/stock-driven-availability-design.md` §3.
+ * needed. See `doc/guides/stock-driven-availability-design.md` § "The refill reminder".
  */
 object StockReminderEvaluator {
 

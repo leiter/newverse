@@ -36,7 +36,7 @@ data class SellerArticleData(
      * The public [Article.available] is derived from this and the ledger; one
      * boolean cannot hold both the seller's intent and the shelf's state, because
      * a restock would then undo "off for the season". See
-     * `doc/design/stock-driven-availability-design.md` §4a.
+     * `doc/guides/stock-driven-availability-design.md` § "`available` is derived, not edited".
      */
     val sellerAvailable: Boolean? = null,
     /**

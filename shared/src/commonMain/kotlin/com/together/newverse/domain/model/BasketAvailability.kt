@@ -23,7 +23,7 @@ data class UnorderableItem(
  * basket outlives that: it is persisted as a draft, an order can be reordered weeks
  * later, and the seller can withdraw an article in between. Checking at the point of
  * ordering is what makes the flag mean anything — see
- * `doc/design/stock-driven-availability-design.md` §4c.
+ * `doc/guides/stock-driven-availability-design.md` § "The gate at placement".
  *
  * An empty [catalog] yields nothing, deliberately. The catalogue arrives over a
  * listener, so "no articles" is indistinguishable from "not loaded yet", and
@@ -81,7 +81,7 @@ fun List<OrderedProduct>.orderableOnly(catalog: List<Article>): List<OrderedProd
  * It exists because without it the buyer's first notice that waiting was risky is
  * the checkout refusing the whole order (see [unorderableAgainst]) and naming an
  * article they now have to remove. See
- * `doc/design/stock-driven-availability-design.md` §4f, open question 8.
+ * `doc/guides/stock-driven-availability-design.md` § "The scarcity band".
  */
 fun List<OrderedProduct>.nearlyGoneAgainst(catalog: List<Article>): Set<String> {
     if (catalog.isEmpty()) return emptySet()

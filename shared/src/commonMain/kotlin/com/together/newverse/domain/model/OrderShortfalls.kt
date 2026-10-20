@@ -25,7 +25,7 @@ data class ShortfallLine(
  * wanting 5 kg each, every one of them is listed and the shortfall is reported in
  * total — which buyer goes without, or gets a substitute, or a part-fill, is a
  * decision about customers and not a division sum. See
- * `doc/design/stock-driven-availability-design.md` §5.
+ * `doc/guides/stock-driven-availability-design.md` § "Telling a buyer their order is short".
  */
 data class OrderShortfall(
     val orderId: String,

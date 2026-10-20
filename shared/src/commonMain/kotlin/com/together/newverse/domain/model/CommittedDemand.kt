@@ -6,7 +6,7 @@ package com.together.newverse.domain.model
  * [units] holds every unit the contributing order lines used, because an order line
  * carries the unit as it was when the item was ordered and the article's unit can
  * have changed since. More than one entry means the sum cannot be trusted — see
- * `doc/design/stock-driven-availability-design.md` §2 "Three units, one sum".
+ * `doc/guides/stock-driven-availability-design.md` § "Two things the arithmetic refuses".
  */
 data class ArticleDemand(
     val articleId: String,

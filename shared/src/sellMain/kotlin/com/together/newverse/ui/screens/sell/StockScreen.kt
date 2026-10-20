@@ -200,7 +200,7 @@ fun StockContent(
  *
  * It does not say who goes without. Three orders for the last 6 kg are all listed,
  * each with the total that is short, because dividing it up is a decision about
- * customers — `doc/design/stock-driven-availability-design.md` §5.
+ * customers — `doc/guides/stock-driven-availability-design.md` § "Telling a buyer their order is short".
  */
 @Composable
 private fun ShortfallCard(shortfall: OrderShortfall, onMessageBuyer: (String) -> Unit) {

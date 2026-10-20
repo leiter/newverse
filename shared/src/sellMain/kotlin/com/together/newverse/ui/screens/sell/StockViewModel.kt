@@ -54,7 +54,7 @@ import kotlin.time.Instant
  * Outstanding orders are read as well as stock, because a list built on what is left
  * in storage alone warns about last week's leftovers and stays silent when ten buyers
  * have ordered goods that are not there. See
- * `doc/design/stock-driven-availability-design.md` §2.
+ * `doc/guides/stock-driven-availability-design.md` § "The one number".
  *
  * Quantities arrive either from the keyboard or from a connected scale, and the
  * difference is recorded: see [MeasuredQuantity] and [QuantitySource]. With no scale
@@ -177,7 +177,7 @@ class StockViewModel(
      * The day named is the next pickup the seller has an order for, or — with no
      * orders yet — the next one the schedule produces. The list itself is every
      * shortfall, not only that day's: it is a shopping list, and the seller buys for
-     * the whole week at once. `doc/design/stock-driven-availability-design.md` §2.
+     * the whole week at once. `doc/guides/stock-driven-availability-design.md` § "The one number".
      */
     private fun cacheReminder(orders: List<Order>) {
         val storage = reminderStorage ?: return
@@ -207,7 +207,7 @@ class StockViewModel(
      * A draft rather than a send: a shortfall is usually still fixable, and an
      * automatic "we cannot deliver" is a message the seller has to walk back. The
      * decision — substitute, part-fill, call them — stays theirs.
-     * `doc/design/stock-driven-availability-design.md` §5.
+     * `doc/guides/stock-driven-availability-design.md` § "Telling a buyer their order is short".
      */
     fun startShortfallMessage(orderId: String) {
         val shortfall = _state.value.shortfalls.firstOrNull { it.orderId == orderId } ?: return
