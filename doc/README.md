@@ -57,6 +57,7 @@ Proposed. Nothing in here is built unless its banner says which part is.
 |-----|-------|
 | [order-ready-notification-design.md](design/order-ready-notification-design.md) | Options, no decision taken |
 | [seller-buyer-sync-channel-design.md](design/seller-buyer-sync-channel-design.md) | Event direction built; generalized `PROFILE_CHANGED` channel blocked |
+| [stock-driven-availability-design.md](design/stock-driven-availability-design.md) | Ledger exists; demand, notification and derived `available` proposed |
 | [cas-scale-integration.md](design/cas-scale-integration.md) | Research only — no hardware, no code |
 
 ## plans/
