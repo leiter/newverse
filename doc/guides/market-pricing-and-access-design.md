@@ -1,8 +1,14 @@
 # Markets: Pricing, Access, Scheduling and Communication
 
 **Status:** implemented 2026-10-19 — §1 markets as an entity, §3 eligibility and
-production requests, §4 schedules, slots and closures. The rule validating a
-request's market is **not deployed**.
+production requests, §4 schedules, slots and closures.
+
+**Rules deployed 2026-10-20** to both `fire-one-58ddc` (dev) and
+`bodenschaetze-a988e` (prod), after all 188 tests in `firebase/tests` passed against
+the emulator. Everything previously held in the repo only — `grantsMarkets`,
+`allowedMarkets`, the tightened `buyer_access_status` write rule, `priceConditions`,
+`pricingRevision` on markets and on orders, and the rule validating a request's
+market — is now live. Nothing in this file is pending deployment.
 
 **§2 pricing** is built except for the explanation UI (2026-10-20). The adjusted price
 is resolved, charged and snapshotted onto the order with the revision it came from, and
@@ -799,15 +805,17 @@ not silence their reminder.
    `DraftBasket.selectedPickupDate` is still a bare date rather than a slot, and
    `Order.canEdit`/`getEditDeadline`/`getWindowStatus` still use the app-wide
    schedule rather than the order's own market.
-4. ~~**Eligibility + invite scoping** (§3).~~ **Done 2026-10-19.** Rules written and
-   tested but **not deployed**: `grantsMarkets`, `allowedMarkets` and the tightened
-   `buyer_access_status` write rule are in the repo only.
-5. ~~**Pricing conditions and the breakdown UI** (§2).~~ **Done 2026-10-19.** Rules
-   **not deployed**: `priceConditions` and `pricingRevision` are declared in the repo
-   only, and the market rule rejects unknown fields, so these go out before the build.
+4. ~~**Eligibility + invite scoping** (§3).~~ **Done 2026-10-19**, rules deployed
+   2026-10-20: `grantsMarkets`, `allowedMarkets` and the tightened
+   `buyer_access_status` write rule are live on dev and prod.
+5. ~~**Pricing conditions** (§2).~~ **Done 2026-10-19**, rules deployed 2026-10-20:
+   `priceConditions` and `pricingRevision` are live. This was the urgent one — the
+   market rule rejects unknown fields, so until the deploy a seller editing price
+   conditions was having the write refused. The **breakdown UI** is still not built;
+   see the §2 status table.
 6. ~~**Production requests.**~~ Not a feature: it is the access request flow, which was
    already built. Binding a request to a market, and approving what was asked for rather
-   than everything, was done 2026-10-19. Rules for it are **not deployed**.
+   than everything, was done 2026-10-19. Rules deployed 2026-10-20.
 
 Step 2 is the one to start with. It is small, it needs none of the model changes above,
 and it is the only item here that a seller would notice next week.

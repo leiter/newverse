@@ -104,9 +104,20 @@ booking denied.
 - [ ] **Deploy rules and ship the matching app build together.** A deployed ruleset
       that disagrees with the installed app rejects writes outright
       (`firebase/tests/README.md`). Deploying rules alone breaks every install.
-      **Half done:** rules deployed 2026-10-08; the matching builds (iOS TestFlight,
-      Android buy/sell) have not shipped yet, so every existing install is broken
-      until they do.
+      **Half done:** rules deployed 2026-10-08, and again 2026-10-20 with the market
+      ruleset — eligibility scoping (`grantsMarkets`, `allowedMarkets`, the tightened
+      `buyer_access_status` write), `priceConditions`, `pricingRevision` on markets and
+      on orders, and the request-market validation — to dev and prod, after all 188
+      tests in `firebase/tests` passed.
+
+      That deploy was overdue in one direction rather than risky in the other: the
+      market rule rejects unknown fields, so a seller editing price conditions had
+      been having the write refused by the older deployed ruleset. The additions to
+      `orders` only constrain `pricingRevision` to a non-negative number when it is
+      present, so an app that does not write it is unaffected.
+
+      The matching builds (iOS TestFlight, Android buy/sell) still have not shipped,
+      so every existing install remains broken until they do.
 - [x] **Establish who has an existing install.** `version.properties` has
       `VERSION_CODE_BUY=38` / `VERSION_CODE_SELL=23` and uploads have been done by
       hand, so installs exist. Any install predating the rekey stops working when the
