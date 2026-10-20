@@ -159,7 +159,7 @@ private fun RefillCard(need: RefillNeed, onBook: (String, StockMovementKind) -> 
     Card(
         colors = CardDefaults.cardColors(
             containerColor = when (need.state) {
-                RefillState.EMPTY -> MaterialTheme.colorScheme.errorContainer
+                RefillState.SHORT, RefillState.EMPTY -> MaterialTheme.colorScheme.errorContainer
                 else -> MaterialTheme.colorScheme.surfaceContainerHighest
             }
         )
@@ -176,7 +176,13 @@ private fun RefillCard(need: RefillNeed, onBook: (String, StockMovementKind) -> 
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = stringResource(need.state.labelRes()),
+                    // A mismatch can leave the state saying nothing is wrong while
+                    // the article still has to be sorted out, so it names itself.
+                    text = if (need.unitMismatch && !need.state.needsAttention) {
+                        stringResource(Res.string.stock_unit_changed)
+                    } else {
+                        stringResource(need.state.labelRes())
+                    },
                     style = MaterialTheme.typography.labelMedium
                 )
             }
@@ -190,6 +196,29 @@ private fun RefillCard(need: RefillNeed, onBook: (String, StockMovementKind) -> 
                 },
                 style = MaterialTheme.typography.bodyMedium
             )
+
+            // What buyers have already bought out of this, and what that leaves to
+            // bring. Without it "Bestand: 2 kg" reads as plenty when 12 kg are sold.
+            if (need.committed > 0.0) {
+                Text(
+                    text = "${stringResource(Res.string.stock_ordered)}: " +
+                        "${ProductPricing.formatQuantity(need.committed)} ${need.unit}" +
+                        if (need.shortfall > 0.0) {
+                            " · ${stringResource(Res.string.stock_shortfall)}: " +
+                                "${ProductPricing.formatQuantity(need.shortfall)} ${need.unit}"
+                        } else "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (need.unitMismatch) {
+                Text(
+                    text = stringResource(Res.string.stock_unit_changed_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
 
             BookingActions(articleId = need.articleId, onBook = onBook)
         }
@@ -314,6 +343,7 @@ private fun BookingDialog(
 }
 
 private fun RefillState.labelRes() = when (this) {
+    RefillState.SHORT -> Res.string.stock_state_short
     RefillState.EMPTY -> Res.string.stock_state_empty
     RefillState.LOW -> Res.string.stock_state_low
     RefillState.UNCOUNTED -> Res.string.stock_state_uncounted

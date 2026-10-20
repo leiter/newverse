@@ -1,11 +1,12 @@
 # Stock-Driven Refill and Availability
 
-> **DESIGN — not implemented** (as of 2026-10-20). The stock ledger it builds on
-> *is* built: `StockRepository`, `StockMovement`/`StockLevel`, `StockRefill.kt`,
-> `StockScreen` and the refill badge all exist and are in the database rules. What
-> is proposed here is the **demand** half (what buyers have ordered), the
-> notification, letting stock drive the public `available` flag, and what the
-> *buyer* is told when supply runs tight. No decision has been taken.
+> **DESIGN — Phase 1 built, the rest is not** (as of 2026-10-20). The stock ledger
+> it builds on was already there: `StockRepository`, `StockMovement`/`StockLevel`,
+> `StockRefill.kt`, `StockScreen` and the refill badge, all in the database rules.
+> **Phase 1 (§8) is now implemented**: `CommittedDemand.kt`, `RefillState.SHORT`,
+> `RefillNeed.committed`/`remaining`/`unitMismatch`, and `StockViewModel` reading
+> orders alongside stock. Still proposals: the placement gate, derived `available`,
+> the seller's notification, and both buyer-facing halves (§4f, §5).
 
 **Date:** 2026-10-20
 **Status:** Design — not implemented
@@ -464,7 +465,7 @@ than messages, this follows it rather than keeping its own.
 
 Each phase stands on its own and is useful shipped alone.
 
-**Phase 1 — the pure half (no decisions above needed)**
+**Phase 1 — the pure half (no decisions above needed) — BUILT**
 Lift the demand aggregator out of `AbrechnungViewModel` into a `commonMain`
 function over `(orders, slots) -> Map<articleId, Double>`, using the shared
 `articleKey()`. Extend `StockRefill.kt` with `committed`, `remaining`, `SHORT` and

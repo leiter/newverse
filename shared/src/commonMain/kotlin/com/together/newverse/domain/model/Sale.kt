@@ -172,9 +172,6 @@ fun Order.toSale(
 fun Map<String, SellerArticle>.articleFor(item: OrderedProduct): SellerArticle? =
     this[item.productId] ?: item.id.takeIf { it.isNotEmpty() }?.let { this[it] }
 
-/** The id an order line refers to its article by. */
-private fun OrderedProduct.articleKey(): String = productId.takeIf { it.isNotEmpty() && it != "-1" } ?: id
-
 /**
  * The sale currently standing among the sales of one order or walk-in reference:
  * the latest one not cancelled, or null if there is none.

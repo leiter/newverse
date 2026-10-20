@@ -141,4 +141,175 @@ class StockRefillTest {
         val stale = StockLevel(articleId = "eggs", onHand = 4.0, unit = "kg")
         assertEquals("Stück", inPieces.refillNeed(stale).unit)
     }
+
+    // --- committed demand -----------------------------------------------------
+
+    private fun demand(
+        articleId: String = "apple",
+        quantity: Double,
+        unit: String = "kg",
+        orderCount: Int = 1
+    ) = ArticleDemand(articleId, quantity, setOf(unit), orderCount)
+
+    @Test
+    fun `sold more than is there is short, and short outranks everything`() {
+        val need = article("apple").refillNeed(level("apple", 3.0), demand(quantity = 8.0))
+
+        assertEquals(RefillState.SHORT, need.state)
+        assertEquals(RefillState.SHORT.ordinal, 0)
+        assertTrue(need.state.needsAttention)
+    }
+
+    @Test
+    fun `an oversold article warns even when the seller never watched it`() {
+        // The reorder level is the buffer, not the trigger: a buyer has already paid.
+        val unwatched = article("nuts", reorderLevel = 0.0)
+
+        val need = unwatched.refillNeed(level("nuts", 1.0), demand("nuts", quantity = 4.0))
+
+        assertEquals(RefillState.SHORT, need.state)
+        assertEquals(3.0, need.shortfall)
+    }
+
+    @Test
+    fun `an unwatched article with orders it can cover stays quiet`() {
+        val unwatched = article("nuts", reorderLevel = 0.0)
+
+        val need = unwatched.refillNeed(level("nuts", 10.0), demand("nuts", quantity = 4.0))
+
+        assertEquals(RefillState.OK, need.state)
+        assertTrue(!need.needsAttention)
+    }
+
+    @Test
+    fun `the shortfall covers the orders and the buffer together`() {
+        // 4 kg on hand, 6 kg sold, 5 kg buffer wanted: bring 7 kg.
+        val need = article("apple", reorderLevel = 5.0)
+            .refillNeed(level("apple", 4.0), demand(quantity = 6.0))
+
+        assertEquals(RefillState.SHORT, need.state)
+        assertEquals(7.0, need.shortfall)
+        assertEquals(-2.0, need.remaining)
+    }
+
+    @Test
+    fun `orders eat into the buffer before the shelf is empty`() {
+        // 8 kg on hand looks fine against a 5 kg buffer until 4 kg of it is sold.
+        val need = article("apple", reorderLevel = 5.0)
+            .refillNeed(level("apple", 8.0), demand(quantity = 4.0))
+
+        assertEquals(RefillState.LOW, need.state)
+        assertEquals(4.0, need.remaining)
+        assertEquals(1.0, need.shortfall)
+    }
+
+    @Test
+    fun `nothing committed behaves exactly as before`() {
+        val withNone = article("apple", reorderLevel = 5.0).refillNeed(level("apple", 2.0))
+        val withZero = article("apple", reorderLevel = 5.0)
+            .refillNeed(level("apple", 2.0), demand(quantity = 0.0))
+
+        assertEquals(RefillState.LOW, withNone.state)
+        assertEquals(withNone.state, withZero.state)
+        assertEquals(3.0, withNone.shortfall)
+        assertEquals(withNone.shortfall, withZero.shortfall)
+    }
+
+    @Test
+    fun `an empty shelf with orders behind it is short, not merely empty`() {
+        assertEquals(
+            RefillState.SHORT,
+            article("apple").refillNeed(level("apple", 0.0), demand(quantity = 2.0)).state
+        )
+        assertEquals(
+            RefillState.EMPTY,
+            article("apple").refillNeed(level("apple", 0.0)).state
+        )
+    }
+
+    @Test
+    fun `demand cannot make a claim about an article never counted`() {
+        // 0.0 is not a level here, so SHORT would be an assertion about nothing.
+        val watched = article("apple", reorderLevel = 5.0).refillNeed(null, demand(quantity = 3.0))
+        assertEquals(RefillState.UNCOUNTED, watched.state)
+
+        // And demand alone does not drag every uncounted article onto the list,
+        // which on a fresh ledger would be the whole catalogue.
+        val unwatched = article("nuts", reorderLevel = 0.0)
+            .refillNeed(null, demand("nuts", quantity = 3.0))
+        assertEquals(RefillState.UNWATCHED, unwatched.state)
+        assertTrue(!unwatched.needsAttention)
+    }
+
+    @Test
+    fun `an oversold article sorts above an empty one`() {
+        val catalog = listOf(article("a", "A", reorderLevel = 5.0), article("b", "B", reorderLevel = 5.0))
+        val levels = listOf(level("a", 0.0), level("b", 2.0)).associateBy { it.articleId }
+        val demands = mapOf("b" to demand("b", quantity = 9.0))
+
+        assertEquals(listOf("b", "a"), catalog.refillNeeds(levels, demands).map { it.articleId })
+    }
+
+    // --- unit mismatch --------------------------------------------------------
+
+    @Test
+    fun `orders in another unit are refused rather than added`() {
+        val inKg = article("apple", unit = "kg", reorderLevel = 5.0)
+
+        val need = inKg.refillNeed(level("apple", 8.0), demand(quantity = 20.0, unit = "Stück"))
+
+        assertTrue(need.unitMismatch)
+        assertEquals(0.0, need.committed)
+        assertEquals(0, need.committedOrderCount)
+        // The state is whatever the stock alone says — 8 kg against a 5 kg buffer.
+        assertEquals(RefillState.OK, need.state)
+        // ...but it still has to be looked at.
+        assertTrue(need.needsAttention)
+    }
+
+    @Test
+    fun `a mismatch is listed so the seller can resolve it`() {
+        val catalog = listOf(article("apple", unit = "kg", reorderLevel = 5.0))
+        val demands = mapOf("apple" to demand(quantity = 20.0, unit = "Stück"))
+
+        assertEquals(1, catalog.refillNeeds(mapOf("apple" to level("apple", 8.0)), demands).size)
+        assertTrue(catalog.hasRefillNeeds(mapOf("apple" to level("apple", 8.0)), demands))
+    }
+
+    @Test
+    fun `orders disagreeing among themselves are a mismatch too`() {
+        val inKg = article("apple", unit = "kg", reorderLevel = 5.0)
+        val mixed = ArticleDemand("apple", 20.0, setOf("kg", "Stück"), orderCount = 2)
+
+        assertTrue(inKg.refillNeed(level("apple", 8.0), mixed).unitMismatch)
+    }
+
+    @Test
+    fun `the unit is matched without regard to case`() {
+        val inKg = article("apple", unit = "KG", reorderLevel = 5.0)
+
+        val need = inKg.refillNeed(level("apple", 8.0), demand(quantity = 4.0, unit = "kg"))
+
+        assertTrue(!need.unitMismatch)
+        assertEquals(4.0, need.committed)
+    }
+
+    @Test
+    fun `a ledger below zero with nothing ordered is empty, not oversold`() {
+        // A sale booked before the intake it came out of leaves the level negative.
+        // Nothing is owed to anyone, so there is nobody waiting.
+        assertEquals(
+            RefillState.EMPTY,
+            article("apple").refillNeed(level("apple", -0.3), demand(quantity = 0.0)).state
+        )
+    }
+
+    @Test
+    fun `how many orders are affected is carried through`() {
+        val need = article("apple").refillNeed(
+            level("apple", 1.0),
+            demand(quantity = 6.0, orderCount = 3)
+        )
+        assertEquals(3, need.committedOrderCount)
+    }
 }

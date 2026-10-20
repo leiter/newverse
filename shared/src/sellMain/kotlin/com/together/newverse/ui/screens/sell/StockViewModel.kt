@@ -2,6 +2,7 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.model.ArticleDemand
 import com.together.newverse.domain.model.MeasuredQuantity
 import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.QuantitySource
@@ -10,9 +11,11 @@ import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.StockLevel
 import com.together.newverse.domain.model.StockMovement
 import com.together.newverse.domain.model.StockMovementKind
+import com.together.newverse.domain.model.committedDemand
 import com.together.newverse.domain.model.refillNeeds
 import com.together.newverse.domain.model.refillStanding
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.domain.repository.StockRepository
 import com.together.newverse.domain.scale.ScaleStatus
@@ -28,11 +31,17 @@ import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 /**
- * What is in storage, what needs refilling, and the bookings that change it.
+ * What is in storage, what buyers have already bought out of it, what needs
+ * refilling, and the bookings that change it.
  *
- * The screen's purpose is the refill list: the articles the seller watches that have
- * run out, run low, or have never been counted. Everything else — the full standing,
- * the bookings — exists to keep that list honest.
+ * The screen's purpose is the refill list: the articles that have been oversold, run
+ * out, run low, or have never been counted. Everything else — the full standing, the
+ * bookings — exists to keep that list honest.
+ *
+ * Outstanding orders are read as well as stock, because a list built on what is left
+ * in storage alone warns about last week's leftovers and stays silent when ten buyers
+ * have ordered goods that are not there. See
+ * `doc/design/stock-driven-availability-design.md` §2.
  *
  * Quantities arrive either from the keyboard or from a connected scale, and the
  * difference is recorded: see [MeasuredQuantity] and [QuantitySource]. With no scale
@@ -42,6 +51,7 @@ import kotlin.time.Clock
 class StockViewModel(
     private val sellerArticleRepository: SellerArticleRepository,
     private val stockRepository: StockRepository,
+    private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
     private val weightSource: WeightSource,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() }
@@ -56,6 +66,7 @@ class StockViewModel(
 
     private var catalog = listOf<SellerArticle>()
     private var levels = mapOf<String, StockLevel>()
+    private var demand = mapOf<String, ArticleDemand>()
 
     init {
         observeStock()
@@ -65,17 +76,25 @@ class StockViewModel(
     private fun observeStock() {
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            // Orders are observed alongside stock rather than polled: committed
+            // demand rises without the seller touching anything, so the refill list
+            // has to re-derive when an order arrives, not only when a movement does.
             combine(
                 sellerArticleRepository.observeSellerArticles(sellerId),
-                stockRepository.observeLevels(sellerId)
-            ) { articles, byArticle -> articles to byArticle }
+                stockRepository.observeLevels(sellerId),
+                orderRepository.observeSellerOrders(sellerId)
+            ) { articles, byArticle, orders -> Triple(articles, byArticle, orders) }
                 .catch { error ->
                     Log.w(TAG) { "observeStock: ${error.message}" }
                     _state.update { it.copy(isLoading = false, message = StockMessage.LOAD_FAILED) }
                 }
-                .collect { (articles, byArticle) ->
+                .collect { (articles, byArticle, orders) ->
                     catalog = articles
                     levels = byArticle
+                    // Every outstanding order, not one pickup slot: this is the list
+                    // the seller buys from, and the ordering rules only ever open the
+                    // next slot per market anyway.
+                    demand = orders.committedDemand()
                     _state.update { it.withStock() }
                 }
         }
@@ -97,8 +116,8 @@ class StockViewModel(
     /** Recompute the derived lists from the catalog and levels last seen. */
     private fun StockUiState.withStock(): StockUiState = copy(
         isLoading = false,
-        refillNeeds = catalog.refillNeeds(levels),
-        standing = catalog.refillStanding(levels)
+        refillNeeds = catalog.refillNeeds(levels, demand),
+        standing = catalog.refillStanding(levels, demand)
             .sortedBy { it.productName.lowercase() },
         hasWatchedArticles = catalog.any { it.sellerData?.isWatched == true }
     )

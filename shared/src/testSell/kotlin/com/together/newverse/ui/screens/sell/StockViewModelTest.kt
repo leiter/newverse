@@ -2,6 +2,10 @@ package com.together.newverse.ui.screens.sell
 
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.MeasuredQuantity
+import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.OrderOrigin
+import com.together.newverse.domain.model.OrderStatus
+import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.QuantitySource
 import com.together.newverse.domain.model.RefillState
 import com.together.newverse.domain.model.SellerArticle
@@ -11,6 +15,7 @@ import com.together.newverse.domain.model.StockMovementKind
 import com.together.newverse.domain.scale.ScaleStatus
 import com.together.newverse.domain.scale.WeightSource
 import com.together.newverse.test.FakeAuthRepository
+import com.together.newverse.test.FakeOrderRepository
 import com.together.newverse.test.FakeSellerArticleRepository
 import com.together.newverse.test.FakeStockRepository
 import com.together.newverse.test.MainDispatcherRule
@@ -54,6 +59,7 @@ class StockViewModelTest {
     private val dispatcherRule = MainDispatcherRule()
     private lateinit var articleRepository: FakeSellerArticleRepository
     private lateinit var stockRepository: FakeStockRepository
+    private lateinit var orderRepository: FakeOrderRepository
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var scale: TestWeightSource
 
@@ -71,6 +77,7 @@ class StockViewModelTest {
         dispatcherRule.setup()
         articleRepository = FakeSellerArticleRepository()
         stockRepository = FakeStockRepository()
+        orderRepository = FakeOrderRepository()
         authRepository = FakeAuthRepository()
         scale = TestWeightSource()
         authRepository.setCurrentUserId("seller_123")
@@ -81,6 +88,7 @@ class StockViewModelTest {
     fun tearDown() {
         articleRepository.reset()
         stockRepository.reset()
+        orderRepository.reset()
         authRepository.reset()
         dispatcherRule.tearDown()
     }
@@ -88,6 +96,7 @@ class StockViewModelTest {
     private fun viewModel() = StockViewModel(
         sellerArticleRepository = articleRepository,
         stockRepository = stockRepository,
+        orderRepository = orderRepository,
         authRepository = authRepository,
         weightSource = scale,
         now = { 50_000L }
@@ -146,6 +155,93 @@ class StockViewModelTest {
 
         assertEquals(listOf("nuts"), vm.state.value.matchingStanding.map { it.articleId })
         assertEquals(listOf("apple"), vm.state.value.refillNeeds.map { it.articleId })
+    }
+
+    // --- committed demand -----------------------------------------------------
+
+    private fun order(
+        id: String,
+        articleId: String = "apple",
+        amount: Double = 8.0,
+        unit: String = "kg",
+        status: OrderStatus = OrderStatus.PLACED,
+        origin: OrderOrigin = OrderOrigin.PRODUCTION
+    ) = Order(
+        id = id,
+        status = status,
+        origin = origin,
+        pickUpDate = 100_000L,
+        articles = listOf(
+            OrderedProduct(productId = articleId, productName = articleId, unit = unit, amountCount = amount)
+        )
+    )
+
+    @Test
+    fun `orders the seller cannot cover put the article on the refill list`() = runTest {
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(3.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(order("o1", amount = 8.0)))
+
+        val need = loaded().state.value.refillNeeds.single()
+
+        assertEquals(RefillState.SHORT, need.state)
+        assertEquals(8.0, need.committed)
+        // 8 kg sold out of 3 kg on hand, and a 5 kg buffer wanted on top.
+        assertEquals(10.0, need.shortfall)
+        assertEquals(-5.0, need.remaining)
+    }
+
+    @Test
+    fun `an order arriving later re-derives the list`() = runTest {
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(12.0, "kg"), recordedAt = 1_000L)
+        ))
+        val vm = loaded()
+        assertTrue(vm.state.value.refillNeeds.isEmpty())
+
+        // Demand rises without the seller touching anything.
+        orderRepository.setOrders(listOf(order("o1", amount = 20.0)))
+        advanceUntilIdle()
+
+        assertEquals(RefillState.SHORT, vm.state.value.refillNeeds.single().state)
+    }
+
+    @Test
+    fun `a demo order is not demand`() = runTest {
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(12.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(order("o1", amount = 20.0, origin = OrderOrigin.DEMO)))
+
+        assertTrue(loaded().state.value.refillNeeds.isEmpty())
+    }
+
+    @Test
+    fun `an unwatched article still warns once it is oversold`() = runTest {
+        // nuts has no reorder level, so stock alone would never mention it.
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("nuts", MeasuredQuantity.typed(1.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(order("o1", articleId = "nuts", amount = 4.0)))
+
+        val needs = loaded().state.value.refillNeeds
+
+        assertEquals(listOf("nuts", "apple"), needs.map { it.articleId })
+        assertEquals(RefillState.SHORT, needs.first().state)
+    }
+
+    @Test
+    fun `orders in another unit are flagged instead of counted`() = runTest {
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(12.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(order("o1", amount = 20.0, unit = "Stück")))
+
+        val need = loaded().state.value.refillNeeds.single { it.articleId == "apple" }
+
+        assertTrue(need.unitMismatch)
+        assertEquals(0.0, need.committed)
     }
 
     // --- booking --------------------------------------------------------------

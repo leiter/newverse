@@ -1085,11 +1085,16 @@
     <string name="stock_refill_needed">Nachfüllen</string>
     <string name="stock_all_stocked">Alles ausreichend vorhanden</string>
     <string name="stock_nothing_watched">Kein Artikel wird überwacht. Lege bei einem Artikel eine Menge unter „Nachfüllen unter“ fest.</string>
+    <string name="stock_state_short">Überverkauft</string>
     <string name="stock_state_empty">Leer</string>
     <string name="stock_state_low">Knapp</string>
     <string name="stock_state_uncounted">Nicht gezählt</string>
     <string name="stock_on_hand">Bestand</string>
     <string name="stock_never_counted">Noch nie gezählt</string>
+    <string name="stock_ordered">Bestellt</string>
+    <string name="stock_shortfall">Fehlt</string>
+    <string name="stock_unit_changed">Einheit geändert</string>
+    <string name="stock_unit_changed_hint">Offene Bestellungen nutzen eine andere Einheit. Bitte Bestand und Bestellungen prüfen.</string>
     <string name="stock_all_articles">Alle Artikel</string>
     <string name="stock_intake">Zugang</string>
     <string name="stock_stocktake">Zählen</string>

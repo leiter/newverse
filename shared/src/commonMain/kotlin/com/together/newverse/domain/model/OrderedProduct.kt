@@ -127,3 +127,19 @@ data class OrderedProduct(
         return price.formatPrice()
     }
 }
+
+/**
+ * The id this line refers to its article by.
+ *
+ * The buyer app puts the article's database id into [OrderedProduct.productId] and
+ * leaves [OrderedProduct.id] empty, so `productId` is the key; `id` is only a
+ * fallback for lines written some other way, and `"-1"` is the default `productId`
+ * of a line that names no article at all.
+ *
+ * One rule, used by everything that matches order lines to the catalog — sales
+ * booking and committed demand alike. A second rule would drift from this one, and
+ * the symptom (quantities attributed to the wrong article) reads as a stock bug long
+ * before anyone suspects the key.
+ */
+fun OrderedProduct.articleKey(): String =
+    productId.takeIf { it.isNotEmpty() && it != "-1" } ?: id

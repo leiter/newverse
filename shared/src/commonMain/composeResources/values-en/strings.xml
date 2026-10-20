@@ -1027,11 +1027,16 @@
     <string name="stock_refill_needed">Needs refilling</string>
     <string name="stock_all_stocked">Everything sufficiently stocked</string>
     <string name="stock_nothing_watched">No article is watched. Set a quantity under &quot;Refill below&quot; on an article.</string>
+    <string name="stock_state_short">Oversold</string>
     <string name="stock_state_empty">Empty</string>
     <string name="stock_state_low">Low</string>
     <string name="stock_state_uncounted">Not counted</string>
     <string name="stock_on_hand">On hand</string>
     <string name="stock_never_counted">Never counted</string>
+    <string name="stock_ordered">Ordered</string>
+    <string name="stock_shortfall">Missing</string>
+    <string name="stock_unit_changed">Unit changed</string>
+    <string name="stock_unit_changed_hint">Outstanding orders use a different unit. Please check stock and orders.</string>
     <string name="stock_all_articles">All articles</string>
     <string name="stock_intake">Intake</string>
     <string name="stock_stocktake">Count</string>
