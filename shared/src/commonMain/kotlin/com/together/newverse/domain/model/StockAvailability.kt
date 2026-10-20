@@ -36,8 +36,54 @@ fun SellerArticle.derivedAvailability(
 ): Boolean = sellerAvailable && stockPermitsOrders(level, demand)
 
 /**
- * The articles whose public flag no longer says what the seller and the ledger say,
- * mapped to the value it should hold.
+ * How much is left, as a buyer may be told it.
+ *
+ * [ArticleScarcity.UNKNOWN] — say nothing — unless all three hold:
+ *  - the seller gated this article on stock, so they asked for it to be governed by
+ *    the ledger at all;
+ *  - the ledger has seen it, because `onHand` of 0.0 on a never-counted article
+ *    means nothing (§4b);
+ *  - there is a **reference quantity** to measure "few" against.
+ *
+ * That last one is why this is not a fixed threshold. Half a kilo is nearly nothing
+ * in potatoes and a lot in saffron, so a constant would be meaningless across a
+ * catalogue. The reference is the seller's own [SellerArticleData.reorderLevel] —
+ * the amount they themselves restock at — falling back to
+ * [SellerArticleData.packageSize], the Gebinde the article is bought in, which the
+ * price-list import fills for most articles. With neither, nothing is published:
+ * "few" would be this code's opinion rather than the seller's.
+ */
+fun SellerArticle.scarcityOf(level: StockLevel?, demand: ArticleDemand? = null): ArticleScarcity {
+    if (!stockGated) return ArticleScarcity.UNKNOWN
+    val data = sellerData ?: return ArticleScarcity.UNKNOWN
+
+    val need = refillNeed(level, demand)
+    if (!need.hasLevel) return ArticleScarcity.UNKNOWN
+
+    val reference = data.reorderLevel.takeIf { it > 0.0 }
+        ?: data.packageSize.takeIf { it > 0.0 }
+        ?: return ArticleScarcity.UNKNOWN
+
+    val remaining = need.remaining
+    return when {
+        // Sold out, or sold beyond the shelf: `available` carries that, and saying
+        // "last few" about nothing would contradict it.
+        remaining <= 0.0 -> ArticleScarcity.LAST_FEW
+        remaining <= reference / 2 -> ArticleScarcity.LAST_FEW
+        remaining <= reference -> ArticleScarcity.LIMITED
+        else -> ArticleScarcity.PLENTIFUL
+    }
+}
+
+/** What the public half of an article should say about itself. */
+data class ArticlePublication(
+    val available: Boolean,
+    val scarcity: ArticleScarcity
+)
+
+/**
+ * The articles whose public fields no longer say what the seller and the ledger say,
+ * mapped to what they should hold.
  *
  * Only the differences: a correction pass writes this map and nothing else, so an
  * evaluation that agrees with the database writes nothing at all. That is what keeps
@@ -55,14 +101,23 @@ fun SellerArticle.derivedAvailability(
  * whenever the gate is set, so a gate that was configured through the app always has
  * one.
  */
-fun List<SellerArticle>.availabilityCorrections(
+fun List<SellerArticle>.publicationCorrections(
     levels: Map<String, StockLevel>,
     demand: Map<String, ArticleDemand> = emptyMap()
-): Map<String, Boolean> = buildMap {
-    for (article in this@availabilityCorrections) {
+): Map<String, ArticlePublication> = buildMap {
+    for (article in this@publicationCorrections) {
         val data = article.sellerData ?: continue
         if (data.stockGated && data.sellerAvailable == null) continue
-        val derived = article.derivedAvailability(levels[article.id], demand[article.id])
-        if (derived != article.article.available) put(article.id, derived)
+        val level = levels[article.id]
+        val articleDemand = demand[article.id]
+        val derived = ArticlePublication(
+            available = article.derivedAvailability(level, articleDemand),
+            scarcity = article.scarcityOf(level, articleDemand)
+        )
+        if (derived.available != article.article.available ||
+            derived.scarcity != article.article.scarcity
+        ) {
+            put(article.id, derived)
+        }
     }
 }

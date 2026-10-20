@@ -217,6 +217,8 @@
     <!-- BASKET SCREEN (BUY MODULE) -->
     <!-- ========================================= -->
     <string name="basket_title">Shopping Basket</string>
+    <string name="product_scarcity_limited">Only a little left</string>
+    <string name="product_scarcity_last_few">Almost sold out</string>
     <string name="basket_item_unavailable">No longer available</string>
     <string name="basket_unorderable_title">Some items are no longer available</string>
     <string name="basket_unorderable_body">Please remove the marked items to place your order.</string>

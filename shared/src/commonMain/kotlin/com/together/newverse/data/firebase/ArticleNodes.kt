@@ -1,6 +1,8 @@
 package com.together.newverse.data.firebase
 
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.ArticlePublication
+import com.together.newverse.domain.model.ArticleScarcity
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.SellerArticleData
 import com.together.newverse.domain.model.TaxRate
@@ -40,7 +42,8 @@ internal object ArticleNodes {
         "category" to article.category,
         "searchTerms" to article.searchTerms,
         "detailInfo" to article.detailInfo,
-        "taxRate" to article.taxRate
+        "taxRate" to article.taxRate,
+        "scarcity" to article.scarcity.name
     )
 
     fun privateFields(data: SellerArticleData): Map<String, Any?> = mapOf(
@@ -77,17 +80,23 @@ internal object ArticleNodes {
     }
 
     /**
-     * The update map that sets the public availability flag of several articles.
+     * The update map that publishes what the ledger says about several articles:
+     * whether they can be ordered, and how much is left.
      *
-     * The public half only, and only that one field: this is written by the
-     * correction pass that derives availability from the ledger, which has no
-     * business touching a price or a name. See `StockAvailability.kt`.
+     * The public half only, and only those two fields: this is written by the
+     * correction pass that derives both from the ledger
+     * (`StockAvailability.kt`), which has no business touching a price or a name.
      */
-    fun availabilityUpdate(sellerId: String, availability: Map<String, Boolean>): Map<String, Any?> =
-        availability.entries.associate { (articleId, available) ->
+    fun publicationUpdate(
+        sellerId: String,
+        publication: Map<String, ArticlePublication>
+    ): Map<String, Any?> = buildMap {
+        for ((articleId, state) in publication) {
             require(articleId.isNotEmpty()) { "articleId must not be empty" }
-            "${publicPath(sellerId, articleId)}/available" to available
+            put("${publicPath(sellerId, articleId)}/available", state.available)
+            put("${publicPath(sellerId, articleId)}/scarcity", state.scarcity.name)
         }
+    }
 
     /** The update map that removes both halves of an article. */
     fun deleteUpdate(sellerId: String, articleId: String): Map<String, Any?> {
@@ -111,7 +120,12 @@ internal object ArticleNodes {
         searchTerms = value.string("searchTerms"),
         detailInfo = value.string("detailInfo"),
         // Articles saved before taxRate was stored fall back to the default rate.
-        taxRate = value.double("taxRate") ?: TaxRate.default.rate
+        taxRate = value.double("taxRate") ?: TaxRate.default.rate,
+        // Absent, or a band written by a newer version than this one: say nothing
+        // rather than guess. UNKNOWN is what an ungated article publishes anyway.
+        scarcity = (value["scarcity"] as? String)
+            ?.let { stored -> ArticleScarcity.entries.firstOrNull { it.name == stored } }
+            ?: ArticleScarcity.UNKNOWN
     )
 
     fun sellerDataFromMap(value: Map<*, *>): SellerArticleData = SellerArticleData(

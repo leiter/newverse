@@ -1,6 +1,7 @@
 package com.together.newverse.ui.screens.sell
 
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.ArticleScarcity
 import com.together.newverse.domain.model.MeasuredQuantity
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
@@ -285,7 +286,9 @@ class StockViewModelTest {
     }
 
     @Test
-    fun `a flag that already agrees is not written`() = runTest {
+    fun `the band is published even when availability does not move`() = runTest {
+        // 20 kg against a 5 kg reorder level: still orderable, so `available` stays
+        // true — but buyers have been told nothing about how much is left.
         articleRepository.setArticles(listOf(gatedApple))
         stockRepository.setMovements(listOf(
             StockMovement.intake("apple", MeasuredQuantity.typed(20.0, "kg"), recordedAt = 1_000L)
@@ -293,7 +296,23 @@ class StockViewModelTest {
 
         loaded()
 
-        assertTrue(articleRepository.availabilityWrites.isEmpty())
+        val written = articleRepository.publicationWrites.single().getValue("apple")
+        assertEquals(true, written.available)
+        assertEquals(ArticleScarcity.PLENTIFUL, written.scarcity)
+    }
+
+    @Test
+    fun `a published article that already agrees is not written again`() = runTest {
+        articleRepository.setArticles(listOf(gatedApple.copy(
+            article = gatedApple.article.copy(scarcity = ArticleScarcity.PLENTIFUL)
+        )))
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(20.0, "kg"), recordedAt = 1_000L)
+        ))
+
+        loaded()
+
+        assertTrue(articleRepository.publicationWrites.isEmpty())
     }
 
     @Test

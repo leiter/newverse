@@ -225,6 +225,8 @@
     <!-- BASKET SCREEN (BUY MODULE) -->
     <!-- ========================================= -->
     <string name="basket_title">Warenkorb</string>
+    <string name="product_scarcity_limited">Nur noch wenig verfügbar</string>
+    <string name="product_scarcity_last_few">Fast ausverkauft</string>
     <string name="basket_item_unavailable">Nicht mehr verfügbar</string>
     <string name="basket_unorderable_title">Einige Artikel sind nicht mehr verfügbar</string>
     <string name="basket_unorderable_body">Bitte entfernen Sie die markierten Artikel, um zu bestellen.</string>

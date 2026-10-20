@@ -1,6 +1,8 @@
 # Stock-Driven Refill and Availability
 
-> **DESIGN — Phases 1–5 built; only the scarcity band (§4f) is not** (as of 2026-10-20). The stock ledger
+> **BUILT — all six phases** (as of 2026-10-20). Kept in `design/` until a guide
+> replaces it; it is the record of what was decided and why, including the four
+> places where building it corrected the design. The stock ledger
 > it builds on was already there: `StockRepository`, `StockMovement`/`StockLevel`,
 > `StockRefill.kt`, `StockScreen` and the refill badge, all in the database rules.
 > **Phases 1 and 2 (§8) are now implemented**: `CommittedDemand.kt`,
@@ -12,11 +14,12 @@
 > gate's switch in the article editor; plus `StockReminderEvaluator`,
 > `StockReminderSnapshots`, the WorkManager chain, and the seller's refill
 > notification — so `lowStockNotifications` finally switches something real; plus
-> `OrderShortfalls.kt`, the affected-orders section with its seller-sent draft, and
-> the buyer's restored messages entry point. Still a proposal: the public scarcity
-> band (§4f). §4b's formula and §4a's migration note were corrected against what
-> building it showed, and §3's posting time is now the morning after the deadline
-> rather than the deadline itself.
+> `OrderShortfalls.kt`, the affected-orders section with its seller-sent draft, the
+> buyer's restored messages entry point, and `ArticleScarcity` published beside
+> `available`. Corrections made while building: §4b's formula, §4a's migration note,
+> §3's posting time (the morning after the deadline, not the deadline itself), and
+> the scarcity thresholds in §4f, which are relative to the seller's own quantities
+> rather than absolute.
 
 **Date:** 2026-10-20
 **Status:** Design — not implemented
@@ -376,10 +379,32 @@ Two independent reasons the band has to be coarse:
   nothing. A number tells both everything.
 
 Derived the same way and under the same guards as `available` (§4b): only for
-`stockGated` articles, only with `hasLevel`, written in the same multi-path update,
-with hysteresis on the band edges. An ungated article publishes no `scarcity` at
-all, which is the honest answer for weighed goods where the seller brings what
-they bring.
+`stockGated` articles, only with `hasLevel`, written in the same multi-path update
+by the same correction pass. An ungated article publishes no `scarcity` at all,
+which is the honest answer for weighed goods where the seller brings what they
+bring.
+
+**The thresholds (open question 6, decided while building).** Not a constant: half a
+kilo is nearly nothing in potatoes and a lot in saffron, so one number across a
+catalogue is meaningless. The band is relative to a *reference quantity* the seller
+already set — `reorderLevel`, the amount they restock at — falling back to
+`packageSize`, the Gebinde from the price-list import. `LAST_FEW` at or below half
+the reference, `LIMITED` at or below it, `PLENTIFUL` above. With neither quantity
+recorded, nothing is published, because "few" would then be the code's opinion
+rather than the seller's.
+
+**Where it lives (open question 7, decided).** On `/articles`, beside `available`.
+The alternative — its own node with tighter rules, readable only by approved buyers —
+was rejected: the band is three states, so what a competitor learns from it is
+roughly what walking past the stall would tell them, and a second node would double
+the write path and add a listener for a leak that barely differs. The decision rests
+on the band staying coarse; publishing a quantity here would change the answer.
+
+**Where it is shown (open question 8, decided).** The catalogue card and the product
+detail page — where a buyer decides how much to order. **Not** in the basket: the
+basket already carries the hard signal (§4c marks withdrawn items), and a soft
+"nearly sold out" beside an item the buyer has already chosen reads as a warning that
+their reservation is at risk, which is exactly the promise this cannot make.
 
 Two consequences to accept rather than design around:
 
@@ -462,6 +487,7 @@ than messages, this follows it rather than keeping its own.
 | D12 | Buyer-facing scarcity is a 3-state band, never a quantity | A stale number is a broken promise; a band leaks almost nothing to competitors |
 | D13 | A shortfall message is drafted for the seller, never auto-sent | The gap is often resolvable; a retracted apology costs more than silence |
 | D14 | Shortfall notices ride the order-notification channel, not their own | One decision about how buyers are told, taken in one place |
+| D15 | The band's thresholds are relative to `reorderLevel`, then `packageSize`, else silent | No constant means the same thing in potatoes and saffron; silence beats inventing a reference the seller never set |
 
 ---
 
@@ -486,17 +512,15 @@ than messages, this follows it rather than keeping its own.
    notification at the deadline, but recomputing demand at fire time needs the app
    awake. Accept a notification built from the last known numbers, or skip when
    stale?
-6. **Where the scarcity band's thresholds live.** `LAST_FEW` as a fraction of
-   `reorderLevel`, as an absolute per unit, or seller-set per article? A fraction
-   is self-tuning but meaningless where `reorderLevel = 0`, which is the default.
-7. **Does the band belong on `/articles` at all?** The alternative is a separate
-   buyer-readable node with its own rules, so publishing scarcity does not widen
-   what an article's node exposes. More paths to keep in step against a narrower
-   leak — probably not worth it, but it is the one way to publish scarcity without
-   making the catalogue itself more revealing.
-8. **Should the buyer see the band in their basket as well as the catalogue?** It
-   is the point at which it would change a decision, and also the point at which a
-   stale band is most likely to be read as a promise.
+6. ~~**Where the scarcity band's thresholds live.**~~ **Decided:** a fraction of
+   `reorderLevel`, falling back to `packageSize`, and no band at all when neither is
+   set — see §4f. The "meaningless where `reorderLevel = 0`" objection is what the
+   `packageSize` fallback and the silent default answer.
+7. ~~**Does the band belong on `/articles` at all?**~~ **Decided:** yes, for the
+   reason the question itself suspected — see §4f. Revisit if the band ever carries
+   more than three states.
+8. ~~**Should the buyer see the band in their basket as well as the catalogue?**~~
+   **Decided:** no — the second half of that question won. See §4f.
 
 ---
 
@@ -531,10 +555,10 @@ Affected orders on the `SHORT` list, the drafted message, the seller's send. The
 buyer's messages entry point is restored with it, gated on approval like the contact
 shortcut.
 
-**Phase 6 — the scarcity band (§4f)**
-Derived `scarcity` on the public article, band thresholds, hysteresis, rules
-tests, buyer-side display. Deliberately last: it is the only phase that publishes
-business data outward, and it is the easiest to defer if the rest proves enough.
+**Phase 6 — the scarcity band (§4f) — BUILT**
+Derived `scarcity` on the public article, thresholds relative to the seller's own
+quantities, rules tests, buyer-side display on the catalogue card and detail page.
+Deliberately last: it is the only phase that publishes business data outward.
 
 Two ordering notes. **Phase 2 is the one not to postpone** — until it lands, every
 other phase moves a flag that nothing enforces. And **Phase 6 should not precede

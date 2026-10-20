@@ -1,5 +1,6 @@
 package com.together.newverse.domain.repository
 
+import com.together.newverse.domain.model.ArticlePublication
 import com.together.newverse.domain.model.SellerArticle
 import kotlinx.coroutines.flow.Flow
 
@@ -37,15 +38,17 @@ interface SellerArticleRepository {
     suspend fun saveSellerArticles(sellerId: String, articles: List<SellerArticle>): Result<List<String>>
 
     /**
-     * Sets the public availability flag of several articles in one atomic update,
-     * touching nothing else about them.
+     * Publishes what the stock ledger says about several articles — whether they can
+     * be ordered and how much is left — in one atomic update, touching nothing else.
      *
-     * For the pass that derives availability from the stock ledger: the flag is an
-     * output of `derivedAvailability`, not something written by hand. A whole-article
-     * save would be wrong here — it would carry a stale price or name from whatever
-     * the caller last read.
+     * For the correction pass: both fields are outputs of `StockAvailability.kt`, not
+     * something written by hand. A whole-article save would be wrong here — it would
+     * carry a stale price or name from whatever the caller last read.
      */
-    suspend fun setArticleAvailability(sellerId: String, availability: Map<String, Boolean>): Result<Unit>
+    suspend fun setArticlePublication(
+        sellerId: String,
+        publication: Map<String, ArticlePublication>
+    ): Result<Unit>
 
     /** Deletes both halves of an article in one atomic update. */
     suspend fun deleteSellerArticle(sellerId: String, articleId: String): Result<Unit>

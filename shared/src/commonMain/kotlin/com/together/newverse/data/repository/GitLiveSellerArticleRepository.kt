@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.data.firebase.ArticleNodes
+import com.together.newverse.domain.model.ArticlePublication
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
@@ -113,21 +114,21 @@ class GitLiveSellerArticleRepository(
         }
     }
 
-    override suspend fun setArticleAvailability(
+    override suspend fun setArticlePublication(
         sellerId: String,
-        availability: Map<String, Boolean>
+        publication: Map<String, ArticlePublication>
     ): Result<Unit> {
         return try {
             if (authRepository.getCurrentUserId() == null) {
                 return Result.failure(Exception("User not authenticated"))
             }
-            if (availability.isEmpty()) return Result.success(Unit)
+            if (publication.isEmpty()) return Result.success(Unit)
 
-            rootRef.updateChildren(ArticleNodes.availabilityUpdate(sellerId, availability))
-            Log.d(TAG) { "setArticleAvailability: ${availability.size} article(s) -> $availability" }
+            rootRef.updateChildren(ArticleNodes.publicationUpdate(sellerId, publication))
+            Log.d(TAG) { "setArticlePublication: ${publication.size} article(s) -> $publication" }
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG) { "setArticleAvailability: Error - ${e.message}" }
+            Log.e(TAG) { "setArticlePublication: Error - ${e.message}" }
             Result.failure(e)
         }
     }

@@ -19,6 +19,16 @@ data class Article(
     val searchTerms: String = "",
     val detailInfo: String = "",
     val taxRate: Double = TaxRate.REDUCED.rate,
+    /**
+     * How much is left, coarsely, for articles whose seller gates them on stock.
+     *
+     * Derived and published by the seller's app alongside [available] — never typed.
+     * A band and not a number: this node is readable by every signed-in user, and a
+     * quantity would be both a promise the shop cannot keep once it is a few minutes
+     * stale and a turnover feed for anyone who polls it. See
+     * `doc/design/stock-driven-availability-design.md` §4f.
+     */
+    val scarcity: ArticleScarcity = ArticleScarcity.UNKNOWN,
     val mode: Int = MODE_UNDEFINED
 ) {
     companion object {

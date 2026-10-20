@@ -149,6 +149,42 @@ describe("articles and seller-only article data", () => {
     );
   });
 
+  // --- the scarcity band ---------------------------------------------------
+
+  /**
+   * The band is published on the public half on purpose: it is three states, so a
+   * competitor learns roughly what walking past the stall would tell them, and a
+   * separate node with tighter rules would double the write path for a leak that
+   * barely differs. What must not happen is a *number* landing here, or a buyer
+   * writing the band — see §4f and §4e of the design.
+   */
+  it("lets a buyer read how much is left", async () => {
+    await seed(env, async (db) => {
+      await db.ref().update({ [`articles/${SELLER}/a1/scarcity`]: "LAST_FEW" });
+    });
+    await assertSucceeds(asUser(env, ALICE).ref(`articles/${SELLER}/a1/scarcity`).once("value"));
+  });
+
+  it("denies a buyer writing the band", async () => {
+    await assertFails(
+      asUser(env, ALICE).ref().update({ [`articles/${SELLER}/a1/scarcity`]: "PLENTIFUL" })
+    );
+  });
+
+  it("lets the seller publish the band beside availability in one update", async () => {
+    await assertSucceeds(asUser(env, SELLER).ref().update({
+      [`articles/${SELLER}/a1/available`]: true,
+      [`articles/${SELLER}/a1/scarcity`]: "LIMITED"
+    }));
+    assert.equal(await exists(`articles/${SELLER}/a1/scarcity`), true);
+  });
+
+  it("denies another seller publishing a band on this catalogue", async () => {
+    await assertFails(
+      asUser(env, OTHER_SELLER).ref().update({ [`articles/${SELLER}/a1/scarcity`]: "LAST_FEW" })
+    );
+  });
+
   // --- the halves stay together --------------------------------------------
 
   it("denies seller-only data for an article that does not exist", async () => {

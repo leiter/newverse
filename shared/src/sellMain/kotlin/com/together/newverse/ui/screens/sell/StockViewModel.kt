@@ -16,7 +16,8 @@ import com.together.newverse.domain.model.OrderShortfall
 import com.together.newverse.domain.model.StockMovementKind
 import com.together.newverse.domain.model.draftShortfallMessage
 import com.together.newverse.domain.model.shortfallsAgainst
-import com.together.newverse.domain.model.availabilityCorrections
+import com.together.newverse.domain.model.ArticlePublication
+import com.together.newverse.domain.model.publicationCorrections
 import com.together.newverse.domain.model.committedDemand
 import com.together.newverse.domain.model.refillNeeds
 import com.together.newverse.domain.model.refillStanding
@@ -87,7 +88,7 @@ class StockViewModel(
     private var orders = listOf<Order>()
 
     /** The last set of corrections written or attempted; see [correctAvailability]. */
-    private var attempted = mapOf<String, Boolean>()
+    private var attempted = mapOf<String, ArticlePublication>()
 
     init {
         reminderStorage?.let { storage ->
@@ -142,7 +143,7 @@ class StockViewModel(
      * next genuine change clears it.
      */
     private fun correctAvailability() {
-        val corrections = catalog.availabilityCorrections(levels, demand)
+        val corrections = catalog.publicationCorrections(levels, demand)
         if (corrections.isEmpty()) {
             attempted = emptyMap()
             return
@@ -152,7 +153,7 @@ class StockViewModel(
 
         viewModelScope.launch {
             val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            sellerArticleRepository.setArticleAvailability(sellerId, corrections)
+            sellerArticleRepository.setArticlePublication(sellerId, corrections)
                 .onSuccess {
                     Log.d(TAG) { "correctAvailability: ${corrections.size} article(s) -> $corrections" }
                 }

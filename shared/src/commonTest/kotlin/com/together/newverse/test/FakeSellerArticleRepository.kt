@@ -1,5 +1,6 @@
 package com.together.newverse.test
 
+import com.together.newverse.domain.model.ArticlePublication
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.repository.SellerArticleRepository
 import kotlinx.coroutines.flow.Flow
@@ -25,9 +26,13 @@ class FakeSellerArticleRepository : SellerArticleRepository {
     private val _deletedArticles = mutableListOf<Pair<String, String>>()
     val deletedArticles: List<Pair<String, String>> get() = _deletedArticles.toList()
 
-    /** Every availability correction written, in order, for asserting on the pass. */
-    private val _availabilityWrites = mutableListOf<Map<String, Boolean>>()
-    val availabilityWrites: List<Map<String, Boolean>> get() = _availabilityWrites.toList()
+    /** Every publication correction written, in order, for asserting on the pass. */
+    private val _publicationWrites = mutableListOf<Map<String, ArticlePublication>>()
+    val publicationWrites: List<Map<String, ArticlePublication>> get() = _publicationWrites.toList()
+
+    /** Just the availability half of each write, which is what most tests care about. */
+    val availabilityWrites: List<Map<String, Boolean>>
+        get() = _publicationWrites.map { write -> write.mapValues { it.value.available } }
 
     // Configuration for test scenarios
     var shouldFailSave = false
@@ -49,7 +54,7 @@ class FakeSellerArticleRepository : SellerArticleRepository {
         _articles.value = emptyList()
         _savedArticles.clear()
         _deletedArticles.clear()
-        _availabilityWrites.clear()
+        _publicationWrites.clear()
         shouldFailSave = false
         shouldFailDelete = false
         shouldFailGetArticle = false
@@ -67,19 +72,24 @@ class FakeSellerArticleRepository : SellerArticleRepository {
         return Result.success(article)
     }
 
-    override suspend fun setArticleAvailability(
+    override suspend fun setArticlePublication(
         sellerId: String,
-        availability: Map<String, Boolean>
+        publication: Map<String, ArticlePublication>
     ): Result<Unit> {
         if (shouldFailSave) return Result.failure(Exception(failureMessage))
-        if (availability.isEmpty()) return Result.success(Unit)
-        _availabilityWrites.add(availability)
+        if (publication.isEmpty()) return Result.success(Unit)
+        _publicationWrites.add(publication)
         // Applied to the catalog as the database would, so the next evaluation sees
         // its own write and the pass settles instead of writing the same value again.
         _articles.value = _articles.value.map { stored ->
-            availability[stored.id]
-                ?.let { stored.copy(article = stored.article.copy(available = it)) }
-                ?: stored
+            publication[stored.id]?.let { state ->
+                stored.copy(
+                    article = stored.article.copy(
+                        available = state.available,
+                        scarcity = state.scarcity
+                    )
+                )
+            } ?: stored
         }
         return Result.success(Unit)
     }

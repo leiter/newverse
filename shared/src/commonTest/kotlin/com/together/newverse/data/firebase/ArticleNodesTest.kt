@@ -1,6 +1,8 @@
 package com.together.newverse.data.firebase
 
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.ArticlePublication
+import com.together.newverse.domain.model.ArticleScarcity
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.SellerArticleData
 import com.together.newverse.domain.model.TaxRate
@@ -174,12 +176,40 @@ class ArticleNodesTest {
     }
 
     @Test
-    fun `the availability update touches one field per article`() {
-        val update = ArticleNodes.availabilityUpdate("s1", mapOf("a1" to false, "a2" to true))
+    fun `the publication update touches only what the ledger decides`() {
+        val update = ArticleNodes.publicationUpdate(
+            "s1",
+            mapOf(
+                "a1" to ArticlePublication(available = false, scarcity = ArticleScarcity.LAST_FEW),
+                "a2" to ArticlePublication(available = true, scarcity = ArticleScarcity.PLENTIFUL)
+            )
+        )
 
         assertEquals(
-            mapOf("articles/s1/a1/available" to false, "articles/s1/a2/available" to true),
+            mapOf(
+                "articles/s1/a1/available" to false,
+                "articles/s1/a1/scarcity" to "LAST_FEW",
+                "articles/s1/a2/available" to true,
+                "articles/s1/a2/scarcity" to "PLENTIFUL"
+            ),
             update
+        )
+    }
+
+    @Test
+    fun `the band round-trips, and an unreadable one says nothing`() {
+        val scarce = article.copy(scarcity = ArticleScarcity.LIMITED)
+        assertEquals(scarce, ArticleNodes.articleFromMap(articleId, ArticleNodes.publicFields(scarce)))
+
+        // Written by a newer version than this one, or garbage: say nothing rather
+        // than guess, which is what an ungated article publishes anyway.
+        assertEquals(
+            ArticleScarcity.UNKNOWN,
+            ArticleNodes.articleFromMap(articleId, mapOf("scarcity" to "ALMOST_GONE_ISH")).scarcity
+        )
+        assertEquals(
+            ArticleScarcity.UNKNOWN,
+            ArticleNodes.articleFromMap(articleId, mapOf("productName" to "Alt")).scarcity
         )
     }
 

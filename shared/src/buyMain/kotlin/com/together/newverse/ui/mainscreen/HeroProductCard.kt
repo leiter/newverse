@@ -59,12 +59,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.ArticleScarcity
 import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.components.ProductImage
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.formatString
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.product_scarcity_last_few
+import newverse.shared.generated.resources.product_scarcity_limited
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
@@ -100,10 +103,19 @@ internal fun HeroProductCard(
     // One spoken summary for the whole card: name, price per unit, and — once an
     // amount is chosen — the running total and the amount itself.
     val priceLabel = productPriceLabel(product.price, product.unit)
+    val scarcityLabel = when (product.scarcity) {
+        ArticleScarcity.LAST_FEW -> stringResource(Res.string.product_scarcity_last_few)
+        ArticleScarcity.LIMITED -> stringResource(Res.string.product_scarcity_limited)
+        // Nothing to say about an article nobody is running out of, or one the
+        // seller has not gated on stock at all.
+        ArticleScarcity.PLENTIFUL, ArticleScarcity.UNKNOWN -> null
+    }
     val cardSummary = buildString {
         append(product.productName)
         append(", ")
         append(priceLabel)
+        // Said early, before the price of something that may not be there.
+        scarcityLabel?.let { append(", "); append(it) }
         if (quantity > 0.0) {
             val total = product.price * quantity
             append(", ")
@@ -271,6 +283,17 @@ internal fun HeroProductCard(
                                             color = MaterialTheme.colorScheme.secondary
                                         )
                                     }
+                                }
+
+                                // Only when it is running out, and only as a band:
+                                // nothing is reserved, so a number would be a
+                                // promise the shop cannot keep. §4f
+                                scarcityLabel?.let { label ->
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
                                 }
                             }
                         }

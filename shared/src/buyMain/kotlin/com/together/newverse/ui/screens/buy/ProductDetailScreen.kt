@@ -56,6 +56,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.ArticleScarcity
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.adaptive.LocalWindowWidthClass
@@ -64,7 +65,10 @@ import com.together.newverse.ui.components.ProductImage
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.formatString
 import com.together.newverse.util.rememberKeyboardManager
+import org.jetbrains.compose.resources.StringResource
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.product_scarcity_last_few
+import newverse.shared.generated.resources.product_scarcity_limited
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
@@ -312,6 +316,18 @@ private fun ProductDetailsColumn(
                     )
                 }
             }
+        }
+
+        // How much is left, where the buyer decides how much to order — and only
+        // ever as a band. It describes the shop, not this buyer's chances: nothing
+        // is reserved, so a number would be a promise. §4f
+        article.scarcity.labelRes()?.let { label ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(label),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.error
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -582,4 +598,16 @@ private fun formatQuantityForDisplay(quantity: Double, isWeightBased: Boolean): 
         // For piece-based, show as whole number
         quantity.toInt().toString()
     }
+}
+
+/**
+ * What to say about [ArticleScarcity], or null to say nothing.
+ *
+ * `PLENTIFUL` and `UNKNOWN` both say nothing: an article nobody is running out of
+ * does not need a line about it, and neither does one the seller has not gated.
+ */
+private fun ArticleScarcity.labelRes(): StringResource? = when (this) {
+    ArticleScarcity.LAST_FEW -> Res.string.product_scarcity_last_few
+    ArticleScarcity.LIMITED -> Res.string.product_scarcity_limited
+    ArticleScarcity.PLENTIFUL, ArticleScarcity.UNKNOWN -> null
 }
