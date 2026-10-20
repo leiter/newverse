@@ -400,11 +400,31 @@ roughly what walking past the stall would tell them, and a second node would dou
 the write path and add a listener for a leak that barely differs. The decision rests
 on the band staying coarse; publishing a quantity here would change the answer.
 
-**Where it is shown (open question 8, decided).** The catalogue card and the product
-detail page — where a buyer decides how much to order. **Not** in the basket: the
-basket already carries the hard signal (§4c marks withdrawn items), and a soft
-"nearly sold out" beside an item the buyer has already chosen reads as a warning that
-their reservation is at risk, which is exactly the promise this cannot make.
+**Where it is shown (open question 8, decided, then reversed).** The catalogue card,
+the product detail page — and, narrowly, the basket.
+
+The first answer was "not in the basket", on the grounds that a soft signal beside an
+already-chosen item reads as a warning that the buyer's reservation is at risk. That
+is backwards: there *is* no reservation, the item really can be lost, and the band
+corrects that misconception rather than creating it. What settled it is the step
+missing on either side of it — with §4c in place, the buyer's first notice that
+waiting was risky is checkout **refusing the whole order** and naming an article they
+then have to remove. Nothing between silence and a blocked order is the worst of the
+three.
+
+So the basket shows it, narrowed hard:
+
+- **`LAST_FEW` only.** `LIMITED` is browsing information — useful while choosing,
+  noise beside something already chosen. "Nearly gone" is the one state that changes
+  what to do about an item already in the basket.
+- **The catalogue's own words**, with no countdown, no "others are viewing this", no
+  urgency verb, and no error colour on the row. Scarcity in a cart is the classic
+  pressure pattern, and the wording is the whole line between informing and pushing.
+- **Subordinate to the withdrawn marker.** A row that is both says withdrawn: that is
+  the one the buyer has to act on.
+
+Still not in the basket: `LIMITED`, and any quantity anywhere — the staleness
+argument above bites hardest a tap away from committing.
 
 Two consequences to accept rather than design around:
 
@@ -488,6 +508,7 @@ than messages, this follows it rather than keeping its own.
 | D13 | A shortfall message is drafted for the seller, never auto-sent | The gap is often resolvable; a retracted apology costs more than silence |
 | D14 | Shortfall notices ride the order-notification channel, not their own | One decision about how buyers are told, taken in one place |
 | D15 | The band's thresholds are relative to `reorderLevel`, then `packageSize`, else silent | No constant means the same thing in potatoes and saffron; silence beats inventing a reference the seller never set |
+| D16 | The basket shows `LAST_FEW` only, in the catalogue's words, below the withdrawn marker | Nothing reserves the item; silence until checkout refuses the order is worse than a plain line. `LIMITED` and any urgency wording would be pressure, not information |
 
 ---
 
@@ -520,7 +541,8 @@ than messages, this follows it rather than keeping its own.
    reason the question itself suspected — see §4f. Revisit if the band ever carries
    more than three states.
 8. ~~**Should the buyer see the band in their basket as well as the catalogue?**~~
-   **Decided:** no — the second half of that question won. See §4f.
+   **Decided: yes, `LAST_FEW` only** — reversing the first answer, which had the
+   reservation argument backwards. See §4f.
 
 ---
 
@@ -557,8 +579,9 @@ shortcut.
 
 **Phase 6 — the scarcity band (§4f) — BUILT**
 Derived `scarcity` on the public article, thresholds relative to the seller's own
-quantities, rules tests, buyer-side display on the catalogue card and detail page.
-Deliberately last: it is the only phase that publishes business data outward.
+quantities, rules tests, buyer-side display on the catalogue card, the detail page
+and — `LAST_FEW` only — the basket. Deliberately last: it is the only phase that
+publishes business data outward.
 
 Two ordering notes. **Phase 2 is the one not to postpone** — until it lands, every
 other phase moves a flag that nothing enforces. And **Phase 6 should not precede

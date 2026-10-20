@@ -69,3 +69,26 @@ fun List<OrderedProduct>.orderableOnly(catalog: List<Article>): List<OrderedProd
     val unorderable = unorderableAgainst(catalog).map { it.articleId }.toSet()
     return filter { it.articleKey() !in unorderable }
 }
+
+/**
+ * The article ids in this basket that the shop is nearly out of.
+ *
+ * [ArticleScarcity.LAST_FEW] only, deliberately. `LIMITED` is browsing information —
+ * useful while choosing, noise beside something already chosen — while "nearly gone"
+ * is the one state that changes what the buyer should do about an item in their
+ * basket, because nothing reserves it for them.
+ *
+ * It exists because without it the buyer's first notice that waiting was risky is
+ * the checkout refusing the whole order (see [unorderableAgainst]) and naming an
+ * article they now have to remove. See
+ * `doc/design/stock-driven-availability-design.md` §4f, open question 8.
+ */
+fun List<OrderedProduct>.nearlyGoneAgainst(catalog: List<Article>): Set<String> {
+    if (catalog.isEmpty()) return emptySet()
+    val byId = catalog.associateBy { it.id }
+
+    return mapNotNull { item ->
+        val key = item.articleKey().takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+        key.takeIf { byId[key]?.scarcity == ArticleScarcity.LAST_FEW }
+    }.toSet()
+}

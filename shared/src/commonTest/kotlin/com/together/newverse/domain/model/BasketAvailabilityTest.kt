@@ -101,4 +101,67 @@ class BasketAvailabilityTest {
     fun `a basket of only withdrawn articles keeps nothing`() {
         assertTrue(listOf(item("nuts")).orderableOnly(catalog).isEmpty())
     }
+
+    // --- nearly gone ----------------------------------------------------------
+
+    private fun scarce(id: String, scarcity: ArticleScarcity) =
+        Article(id = id, productName = id, available = true, unit = "kg", scarcity = scarcity)
+
+    @Test
+    fun `an article the shop is nearly out of is named`() {
+        val shop = listOf(scarce("apple", ArticleScarcity.LAST_FEW))
+
+        assertEquals(setOf("apple"), listOf(item("apple")).nearlyGoneAgainst(shop))
+    }
+
+    @Test
+    fun `running down is not nearly gone`() {
+        // LIMITED is browsing information: useful while choosing, noise beside
+        // something already chosen.
+        val shop = listOf(scarce("apple", ArticleScarcity.LIMITED))
+
+        assertTrue(listOf(item("apple")).nearlyGoneAgainst(shop).isEmpty())
+    }
+
+    @Test
+    fun `plenty and nothing-known say nothing`() {
+        val plenty = listOf(scarce("apple", ArticleScarcity.PLENTIFUL))
+        val ungated = listOf(scarce("apple", ArticleScarcity.UNKNOWN))
+
+        assertTrue(listOf(item("apple")).nearlyGoneAgainst(plenty).isEmpty())
+        assertTrue(listOf(item("apple")).nearlyGoneAgainst(ungated).isEmpty())
+    }
+
+    @Test
+    fun `only the scarce items of a basket are named`() {
+        val shop = listOf(
+            scarce("apple", ArticleScarcity.LAST_FEW),
+            scarce("pears", ArticleScarcity.PLENTIFUL)
+        )
+
+        assertEquals(
+            setOf("apple"),
+            listOf(item("apple"), item("pears")).nearlyGoneAgainst(shop)
+        )
+    }
+
+    @Test
+    fun `an empty catalogue says nothing here either`() {
+        assertTrue(listOf(item("apple")).nearlyGoneAgainst(emptyList()).isEmpty())
+    }
+
+    @Test
+    fun `a withdrawn article that is also scarce is still reported as withdrawn`() {
+        // Both are true; the row shows the actionable one. This only checks that the
+        // two questions are answered independently — the card decides which to say.
+        val shop = listOf(
+            Article(id = "nuts", productName = "Nüsse", available = false, unit = "kg", scarcity = ArticleScarcity.LAST_FEW)
+        )
+
+        assertEquals(
+            UnorderableReason.WITHDRAWN,
+            listOf(item("nuts")).unorderableAgainst(shop).single().reason
+        )
+        assertEquals(setOf("nuts"), listOf(item("nuts")).nearlyGoneAgainst(shop))
+    }
 }

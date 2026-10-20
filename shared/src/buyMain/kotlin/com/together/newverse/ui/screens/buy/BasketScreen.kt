@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.articleKey
+import com.together.newverse.domain.model.nearlyGoneAgainst
 import com.together.newverse.domain.model.unorderableAgainst
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.Order
@@ -167,6 +168,12 @@ fun BasketContent(
     }
     val unorderableIds = remember(unorderable) { unorderable.map { it.articleId }.toSet() }
 
+    // Items the shop is nearly out of. Nothing holds them for this buyer, and
+    // without a word here their first notice is checkout refusing the order.
+    val nearlyGoneIds = remember(state.items, currentArticles) {
+        state.items.nearlyGoneAgainst(currentArticles)
+    }
+
     // Show dialogs outside the LazyColumn
     if (state.showDatePicker) {
         DatePickerDialog(
@@ -271,6 +278,7 @@ fun BasketContent(
         BasketTwoPane(
             state = state,
             unorderableIds = unorderableIds,
+            nearlyGoneIds = nearlyGoneIds,
             onAction = onAction,
             onNavigateToOrders = onNavigateToOrders,
             isDemoMode = isDemoMode,
@@ -470,6 +478,7 @@ fun BasketContent(
                     quantity = item.amountCount,
                     canEdit = state.isEditMode || state.orderId == null,
                     isUnorderable = item.articleKey() in unorderableIds,
+                    isNearlyGone = item.articleKey() in nearlyGoneIds,
                     onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) }
                 )
             }
@@ -543,6 +552,8 @@ private fun BasketTwoPane(
     state: BasketScreenState,
     /** Article ids the seller has withdrawn; their rows say so and block ordering. */
     unorderableIds: Set<String>,
+    /** Article ids the shop is nearly out of; their rows say so, nothing is blocked. */
+    nearlyGoneIds: Set<String>,
     onAction: (BuyBasketScreenAction) -> Unit,
     onNavigateToOrders: () -> Unit,
     isDemoMode: Boolean,
@@ -594,6 +605,7 @@ private fun BasketTwoPane(
                             quantity = item.amountCount,
                             canEdit = state.isEditMode || state.orderId == null,
                             isUnorderable = item.articleKey() in unorderableIds,
+                            isNearlyGone = item.articleKey() in nearlyGoneIds,
                             onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) }
                         )
                     }
@@ -902,16 +914,24 @@ private fun BasketItemCard(
     canEdit: Boolean = true,
     /** The seller withdrew this article; the order cannot be placed while it is here. */
     isUnorderable: Boolean = false,
+    /**
+     * The shop is nearly out of this article. A fact, not a warning about this
+     * buyer's claim on it — there is none. Ignored while [isUnorderable], which is
+     * the row's actionable state.
+     */
+    isNearlyGone: Boolean = false,
     onRemove: () -> Unit = {},
 //    onQuantityChange: (Double) -> Unit = {}
 ) {
     // The whole line item reads as one node instead of four cryptic fragments
     // ("Tomaten", "2,50 €/kg", "× 3,00", "7,50 €").
+    val showNearlyGone = isNearlyGone && !isUnorderable
     val itemDescription = listOfNotNull(
         productName,
         // First, so a screen reader says it before the price of something that
         // cannot be bought.
         stringResource(Res.string.basket_item_unavailable).takeIf { isUnorderable },
+        stringResource(Res.string.product_scarcity_last_few).takeIf { showNearlyGone },
         productPriceLabel(price, unit),
         formatString(stringResource(Res.string.a11y_hero_amount), "${quantity.formatPrice()} $unit"),
         formatString(stringResource(Res.string.a11y_hero_total), (price * quantity).formatPrice())
@@ -938,6 +958,15 @@ private fun BasketItemCard(
                     text = stringResource(Res.string.basket_item_unavailable),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.error
+                )
+            } else if (showNearlyGone) {
+                // The catalogue's own words, and no more: a countdown or an urgency
+                // verb here would be pressure rather than information, and nothing
+                // about the row has actually gone wrong.
+                Text(
+                    text = stringResource(Res.string.product_scarcity_last_few),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Row(
