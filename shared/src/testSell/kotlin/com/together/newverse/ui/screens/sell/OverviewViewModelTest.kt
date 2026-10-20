@@ -626,7 +626,7 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun `updateArticlesAvailability never writes seller data`() = runTest {
+    fun `updateArticlesAvailability records the intent and keeps the purchase data`() = runTest {
         authRepository.setCurrentUserId("seller_123")
         articleRepository.setArticles(listOf(
             SellerArticle(
@@ -640,10 +640,17 @@ class OverviewViewModelTest {
         viewModel.updateArticlesAvailability(setOf("1"), available = false)
         advanceUntilIdle()
 
-        // The save carries the public half only …
-        assertNull(articleRepository.savedArticles.single().second.sellerData)
-        // … so the stored purchase data survives.
+        // The seller's intent belongs on the private half, because the public flag
+        // is derived from it and the stock ledger (StockAvailability.kt).
+        val saved = articleRepository.savedArticles.single().second
+        assertEquals(false, saved.sellerData?.sellerAvailable)
+        // The private half is still the loaded one, so the purchase data survives —
+        // which is what this test has always been about.
+        assertEquals(1.96, saved.sellerData?.acquirePrice)
+        assertEquals("BOA", saved.sellerData?.supplier)
         assertEquals(1.96, articleRepository.articles.single().sellerData?.acquirePrice)
+        // Switching off is published straight away; narrowing is always safe.
+        assertEquals(false, articleRepository.articles.single().article.available)
     }
 
     @Test

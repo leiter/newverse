@@ -244,6 +244,110 @@ class StockViewModelTest {
         assertEquals(0.0, need.committed)
     }
 
+    // --- derived availability -------------------------------------------------
+
+    private val gatedApple = SellerArticle(
+        Article(id = "apple", productName = "Apfel", unit = "kg", available = true),
+        SellerArticleData(reorderLevel = 5.0, sellerAvailable = true, stockGated = true)
+    )
+
+    @Test
+    fun `a gated article is closed to buyers once orders use up the shelf`() = runTest {
+        articleRepository.setArticles(listOf(gatedApple))
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(6.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(order("o1", amount = 6.0)))
+
+        loaded()
+
+        assertEquals(listOf(mapOf("apple" to false)), articleRepository.availabilityWrites)
+    }
+
+    @Test
+    fun `a gated article is opened again when stock arrives`() = runTest {
+        articleRepository.setArticles(listOf(gatedApple.copy(
+            article = gatedApple.article.copy(available = false)
+        )))
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(20.0, "kg"), recordedAt = 1_000L)
+        ))
+
+        loaded()
+
+        assertEquals(listOf(mapOf("apple" to true)), articleRepository.availabilityWrites)
+    }
+
+    @Test
+    fun `a flag that already agrees is not written`() = runTest {
+        articleRepository.setArticles(listOf(gatedApple))
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(20.0, "kg"), recordedAt = 1_000L)
+        ))
+
+        loaded()
+
+        assertTrue(articleRepository.availabilityWrites.isEmpty())
+    }
+
+    @Test
+    fun `the pass settles instead of writing the same correction twice`() = runTest {
+        articleRepository.setArticles(listOf(gatedApple))
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(2.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(order("o1", amount = 2.0)))
+        loaded()
+        assertEquals(1, articleRepository.availabilityWrites.size)
+
+        // The write re-emits the catalogue; the next evaluation must find nothing.
+        advanceUntilIdle()
+
+        assertEquals(1, articleRepository.availabilityWrites.size)
+    }
+
+    @Test
+    fun `an ungated article is never written by the pass`() = runTest {
+        // apple and nuts from the default fixture are both ungated.
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(0.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(order("o1", amount = 50.0)))
+
+        loaded()
+
+        assertTrue(articleRepository.availabilityWrites.isEmpty())
+    }
+
+    @Test
+    fun `a gated article whose intent was never recorded is left alone`() = runTest {
+        articleRepository.setArticles(listOf(gatedApple.copy(
+            sellerData = SellerArticleData(reorderLevel = 5.0, stockGated = true)
+        )))
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(0.0, "kg"), recordedAt = 1_000L)
+        ))
+
+        loaded()
+
+        assertTrue(
+            articleRepository.availabilityWrites.isEmpty(),
+            "closed an article that could then never be reopened"
+        )
+    }
+
+    @Test
+    fun `a gated article the ledger has never seen is left open`() = runTest {
+        articleRepository.setArticles(listOf(gatedApple))
+
+        loaded()
+
+        assertTrue(
+            articleRepository.availabilityWrites.isEmpty(),
+            "a never-counted article was withdrawn from buyers"
+        )
+    }
+
     // --- booking --------------------------------------------------------------
 
     @Test

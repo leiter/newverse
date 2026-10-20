@@ -23,7 +23,31 @@ data class SellerArticleData(
      *
      * Seller-only because it is a business decision, not something buyers see.
      */
-    val reorderLevel: Double = 0.0
+    val reorderLevel: Double = 0.0,
+    /**
+     * Whether the seller wants this article offered at all — their own intent,
+     * apart from whatever the stock ledger says about it.
+     *
+     * `null` means no intent was ever recorded, which is every article saved before
+     * this field existed. Read it through [SellerArticle.sellerAvailable], which
+     * falls back to the public flag: that *is* the seller's standing intent for an
+     * article nobody has touched since.
+     *
+     * The public [Article.available] is derived from this and the ledger; one
+     * boolean cannot hold both the seller's intent and the shelf's state, because
+     * a restock would then undo "off for the season". See
+     * `doc/design/stock-driven-availability-design.md` §4a.
+     */
+    val sellerAvailable: Boolean? = null,
+    /**
+     * Whether running out closes this article to buyers. Opt-in, per article.
+     *
+     * Off by default on purpose: weighed goods where the seller brings what they
+     * bring should not be gated at all, and a gate that defaulted on would empty
+     * the shop the moment it shipped — `onHand` is 0.0 for every article the ledger
+     * has never seen.
+     */
+    val stockGated: Boolean = false
 ) {
     /** Whether the seller asked to be warned when this article runs low. */
     val isWatched: Boolean get() = reorderLevel > 0.0
@@ -48,4 +72,17 @@ data class SellerArticle(
     val sellerData: SellerArticleData? = null
 ) {
     val id: String get() = article.id
+
+    /**
+     * Whether the seller wants this article offered, regardless of stock.
+     *
+     * Falls back to the public flag where no intent was recorded: an article saved
+     * before intent was stored separately carries it in the only field there was.
+     * Never read `sellerData?.sellerAvailable == true` directly — that reads a
+     * missing intent as "off" and would withdraw the whole catalogue.
+     */
+    val sellerAvailable: Boolean get() = sellerData?.sellerAvailable ?: article.available
+
+    /** Whether running out closes this article to buyers. */
+    val stockGated: Boolean get() = sellerData?.stockGated == true
 }

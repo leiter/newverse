@@ -11,6 +11,7 @@ import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.StockLevel
 import com.together.newverse.domain.model.StockMovement
 import com.together.newverse.domain.model.StockMovementKind
+import com.together.newverse.domain.model.availabilityCorrections
 import com.together.newverse.domain.model.committedDemand
 import com.together.newverse.domain.model.refillNeeds
 import com.together.newverse.domain.model.refillStanding
@@ -68,6 +69,9 @@ class StockViewModel(
     private var levels = mapOf<String, StockLevel>()
     private var demand = mapOf<String, ArticleDemand>()
 
+    /** The last set of corrections written or attempted; see [correctAvailability]. */
+    private var attempted = mapOf<String, Boolean>()
+
     init {
         observeStock()
         observeScale()
@@ -96,6 +100,45 @@ class StockViewModel(
                     // next slot per market anyway.
                     demand = orders.committedDemand()
                     _state.update { it.withStock() }
+                    correctAvailability()
+                }
+        }
+    }
+
+    /**
+     * Brings the public availability flag of gated articles in line with the ledger.
+     *
+     * Runs here rather than in a service because only the seller's device may write
+     * `/articles` (database rules), and because stock only moves when this app writes
+     * a movement. Demand is the exception — a buyer ordering raises it while the app
+     * is closed — which is why this runs on every catalogue, level *and* order
+     * emission, not only after a booking.
+     *
+     * Writes only differences, so it settles: the write re-emits the catalogue, and
+     * the next pass finds nothing to correct. [attempted] keeps a failed write from
+     * being retried in a tight loop against a listener that keeps re-emitting; the
+     * next genuine change clears it.
+     */
+    private fun correctAvailability() {
+        val corrections = catalog.availabilityCorrections(levels, demand)
+        if (corrections.isEmpty()) {
+            attempted = emptyMap()
+            return
+        }
+        if (corrections == attempted) return
+        attempted = corrections
+
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            sellerArticleRepository.setArticleAvailability(sellerId, corrections)
+                .onSuccess {
+                    Log.d(TAG) { "correctAvailability: ${corrections.size} article(s) -> $corrections" }
+                }
+                .onFailure { error ->
+                    // Not surfaced: the seller did not ask for this, and the refill
+                    // list they are looking at is still correct. The next emission
+                    // tries again.
+                    Log.w(TAG) { "correctAvailability: ${error.message}" }
                 }
         }
     }

@@ -102,6 +102,7 @@ fun CreateProductScreen(
     val weightPerPiece = formData.weightPerPiece
     val detailInfo = formData.detailInfo
     val available = formData.available
+    val stockGated = formData.stockGated
     val imageData = formData.imageData
 
     // Form state properties
@@ -363,6 +364,35 @@ fun CreateProductScreen(
                     checked = available,
                     onCheckedChange = null,
                     modifier = Modifier.clearAndSetSemantics { }
+                )
+            }
+
+            // Let the stock ledger close this article when it runs out. Off by
+            // default: weighed goods where the seller brings what they bring should
+            // not be gated at all. `StockAvailability.kt`
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = stockGated,
+                        role = Role.Switch,
+                        onValueChange = viewModel::onStockGatedChange
+                    ),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(Res.string.create_product_stock_gated))
+                Switch(
+                    checked = stockGated,
+                    onCheckedChange = null,
+                    modifier = Modifier.clearAndSetSemantics { }
+                )
+            }
+            if (stockGated) {
+                Text(
+                    text = stringResource(Res.string.create_product_stock_gated_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 

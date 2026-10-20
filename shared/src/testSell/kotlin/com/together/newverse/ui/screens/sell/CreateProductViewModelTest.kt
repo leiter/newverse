@@ -585,8 +585,14 @@ class CreateProductViewModelTest {
         advanceUntilIdle()
 
         // Selling price stays 3.50; the markup follows: 3.50 / (2.10 × 1.07) = 55.8 %
+        // sellerAvailable comes along because the editor records the seller's intent
+        // beside the purchase data now: the public flag is derived from it.
         assertEquals(
-            storedSellerData.copy(acquirePrice = 2.10, markupFactor = 1.558),
+            storedSellerData.copy(
+                acquirePrice = 2.10,
+                markupFactor = 1.558,
+                sellerAvailable = storedArticle.available
+            ),
             lastSaved().sellerData
         )
         assertEquals(3.5, lastSaved().article.price)

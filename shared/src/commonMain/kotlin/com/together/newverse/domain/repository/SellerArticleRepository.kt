@@ -36,6 +36,17 @@ interface SellerArticleRepository {
     /** [saveSellerArticle] for many articles, as a single atomic update. */
     suspend fun saveSellerArticles(sellerId: String, articles: List<SellerArticle>): Result<List<String>>
 
+    /**
+     * Sets the public availability flag of several articles in one atomic update,
+     * touching nothing else about them.
+     *
+     * For the pass that derives availability from the stock ledger: the flag is an
+     * output of `derivedAvailability`, not something written by hand. A whole-article
+     * save would be wrong here — it would carry a stale price or name from whatever
+     * the caller last read.
+     */
+    suspend fun setArticleAvailability(sellerId: String, availability: Map<String, Boolean>): Result<Unit>
+
     /** Deletes both halves of an article in one atomic update. */
     suspend fun deleteSellerArticle(sellerId: String, articleId: String): Result<Unit>
 }

@@ -1088,6 +1088,8 @@
     <string name="stock_refill_needed">Nachfüllen</string>
     <string name="stock_all_stocked">Alles ausreichend vorhanden</string>
     <string name="stock_nothing_watched">Kein Artikel wird überwacht. Lege bei einem Artikel eine Menge unter „Nachfüllen unter“ fest.</string>
+    <string name="create_product_stock_gated">Bei leerem Lager nicht bestellbar</string>
+    <string name="create_product_stock_gated_hint">Der Artikel wird für Kunden ausgeblendet, sobald der gezählte Bestand durch Bestellungen aufgebraucht ist.</string>
     <string name="stock_state_short">Überverkauft</string>
     <string name="stock_state_empty">Leer</string>
     <string name="stock_state_low">Knapp</string>

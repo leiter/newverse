@@ -46,6 +46,8 @@ data class ProductFormData(
     val weightPerPiece: String = "",
     val detailInfo: String = "",
     val available: Boolean = true,
+    /** Let running out close this article to buyers; see `StockAvailability.kt`. */
+    val stockGated: Boolean = false,
     val imageData: ByteArray? = null,
     val imageUrl: String = ""
 ) {
@@ -66,6 +68,7 @@ data class ProductFormData(
                 weightPerPiece == other.weightPerPiece &&
                 detailInfo == other.detailInfo &&
                 available == other.available &&
+                stockGated == other.stockGated &&
                 imageData.contentEquals(other.imageData) &&
                 imageUrl == other.imageUrl
     }
@@ -84,6 +87,7 @@ data class ProductFormData(
         result = 31 * result + weightPerPiece.hashCode()
         result = 31 * result + detailInfo.hashCode()
         result = 31 * result + available.hashCode()
+        result = 31 * result + stockGated.hashCode()
         result = 31 * result + (imageData?.contentHashCode() ?: 0)
         result = 31 * result + imageUrl.hashCode()
         return result
@@ -126,6 +130,12 @@ class CreateProductViewModel(
 
     // Seller-only half as loaded for editing; null if the article has none yet
     private var loadedSellerData: SellerArticleData? = null
+
+    /**
+     * The public flag as stored, kept so a gated article's derived availability is
+     * not overwritten by a form that does not know what is on the shelf.
+     */
+    private var loadedPublicAvailable: Boolean? = null
 
     /** Available categories from config, exposed for UI dropdowns */
     val availableCategories: List<String> = catalogConfig.categories
@@ -213,6 +223,7 @@ class CreateProductViewModel(
                 Log.d(TAG) { "loadArticle: $articleId '${article.productName}', seller-only data: ${if (sellerData == null) "none" else "acquirePrice=${sellerData.acquirePrice}"}" }
                 editingArticleId = article.id
                 loadedSellerData = sellerData
+                loadedPublicAvailable = article.available
                 _formState.value = formStateOf(
                     ProductFormData(
                         productName = article.productName,
@@ -231,7 +242,10 @@ class CreateProductViewModel(
                         category = article.category.ifBlank { catalogConfig.defaultCategory },
                         weightPerPiece = if (article.weightPerPiece > 0) article.weightPerPiece.toString() else "",
                         detailInfo = article.detailInfo,
-                        available = article.available,
+                        // The seller's own intent, which for a gated article is
+                        // not the same as what buyers currently see.
+                        available = sellerArticle.sellerAvailable,
+                        stockGated = sellerArticle.stockGated,
                         imageUrl = article.imageUrl
                     )
                 )
@@ -344,6 +358,10 @@ class CreateProductViewModel(
         _formState.update { it.updateField { data -> data.copy(available = value) } }
     }
 
+    fun onStockGatedChange(value: Boolean) {
+        _formState.update { it.updateField { data -> data.copy(stockGated = value) } }
+    }
+
     fun onImageSelected(imageData: ByteArray) {
         _formState.update { it.updateField { data -> data.copy(imageData = imageData) }.clearFieldError(ValidationError.ImageRequired.fieldName) }
     }
@@ -407,7 +425,15 @@ class CreateProductViewModel(
                     searchTerms = prepareSearchTerms(formData),
                     weightPerPiece = ProductPricing.parseDecimal(formData.weightPerPiece) ?: 0.0,
                     detailInfo = formData.detailInfo,
-                    available = formData.available,
+                    // The public flag is derived, not typed: for a gated article the
+                    // stock correction pass decides it, so the stored value is left
+                    // alone (a new one starts closed until the shelf is counted).
+                    // Switching off is published straight away — narrowing is safe.
+                    available = when {
+                        !formData.available -> false
+                        formData.stockGated -> loadedPublicAvailable ?: false
+                        else -> true
+                    },
                     imageUrl = finalImageUrl
                 )
 
@@ -447,20 +473,33 @@ class CreateProductViewModel(
         // Blank or unreadable means not watched, which is also how 0 is stored.
         val reorder = ProductPricing.parseDecimal(form.reorderLevel)?.takeIf { it > 0.0 } ?: 0.0
         val loaded = loadedSellerData
+        val gated = form.stockGated
         return when {
             loaded != null -> loaded.copy(
                 acquirePrice = acquire ?: 0.0,
                 markupFactor = markup,
-                reorderLevel = reorder
+                reorderLevel = reorder,
+                sellerAvailable = form.available,
+                stockGated = gated
             )
             acquire != null && acquire > 0 -> SellerArticleData(
                 acquirePrice = acquire,
                 markupFactor = markup,
-                reorderLevel = reorder
+                reorderLevel = reorder,
+                sellerAvailable = form.available,
+                stockGated = gated
             )
-            // A reorder level alone is reason enough to store the seller-only half:
-            // without it the article could never be watched.
-            reorder > 0.0 -> SellerArticleData(markupFactor = markup, reorderLevel = reorder)
+            // A reorder level or a stock gate is reason enough to store the
+            // seller-only half: without it the article could never be watched, and
+            // the gate would have nowhere to live.
+            reorder > 0.0 || gated -> SellerArticleData(
+                markupFactor = markup,
+                reorderLevel = reorder,
+                sellerAvailable = form.available,
+                stockGated = gated
+            )
+            // Nothing seller-only to store. The intent then lives in the public flag
+            // alone, which is what SellerArticle.sellerAvailable falls back to.
             else -> null
         }
     }

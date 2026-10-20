@@ -1,14 +1,17 @@
 # Stock-Driven Refill and Availability
 
-> **DESIGN — Phases 1 and 2 built, the rest is not** (as of 2026-10-20). The stock ledger
+> **DESIGN — Phases 1–3 built, the rest is not** (as of 2026-10-20). The stock ledger
 > it builds on was already there: `StockRepository`, `StockMovement`/`StockLevel`,
 > `StockRefill.kt`, `StockScreen` and the refill badge, all in the database rules.
 > **Phases 1 and 2 (§8) are now implemented**: `CommittedDemand.kt`,
 > `RefillState.SHORT`, `RefillNeed.committed`/`remaining`/`unitMismatch` and
 > `StockViewModel` reading orders alongside stock; plus `BasketAvailability.kt`, the
 > refusal at checkout and at order edit, withdrawn articles dropped from reorders,
-> and the basket marking them. Still proposals: derived `available`, the seller's
-> notification, and both buyer-facing halves (§4f, §5).
+> and the basket marking them; plus `StockAvailability.kt`, `sellerAvailable` and
+> `stockGated` on the private half, the correction pass in `StockViewModel`, and the
+> gate's switch in the article editor. Still proposals: the seller's notification
+> (Phase 4) and both buyer-facing halves (§4f, §5). §4b's formula and §4a's
+> migration note were corrected against what building it showed.
 
 **Date:** 2026-10-20
 **Status:** Design — not implemented
@@ -245,7 +248,10 @@ seller_articles/{s}/{a}/stockGated         opt-in per article; default false
 ```
 
 ```kotlin
-val stockPermits = !stockGated || (hasLevel && remaining > 0.0)
+// Closing takes a *known* empty shelf. `hasLevel && remaining > 0` — the formula
+// this design first carried — closes every never-counted article instead, which is
+// the opposite of what the hasLevel guard below is for.
+val stockPermits = !stockGated || !hasLevel || remaining > 0.0
 val available    = sellerAvailable && stockPermits
 ```
 
@@ -258,6 +264,12 @@ Migration: `sellerAvailable` is seeded from the current `available` on first wri
 absent, it reads as the current `available`, so nothing changes for an article
 nobody has touched.
 
+That fallback has a consequence found while building Phase 3, and it is the reason
+the correction pass skips a gated article with no recorded intent: closing one would
+make the pass's *own* write read back as the seller's intent next time, and nothing
+could ever reopen it. The gate therefore only acts once an intent exists, which the
+article editor records whenever the gate is set.
+
 ### 4b. Two guards that are not optional
 
 - **`hasLevel`.** `onHand` is `0.0` both for "known empty" and for "nothing is
@@ -268,10 +280,16 @@ nobody has touched.
   Weighed goods where the seller brings what they bring should not be gated at
   all, and the seller should choose which articles are inventory-like.
 
-Add **hysteresis**: flip off at `remaining <= 0`, flip back on only at
-`remaining >= someMargin` (or only on a `STOCKTAKE`). Flipping on the same
-threshold makes the flag flicker as a cancellation and a correction land either
-side of zero.
+**Hysteresis — deferred, deliberately.** The intent was: flip off at
+`remaining <= 0`, back on only at `remaining >= someMargin`. There is no margin to
+pick that means anything across units — 0.5 is a lot of Knoblauch and nothing in
+Kartoffeln — and no field records *why* a level last moved, so "reopen only after an
+intake" is not derivable from `StockLevel` either. What is implemented instead is an
+**idempotent pass**: only differences are written, so a settled catalogue writes
+nothing, and churn costs one write per genuine crossing of zero rather than one per
+evaluation. If flicker shows up in practice, the margin belongs on
+`SellerArticleData` next to `reorderLevel`, in the article's own unit, where the
+seller can see it.
 
 ### 4c. The gate at placement is the actual feature
 
@@ -479,7 +497,7 @@ the unit-mismatch marker. Show it on `StockScreen` and in the badge. All
 Fixes a real hole that exists today independently of this design: the flag is
 already filtered on, already toggled by the seller, and already not enforced.
 
-**Phase 3 — derived availability**
+**Phase 3 — derived availability — BUILT**
 `sellerAvailable` / `stockGated` on the private half, derived `available` written
 in the same multi-path update as the movement, hysteresis, rules tests under
 `firebase/tests`, a per-article toggle in the article editor.

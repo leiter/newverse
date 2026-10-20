@@ -150,6 +150,40 @@ class ArticleNodesTest {
     }
 
     @Test
+    fun `the stock gate and the seller's intent round-trip`() {
+        val gated = sellerData.copy(sellerAvailable = false, stockGated = true)
+
+        assertEquals(gated, ArticleNodes.sellerDataFromMap(ArticleNodes.privateFields(gated)))
+    }
+
+    @Test
+    fun `an unrecorded intent is not written at all`() {
+        // Writing null would delete a stored intent; writing the fallback would
+        // freeze today's derived flag in as if the seller had asked for it.
+        val fields = ArticleNodes.privateFields(sellerData.copy(sellerAvailable = null))
+
+        assertTrue("sellerAvailable" !in fields)
+    }
+
+    @Test
+    fun `an article saved before the gate existed is not gated and has no intent`() {
+        val data = ArticleNodes.sellerDataFromMap(mapOf("acquirePrice" to 2.0))
+
+        assertNull(data.sellerAvailable)
+        assertEquals(false, data.stockGated)
+    }
+
+    @Test
+    fun `the availability update touches one field per article`() {
+        val update = ArticleNodes.availabilityUpdate("s1", mapOf("a1" to false, "a2" to true))
+
+        assertEquals(
+            mapOf("articles/s1/a1/available" to false, "articles/s1/a2/available" to true),
+            update
+        )
+    }
+
+    @Test
     fun `missing private fields fall back to neutral values`() {
         val data = ArticleNodes.sellerDataFromMap(emptyMap<String, Any>())
 

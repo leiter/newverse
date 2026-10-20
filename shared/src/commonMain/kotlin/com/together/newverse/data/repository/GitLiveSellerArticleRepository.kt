@@ -113,6 +113,25 @@ class GitLiveSellerArticleRepository(
         }
     }
 
+    override suspend fun setArticleAvailability(
+        sellerId: String,
+        availability: Map<String, Boolean>
+    ): Result<Unit> {
+        return try {
+            if (authRepository.getCurrentUserId() == null) {
+                return Result.failure(Exception("User not authenticated"))
+            }
+            if (availability.isEmpty()) return Result.success(Unit)
+
+            rootRef.updateChildren(ArticleNodes.availabilityUpdate(sellerId, availability))
+            Log.d(TAG) { "setArticleAvailability: ${availability.size} article(s) -> $availability" }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG) { "setArticleAvailability: Error - ${e.message}" }
+            Result.failure(e)
+        }
+    }
+
     override suspend fun deleteSellerArticle(sellerId: String, articleId: String): Result<Unit> {
         return try {
             if (authRepository.getCurrentUserId() == null) {

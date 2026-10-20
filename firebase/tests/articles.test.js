@@ -101,6 +101,54 @@ describe("articles and seller-only article data", () => {
     assert.equal(await exists(`seller_articles/${SELLER}/a1`), false);
   });
 
+  // --- the stock gate and the seller's intent ------------------------------
+
+  /**
+   * The public `available` flag is derived from the seller's intent and the stock
+   * ledger (StockAvailability.kt). The intent and the gate live on the private half
+   * so buyers cannot read what the seller plans, and only the seller may write
+   * either half.
+   */
+  it("lets the seller store the gate and the intent on the private half", async () => {
+    await assertSucceeds(asUser(env, SELLER).ref().update({
+      [`seller_articles/${SELLER}/a1/stockGated`]: true,
+      [`seller_articles/${SELLER}/a1/sellerAvailable`]: true,
+      [`articles/${SELLER}/a1/available`]: false
+    }));
+    assert.equal(await exists(`seller_articles/${SELLER}/a1/sellerAvailable`), true);
+  });
+
+  it("denies a buyer reading whether an article is gated", async () => {
+    await seed(env, async (db) => {
+      await db.ref().update({ [`seller_articles/${SELLER}/a1/stockGated`]: true });
+    });
+    await assertFails(
+      asUser(env, ALICE).ref(`seller_articles/${SELLER}/a1/stockGated`).once("value")
+    );
+  });
+
+  it("denies a buyer reading the seller's intent", async () => {
+    await seed(env, async (db) => {
+      await db.ref().update({ [`seller_articles/${SELLER}/a1/sellerAvailable`]: false });
+    });
+    await assertFails(
+      asUser(env, ALICE).ref(`seller_articles/${SELLER}/a1/sellerAvailable`).once("value")
+    );
+  });
+
+  it("denies a buyer writing the derived availability flag", async () => {
+    // The correction pass runs on the seller's device for exactly this reason.
+    await assertFails(
+      asUser(env, ALICE).ref().update({ [`articles/${SELLER}/a1/available`]: true })
+    );
+  });
+
+  it("denies another seller writing the gate", async () => {
+    await assertFails(
+      asUser(env, OTHER_SELLER).ref().update({ [`seller_articles/${SELLER}/a1/stockGated`]: true })
+    );
+  });
+
   // --- the halves stay together --------------------------------------------
 
   it("denies seller-only data for an article that does not exist", async () => {

@@ -235,23 +235,48 @@ class OverviewViewModel(
             articleIds.forEach { articleId ->
                 try {
                     // Find the article in local list
-                    val article = articles.find { it.id == articleId }?.article
-                    if (article != null) {
-                        // Update the article with new availability
-                        val updatedArticle = article.copy(available = available)
-                        Log.d(TAG) { "Updating article in Firebase: ${article.productName} (id=$articleId) -> available=$available" }
+                    val stored = articles.find { it.id == articleId }
+                    val article = stored?.article
+                    if (stored != null && article != null) {
+                        // What the seller edits here is their *intent*. The public
+                        // flag is derived from it and the stock ledger
+                        // (`StockAvailability.kt`), so for a gated article it is left
+                        // to the correction pass, which is the only place that knows
+                        // what is on the shelf.
+                        //
+                        // Switching off is published at once either way: narrowing is
+                        // always safe, and a seller who hides an article expects it
+                        // gone now rather than once the stock screen catches up.
+                        val publicAvailable = when {
+                            !available -> false
+                            stored.stockGated -> article.available
+                            else -> true
+                        }
+                        val updatedArticle = article.copy(available = publicAvailable)
+                        Log.d(TAG) {
+                            "Updating article in Firebase: ${article.productName} (id=$articleId) -> " +
+                                "intent=$available, public=$publicAvailable, gated=${stored.stockGated}"
+                        }
 
-                        // Public half only: availability says nothing about purchase
-                        // data, which may not even be loaded yet.
+                        // The private half is only written when it is known: the
+                        // intent lives there beside the purchase price, and a save
+                        // from a state where it was null would wipe it. Where it is
+                        // unknown the public flag alone is written, as before.
+                        val updatedData = stored.sellerData?.copy(sellerAvailable = available)
+                        if (updatedData == null) {
+                            Log.w(TAG) { "Article $articleId has no seller data loaded; intent not recorded" }
+                        }
                         val result = sellerArticleRepository.saveSellerArticle(
                             sellerId,
-                            SellerArticle(article = updatedArticle, sellerData = null)
+                            SellerArticle(article = updatedArticle, sellerData = updatedData)
                         )
                         result.onSuccess {
                             Log.d(TAG) { "Successfully updated article: ${article.productName}" }
                             // Update local list
                             articles = articles.map {
-                                if (it.id == articleId) it.copy(article = updatedArticle) else it
+                                if (it.id == articleId) {
+                                    it.copy(article = updatedArticle, sellerData = updatedData ?: it.sellerData)
+                                } else it
                             }
                         }.onFailure { error ->
                             Log.e(TAG) { "Failed to update article $articleId: ${error.message}" }

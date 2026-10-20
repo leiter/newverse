@@ -52,8 +52,14 @@ internal object ArticleNodes {
         "quality" to data.quality,
         "barcode" to data.barcode,
         "packageSize" to data.packageSize,
-        "reorderLevel" to data.reorderLevel
-    )
+        "reorderLevel" to data.reorderLevel,
+        "stockGated" to data.stockGated
+    ) + buildMap {
+        // Only written once the seller has an intent to record. Writing null would
+        // delete a stored intent, and writing the fallback would freeze today's
+        // derived flag in as if the seller had asked for it.
+        data.sellerAvailable?.let { put("sellerAvailable", it) }
+    }
 
     /**
      * The update map that saves [article] under [articleId].
@@ -69,6 +75,19 @@ internal object ArticleNodes {
         val private = privatePath(sellerId, articleId)
         return update + privateFields(data).mapKeys { (field, _) -> "$private/$field" }
     }
+
+    /**
+     * The update map that sets the public availability flag of several articles.
+     *
+     * The public half only, and only that one field: this is written by the
+     * correction pass that derives availability from the ledger, which has no
+     * business touching a price or a name. See `StockAvailability.kt`.
+     */
+    fun availabilityUpdate(sellerId: String, availability: Map<String, Boolean>): Map<String, Any?> =
+        availability.entries.associate { (articleId, available) ->
+            require(articleId.isNotEmpty()) { "articleId must not be empty" }
+            "${publicPath(sellerId, articleId)}/available" to available
+        }
 
     /** The update map that removes both halves of an article. */
     fun deleteUpdate(sellerId: String, articleId: String): Map<String, Any?> {
@@ -105,7 +124,11 @@ internal object ArticleNodes {
         barcode = value.string("barcode"),
         packageSize = value.double("packageSize") ?: 0.0,
         // Articles saved before refill watching existed are simply not watched.
-        reorderLevel = value.double("reorderLevel") ?: 0.0
+        reorderLevel = value.double("reorderLevel") ?: 0.0,
+        // Absent means no intent was ever recorded; SellerArticle.sellerAvailable
+        // then falls back to the public flag rather than reading it as "off".
+        sellerAvailable = value["sellerAvailable"] as? Boolean,
+        stockGated = value["stockGated"] as? Boolean == true
     )
 
     /**

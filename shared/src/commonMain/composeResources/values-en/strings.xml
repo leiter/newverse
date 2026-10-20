@@ -1030,6 +1030,8 @@
     <string name="stock_refill_needed">Needs refilling</string>
     <string name="stock_all_stocked">Everything sufficiently stocked</string>
     <string name="stock_nothing_watched">No article is watched. Set a quantity under &quot;Refill below&quot; on an article.</string>
+    <string name="create_product_stock_gated">Not orderable when out of stock</string>
+    <string name="create_product_stock_gated_hint">The article is hidden from customers once the counted stock is used up by orders.</string>
     <string name="stock_state_short">Oversold</string>
     <string name="stock_state_empty">Empty</string>
     <string name="stock_state_low">Low</string>

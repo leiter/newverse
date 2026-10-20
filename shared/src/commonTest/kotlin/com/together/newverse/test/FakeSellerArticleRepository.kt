@@ -25,6 +25,10 @@ class FakeSellerArticleRepository : SellerArticleRepository {
     private val _deletedArticles = mutableListOf<Pair<String, String>>()
     val deletedArticles: List<Pair<String, String>> get() = _deletedArticles.toList()
 
+    /** Every availability correction written, in order, for asserting on the pass. */
+    private val _availabilityWrites = mutableListOf<Map<String, Boolean>>()
+    val availabilityWrites: List<Map<String, Boolean>> get() = _availabilityWrites.toList()
+
     // Configuration for test scenarios
     var shouldFailSave = false
     var shouldFailDelete = false
@@ -45,6 +49,7 @@ class FakeSellerArticleRepository : SellerArticleRepository {
         _articles.value = emptyList()
         _savedArticles.clear()
         _deletedArticles.clear()
+        _availabilityWrites.clear()
         shouldFailSave = false
         shouldFailDelete = false
         shouldFailGetArticle = false
@@ -60,6 +65,23 @@ class FakeSellerArticleRepository : SellerArticleRepository {
         val article = _articles.value.find { it.id == articleId }
             ?: return Result.failure(Exception("Article not found"))
         return Result.success(article)
+    }
+
+    override suspend fun setArticleAvailability(
+        sellerId: String,
+        availability: Map<String, Boolean>
+    ): Result<Unit> {
+        if (shouldFailSave) return Result.failure(Exception(failureMessage))
+        if (availability.isEmpty()) return Result.success(Unit)
+        _availabilityWrites.add(availability)
+        // Applied to the catalog as the database would, so the next evaluation sees
+        // its own write and the pass settles instead of writing the same value again.
+        _articles.value = _articles.value.map { stored ->
+            availability[stored.id]
+                ?.let { stored.copy(article = stored.article.copy(available = it)) }
+                ?: stored
+        }
+        return Result.success(Unit)
     }
 
     override suspend fun saveSellerArticle(sellerId: String, article: SellerArticle): Result<String> {
