@@ -88,6 +88,7 @@ fun NavGraph(
                 onRequestAccess = {
                     onAction(BuyNavigationAction.TriggerScrollToAccessInProfile)
                 },
+                pricedAtMarketName = appState.adjustedPricingMarketName,
                 orderId = orderIdArg ?: appState.basket.currentOrderId,
                 orderDate = orderDateArg ?: appState.basket.currentOrderDate
             )
@@ -146,6 +147,8 @@ fun NavGraph(
                 showConnectionConfirmDialog = appState.showConnectionConfirmDialog,
                 onScanQrCode = { onPlatformAction(PlatformAction.ScanQrCode) },
                 showProfileIncompleteDialog = appState.showProfileIncompleteDialog,
+                eligibleMarkets = appState.eligibleMarkets,
+                chosenMarket = appState.chosenDefaultMarket,
                 triggerScrollToAccess = appState.triggerScrollToAccessInProfile
             )
         }

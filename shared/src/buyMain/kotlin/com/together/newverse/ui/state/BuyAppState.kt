@@ -109,6 +109,17 @@ data class BuyAppState(
 
     // Profile completeness
     val showProfileIncompleteDialog: Boolean = false,
+    /** The market picker is open, either from onboarding or from the profile. */
+    val showMarketPicker: Boolean = false,
+    /**
+     * The buyer closed the onboarding market prompt without answering.
+     *
+     * Not persisted, so the question comes back next launch. It decides which prices
+     * the buyer sees and what their access request asks for, which is too consequential
+     * to drop on one dismissal — but it is a prompt, never a wall, so nothing blocks
+     * on it either.
+     */
+    val marketChoiceDeferred: Boolean = false,
     val pendingConnectToken: Pair<String, String>? = null, // (sellerId, token) awaiting profile completion
 
     // App metadata
@@ -145,6 +156,49 @@ data class BuyAppState(
 
     /** What [article] costs here, and why. */
     fun priceOf(article: Article): ResolvedPrice = resolvePrice(article, activePricing)
+
+    /**
+     * The market the buyer said they collect at, if it is still one they may use.
+     *
+     * Re-checked against [eligibleMarkets] rather than trusted: the seller can narrow a
+     * buyer's scope after they chose, and a stale default would price the catalogue
+     * against a stall they can no longer reach.
+     */
+    val chosenDefaultMarket: Market?
+        get() = customerProfile.profile?.defaultMarket
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { id -> eligibleMarkets.firstOrNull { it.id == id } }
+
+    /**
+     * Whether to ask the buyer where they collect.
+     *
+     * Only worth asking when there is a choice to make and they have not made it. One
+     * market needs no question — `contextualMarketId` already resolves to the only one
+     * there is — and a seller whose markets have not loaded yet is not a choice either.
+     *
+     * Left alone while unconnected: the markets belong to a seller, so there is nothing
+     * to pick before there is one.
+     */
+    val needsMarketChoice: Boolean
+        get() = connectedSellerId.isNotEmpty() &&
+            eligibleMarkets.size > 1 &&
+            chosenDefaultMarket == null &&
+            !marketChoiceDeferred
+
+    /**
+     * The market whose conditions are moving the prices on screen, named for the
+     * buyer, or empty when nothing needs saying.
+     *
+     * Empty for a market with no conditions, which is every seller today: a line
+     * reading "Preise für Markt X" where X changes nothing is noise. Only non-empty
+     * once a seller actually prices one stall differently.
+     */
+    val adjustedPricingMarketName: String
+        get() = contextualMarketId
+            ?.let { id -> eligibleMarkets.firstOrNull { it.id == id } }
+            ?.takeIf { it.priceConditions.isNotEmpty() }
+            ?.name
+            .orEmpty()
 
     /** The pricing of [marketId], or [MarketPricing.NONE] when it names no eligible market. */
     fun pricingOf(marketId: String): MarketPricing =
@@ -275,6 +329,8 @@ fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
     navigateToBasketAsTopLevel = false,
     triggerScrollToAccessInProfile = false,
     showProfileIncompleteDialog = false,
+    showMarketPicker = false,
+    marketChoiceDeferred = false,
     pendingConnectToken = null
 )
 

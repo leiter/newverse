@@ -41,6 +41,9 @@ internal fun BuyAppViewModel.handleSellerAction(action: BuySellerAction) {
         is BuySellerAction.RequestAccess -> requestAccess()
         is BuySellerAction.DismissProfileIncompleteDialog -> dismissProfileIncompleteDialog()
         is BuySellerAction.RetryPendingConnection -> retryPendingConnection()
+        is BuySellerAction.ShowMarketPicker -> showMarketPicker()
+        is BuySellerAction.ChooseDefaultMarket -> chooseDefaultMarket(action.marketId)
+        is BuySellerAction.DismissMarketPicker -> dismissMarketPicker()
     }
 }
 

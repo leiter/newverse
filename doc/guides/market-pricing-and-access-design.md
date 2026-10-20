@@ -308,7 +308,8 @@ A component that rounds away to nothing is omitted rather than rendered, because
 | Seller price change announced to buyers | **No.** No `SellerEventType` for it; needs the notification engine |
 | First-pick dialog suppressed | **Built** — `slotPriceChanges` returns empty from an unset market |
 | Transition refuses an order at an ungranted market | **Built** — `DemoTransitionResult.notEligibleMarketIds` |
-| Market pick during onboarding | **Not built** — see §2a |
+| Market pick during onboarding | **Built** — `MarketChoiceDialog`, `BuyAppViewModelMarket.kt`; writes `BuyerProfile.defaultMarket` |
+| Demo provisional-pricing line | **Built** — `adjustedPricingMarketName` on `DemoOrderNotice` |
 
 What remains is the *explanation*, not the money: a buyer is charged the market's price
 and the order records why, but nothing on screen yet tells them that before checkout
@@ -345,8 +346,8 @@ most damaging thing this feature could do to trust, and it is easy to ship by ac
 
 ### 2a. The market pick in demo mode and onboarding
 
-**Status:** the two guards below are **built** (2026-10-20); the onboarding pick itself is
-**not**.
+**Status:** **built** 2026-10-20 — the onboarding pick, both guards, and the
+provisional-pricing line.
 
 Prices follow the market, so *when* the buyer names a market decides which prices they
 ever see. Today that happens late — at the slot picker, on the way to checkout — and
@@ -367,14 +368,16 @@ anywhere and is approved for everywhere; one who picked Neukölln asks for Neuk�
 gets Neukölln. The most consequential field in the request is filled in as a side effect
 of something the buyer did for another reason.
 
-**`BuyerProfile.defaultMarket` has no write path.** It is read
+**`BuyerProfile.defaultMarket` had no write path.** It was read
 (`BuyAppState.contextualMarketId`) and persisted (`GitLiveProfileRepository.kt:663`), and
-nothing in either app ever sets it. The middle rung of the resolution ladder is dead.
+nothing in either app ever set it — the middle rung of the resolution ladder was dead.
+The onboarding pick below is now its one writer.
 
-#### The shape: ask once, early
+#### The shape: ask once, early — built
 
-Make the market pick part of onboarding rather than of checkout. One question — *where do
-you collect?* — asked before the buyer has a basket worth anything, which:
+`MarketChoiceDialog`, dispatched through `BuySellerAction.ChooseDefaultMarket` and
+handled in `BuyAppViewModelMarket.kt`. One question — *where do you collect?* — asked
+before the buyer has a basket worth anything, which:
 
 - writes `BuyerProfile.defaultMarket`, giving that field the write path it lacks;
 - fills the access request's `marketId` from a deliberate answer instead of a side
@@ -385,17 +388,44 @@ you collect?* — asked before the buyer has a basket worth anything, which:
 
 A single-market seller has nothing to ask: `contextualMarketId` already resolves to "the
 only market there is", and the step collapses to the checkout confirmation §4 describes.
+`BuyAppState.needsMarketChoice` is what decides, and it is false for one market, for a
+seller whose markets have not loaded, and once the question is answered or deferred — so
+this is silent for every seller today.
 
-#### Demo prices are the chosen market's, marked provisional
+Four things the implementation settles that the sketch above did not:
+
+- **Asked at the scaffold, not on a screen.** The answer changes prices on the catalogue
+  and in the basket alike, so the question has to reach the buyer wherever onboarding left
+  them rather than waiting for a visit to the profile.
+- **Dismissal defers, it does not waive.** `marketChoiceDeferred` is not persisted, so the
+  question returns next launch. It is a prompt, never a wall: until it is answered the
+  earlier behaviour stands, and the first slot pick settles the market.
+- **A stated default is re-checked against `eligibleMarkets`.** The seller can narrow a
+  buyer's scope after they answered, and `chosenDefaultMarket` returns null for a market
+  they may no longer use rather than pricing the catalogue against an unreachable stall.
+- **Answering reprices the basket, unless the basket already names a market.** A slot the
+  buyer picked is the stronger claim — the resolution order `contextualMarketId` uses — so
+  repricing to a freshly stated default would quietly overrule a choice they made.
+
+Changing the answer later: the profile's **Abholort** card, shown only when there is more
+than one market. It is placed above the access card deliberately, because the market is
+what the access request asks for.
+
+#### Demo prices are the chosen market's, marked provisional — built
 
 Not base prices. A demo order priced without the market's conditions sets an expectation
 that the real order breaks, which is the same damage as silently recalculating a basket,
 only deferred past the point where the buyer could have objected. And not "no prices until
 approved" either — the catalog has to be browsable to be worth approving for.
 
-So: the real prices of the chosen market, with the provisional state said out loud. §4
-already reserves one line for demo buyers at the checkout confirmation; that line is where
-it goes.
+So: the real prices of the chosen market, with the provisional state said out loud. The
+line sits on `DemoOrderNotice` in the basket, next to the existing *"Demo-Bestellung —
+unverbindlich"*, and reads *"Preise für <Markt>"*.
+
+`BuyAppState.adjustedPricingMarketName` is empty for a market with no conditions, so the
+line appears only once a seller actually prices one stall differently — naming a market
+that changes nothing is noise. The dialog itself carries the same note before the choice
+is made, since what the buyer is picking is which real prices they will see.
 
 #### Guard 1: the first pick is not a change — built
 
@@ -431,10 +461,15 @@ Two details worth keeping:
 
 #### Still open
 
-The onboarding question itself — where it sits in the flow, and whether a buyer may change
-the answer later without a new access request. Changing it narrows or widens nothing by
-itself, since the grant is the seller's, but it does mean a buyer can ask for a market
-they were not approved for and must be told what that implies.
+A buyer may change their stated market freely, and that is right — the grant is the
+seller's, so changing a default narrows or widens nothing by itself. What is **not**
+handled: an approved buyer who switches their default to a market outside their grant
+is not told that ordering there will be refused. `chosenDefaultMarket` filters it out of
+`eligibleMarkets`, so they cannot pick it at all today; the gap only opens if that filter
+is ever relaxed.
+
+`BuyerProfile.defaultMarket` now has exactly one writer. If a second appears, the
+re-pricing in `chooseDefaultMarket` has to move with it.
 
 ### Orders snapshot, never reference
 

@@ -102,6 +102,8 @@ fun BasketScreen(
     isDemoMode: Boolean = false,
     canRequestAccess: Boolean = false,
     onRequestAccess: () -> Unit = {},
+    /** The market whose conditions moved these prices; empty when none did. */
+    pricedAtMarketName: String = "",
     orderId: String? = null,
     orderDate: String? = null
 ) {
@@ -120,7 +122,8 @@ fun BasketScreen(
         onNavigateToOrders = onNavigateToOrders,
         isDemoMode = isDemoMode,
         canRequestAccess = canRequestAccess,
-        onRequestAccess = onRequestAccess
+        onRequestAccess = onRequestAccess,
+        pricedAtMarketName = pricedAtMarketName
     )
 }
 
@@ -134,6 +137,7 @@ fun BasketScreen(
  * @param isDemoMode Whether this order would be placed as a demo order
  * @param canRequestAccess Whether requesting access is still an option (AccessStatus.NONE)
  * @param onRequestAccess Opens the access card on the profile page
+ * @param pricedAtMarketName Market whose price conditions apply; empty when none do
  */
 @Composable
 fun BasketContent(
@@ -143,7 +147,8 @@ fun BasketContent(
     onNavigateToOrders: () -> Unit = {},
     isDemoMode: Boolean = false,
     canRequestAccess: Boolean = false,
-    onRequestAccess: () -> Unit = {}
+    onRequestAccess: () -> Unit = {},
+    pricedAtMarketName: String = ""
 ) {
     // Show dialogs outside the LazyColumn
     if (state.showDatePicker) {
@@ -227,7 +232,8 @@ fun BasketContent(
             onNavigateToOrders = onNavigateToOrders,
             isDemoMode = isDemoMode,
             canRequestAccess = canRequestAccess,
-            onRequestAccess = onRequestAccess
+            onRequestAccess = onRequestAccess,
+            pricedAtMarketName = pricedAtMarketName
         )
         return
     }
@@ -461,7 +467,8 @@ fun BasketContent(
                     item {
                         DemoOrderNotice(
                             canRequestAccess = canRequestAccess,
-                            onRequestAccess = onRequestAccess
+                            onRequestAccess = onRequestAccess,
+                            pricedAtMarketName = pricedAtMarketName
                         )
                     }
                 }
@@ -491,7 +498,8 @@ private fun BasketTwoPane(
     onNavigateToOrders: () -> Unit,
     isDemoMode: Boolean,
     canRequestAccess: Boolean,
-    onRequestAccess: () -> Unit
+    onRequestAccess: () -> Unit,
+    pricedAtMarketName: String = ""
 ) {
     // Without an explicit traversal order a screen reader walks the two panes by
     // geometry and interleaves the item rows on the left with the summary rows on
@@ -585,7 +593,8 @@ private fun BasketTwoPane(
                 if (isDemoMode) {
                     DemoOrderNotice(
                         canRequestAccess = canRequestAccess,
-                        onRequestAccess = onRequestAccess
+                        onRequestAccess = onRequestAccess,
+                        pricedAtMarketName = pricedAtMarketName
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -611,8 +620,10 @@ private fun BasketTwoPane(
 @Composable
 private fun DemoOrderNotice(
     canRequestAccess: Boolean,
-    onRequestAccess: () -> Unit
+    onRequestAccess: () -> Unit,
+    pricedAtMarketName: String = ""
 ) {
+    Column {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -647,6 +658,24 @@ private fun DemoOrderNotice(
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
             }
+        }
+    }
+
+        // Which market's prices these are. A demo buyer sees the real prices of the
+        // market they chose rather than the bare catalogue price — pricing them
+        // without the market's conditions would set an expectation the real order
+        // breaks. So the market is named, next to the line saying the order is not
+        // binding yet. `doc/guides/market-pricing-and-access-design.md` §2a.
+        if (pricedAtMarketName.isNotEmpty()) {
+            Text(
+                text = stringResource(
+                    Res.string.basket_demo_priced_at_market,
+                    pricedAtMarketName
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
         }
     }
 }

@@ -1173,4 +1173,16 @@
     <string name="price_change_title">Preise ändern sich</string>
     <string name="price_change_body">Durch den Marktwechsel ändern sich %1$d Artikelpreise.</string>
     <string name="price_change_confirm">Übernehmen</string>
+    <!-- Market choice: asked once during onboarding, changeable from the profile -->
+    <string name="market_choice_title">Wo holst du ab?</string>
+    <string name="market_choice_message">Die Preise richten sich nach dem Markt. Wähle, wo du abholen möchtest — du kannst das später im Profil ändern.</string>
+    <string name="market_choice_demo_note">Dein Zugang ist noch nicht freigegeben. Du siehst die echten Preise dieses Marktes; Bestellungen bleiben bis zur Freigabe unverbindlich.</string>
+    <string name="market_choice_confirm">Übernehmen</string>
+    <!-- %1$s = market name, %2$s = day, hours and street, joined with middots -->
+    <string name="market_choice_row_a11y">%1$s, %2$s</string>
+    <string name="market_choice_profile_label">Abholort</string>
+    <string name="market_choice_profile_none">Noch nicht gewählt</string>
+    <string name="market_choice_profile_change">Ändern</string>
+    <!-- %1$s = market name whose price conditions apply -->
+    <string name="basket_demo_priced_at_market">Preise für %1$s</string>
 </resources>

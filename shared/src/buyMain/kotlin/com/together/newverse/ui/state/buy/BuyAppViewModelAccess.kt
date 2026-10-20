@@ -128,9 +128,12 @@ internal fun BuyAppViewModel.requestAccess() {
             val displayName = _state.value.customerProfile.profile?.displayName
                 ?.takeIf { it.isNotBlank() } ?: "Guest"
 
-            // The request names the stall the buyer wants to collect at, so the
-            // seller approves that rather than guessing. Empty when the seller runs
-            // one market, or when this buyer has not settled on one.
+            // The request names the stall the buyer wants to collect at, so the seller
+            // approves that rather than guessing. `contextualMarketId` resolves to the
+            // market they stated during onboarding (`chooseDefaultMarket`), which is
+            // the point of asking: this field used to be filled in as a side effect of
+            // opening the slot picker. Still empty for a single-market seller, and for
+            // a buyer who deferred the question — both of which mean "anywhere".
             val marketId = _state.value.contextualMarketId.orEmpty()
 
             profileRepository.submitAccessRequest(sellerId, displayName, marketId)

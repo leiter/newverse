@@ -623,6 +623,30 @@ private fun AppScaffoldContent(
             }
         }
     }
+
+    // Asked at the scaffold, not on a screen: where the buyer collects decides the
+    // prices on the catalogue and in the basket alike, so the question has to reach
+    // them wherever onboarding left them rather than waiting for a visit to the
+    // profile. `needsMarketChoice` is false for a single-market seller and once the
+    // question is answered or deferred, so this is quiet for every seller today.
+    // See `doc/guides/market-pricing-and-access-design.md` §2a.
+    if (appState.showMarketPicker || appState.needsMarketChoice) {
+        com.together.newverse.ui.screens.buy.components.MarketChoiceDialog(
+            markets = appState.eligibleMarkets,
+            currentMarketId = appState.chosenDefaultMarket?.id.orEmpty(),
+            isDemoMode = appState.isDemoMode,
+            onChoose = { marketId ->
+                viewModel.dispatch(
+                    com.together.newverse.ui.state.BuySellerAction.ChooseDefaultMarket(marketId)
+                )
+            },
+            onDismiss = {
+                viewModel.dispatch(
+                    com.together.newverse.ui.state.BuySellerAction.DismissMarketPicker
+                )
+            }
+        )
+    }
 }
 
 /**

@@ -160,6 +160,15 @@ sealed interface BuySellerAction : BuyAction {
     data object RequestAccess : BuySellerAction
     data object DismissProfileIncompleteDialog : BuySellerAction
     data object RetryPendingConnection : BuySellerAction
+
+    /** Open the market picker deliberately, from the profile rather than onboarding. */
+    data object ShowMarketPicker : BuySellerAction
+
+    /** The buyer said where they collect. Writes `BuyerProfile.defaultMarket`. */
+    data class ChooseDefaultMarket(val marketId: String) : BuySellerAction
+
+    /** Closed without answering. Asked again next launch — see `marketChoiceDeferred`. */
+    data object DismissMarketPicker : BuySellerAction
 }
 
 // ===== Messaging Actions =====

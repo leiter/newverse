@@ -202,6 +202,10 @@ import newverse.shared.generated.resources.order_reminder_only_when_not_ordered
 import newverse.shared.generated.resources.order_reminder_permission_needed
 import newverse.shared.generated.resources.order_reminder_section_title
 import newverse.shared.generated.resources.order_reminder_time
+import com.together.newverse.domain.model.Market
+import newverse.shared.generated.resources.market_choice_profile_label
+import newverse.shared.generated.resources.market_choice_profile_none
+import newverse.shared.generated.resources.market_choice_profile_change
 import newverse.shared.generated.resources.order_reminder_time_picker_title
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -232,6 +236,10 @@ fun CustomerProfileScreenModern(
     showConnectionConfirmDialog: ConnectionConfirmation? = null,
     onScanQrCode: () -> Unit = {},
     showProfileIncompleteDialog: Boolean = false,
+    /** The markets this buyer may choose between; one or none hides the row. */
+    eligibleMarkets: List<Market> = emptyList(),
+    /** The market they stated, if it is still eligible. */
+    chosenMarket: Market? = null,
     triggerScrollToAccess: Boolean = false,
     profileViewModel: CustomerProfileViewModel = koinViewModel()
 ) {
@@ -494,6 +502,17 @@ fun CustomerProfileScreenModern(
                             onAction(BuySellerAction.RejectPendingInvitation(invitationId))
                         }
                     )
+
+                    // Where the buyer collects. Sits above the access card because it
+                    // is what the access request asks for: the seller approves the
+                    // market that was requested, so changing it here changes what a
+                    // later request means. Hidden when there is nothing to choose.
+                    if (eligibleMarkets.size > 1) {
+                        CollectionPointCard(
+                            chosenMarket = chosenMarket,
+                            onChange = { onAction(BuySellerAction.ShowMarketPicker) }
+                        )
+                    }
 
                     // Access Status Card
                     Box(modifier = Modifier.bringIntoViewRequester(bringIntoViewRequester)) {
@@ -1917,5 +1936,47 @@ private fun AuthProviderBadge(provider: AuthProvider) {
             },
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
         )
+    }
+}
+
+/**
+ * The market the buyer collects at, and a way to change it.
+ *
+ * Only rendered when the seller runs more than one, since a single-market seller
+ * gives the buyer nothing to decide. "Not chosen yet" is a real state rather than a
+ * blank: a buyer who deferred the onboarding question lands here, and the row is how
+ * they find their way back to it.
+ */
+@Composable
+private fun CollectionPointCard(
+    chosenMarket: Market?,
+    onChange: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(Res.string.market_choice_profile_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = chosenMarket?.name
+                        ?: stringResource(Res.string.market_choice_profile_none),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+            TextButton(onClick = onChange) {
+                Text(stringResource(Res.string.market_choice_profile_change))
+            }
+        }
     }
 }

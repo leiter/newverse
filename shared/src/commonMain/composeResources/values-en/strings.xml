@@ -1115,4 +1115,16 @@
     <string name="price_change_title">Prices change</string>
     <string name="price_change_body">Switching market changes %1$d article prices.</string>
     <string name="price_change_confirm">Apply</string>
+    <!-- Market choice: asked once during onboarding, changeable from the profile -->
+    <string name="market_choice_title">Where do you collect?</string>
+    <string name="market_choice_message">Prices depend on the market. Choose where you want to collect — you can change this later in your profile.</string>
+    <string name="market_choice_demo_note">Your access has not been approved yet. These are this market\'s real prices; orders stay provisional until you are approved.</string>
+    <string name="market_choice_confirm">Confirm</string>
+    <!-- %1$s = market name, %2$s = day, hours and street, joined with middots -->
+    <string name="market_choice_row_a11y">%1$s, %2$s</string>
+    <string name="market_choice_profile_label">Collection point</string>
+    <string name="market_choice_profile_none">Not chosen yet</string>
+    <string name="market_choice_profile_change">Change</string>
+    <!-- %1$s = market name whose price conditions apply -->
+    <string name="basket_demo_priced_at_market">Prices for %1$s</string>
 </resources>
