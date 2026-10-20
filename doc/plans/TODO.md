@@ -74,16 +74,20 @@ The following features are planned but not yet implemented, or are only partiall
       `next(count)` is unchanged for other callers. Covered by five cases in
       `PickupSlotTest` and by the two `BuyAppViewModelSlotTest` cases, which now assert
       one slot per market.
-    - Replace the checkout path's `showDatePicker` (`BuyAppViewModelBasket.kt:632`,
-      `:650`) with a confirmation shown before the order is placed.
-    - Put the edit deadline and the time remaining in it — `formatTimeUntilDeadline` and
-      `getDeadlineWarningLevel` exist and are unused at that moment.
+    - ✅ **Done 2026-10-20** — the checkout path shows `CheckoutConfirmDialog` before
+      the order is placed. `Checkout` validates and opens it; `ConfirmCheckout` writes.
+      Seven cases in `BuyAppViewModelCheckoutConfirmTest`.
+    - ✅ **Done 2026-10-20** — the edit deadline and the time remaining are in it, with
+      `formatTimeUntilDeadline` and `getDeadlineWarningLevel` colouring the remaining
+      time by urgency. Both were unused until this.
+    - ✅ **Done 2026-10-20** — one line for demo buyers, plus the market named when the
+      seller runs more than one.
     - State that a reorder is priced today (`basketScreenReorder` already re-reads each
-      article, so this is wording, not logic), and add one line for demo buyers.
+      article, so this is wording, not logic). **Still open.**
     - No confirmation in edit mode; show the deadline inline on the basket instead.
-    - Settle the state shape first: `basketScreen.availablePickupDates: List<Long>` plus
-      a confirmed flag. A single confirmed slot was the answer before multi-market
-      shipped; with N markets the picker needs N rows.
+    - ✅ **Settled 2026-10-20** — `availableSlots: List<PickupSlot>` carries the N rows,
+      `availablePickupDates` is kept in step for callers that read dates alone, and
+      `showCheckoutConfirm` is the confirmed flag.
     - Announce the deadline to screen readers, not only colour it by
       `DeadlineWarningLevel`.
     - Strings in `values/` and `values-en/`, positional specifiers (`%1$s`) — see
@@ -98,8 +102,12 @@ The following features are planned but not yet implemented, or are only partiall
     market happens on its own calendar, but `OrderDateUtils` (14 uses of
     `TimeZone.currentSystemDefault()`), `PickupSlot.kt` and `GitLiveOrderRepository`
     derive the pickup day, the deadline and the `yyyyMMdd` path segment from the
-    device's zone, while `BasketScreen.kt:1083`/`:1120` and `DateFormattingUtils.kt:16`
-    are already Berlin-pinned (that split is E1).
+    device's zone (`PickupSlot.kt:41`/`:83`/`:110`,
+    `GitLiveOrderRepository.kt:533`/`:881`), while `BasketScreen.kt:1138`/`:1175` and
+    `DateFormattingUtils.kt:16` are already Berlin-pinned (that split is E1).
+    Re-verified 2026-10-20: 42 non-test uses of `currentSystemDefault()` against three
+    Berlin pins, and the pins are all on the display side — the inverse of the rule.
+    Table in `doc/guides/ordering-business-rules.md` §7.3.
   - **Tasks:**
     - Pin pickup, deadline and date-key arithmetic to the seller's zone; leave display
       in the device zone.

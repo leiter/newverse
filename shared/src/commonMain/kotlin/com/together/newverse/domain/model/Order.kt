@@ -45,7 +45,11 @@ data class Order(
         // Finalized orders cannot be edited
         if (status.isFinalized()) return false
 
-        // Check if before deadline (Tuesday 23:59)
+        // Before the deadline, which is a fixed distance back from this order's own
+        // pickup date — two days at 23:59, i.e. Tuesday for a Thursday pickup and
+        // Thursday for a Saturday one. Passing no config is not an oversight: see
+        // OrderDateUtils.scheduleConfigFor for why the market's config computes the
+        // same instant.
         return OrderDateUtils.canEditOrder(
             pickupDate = Instant.fromEpochMilliseconds(pickUpDate),
             now = now
@@ -53,7 +57,11 @@ data class Order(
     }
 
     /**
-     * Get the edit deadline (Tuesday 23:59) for this order
+     * The edit deadline for this order: two days before its pickup date at 23:59.
+     *
+     * Tuesday for a Thursday pickup, Thursday for a Saturday one — the distance is the
+     * rule, not the weekday. Market-correct without being told the market; see
+     * [OrderDateUtils.scheduleConfigFor].
      */
     fun getEditDeadline(): Instant {
         return OrderDateUtils.calculateEditDeadline(

@@ -65,9 +65,13 @@ fun CheckoutConfirmDialog(
 ) {
     val pickup = Instant.fromEpochMilliseconds(pickupDate)
 
-    // The market's own schedule, so a Saturday stall does not quote a Tuesday
-    // deadline. Falls back to the app-wide schedule when no market is named, which is
-    // every single-market seller today.
+    // The market's own schedule. This currently produces the same instant as the
+    // app-wide one for every market, and deliberately so rather than by luck:
+    // `calculateEditDeadline` takes only the *lead distance* from the config and
+    // subtracts it from the actual pickup date, and `Market.scheduleConfig` preserves
+    // that distance by construction. Threaded through anyway, because the equivalence
+    // holds only while a market cannot set its own lead time or cut-off hour — the day
+    // either becomes configurable, this is already correct.
     val config = OrderDateUtils.scheduleConfigFor(market)
 
     val deadline = OrderDateUtils.calculateEditDeadline(pickup, config = config)

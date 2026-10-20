@@ -157,10 +157,26 @@ The decided rule:
 - Store the pickup date as **midnight of the pickup day in the seller's zone**, and the
   deadline as **23:59:59.999 of the deadline day in the seller's zone**.
 
-Not yet implemented. Production still mixes both: `OrderDateUtils` (14 uses of
-`TimeZone.currentSystemDefault()`), `PickupSlot.kt` and `GitLiveOrderRepository` take
-the device zone, while `BasketScreen.kt:1083`/`:1120` and `DateFormattingUtils.kt:16`
-are already Berlin-pinned — which is manual-test-plan E1.
+**Still not implemented — re-verified 2026-10-20.** Production mixes both, and the
+split runs exactly along the arithmetic/display line the rule above draws, only the
+wrong way round from what is wanted:
+
+| | Zone | Where |
+|---|---|---|
+| Deadline and pickup arithmetic | **device** | `OrderDateUtils.kt` — 14 uses of `TimeZone.currentSystemDefault()`, all as default parameters |
+| Slot dates | **device** | `PickupSlot.kt:41`, `:83`, `:110` |
+| The `yyyyMMdd` order path segment | **device** | `GitLiveOrderRepository.kt:533`, `:881` |
+| Basket date display | Berlin | `BasketScreen.kt:1138`, `:1175` |
+| Shared date formatting | Berlin | `DateFormattingUtils.kt:16` (default parameter) |
+
+42 non-test uses of `currentSystemDefault()` in all, against three Berlin pins — and
+the three pins are the *display* side, which the rule says may stay on the device zone.
+The arithmetic, which the rule says must be pinned, is the part that is not. That
+inversion is manual-test-plan E1; E2 (S1 critical) is its consequence.
+
+The order path segment is the one to be careful with: it decides *where an order lives*,
+so changing how it is derived orphans any order whose key was written in another zone.
+Inventory before changing it.
 
 #### 7.4 Order Exists for Next Thursday
 - User has order for Nov 14 (Thursday)

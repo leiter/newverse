@@ -674,9 +674,12 @@ What that does to this section:
   left — `formatTimeUntilDeadline` and `getDeadlineWarningLevel`, which §4 noted existed
   and went unused at exactly this moment, now colour the remaining time by urgency. The
   market is named only when the seller runs more than one, since with a single stall the
-  row says nothing the buyer does not know, and the deadline is computed from **that
-  market's** schedule via `OrderDateUtils.scheduleConfigFor`, so a Saturday stall does
-  not quote a Tuesday deadline. One line for demo buyers.
+  row says nothing the buyer does not know. One line for demo buyers.
+
+  The deadline goes through `OrderDateUtils.scheduleConfigFor(market)`, which **comes
+  out identical to the app-wide schedule for every market today** — see the correction
+  under step 3 below. It is threaded through because it is then right by construction
+  rather than by coincidence, not because it fixes a wrong figure.
 
   *Ändern* reopens the slot picker rather than offering a second control: the picker is
   the only place date and market move together, so changing either from the confirmation
@@ -854,10 +857,25 @@ not silence their reminder.
 3. **Per-market schedule and the slot picker** (§4). **Partly done 2026-10-19**: a
    market carries its own pickup day and deadline, `PickupSlots.next` merges each
    market's dates into one chronological list, and the basket offers and selects
-   slots — picking a date picks the stall it belongs to. Still open: the persisted
-   `DraftBasket.selectedPickupDate` is still a bare date rather than a slot, and
-   `Order.canEdit`/`getEditDeadline`/`getWindowStatus` still use the app-wide
-   schedule rather than the order's own market.
+   slots — picking a date picks the stall it belongs to. The checkout confirmation
+   followed on 2026-10-20.
+
+   Still open: the persisted `DraftBasket.selectedPickupDate` is a bare date rather
+   than a slot, so a saved basket remembers *when* but not *where*.
+
+   **Corrected 2026-10-20.** This item used to also list
+   `Order.canEdit`/`getEditDeadline`/`getWindowStatus` as "still using the app-wide
+   schedule rather than the order's own market". They do pass no config — and it makes
+   no difference to any figure. `calculateEditDeadline` reads only the *lead distance*
+   out of a config, `daysBetween(deadlineDay, pickupDay)`, and subtracts it from the
+   real pickup date; `Market.scheduleConfig` is built to preserve that distance and the
+   cut-off time. Verified: a Saturday pickup yields Thursday 23:59 Berlin from either
+   config, a Monday pickup yields Saturday 23:59 from either. **The deadline is already
+   market-correct everywhere.**
+
+   It stops being equivalent only if a market gains its own lead time or cut-off hour.
+   That is the trigger to thread the config through the 14 call sites, and not before:
+   doing it now would be 14 edits that change no behaviour.
 4. ~~**Eligibility + invite scoping** (§3).~~ **Done 2026-10-19**, rules deployed
    2026-10-20: `grantsMarkets`, `allowedMarkets` and the tightened
    `buyer_access_status` write rule are live on dev and prod.
@@ -870,8 +888,13 @@ not silence their reminder.
    already built. Binding a request to a market, and approving what was asked for rather
    than everything, was done 2026-10-19. Rules deployed 2026-10-20.
 
-Step 2 is the one to start with. It is small, it needs none of the model changes above,
-and it is the only item here that a seller would notice next week.
+Steps 1, 2, 4, 5 and 6 are done, and 3 is down to one item — the draft basket
+remembering its slot rather than only its date. *(The line that used to stand here, "step
+2 is the one to start with", predates step 2 being finished on 2026-10-19.)*
+
+The next thing in this area is not in this list: pinning the pickup, deadline and
+date-key arithmetic to the seller's zone. See `doc/guides/ordering-business-rules.md`
+§7.3 — it is decided, unimplemented, and the cause of manual-test-plan E1/E2.
 
 ---
 

@@ -304,6 +304,15 @@ object OrderDateUtils {
      * For callers that may or may not have a market in hand — the checkout
      * confirmation, which names one only when the seller runs several. Keeps
      * [defaultConfig] private rather than having every such caller reach for it.
+     *
+     * **Every deadline this changes comes out the same today.** [calculateEditDeadline]
+     * reads only the lead distance out of a config — `daysBetween(deadlineDay,
+     * pickupDay)` — and subtracts it from the real pickup date, and
+     * [Market.scheduleConfig] is built to keep that distance and the cut-off time
+     * identical to the default's. So a Saturday market's deadline is Thursday 23:59
+     * whichever config computes it. Use this anyway: it is right by construction rather
+     * than by coincidence, and it stops being a no-op the moment a market can set its
+     * own lead time or cut-off hour.
      */
     fun scheduleConfigFor(market: Market?): OrderScheduleConfig =
         market?.scheduleConfig(defaultConfig) ?: defaultConfig
