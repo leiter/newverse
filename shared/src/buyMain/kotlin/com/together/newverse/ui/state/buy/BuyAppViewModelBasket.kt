@@ -8,6 +8,10 @@ import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.prepareForReorder
+import com.together.newverse.domain.model.UnorderableItem
+import com.together.newverse.domain.model.articleKey
+import com.together.newverse.domain.model.orderableOnly
+import com.together.newverse.domain.model.unorderableAgainst
 import com.together.newverse.ui.state.BasketMergeMode
 import com.together.newverse.ui.state.BasketScreenState
 import com.together.newverse.ui.state.BuyAppViewModel
@@ -80,6 +84,40 @@ private fun bLog(message: String) {
  * Reset all in-flight basket flags and set/clear the basket-screen error message.
  * Used as the common exit point for checkout / update / cancel / merge / reorder failures.
  */
+/**
+ * The basket items the seller can no longer accept, judged against the catalogue as
+ * the app last read it.
+ *
+ * Checked at the point of ordering rather than only when the catalogue is drawn: a
+ * basket is persisted as a draft and reordered weeks later, and the seller can
+ * withdraw an article in between. See
+ * `doc/design/stock-driven-availability-design.md` §4c.
+ */
+internal fun BuyAppViewModel.unorderableInBasket(items: List<OrderedProduct>): List<UnorderableItem> =
+    items.unorderableAgainst(_state.value.mainScreen.articles)
+
+/**
+ * What to tell the buyer about items the seller cannot accept.
+ *
+ * Names them: "etwas in Ihrem Warenkorb" would send the buyer to compare a basket
+ * against a catalogue by hand.
+ */
+internal fun unorderableBasketMessage(unorderable: List<UnorderableItem>): String {
+    val names = unorderable.map { it.productName.ifEmpty { "Artikel" } }.distinct()
+    val list = names.joinToString(", ")
+    return if (names.size == 1) {
+        "$list ist nicht mehr verfügbar. Bitte aus dem Warenkorb entfernen."
+    } else {
+        "Diese Artikel sind nicht mehr verfügbar: $list. Bitte aus dem Warenkorb entfernen."
+    }
+}
+
+/** What to tell the buyer about items a reorder left behind. */
+internal fun droppedFromReorderMessage(dropped: List<UnorderableItem>): String {
+    val names = dropped.map { it.productName.ifEmpty { "Artikel" } }.distinct().joinToString(", ")
+    return "Nicht mehr verfügbar und daher nicht übernommen: $names"
+}
+
 private fun BuyAppViewModel.setBasketError(message: String?) {
     _state.update { current ->
         current.copy(
@@ -560,12 +598,18 @@ internal fun BuyAppViewModel.basketScreenLoadHistoryOrderAsReorder(order: Order)
             origin = demoOrProduction()
         )
 
-        val correctedArticles = draftOrder.articles.map { item ->
-            val article = currentArticles.find { it.id == item.productId }
-            if (article != null && article.available) {
-                item.copy(price = article.price, productName = article.productName, unit = article.unit)
-            } else item
-        }
+        // Withdrawn articles are left behind rather than carried forward: keeping
+        // one only builds an order the seller has to refuse, and the buyer finds out
+        // at checkout instead of here, where they can still choose something else.
+        val dropped = draftOrder.articles.unorderableAgainst(currentArticles)
+        val correctedArticles = draftOrder.articles
+            .orderableOnly(currentArticles)
+            .map { item ->
+                val article = currentArticles.find { it.id == item.articleKey() }
+                if (article != null) {
+                    item.copy(price = article.price, productName = article.productName, unit = article.unit)
+                } else item
+            }
 
         if (!_state.value.isDemoMode) {
             try { profileRepository.clearDraftBasket() } catch (_: Exception) {}
@@ -584,7 +628,10 @@ internal fun BuyAppViewModel.basketScreenLoadHistoryOrderAsReorder(order: Order)
                     items = correctedArticles,
                     total = correctedArticles.sumOf { it.price * it.amountCount },
                     availablePickupDates = availableDates,
-                    canEdit = true
+                    canEdit = true,
+                    // Said here rather than discovered at checkout: the buyer is
+                    // looking at the basket they just asked for.
+                    orderError = if (dropped.isEmpty()) null else droppedFromReorderMessage(dropped)
                 ),
                 navigateToBasketAsTopLevel = true
             )
@@ -732,6 +779,16 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
             val items = _state.value.basketScreen.items
             if (items.isEmpty()) {
                 setBasketError("Warenkorb ist leer")
+                return@launch
+            }
+
+            // An order the seller would only have to refuse is not placed. The
+            // catalogue filter cannot carry this: the basket may have been sitting
+            // here since before the article was withdrawn.
+            val unorderable = unorderableInBasket(items)
+            if (unorderable.isNotEmpty()) {
+                bLog("🛒 basketScreenCheckout: refused, unorderable=${unorderable.map { it.articleId }}")
+                setBasketError(unorderableBasketMessage(unorderable))
                 return@launch
             }
 
@@ -1077,6 +1134,15 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
             val items = basketState.items
             if (items.isEmpty()) {
                 setBasketError("Warenkorb ist leer")
+                return@launch
+            }
+
+            // Editing an order is placing it again: an article withdrawn since it
+            // was first placed cannot be kept in it either.
+            val unorderable = unorderableInBasket(items)
+            if (unorderable.isNotEmpty()) {
+                bLog("🛒 basketScreenUpdateOrder: refused, unorderable=${unorderable.map { it.articleId }}")
+                setBasketError(unorderableBasketMessage(unorderable))
                 return@launch
             }
 
@@ -1543,10 +1609,12 @@ internal fun BuyAppViewModel.basketScreenReorderWithNewDate(newPickupDate: Long,
                 return@launch
             }
 
+            // As above: an article the seller has withdrawn does not come along.
+            val dropped = currentItems.unorderableAgainst(currentArticles)
             val updatedItems = mutableListOf<OrderedProduct>()
-            for (item in currentItems) {
-                val article = currentArticles.find { it.id == item.productId }
-                if (article != null && article.available) {
+            for (item in currentItems.orderableOnly(currentArticles)) {
+                val article = currentArticles.find { it.id == item.articleKey() }
+                if (article != null) {
                     updatedItems.add(item.copy(
                         price = article.price,
                         productName = article.productName,
@@ -1555,6 +1623,13 @@ internal fun BuyAppViewModel.basketScreenReorderWithNewDate(newPickupDate: Long,
                 } else {
                     updatedItems.add(item)
                 }
+            }
+            if (updatedItems.isEmpty()) {
+                setBasketError(
+                    if (dropped.isEmpty()) "Keine Artikel zum Nachbestellen"
+                    else droppedFromReorderMessage(dropped)
+                )
+                return@launch
             }
 
             basketRepository.clearBasket()

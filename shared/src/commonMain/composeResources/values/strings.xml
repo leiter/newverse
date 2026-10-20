@@ -225,6 +225,9 @@
     <!-- BASKET SCREEN (BUY MODULE) -->
     <!-- ========================================= -->
     <string name="basket_title">Warenkorb</string>
+    <string name="basket_item_unavailable">Nicht mehr verfügbar</string>
+    <string name="basket_unorderable_title">Einige Artikel sind nicht mehr verfügbar</string>
+    <string name="basket_unorderable_body">Bitte entfernen Sie die markierten Artikel, um zu bestellen.</string>
     <string name="basket_empty_title">Ihr Warenkorb ist leer</string>
     <string name="basket_empty_description">Fügen Sie Artikel vom Produktbildschirm hinzu</string>
     <string name="basket_checkout_processing">Wird bearbeitet...</string>

@@ -4,6 +4,8 @@ import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.model.articleKey
+import com.together.newverse.domain.model.orderableOnly
 import com.together.newverse.ui.state.BasketMergeMode
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.MergeConflictType
@@ -23,7 +25,11 @@ internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
         viewModelScope.launch {
             basketRepository.clearBasket()
             val currentArticles = _state.value.mainScreen.articles
-            val correctedItems = order.articles.map { correctArticleData(it, currentArticles) }
+            // A withdrawn article does not come back into the basket with the rest
+            // of the order; it would only be refused at checkout.
+            val correctedItems = order.articles
+                .orderableOnly(currentArticles)
+                .map { correctArticleData(it, currentArticles) }
             for (item in correctedItems) {
                 basketRepository.addItem(item)
             }
@@ -60,7 +66,9 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
         val currentBasketItems = basketRepository.observeBasket().value
         val currentArticles = _state.value.mainScreen.articles
 
-        val historicItems = tappedOrder.articles.map { correctArticleData(it, currentArticles) }
+        val historicItems = tappedOrder.articles
+            .orderableOnly(currentArticles)
+            .map { correctArticleData(it, currentArticles) }
         val draftItems = currentBasketItems.map { correctArticleData(it, currentArticles) }
 
         val conflicts = basketScreenCalculateMergeConflicts(
@@ -133,9 +141,17 @@ internal fun BuyAppViewModel.hideHistoryMergeDialog() {
     }
 }
 
+/**
+ * An order line brought up to today's catalogue entry.
+ *
+ * Availability is not consulted here: a withdrawn article is dropped before it
+ * reaches a basket (see `unorderableAgainst`/`orderableOnly`), and refusing to
+ * refresh the price of one that slipped through would only show the buyer an old
+ * price for something they cannot order anyway.
+ */
 internal fun correctArticleData(item: OrderedProduct, currentArticles: List<Article>): OrderedProduct {
-    val article = currentArticles.find { it.id == item.productId }
-    return if (article != null && article.available) {
+    val article = currentArticles.find { it.id == item.articleKey() }
+    return if (article != null) {
         item.copy(
             price = article.price,
             productName = article.productName,

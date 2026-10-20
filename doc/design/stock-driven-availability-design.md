@@ -1,12 +1,14 @@
 # Stock-Driven Refill and Availability
 
-> **DESIGN — Phase 1 built, the rest is not** (as of 2026-10-20). The stock ledger
+> **DESIGN — Phases 1 and 2 built, the rest is not** (as of 2026-10-20). The stock ledger
 > it builds on was already there: `StockRepository`, `StockMovement`/`StockLevel`,
 > `StockRefill.kt`, `StockScreen` and the refill badge, all in the database rules.
-> **Phase 1 (§8) is now implemented**: `CommittedDemand.kt`, `RefillState.SHORT`,
-> `RefillNeed.committed`/`remaining`/`unitMismatch`, and `StockViewModel` reading
-> orders alongside stock. Still proposals: the placement gate, derived `available`,
-> the seller's notification, and both buyer-facing halves (§4f, §5).
+> **Phases 1 and 2 (§8) are now implemented**: `CommittedDemand.kt`,
+> `RefillState.SHORT`, `RefillNeed.committed`/`remaining`/`unitMismatch` and
+> `StockViewModel` reading orders alongside stock; plus `BasketAvailability.kt`, the
+> refusal at checkout and at order edit, withdrawn articles dropped from reorders,
+> and the basket marking them. Still proposals: derived `available`, the seller's
+> notification, and both buyer-facing halves (§4f, §5).
 
 **Date:** 2026-10-20
 **Status:** Design — not implemented
@@ -472,7 +474,7 @@ function over `(orders, slots) -> Map<articleId, Double>`, using the shared
 the unit-mismatch marker. Show it on `StockScreen` and in the badge. All
 `commonMain`, all unit-testable, no notification, no public write.
 
-**Phase 2 — the placement gate**
+**Phase 2 — the placement gate — BUILT**
 `placeOrder` validation, the three `else item` branches, basket-level messaging.
 Fixes a real hole that exists today independently of this design: the flag is
 already filtered on, already toggled by the seller, and already not enforced.

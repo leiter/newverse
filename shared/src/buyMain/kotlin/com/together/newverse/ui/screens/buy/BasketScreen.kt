@@ -37,6 +37,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +55,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.articleKey
+import com.together.newverse.domain.model.unorderableAgainst
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.Order
 import com.together.newverse.ui.state.BasketScreenState
@@ -156,6 +159,14 @@ fun BasketContent(
     pricedAtMarketName: String = "",
     eligibleMarkets: List<Market> = emptyList()
 ) {
+    // Items the seller has withdrawn since they went into the basket. Derived from
+    // the catalogue rather than stored on the state: the basket is persisted and
+    // long-lived, and a stored copy would be the stale one.
+    val unorderable = remember(state.items, currentArticles) {
+        state.items.unorderableAgainst(currentArticles)
+    }
+    val unorderableIds = remember(unorderable) { unorderable.map { it.articleId }.toSet() }
+
     // Show dialogs outside the LazyColumn
     if (state.showDatePicker) {
         DatePickerDialog(
@@ -259,6 +270,7 @@ fun BasketContent(
     if (LocalWindowWidthClass.current == WindowWidthClass.Expanded) {
         BasketTwoPane(
             state = state,
+            unorderableIds = unorderableIds,
             onAction = onAction,
             onNavigateToOrders = onNavigateToOrders,
             isDemoMode = isDemoMode,
@@ -446,6 +458,9 @@ fun BasketContent(
                 }
             }
         } else {
+            if (unorderable.isNotEmpty()) {
+                item { UnorderableNoticeCard() }
+            }
             // Basket items
             items(state.items) { item ->
                 BasketItemCard(
@@ -454,6 +469,7 @@ fun BasketContent(
                     unit = item.unit,
                     quantity = item.amountCount,
                     canEdit = state.isEditMode || state.orderId == null,
+                    isUnorderable = item.articleKey() in unorderableIds,
                     onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) }
                 )
             }
@@ -525,6 +541,8 @@ fun BasketContent(
 @Composable
 private fun BasketTwoPane(
     state: BasketScreenState,
+    /** Article ids the seller has withdrawn; their rows say so and block ordering. */
+    unorderableIds: Set<String>,
     onAction: (BuyBasketScreenAction) -> Unit,
     onNavigateToOrders: () -> Unit,
     isDemoMode: Boolean,
@@ -554,6 +572,10 @@ private fun BasketTwoPane(
                 }
         ) {
             BasketStatusMessages(state)
+            if (unorderableIds.isNotEmpty() && state.items.isNotEmpty()) {
+                UnorderableNoticeCard()
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             if (state.items.isEmpty()) {
                 BasketEmptyCard(onNavigateToOrders = onNavigateToOrders)
             } else {
@@ -571,6 +593,7 @@ private fun BasketTwoPane(
                             unit = item.unit,
                             quantity = item.amountCount,
                             canEdit = state.isEditMode || state.orderId == null,
+                            isUnorderable = item.articleKey() in unorderableIds,
                             onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) }
                         )
                     }
@@ -840,6 +863,36 @@ private fun BasketTotalCard(total: Double) {
     }
 }
 
+/**
+ * Says once, above the list, that the basket cannot be ordered as it stands.
+ *
+ * The rows themselves name which articles; repeating the names here would be the
+ * same list twice on a phone screen.
+ */
+@Composable
+private fun UnorderableNoticeCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(Res.string.basket_unorderable_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(Res.string.basket_unorderable_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
 @Composable
 private fun BasketItemCard(
     productName: String,
@@ -847,13 +900,18 @@ private fun BasketItemCard(
     unit: String,
     quantity: Double,
     canEdit: Boolean = true,
+    /** The seller withdrew this article; the order cannot be placed while it is here. */
+    isUnorderable: Boolean = false,
     onRemove: () -> Unit = {},
 //    onQuantityChange: (Double) -> Unit = {}
 ) {
     // The whole line item reads as one node instead of four cryptic fragments
     // ("Tomaten", "2,50 €/kg", "× 3,00", "7,50 €").
-    val itemDescription = listOf(
+    val itemDescription = listOfNotNull(
         productName,
+        // First, so a screen reader says it before the price of something that
+        // cannot be bought.
+        stringResource(Res.string.basket_item_unavailable).takeIf { isUnorderable },
         productPriceLabel(price, unit),
         formatString(stringResource(Res.string.a11y_hero_amount), "${quantity.formatPrice()} $unit"),
         formatString(stringResource(Res.string.a11y_hero_total), (price * quantity).formatPrice())
@@ -863,7 +921,11 @@ private fun BasketItemCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (isUnorderable) {
+                MaterialTheme.colorScheme.errorContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
         )
     ) {
         Column(
@@ -871,6 +933,13 @@ private fun BasketItemCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            if (isUnorderable) {
+                Text(
+                    text = stringResource(Res.string.basket_item_unavailable),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

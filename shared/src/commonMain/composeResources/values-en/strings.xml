@@ -217,6 +217,9 @@
     <!-- BASKET SCREEN (BUY MODULE) -->
     <!-- ========================================= -->
     <string name="basket_title">Shopping Basket</string>
+    <string name="basket_item_unavailable">No longer available</string>
+    <string name="basket_unorderable_title">Some items are no longer available</string>
+    <string name="basket_unorderable_body">Please remove the marked items to place your order.</string>
     <string name="basket_empty_title">Your basket is empty</string>
     <string name="basket_empty_description">Add items from the Products screen</string>
     <string name="basket_checkout_processing">Processing...</string>
