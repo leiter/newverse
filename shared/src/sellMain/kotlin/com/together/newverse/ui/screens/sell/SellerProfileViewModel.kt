@@ -34,6 +34,8 @@ import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import com.together.newverse.domain.model.SellerArticle
+import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.util.Log
 
 
@@ -48,6 +50,14 @@ class SellerProfileViewModel(
     private val articleRepository: ArticleRepository,
     private val orderRepository: OrderRepository,
     private val marketRepository: MarketRepository,
+    /**
+     * Supplies the purchase prices the market dialog's below-cost warning needs.
+     *
+     * Optional so the three existing test fixtures keep constructing this ViewModel
+     * unchanged; without it the warning and the preview simply do not appear, which
+     * is the same thing an uncosted catalogue produces.
+     */
+    private val sellerArticleRepository: SellerArticleRepository? = null,
     private val invitationRepository: InvitationRepository = object : InvitationRepository {
         override suspend fun createInvitation(sellerId: String, sellerDisplayName: String, expiresInMillis: Long, targetBuyerId: String?) = Result.failure<Invitation>(Exception("Not configured"))
         override suspend fun getInvitation(invitationId: String) = Result.failure<Invitation>(Exception("Not configured"))
@@ -57,6 +67,31 @@ class SellerProfileViewModel(
         override suspend fun revokeInvitation(invitationId: String) = Result.failure<Unit>(Exception("Not configured"))
     }
 ) : ViewModel() {
+
+    /**
+     * The catalogue with its seller-only half, for pricing the market dialog's preview
+     * and finding what a condition would sell below cost.
+     *
+     * Collected once rather than per dialog opening: the dialog is a composable with no
+     * scope of its own, and re-subscribing on every open would re-read the whole
+     * catalogue each time the seller edited a market's opening hours.
+     */
+    private val _pricingArticles = MutableStateFlow<List<SellerArticle>>(emptyList())
+    val pricingArticles: StateFlow<List<SellerArticle>> = _pricingArticles.asStateFlow()
+
+    private fun observePricingArticles() {
+        val repo = sellerArticleRepository ?: return
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            repo.observeSellerArticles(sellerId)
+                .catch { e ->
+                    // Non-fatal: the warning and the preview are an aid, and losing
+                    // them must not stop a seller editing a market.
+                    Log.w(TAG) { "observePricingArticles: ${e.message}" }
+                }
+                .collect { articles -> _pricingArticles.value = articles }
+        }
+    }
 
     // Profile state using AsyncState pattern
     private val _profileState = MutableStateFlow<AsyncState<SellerProfile>>(AsyncState.Loading)
@@ -108,6 +143,7 @@ class SellerProfileViewModel(
         loadStats()
         observeAccessRequests()
         observeBuyers()
+        observePricingArticles()
     }
 
     private fun observeAccessRequests() {

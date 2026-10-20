@@ -169,11 +169,13 @@ fun NavGraphBuilder.navGraph(
         val ordersByCycle = profileViewModel.ordersByCycle.collectAsState()
         val accessRequests = profileViewModel.accessRequests.collectAsState()
         val generatedBuyerLink = profileViewModel.generatedBuyerLink.collectAsState()
+        val pricingArticles = profileViewModel.pricingArticles.collectAsState()
 
         SellerProfileScreen(
             profileState = profileState.value,
             statsState = statsState.value,
             dialogState = dialogState.value,
+            pricingArticles = pricingArticles.value,
             customerState = customerState.value,
             invitationState = invitationState.value,
             isSaving = isSaving.value,

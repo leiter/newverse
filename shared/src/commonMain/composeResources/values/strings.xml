@@ -1197,4 +1197,15 @@
     <string name="checkout_confirm_change">Abholort oder Termin ändern</string>
     <string name="checkout_confirm_place">Bestellen</string>
     <string name="checkout_confirm_market">Abholort</string>
+    <!-- Price condition preview and the below-cost warning in the market dialog -->
+    <!-- %1$d = how many articles would sell below their purchase price -->
+    <string name="price_below_cost_title">%1$d Artikel würden unter dem Einkaufspreis verkauft</string>
+    <!-- %1$s = article, %2$s = resulting price, %3$s = purchase price -->
+    <string name="price_below_cost_row">%1$s: %2$s statt %3$s Einkauf</string>
+    <!-- %1$d = how many further articles are affected but not listed -->
+    <string name="price_below_cost_more">… und %1$d weitere</string>
+    <string name="price_preview_title">Vorschau</string>
+    <string name="price_preview_article">Artikel</string>
+    <!-- %1$s = the unchanged price -->
+    <string name="price_preview_unchanged">Unverändert bei %1$s</string>
 </resources>

@@ -1139,4 +1139,15 @@
     <string name="checkout_confirm_change">Change collection point or date</string>
     <string name="checkout_confirm_place">Place order</string>
     <string name="checkout_confirm_market">Collection point</string>
+    <!-- Price condition preview and the below-cost warning in the market dialog -->
+    <!-- %1$d = how many articles would sell below their purchase price -->
+    <string name="price_below_cost_title">%1$d articles would sell below their purchase price</string>
+    <!-- %1$s = article, %2$s = resulting price, %3$s = purchase price -->
+    <string name="price_below_cost_row">%1$s: %2$s against %3$s cost</string>
+    <!-- %1$d = how many further articles are affected but not listed -->
+    <string name="price_below_cost_more">… and %1$d more</string>
+    <string name="price_preview_title">Preview</string>
+    <string name="price_preview_article">Article</string>
+    <!-- %1$s = the unchanged price -->
+    <string name="price_preview_unchanged">Unchanged at %1$s</string>
 </resources>

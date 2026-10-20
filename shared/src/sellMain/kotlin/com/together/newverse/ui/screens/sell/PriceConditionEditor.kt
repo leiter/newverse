@@ -30,6 +30,25 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.PriceCause
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.padding
+import com.together.newverse.domain.model.BelowCostArticle
+import com.together.newverse.domain.model.MarketPricing
+import com.together.newverse.domain.model.SellerArticle
+import com.together.newverse.domain.model.pricingBelowCost
+import com.together.newverse.domain.model.resolvePrice
+import com.together.newverse.ui.components.PriceBreakdown
+import com.together.newverse.ui.components.formatEuro
+import kotlin.math.abs
+import newverse.shared.generated.resources.price_below_cost_more
+import newverse.shared.generated.resources.price_below_cost_row
+import newverse.shared.generated.resources.price_below_cost_title
+import newverse.shared.generated.resources.price_preview_article
+import newverse.shared.generated.resources.price_preview_title
+import newverse.shared.generated.resources.price_preview_unchanged
 import com.together.newverse.domain.model.PriceCondition
 import com.together.newverse.domain.model.PriceEffect
 import com.together.newverse.domain.model.PriceScope
@@ -64,7 +83,23 @@ fun PriceConditionEditor(
     conditions: List<PriceCondition>,
     onConditionsChange: (List<PriceCondition>) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * The seller's catalogue with its purchase prices, for the preview and the
+     * below-cost warning. Empty is fine — both simply do not appear, which is what a
+     * seller who has not costed anything yet gets.
+     */
+    articles: List<SellerArticle> = emptyList(),
 ) {
+    // Priced against the conditions as they stand in the dialog, not as last saved:
+    // the seller is composing, and a preview of the saved state would answer a
+    // question they are not asking. Normalized first so a half-typed row — amount
+    // still blank — does not read as a 0,00 € surcharge.
+    val draftPricing = MarketPricing(conditions = conditions.normalizedForSave())
+    val belowCost = remember(conditions, articles) {
+        if (articles.isEmpty()) emptyList()
+        else pricingBelowCost(articles, draftPricing)
+    }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -91,6 +126,146 @@ fun PriceConditionEditor(
         TextButton(onClick = { onConditionsChange(conditions + PriceCondition()) }) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Text(stringResource(Res.string.price_condition_add))
+        }
+
+        if (belowCost.isNotEmpty()) {
+            BelowCostWarning(belowCost)
+        }
+
+        if (articles.isNotEmpty() && draftPricing.conditions.isNotEmpty()) {
+            PricePreview(articles = articles, pricing = draftPricing)
+        }
+    }
+}
+
+/**
+ * What these conditions would sell below cost.
+ *
+ * A warning, not a block — a loss-leader is the seller's call to make, and a market
+ * with a discount condition may be exactly that. The point is that it cannot happen
+ * unnoticed. `resolvePrice` cannot do this itself: it also runs in the buy app, where
+ * the purchase price deliberately does not exist.
+ *
+ * Worst shortfall first, and capped: a factor applied to everything can put a whole
+ * catalogue under water, and three hundred rows is not a warning, it is a wall.
+ */
+@Composable
+private fun BelowCostWarning(belowCost: List<BelowCostArticle>) {
+    val shown = belowCost.take(5)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.errorContainer)
+            .padding(12.dp)
+            .semantics(mergeDescendants = true) {},
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = stringResource(Res.string.price_below_cost_title, belowCost.size),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+
+        shown.forEach { entry ->
+            Text(
+                text = stringResource(
+                    Res.string.price_below_cost_row,
+                    entry.productName,
+                    formatEuro(entry.gross),
+                    formatEuro(entry.acquirePrice)
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+
+        if (belowCost.size > shown.size) {
+            Text(
+                text = stringResource(
+                    Res.string.price_below_cost_more,
+                    belowCost.size - shown.size
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
+/**
+ * What one article ends up costing at this market, and why.
+ *
+ * The seller was composing causes and amounts with no sight of the result. This is
+ * the same [PriceBreakdown] the buyer is meant to see, fed the draft conditions, so
+ * the two can never explain the same price differently.
+ *
+ * Defaults to the article the conditions move most, since a preview of an unaffected
+ * article says nothing — but any article can be picked, because "did my category
+ * condition miss this one?" is the other question being asked here.
+ */
+@Composable
+private fun PricePreview(
+    articles: List<SellerArticle>,
+    pricing: MarketPricing,
+) {
+    val mostAffected = remember(articles, pricing) {
+        articles.maxByOrNull { seller ->
+            val resolved = resolvePrice(seller.article, pricing)
+            abs(resolved.gross - resolved.base)
+        }
+    }
+    var selectedId by remember(mostAffected?.article?.id) {
+        mutableStateOf(mostAffected?.article?.id.orEmpty())
+    }
+    val selected = articles.firstOrNull { it.article.id == selectedId } ?: return
+    var pickerOpen by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(Res.string.price_preview_title),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() }
+        )
+
+        Picker(
+            label = stringResource(Res.string.price_preview_article),
+            value = selected.article.productName,
+            open = pickerOpen,
+            onOpenChange = { pickerOpen = it },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            articles.forEach { seller ->
+                DropdownMenuItem(
+                    text = { Text(seller.article.productName) },
+                    onClick = { selectedId = seller.article.id; pickerOpen = false }
+                )
+            }
+        }
+
+        val resolved = resolvePrice(selected.article, pricing)
+        if (resolved.isAdjusted) {
+            PriceBreakdown(price = resolved)
+        } else {
+            // Not an error, and worth saying: a seller who scoped a condition to one
+            // category needs to see that it leaves everything else alone.
+            Text(
+                text = stringResource(Res.string.price_preview_unchanged, formatEuro(resolved.gross)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

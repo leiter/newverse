@@ -301,7 +301,10 @@ A component that rounds away to nothing is omitted rather than rendered, because
 | Seller condition editor, `pricingRevision` bump | **Built** (`PriceConditionEditor`, `SellerProfileScreen.kt:889`) |
 | Persistence + rules validation | **Built** |
 | Market-switch warning before applying | **Built end to end** — `slotPriceChanges` → `PendingSlotPriceChange` → `PriceChangeDialog` → confirm/dismiss |
-| Catalog banner + per-article breakdown | **Not wired.** `PriceBreakdown.kt` exists, nothing renders it |
+| Seller's condition editor | **Built** — cause, effect, scope, amount, note per condition |
+| Below-cost warning in the editor | **Built 2026-10-20** — `pricingBelowCost`, 12 cases in `PricingFloorTest` |
+| Price preview in the editor | **Built 2026-10-20** — `PriceBreakdown` against the draft conditions |
+| Buyer-facing catalog banner + per-article breakdown | **Not wired.** `PriceBreakdown` now has a caller on the *seller* side only |
 | Adjusted price actually charged | **Built** — both add-to-basket paths use `priceOf()`; `OrderedProduct` carries `basePrice` + `priceComponents` |
 | Basket repriced on a market change | **Built** — `BasketRepository.repriceItems`, via `basketScreenApplySlot` |
 | `pricingRevision` snapshotted on the order | **Built** — on `Order`, written and read back, validated in the rules |
@@ -312,9 +315,19 @@ A component that rounds away to nothing is omitted rather than rendered, because
 | Demo provisional-pricing line | **Built** — `adjustedPricingMarketName` on `DemoOrderNotice` |
 | Checkout confirmation of slot and market | **Built** — `CheckoutConfirmDialog`; §4 |
 
-What remains is the *explanation*, not the money: a buyer is charged the market's price
-and the order records why, but nothing on screen yet tells them that before checkout
-beyond the switch dialog. `PriceBreakdown` is written and waiting for a caller.
+What remains is the *explanation on the buyer's side*. A buyer is charged the market's
+price and the order records why, but nothing tells them so before checkout beyond the
+switch dialog. `PriceBreakdown` now has a caller — in the seller's editor, previewing
+what a condition does — so the component is proven; it is the buy-flavour catalog banner
+and per-article affordance that are still missing.
+
+The seller's side is complete as of 2026-10-20: the market dialog's condition editor
+shows a live preview of what one article ends up costing, and warns when conditions
+would sell anything below its purchase price. `resolvePrice` cannot enforce that floor
+itself — it runs in the buy app, where `SellerArticleData` deliberately does not exist —
+so `pricingBelowCost` checks it where both halves of an article are in hand. It warns
+rather than refuses: a loss-leader is the seller's decision, and the point is only that
+it cannot be made by accident.
 
 A legacy order — written before `basePrice` existed — reads back with `basePrice = 0.0`,
 which `OrderedProduct.basePriceOrPrice` resolves to the charged price. It reads as

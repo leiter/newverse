@@ -64,7 +64,19 @@ val appModule = module {
     viewModel { WalkInSaleViewModel(get(), get(), get(), get()) }
     viewModel { StockViewModel(get(), get(), get(), get()) }
     viewModel { CreateProductViewModel(get(), get(), get(), get()) }
-    viewModel { SellerProfileViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel {
+        SellerProfileViewModel(
+            profileRepository = get(),
+            authRepository = get(),
+            articleRepository = get(),
+            orderRepository = get(),
+            marketRepository = get(),
+            // getOrNull, not get: the parameter is nullable, and Koin would look for a
+            // definition of the nullable type and not find one.
+            sellerArticleRepository = getOrNull(),
+            invitationRepository = get()
+        )
+    }
 
     // Messaging ViewModels
     viewModel { ConversationListViewModel(get(), get()) }

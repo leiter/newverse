@@ -124,7 +124,9 @@ private fun Long.fromCents(): Double = this / 100.0
  *
  * **Floor.** Never below zero. The real floor is the seller's purchase price, but
  * that is seller-only data the buy app never sees, so it is enforced where it can
- * be: as a warning in the seller's editor, not a silent clamp here.
+ * be: as a warning in the seller's editor, not a silent clamp here. [pricingBelowCost]
+ * is that check, and `PriceConditionEditor` shows it — this claim went three weeks
+ * describing something that had not been built.
  */
 fun resolvePrice(article: Article, pricing: MarketPricing): ResolvedPrice {
     val baseCents = article.price.toCents()

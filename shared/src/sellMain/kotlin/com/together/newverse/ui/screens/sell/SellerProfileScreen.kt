@@ -31,6 +31,7 @@ import com.together.newverse.domain.model.AccessRequest
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.Market
+import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.components.QrCodeImage
@@ -54,6 +55,8 @@ fun SellerProfileScreen(
     profileState: AsyncState<SellerProfile>,
     statsState: ProfileStats,
     dialogState: ProfileDialogState,
+    /** Catalogue with purchase prices; empty hides the price preview and warning. */
+    pricingArticles: List<SellerArticle> = emptyList(),
     customerState: CustomerManagementState = CustomerManagementState(),
     invitationState: InvitationManagementState = InvitationManagementState(),
     isSaving: Boolean = false,
@@ -373,7 +376,8 @@ fun SellerProfileScreen(
         MarketEditDialog(
             market = dialogState.editingMarket,
             onDismiss = onHideMarketDialog,
-            onSave = onSaveMarket
+            onSave = onSaveMarket,
+            pricingArticles = pricingArticles
         )
     }
 }
@@ -679,7 +683,9 @@ private fun InvitationCard(
 private fun MarketEditDialog(
     market: Market?,
     onDismiss: () -> Unit,
-    onSave: (Market) -> Unit
+    onSave: (Market) -> Unit,
+    /** Catalogue with purchase prices, for the price preview and below-cost warning. */
+    pricingArticles: List<SellerArticle> = emptyList()
 ) {
     var name by remember { mutableStateOf(market?.name ?: "") }
     var street by remember { mutableStateOf(market?.street ?: "") }
@@ -844,7 +850,8 @@ private fun MarketEditDialog(
 
                 PriceConditionEditor(
                     conditions = priceConditions,
-                    onConditionsChange = { priceConditions = it }
+                    onConditionsChange = { priceConditions = it },
+                    articles = pricingArticles
                 )
 
                 validationError?.let { error ->
