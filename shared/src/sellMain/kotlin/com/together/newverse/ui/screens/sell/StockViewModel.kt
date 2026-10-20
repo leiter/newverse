@@ -6,7 +6,9 @@ import com.together.newverse.domain.model.ArticleDemand
 import com.together.newverse.domain.model.MeasuredQuantity
 import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.QuantitySource
+import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.RefillNeed
+import com.together.newverse.domain.model.RefillState
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.StockLevel
 import com.together.newverse.domain.model.StockMovement
@@ -19,8 +21,12 @@ import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.domain.repository.StockRepository
+import com.together.newverse.data.config.StockReminderStorage
+import com.together.newverse.domain.reminder.StockReminderScheduler
+import com.together.newverse.domain.reminder.StockReminderSnapshots
 import com.together.newverse.domain.scale.ScaleStatus
 import com.together.newverse.domain.scale.WeightSource
+import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +36,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * What is in storage, what buyers have already bought out of it, what needs
@@ -55,6 +62,9 @@ class StockViewModel(
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
     private val weightSource: WeightSource,
+    /** Null where no platform reminder exists; the refill list itself still works. */
+    private val reminderStorage: StockReminderStorage? = null,
+    private val reminderScheduler: StockReminderScheduler? = null,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() }
 ) : ViewModel() {
 
@@ -73,6 +83,9 @@ class StockViewModel(
     private var attempted = mapOf<String, Boolean>()
 
     init {
+        reminderStorage?.let { storage ->
+            _state.update { it.copy(reminderEnabled = storage.load().enabled) }
+        }
         observeStock()
         observeScale()
     }
@@ -101,6 +114,7 @@ class StockViewModel(
                     demand = orders.committedDemand()
                     _state.update { it.withStock() }
                     correctAvailability()
+                    cacheReminder(orders)
                 }
         }
     }
@@ -141,6 +155,39 @@ class StockViewModel(
                     Log.w(TAG) { "correctAvailability: ${error.message}" }
                 }
         }
+    }
+
+    /**
+     * Leaves the coming market's buy list where the background worker can find it,
+     * and arms the reminder for it.
+     *
+     * The worker wakes with no database (see [StockReminderStorage]), so the numbers
+     * have to be written while the app is running. Re-armed on every recalculation
+     * so what is scheduled always matches what it would say.
+     *
+     * The day named is the next pickup the seller has an order for, or — with no
+     * orders yet — the next one the schedule produces. The list itself is every
+     * shortfall, not only that day's: it is a shopping list, and the seller buys for
+     * the whole week at once. `doc/design/stock-driven-availability-design.md` §2.
+     */
+    private fun cacheReminder(orders: List<Order>) {
+        val storage = reminderStorage ?: return
+        storage.saveSnapshot(
+            StockReminderSnapshots.of(
+                needs = _state.value.refillNeeds,
+                orders = orders,
+                nowMillis = now()
+            )
+        )
+        reminderScheduler?.reschedule()
+    }
+
+    /** Whether the seller wants the refill list before each market day. */
+    fun setReminderEnabled(enabled: Boolean) {
+        val storage = reminderStorage ?: return
+        storage.save(storage.load().copy(enabled = enabled))
+        _state.update { it.copy(reminderEnabled = enabled) }
+        if (enabled) reminderScheduler?.reschedule() else reminderScheduler?.cancel()
     }
 
     private fun observeScale() {
@@ -320,6 +367,8 @@ data class StockUiState(
     val scaleStatus: ScaleStatus = ScaleStatus.Unsupported,
     val scaleReading: MeasuredQuantity? = null,
     val isSaving: Boolean = false,
+    /** Whether the refill reminder is switched on; false where no platform has one. */
+    val reminderEnabled: Boolean = false,
     val message: StockMessage? = null,
     /** Set once a movement is recorded, until the screen has shown it. */
     val booked: StockMovementKind? = null

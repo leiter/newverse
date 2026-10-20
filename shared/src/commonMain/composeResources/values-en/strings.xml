@@ -1012,6 +1012,10 @@
     <string name="order_reminder_no_days">Pick at least one day</string>
     <string name="order_reminder_deadline_hint">Orders close Tuesday 23:59 for Thursday pickup</string>
     <string name="order_reminder_permission_needed">Notifications are turned off for this app. Please allow them in the system settings.</string>
+    <string name="stock_reminder_channel_name">Refill</string>
+    <string name="stock_reminder_channel_description">Reminder of what to refill before the next market day</string>
+    <string name="stock_reminder_notification_title">Shopping list for %1$s</string>
+    <string name="stock_reminder_notification_more">… and %1$d more</string>
     <string name="order_reminder_channel_name">Order reminder</string>
     <string name="order_reminder_channel_description">Reminds you to order before the deadline</string>
     <string name="order_reminder_notification_title">Ordered yet?</string>

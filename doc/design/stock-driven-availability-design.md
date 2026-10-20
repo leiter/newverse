@@ -1,6 +1,6 @@
 # Stock-Driven Refill and Availability
 
-> **DESIGN — Phases 1–3 built, the rest is not** (as of 2026-10-20). The stock ledger
+> **DESIGN — Phases 1–4 built, the buyer-facing halves are not** (as of 2026-10-20). The stock ledger
 > it builds on was already there: `StockRepository`, `StockMovement`/`StockLevel`,
 > `StockRefill.kt`, `StockScreen` and the refill badge, all in the database rules.
 > **Phases 1 and 2 (§8) are now implemented**: `CommittedDemand.kt`,
@@ -9,9 +9,12 @@
 > refusal at checkout and at order edit, withdrawn articles dropped from reorders,
 > and the basket marking them; plus `StockAvailability.kt`, `sellerAvailable` and
 > `stockGated` on the private half, the correction pass in `StockViewModel`, and the
-> gate's switch in the article editor. Still proposals: the seller's notification
-> (Phase 4) and both buyer-facing halves (§4f, §5). §4b's formula and §4a's
-> migration note were corrected against what building it showed.
+> gate's switch in the article editor; plus `StockReminderEvaluator`,
+> `StockReminderSnapshots`, the WorkManager chain, and the seller's refill
+> notification — so `lowStockNotifications` finally switches something real. Still
+> proposals: both buyer-facing halves (§4f, §5). §4b's formula and §4a's migration
+> note were corrected against what building it showed, and §3's posting time is now
+> the morning after the deadline rather than the deadline itself.
 
 **Date:** 2026-10-20
 **Status:** Design — not implemented
@@ -207,10 +210,18 @@ That gives the feature a natural trigger:
 
 - **Before the deadline:** live `SHORT`/`LOW` on `StockScreen` and in the badge.
   Informational.
-- **At the deadline:** one notification per market per cycle — *"Donnerstag:
-  12 kg Äpfel fehlen, 3 kg Möhren fehlen"*. It is a complete, final buy list, it
-  arrives while the seller can still act on it, and it is **once per cycle by
-  construction**, which removes the need for `lastNotifiedAt` dedup bookkeeping.
+- **At the deadline:** one notification per market per cycle — *"Einkaufsliste für
+  22.10.: Äpfel 12 kg, Möhren 3 kg"*. It is a complete, final buy list, it arrives
+  while the seller can still act on it, and it is **once per cycle by construction**
+  (`StockReminderSettings.lastFiredCycle`), which removes the need for
+  `lastNotifiedAt` dedup bookkeeping.
+
+  Built with one correction: the deadline is 23:59, and a shopping list that buzzes
+  at 23:59 is one the seller switches off. It is posted at 07:00 the following
+  morning instead — after demand went final, before the wholesaler — with a 14-hour
+  grace window, because a buy list stays useful all day. A seller whose deadline
+  already falls before 07:00 gets it on the deadline's own day
+  (`StockReminderEvaluator.postAt`).
 
 Implementation mirrors the shipped reminder pattern rather than inventing one: a
 pure `StockReminderEvaluator` in `commonMain` (every input a parameter, no clock,
@@ -502,7 +513,7 @@ already filtered on, already toggled by the seller, and already not enforced.
 in the same multi-path update as the movement, hysteresis, rules tests under
 `firebase/tests`, a per-article toggle in the article editor.
 
-**Phase 4 — the seller's notification**
+**Phase 4 — the seller's notification — BUILT**
 `StockReminderEvaluator` in `commonMain`, `expect` scheduler, WorkManager and
 `UNUserNotificationCenter` implementations, and finally wire
 `NotificationSettings.lowStockNotifications` to something real.

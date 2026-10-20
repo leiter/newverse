@@ -6,6 +6,12 @@ package com.together.newverse.ui.state
 data class NotificationSettings(
     val newOrderNotifications: Boolean = true,
     val orderUpdateNotifications: Boolean = true,
+    /**
+     * The refill reminder before each market day — the one switch here that is
+     * connected to something. It is stored in `StockReminderStorage` and arms or
+     * cancels the real reminder; `StockViewModel.setReminderEnabled` is the writer,
+     * and this field mirrors it for the UI.
+     */
     val lowStockNotifications: Boolean = true,
     val marketingNotifications: Boolean = false,
     val emailNotifications: Boolean = true,

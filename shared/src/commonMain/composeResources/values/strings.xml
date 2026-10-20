@@ -1070,6 +1070,10 @@
     <string name="order_reminder_no_days">Bitte mindestens einen Tag wählen</string>
     <string name="order_reminder_deadline_hint">Bestellschluss ist Dienstag 23:59 für die Abholung am Donnerstag</string>
     <string name="order_reminder_permission_needed">Benachrichtigungen sind für diese App ausgeschaltet. Bitte in den Systemeinstellungen erlauben.</string>
+    <string name="stock_reminder_channel_name">Nachfüllen</string>
+    <string name="stock_reminder_channel_description">Erinnerung, was vor dem nächsten Markttag nachgefüllt werden muss</string>
+    <string name="stock_reminder_notification_title">Einkaufsliste für %1$s</string>
+    <string name="stock_reminder_notification_more">… und %1$d weitere</string>
     <string name="order_reminder_channel_name">Bestellerinnerung</string>
     <string name="order_reminder_channel_description">Erinnert daran, vor dem Bestellschluss zu bestellen</string>
     <string name="order_reminder_notification_title">Schon bestellt?</string>

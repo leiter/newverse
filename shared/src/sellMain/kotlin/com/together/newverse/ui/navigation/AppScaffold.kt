@@ -106,11 +106,20 @@ private fun AppScaffoldContent(
     // Snackbar host state
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Notification settings state (local for now, can be moved to ViewModel later)
+    // Notification settings. The refill switch is the one that does something: it is
+    // stored where the background worker can read it and arms or cancels the
+    // reminder (StockReminderStorage / StockReminderScheduler). The others are still
+    // UI-only, kept in composition, and say nothing about what the app will send.
     var notificationSettings by remember { mutableStateOf(NotificationSettings()) }
+    LaunchedEffect(stockState.reminderEnabled) {
+        notificationSettings = notificationSettings.copy(lowStockNotifications = stockState.reminderEnabled)
+    }
 
     // Handle notification actions
     val onNotificationAction: (NotificationAction) -> Unit = { action ->
+        if (action is NotificationAction.ToggleLowStock) {
+            stockViewModel.setReminderEnabled(action.enabled)
+        }
         notificationSettings = when (action) {
             is NotificationAction.ToggleNewOrders -> notificationSettings.copy(newOrderNotifications = action.enabled)
             is NotificationAction.ToggleOrderUpdates -> notificationSettings.copy(orderUpdateNotifications = action.enabled)

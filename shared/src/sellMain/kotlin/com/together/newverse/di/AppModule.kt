@@ -62,7 +62,7 @@ val appModule = module {
     viewModel { OrdersViewModel(get(), get()) }
     viewModel { PickupViewModel(get(), get(), get(), get(), get()) }
     viewModel { WalkInSaleViewModel(get(), get(), get(), get()) }
-    viewModel { StockViewModel(get(), get(), get(), get(), get()) }
+    viewModel { StockViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel { CreateProductViewModel(get(), get(), get(), get()) }
     viewModel {
         SellerProfileViewModel(

@@ -1,9 +1,12 @@
 package com.together.newverse.di
 
 import com.together.newverse.data.config.OrderReminderStorage
+import com.together.newverse.data.config.StockReminderStorage
 import com.together.newverse.data.config.PendingInviteTokenStorage
 import com.together.newverse.domain.reminder.AndroidOrderReminderScheduler
+import com.together.newverse.domain.reminder.AndroidStockReminderScheduler
 import com.together.newverse.domain.reminder.OrderReminderScheduler
+import com.together.newverse.domain.reminder.StockReminderScheduler
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.data.config.DefaultProductCatalogConfig
 import com.together.newverse.data.config.DefaultSellerConfig
@@ -47,6 +50,8 @@ val androidDomainModule = module {
     single { PendingInviteTokenStorage(get()) }
     single { OrderReminderStorage(get()) }
     single<OrderReminderScheduler> { AndroidOrderReminderScheduler(get(), get()) }
+    single { StockReminderStorage(get()) }
+    single<StockReminderScheduler> { AndroidStockReminderScheduler(get(), get()) }
     single<SellerConfig> { DefaultSellerConfig() }
     single<OrderScheduleConfig> { DefaultOrderScheduleConfig() }
     single<ProductCatalogConfig> { DefaultProductCatalogConfig() }
