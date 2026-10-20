@@ -9,6 +9,7 @@ import com.together.newverse.domain.model.PriceCause
 import com.together.newverse.domain.model.PriceCondition
 import com.together.newverse.domain.model.PriceEffect
 import com.together.newverse.domain.model.PriceScope
+import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.PickupSlots
 import com.together.newverse.test.FakeMarketRepository
@@ -300,6 +301,49 @@ class BuyAppViewModelSlotTest {
         val slots = viewModel.state.value.basketScreen.availableSlots
         assertTrue(slots.any { it.marketId == "m1" })
         assertTrue(slots.any { it.marketId == "m2" })
+    }
+
+    // The basket is the market the buyer is acting on now; a stated default is only
+    // where they usually go. Getting this backwards hands the top-bar menu one
+    // stall's contacts while the buyer is ordering at another.
+    @Test
+    fun `a selected slot outranks the buyer's stated default`() = runTest {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(id = "m1", name = "Kreuzberg", dayIndex = 3),
+            Market(id = "m2", name = "Neukölln", dayIndex = 5)
+        )
+        profileRepository.setBuyerProfile(BuyerProfile(id = "buyer_1", defaultMarket = "m1"))
+        startSession()
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertEquals("m1", viewModel.state.value.contextualMarketId, "the default did not apply")
+
+        val neukoelln = viewModel.state.value.basketScreen.availableSlots.first { it.marketId == "m2" }
+        viewModel.dispatch(BuyBasketScreenAction.SelectPickupDate(neukoelln.date))
+        advanceUntilIdle()
+
+        assertEquals("m2", viewModel.state.value.contextualMarketId)
+    }
+
+    // A stored id outlives the stall it names, so neither candidate is trusted.
+    @Test
+    fun `a default naming a market this buyer may not collect at is ignored`() = runTest {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(id = "m1", name = "Kreuzberg", dayIndex = 3),
+            Market(id = "m2", name = "Neukölln", dayIndex = 5)
+        )
+        profileRepository.setOwnAllowedMarkets(listOf("m2"))
+        profileRepository.setBuyerProfile(BuyerProfile(id = "buyer_1", defaultMarket = "m1"))
+        startSession()
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // m1 is not eligible, so the sole eligible market answers instead.
+        assertEquals("m2", viewModel.state.value.contextualMarketId)
     }
 
     @Test

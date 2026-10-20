@@ -160,14 +160,22 @@ data class BuyAppState(
      * Where this buyer collects.
      *
      * Resolution order, from `doc/market-pricing-and-access-design.md` §4: the slot
-     * selected in the basket (not built yet — the slot picker is step 3), then the
-     * buyer's stated default, then the only market there is. Null when the seller
-     * runs several and the buyer has not said which, in which case they see the
-     * business's contacts and no market's.
+     * selected in the basket, then the buyer's stated default, then the only market
+     * there is. Null when the seller runs several and the buyer has not said which,
+     * in which case they see the business's contacts and no market's.
+     *
+     * The basket comes first because it is the market the buyer is acting on right
+     * now; a stated default is where they usually go, which is a weaker claim.
+     *
+     * Each candidate is checked against [eligibleMarkets] rather than taken on
+     * trust: a basket slot outlives the market it names, and a default is a stored
+     * string that nothing revalidates when the seller retires a stall.
      */
     val contextualMarketId: String?
-        get() = customerProfile.profile?.defaultMarket
-            ?.takeIf { id -> id.isNotEmpty() && eligibleMarkets.any { it.id == id } }
+        get() = listOfNotNull(
+            basketScreen.selectedMarketId,
+            customerProfile.profile?.defaultMarket,
+        ).firstOrNull { id -> id.isNotEmpty() && eligibleMarkets.any { it.id == id } }
             ?: eligibleMarkets.singleOrNull()?.id
 
     /** What the top-bar menu offers, already deduplicated. */
