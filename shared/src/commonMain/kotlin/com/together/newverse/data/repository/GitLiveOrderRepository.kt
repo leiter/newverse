@@ -1,10 +1,13 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.DemoTransitionResult
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.model.PriceCause
+import com.together.newverse.domain.model.PriceComponent
 import com.together.newverse.domain.model.canTransitionToProduction
 import com.together.newverse.domain.model.statusAfterTransition
 import com.together.newverse.domain.repository.AuthRepository
@@ -550,6 +553,11 @@ class GitLiveOrderRepository(
                                 productName = articleData["productName"] as? String ?: "",
                                 unit = articleData["unit"] as? String ?: "",
                                 price = (articleData["price"] as? Number)?.toDouble() ?: 0.0,
+                                // Absent on every order written before per-market
+                                // pricing. Left at 0.0 so OrderedProduct.basePriceOrPrice
+                                // reads it back as unadjusted rather than as free.
+                                basePrice = (articleData["basePrice"] as? Number)?.toDouble() ?: 0.0,
+                                priceComponents = storedPriceComponents(articleData["priceComponents"]),
                                 amount = articleData["amount"] as? String ?: "",
                                 amountCount = (articleData["amountCount"] as? Number)?.toDouble() ?: 0.0,
                                 piecesCount = (articleData["piecesCount"] as? Number)?.toInt() ?: -1
@@ -568,6 +576,7 @@ class GitLiveOrderRepository(
                         createdDate = (value["createdDate"] as? Number)?.toLong() ?: 0L,
                         sellerId = value["sellerId"] as? String ?: "",
                         marketId = value["marketId"] as? String ?: "",
+                        pricingRevision = (value["pricingRevision"] as? Number)?.toLong() ?: 0L,
                         pickUpDate = (value["pickUpDate"] as? Number)?.toLong() ?: 0L,
                         message = value["message"] as? String ?: "",
                         notFavourite = value["notFavourite"] as? Boolean != false,
@@ -591,6 +600,29 @@ class GitLiveOrderRepository(
     }
 
     /**
+     * Read back a stored price breakdown.
+     *
+     * A component whose cause is not one this build knows is dropped rather than
+     * guessed at: the enum may gain entries, and an older app reading a newer order
+     * must not invent a cause. The gross price is stored in its own right, so a
+     * dropped component costs the explanation, never the total.
+     */
+    private fun storedPriceComponents(raw: Any?): List<PriceComponent> {
+        val list = raw as? List<*> ?: return emptyList()
+        return list.mapNotNull { entry ->
+            val data = entry as? Map<*, *> ?: return@mapNotNull null
+            val cause = (data["cause"] as? String)
+                ?.let { name -> PriceCause.entries.firstOrNull { it.name == name } }
+                ?: return@mapNotNull null
+            PriceComponent(
+                cause = cause,
+                amount = (data["amount"] as? Number)?.toDouble() ?: 0.0,
+                note = data["note"] as? String ?: ""
+            )
+        }
+    }
+
+    /**
      * Convert an Order to a map for Firebase storage.
      */
     private fun orderToMap(order: Order): Map<String, Any?> {
@@ -602,6 +634,7 @@ class GitLiveOrderRepository(
             "createdDate" to order.createdDate,
             "sellerId" to order.sellerId,
             "marketId" to order.marketId,
+            "pricingRevision" to order.pricingRevision,
             "pickUpDate" to order.pickUpDate,
             "message" to order.message,
             "notFavourite" to order.notFavourite,
@@ -612,6 +645,19 @@ class GitLiveOrderRepository(
                     "productName" to article.productName,
                     "unit" to article.unit,
                     "price" to article.price,
+                    // Written only where it says something: an unadjusted item would
+                    // otherwise carry a basePrice equal to price and an empty list on
+                    // every order, for no reader.
+                    "basePrice" to article.basePrice.takeIf { it > 0.0 },
+                    "priceComponents" to article.priceComponents
+                        .takeIf { it.isNotEmpty() }
+                        ?.map { component ->
+                            mapOf(
+                                "cause" to component.cause.name,
+                                "amount" to component.amount,
+                                "note" to component.note
+                            )
+                        },
                     "amount" to article.amount,
                     "amountCount" to article.amountCount,
                     "piecesCount" to article.piecesCount
@@ -702,8 +748,9 @@ class GitLiveOrderRepository(
     override suspend fun transitionDemoOrdersToProduction(
         sellerId: String,
         remoteOrderIds: Map<String, String>,
-        localOrders: List<Order>
-    ): Result<Map<String, String>> {
+        localOrders: List<Order>,
+        allowedMarkets: List<String>
+    ): Result<DemoTransitionResult> {
         return try {
             Log.d(TAG) { "transitionDemoOrders: START - ${remoteOrderIds.size} remote, ${localOrders.size} local" }
 
@@ -715,6 +762,11 @@ class GitLiveOrderRepository(
             val update = mutableMapOf<String, Any?>()
             val transitioned = mutableMapOf<String, String>()
             var expired = 0
+            val notEligible = mutableSetOf<String>()
+
+            // Empty means all, as it does everywhere a scope is read.
+            fun mayCollectAt(marketId: String) =
+                allowedMarkets.isEmpty() || marketId.isEmpty() || marketId in allowedMarkets
 
             // Orders already in Firebase: read, re-key under orders/, drop from demo_orders/.
             remoteOrderIds.forEach { (date, orderId) ->
@@ -733,6 +785,13 @@ class GitLiveOrderRepository(
                     Log.w(TAG) { "transitionDemoOrders: $date/$orderId unreadable, left in place" }
                     return@forEach
                 }
+                // Checked before the demo copy is scheduled for deletion: an order we
+                // refuse to move has to still be there afterwards.
+                if (!mayCollectAt(order.marketId)) {
+                    notEligible += order.marketId
+                    Log.d(TAG) { "transitionDemoOrders: $date/$orderId is for market ${order.marketId}, not granted — left in place" }
+                    return@forEach
+                }
                 update[demoPath] = null
                 if (!order.canTransitionToProduction(now)) {
                     expired++
@@ -745,6 +804,11 @@ class GitLiveOrderRepository(
 
             // Orders held only on this device: they have no Firebase id yet, so mint one.
             localOrders.forEach { local ->
+                if (!mayCollectAt(local.marketId)) {
+                    notEligible += local.marketId
+                    Log.d(TAG) { "transitionDemoOrders: local ${local.id} is for market ${local.marketId}, not granted — left in place" }
+                    return@forEach
+                }
                 if (!local.canTransitionToProduction(now)) {
                     expired++
                     Log.d(TAG) { "transitionDemoOrders: local ${local.id} pickup has passed, not moved" }
@@ -758,15 +822,24 @@ class GitLiveOrderRepository(
                 transitioned[date] = orderId
             }
 
+            val result = DemoTransitionResult(
+                transitioned = transitioned,
+                expired = expired,
+                notEligibleMarketIds = notEligible.toList()
+            )
+
             if (update.isEmpty()) {
-                Log.d(TAG) { "transitionDemoOrders: nothing to move" }
-                return Result.success(emptyMap())
+                Log.d(TAG) { "transitionDemoOrders: nothing to move (${notEligible.size} market(s) not granted)" }
+                return Result.success(result)
             }
 
             rootRef.updateChildren(update)
 
-            Log.d(TAG) { "transitionDemoOrders: moved ${transitioned.size} order(s), $expired past pickup dropped" }
-            Result.success(transitioned)
+            Log.d(TAG) {
+                "transitionDemoOrders: moved ${transitioned.size} order(s), $expired past pickup dropped, " +
+                    "${notEligible.size} market(s) not granted and left in place"
+            }
+            Result.success(result)
         } catch (e: Exception) {
             Log.e(TAG) { "transitionDemoOrders: Error - ${e.message}" }
             Result.failure(e)

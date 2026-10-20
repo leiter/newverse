@@ -17,6 +17,15 @@ data class Order(
     val createdDate: Long = 0L,
     val sellerId: String = "",
     val marketId: String = "",
+    /**
+     * The [Market.pricingRevision] the articles were priced against.
+     *
+     * Snapshotted so a price that was charged can always be told apart from the price
+     * the same basket would cost today: the seller may edit conditions at any time, and
+     * `/sales` has to reconcile against the order it came from. `0L` means the order
+     * predates per-market pricing, or was placed at a market with no conditions.
+     */
+    val pricingRevision: Long = 0L,
     val pickUpDate: Long = 0L,
     val message: String = "",
     val notFavourite: Boolean = true,

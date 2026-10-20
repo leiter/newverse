@@ -40,7 +40,7 @@ data class Market(
      * user, so a buyer can price the catalogue before being approved.
      */
     val priceConditions: List<PriceCondition> = emptyList(),
-    /** Bumped whenever [priceConditions] change; snapshotted into each order. */
+    /** Bumped whenever [priceConditions] change; snapshotted onto each [Order.pricingRevision]. */
     val pricingRevision: Long = 0L,
 ) {
     /** This market's pricing, in the shape [resolvePrice] takes. */

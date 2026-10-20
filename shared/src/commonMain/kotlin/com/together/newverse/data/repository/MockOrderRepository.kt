@@ -1,5 +1,6 @@
 package com.together.newverse.data.repository
 
+import com.together.newverse.domain.model.DemoTransitionResult
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.repository.OrderRepository
@@ -196,8 +197,10 @@ class MockOrderRepository : OrderRepository {
     override suspend fun transitionDemoOrdersToProduction(
         sellerId: String,
         remoteOrderIds: Map<String, String>,
-        localOrders: List<Order>
-    ): Result<Map<String, String>> = Result.success(remoteOrderIds)
+        localOrders: List<Order>,
+        allowedMarkets: List<String>
+    ): Result<DemoTransitionResult> =
+        Result.success(DemoTransitionResult(transitioned = remoteOrderIds))
 
     override suspend fun updateOrderStatus(
         sellerId: String,

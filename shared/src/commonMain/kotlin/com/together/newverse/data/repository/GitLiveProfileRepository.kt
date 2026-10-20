@@ -855,6 +855,22 @@ class GitLiveProfileRepository(
         }
     }
 
+    override suspend fun getAllowedMarkets(sellerId: String): List<String> {
+        return try {
+            val uid = authRepository.getCurrentUserId() ?: return emptyList()
+            MarketScope.decode(
+                buyerAccessStatusRef.child(sellerId).child(uid).child("allowedMarkets")
+                    .valueEvents.first().value as? String
+            )
+        } catch (e: Exception) {
+            // Same reasoning as observeAllowedMarkets: an unreadable scope must read as
+            // "all", never as "none". A caller that narrows on failure would refuse a
+            // buyer their own orders because of a transient read error.
+            Log.w(TAG) { "getAllowedMarkets: sellerId=$sellerId - ${e.message}" }
+            emptyList()
+        }
+    }
+
     override fun observeAllowedMarkets(sellerId: String): Flow<List<String>> = flow {
         val uid = authRepository.getCurrentUserId()
         if (uid == null) {

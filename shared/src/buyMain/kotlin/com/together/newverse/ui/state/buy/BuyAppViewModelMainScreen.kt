@@ -211,12 +211,18 @@ internal fun BuyAppViewModel.addMainScreenToCart() {
         Log.d(TAG) { "addMainScreenToCart: Updated ${selectedArticle.productName} to ${quantity} ${selectedArticle.unit}" }
     } else {
         // Create new OrderedProduct from selected article and quantity
+        // The market's price, not the catalogue's: `price` is what gets charged and
+        // written to the order. Identical to the base price for a market with no
+        // conditions, which is every single-market seller today.
+        val resolved = _state.value.priceOf(selectedArticle)
         val orderedProduct = OrderedProduct(
             id = "", // Will be generated when order is placed
             productId = selectedArticle.id,
             productName = selectedArticle.productName,
             unit = selectedArticle.unit,
-            price = selectedArticle.price,
+            price = resolved.gross,
+            basePrice = resolved.base,
+            priceComponents = resolved.components,
             // Left empty on purpose: OrderedProduct.getFormattedAmount() derives the
             // display string from amountCount and the unit. Putting quantity.toString()
             // here is what showed the seller "1.0" instead of "1,000 kg".

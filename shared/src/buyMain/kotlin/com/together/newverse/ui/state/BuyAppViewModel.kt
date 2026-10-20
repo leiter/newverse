@@ -427,6 +427,7 @@ class BuyAppViewModel(
     }
 
     private fun addToBasket(product: Article, quantity: Double) {
+        val resolved = _state.value.priceOf(product)
         _state.update { current ->
             val currentItems = current.basket.items.toMutableList()
             val existingIndex = currentItems.indexOfFirst { it.id == product.id || it.productId == product.id }
@@ -441,7 +442,9 @@ class BuyAppViewModel(
                     OrderedProduct(
                         productId = product.id,
                         productName = product.productName,
-                        price = product.price,
+                        price = resolved.gross,
+                        basePrice = resolved.base,
+                        priceComponents = resolved.components,
                         amountCount = quantity,
                         piecesCount = quantity.toInt()
                     )

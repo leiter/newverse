@@ -2,6 +2,8 @@ package com.together.newverse.test
 
 import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.model.ResolvedPrice
+import com.together.newverse.domain.model.pricedWith
 import com.together.newverse.domain.repository.BasketRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +26,10 @@ class FakeBasketRepository : BasketRepository {
 
     private val _quantityUpdates = mutableListOf<Pair<String, Double>>()
     val quantityUpdates: List<Pair<String, Double>> get() = _quantityUpdates.toList()
+
+    private val _repricings = mutableListOf<Map<String, ResolvedPrice>>()
+    /** Every repriceItems call, in order, so a test can assert it happened once. */
+    val repricings: List<Map<String, ResolvedPrice>> get() = _repricings.toList()
 
     var clearBasketCalled = false
         private set
@@ -52,6 +58,7 @@ class FakeBasketRepository : BasketRepository {
         _addedItems.clear()
         _removedProductIds.clear()
         _quantityUpdates.clear()
+        _repricings.clear()
         clearBasketCalled = false
         loadedOrderId = null
         loadedOrderDate = null
@@ -85,6 +92,13 @@ class FakeBasketRepository : BasketRepository {
             if (item.productId == productId) {
                 item.copy(amountCount = newQuantity, piecesCount = newQuantity.toInt())
             } else item
+        }
+    }
+
+    override suspend fun repriceItems(prices: Map<String, ResolvedPrice>) {
+        _repricings.add(prices)
+        _basketItems.value = _basketItems.value.map { item ->
+            prices[item.productId]?.let { item.pricedWith(it) } ?: item
         }
     }
 

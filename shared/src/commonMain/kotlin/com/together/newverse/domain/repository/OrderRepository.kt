@@ -1,5 +1,6 @@
 package com.together.newverse.domain.repository
 
+import com.together.newverse.domain.model.DemoTransitionResult
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.domain.model.OrderStatus
@@ -147,15 +148,24 @@ interface OrderRepository {
      * made into the seller's books. The remote ones among them are deleted in the same
      * update.
      *
+     * An order naming a market outside [allowedMarkets] is **kept**, not moved and not
+     * deleted: its price came from a market this buyer turns out not to have, and
+     * neither charging it nor silently repricing it is this function's call. It is
+     * reported back through [DemoTransitionResult.notEligibleMarketIds] so the buyer
+     * can be asked.
+     *
      * @param sellerId The seller's ID
      * @param remoteOrderIds Map of date (yyyyMMdd) to orderId under `demo_orders/`
      * @param localOrders Demo orders held only in local storage
-     * @return Map of date to orderId for the orders now live under `orders/`, for the
-     *         caller to store as the buyer's `placedOrderIds`
+     * @param allowedMarkets The markets the seller granted this buyer. **Empty means
+     *        all of them**, as everywhere else — see `BuyerAccess.allowedMarkets`.
+     * @return What happened to each order; the caller stores
+     *         [DemoTransitionResult.transitioned] as the buyer's `placedOrderIds`
      */
     suspend fun transitionDemoOrdersToProduction(
         sellerId: String,
         remoteOrderIds: Map<String, String>,
-        localOrders: List<Order>
-    ): Result<Map<String, String>>
+        localOrders: List<Order>,
+        allowedMarkets: List<String> = emptyList()
+    ): Result<DemoTransitionResult>
 }

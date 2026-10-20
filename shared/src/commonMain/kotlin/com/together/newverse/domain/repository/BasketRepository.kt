@@ -2,6 +2,7 @@ package com.together.newverse.domain.repository
 
 import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.model.ResolvedPrice
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -37,6 +38,16 @@ interface BasketRepository {
      * Clear all items from basket
      */
     suspend fun clearBasket()
+
+    /**
+     * Re-price the items in [prices], keyed by `productId`, leaving quantities alone.
+     *
+     * Called when the basket moves to a market that prices it differently, after the
+     * buyer has been shown the difference and accepted it. Deliberately narrower than
+     * replacing the basket: a market change must not be able to alter what is in it,
+     * only what it costs. Items absent from [prices] are left untouched.
+     */
+    suspend fun repriceItems(prices: Map<String, ResolvedPrice>)
 
     /**
      * Get current basket total

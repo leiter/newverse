@@ -166,6 +166,17 @@ interface ProfileRepository {
     fun observeAllowedMarkets(sellerId: String): Flow<List<String>>
 
     /**
+     * The markets this buyer may collect at, read once. **Empty means all of them.**
+     *
+     * [observeAllowedMarkets] is the right tool for keeping a screen current; this is
+     * for the moment a decision has to be made against the grant as it stands, where
+     * waiting on a separate observer to catch up would be a race. The demo→production
+     * transition is that moment: it fires on the status turning APPROVED, which can
+     * arrive before the scope does.
+     */
+    suspend fun getAllowedMarkets(sellerId: String): List<String>
+
+    /**
      * Push this buyer's current display name into their access record, so the
      * seller's customer list reflects a rename.
      *

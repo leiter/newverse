@@ -163,6 +163,21 @@ fun resolvePrice(article: Article, pricing: MarketPricing): ResolvedPrice {
 }
 
 /**
+ * This item priced as [resolved] says, carrying the explanation with the number.
+ *
+ * The single place a basket item's price is set from a market's conditions, so the
+ * three fields cannot drift apart: a `price` without its `basePrice` and components
+ * is a total nobody can explain, and components that do not sum to `price` are worse
+ * than none. Used when an item enters the basket and again whenever the basket moves
+ * market.
+ */
+fun OrderedProduct.pricedWith(resolved: ResolvedPrice): OrderedProduct = copy(
+    price = resolved.gross,
+    basePrice = resolved.base,
+    priceComponents = resolved.components
+)
+
+/**
  * What changes for a basket moved from one market to another.
  *
  * A buyer who switches market with a full basket must be shown this and asked,

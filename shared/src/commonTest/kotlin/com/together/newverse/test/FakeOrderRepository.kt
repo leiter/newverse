@@ -1,5 +1,6 @@
 package com.together.newverse.test
 
+import com.together.newverse.domain.model.DemoTransitionResult
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.canTransitionToProduction
@@ -214,27 +215,55 @@ class FakeOrderRepository : OrderRepository {
     data class Transition(
         val sellerId: String,
         val remoteOrderIds: Map<String, String>,
-        val localOrders: List<Order>
+        val localOrders: List<Order>,
+        val allowedMarkets: List<String> = emptyList()
     )
 
     override suspend fun transitionDemoOrdersToProduction(
         sellerId: String,
         remoteOrderIds: Map<String, String>,
-        localOrders: List<Order>
-    ): Result<Map<String, String>> {
-        transitions.add(Transition(sellerId, remoteOrderIds, localOrders))
+        localOrders: List<Order>,
+        allowedMarkets: List<String>
+    ): Result<DemoTransitionResult> {
+        transitions.add(Transition(sellerId, remoteOrderIds, localOrders, allowedMarkets))
         if (shouldFailTransition) return Result.failure(Exception(failureMessage))
 
+        // Empty means all, as it does in BuyerAccess and in the real implementation.
+        fun mayCollectAt(marketId: String) =
+            allowedMarkets.isEmpty() || marketId.isEmpty() || marketId in allowedMarkets
+
         val now = kotlin.time.Clock.System.now()
+        val notEligible = mutableSetOf<String>()
+
         val moved = remoteOrderIds.filterValues { orderId ->
-            _ordersFlow.value.find { it.id == orderId }?.canTransitionToProduction(now) != false
+            val order = _ordersFlow.value.find { it.id == orderId }
+            when {
+                order == null -> true
+                !mayCollectAt(order.marketId) -> {
+                    notEligible += order.marketId
+                    false
+                }
+                else -> order.canTransitionToProduction(now)
+            }
         }.toMutableMap()
-        localOrders.filter { it.canTransitionToProduction(now) }.forEach { order ->
+
+        localOrders.forEach { order ->
+            if (!mayCollectAt(order.marketId)) {
+                notEligible += order.marketId
+                return@forEach
+            }
+            if (!order.canTransitionToProduction(now)) return@forEach
             moved[OrderDateUtils.formatDateKey(
                 kotlin.time.Instant.fromEpochMilliseconds(order.pickUpDate)
             )] = "transitioned_${order.id}"
         }
-        return Result.success(moved)
+
+        return Result.success(
+            DemoTransitionResult(
+                transitioned = moved,
+                notEligibleMarketIds = notEligible.toList()
+            )
+        )
     }
 
     override suspend fun updateOrderStatus(

@@ -701,16 +701,22 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 return@launch
             }
 
+            // Where this order is collected: the market named by the slot the buyer
+            // picked, falling back to their contextual market while a single-market
+            // seller has nothing to choose. The rules accept empty, and reject an id
+            // that names no market.
+            val orderMarketId = _state.value.basketScreen.selectedMarketId
+                .ifEmpty { _state.value.contextualMarketId.orEmpty() }
+
             val order = Order(
                 buyerProfile = buyerProfile,
                 createdDate = Clock.System.now().toEpochMilliseconds(),
                 sellerId = sellerConfig.sellerId,
-                // Where this order is collected: the market named by the slot the
-                // buyer picked, falling back to their contextual market while a
-                // single-market seller has nothing to choose. The rules accept
-                // empty, and reject an id that names no market.
-                marketId = _state.value.basketScreen.selectedMarketId
-                    .ifEmpty { _state.value.contextualMarketId.orEmpty() },
+                marketId = orderMarketId,
+                // Snapshotted beside the prices it produced: the seller may edit
+                // conditions tomorrow, and this is what says the articles above were
+                // priced against yesterday's.
+                pricingRevision = _state.value.pricingRevisionOf(orderMarketId),
                 pickUpDate = selectedDate,
                 message = "",
                 articles = items,
@@ -954,14 +960,17 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
             val isDemo = _state.value.isDemoMode
             val isLocalDemo = isDemo && orderId.startsWith("demo_")
 
+            val editMarketId = basketState.selectedMarketId
+                .ifEmpty { _state.value.contextualMarketId.orEmpty() }
+
             val updatedOrder = if (isLocalDemo) {
                 Order(
                     id = orderId,
                     buyerProfile = buyerProfile,
                     createdDate = createdDate,
                     sellerId = sellerConfig.sellerId,
-                    marketId = _state.value.basketScreen.selectedMarketId
-                        .ifEmpty { _state.value.contextualMarketId.orEmpty() },
+                    marketId = editMarketId,
+                    pricingRevision = _state.value.pricingRevisionOf(editMarketId),
                     pickUpDate = pickupDate,
                     message = "",
                     articles = items,
@@ -980,7 +989,18 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                         setBasketError("Bestellung konnte nicht geladen werden")
                         return@launch
                     }
-                stored.copy(buyerProfile = buyerProfile, articles = items)
+                // The market moves only if the buyer actually chose one in this
+                // session; otherwise the stored one stands, as it did before. Either
+                // way marketId, pricingRevision and the article prices are written
+                // from the same market, so the snapshot cannot contradict itself.
+                val keptMarketId = basketState.selectedMarketId.ifEmpty { stored.marketId }
+                stored.copy(
+                    buyerProfile = buyerProfile,
+                    articles = items,
+                    marketId = keptMarketId,
+                    pricingRevision = if (keptMarketId == stored.marketId) stored.pricingRevision
+                    else _state.value.pricingRevisionOf(keptMarketId)
+                )
             }
 
             val result = if (isDemo) {
@@ -1247,15 +1267,40 @@ internal fun BuyAppViewModel.basketScreenSelectPickupDate(date: Long) {
         return
     }
 
+    basketScreenApplySlot(date, slot?.marketId.orEmpty())
+}
+
+/**
+ * Settle on a pickup slot and make the basket's prices match the market it names.
+ *
+ * The two have to move together. Leaving the prices behind is what made the switch
+ * warning a lie: it told the buyer four articles would change price, and then the
+ * total stayed exactly as it was because every item still carried the price it was
+ * added at. Repricing is a no-op when the market has no conditions, which is every
+ * single-market seller today, so the common case pays nothing for this.
+ *
+ * Only the prices move. Quantities are the buyer's, and a market change has no
+ * business touching them — see `BasketRepository.repriceItems`.
+ */
+private fun BuyAppViewModel.basketScreenApplySlot(date: Long, marketId: String) {
+    val marketChanged = marketId != _state.value.basketScreen.selectedMarketId
+
     _state.update { current ->
         current.copy(
             basketScreen = current.basketScreen.copy(
                 selectedPickupDate = date,
-                selectedMarketId = slot?.marketId.orEmpty(),
+                selectedMarketId = marketId,
                 showDatePicker = false,
-                orderError = null
+                orderError = null,
+                pendingSlotPriceChange = null
             )
         )
+    }
+
+    if (marketChanged) {
+        viewModelScope.launch {
+            basketRepository.repriceItems(_state.value.basketPricesAt(marketId))
+        }
     }
 }
 
@@ -1270,6 +1315,13 @@ private fun slotPriceChanges(state: BuyAppState, slot: PickupSlot?): List<PriceC
     val fromMarketId = state.basketScreen.selectedMarketId
     if (toMarketId == fromMarketId) return emptyList()
 
+    // The buyer's *first* pick is not a change. With no market settled the basket was
+    // priced against no conditions, so moving to a real market does shift the numbers
+    // — but there is no total the buyer committed to, and a dialog saying "4 articles
+    // change price" before they have chosen anything reads as a warning about
+    // something they did not do. The prices still move; see basketScreenApplySlot.
+    if (fromMarketId.isEmpty()) return emptyList()
+
     val pricingFor = { id: String ->
         state.eligibleMarkets.firstOrNull { it.id == id }?.pricing ?: MarketPricing.NONE
     }
@@ -1282,19 +1334,10 @@ private fun slotPriceChanges(state: BuyAppState, slot: PickupSlot?): List<PriceC
     return priceChanges(articles, pricingFor(fromMarketId), pricingFor(toMarketId))
 }
 
-/** The buyer accepted the new prices: apply the slot they had chosen. */
+/** The buyer accepted the new prices: apply the slot they had chosen, prices and all. */
 internal fun BuyAppViewModel.basketScreenConfirmSlotPriceChange() {
     val pending = _state.value.basketScreen.pendingSlotPriceChange ?: return
-    _state.update { current ->
-        current.copy(
-            basketScreen = current.basketScreen.copy(
-                selectedPickupDate = pending.slot.date,
-                selectedMarketId = pending.slot.marketId,
-                pendingSlotPriceChange = null,
-                orderError = null
-            )
-        )
-    }
+    basketScreenApplySlot(pending.slot.date, pending.slot.marketId)
 }
 
 /** The buyer declined: the slot they had is kept, prices unchanged. */

@@ -3,6 +3,8 @@ package com.together.newverse.data.firebase.model
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.PriceCause
+import com.together.newverse.domain.model.PriceComponent
 
 /**
  * Firebase DTO for Order
@@ -13,6 +15,7 @@ data class OrderDto(
     val createdDate: Long = 0L,
     val sellerId: String = "",
     val marketId: String = "",
+    val pricingRevision: Long = 0L,
     val pickUpDate: Long = 0L,
     val message: String = "",
     val notFavourite: Boolean = true,
@@ -30,6 +33,7 @@ data class OrderDto(
             createdDate = createdDate,
             sellerId = sellerId,
             marketId = marketId,
+            pricingRevision = pricingRevision,
             pickUpDate = pickUpDate,
             message = message,
             notFavourite = notFavourite,
@@ -49,6 +53,7 @@ data class OrderDto(
                 createdDate = order.createdDate,
                 sellerId = order.sellerId,
                 marketId = order.marketId,
+                pricingRevision = order.pricingRevision,
                 pickUpDate = order.pickUpDate,
                 message = order.message,
                 notFavourite = order.notFavourite,
@@ -113,6 +118,8 @@ data class OrderedProductDto(
     val productId: String = "",
     val productName: String = "",
     val price: Double = 0.0,
+    val basePrice: Double = 0.0,
+    val priceComponents: List<PriceComponentDto> = emptyList(),
     val unit: String = "",
     val amountCount: Double = 0.0,
 ) {
@@ -122,6 +129,8 @@ data class OrderedProductDto(
             productId = productId,
             productName = productName,
             price = price,
+            basePrice = basePrice,
+            priceComponents = priceComponents.mapNotNull { it.toDomain() },
             unit = unit,
             amountCount = amountCount
         )
@@ -134,9 +143,36 @@ data class OrderedProductDto(
                 productId = product.productId,
                 productName = product.productName,
                 price = product.price,
+                basePrice = product.basePrice,
+                priceComponents = product.priceComponents.map { PriceComponentDto.fromDomain(it) },
                 unit = product.unit,
                 amountCount = product.amountCount
             )
         }
+    }
+}
+
+/**
+ * Firebase DTO for one line of a price breakdown.
+ *
+ * [toDomain] returns null for a cause this build does not know, so an older app
+ * reading a newer order drops the line rather than inventing a cause for it.
+ */
+data class PriceComponentDto(
+    val cause: String = "",
+    val amount: Double = 0.0,
+    val note: String = "",
+) {
+    fun toDomain(): PriceComponent? {
+        val parsed = PriceCause.entries.firstOrNull { it.name == cause } ?: return null
+        return PriceComponent(cause = parsed, amount = amount, note = note)
+    }
+
+    companion object {
+        fun fromDomain(component: PriceComponent) = PriceComponentDto(
+            cause = component.cause.name,
+            amount = component.amount,
+            note = component.note
+        )
     }
 }

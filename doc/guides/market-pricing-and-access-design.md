@@ -1,9 +1,15 @@
 # Markets: Pricing, Access, Scheduling and Communication
 
-**Status:** implemented 2026-10-19 — §1 markets as an entity, §2 pricing, §3
-eligibility and production requests, §4 schedules, slots and closures. The rule
-validating a request's market is **not deployed**; everything else is live in both
-projects.
+**Status:** implemented 2026-10-19 — §1 markets as an entity, §3 eligibility and
+production requests, §4 schedules, slots and closures. The rule validating a
+request's market is **not deployed**.
+
+**§2 pricing** is built except for the explanation UI (2026-10-20). The adjusted price
+is resolved, charged and snapshotted onto the order with the revision it came from, and
+the basket reprices when it moves market. What is **not** built: the catalog banner and
+the per-article breakdown — `PriceBreakdown.kt` exists and nothing renders it — and any
+announcement when the seller changes conditions under a placed order. §2a covers the
+market pick in demo mode and onboarding. See **§2 status** below.
 **Scope (proposed):** `shared/src/commonMain` (model + pricing + schedule + repository),
 `buyMain` (slot picker, price breakdown), `sellMain` (market, condition and closure
 editing), `firebase/database.rules.json`
@@ -281,6 +287,31 @@ always-`Standard` argument. `resolvePrice(article, pricing)` is the whole signat
 A component that rounds away to nothing is omitted rather than rendered, because
 "+0,00 € Transport" explains nothing.
 
+### §2 status, 2026-10-20
+
+| Piece | State |
+|-------|-------|
+| `resolvePrice` + `priceChanges` engine | **Built**, ~15 tests in `MarketPricingTest` |
+| Seller condition editor, `pricingRevision` bump | **Built** (`PriceConditionEditor`, `SellerProfileScreen.kt:889`) |
+| Persistence + rules validation | **Built** |
+| Market-switch warning before applying | **Built end to end** — `slotPriceChanges` → `PendingSlotPriceChange` → `PriceChangeDialog` → confirm/dismiss |
+| Catalog banner + per-article breakdown | **Not wired.** `PriceBreakdown.kt` exists, nothing renders it |
+| Adjusted price actually charged | **Built** — both add-to-basket paths use `priceOf()`; `OrderedProduct` carries `basePrice` + `priceComponents` |
+| Basket repriced on a market change | **Built** — `BasketRepository.repriceItems`, via `basketScreenApplySlot` |
+| `pricingRevision` snapshotted on the order | **Built** — on `Order`, written and read back, validated in the rules |
+| Seller price change announced to buyers | **No.** No `SellerEventType` for it; needs the notification engine |
+| First-pick dialog suppressed | **Built** — `slotPriceChanges` returns empty from an unset market |
+| Transition refuses an order at an ungranted market | **Built** — `DemoTransitionResult.notEligibleMarketIds` |
+| Market pick during onboarding | **Not built** — see §2a |
+
+What remains is the *explanation*, not the money: a buyer is charged the market's price
+and the order records why, but nothing on screen yet tells them that before checkout
+beyond the switch dialog. `PriceBreakdown` is written and waiting for a caller.
+
+A legacy order — written before `basePrice` existed — reads back with `basePrice = 0.0`,
+which `OrderedProduct.basePriceOrPrice` resolves to the charged price. It reads as
+unadjusted, never as free; `OrderPriceSnapshotTest` pins that.
+
 ### Communicating the difference
 
 This falls out of `components` — no separate explanation text to maintain:
@@ -305,6 +336,99 @@ A buyer who switches markets with a full basket gets different totals. This must
 explicit step — *"4 Artikel ändern den Preis: … Weiter / Abbrechen"* — not a silent
 recalculation. Silent recalculation of a basket the buyer already reviewed is the single
 most damaging thing this feature could do to trust, and it is easy to ship by accident.
+
+### 2a. The market pick in demo mode and onboarding
+
+**Status:** the two guards below are **built** (2026-10-20); the onboarding pick itself is
+**not**.
+
+Prices follow the market, so *when* the buyer names a market decides which prices they
+ever see. Today that happens late — at the slot picker, on the way to checkout — and
+three things follow from it.
+
+**Demo does not restrict the market.** `eligibleMarkets` falls back to every seller
+market when `allowedMarkets` is empty, and an unapproved buyer has no access record, so
+their scope is empty and they may browse and order at any stall. "Empty means all" is
+right and has to stay — it is what keeps records written before market scoping meaning
+what they meant — but the consequence is that demo mode is not a narrower world, only an
+unapproved one.
+
+**The buyer's demo browsing decides their eligibility, and nothing says so.** The access
+request carries `contextualMarketId` (`BuyAppViewModelAccess.kt:134`), and
+`approveRequest` grants exactly that, defaulting to empty — anywhere — when the request
+named no market. So a demo buyer who never opened the slot picker asks to collect
+anywhere and is approved for everywhere; one who picked Neukölln asks for Neukölln and
+gets Neukölln. The most consequential field in the request is filled in as a side effect
+of something the buyer did for another reason.
+
+**`BuyerProfile.defaultMarket` has no write path.** It is read
+(`BuyAppState.contextualMarketId`) and persisted (`GitLiveProfileRepository.kt:663`), and
+nothing in either app ever sets it. The middle rung of the resolution ladder is dead.
+
+#### The shape: ask once, early
+
+Make the market pick part of onboarding rather than of checkout. One question — *where do
+you collect?* — asked before the buyer has a basket worth anything, which:
+
+- writes `BuyerProfile.defaultMarket`, giving that field the write path it lacks;
+- fills the access request's `marketId` from a deliberate answer instead of a side
+  effect;
+- makes the market the buyer browsed, the prices they saw, the market they requested and
+  the market they are granted the same market **by construction**, so the demo→production
+  transition has nothing to contradict.
+
+A single-market seller has nothing to ask: `contextualMarketId` already resolves to "the
+only market there is", and the step collapses to the checkout confirmation §4 describes.
+
+#### Demo prices are the chosen market's, marked provisional
+
+Not base prices. A demo order priced without the market's conditions sets an expectation
+that the real order breaks, which is the same damage as silently recalculating a basket,
+only deferred past the point where the buyer could have objected. And not "no prices until
+approved" either — the catalog has to be browsable to be worth approving for.
+
+So: the real prices of the chosen market, with the provisional state said out loud. §4
+already reserves one line for demo buyers at the checkout confirmation; that line is where
+it goes.
+
+#### Guard 1: the first pick is not a change — built
+
+`slotPriceChanges` returns empty when `selectedMarketId` is still empty. Moving from no
+market to a real one does shift every number, but there is no total the buyer committed
+to, and a dialog reading *"4 articles change price"* before they have chosen anything
+warns them about something they did not do. The prices still move —
+`basketScreenApplySlot` reprices whenever the market changes, dialog or no dialog. A
+second pick, market to market, asks as before.
+
+#### Guard 2: the transition refuses rather than moves — built
+
+`transitionDemoOrdersToProduction` now takes the granted markets and leaves behind any
+order naming one outside them, reporting it as
+`DemoTransitionResult.notEligibleMarketIds`.
+
+An order carries the price it was placed at, and that price came from a market the buyer
+turns out not to have. Moving it charges one stall's prices for a stall they cannot reach;
+repricing it silently changes a total they already confirmed. Neither is the transition's
+call, so the order stays in `demo_orders/`, the local demo orders are **not** cleared, and
+the buyer is told which market was refused. This is the same discipline that already drops
+an order whose pickup has passed, applied to a different way of being unmovable.
+
+Two details worth keeping:
+
+- The grant is read fresh with `ProfileRepository.getAllowedMarkets`, not taken from
+  state. The status and the scope arrive on two separate flows and the transition fires
+  the moment the status turns APPROVED, which can be before the scope has caught up.
+  Reading state there would let an order through at a market that was just narrowed away.
+- An order with an **empty** `marketId` is never refused. That is every order from a
+  single-market seller and every order written before markets were an entity; refusing
+  them would strand exactly the orders this guard is not about.
+
+#### Still open
+
+The onboarding question itself — where it sits in the flow, and whether a buyer may change
+the answer later without a new access request. Changing it narrows or widens nothing by
+itself, since the grant is the seller's, but it does mean a buyer can ask for a market
+they were not approved for and must be told what that implies.
 
 ### Orders snapshot, never reference
 
@@ -710,13 +834,17 @@ under `buyer_profile`, so it needs the usual read-both-shapes migration.
 validates; a slot has more ways to go stale — market deleted, market deactivated,
 eligibility revoked, **day since closed** — and all of them land in that same path.
 
-### 3. Are prices public per market, or per eligible buyer?
+### 3. ~~Are prices public per market, or per eligible buyer?~~ — settled
 
-`market_pricing` has to be readable by any signed-in user for the catalog to price itself
-before approval — the same openness `articles` already has. That means a buyer can read
-the prices of a market they are not eligible for. Probably fine, possibly not if
-neighborhood rates are meant to be discreet. If they are not public, pricing has to move
-behind the access check and the demo/unapproved catalog needs a fallback price.
+**Public.** Decided 2026-10-20. Conditions live on the market row, which every signed-in
+user can already read — the same openness `articles` has — so a buyer can see the prices
+of a market they are not eligible for, and that is accepted. A discreet neighborhood rate
+is not a goal worth moving pricing behind the access check for: it would leave the demo
+and unapproved catalog needing a fallback price, which is a second price for the same
+article and the start of the drift this design exists to avoid.
+
+This is what makes §2a below possible: a demo buyer can be shown the real prices of the
+market they chose, rather than a placeholder that the real order would then contradict.
 
 ### 4. ~~Does `BuyerTerms` exist, or is it premature?~~ — settled
 

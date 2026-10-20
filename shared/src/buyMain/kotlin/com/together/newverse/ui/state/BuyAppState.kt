@@ -146,6 +146,36 @@ data class BuyAppState(
     /** What [article] costs here, and why. */
     fun priceOf(article: Article): ResolvedPrice = resolvePrice(article, activePricing)
 
+    /** The pricing of [marketId], or [MarketPricing.NONE] when it names no eligible market. */
+    fun pricingOf(marketId: String): MarketPricing =
+        eligibleMarkets.firstOrNull { it.id == marketId }?.pricing ?: MarketPricing.NONE
+
+    /**
+     * The revision to snapshot onto an order collected at [marketId].
+     *
+     * `0L` for a market with no conditions or none we know, which is what an order
+     * placed before per-market pricing also carries — in both cases there is no
+     * revision to disagree with later.
+     */
+    fun pricingRevisionOf(marketId: String): Long = pricingOf(marketId).revision
+
+    /**
+     * Every basket item's price at [marketId], keyed by `productId`, for
+     * `BasketRepository.repriceItems`.
+     *
+     * Priced against the catalogue entries the basket was built from; an item whose
+     * article is no longer in the catalogue is left out rather than guessed at, so its
+     * stored price stands.
+     */
+    fun basketPricesAt(marketId: String): Map<String, ResolvedPrice> {
+        val pricing = pricingOf(marketId)
+        return basketScreen.items.mapNotNull { item ->
+            val article = mainScreen.articles.firstOrNull { it.id == item.productId }
+                ?: return@mapNotNull null
+            item.productId to resolvePrice(article, pricing)
+        }.toMap()
+    }
+
     /**
      * The markets this buyer may actually choose between.
      *

@@ -155,6 +155,8 @@ class MockProfileRepository : ProfileRepository {
 
     override fun observeAllowedMarkets(sellerId: String): Flow<List<String>> = flowOf(emptyList())
 
+    override suspend fun getAllowedMarkets(sellerId: String): List<String> = emptyList()
+
     override fun observeAccessStatus(sellerId: String): Flow<AccessStatus> =
         flowOf(AccessStatus.NONE)
 

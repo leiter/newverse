@@ -270,6 +270,8 @@ class FakeProfileRepository : ProfileRepository {
 
     override fun observeAllowedMarkets(sellerId: String): Flow<List<String>> = _allowedMarkets
 
+    override suspend fun getAllowedMarkets(sellerId: String): List<String> = _allowedMarkets.value
+
     /** Scope this buyer to a set of markets. Empty means all. */
     fun setOwnAllowedMarkets(markets: List<String>) { _allowedMarkets.value = markets }
 

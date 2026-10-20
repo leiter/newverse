@@ -95,16 +95,27 @@ sealed interface ProductsAction {
 
 ## Order Business Rules
 
-- **Pickup Day:** Always Thursday
-- **Edit Deadline:** Tuesday 23:59 before pickup
+- **Pickup Day:** per market (`Market.dayOfWeek`). Thursday where a seller runs one
+  market, which is every seller today — not a global rule.
+- **Edit Deadline:** the same *distance* before pickup that Tuesday 23:59 is before
+  Thursday, so a Monday market and a Saturday market get equal notice
+  (`Market.scheduleConfig`).
+- **Order Window:** the next open slot only — one slot per eligible market, and
+  nothing beyond it. An order snapshots the catalogue and the price it was placed
+  against, so a longer horizon promises what the seller cannot keep.
 - **Order States:** DRAFT → PLACED → LOCKED → COMPLETED
+- **Pricing:** per market, via `Market.priceConditions`. The charged price, its base
+  and its breakdown are snapshotted onto each `OrderedProduct`, with the market's
+  `pricingRevision` on the `Order`.
 
 ```kotlin
-// Monday/Tuesday → This Thursday
-// Wednesday+ → Next Thursday
-val pickupDate = OrderDateUtils.calculateNextPickupDate()
-val canEdit = order.canEdit() // checks deadline
+val slots = PickupSlots.nextPerMarket(markets, closures)  // one per market
+val canEdit = order.canEdit()                             // checks the deadline
+val resolved = state.priceOf(article)                     // gross + why
 ```
+
+Details: `doc/guides/ordering-business-rules.md` and
+`doc/guides/market-pricing-and-access-design.md`.
 
 ## Key Files
 

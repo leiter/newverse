@@ -2,6 +2,8 @@ package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.model.ResolvedPrice
+import com.together.newverse.domain.model.pricedWith
 import com.together.newverse.domain.repository.BasketRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -81,6 +83,20 @@ class InMemoryBasketRepository : BasketRepository {
             _basket.value = currentItems
             Log.d(TAG) { "BasketRepository.updateQuantity: Updated product $productId to quantity $newQuantity (pieces: $newPiecesCount)" }
         }
+    }
+
+    override suspend fun repriceItems(prices: Map<String, ResolvedPrice>) {
+        if (prices.isEmpty()) return
+        var changed = 0
+        _basket.value = _basket.value.map { item ->
+            val resolved = prices[item.productId] ?: return@map item
+            if (resolved.gross == item.price && resolved.components == item.priceComponents) item
+            else {
+                changed++
+                item.pricedWith(resolved)
+            }
+        }
+        Log.d(TAG) { "BasketRepository.repriceItems: Re-priced $changed of ${_basket.value.size} items" }
     }
 
     override suspend fun clearBasket() {

@@ -192,18 +192,45 @@ internal fun BuyAppViewModel.transitionDemoOrdersToProduction() {
 
         Log.d(TAG) { "transitionDemoOrders: ${remoteOrderIds.size} remote, ${localOrders.size} local" }
 
+        // Read fresh rather than taken from state: the approval and the market scope
+        // arrive on two separate flows, and this runs the moment the status turns
+        // APPROVED — which can be before observeAllowedMarkets has caught up. Using
+        // the stale value would let an order through at a market that was just
+        // narrowed away.
+        val granted = profileRepository.getAllowedMarkets(sellerConfig.sellerId)
+
         orderRepository.transitionDemoOrdersToProduction(
             sellerId = sellerConfig.sellerId,
             remoteOrderIds = remoteOrderIds,
-            localOrders = localOrders
-        ).onSuccess { placedOrderIds ->
+            localOrders = localOrders,
+            allowedMarkets = granted
+        ).onSuccess { result ->
             if (profile != null) {
-                profileRepository.saveBuyerProfile(profile.copy(placedOrderIds = placedOrderIds))
+                profileRepository.saveBuyerProfile(
+                    profile.copy(placedOrderIds = result.transitioned)
+                )
             }
-            sellerConfig.clearDemoOrders()
-            sellerConfig.resetDemoOrderState()
+            // Only clear the local demo orders once nothing was refused. A refused
+            // order is the buyer's to decide about, and clearing it here would
+            // silently throw away the basket they are about to be asked to re-place.
+            if (!result.hasRefusals) {
+                sellerConfig.clearDemoOrders()
+                sellerConfig.resetDemoOrderState()
+            }
             loadOrderHistory()
-            Log.d(TAG) { "transitionDemoOrders: ${placedOrderIds.size} order(s) now in production" }
+            Log.d(TAG) { "transitionDemoOrders: ${result.transitioned.size} order(s) now in production" }
+
+            if (result.hasRefusals) {
+                val names = result.notEligibleMarketIds
+                    .map { id -> _state.value.sellerMarkets.firstOrNull { it.id == id }?.name ?: id }
+                    .distinct()
+                Log.d(TAG) { "transitionDemoOrders: refused for market(s) $names" }
+                showSnackBar(
+                    "Bestellungen für ${names.joinToString(", ")} wurden nicht übernommen: " +
+                        "dieser Markt ist für dich nicht freigegeben.",
+                    SnackbarType.WARNING
+                )
+            }
         }.onFailure { e ->
             // Nothing was written, nothing was cleared — the demo orders are still there.
             Log.e(TAG) { "transitionDemoOrders: failed, demo orders left in place — ${e.message}" }
