@@ -217,10 +217,21 @@ internal fun BuyAppViewModel.addMainScreenToCart() {
             productName = selectedArticle.productName,
             unit = selectedArticle.unit,
             price = selectedArticle.price,
-            amount = quantity.toString(),
+            // Left empty on purpose: OrderedProduct.getFormattedAmount() derives the
+            // display string from amountCount and the unit. Putting quantity.toString()
+            // here is what showed the seller "1.0" instead of "1,000 kg".
+            amount = "",
             amountCount = quantity,
+            // weightPerPiece defaults to 0.0, and an article may simply not have one.
+            // Dividing by it gave Infinity, and Infinity.toInt() is Int.MAX_VALUE — a
+            // piece count of 2147483647 written to the order. -1 means "not applicable",
+            // which is what a weight-priced item without a piece weight is.
             piecesCount = if (selectedArticle.unit.lowercase() in listOf("kg", "g")) {
-                (quantity / selectedArticle.weightPerPiece).toInt()
+                if (selectedArticle.weightPerPiece > 0.0) {
+                    (quantity / selectedArticle.weightPerPiece).toInt()
+                } else {
+                    -1
+                }
             } else {
                 quantity.toInt()
             }

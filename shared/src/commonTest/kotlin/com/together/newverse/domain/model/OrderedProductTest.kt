@@ -35,4 +35,28 @@ class OrderedProductTest {
     fun `an explicit amount string is returned unchanged`() {
         assertEquals("2 Bund", OrderedProduct(unit = "kg", amount = "2 Bund", amountCount = 1.0).getFormattedAmount())
     }
+
+    // The buy app used to store `quantity.toString()` in `amount`, so orders already in
+    // Firebase hold "1.0" — no unit, a dot, and the seller cannot tell kg from pieces.
+    // amountCount is the number of record, so those are formatted rather than echoed.
+    @Test
+    fun `a bare number left by the old buy app is formatted, not echoed`() {
+        assertEquals(
+            "2,000 kg",
+            OrderedProduct(unit = "kg", amount = "2.0", amountCount = 2.0).getFormattedAmount()
+        )
+        assertEquals(
+            "0,750 kg",
+            OrderedProduct(unit = "kg", amount = "0.75", amountCount = 0.75).getFormattedAmount()
+        )
+        assertEquals(
+            "3 stück",
+            OrderedProduct(unit = "stück", amount = "3.0", amountCount = 3.0).getFormattedAmount()
+        )
+    }
+
+    @Test
+    fun `an empty amount is formatted from the count`() {
+        assertEquals("1,500 kg", OrderedProduct(unit = "kg", amount = "", amountCount = 1.5).getFormattedAmount())
+    }
 }

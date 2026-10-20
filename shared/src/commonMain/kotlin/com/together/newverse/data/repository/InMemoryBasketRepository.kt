@@ -35,11 +35,14 @@ class InMemoryBasketRepository : BasketRepository {
         }
 
         if (existingIndex >= 0) {
-            // Update quantity if item already exists
+            // Update quantity if item already exists.
+            // `amount` is cleared rather than rewritten: it is the display string, and
+            // OrderedProduct formats it from amountCount with the unit attached. Writing
+            // a raw Double here is what used to show the seller "2.0" with no unit.
             val existing = currentItems[existingIndex]
             currentItems[existingIndex] = existing.copy(
                 amountCount = existing.amountCount + item.amountCount,
-                amount = (existing.amountCount + item.amountCount).toString()
+                amount = ""
             )
         } else {
             currentItems.add(item)
@@ -60,16 +63,19 @@ class InMemoryBasketRepository : BasketRepository {
 
         if (index >= 0) {
             val item = currentItems[index]
-            // Note: We don't have access to weightPerPiece here, so we keep the existing piecesCount ratio
-            val newPiecesCount = if (item.amountCount > 0) {
-                ((item.piecesCount / item.amountCount) * newQuantity).toInt()
-            } else {
-                newQuantity.toInt()
+            // weightPerPiece is not available here, so the existing pieces-per-unit
+            // ratio is carried over. A piece count of -1 means "not applicable" (a
+            // weight-priced item, or an order that stored none): scaling it would turn
+            // it into a negative count and write that to Firebase, so it stays as it is.
+            val newPiecesCount = when {
+                item.piecesCount < 0 -> item.piecesCount
+                item.amountCount > 0 -> ((item.piecesCount / item.amountCount) * newQuantity).toInt()
+                else -> newQuantity.toInt()
             }
 
             currentItems[index] = item.copy(
                 amountCount = newQuantity,
-                amount = newQuantity.toString(),
+                amount = "",
                 piecesCount = newPiecesCount
             )
             _basket.value = currentItems

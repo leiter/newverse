@@ -25,7 +25,13 @@ data class OrderedProduct(
      * Shows amount with proper formatting based on unit type
      */
     fun getFormattedAmount(): String {
-        if (amount.isNotEmpty()) {
+        // [amount] is a display string — "1,500 kg" — and every branch below names the
+        // unit, so a real one always carries letters. Orders written while the buy app
+        // stored `quantity.toString()` here hold a bare number instead ("1.0"), which
+        // tells the seller neither the unit nor the decimals the rest of the app shows.
+        // Those are ignored rather than migrated: [amountCount] is the number of record
+        // and formatting from it heals the orders already in Firebase.
+        if (amount.any { it.isLetter() }) {
             return amount
         }
 

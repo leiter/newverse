@@ -48,9 +48,60 @@ class InMemoryBasketRepositoryTest {
             productName = name,
             price = price,
             amountCount = quantity,
-            amount = quantity.toString(),
+            // Empty, as the buy app writes it: the display string is derived from
+            // amountCount and the unit by OrderedProduct.getFormattedAmount().
+            amount = "",
             piecesCount = quantity.toInt()
         )
+    }
+
+    // ===== Amount and piece count stay sane =====
+
+    // `amount` is the display string the seller reads on the order they have to pack.
+    // Both write paths used to put a raw Double in it, so it said "2.0" — no unit, so
+    // no way to tell two kilos from two pieces.
+    @Test
+    fun `merging an item leaves the amount to be formatted from the count`() = runTest {
+        val item = createOrderedProduct(productId = "p1", quantity = 1.0).copy(unit = "kg")
+        repository.addItem(item)
+        repository.addItem(item)
+
+        val merged = repository.observeBasket().value.single()
+        assertEquals(2.0, merged.amountCount)
+        assertEquals("2,000 kg", merged.getFormattedAmount())
+    }
+
+    @Test
+    fun `editing the quantity leaves the amount to be formatted from the count`() = runTest {
+        repository.addItem(createOrderedProduct(productId = "p1", quantity = 1.0).copy(unit = "kg"))
+        repository.updateQuantity("p1", 0.75)
+
+        val item = repository.observeBasket().value.single()
+        assertEquals(0.75, item.amountCount)
+        assertEquals("0,750 kg", item.getFormattedAmount())
+    }
+
+    // -1 means "not applicable": a weight-priced item, or an order that stored no piece
+    // count. Scaling it by the new quantity turned it negative and wrote that to Firebase.
+    @Test
+    fun `a quantity edit keeps an inapplicable piece count inapplicable`() = runTest {
+        repository.addItem(
+            createOrderedProduct(productId = "p1", quantity = 1.0).copy(unit = "kg", piecesCount = -1)
+        )
+        repository.updateQuantity("p1", 2.0)
+
+        assertEquals(-1, repository.observeBasket().value.single().piecesCount)
+    }
+
+    @Test
+    fun `a quantity edit scales a real piece count`() = runTest {
+        repository.addItem(
+            createOrderedProduct(productId = "p1", quantity = 2.0).copy(unit = "kg", piecesCount = 4)
+        )
+        repository.updateQuantity("p1", 3.0)
+
+        // 4 pieces per 2 kg, so 3 kg is 6.
+        assertEquals(6, repository.observeBasket().value.single().piecesCount)
     }
 
     // ===== A. Initial State (3 tests) =====
@@ -136,14 +187,15 @@ class InMemoryBasketRepositoryTest {
     }
 
     @Test
-    fun `addItem updates amount string`() = runTest {
+    fun `addItem keeps the amount string empty for the formatter`() = runTest {
         val product = createOrderedProduct(productId = "prod_1", quantity = 2.5)
 
         repository.addItem(product)
 
         repository.observeBasket().test {
             val items = awaitItem()
-            assertEquals("2.5", items[0].amount)
+            assertEquals(2.5, items[0].amountCount)
+            assertEquals("", items[0].amount)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -214,7 +266,7 @@ class InMemoryBasketRepositoryTest {
         repository.observeBasket().test {
             val items = awaitItem()
             assertEquals(5.0, items[0].amountCount)
-            assertEquals("5.0", items[0].amount)
+            assertEquals("", items[0].amount)
             cancelAndIgnoreRemainingEvents()
         }
     }
