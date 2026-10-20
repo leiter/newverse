@@ -69,9 +69,11 @@ The following features are planned but not yet implemented, or are only partiall
     offer only the next open slot per market and to make the step a confirmation at the
     moment of commitment.
   - **Tasks:**
-    - Offer one slot per eligible market instead of five dates each — `count = 5` at
-      `BuyAppViewModelBasket.kt:1160` and `:1162`, defaults at `PickupSlot.kt:39` and
-      `OrderDateUtils.kt:302`. Keep `count` as the bound on the closure walk.
+    - ✅ **Done 2026-10-19** — offer one slot per eligible market instead of five dates
+      each: `PickupSlots.nextPerMarket`, called from `BuyAppViewModelBasket.kt:1157`.
+      `next(count)` is unchanged for other callers. Covered by five cases in
+      `PickupSlotTest` and by the two `BuyAppViewModelSlotTest` cases, which now assert
+      one slot per market.
     - Replace the checkout path's `showDatePicker` (`BuyAppViewModelBasket.kt:632`,
       `:650`) with a confirmation shown before the order is placed.
     - Put the edit deadline and the time remaining in it — `formatTimeUntilDeadline` and

@@ -185,6 +185,65 @@ class PickupSlotTest {
         // Not the 13th: that Saturday's deadline passed on Thursday the 11th.
         assertEquals(20, dayOf(slots.single()).dayOfMonth)
     }
+
+    // ===== one slot per market is all a buyer is offered =====
+
+    @Test
+    fun `each market offers its next day and nothing beyond it`() {
+        val slots = PickupSlots.nextPerMarket(
+            listOf(kreuzberg, neukoelln), now = monday, timeZone = utc
+        )
+
+        assertEquals(2, slots.size)
+        assertEquals(listOf("m1", "m2"), slots.map { it.marketId })
+        assertEquals(11, dayOf(slots[0]).dayOfMonth)   // Thu 11th
+        assertEquals(13, dayOf(slots[1]).dayOfMonth)   // Sat 13th
+    }
+
+    @Test
+    fun `a single market offers a single slot`() {
+        val slots = PickupSlots.nextPerMarket(listOf(kreuzberg), now = monday, timeZone = utc)
+
+        assertEquals(1, slots.size)
+        assertEquals(11, dayOf(slots.single()).dayOfMonth)
+    }
+
+    // Every market keeps its slot however many there are: the merged list is not
+    // truncated the way an explicit `count` is.
+    @Test
+    fun `three markets give three slots`() {
+        val mitte = Market(id = "m5", name = "Mitte", dayIndex = 2)   // Wednesday
+        val slots = PickupSlots.nextPerMarket(
+            listOf(kreuzberg, neukoelln, mitte), now = monday, timeZone = utc
+        )
+
+        assertEquals(3, slots.size)
+        assertEquals(setOf("m1", "m2", "m5"), slots.map { it.marketId }.toSet())
+    }
+
+    // Closing a day moves that stall's slot; it does not drop the stall.
+    @Test
+    fun `a closed next day hands the market its following open day`() {
+        val closures = MarketClosures(
+            listOf(MarketClosure("20240111", "m1", "Feiertag"))
+        )
+        val slots = PickupSlots.nextPerMarket(
+            listOf(kreuzberg), closures = closures, now = monday, timeZone = utc
+        )
+
+        assertEquals(1, slots.size)
+        assertEquals(18, dayOf(slots.single()).dayOfMonth)   // Thu 18th, a week on
+    }
+
+    @Test
+    fun `a market with no day contributes no slot`() {
+        val unset = Market(id = "m3", name = "Unset")
+        val slots = PickupSlots.nextPerMarket(
+            listOf(kreuzberg, unset), now = monday, timeZone = utc
+        )
+
+        assertEquals(listOf("m1"), slots.map { it.marketId })
+    }
 }
 
 /**

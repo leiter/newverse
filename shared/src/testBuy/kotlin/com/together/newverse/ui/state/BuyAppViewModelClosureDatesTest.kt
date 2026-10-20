@@ -83,8 +83,12 @@ class BuyAppViewModelClosureDatesTest {
      * Deliberately not read off the ViewModel: these are the dates the buggy build
      * kept showing, so the test needs them independently of it.
      */
-    private fun scheduledDates(): List<Long> =
-        OrderDateUtils.getAvailablePickupDates(count = 5).map { it.toEpochMilliseconds() }
+    /**
+     * [count] dates from the schedule. The buyer is offered one — the next open day —
+     * so a test that needs a day to close asks for two and closes the first.
+     */
+    private fun scheduledDates(count: Int = 1): List<Long> =
+        OrderDateUtils.getAvailablePickupDates(count = count).map { it.toEpochMilliseconds() }
 
     private fun dateKeyOf(epochMillis: Long): String =
         MarketClosure.dateKey(Instant.fromEpochMilliseconds(epochMillis), TimeZone.currentSystemDefault())
@@ -104,11 +108,12 @@ class BuyAppViewModelClosureDatesTest {
 
     @Test
     fun `a day the seller closed stops being offered after a restart`() = runTest {
-        val scheduled = scheduledDates()
+        val scheduled = scheduledDates(count = 2)
         assertTrue(scheduled.size >= 2, "expected a schedule to test against, got $scheduled")
 
-        // The seller closes the second offered day, as the dev seller did.
-        val closed = scheduled[1]
+        // The buyer is offered the next open day only, so closing that one is what
+        // there is to test: the offer has to move on to the day after it.
+        val closed = scheduled[0]
         startRestoredSession(listOf(MarketClosure(dateKeyOf(closed), "", "Urlaub")))
 
         val viewModel = createViewModel()
@@ -133,13 +138,12 @@ class BuyAppViewModelClosureDatesTest {
 
         val offered = viewModel.state.value.basketScreen.availablePickupDates
         assertFalse(offered.contains(closed), "the closed day is back on offer")
-        assertTrue(offered.contains(scheduled[0]), "an open day was dropped")
-        // The gap is filled from further out rather than shortening the list.
-        assertEquals(scheduled.size, offered.size)
+        // The offer moves to the next open day rather than emptying.
+        assertEquals(listOf(scheduled[1]), offered)
     }
 
     @Test
-    fun `with no closures the offered dates are the scheduled ones`() = runTest {
+    fun `with no closures the offered date is the next scheduled one`() = runTest {
         startRestoredSession(emptyList())
 
         val viewModel = createViewModel()
@@ -154,8 +158,8 @@ class BuyAppViewModelClosureDatesTest {
 /**
  * The basket offers slots — a market and a date together — not bare dates.
  *
- * With one market, or none configured, the offered dates are exactly what the
- * date picker always gave, which is the case every seller is in today.
+ * One slot per market and no further: with one market, or none configured, that is
+ * a single date, which is the case every seller is in today.
  */
 class BuyAppViewModelSlotTest {
 
@@ -206,12 +210,12 @@ class BuyAppViewModelSlotTest {
     }
 
     @Test
-    fun `with no markets configured the offered dates are the scheduled ones`() = runTest {
+    fun `with no markets configured the offered date is the next scheduled one`() = runTest {
         startSession()
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        val expected = OrderDateUtils.getAvailablePickupDates(count = 5).map { it.toEpochMilliseconds() }
+        val expected = OrderDateUtils.getAvailablePickupDates(count = 1).map { it.toEpochMilliseconds() }
         assertEquals(expected, viewModel.state.value.basketScreen.availablePickupDates)
         // A slot still exists for each date, just without a market to name.
         assertTrue(viewModel.state.value.basketScreen.availableSlots.all { it.marketId.isEmpty() })
@@ -228,10 +232,10 @@ class BuyAppViewModelSlotTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
+        // One slot each, not a run of weeks per stall.
         val slots = viewModel.state.value.basketScreen.availableSlots
-        assertEquals(5, slots.size)
-        assertTrue(slots.any { it.marketId == "m1" }, "no Kreuzberg slot")
-        assertTrue(slots.any { it.marketId == "m2" }, "no Neukölln slot")
+        assertEquals(2, slots.size)
+        assertEquals(listOf("m1", "m2"), slots.map { it.marketId })
         assertEquals(slots.map { it.date }.sorted(), slots.map { it.date })
         assertEquals(
             mapOf("m1" to "Kreuzberg", "m2" to "Neukölln"),

@@ -40,6 +40,7 @@ object PickupSlots {
         now: Instant = Clock.System.now(),
         timeZone: TimeZone = TimeZone.currentSystemDefault(),
         defaultConfig: OrderScheduleConfig? = null,
+        perMarket: Boolean = false,
     ): List<PickupSlot> {
         val open = markets.filter { it.active && it.pickupDay != null }
         if (open.isEmpty()) return emptyList()
@@ -59,8 +60,40 @@ object PickupSlots {
             // Ties are possible only when two markets share a day; ordering them by
             // id after the date keeps the list stable between reads.
             .sortedWith(compareBy({ it.date }, { it.marketId }))
-            .take(count)
+            .let { if (perMarket) it else it.take(count) }
     }
+
+    /**
+     * The next open slot of **each** market, in date order — the slots a buyer may
+     * actually order for.
+     *
+     * One per market, never a run of future weeks: the seller cannot promise a
+     * catalogue or a price weeks ahead, and an order snapshots both at the moment it
+     * is placed. A buyer who misses this week orders next week. See
+     * `doc/ordering-business-rules.md` §2.
+     *
+     * A market whose next day is closed contributes its following open day rather
+     * than dropping out, so closing one Thursday moves that stall's slot instead of
+     * hiding the stall.
+     */
+    fun nextPerMarket(
+        markets: List<Market>,
+        closures: MarketClosures = MarketClosures.NONE,
+        now: Instant = Clock.System.now(),
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        defaultConfig: OrderScheduleConfig? = null,
+    ): List<PickupSlot> = next(
+        markets = markets,
+        closures = closures,
+        count = 1,
+        now = now,
+        timeZone = timeZone,
+        defaultConfig = defaultConfig,
+        // next() truncates the merged list to [count] so that a request for five
+        // slots means five; here [count] is per market and every market keeps its
+        // one, however many stalls there are.
+        perMarket = true,
+    )
 
     /**
      * Whether [slot] can still be ordered for: its market still runs, the day is not

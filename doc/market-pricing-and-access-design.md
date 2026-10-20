@@ -485,7 +485,7 @@ field real (today it is written as `""`).
 label rather than a control. Most buyers will be in that case; the market row is therefore
 conditional on more than one market being on offer, not always present.
 
-### One slot per market, confirmed at checkout — decided 2026-10-16, not built
+### One slot per market, confirmed at checkout — slot count built 2026-10-19
 
 The list is **one row per eligible market — its next open date — and nothing further**,
 not five dates each. `doc/ordering-business-rules.md` §2 has the reasoning: the seller
@@ -493,10 +493,12 @@ cannot promise a catalogue or a price weeks out, and the order snapshots both.
 
 What that does to this section:
 
-- `getAvailableSlots(count = 5)` becomes one slot per market. The function keeps its
-  `count`, because the closure walk still needs a bounded search per market
-  (`PickupSlot.kt:39`, `OrderDateUtils.kt:302`, caller at
-  `BuyAppViewModelBasket.kt:1160`).
+- **Built.** `PickupSlots.nextPerMarket` offers each market its next open day and
+  nothing beyond it; `next(count)` keeps its old meaning for any caller that wants a
+  run of dates, and takes a `perMarket` flag so the merged list is not truncated when
+  every market is to keep its one. A market whose next day is closed contributes its
+  following open day rather than dropping out of the list. The basket calls it at
+  `BuyAppViewModelBasket.kt:1157`, with the no-markets fallback asking for one date.
 - **With one market there is nothing to pick**, so the step becomes a *confirmation at
   checkout* rather than a picker: the date in full, the edit deadline and the time left
   (`formatTimeUntilDeadline`, `getDeadlineWarningLevel` — both unused at that moment
