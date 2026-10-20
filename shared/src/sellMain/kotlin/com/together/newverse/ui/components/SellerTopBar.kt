@@ -76,6 +76,7 @@ fun SellerTopBar(
     val selectDeleteTitle = stringResource(Res.string.topbar_select_delete)
     val changeAvailabilityTitle = stringResource(Res.string.topbar_change_availability)
     val importProductsTitle = stringResource(Res.string.topbar_import_products)
+    val stockTitle = stringResource(Res.string.topbar_stock)
 
     TopAppBar(
         title = {
@@ -100,6 +101,7 @@ fun SellerTopBar(
                         notificationsTitle,
                         abrechnungTitle,
                         sellerTitle,
+                        stockTitle,
                         customerDetailTitle
                     )
                 },
@@ -252,6 +254,7 @@ private fun getRouteTitle(
     notificationsTitle: String,
     abrechnungTitle: String,
     sellerTitle: String,
+    stockTitle: String,
     customerDetailTitle: String
 ): String {
     return when (route) {
@@ -261,6 +264,7 @@ private fun getRouteTitle(
         NavRoutes.Sell.Profile.route -> profileTitle
         NavRoutes.Sell.NotificationSettings.route -> notificationsTitle
         NavRoutes.Sell.Abrechnung.route -> abrechnungTitle
+        NavRoutes.Sell.Stock.route -> stockTitle
         NavRoutes.Sell.CustomerDetail.route -> customerDetailTitle
         else -> sellerTitle
     }

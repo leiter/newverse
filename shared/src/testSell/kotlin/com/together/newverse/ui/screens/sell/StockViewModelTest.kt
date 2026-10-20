@@ -164,6 +164,31 @@ class StockViewModelTest {
         assertEquals(listOf("apple"), vm.state.value.refillNeeds.map { it.articleId })
     }
 
+    @Test
+    fun `an oversold article is on the list even though nothing is watched`() = runTest {
+        // Caught by running the app: the screen asked "is anything watched?" before
+        // "is anything on the list?", so an oversold unwatched article showed as
+        // "Kein Artikel wird überwacht" while the badge counted it.
+        articleRepository.setArticles(listOf(nuts))
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("nuts", MeasuredQuantity.typed(1.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(order("o1", articleId = "nuts", amount = 4.0)))
+
+        val state = loaded().state.value
+
+        assertTrue(!state.hasWatchedArticles, "the fixture is meant to watch nothing")
+        assertEquals(1, state.refillNeeds.size)
+        assertTrue(!state.nothingWatched, "the hint would have hidden an oversold article")
+    }
+
+    @Test
+    fun `nothing watched and nothing short is the hint's own case`() = runTest {
+        articleRepository.setArticles(listOf(nuts))
+
+        assertTrue(loaded().state.value.nothingWatched)
+    }
+
     // --- committed demand -----------------------------------------------------
 
     private fun order(

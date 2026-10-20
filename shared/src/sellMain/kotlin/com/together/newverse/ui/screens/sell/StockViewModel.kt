@@ -472,6 +472,17 @@ data class StockUiState(
     /** Set once a movement is recorded, until the screen has shown it. */
     val booked: StockMovementKind? = null
 ) {
+    /**
+     * Whether the refill list is empty because the seller watches nothing, rather
+     * than because everything is stocked.
+     *
+     * Both facts have to be weighed together, and in this order: since the reorder
+     * level became a buffer rather than a trigger, an article nobody watches can
+     * still be [RefillState.SHORT] — so "nothing is watched" is only the right thing
+     * to say when there is also nothing on the list.
+     */
+    val nothingWatched: Boolean get() = refillNeeds.isEmpty() && !hasWatchedArticles
+
     /** The standing filtered by [query]; the refill list is never filtered. */
     val matchingStanding: List<RefillNeed>
         get() {

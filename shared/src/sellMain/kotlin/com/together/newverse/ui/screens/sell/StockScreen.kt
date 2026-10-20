@@ -106,22 +106,24 @@ fun StockContent(
         }
 
         when {
-            !state.hasWatchedArticles -> item {
+            // The list first: an oversold article belongs here even when the seller
+            // watches nothing, which is exactly when the hint below would hide it.
+            state.refillNeeds.isNotEmpty() -> items(state.refillNeeds, key = { "need_${it.articleId}" }) { need ->
+                RefillCard(need = need, onBook = onBook)
+            }
+            state.nothingWatched -> item {
                 Text(
                     text = stringResource(Res.string.stock_nothing_watched),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            state.refillNeeds.isEmpty() -> item {
+            else -> item {
                 Text(
                     text = stringResource(Res.string.stock_all_stocked),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            else -> items(state.refillNeeds, key = { "need_${it.articleId}" }) { need ->
-                RefillCard(need = need, onBook = onBook)
             }
         }
 
