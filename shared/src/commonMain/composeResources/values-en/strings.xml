@@ -1060,6 +1060,15 @@
     <string name="stock_invalid_quantity">Please enter a quantity greater than 0</string>
     <string name="stock_save_failed">Could not record</string>
     <string name="stock_load_failed">Could not load stock</string>
+    <string name="stock_affected_orders">Affected orders</string>
+    <string name="stock_affected_orders_hint">These customers are waiting for something that is missing. Who gets what is your call.</string>
+    <string name="stock_message_buyer">Draft message</string>
+    <string name="stock_message_title">Message to a customer</string>
+    <string name="stock_message_send">Send</string>
+    <string name="stock_message_sent">Message sent</string>
+    <string name="stock_message_failed">Message could not be sent</string>
+    <string name="stock_no_buyer_to_message">No customer account is recorded for this order</string>
+    <string name="stock_ordered_by">ordered</string>
     <string name="stock_search">Search articles</string>
     <string name="stock_from_scale">From the scale</string>
     <string name="stock_scale_unavailable">No scale connected</string>

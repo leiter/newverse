@@ -1,6 +1,6 @@
 # Stock-Driven Refill and Availability
 
-> **DESIGN — Phases 1–4 built, the buyer-facing halves are not** (as of 2026-10-20). The stock ledger
+> **DESIGN — Phases 1–5 built; only the scarcity band (§4f) is not** (as of 2026-10-20). The stock ledger
 > it builds on was already there: `StockRepository`, `StockMovement`/`StockLevel`,
 > `StockRefill.kt`, `StockScreen` and the refill badge, all in the database rules.
 > **Phases 1 and 2 (§8) are now implemented**: `CommittedDemand.kt`,
@@ -11,10 +11,12 @@
 > `stockGated` on the private half, the correction pass in `StockViewModel`, and the
 > gate's switch in the article editor; plus `StockReminderEvaluator`,
 > `StockReminderSnapshots`, the WorkManager chain, and the seller's refill
-> notification — so `lowStockNotifications` finally switches something real. Still
-> proposals: both buyer-facing halves (§4f, §5). §4b's formula and §4a's migration
-> note were corrected against what building it showed, and §3's posting time is now
-> the morning after the deadline rather than the deadline itself.
+> notification — so `lowStockNotifications` finally switches something real; plus
+> `OrderShortfalls.kt`, the affected-orders section with its seller-sent draft, and
+> the buyer's restored messages entry point. Still a proposal: the public scarcity
+> band (§4f). §4b's formula and §4a's migration note were corrected against what
+> building it showed, and §3's posting time is now the morning after the deadline
+> rather than the deadline itself.
 
 **Date:** 2026-10-20
 **Status:** Design — not implemented
@@ -422,6 +424,12 @@ The flow is therefore seller-driven:
 1. `SHORT` on `StockScreen` lists the affected **orders**, not only the articles —
    who is affected, by how much, for which slot. The per-slot split from §2 is
    what makes this possible.
+
+   Built with nothing allocated between them: with 1 kg left and three buyers
+   wanting 5 kg each, all three are listed and each line reports the *total* gap.
+   Dividing it is a decision about customers, not a division sum. What the draft
+   tells a buyer is what *they* ordered, never the shop's total shortfall, which
+   would read as a complaint.
 2. One tap drafts a German message per affected order, pre-filled with the
    article and the shortfall.
 3. The seller edits and sends. Substitution and part-fill are judgement, not
@@ -518,11 +526,10 @@ in the same multi-path update as the movement, hysteresis, rules tests under
 `UNUserNotificationCenter` implementations, and finally wire
 `NotificationSettings.lowStockNotifications` to something real.
 
-**Phase 5 — telling the customer (§5)**
-Affected orders on the `SHORT` list, the drafted message, the seller's send. Needs
-Phases 1 and 2 only, not 3 or 4 — so it can be pulled forward ahead of derived
-availability if the seller wants the human path before the automatic one.
-Blocked on restoring the buyer's messages entry point.
+**Phase 5 — telling the customer (§5) — BUILT**
+Affected orders on the `SHORT` list, the drafted message, the seller's send. The
+buyer's messages entry point is restored with it, gated on approval like the contact
+shortcut.
 
 **Phase 6 — the scarcity band (§4f)**
 Derived `scarcity` on the public article, band thresholds, hysteresis, rules

@@ -20,6 +20,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Badge
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -66,6 +67,7 @@ import com.together.newverse.util.formatString
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
+import newverse.shared.generated.resources.nav_messages
 import newverse.shared.generated.resources.a11y_contact_options
 import newverse.shared.generated.resources.a11y_hero_total
 import newverse.shared.generated.resources.action_call
@@ -563,34 +565,47 @@ private fun AppScaffoldContent(
                         }
                     }
 
-                    // [KEPT AS REMINDER] — Message icon navigating to Messages screen
-                    // if (currentRoute == NavRoutes.Buy.Profile.route || currentRoute == NavRoutes.Home.route) {
-                    //     Box(modifier = Modifier.padding(end = 8.dp)) {
-                    //         IconButton(onClick = {
-                    //             navController.navigate(NavRoutes.Buy.Messages.route) {
-                    //                 launchSingleTop = true
-                    //             }
-                    //         }) {
-                    //             Icon(
-                    //                 imageVector = Icons.Default.Email,
-                    //                 contentDescription = stringResource(Res.string.nav_messages),
-                    //                 tint = MaterialTheme.colorScheme.onPrimary
-                    //             )
-                    //         }
-                    //         if (appState.unreadMessageCount > 0) {
-                    //             Badge(
-                    //                 containerColor = MaterialTheme.colorScheme.tertiary,
-                    //                 contentColor = MaterialTheme.colorScheme.onTertiary,
-                    //                 modifier = Modifier.align(Alignment.TopEnd)
-                    //             ) {
-                    //                 Text(
-                    //                     text = appState.unreadMessageCount.toString(),
-                    //                     style = MaterialTheme.typography.labelSmall
-                    //                 )
-                    //             }
-                    //         }
-                    //     }
-                    // }
+                    // The way into the conversation with the seller, on Profile and
+                    // Home beside the contact shortcut.
+                    //
+                    // Restored because the seller can now start a conversation the
+                    // buyer did not ask for — "part of your order is short" — and a
+                    // message with no visible way in is a message the seller believes
+                    // was read. `doc/design/stock-driven-availability-design.md` §5.
+                    //
+                    // Gated on approval like the contact shortcut: an unapproved buyer
+                    // has no real orders, so nothing to be told about, and a free
+                    // channel into a small business from every anonymous installer is
+                    // the same inbound noise problem.
+                    if (appState.canContactSeller &&
+                        (currentRoute == NavRoutes.Buy.Profile.route || currentRoute == NavRoutes.Home.route)
+                    ) {
+                        Box(modifier = Modifier.padding(end = 8.dp)) {
+                            IconButton(onClick = {
+                                navController.navigate(NavRoutes.Buy.Messages.route) {
+                                    launchSingleTop = true
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Email,
+                                    contentDescription = stringResource(Res.string.nav_messages),
+                                    tint = MaterialTheme.colorScheme.onSecondary
+                                )
+                            }
+                            if (appState.unreadMessageCount > 0) {
+                                Badge(
+                                    containerColor = MaterialTheme.colorScheme.tertiary,
+                                    contentColor = MaterialTheme.colorScheme.onTertiary,
+                                    modifier = Modifier.align(Alignment.TopEnd)
+                                ) {
+                                    Text(
+                                        text = appState.unreadMessageCount.toString(),
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.secondary,

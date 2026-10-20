@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.RefillNeed
+import com.together.newverse.domain.model.OrderShortfall
 import com.together.newverse.domain.model.RefillState
 import com.together.newverse.domain.model.StockMovementKind
 import newverse.shared.generated.resources.Res
@@ -61,7 +62,11 @@ fun StockScreen(viewModel: StockViewModel = koinViewModel()) {
         onNoteChange = viewModel::setNote,
         onFillFromScale = viewModel::fillFromScale,
         onConfirm = viewModel::book,
-        onDismiss = viewModel::dismissBooking
+        onDismiss = viewModel::dismissBooking,
+        onMessageBuyer = viewModel::startShortfallMessage,
+        onMessageChange = viewModel::setShortfallMessage,
+        onMessageSend = viewModel::sendShortfallMessage,
+        onMessageDismiss = viewModel::dismissShortfallMessage
     )
 }
 
@@ -74,7 +79,11 @@ fun StockContent(
     onNoteChange: (String) -> Unit,
     onFillFromScale: () -> Unit,
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onMessageBuyer: (String) -> Unit = {},
+    onMessageChange: (String) -> Unit = {},
+    onMessageSend: () -> Unit = {},
+    onMessageDismiss: () -> Unit = {}
 ) {
     if (state.isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -116,6 +125,28 @@ fun StockContent(
             }
         }
 
+        // Who is waiting for what is missing. Only ever populated from SHORT
+        // articles, so it is empty in the ordinary case and costs the screen nothing.
+        if (state.shortfalls.isNotEmpty()) {
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Text(
+                    text = stringResource(Res.string.stock_affected_orders),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.semantics { heading() }
+                )
+                Text(
+                    text = stringResource(Res.string.stock_affected_orders_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            items(state.shortfalls, key = { "short_${it.orderId}" }) { shortfall ->
+                ShortfallCard(shortfall = shortfall, onMessageBuyer = onMessageBuyer)
+            }
+        }
+
         item {
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             Text(
@@ -152,6 +183,98 @@ fun StockContent(
             onDismiss = onDismiss
         )
     }
+
+    state.messageDraft?.let { draft ->
+        ShortfallMessageDialog(
+            draft = draft,
+            isSending = state.isSendingMessage,
+            onTextChange = onMessageChange,
+            onSend = onMessageSend,
+            onDismiss = onMessageDismiss
+        )
+    }
+}
+
+/**
+ * One order the seller cannot fully fill: who, when, and what of it is missing.
+ *
+ * It does not say who goes without. Three orders for the last 6 kg are all listed,
+ * each with the total that is short, because dividing it up is a decision about
+ * customers — `doc/design/stock-driven-availability-design.md` §5.
+ */
+@Composable
+private fun ShortfallCard(shortfall: OrderShortfall, onMessageBuyer: (String) -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        )
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = shortfall.buyerName.ifBlank { stringResource(Res.string.stock_affected_orders) },
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            shortfall.lines.forEach { line ->
+                Text(
+                    text = "${line.productName}: " +
+                        "${ProductPricing.formatQuantity(line.ordered)} ${line.unit} " +
+                        stringResource(Res.string.stock_ordered_by) +
+                        " · ${stringResource(Res.string.stock_shortfall)}: " +
+                        "${ProductPricing.formatQuantity(line.missingInTotal)} ${line.unit}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            TextButton(onClick = { onMessageBuyer(shortfall.orderId) }) {
+                Text(stringResource(Res.string.stock_message_buyer))
+            }
+        }
+    }
+}
+
+/**
+ * The draft, editable, before anything is sent.
+ *
+ * Nothing leaves the app until the seller presses send: the gap is usually still
+ * fixable, and an apology that has to be taken back costs more than the silence
+ * would have. Decision D13.
+ */
+@Composable
+private fun ShortfallMessageDialog(
+    draft: ShortfallDraft,
+    isSending: Boolean,
+    onTextChange: (String) -> Unit,
+    onSend: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.stock_message_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = draft.buyerName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = draft.text,
+                    onValueChange = onTextChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 6,
+                    maxLines = 12
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onSend, enabled = !isSending && draft.text.isNotBlank()) {
+                Text(stringResource(Res.string.stock_message_send))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.stock_cancel)) }
+        }
+    )
 }
 
 @Composable
@@ -362,4 +485,7 @@ private fun StockMessage.labelRes() = when (this) {
     StockMessage.INVALID_QUANTITY -> Res.string.stock_invalid_quantity
     StockMessage.SAVE_FAILED -> Res.string.stock_save_failed
     StockMessage.SCALE_NOT_READY -> Res.string.stock_scale_unavailable
+    StockMessage.NO_BUYER_TO_MESSAGE -> Res.string.stock_no_buyer_to_message
+    StockMessage.MESSAGE_SENT -> Res.string.stock_message_sent
+    StockMessage.MESSAGE_FAILED -> Res.string.stock_message_failed
 }

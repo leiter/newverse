@@ -1118,6 +1118,15 @@
     <string name="stock_invalid_quantity">Bitte eine Menge größer als 0 eingeben</string>
     <string name="stock_save_failed">Buchung fehlgeschlagen</string>
     <string name="stock_load_failed">Lager konnte nicht geladen werden</string>
+    <string name="stock_affected_orders">Betroffene Bestellungen</string>
+    <string name="stock_affected_orders_hint">Diese Kunden warten auf etwas, das fehlt. Wer was bekommt, entscheidest du.</string>
+    <string name="stock_message_buyer">Nachricht entwerfen</string>
+    <string name="stock_message_title">Nachricht an Kundin oder Kunden</string>
+    <string name="stock_message_send">Senden</string>
+    <string name="stock_message_sent">Nachricht gesendet</string>
+    <string name="stock_message_failed">Nachricht konnte nicht gesendet werden</string>
+    <string name="stock_no_buyer_to_message">Zu dieser Bestellung ist kein Kundenkonto hinterlegt</string>
+    <string name="stock_ordered_by">bestellt</string>
     <string name="stock_search">Artikel suchen</string>
     <string name="stock_from_scale">Von der Waage</string>
     <string name="stock_scale_unavailable">Keine Waage verbunden</string>

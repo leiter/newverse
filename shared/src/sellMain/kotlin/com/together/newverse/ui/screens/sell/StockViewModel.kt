@@ -12,12 +12,16 @@ import com.together.newverse.domain.model.RefillState
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.StockLevel
 import com.together.newverse.domain.model.StockMovement
+import com.together.newverse.domain.model.OrderShortfall
 import com.together.newverse.domain.model.StockMovementKind
+import com.together.newverse.domain.model.draftShortfallMessage
+import com.together.newverse.domain.model.shortfallsAgainst
 import com.together.newverse.domain.model.availabilityCorrections
 import com.together.newverse.domain.model.committedDemand
 import com.together.newverse.domain.model.refillNeeds
 import com.together.newverse.domain.model.refillStanding
 import com.together.newverse.domain.repository.AuthRepository
+import com.together.newverse.domain.repository.MessageRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.SellerArticleRepository
 import com.together.newverse.domain.repository.StockRepository
@@ -62,6 +66,8 @@ class StockViewModel(
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
     private val weightSource: WeightSource,
+    /** Null in tests that do not exercise telling a buyer about a shortfall. */
+    private val messageRepository: MessageRepository? = null,
     /** Null where no platform reminder exists; the refill list itself still works. */
     private val reminderStorage: StockReminderStorage? = null,
     private val reminderScheduler: StockReminderScheduler? = null,
@@ -78,6 +84,7 @@ class StockViewModel(
     private var catalog = listOf<SellerArticle>()
     private var levels = mapOf<String, StockLevel>()
     private var demand = mapOf<String, ArticleDemand>()
+    private var orders = listOf<Order>()
 
     /** The last set of corrections written or attempted; see [correctAvailability]. */
     private var attempted = mapOf<String, Boolean>()
@@ -105,16 +112,17 @@ class StockViewModel(
                     Log.w(TAG) { "observeStock: ${error.message}" }
                     _state.update { it.copy(isLoading = false, message = StockMessage.LOAD_FAILED) }
                 }
-                .collect { (articles, byArticle, orders) ->
+                .collect { (articles, byArticle, sellerOrders) ->
                     catalog = articles
                     levels = byArticle
+                    orders = sellerOrders
                     // Every outstanding order, not one pickup slot: this is the list
                     // the seller buys from, and the ordering rules only ever open the
                     // next slot per market anyway.
-                    demand = orders.committedDemand()
+                    demand = sellerOrders.committedDemand()
                     _state.update { it.withStock() }
                     correctAvailability()
-                    cacheReminder(orders)
+                    cacheReminder(sellerOrders)
                 }
         }
     }
@@ -190,6 +198,87 @@ class StockViewModel(
         if (enabled) reminderScheduler?.reschedule() else reminderScheduler?.cancel()
     }
 
+    // ----- Telling a buyer about a shortfall -----
+
+    /**
+     * Opens an editable draft of the message to one affected buyer.
+     *
+     * A draft rather than a send: a shortfall is usually still fixable, and an
+     * automatic "we cannot deliver" is a message the seller has to walk back. The
+     * decision — substitute, part-fill, call them — stays theirs.
+     * `doc/design/stock-driven-availability-design.md` §5.
+     */
+    fun startShortfallMessage(orderId: String) {
+        val shortfall = _state.value.shortfalls.firstOrNull { it.orderId == orderId } ?: return
+        if (shortfall.buyerId.isEmpty()) {
+            // An order from before buyer ids were stored, or a walk-in: there is
+            // nobody to send it to, and a draft that cannot be sent is a dead end.
+            _state.update { it.copy(message = StockMessage.NO_BUYER_TO_MESSAGE) }
+            return
+        }
+        _state.update {
+            it.copy(
+                message = null,
+                messageDraft = ShortfallDraft(
+                    orderId = shortfall.orderId,
+                    buyerId = shortfall.buyerId,
+                    buyerName = shortfall.buyerName,
+                    text = draftShortfallMessage(shortfall)
+                )
+            )
+        }
+    }
+
+    fun setShortfallMessage(text: String) {
+        _state.update { state -> state.copy(messageDraft = state.messageDraft?.copy(text = text)) }
+    }
+
+    fun dismissShortfallMessage() {
+        _state.update { it.copy(messageDraft = null) }
+    }
+
+    /** Sends the draft as it now stands, into the conversation with that buyer. */
+    fun sendShortfallMessage() {
+        val draft = _state.value.messageDraft ?: return
+        val repository = messageRepository ?: return
+        val text = draft.text.trim()
+        if (text.isEmpty()) return
+
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId() ?: return@launch
+            _state.update { it.copy(isSendingMessage = true) }
+
+            // The conversation may not exist yet — this is often the first thing the
+            // seller ever writes to this buyer.
+            repository.getOrCreateConversation(
+                userAId = sellerId,
+                userAName = "",
+                userBId = draft.buyerId,
+                userBName = draft.buyerName
+            ).onSuccess { conversation ->
+                repository.sendMessage(
+                    conversationId = conversation.id,
+                    senderId = sellerId,
+                    senderName = "",
+                    recipientId = draft.buyerId,
+                    recipientName = draft.buyerName,
+                    text = text
+                ).onSuccess {
+                    _state.update {
+                        it.copy(isSendingMessage = false, messageDraft = null, message = StockMessage.MESSAGE_SENT)
+                    }
+                    Log.d(TAG) { "sendShortfallMessage: sent for order ${draft.orderId}" }
+                }.onFailure { error ->
+                    Log.w(TAG) { "sendShortfallMessage: ${error.message}" }
+                    _state.update { it.copy(isSendingMessage = false, message = StockMessage.MESSAGE_FAILED) }
+                }
+            }.onFailure { error ->
+                Log.w(TAG) { "sendShortfallMessage: conversation - ${error.message}" }
+                _state.update { it.copy(isSendingMessage = false, message = StockMessage.MESSAGE_FAILED) }
+            }
+        }
+    }
+
     private fun observeScale() {
         viewModelScope.launch {
             weightSource.status.collect { status ->
@@ -209,6 +298,9 @@ class StockViewModel(
         refillNeeds = catalog.refillNeeds(levels, demand),
         standing = catalog.refillStanding(levels, demand)
             .sortedBy { it.productName.lowercase() },
+        // Who is actually waiting for what is missing. Derived from the same needs
+        // the list above shows, so the two can never disagree.
+        shortfalls = orders.shortfallsAgainst(catalog.refillNeeds(levels, demand)),
         hasWatchedArticles = catalog.any { it.sellerData?.isWatched == true }
     )
 
@@ -360,6 +452,10 @@ data class StockUiState(
     val refillNeeds: List<RefillNeed> = emptyList(),
     /** Every article, by name — the full standing, for looking something up. */
     val standing: List<RefillNeed> = emptyList(),
+    /** Outstanding orders holding something that is short, soonest pickup first. */
+    val shortfalls: List<OrderShortfall> = emptyList(),
+    /** The message being written to one affected buyer, if any. */
+    val messageDraft: ShortfallDraft? = null,
     /** False when no article has a reorder level, which is a different empty state. */
     val hasWatchedArticles: Boolean = false,
     val query: String = "",
@@ -367,6 +463,8 @@ data class StockUiState(
     val scaleStatus: ScaleStatus = ScaleStatus.Unsupported,
     val scaleReading: MeasuredQuantity? = null,
     val isSaving: Boolean = false,
+    /** Whether a message to a buyer is on its way; separate from [isSaving]. */
+    val isSendingMessage: Boolean = false,
     /** Whether the refill reminder is switched on; false where no platform has one. */
     val reminderEnabled: Boolean = false,
     val message: StockMessage? = null,
@@ -396,4 +494,20 @@ data class StockEditor(
     val note: String = ""
 )
 
-enum class StockMessage { LOAD_FAILED, INVALID_QUANTITY, SAVE_FAILED, SCALE_NOT_READY }
+/** A message to one buyer about their order, as the seller is editing it. */
+data class ShortfallDraft(
+    val orderId: String,
+    val buyerId: String,
+    val buyerName: String,
+    val text: String
+)
+
+enum class StockMessage {
+    LOAD_FAILED,
+    INVALID_QUANTITY,
+    SAVE_FAILED,
+    SCALE_NOT_READY,
+    NO_BUYER_TO_MESSAGE,
+    MESSAGE_SENT,
+    MESSAGE_FAILED
+}

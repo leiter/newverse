@@ -2,6 +2,7 @@ package com.together.newverse.ui.screens.sell
 
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.MeasuredQuantity
+import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.domain.model.OrderStatus
@@ -15,6 +16,7 @@ import com.together.newverse.domain.model.StockMovementKind
 import com.together.newverse.domain.scale.ScaleStatus
 import com.together.newverse.domain.scale.WeightSource
 import com.together.newverse.test.FakeAuthRepository
+import com.together.newverse.test.FakeMessageRepository
 import com.together.newverse.test.FakeOrderRepository
 import com.together.newverse.test.FakeSellerArticleRepository
 import com.together.newverse.test.FakeStockRepository
@@ -60,6 +62,7 @@ class StockViewModelTest {
     private lateinit var articleRepository: FakeSellerArticleRepository
     private lateinit var stockRepository: FakeStockRepository
     private lateinit var orderRepository: FakeOrderRepository
+    private lateinit var messageRepository: FakeMessageRepository
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var scale: TestWeightSource
 
@@ -78,6 +81,7 @@ class StockViewModelTest {
         articleRepository = FakeSellerArticleRepository()
         stockRepository = FakeStockRepository()
         orderRepository = FakeOrderRepository()
+        messageRepository = FakeMessageRepository()
         authRepository = FakeAuthRepository()
         scale = TestWeightSource()
         authRepository.setCurrentUserId("seller_123")
@@ -89,6 +93,7 @@ class StockViewModelTest {
         articleRepository.reset()
         stockRepository.reset()
         orderRepository.reset()
+        messageRepository.reset()
         authRepository.reset()
         dispatcherRule.tearDown()
     }
@@ -98,6 +103,7 @@ class StockViewModelTest {
         stockRepository = stockRepository,
         orderRepository = orderRepository,
         authRepository = authRepository,
+        messageRepository = messageRepository,
         weightSource = scale,
         now = { 50_000L }
     )
@@ -346,6 +352,144 @@ class StockViewModelTest {
             articleRepository.availabilityWrites.isEmpty(),
             "a never-counted article was withdrawn from buyers"
         )
+    }
+
+    // --- telling a buyer about a shortfall -------------------------------------
+
+    private fun orderFor(
+        id: String,
+        buyer: String,
+        buyerId: String = "buyer_$buyer",
+        amount: Double = 8.0
+    ) = Order(
+        id = id,
+        buyerProfile = BuyerProfile(id = buyerId, displayName = buyer),
+        status = OrderStatus.PLACED,
+        origin = OrderOrigin.PRODUCTION,
+        pickUpDate = 100_000L,
+        articles = listOf(
+            OrderedProduct(productId = "apple", productName = "Apfel", unit = "kg", amountCount = amount)
+        )
+    )
+
+    /** One article short, with two buyers waiting for it. */
+    private fun TestScope.oversold(): StockViewModel {
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(2.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(
+            orderFor("o1", "Anna", amount = 5.0),
+            orderFor("o2", "Bert", amount = 5.0)
+        ))
+        return loaded()
+    }
+
+    @Test
+    fun `the orders waiting for a short article are listed`() = runTest {
+        val vm = oversold()
+
+        val shortfalls = vm.state.value.shortfalls
+
+        assertEquals(listOf("Anna", "Bert"), shortfalls.map { it.buyerName })
+        assertEquals("Apfel", shortfalls.first().lines.single().productName)
+    }
+
+    @Test
+    fun `nothing short means no orders to answer for`() = runTest {
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(50.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(orderFor("o1", "Anna")))
+
+        assertTrue(loaded().state.value.shortfalls.isEmpty())
+    }
+
+    @Test
+    fun `drafting prepares a message and sends nothing`() = runTest {
+        val vm = oversold()
+
+        vm.startShortfallMessage("o1")
+        advanceUntilIdle()
+
+        val draft = vm.state.value.messageDraft
+        assertEquals("buyer_Anna", draft?.buyerId)
+        assertTrue(draft?.text?.contains("Anna") == true)
+        assertTrue(messageRepository.sentMessages.isEmpty(), "a draft was sent by itself")
+    }
+
+    @Test
+    fun `sending writes what the seller edited, not the draft`() = runTest {
+        val vm = oversold()
+        vm.startShortfallMessage("o1")
+        advanceUntilIdle()
+
+        vm.setShortfallMessage("Hallo Anna, ich bringe dir morgen Birnen mit.")
+        vm.sendShortfallMessage()
+        advanceUntilIdle()
+
+        val sent = messageRepository.sentMessages.single()
+        assertEquals("Hallo Anna, ich bringe dir morgen Birnen mit.", sent.text)
+        assertEquals("seller_123", sent.senderId)
+        assertEquals(listOf("seller_123" to "buyer_Anna"), messageRepository.requestedConversations)
+        assertNull(vm.state.value.messageDraft)
+        assertEquals(StockMessage.MESSAGE_SENT, vm.state.value.message)
+    }
+
+    @Test
+    fun `a dismissed draft sends nothing`() = runTest {
+        val vm = oversold()
+        vm.startShortfallMessage("o1")
+        advanceUntilIdle()
+
+        vm.dismissShortfallMessage()
+        vm.sendShortfallMessage()
+        advanceUntilIdle()
+
+        assertTrue(messageRepository.sentMessages.isEmpty())
+    }
+
+    @Test
+    fun `an empty message is not sent`() = runTest {
+        val vm = oversold()
+        vm.startShortfallMessage("o1")
+        advanceUntilIdle()
+
+        vm.setShortfallMessage("   ")
+        vm.sendShortfallMessage()
+        advanceUntilIdle()
+
+        assertTrue(messageRepository.sentMessages.isEmpty())
+        // The draft stays open so the seller can write something.
+        assertTrue(vm.state.value.messageDraft != null)
+    }
+
+    @Test
+    fun `a failed send keeps the draft and says so`() = runTest {
+        val vm = oversold()
+        vm.startShortfallMessage("o1")
+        advanceUntilIdle()
+        messageRepository.shouldFailSend = true
+
+        vm.sendShortfallMessage()
+        advanceUntilIdle()
+
+        assertEquals(StockMessage.MESSAGE_FAILED, vm.state.value.message)
+        assertTrue(vm.state.value.messageDraft != null, "the seller's text was thrown away")
+    }
+
+    @Test
+    fun `an order with no buyer account cannot be answered`() = runTest {
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(1.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(orderFor("o1", "", buyerId = "")))
+        val vm = loaded()
+
+        vm.startShortfallMessage("o1")
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.messageDraft)
+        assertEquals(StockMessage.NO_BUYER_TO_MESSAGE, vm.state.value.message)
     }
 
     // --- booking --------------------------------------------------------------
