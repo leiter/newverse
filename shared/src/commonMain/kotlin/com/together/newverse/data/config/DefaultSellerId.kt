@@ -9,6 +9,6 @@ package com.together.newverse.data.config
  * `GoogleService-Info` plist on iOS). A build pointing at a seller that does not exist
  * in its project reads an empty `/articles/{sellerId}` node and shows no catalogue.
  *
- * See `doc/build-identity-and-firebase-wiring.md`.
+ * See `doc/plans/build-identity-and-firebase-wiring.md`.
  */
 expect val defaultSellerId: String

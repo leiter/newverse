@@ -10,7 +10,7 @@ import platform.Foundation.NSUserDefaults
  *
  * Settings persist and the profile UI works, but **nothing schedules a reminder on iOS
  * yet** — `BGTaskScheduler` + `UNUserNotificationCenter` are still to come (see
- * `doc/order-ready-notification-design.md` C5). Writing settings here is harmless and
+ * `doc/design/order-ready-notification-design.md` C5). Writing settings here is harmless and
  * means they survive to be picked up when scheduling lands.
  */
 actual class OrderReminderStorage {

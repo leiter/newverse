@@ -21,7 +21,7 @@ data class Market(
     /**
      * How to reach *this stall*, set in the market dialog next to its address and
      * hours. Additive to [SellerProfile.contacts], never a replacement for them —
-     * see `doc/seller-contact-design.md`.
+     * see `doc/guides/seller-contact-design.md`.
      */
     val contacts: List<SellerContact> = emptyList(),
     /**
@@ -52,7 +52,7 @@ data class Market(
      *
      * [dayIndex] counts Monday as 0, which is the order the market dialog lists the
      * days in. Both live databases stored Sunday=1..Saturday=7 until the migration
-     * repaired them — see `doc/market-pricing-and-access-design.md` §1.
+     * repaired them — see `doc/guides/market-pricing-and-access-design.md` §1.
      */
     val pickupDay: DayOfWeek? get() = dayOfWeekFor(dayIndex)
 

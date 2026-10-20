@@ -33,7 +33,7 @@ import org.koin.dsl.module
  */
 val appModule = module {
     // No scale is connected: screens that can take a weight bind the no-op source
-    // and hide the affordance. See doc/cas-scale-integration.md.
+    // and hide the affordance. See doc/design/cas-scale-integration.md.
     single<WeightSource> { NoWeightSource }
 
     // Product import service

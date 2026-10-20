@@ -84,7 +84,7 @@ The project follows **Clean Architecture** principles with **MVVM** pattern:
 - **Authentication:** Robust authentication system supporting Google, Apple, Email, and anonymous sign-in.
 - **Rich Feature Set:** Includes product management, order processing, customer management, and more.
 
-For a detailed breakdown of feature implementation status, see [doc/TODO.md](doc/TODO.md).
+For a detailed breakdown of feature implementation status, see [doc/plans/TODO.md](doc/plans/TODO.md).
 
 ## Roadmap
 
@@ -92,7 +92,7 @@ The project is under active development. Key areas for future work include:
 - Push Notifications
 - Standardization of error handling
 
-For more details, please refer to the [feature status document](doc/TODO.md).
+For more details, please refer to the [feature status document](doc/plans/TODO.md).
 
 ## Theme System
 
@@ -110,7 +110,7 @@ The project uses a comprehensive Material3 theme system migrated from the Univer
 - ✅ Consistent rounded corners (4dp to 28dp)
 - ✅ Semantic color roles for accessibility
 
-For detailed theme documentation, see [doc/theme.md](doc/theme.md)
+For detailed theme documentation, see [doc/guides/theme.md](doc/guides/theme.md)
 
 ## Navigation System
 
@@ -128,7 +128,7 @@ The app features a complete navigation system with a modal drawer:
 - ✅ State preservation
 - ✅ Dynamic screen titles
 
-For detailed navigation documentation, see [doc/navigation.md](doc/navigation.md)
+For detailed navigation documentation, see [doc/guides/navigation.md](doc/guides/navigation.md)
 
 ## Product Flavors
 
@@ -145,20 +145,34 @@ Build commands:
 ```
 
 ### iOS
-iOS flavor setup requires macOS with Xcode. See [doc/iOS-Setup-Guide.md](doc/iOS-Setup-Guide.md) for complete instructions.
+iOS flavor setup requires macOS with Xcode. See [doc/guides/ios-setup.md](doc/guides/ios-setup.md) for complete instructions.
 
 ## Documentation
 
-All documentation is in the `doc/` directory:
+Documentation lives in `doc/`, organized by lifecycle — **[doc/README.md](doc/README.md)
+indexes everything with its status**:
 
-- **[architecture.md](doc/architecture.md)** - MVVM, state hoisting, ViewModel patterns
-- **[navigation.md](doc/navigation.md)** - Navigation architecture and screen structure
-- **[theme.md](doc/theme.md)** - Material3 theme system
-- **[iOS-Setup-Guide.md](doc/iOS-Setup-Guide.md)** - iOS app setup with Buy/Sell flavors
-- **[BuildKonfig_Setup.md](doc/BuildKonfig_Setup.md)** - Build flavor configuration
-- **[Localization_Guide.md](doc/Localization_Guide.md)** - String localization
-- **[testing.md](doc/testing.md)** - Testing setup and buyer stories
-- **[ordering-business-rules.md](doc/ordering-business-rules.md)** - Order business logic
+| Folder | Means |
+|--------|-------|
+| [`doc/guides/`](doc/README.md#guides) | How the app works now; verified against the code |
+| [`doc/design/`](doc/README.md#design) | Proposed, not built |
+| [`doc/plans/`](doc/README.md#plans) | Work in flight |
+| [`doc/reports/`](doc/README.md#reports) | Dated snapshots |
+| [`doc/archive/`](doc/README.md#archive) | Superseded or done |
+
+Most-used guides:
+
+- **[architecture.md](doc/guides/architecture.md)** - MVVM, state hoisting, core state abstractions
+- **[navigation.md](doc/guides/navigation.md)** - Routes and per-flavor nav graphs
+- **[auth-and-accounts.md](doc/guides/auth-and-accounts.md)** - Startup auth, guest accounts, linking, deletion
+- **[ordering-business-rules.md](doc/guides/ordering-business-rules.md)** - Per-market pickup, deadlines, order editing
+- **[build-flavors.md](doc/guides/build-flavors.md)** - applicationIds, BuildKonfig, the combined build
+- **[testing.md](doc/guides/testing.md)** - Source sets, fakes, how to run what
+- **[theme.md](doc/guides/theme.md)** - Material 3 theme system
+- **[localization.md](doc/guides/localization.md)** - String localization
+- **[ios-setup.md](doc/guides/ios-setup.md)** - iOS app setup with Buy/Sell flavors
+
+(`docs/` at the repo root is the published GitHub Pages site, not developer docs.)
 
 ## Development Notes
 

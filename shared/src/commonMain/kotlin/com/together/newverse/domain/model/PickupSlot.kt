@@ -11,7 +11,7 @@ import kotlin.time.Instant
  *
  * Once each market runs on its own day, the market decides which dates exist, so
  * offering the two as independent choices would let a buyer pick Neukölln and then
- * a Thursday Neukölln does not have. See `doc/market-pricing-and-access-design.md`
+ * a Thursday Neukölln does not have. See `doc/guides/market-pricing-and-access-design.md`
  * §4.
  */
 data class PickupSlot(
@@ -70,7 +70,7 @@ object PickupSlots {
      * One per market, never a run of future weeks: the seller cannot promise a
      * catalogue or a price weeks ahead, and an order snapshots both at the moment it
      * is placed. A buyer who misses this week orders next week. See
-     * `doc/ordering-business-rules.md` §2.
+     * `doc/guides/ordering-business-rules.md` §2.
      *
      * A market whose next day is closed contributes its following open day rather
      * than dropping out, so closing one Thursday moves that stall's slot instead of

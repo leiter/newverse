@@ -180,7 +180,7 @@ class GitLiveProfileRepository(
             )
             // Markets moved to a node of their own; the profile's list is the
             // fallback until the migration script has run — see
-            // `doc/market-pricing-and-access-design.md` §1.
+            // `doc/guides/market-pricing-and-access-design.md` §1.
             val fromNode = marketsRef.child(sellerId).valueEvents.first().value
             val marketsValue = fromNode
                 ?: sellersRef.child(sellerId).child("markets").valueEvents.first().value

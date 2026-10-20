@@ -5,8 +5,10 @@ iOS application for Newverse marketplace, built with SwiftUI and Kotlin Multipla
 ## Quick Start
 
 See the detailed guides in the `doc/` folder:
-- [iOS Setup Guide](../doc/iOS-Setup-Guide.md) - Complete setup instructions
-- [iOS Quick Start](../doc/iOS-Quick-Start.md) - Quick reference
+- [iOS Setup Guide](../doc/guides/ios-setup.md) - Complete setup instructions
+- [iOS Back Navigation](../doc/guides/ios-back-navigation.md) - Edge-swipe back behaviour
+- [Build identity and Firebase wiring](../doc/plans/build-identity-and-firebase-wiring.md) - Read before changing bundle IDs
+- [App Store release status](../doc/reports/apple-store-release-status.md) - What is and is not ready
 
 ## Prerequisites
 

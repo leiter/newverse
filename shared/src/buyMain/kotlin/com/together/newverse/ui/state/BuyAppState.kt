@@ -159,7 +159,7 @@ data class BuyAppState(
     /**
      * Where this buyer collects.
      *
-     * Resolution order, from `doc/market-pricing-and-access-design.md` §4: the slot
+     * Resolution order, from `doc/guides/market-pricing-and-access-design.md` §4: the slot
      * selected in the basket, then the buyer's stated default, then the only market
      * there is. Null when the seller runs several and the buyer has not said which,
      * in which case they see the business's contacts and no market's.

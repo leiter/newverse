@@ -6,7 +6,7 @@ package com.together.newverse.domain.model
  * Contacts live on the thing they describe — [SellerProfile.contacts] for the
  * business, [Market.contacts] for a single stall — and are edited there. There is
  * no contact node and no market id on the record: the owner is whatever holds the
- * list. See `doc/seller-contact-design.md`.
+ * list. See `doc/guides/seller-contact-design.md`.
  */
 data class SellerContact(
     val channel: ContactChannel = ContactChannel.PHONE,

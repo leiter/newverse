@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
  *
  * They used to be a list on the seller profile, which could carry nothing of its own:
  * rules, pricing and eligibility all need somewhere to hang off a single market, and a
- * list index is not a name. See `doc/market-pricing-and-access-design.md` §1.
+ * list index is not a name. See `doc/guides/market-pricing-and-access-design.md` §1.
  *
  * Reads fall back to that legacy list while both shapes exist, so a seller whose data
  * has not been migrated yet still sees their markets.

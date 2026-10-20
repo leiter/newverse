@@ -10,7 +10,7 @@ import kotlin.time.Instant
  * vacation, a cancelled stall.
  *
  * Closed days are filtered out of the pickup dates offered to a buyer. See
- * `doc/market-pricing-and-access-design.md`.
+ * `doc/guides/market-pricing-and-access-design.md`.
  *
  * [marketId] empty means **every** market — the seller is away entirely. A named
  * market closes only that stall. The same convention as a contact without a

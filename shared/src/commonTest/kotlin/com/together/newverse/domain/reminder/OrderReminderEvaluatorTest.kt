@@ -189,7 +189,7 @@ class OrderReminderEvaluatorTest {
 
 /**
  * A reminder must not nag a buyer to order for a market day that will not happen.
- * See `doc/market-pricing-and-access-design.md` §4.
+ * See `doc/guides/market-pricing-and-access-design.md` §4.
  */
 class OrderReminderClosureTest {
 

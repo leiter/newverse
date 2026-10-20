@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
  * A market's price and the explanation of it are the same data, resolved once.
  *
  * The rules these pin — precedence, ordering, rounding, the floor — are the whole
- * of the behaviour; see `doc/market-pricing-and-access-design.md` §2.
+ * of the behaviour; see `doc/guides/market-pricing-and-access-design.md` §2.
  */
 class MarketPricingTest {
 

@@ -39,8 +39,12 @@ newverse/
 
 | Flavor | Package | Purpose |
 |--------|---------|---------|
-| buy | com.together.newverse.buy | Customer app - browse, order, checkout |
-| sell | com.together.newverse.sell | Seller app - manage products & orders |
+| buy | com.together.buy | Customer app - browse, order, checkout |
+| sell | com.together.sell | Seller app - manage products & orders |
+
+Base `applicationId` is `com.together`, plus a flavor suffix. A plain `:shared`
+build resolves to a third **combined** configuration where both `IS_BUY_APP` and
+`IS_SELL_APP` are `false` — see `doc/guides/build-flavors.md`.
 
 ```bash
 ./gradlew :androidApp:assembleBuyDebug
@@ -141,7 +145,7 @@ An order records where it came from in `Order.origin` — `DEMO`, `TRANSITIONED`
 `PRODUCTION`. The *path* is the access and traffic boundary (the seller subscribes to
 `/orders` only, never `/demo_orders`); the flag is provenance. On the seller approving a
 buyer, their demo orders move into `/orders` as `TRANSITIONED` in one multi-path update.
-`doc/demo-order-provenance.md` has the model and the open abuse-containment questions.
+`doc/guides/demo-order-provenance.md` has the model and the open abuse-containment questions.
 
 An article's two halves are always written and deleted together in one
 multi-path update (`ArticleNodes`); the seller app reads them through
@@ -196,15 +200,33 @@ In `FeatureFlags.kt`:
 
 ## Documentation
 
-All docs in `doc/` directory:
-- `architecture.md` - MVVM, state patterns
-- `navigation.md` - Route structure
-- `ordering-business-rules.md` - Order logic
-- `iOS-Setup-Guide.md` - iOS build setup
-- `pre-release-checklist.md` - What must happen before a release build reaches a user
-- `order-ready-notification-design.md` - Options for buyer order notifications: order-ready alerts + a configurable status-checking reminder worker
-- `market-pricing-and-access-design.md` - Design only: making `Market` a real entity, per-market price conditions, per-market eligibility, pickup slots and no-market days
-- `seller-contact-design.md` - Design only: seller-editable contact channels in Firebase, market-scoped, hidden from demo users
+`doc/` is organized by lifecycle. **Start at `doc/README.md`** — it indexes every
+file with its status.
+
+| Folder | Means |
+|--------|-------|
+| `doc/guides/` | How the app works now; verified against the code |
+| `doc/design/` | Proposed, not built |
+| `doc/plans/` | Work in flight |
+| `doc/reports/` | Dated snapshots, accurate as of their date |
+| `doc/archive/` | Superseded or done; kept as history |
+
+Most-used:
+- `doc/guides/architecture.md` - MVVM, state patterns, core state abstractions
+- `doc/guides/navigation.md` - Routes, per-flavor nav graphs
+- `doc/guides/auth-and-accounts.md` - Startup auth, guest accounts, linking, deletion
+- `doc/guides/ordering-business-rules.md` - Order logic, per-market pickup, editing
+- `doc/guides/build-flavors.md` - applicationIds, BuildKonfig, the combined build
+- `doc/guides/testing.md` - Source sets, fakes, how to run what
+- `doc/plans/TODO.md` - Feature status and roadmap
+- `doc/plans/pre-release-checklist.md` - What must happen before a release reaches a user
+
+Note: `docs/` at the repo root is the GitHub Pages site (privacy/terms/support),
+not developer documentation.
+
+Guest access, for the avoidance of doubt: **the buy flavor does not sign anyone in
+automatically.** A buyer with no session sees the login screen, and an anonymous
+account is created only if they tap "Continue as Guest".
 
 ## Current Status
 
@@ -215,7 +237,7 @@ All docs in `doc/` directory:
   compile (three `jsMain` files call `Log.d(TAG)` without a `TAG`, left behind by the
   Log refactor in `d659337`). Do not treat a web break as a regression, and do not
   spend effort keeping `jsMain` compiling unless the platform is picked up again.
-  Earlier assessment, now stale: `doc/web-implementation-audit.md`.
+  Earlier assessment, now stale: `doc/archive/web-implementation-audit.md`.
 - Localization: German (primary), English
 
 ## Debug Tips

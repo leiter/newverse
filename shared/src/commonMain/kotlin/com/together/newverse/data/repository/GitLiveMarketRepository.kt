@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.map
  * `seller_profile/{sellerId}/markets` list. Writes only ever go to the node, so a
  * seller who edits anything moves themselves forward. The same two-step as
  * `storedOrderOrigin`, and it comes out when the migration script has been run
- * everywhere — see `doc/market-pricing-and-access-design.md` §1.
+ * everywhere — see `doc/guides/market-pricing-and-access-design.md` §1.
  */
 class GitLiveMarketRepository : MarketRepository {
 

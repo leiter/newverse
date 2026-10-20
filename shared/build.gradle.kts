@@ -236,7 +236,7 @@ android {
     // project the build talks to -- the same debug/release axis that selects
     // androidApp/src/{debug,release}/google-services.json. Keep these two in step:
     // pointing at a seller that does not exist in the active project leaves the buyer
-    // app with an empty catalogue. See doc/build-identity-and-firebase-wiring.md.
+    // app with an empty catalogue. See doc/plans/build-identity-and-firebase-wiring.md.
     buildTypes {
         getByName("debug") {
             buildConfigField("String", "DEFAULT_SELLER_ID", "\"$DEV_SELLER_ID\"")

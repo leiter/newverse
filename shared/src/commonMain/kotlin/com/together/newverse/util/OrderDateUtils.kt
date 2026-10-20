@@ -96,7 +96,7 @@ object OrderDateUtils {
      * rejected, it would crash the screen that displays it. Tolerating the date and
      * returning a sensible deadline is the behaviour the app depends on, and it becomes
      * mandatory once each market has its own pickup day
-     * (`doc/market-pricing-and-access-design.md` §4).
+     * (`doc/guides/market-pricing-and-access-design.md` §4).
      *
      * @param pickupDate The pickup date; need not fall on [OrderScheduleConfig.pickupDay]
      * @param timeZone Time zone for calculations (defaults to system)

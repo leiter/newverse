@@ -375,7 +375,7 @@ data class BasketScreenState(
      *
      * The buyer reviewed a total; recalculating it under them because they chose a
      * different stall is the one thing this feature could do that would cost
-     * trust. See `doc/market-pricing-and-access-design.md` §2.
+     * trust. See `doc/guides/market-pricing-and-access-design.md` §2.
      */
     val pendingSlotPriceChange: PendingSlotPriceChange? = null,
     val showDatePicker: Boolean = false,

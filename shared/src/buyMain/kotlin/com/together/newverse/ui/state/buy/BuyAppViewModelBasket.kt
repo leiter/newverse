@@ -1156,7 +1156,7 @@ internal fun BuyAppViewModel.basketScreenLoadAvailableDates() {
     // the single scheduled pickup day, which is every seller today.
     // The next open slot of each market and no further: an order snapshots the price
     // and the catalogue it was placed against, and neither can be promised weeks out.
-    // `doc/ordering-business-rules.md` §2.
+    // `doc/guides/ordering-business-rules.md` §2.
     val slots = PickupSlots.nextPerMarket(
         markets = markets,
         closures = state.sellerClosures

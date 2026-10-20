@@ -9,7 +9,7 @@ import com.together.newverse.util.Log
  * Real delivery needs `BGTaskScheduler` for the background wake-up plus
  * `UNUserNotificationCenter` for the local notification — and a permission prompt, which
  * iOS requires before the first notification rather than at install time. See
- * `doc/order-ready-notification-design.md` C5. The evaluator in `commonMain` is already
+ * `doc/design/order-ready-notification-design.md` C5. The evaluator in `commonMain` is already
  * platform-free, so that work is additive.
  */
 class IosOrderReminderScheduler : OrderReminderScheduler {

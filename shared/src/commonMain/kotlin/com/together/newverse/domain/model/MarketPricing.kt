@@ -8,7 +8,7 @@ import kotlin.math.roundToLong
  *
  * The cause is stored, not the resulting number: the buyer is owed an explanation,
  * and a breakdown derived from the same data that produced the price cannot drift
- * away from it. See `doc/market-pricing-and-access-design.md` §2.
+ * away from it. See `doc/guides/market-pricing-and-access-design.md` §2.
  */
 enum class PriceCause { STALL_FEE, TRANSPORT, HANDLING, NEIGHBORHOOD_RATE, VOLUME_COMMITMENT }
 
@@ -167,7 +167,7 @@ fun resolvePrice(article: Article, pricing: MarketPricing): ResolvedPrice {
  *
  * A buyer who switches market with a full basket must be shown this and asked,
  * rather than having the total silently recalculated under them — see
- * `doc/market-pricing-and-access-design.md` §2.
+ * `doc/guides/market-pricing-and-access-design.md` §2.
  */
 data class PriceChange(
     val article: Article,

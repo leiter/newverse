@@ -70,7 +70,7 @@ class SellerProfileViewModel(
      * How many live orders sit on each pickup day, keyed `yyyyMMdd`.
      *
      * Counted per date rather than per market: `Order.marketId` is not yet filled in
-     * (see `doc/market-pricing-and-access-design.md` §1), so a day is treated as
+     * (see `doc/guides/market-pricing-and-access-design.md` §1), so a day is treated as
      * having orders regardless of which stall they belong to. That errs towards
      * refusing a closure, which is the safe direction.
      */
