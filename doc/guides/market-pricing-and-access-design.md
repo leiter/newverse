@@ -310,6 +310,7 @@ A component that rounds away to nothing is omitted rather than rendered, because
 | Transition refuses an order at an ungranted market | **Built** — `DemoTransitionResult.notEligibleMarketIds` |
 | Market pick during onboarding | **Built** — `MarketChoiceDialog`, `BuyAppViewModelMarket.kt`; writes `BuyerProfile.defaultMarket` |
 | Demo provisional-pricing line | **Built** — `adjustedPricingMarketName` on `DemoOrderNotice` |
+| Checkout confirmation of slot and market | **Built** — `CheckoutConfirmDialog`; §4 |
 
 What remains is the *explanation*, not the money: a buyer is charged the market's price
 and the order records why, but nothing on screen yet tells them that before checkout
@@ -665,11 +666,28 @@ What that does to this section:
   following open day rather than dropping out of the list. The basket calls it at
   `BuyAppViewModelBasket.kt:1157`, with the no-markets fallback asking for one date.
 - **With one market there is nothing to pick**, so the step becomes a *confirmation at
-  checkout* rather than a picker: the date in full, the edit deadline and the time left
-  (`formatTimeUntilDeadline`, `getDeadlineWarningLevel` — both unused at that moment
-  today), that a reorder is priced today, and one line for demo buyers. With two or more
-  markets the same step still carries the choice of where, so it must be written to take
-  a list of one *or* several rows.
+  checkout* rather than a picker. **Built 2026-10-20** as `CheckoutConfirmDialog`:
+  pressing Bestellen validates and opens it instead of writing, and
+  `BuyBasketScreenAction.ConfirmCheckout` is what writes.
+
+  It shows the pickup date with its weekday, the total, the edit deadline and the time
+  left — `formatTimeUntilDeadline` and `getDeadlineWarningLevel`, which §4 noted existed
+  and went unused at exactly this moment, now colour the remaining time by urgency. The
+  market is named only when the seller runs more than one, since with a single stall the
+  row says nothing the buyer does not know, and the deadline is computed from **that
+  market's** schedule via `OrderDateUtils.scheduleConfigFor`, so a Saturday stall does
+  not quote a Tuesday deadline. One line for demo buyers.
+
+  *Ändern* reopens the slot picker rather than offering a second control: the picker is
+  the only place date and market move together, so changing either from the confirmation
+  goes through the same price-change warning as changing it earlier would. It closes the
+  confirmation on the way, so that warning cannot open underneath a dialog still showing
+  the old slot.
+
+  Only two things are checked before the dialog is shown — an empty basket, and a
+  missing date, which opens the picker instead. The deadline and the date's availability
+  are deliberately re-checked at the moment of writing, because the confirmation can sit
+  open across a deadline.
 - Edit mode gets no confirmation — the date is fixed by the order being edited — and
   shows the deadline inline on the basket instead.
 - `basketScreen.availablePickupDates: List<Long>` plus a confirmed flag is the open part

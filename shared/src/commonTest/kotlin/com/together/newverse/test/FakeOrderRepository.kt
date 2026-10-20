@@ -56,6 +56,7 @@ class FakeOrderRepository : OrderRepository {
      * Reset repository state for fresh test
      */
     fun reset() {
+        _placedOrders.clear()
         _ordersFlow.value = emptyList()
         _statusUpdates.clear()
         _hiddenOrders.clear()
@@ -90,6 +91,7 @@ class FakeOrderRepository : OrderRepository {
     }
 
     override suspend fun placeOrder(order: Order): Result<Order> {
+        _placedOrders.add(order)
         val newOrder = order.copy(id = "order_${System.currentTimeMillis()}")
         val currentOrders = _ordersFlow.value.toMutableList()
         currentOrders.add(0, newOrder)
@@ -207,6 +209,16 @@ class FakeOrderRepository : OrderRepository {
     override suspend fun deleteDemoOrders(sellerId: String, dateToOrderId: Map<String, String>): Result<Unit> {
         return Result.success(Unit)
     }
+
+    private val _placedOrders = mutableListOf<Order>()
+    /**
+     * Every order handed to [placeOrder], as it was handed over.
+     *
+     * Kept separately from the orders flow so a test can assert on what was *written*
+     * — the market, the pricing revision, the article prices — rather than on what the
+     * fake chose to hand back.
+     */
+    val placedOrders: List<Order> get() = _placedOrders.toList()
 
     /** Records every transition call so tests can assert what was moved in one update. */
     val transitions = mutableListOf<Transition>()

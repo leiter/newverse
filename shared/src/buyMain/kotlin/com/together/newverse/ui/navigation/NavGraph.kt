@@ -89,6 +89,7 @@ fun NavGraph(
                     onAction(BuyNavigationAction.TriggerScrollToAccessInProfile)
                 },
                 pricedAtMarketName = appState.adjustedPricingMarketName,
+                eligibleMarkets = appState.eligibleMarkets,
                 orderId = orderIdArg ?: appState.basket.currentOrderId,
                 orderDate = orderDateArg ?: appState.basket.currentOrderDate
             )

@@ -133,7 +133,9 @@ internal fun BuyAppViewModel.handleBasketScreenAction(action: BuyBasketScreenAct
         is BuyBasketScreenAction.RemoveItem -> basketScreenRemoveItem(action.productId)
         is BuyBasketScreenAction.UpdateItemQuantity -> basketScreenUpdateQuantity(action.productId, action.newQuantity)
         BuyBasketScreenAction.ClearBasket -> basketScreenClearBasket()
-        BuyBasketScreenAction.Checkout -> basketScreenCheckout()
+        BuyBasketScreenAction.Checkout -> basketScreenRequestCheckout()
+        BuyBasketScreenAction.ConfirmCheckout -> basketScreenCheckout()
+        BuyBasketScreenAction.DismissCheckout -> basketScreenDismissCheckout()
         is BuyBasketScreenAction.LoadOrder -> basketScreenLoadOrder(action.orderId, action.date, forceLoad = true)
         BuyBasketScreenAction.UpdateOrder -> basketScreenUpdateOrder()
         BuyBasketScreenAction.EnableEditing -> basketScreenEnableEditing()
@@ -587,6 +589,56 @@ internal fun BuyAppViewModel.basketScreenClearBasket() {
     }
 }
 
+/**
+ * Pressed Bestellen: check the order is placeable, then ask the buyer to confirm
+ * where and when rather than writing it straight away.
+ *
+ * Only the two checks that decide whether a confirmation is worth showing at all
+ * happen here — an empty basket and a missing date, the latter opening the picker
+ * instead. Everything else, including the deadline and whether the date is still
+ * open, is re-checked in [basketScreenCheckout] at the moment of writing: the dialog
+ * can sit open across a deadline, and validating only here would let a stale
+ * confirmation through.
+ *
+ * `doc/guides/market-pricing-and-access-design.md` §4.
+ */
+internal fun BuyAppViewModel.basketScreenRequestCheckout() {
+    val basket = _state.value.basketScreen
+
+    if (basket.items.isEmpty()) {
+        setBasketError("Warenkorb ist leer")
+        return
+    }
+
+    if (basket.selectedPickupDate == null) {
+        _state.update { current ->
+            current.copy(
+                basketScreen = current.basketScreen.copy(
+                    orderError = "Bitte wählen Sie ein Abholdatum",
+                    showDatePicker = true
+                )
+            )
+        }
+        return
+    }
+
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                showCheckoutConfirm = true,
+                orderError = null
+            )
+        )
+    }
+}
+
+/** Backed out. Nothing was written and the basket keeps its slot. */
+internal fun BuyAppViewModel.basketScreenDismissCheckout() {
+    _state.update { current ->
+        current.copy(basketScreen = current.basketScreen.copy(showCheckoutConfirm = false))
+    }
+}
+
 internal fun BuyAppViewModel.basketScreenCheckout() {
     viewModelScope.launch {
         bLog("🛒 BuyAppViewModel.basketScreenCheckout: START")
@@ -594,6 +646,7 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
             current.copy(
                 basketScreen = current.basketScreen.copy(
                     isCheckingOut = true,
+                    showCheckoutConfirm = false,
                     orderSuccess = false,
                     orderError = null
                 )
@@ -1208,7 +1261,14 @@ internal fun BuyAppViewModel.basketScreenShowDatePicker() {
     basketScreenLoadAvailableDates()
     _state.update { current ->
         current.copy(
-            basketScreen = current.basketScreen.copy(showDatePicker = true)
+            basketScreen = current.basketScreen.copy(
+                showDatePicker = true,
+                // Reached from the checkout confirmation when the buyer changes where
+                // or when they collect. Closed here rather than stacked behind the
+                // picker: a price-change warning may follow the new slot, and it must
+                // not open underneath a confirmation showing the old one.
+                showCheckoutConfirm = false
+            )
         )
     }
 }

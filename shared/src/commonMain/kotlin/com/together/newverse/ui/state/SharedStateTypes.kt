@@ -379,6 +379,15 @@ data class BasketScreenState(
      */
     val pendingSlotPriceChange: PendingSlotPriceChange? = null,
     val showDatePicker: Boolean = false,
+    /**
+     * The order is built and the buyer pressed Bestellen; they are confirming where
+     * and when before it is written.
+     *
+     * The last point at which the pickup slot — and so the prices — can still be
+     * changed without editing an order. `doc/guides/market-pricing-and-access-design.md`
+     * §4.
+     */
+    val showCheckoutConfirm: Boolean = false,
     val isCancelling: Boolean = false,
     val cancelSuccess: Boolean = false,
     val showReorderDatePicker: Boolean = false,

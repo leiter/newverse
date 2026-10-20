@@ -1185,4 +1185,16 @@
     <string name="market_choice_profile_change">Ändern</string>
     <!-- %1$s = market name whose price conditions apply -->
     <string name="basket_demo_priced_at_market">Preise für %1$s</string>
+    <!-- Checkout confirmation: last look before the order is written -->
+    <string name="checkout_confirm_title">Bestellung bestätigen</string>
+    <string name="checkout_confirm_when">Abholung</string>
+    <string name="checkout_confirm_total">Summe</string>
+    <!-- %1$s = deadline date and time -->
+    <string name="checkout_confirm_deadline">Änderungen möglich bis %1$s</string>
+    <!-- %1$s = remaining time, e.g. "2 Tage, 5 Stunden" -->
+    <string name="checkout_confirm_time_left">Noch %1$s</string>
+    <string name="checkout_confirm_demo_note">Demo-Bestellung — unverbindlich, bis dein Zugang freigegeben ist.</string>
+    <string name="checkout_confirm_change">Abholort oder Termin ändern</string>
+    <string name="checkout_confirm_place">Bestellen</string>
+    <string name="checkout_confirm_market">Abholort</string>
 </resources>

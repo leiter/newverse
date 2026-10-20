@@ -54,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.Order
 import com.together.newverse.ui.state.BasketScreenState
 import com.together.newverse.ui.state.BasketMergeMode
@@ -79,6 +80,7 @@ import com.together.newverse.domain.model.PickupSlot
 import com.together.newverse.ui.components.displayName
 import com.together.newverse.ui.components.formatEuro
 import com.together.newverse.ui.state.PendingSlotPriceChange
+import com.together.newverse.ui.screens.buy.components.CheckoutConfirmDialog
 import newverse.shared.generated.resources.price_change_body
 import newverse.shared.generated.resources.price_change_confirm
 import newverse.shared.generated.resources.price_change_title
@@ -104,6 +106,8 @@ fun BasketScreen(
     onRequestAccess: () -> Unit = {},
     /** The market whose conditions moved these prices; empty when none did. */
     pricedAtMarketName: String = "",
+    /** The markets this buyer may collect at, for the checkout confirmation. */
+    eligibleMarkets: List<Market> = emptyList(),
     orderId: String? = null,
     orderDate: String? = null
 ) {
@@ -123,7 +127,8 @@ fun BasketScreen(
         isDemoMode = isDemoMode,
         canRequestAccess = canRequestAccess,
         onRequestAccess = onRequestAccess,
-        pricedAtMarketName = pricedAtMarketName
+        pricedAtMarketName = pricedAtMarketName,
+        eligibleMarkets = eligibleMarkets
     )
 }
 
@@ -148,7 +153,8 @@ fun BasketContent(
     isDemoMode: Boolean = false,
     canRequestAccess: Boolean = false,
     onRequestAccess: () -> Unit = {},
-    pricedAtMarketName: String = ""
+    pricedAtMarketName: String = "",
+    eligibleMarkets: List<Market> = emptyList()
 ) {
     // Show dialogs outside the LazyColumn
     if (state.showDatePicker) {
@@ -161,6 +167,26 @@ fun BasketContent(
                 onAction(BuyBasketScreenAction.SelectPickupDate(date))
             },
             onDismiss = { onAction(BuyBasketScreenAction.HideDatePicker) }
+        )
+    }
+
+    // The confirmation before the order is written. Rendered with the other dialogs
+    // outside the LazyColumn so it is shared by the single-column and two-pane
+    // layouts rather than duplicated into both.
+    if (state.showCheckoutConfirm && state.selectedPickupDate != null) {
+        CheckoutConfirmDialog(
+            pickupDate = state.selectedPickupDate,
+            market = eligibleMarkets.firstOrNull { it.id == state.selectedMarketId },
+            // Named only when there is a choice of where: with one stall the row says
+            // nothing the buyer does not know.
+            marketName = if (state.marketNames.size > 1) {
+                state.marketNames[state.selectedMarketId].orEmpty()
+            } else "",
+            total = state.total,
+            isDemoMode = isDemoMode,
+            onConfirm = { onAction(BuyBasketScreenAction.ConfirmCheckout) },
+            onChangeSlot = { onAction(BuyBasketScreenAction.ShowDatePicker) },
+            onDismiss = { onAction(BuyBasketScreenAction.DismissCheckout) }
         )
     }
 

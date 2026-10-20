@@ -298,6 +298,16 @@ object OrderDateUtils {
     /** [market]'s own schedule, falling back to the app default when it has no day. */
     fun marketConfig(market: Market): OrderScheduleConfig = market.scheduleConfig(defaultConfig)
 
+    /**
+     * [market]'s schedule, or the app-wide one when there is no market.
+     *
+     * For callers that may or may not have a market in hand — the checkout
+     * confirmation, which names one only when the seller runs several. Keeps
+     * [defaultConfig] private rather than having every such caller reach for it.
+     */
+    fun scheduleConfigFor(market: Market?): OrderScheduleConfig =
+        market?.scheduleConfig(defaultConfig) ?: defaultConfig
+
     fun getAvailablePickupDates(
         count: Int = 5,
         now: Instant = Clock.System.now(),

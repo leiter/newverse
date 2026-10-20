@@ -184,7 +184,14 @@ sealed interface BuyBasketScreenAction : BuyAction {
     data class RemoveItem(val productId: String) : BuyBasketScreenAction
     data class UpdateItemQuantity(val productId: String, val newQuantity: Double) : BuyBasketScreenAction
     data object ClearBasket : BuyBasketScreenAction
+    /** Pressed Bestellen: validates, then opens the confirmation. */
     data object Checkout : BuyBasketScreenAction
+
+    /** Confirmed in the dialog: the order is written. */
+    data object ConfirmCheckout : BuyBasketScreenAction
+
+    /** Backed out of the confirmation. The basket is untouched. */
+    data object DismissCheckout : BuyBasketScreenAction
         data class LoadOrder(val orderId: String, val date: String, val forceLoad: Boolean = false) : BuyBasketScreenAction
     data object UpdateOrder : BuyBasketScreenAction
     data object EnableEditing : BuyBasketScreenAction
