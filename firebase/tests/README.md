@@ -53,6 +53,16 @@ be added to. Not even the seller may change or delete a booked sale — a mistak
 is corrected by recording a cancellation. A sale and its index entry have to be
 written together and point at each other.
 
+`seed-contacts-and-pricing.test.js` covers what a migration script writes, not
+what the app writes. The firebase CLI applies it with admin credentials, which
+bypass the rules, so a record the rules would reject is written anyway and
+nothing fails — until the seller next edits that market in the app and is
+refused, leaving them unable to touch their own market again. The test imports
+the payload from `scripts/seed-plan.mjs` rather than restating it, so the
+script's own rule transcription cannot drift away from the real ruleset, and it
+asserts the seller can still save the market afterwards. Worth copying for the
+next script that writes over the CLI.
+
 ## Notes
 
 - The suite runs single threaded (`--test-concurrency=1`): the emulator holds
