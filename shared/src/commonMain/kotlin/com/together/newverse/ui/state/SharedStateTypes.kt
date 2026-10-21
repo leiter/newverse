@@ -527,6 +527,20 @@ enum class ProductFilter {
     GEMUESE
 }
 
+/**
+ * An add the buyer asked for that could not be carried out yet, kept so it can be.
+ *
+ * Only ever set while a placed order is past its edit deadline: the add is refused,
+ * the buyer is offered a new order, and this is what that new order starts with. The
+ * article is held by id rather than as an [Article] so a catalogue refresh between
+ * the two taps cannot resurrect a withdrawn one — the id is looked up again when the
+ * add is applied.
+ */
+data class PendingBasketAdd(
+    val articleId: String,
+    val quantity: Double,
+)
+
 data class MainScreenState(
     override val isLoading: Boolean = true,
     override val error: ErrorState? = null,
@@ -539,6 +553,8 @@ data class MainScreenState(
     val activeFilter: ProductFilter = ProductFilter.ALL,
     val canEditOrder: Boolean = true,
     val showNewOrderSnackbar: Boolean = false,
+    /** The add that is waiting for a new order to put it in. See [PendingBasketAdd]. */
+    val pendingAdd: PendingBasketAdd? = null,
     val searchQuery: String = ""
 ) : ScreenState {
 

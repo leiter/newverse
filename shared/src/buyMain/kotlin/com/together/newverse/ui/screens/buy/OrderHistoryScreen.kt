@@ -234,7 +234,10 @@ private fun OrderHistoryCard(
     val itemCount = order.articles.size
     val daysUntilPickup = getDaysUntilPickup(order.pickUpDate)
     val isUpcoming = daysUntilPickup >= 0
-    val canEdit = daysUntilPickup > 3
+    // The domain rule, not a day count: the deadline is a lead distance from each
+    // market's own pickup day, so counting days here would disagree with the basket
+    // screen the moment a market does not collect on Thursday.
+    val canEdit = order.canEdit()
 
     val orderIdText = formatString(stringResource(Res.string.format_order_id), order.id.takeLast(8))
     val createdText = formatString(stringResource(Res.string.order_history_created_date), createdDate)

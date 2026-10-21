@@ -3,8 +3,10 @@ package com.together.newverse.ui.state.buy
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.ui.state.BasketScreenState
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.ErrorState
+import com.together.newverse.ui.state.PendingBasketAdd
 import com.together.newverse.ui.state.ErrorType
 import com.together.newverse.ui.state.ProductFilter
 import com.together.newverse.ui.state.BuyMainScreenAction
@@ -23,7 +25,7 @@ private const val TAG = "BuyVMMain"
  *
  * Extracted functions:
  * - handleMainScreenAction
- * - Edit lock guard helpers (handleUpdateQuantity, handleUpdateQuantityFromText, handleAddToCart, handleRemoveFromBasket)
+ * - Edit lock guards (handleAddToCart, handleRemoveFromBasket) and applyPendingAdd
  * - showNewOrderSnackbar, dismissNewOrderSnackbar, startNewOrder
  * - setMainScreenFilter
  * - selectMainScreenArticle
@@ -38,8 +40,8 @@ internal fun BuyAppViewModel.handleMainScreenAction(action: BuyMainScreenAction)
     when (action) {
         is BuyMainScreenAction.SelectArticle -> selectMainScreenArticle(action.article)
         is BuyMainScreenAction.ViewProductDetail -> { /* Handled by navigation layer */ }
-        is BuyMainScreenAction.UpdateQuantity -> handleUpdateQuantity(action.quantity)
-        is BuyMainScreenAction.UpdateQuantityText -> handleUpdateQuantityFromText(action.text)
+        is BuyMainScreenAction.UpdateQuantity -> updateMainScreenQuantity(action.quantity)
+        is BuyMainScreenAction.UpdateQuantityText -> updateMainScreenQuantityFromText(action.text)
         BuyMainScreenAction.AddToCart -> handleAddToCart()
         BuyMainScreenAction.RemoveFromBasket -> handleRemoveFromBasket()
         is BuyMainScreenAction.ToggleFavourite -> toggleMainScreenFavourite(action.articleId)
@@ -52,25 +54,22 @@ internal fun BuyAppViewModel.handleMainScreenAction(action: BuyMainScreenAction)
     }
 }
 
-private fun BuyAppViewModel.handleUpdateQuantity(quantity: Double) {
-    if (!_state.value.mainScreen.canEditOrder) {
-        showNewOrderSnackbar()
-        return
-    }
-    updateMainScreenQuantity(quantity)
-}
-
-private fun BuyAppViewModel.handleUpdateQuantityFromText(text: String) {
-    if (!_state.value.mainScreen.canEditOrder) {
-        showNewOrderSnackbar()
-        return
-    }
-    updateMainScreenQuantityFromText(text)
-}
-
+/**
+ * Add while the placed order is locked: refuse the write, but keep the add.
+ *
+ * The buyer picked an article and an amount. Showing the snackbar and dropping both
+ * meant the new order they were just offered started empty, and they had to dial the
+ * same thing again. The intent is recorded instead and [startNewOrder] puts it in the
+ * fresh draft.
+ */
 private fun BuyAppViewModel.handleAddToCart() {
     if (!_state.value.mainScreen.canEditOrder) {
-        showNewOrderSnackbar()
+        val main = _state.value.mainScreen
+        val article = main.selectedArticle
+        val pending = if (article != null && main.selectedQuantity > 0.0) {
+            PendingBasketAdd(articleId = article.id, quantity = main.selectedQuantity)
+        } else null
+        showNewOrderSnackbar(pending)
         return
     }
     addMainScreenToCart()
@@ -84,33 +83,54 @@ private fun BuyAppViewModel.handleRemoveFromBasket() {
     removeMainScreenFromBasket()
 }
 
-private fun BuyAppViewModel.showNewOrderSnackbar() {
+private fun BuyAppViewModel.showNewOrderSnackbar(pending: PendingBasketAdd? = null) {
     _state.update { current ->
         current.copy(
             mainScreen = current.mainScreen.copy(
-                showNewOrderSnackbar = true
+                showNewOrderSnackbar = true,
+                pendingAdd = pending ?: current.mainScreen.pendingAdd
             )
         )
     }
 }
 
 internal fun BuyAppViewModel.dismissNewOrderSnackbar() {
+    // Letting the snackbar go is declining the new order, so the add it was holding
+    // goes with it rather than surfacing in some later draft.
     _state.update { current ->
         current.copy(
             mainScreen = current.mainScreen.copy(
-                showNewOrderSnackbar = false
+                showNewOrderSnackbar = false,
+                pendingAdd = null
             )
         )
     }
 }
 
+/**
+ * Leave the locked order where it is and start an empty draft for the next open slot.
+ *
+ * The order whose deadline passed is untouched — it is still owed, still in the
+ * order history, and still the seller's to fulfil. Only the basket moves on.
+ *
+ * Every field the basket screen reads off the old order has to go with it.
+ * `basketScreen.orderId` is the switch that screen keys on: left set, it keeps
+ * drawing the locked order's card, whose only action is Update, which
+ * [basketScreenUpdateOrder] refuses because the deadline has passed — a draft with
+ * no way to send it. So the screen state is rebuilt rather than patched, and a field
+ * added to [BasketScreenState] later cannot be forgotten here.
+ *
+ * Carried over: the slot catalogue, which is a property of the seller's calendar and
+ * not of the abandoned order, and the fulfilment choice, which is seeded from the
+ * profile once at startup and would otherwise silently fall back to pickup.
+ */
 internal fun BuyAppViewModel.startNewOrder() {
     viewModelScope.launch {
         // Clear the basket to start fresh
         basketRepository.clearBasket()
 
-        // Reset canEditOrder to true and hide snackbar
         _state.update { current ->
+            val previous = current.basketScreen
             current.copy(
                 mainScreen = current.mainScreen.copy(
                     canEditOrder = true,
@@ -119,11 +139,62 @@ internal fun BuyAppViewModel.startNewOrder() {
                 basket = current.basket.copy(
                     currentOrderId = null,
                     currentOrderDate = null
+                ),
+                basketScreen = BasketScreenState(
+                    availableSlots = previous.availableSlots,
+                    availablePickupDates = previous.availablePickupDates,
+                    marketNames = previous.marketNames,
+                    fulfilment = previous.fulfilment,
+                    deliveryAddress = previous.deliveryAddress
                 )
             )
         }
-        Log.d(TAG) { "Started new order - basket cleared" }
+
+        // The slots were computed against the old order's deadline; recompute so the
+        // draft offers the next open day rather than the one that just closed.
+        basketScreenLoadAvailableDates()
+
+        Log.d(TAG) { "Started new order - basket and order context cleared" }
+
+        // What the buyer was trying to add when they hit the lock. Applied after the
+        // reset, so it lands in the new draft rather than in the order they can no
+        // longer change.
+        applyPendingAdd()
     }
+}
+
+/**
+ * Put the add the lock refused into the draft that has just been started.
+ *
+ * Looked up in the current catalogue rather than trusted: between the refusal and
+ * the new order the seller may have withdrawn the article or sold it out, and an
+ * order that cannot be placed is worse than one item short. Dropped silently in
+ * that case — the basket is on screen and shows what it holds.
+ */
+private fun BuyAppViewModel.applyPendingAdd() {
+    val pending = _state.value.mainScreen.pendingAdd ?: return
+    val article = _state.value.mainScreen.articles
+        .firstOrNull { it.id == pending.articleId && it.available }
+
+    _state.update { current ->
+        current.copy(
+            mainScreen = current.mainScreen.copy(
+                pendingAdd = null,
+                selectedArticle = article ?: current.mainScreen.selectedArticle,
+                selectedQuantity = if (article != null) pending.quantity else current.mainScreen.selectedQuantity
+            )
+        )
+    }
+
+    if (article == null) {
+        Log.d(TAG) { "applyPendingAdd: ${pending.articleId} is no longer orderable, dropped" }
+        return
+    }
+
+    // Reuses the normal add so the new order's item is priced and built exactly like
+    // any other: market price, components, piece count.
+    addMainScreenToCart()
+    Log.d(TAG) { "applyPendingAdd: carried ${pending.quantity} of ${article.productName} into the new order" }
 }
 
 internal fun BuyAppViewModel.setMainScreenFilter(filter: ProductFilter) {

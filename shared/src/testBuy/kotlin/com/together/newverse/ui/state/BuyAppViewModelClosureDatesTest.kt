@@ -236,7 +236,11 @@ class BuyAppViewModelSlotTest {
         // One slot each, not a run of weeks per stall.
         val slots = viewModel.state.value.basketScreen.availableSlots
         assertEquals(2, slots.size)
-        assertEquals(listOf("m1", "m2"), slots.map { it.marketId })
+        // Which stall comes first is the clock's business, not the fixture's: the
+        // list is in date order, and each market's slot moves to the following week
+        // once its own deadline passes. Asserting [m1, m2] only held on a day when
+        // Thursday was still open.
+        assertEquals(setOf("m1", "m2"), slots.map { it.marketId }.toSet())
         assertEquals(slots.map { it.date }.sorted(), slots.map { it.date })
         assertEquals(
             mapOf("m1" to "Kreuzberg", "m2" to "Neukölln"),
