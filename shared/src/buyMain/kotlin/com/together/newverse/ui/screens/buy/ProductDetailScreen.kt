@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -54,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.ArticleScarcity
@@ -71,6 +74,16 @@ import newverse.shared.generated.resources.product_scarcity_last_few
 import newverse.shared.generated.resources.product_scarcity_limited
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+
+/**
+ * How far a button label may wrap before it is cut short.
+ *
+ * Three lines is what "Aus dem Warenkorb entfernen" needs at half the width of a
+ * phone, so the labels that exist today all fit. The clamp is for the ones that do
+ * not: a longer translation, or a larger font scale, would otherwise grow the pair of
+ * buttons without limit and push the rest of the screen off the bottom.
+ */
+private const val BUTTON_LABEL_MAX_LINES = 3
 
 @Composable
 fun ProductDetailScreen(
@@ -514,8 +527,18 @@ private fun ProductDetailsColumn(
         // Action Buttons
         if (isInBasket) {
             // Update / Remove buttons for items in basket
+            // Both buttons stand the same height, whatever their labels do.
+            //
+            // Each sized itself to its own text before, so "Warenkorb aktualisieren"
+            // wrapped to two lines and "Aus dem Warenkorb entfernen" to three, and the
+            // pair sat at different heights beside each other. IntrinsicSize.Min asks
+            // the row for the tallest label's height and fillMaxHeight gives it to
+            // both, so the longer label sets the height and the shorter one matches —
+            // rather than a fixed height that German would eventually outgrow.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Update button
@@ -526,6 +549,7 @@ private fun ProductDetailsColumn(
                     enabled = canUpdate,
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()
                         .semantics {
                             contentDescription = when {
                                 canUpdate -> updateLabel
@@ -537,13 +561,15 @@ private fun ProductDetailsColumn(
                 ) {
                     Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(updateLabel)
+                    Text(updateLabel, maxLines = BUTTON_LABEL_MAX_LINES, overflow = TextOverflow.Ellipsis)
                 }
 
                 // Remove button
                 OutlinedButton(
                     onClick = { onRemoveFromCart(article.id) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
@@ -551,7 +577,11 @@ private fun ProductDetailsColumn(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(Res.string.products_detail_remove_from_cart))
+                    Text(
+                        text = stringResource(Res.string.products_detail_remove_from_cart),
+                        maxLines = BUTTON_LABEL_MAX_LINES,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         } else {
@@ -562,7 +592,9 @@ private fun ProductDetailsColumn(
                 enabled = quantity > 0,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
+                    // A minimum, not a fixed height: at 56.dp a label that wrapped
+                    // would be cut off rather than wrapped.
+                    .heightIn(min = 56.dp)
                     .semantics {
                         contentDescription =
                             if (quantity > 0) addLabel else "$addLabel, $chooseAmountReason"
@@ -573,7 +605,9 @@ private fun ProductDetailsColumn(
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = addLabel,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = BUTTON_LABEL_MAX_LINES,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
