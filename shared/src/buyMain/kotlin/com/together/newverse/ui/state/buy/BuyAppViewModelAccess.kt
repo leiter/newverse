@@ -91,6 +91,21 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
                 refreshDatesForClosures()
             }
     }
+
+    // The buttons the seller publishes. Watched rather than read once: the seller adds
+    // one while buyers already have the app open, and configuration that needs a
+    // restart to appear is not configuration. Found the hard way — the first button
+    // published on dev did not show up until the app was killed.
+    sellerUiActionRepository?.let { repo ->
+        viewModelScope.launch {
+            repo.observeActions(sellerId)
+                .catch { e -> Log.w(TAG) { "observeActions error: ${e.message}" } }
+                .collect { actions ->
+                    Log.d(TAG) { "observeActions: ${actions.size} published action(s)" }
+                    _state.update { it.copy(sellerUiActions = actions) }
+                }
+        }
+    }
 }
 
 /**

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -32,9 +33,11 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.SellerUiAction
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.button_save
 import newverse.shared.generated.resources.seller_actions_add
 import newverse.shared.generated.resources.seller_actions_explain
 import newverse.shared.generated.resources.seller_actions_full
+import newverse.shared.generated.resources.seller_actions_incomplete
 import newverse.shared.generated.resources.seller_actions_label
 import newverse.shared.generated.resources.seller_actions_location
 import newverse.shared.generated.resources.seller_actions_location_home
@@ -52,9 +55,12 @@ import org.jetbrains.compose.resources.stringResource
  * rather than replacing a list on the profile, because each action is its own node
  * key and removal is a delete.
  *
- * A row is saved when it has both a label and a target; until then it is a draft held
- * in composition and nothing is written. That keeps a half-typed address out of the
- * database, where the rules would reject it anyway.
+ * Edits are local until the seller presses save, like [SellerContactsCard]. The first
+ * version wrote a row the moment it had both a label and a target, which looked
+ * reasonable and was unusable: typing the label one character at a time made the row
+ * complete on the first keystroke, so it was handed off and removed from the editor
+ * mid-word while the live flow round-tripped. The first button ever published on dev
+ * ended up labelled "g". Nothing is written here until save.
  *
  * The address is entered and stored without a scheme, which is why the field says so.
  * See `doc/guides/seller-ui-actions.md`.
@@ -64,12 +70,16 @@ fun UiActionListEditor(
     actions: List<SellerUiAction>,
     onSave: (SellerUiAction) -> Unit,
     onRemove: (String) -> Unit,
+    isSaving: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    // Rows the seller has started but not finished. Kept beside the saved ones rather
-    // than written early: an action with no label is not a button, and the rules
-    // reject it.
-    var drafts by remember { mutableStateOf(listOf<SellerUiAction>()) }
+    // Re-seeded whenever the stored list changes, so a save elsewhere is picked up
+    // rather than silently overwritten by a stale draft — and so a newly minted id
+    // replaces the blank one a fresh row carried.
+    var rows by remember(actions) { mutableStateOf(actions) }
+
+    val edited = rows.filter { it.isUsable } != actions.filter { it.isUsable }
+    val incomplete = rows.any { !it.isUsable && (it.label.isNotBlank() || it.value.isNotBlank()) }
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -86,55 +96,68 @@ fun UiActionListEditor(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        actions.forEachIndexed { index, action ->
+        rows.forEachIndexed { index, row ->
             UiActionRow(
-                action = action,
-                // Saved rows write on every edit: the row already exists, so there is
-                // no half-written state to protect, and the seller gets no save button
-                // to forget.
-                onChange = { updated -> if (updated.isUsable) onSave(updated) },
-                onRemove = { onRemove(action.id) }
-            )
-            if (index != actions.lastIndex || drafts.isNotEmpty()) HorizontalDivider()
-        }
-
-        drafts.forEachIndexed { index, draft ->
-            UiActionRow(
-                action = draft,
+                action = row,
                 onChange = { updated ->
-                    if (updated.isUsable) {
-                        // Complete: hand it over and drop the draft. The live flow
-                        // brings it back as a saved row.
-                        drafts = drafts.filterIndexed { i, _ -> i != index }
-                        onSave(updated)
-                    } else {
-                        drafts = drafts.toMutableList().also { it[index] = updated }
-                    }
+                    rows = rows.toMutableList().also { it[index] = updated }
                 },
-                onRemove = { drafts = drafts.filterIndexed { i, _ -> i != index } }
+                onRemove = {
+                    // A row that was never stored just goes; a stored one has to be
+                    // deleted, or the live flow would bring it straight back.
+                    if (row.id.isNotEmpty() && actions.any { it.id == row.id }) {
+                        onRemove(row.id)
+                    }
+                    rows = rows.filterIndexed { i, _ -> i != index }
+                }
             )
-            if (index != drafts.lastIndex) HorizontalDivider()
+            if (index != rows.lastIndex) HorizontalDivider()
         }
 
-        // Capped per slot, so the button to add another goes away only when every slot
-        // is full — which is also what the repository refuses, so the two agree.
+        // Capped per slot, matching what the repository refuses, so the two agree.
         val slotsWithRoom = ActionLocation.entries.filter { location ->
-            actions.count { it.location == location } < SellerUiAction.MAX_PER_LOCATION
+            rows.count { it.location == location } < SellerUiAction.MAX_PER_LOCATION
         }
-        if (slotsWithRoom.isNotEmpty()) {
-            TextButton(
-                onClick = {
-                    drafts = drafts + SellerUiAction(location = slotsWithRoom.first())
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            if (slotsWithRoom.isNotEmpty()) {
+                TextButton(
+                    onClick = { rows = rows + SellerUiAction(location = slotsWithRoom.first()) }
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(stringResource(Res.string.seller_actions_add))
                 }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(stringResource(Res.string.seller_actions_add))
+            } else {
+                Text(
+                    text = stringResource(Res.string.seller_actions_full),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-        } else {
+
+            Button(
+                onClick = { rows.filter { it.isUsable }.forEach(onSave) },
+                enabled = !isSaving && edited && !incomplete
+            ) {
+                Text(stringResource(Res.string.button_save))
+            }
+        }
+
+        // Said rather than left to a disabled button: a save that will not fire needs
+        // a reason beside it.
+        if (incomplete) {
             Text(
-                text = stringResource(Res.string.seller_actions_full),
+                text = stringResource(Res.string.seller_actions_incomplete),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.error
             )
         }
     }

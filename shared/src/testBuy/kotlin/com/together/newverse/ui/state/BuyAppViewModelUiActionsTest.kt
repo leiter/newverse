@@ -106,6 +106,37 @@ class BuyAppViewModelUiActionsTest {
     }
 
     @Test
+    fun `a button published while the app is open appears without a restart`() = runTest {
+        // The bug this feature shipped with: the actions were read once at startup, so
+        // the first button published on dev did not appear until the app was killed.
+        // Configuration that needs a restart to take effect is not configuration.
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_HOME).isEmpty())
+
+        uiActionRepository.seed("demo_seller_id", action("a1", "Wünsche", ActionLocation.TOPBAR_HOME))
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Wünsche"),
+            viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_HOME).map { it.label }
+        )
+    }
+
+    @Test
+    fun `a button the seller removes disappears without a restart`() = runTest {
+        uiActionRepository.seed("demo_seller_id", action("a1", "Wünsche", ActionLocation.TOPBAR_HOME))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertEquals(1, viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_HOME).size)
+
+        uiActionRepository.deleteAction("demo_seller_id", "a1")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_HOME).isEmpty())
+    }
+
+    @Test
     fun `a button lands only in the slot it names`() = runTest {
         uiActionRepository.seed(
             "demo_seller_id",

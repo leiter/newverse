@@ -185,7 +185,8 @@ fun SellerProfileScreen(
                             UiActionListEditor(
                                 actions = uiActions,
                                 onSave = onSaveUiAction,
-                                onRemove = onRemoveUiAction
+                                onRemove = onRemoveUiAction,
+                                isSaving = isSaving
                             )
                         }
                     }

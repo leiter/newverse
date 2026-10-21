@@ -1259,6 +1259,7 @@
     <string name="seller_actions_location_home">Kopfbereich, Startseite</string>
     <string name="seller_actions_location_profile">Kopfbereich, Profil</string>
     <string name="seller_actions_full">Hier ist kein Platz für weitere Schaltflächen.</string>
+    <string name="seller_actions_incomplete">Bitte Beschriftung und Adresse ausfüllen.</string>
     <string name="seller_actions_saved">Schaltfläche gespeichert</string>
     <string name="fulfilment_use_profile_address">Adresse aus Profil übernehmen</string>
     <string name="fulfilment_save_to_profile">Adresse im Profil speichern</string>

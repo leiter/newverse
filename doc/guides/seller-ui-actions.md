@@ -1,6 +1,7 @@
 # Seller-Published Buttons in the Buy App
 
-**Status:** Implemented 2026-10-21.
+**Status:** Implemented 2026-10-21; two bugs found on first device use the same day
+and fixed — see **What went wrong first time**.
 **Scope:** `shared/src/commonMain` (model + repository), `buyMain` (top-bar
 rendering, app state), `sellMain` (editor on the profile screen),
 `firebase/database.rules.json` (+ `firebase/tests/seller-ui-actions.test.js`)
@@ -133,6 +134,37 @@ oversight.
   English-locale buyer as written. Accepted deliberately: with one seller it is the
   right trade, and the alternative is asking a market trader for translations.
 
+## What went wrong first time
+
+Both bugs surfaced on the first real use — seller publishes a button, buyer app shows
+nothing — and neither was caught by the tests as first written.
+
+**1. The buy app read the actions once, at startup.** `getActions` ran in
+`resumeInitializationAfterAuth` and on `performConnection`, and nowhere else. A seller
+publishing a button while buyers have the app open changed nothing until the app was
+killed. Configuration that needs a restart is not configuration.
+
+Fixed by watching the node in `startObservingAccessStatus`, beside the access status
+and allowed markets, which already exist to carry exactly this kind of
+seller-side change into an open app. The one-shot reads are kept so the first frame
+after launch is not empty while the subscription warms up.
+
+**2. The editor wrote a row the moment it became complete, and dropped it.** Each row
+handed itself to the repository as soon as it had both a label and a target, then
+removed itself from the editor while the live flow round-tripped. Typing a label one
+character at a time meant the row completed on the *first* keystroke and vanished
+mid-word. The first button published on dev ended up labelled `g`.
+
+Fixed by holding edits locally and writing on an explicit save, which is what
+`SellerContactsCard` beside it already does. Nothing is written until the seller
+presses the button.
+
+The lesson for the tests: both the model tests and the rule tests were about what a
+seller *may store*, and they were thorough about it. Neither asked whether a published
+button ever reaches a buyer who is already looking at the screen. There are now
+regression tests for both directions of that — a button appearing and disappearing
+without a restart — and they fail if the subscription is removed.
+
 ## Known limits
 
 - **One seller makes the blast radius small, and that will not always be true.** The
@@ -159,4 +191,5 @@ oversight.
 | `sellMain/.../SellerProfileViewModel.kt` | `uiActions`, `saveUiAction`, `deleteUiAction` |
 | `firebase/tests/seller-ui-actions.test.js` | 19 rule tests, mostly about `value` |
 | `commonTest/.../SellerUiActionTest.kt` | 15 model tests, mostly about schemes |
-| `testBuy/.../BuyAppViewModelUiActionsTest.kt` | 6 tests: the buttons reach the state |
+| `buyMain/.../BuyAppViewModelAccess.kt` | The live subscription, beside access status |
+| `testBuy/.../BuyAppViewModelUiActionsTest.kt` | 8 tests: the buttons reach the state, live |

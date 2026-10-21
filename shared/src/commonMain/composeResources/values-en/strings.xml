@@ -1201,6 +1201,7 @@
     <string name="seller_actions_location_home">Top bar, home screen</string>
     <string name="seller_actions_location_profile">Top bar, profile screen</string>
     <string name="seller_actions_full">There is no room for another button here.</string>
+    <string name="seller_actions_incomplete">Please fill in both a label and an address.</string>
     <string name="seller_actions_saved">Button saved</string>
     <string name="fulfilment_use_profile_address">Use address from profile</string>
     <string name="fulfilment_save_to_profile">Save address to profile</string>
