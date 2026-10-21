@@ -864,6 +864,7 @@
     <string name="a11y_state_expanded">expanded</string>
     <string name="a11y_state_collapsed">collapsed</string>
     <string name="a11y_toggle_address">Show or hide the address</string>
+    <string name="a11y_toggle_profile_incomplete">Show or hide the missing details</string>
     <!-- Frames the demo/production mode indicator: %s = mode name -->
     <string name="a11y_current_mode">Mode: %s</string>
     <!-- Dot badge on the profile tab while required profile data is missing -->

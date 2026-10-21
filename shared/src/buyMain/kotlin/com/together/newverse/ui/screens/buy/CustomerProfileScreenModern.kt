@@ -79,6 +79,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -90,6 +92,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
@@ -112,6 +115,7 @@ import com.together.newverse.ui.state.ConnectionConfirmation
 import com.together.newverse.util.formatString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_access_id
 import newverse.shared.generated.resources.a11y_current_mode
@@ -119,6 +123,7 @@ import newverse.shared.generated.resources.a11y_sending
 import newverse.shared.generated.resources.a11y_state_collapsed
 import newverse.shared.generated.resources.a11y_state_expanded
 import newverse.shared.generated.resources.a11y_toggle_address
+import newverse.shared.generated.resources.a11y_toggle_profile_incomplete
 import newverse.shared.generated.resources.access_request_button
 import newverse.shared.generated.resources.access_status_approved
 import newverse.shared.generated.resources.access_status_blocked
@@ -271,6 +276,16 @@ fun CustomerProfileScreenModern(
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val personalInfoViewRequester = remember { BringIntoViewRequester() }
 
+    // The notice above the form opens on demand; one line until then.
+    var isIncompleteNoticeExpanded by remember { mutableStateOf(false) }
+
+    // Root-space tops of the scrolling content and of the personal info card.
+    // Their difference is the card's offset inside the content, which is what
+    // "scroll the section to the top" needs — bringIntoView only scrolls far
+    // enough to make it visible.
+    var scrollContentTop by remember { mutableStateOf(0f) }
+    var personalInfoTop by remember { mutableStateOf(0f) }
+
     // Logout Warning Dialog
     if (state.showLogoutWarningDialog) {
         LogoutWarningDialog(
@@ -401,6 +416,7 @@ fun CustomerProfileScreenModern(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scrollState)
+                        .onGloballyPositioned { scrollContentTop = it.positionInRoot().y }
                         .padding(20.dp)
                         .padding(bottom = if (isEditing) 80.dp else 0.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -411,10 +427,19 @@ fun CustomerProfileScreenModern(
                     if (!missingProfileData.isComplete) {
                         ProfileIncompleteNotice(
                             missing = missingProfileData,
+                            expanded = isIncompleteNoticeExpanded,
+                            onToggleExpanded = {
+                                isIncompleteNoticeExpanded = !isIncompleteNoticeExpanded
+                            },
                             onFillInClick = {
                                 coroutineScope.launch {
                                     profileViewModel.startEditing()
-                                    personalInfoViewRequester.bringIntoView()
+                                    val target = scrollState.value +
+                                        (personalInfoTop - scrollContentTop)
+                                    scrollState.animateScrollTo(
+                                        target.roundToInt()
+                                            .coerceIn(0, scrollState.maxValue)
+                                    )
                                 }
                             }
                         )
@@ -431,7 +456,11 @@ fun CustomerProfileScreenModern(
                     )
 
                     // Personal Information Card
-                    Box(modifier = Modifier.bringIntoViewRequester(personalInfoViewRequester)) {
+                    Box(
+                        modifier = Modifier
+                            .onGloballyPositioned { personalInfoTop = it.positionInRoot().y }
+                            .bringIntoViewRequester(personalInfoViewRequester)
+                    ) {
                         PersonalInfoCard(
                             displayName = displayName,
                             email = email,
@@ -1177,17 +1206,33 @@ private fun missingFieldsText(missing: MissingProfileData): String {
  *
  * This is the buyer's own task — the same data the access gate in
  * `requestAccess()` requires — so it is stated once, here, and nowhere else.
+ *
+ * It sits above the form it talks about, so it stays one line until tapped:
+ * the list of fields is the detail, the warning itself is the headline.
  */
 @Composable
 private fun ProfileIncompleteNotice(
     missing: MissingProfileData,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
     onFillInClick: () -> Unit
 ) {
     val fields = missingFieldsText(missing)
     val message = formatString(stringResource(Res.string.missing_fields_list), fields)
+    val toggleLabel = stringResource(Res.string.a11y_toggle_profile_incomplete)
+    val toggleState = stringResource(
+        if (expanded) Res.string.a11y_state_expanded else Res.string.a11y_state_collapsed
+    )
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                onClickLabel = toggleLabel,
+                role = Role.Button,
+                onClick = onToggleExpanded
+            )
+            .semantics { stateDescription = toggleState },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer
@@ -1196,12 +1241,12 @@ private fun ProfileIncompleteNotice(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .animateContentSize(animationSpec = spring())
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.Warning,
@@ -1209,25 +1254,46 @@ private fun ProfileIncompleteNotice(
                     tint = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.size(20.dp)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = stringResource(Res.string.profile_incomplete_dialog_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(
+                    onClick = onFillInClick,
+                    contentPadding = ButtonDefaults.TextButtonContentPadding
+                ) {
+                    Text(
+                        text = stringResource(Res.string.profile_incomplete_fill_now),
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        maxLines = 1
+                    )
+                }
+                // Visual affordance only; the card itself is the a11y toggle
+                Icon(
+                    imageVector = if (expanded) {
+                        Icons.Default.ArrowDropDown
+                    } else {
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight
+                    },
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clearAndSetSemantics { }
                 )
             }
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-            TextButton(
-                onClick = onFillInClick,
-                modifier = Modifier.align(Alignment.End)
-            ) {
+            if (expanded) {
                 Text(
-                    text = stringResource(Res.string.profile_incomplete_fill_now),
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.padding(start = 28.dp, bottom = 8.dp)
                 )
             }
         }
