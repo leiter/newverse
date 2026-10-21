@@ -4,6 +4,7 @@ import com.together.newverse.domain.model.AccessRequest
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.BuyerAccess
 import com.together.newverse.domain.model.BuyerProfile
+import com.together.newverse.domain.model.PLACEHOLDER_DISPLAY_NAME
 import com.together.newverse.domain.model.CleanUpResult
 import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.Market
@@ -738,7 +739,7 @@ class GitLiveProfileRepository(
     private fun createDefaultBuyerProfile(userId: String): BuyerProfile {
         return BuyerProfile(
             id = userId,
-            displayName = "New User",
+            displayName = PLACEHOLDER_DISPLAY_NAME,
             emailAddress = "",
             telephoneNumber = "",
             photoUrl = "",

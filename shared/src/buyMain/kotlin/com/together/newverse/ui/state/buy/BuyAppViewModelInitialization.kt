@@ -3,6 +3,7 @@ package com.together.newverse.ui.state.buy
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.DeliveryAddress
 import com.together.newverse.domain.model.Fulfilment
+import com.together.newverse.domain.model.PLACEHOLDER_DISPLAY_NAMES
 import com.together.newverse.domain.repository.AuthUserInfo
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.ErrorState
@@ -322,8 +323,7 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
             if (authUserInfo != null && !authUserInfo.isAnonymous) {
                 // Check if displayName needs update (empty, default English, or default German)
                 val isDefaultName = profile.displayName.isBlank() ||
-                    profile.displayName == "New User" ||
-                    profile.displayName == "Neuer Kunde"
+                    profile.displayName in PLACEHOLDER_DISPLAY_NAMES
                 val hasAuthDisplayName = !authUserInfo.displayName.isNullOrBlank()
                 val needsDisplayNameUpdate = isDefaultName && hasAuthDisplayName
 

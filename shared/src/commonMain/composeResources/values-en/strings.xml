@@ -290,7 +290,7 @@
     <!-- ========================================= -->
     <!-- CUSTOMER PROFILE SCREEN (BUY MODULE) -->
     <!-- ========================================= -->
-    <string name="profile_new_customer">New Customer</string>
+    <string name="profile_new_customer">Bodenschatz</string>
     <string name="profile_no_email">No Email</string>
     <string name="profile_verified">Verified</string>
     <string name="profile_member_since">Member since %s</string>

@@ -25,3 +25,18 @@ data class BuyerProfile(
     val houseNumber: String = "",
     val isSelfPickup: Boolean = false // "Selbstabholer" — no delivery address needed
 )
+
+/**
+ * The display name a new profile is given before the buyer states their own.
+ *
+ * It is stored rather than rendered, so it travels with the profile — into the
+ * order the seller reads, not just the profile screen.
+ */
+const val PLACEHOLDER_DISPLAY_NAME = "Bodenschatz"
+
+/**
+ * Every placeholder a stored profile may carry, including the two that predate
+ * [PLACEHOLDER_DISPLAY_NAME] and are still in the database. A name counts as the
+ * buyer's own only if it is none of these.
+ */
+val PLACEHOLDER_DISPLAY_NAMES = setOf(PLACEHOLDER_DISPLAY_NAME, "New User", "Neuer Kunde")

@@ -303,7 +303,7 @@
     <!-- ========================================= -->
     <!-- CUSTOMER PROFILE SCREEN (BUY MODULE) -->
     <!-- ========================================= -->
-    <string name="profile_new_customer">Neuer Kunde</string>
+    <string name="profile_new_customer">Bodenschatz</string>
     <string name="profile_no_email">Keine E-Mail</string>
     <string name="profile_verified">Verifiziert</string>
     <string name="profile_member_since">Kunde seit %s</string>
