@@ -1,7 +1,10 @@
 package com.together.newverse.ui.state
 
+import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.SellerUiAction
+import com.together.newverse.domain.model.forLocation
 import com.together.newverse.domain.model.MarketPricing
 import com.together.newverse.domain.model.ResolvedPrice
 import com.together.newverse.domain.model.resolvePrice
@@ -55,6 +58,11 @@ data class BuyAppState(
     val allowedMarkets: List<String> = emptyList(),
     /** Days the seller has marked as not happening; filtered out of the pickup dates. */
     val sellerClosures: MarketClosures = MarketClosures.NONE,
+    /**
+     * Buttons the seller publishes into this app. Read [topBarActionsFor] rather than
+     * this, which applies the per-slot ordering and cap.
+     */
+    val sellerUiActions: List<SellerUiAction> = emptyList(),
 
     // Invitation state
     val pendingInvitations: List<Invitation> = emptyList(),
@@ -262,6 +270,17 @@ data class BuyAppState(
         ).firstOrNull { id -> id.isNotEmpty() && eligibleMarkets.any { it.id == id } }
             ?: eligibleMarkets.singleOrNull()?.id
 
+    /**
+     * The seller's published buttons for one slot, ordered and capped.
+     *
+     * Not gated on approval, unlike [topBarContacts]: a contact shortcut handed to
+     * every anonymous installer is unvetted inbound noise for a small business,
+     * whereas a link the seller chose to publish is the thing they want seen, and a
+     * button that appears only after approval reads as broken to a new install.
+     */
+    fun topBarActionsFor(location: ActionLocation): List<SellerUiAction> =
+        sellerUiActions.forLocation(location)
+
     /** What the top-bar menu offers, already deduplicated. */
     val topBarContacts: List<SellerContact>
         get() = if (!canContactSeller) emptyList()
@@ -314,6 +333,7 @@ fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
     sellerMarkets = emptyList(),
     allowedMarkets = emptyList(),
     sellerClosures = MarketClosures.NONE,
+    sellerUiActions = emptyList(),
     pendingInvitations = emptyList(),
     showConnectionConfirmDialog = null,
     basket = BasketState(),

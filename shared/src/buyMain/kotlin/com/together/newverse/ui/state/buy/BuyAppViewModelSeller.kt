@@ -243,6 +243,16 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
                 emptyList()
             }
 
+            // The seller's published buttons. Non-fatal like the rest: no buttons is a
+            // normal state, so an unreachable node and a seller who published none are
+            // the same thing here.
+            val sellerUiActions = try {
+                sellerUiActionRepository?.getActions(sellerId)?.getOrNull().orEmpty()
+            } catch (e: Exception) {
+                Log.d(TAG) { "performConnection: getActions failed (non-fatal) - ${e.message}" }
+                emptyList()
+            }
+
             // Clear basket and reset screen states; reset accessStatus (will be re-observed)
             _state.update { current ->
                 current.copy(
@@ -251,6 +261,7 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
                     sellerContacts = sellerContacts,
                     sellerClosures = sellerClosures,
                     sellerMarkets = sellerMarkets,
+                    sellerUiActions = sellerUiActions,
                     accessStatus = AccessStatus.NONE,
                     basket = BasketState(),
                     products = ProductsScreenState(),

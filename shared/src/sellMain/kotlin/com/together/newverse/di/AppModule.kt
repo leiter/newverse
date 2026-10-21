@@ -74,6 +74,7 @@ val appModule = module {
             // getOrNull, not get: the parameter is nullable, and Koin would look for a
             // definition of the nullable type and not find one.
             sellerArticleRepository = getOrNull(),
+            sellerUiActionRepository = getOrNull(),
             invitationRepository = get()
         )
     }

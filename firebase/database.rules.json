@@ -127,6 +127,21 @@
         }
       }
     },
+    "seller_ui_actions": {
+      "$sellerId": {
+        ".read": "auth != null",
+        ".write": "auth != null && $sellerId === auth.uid",
+        "$actionId": {
+          ".validate": "newData.hasChildren(['id', 'kind', 'label', 'value', 'location']) && newData.child('id').val() === $actionId",
+          "id": { ".validate": "newData.isString()" },
+          "kind": { ".validate": "newData.val() === 'OPEN_URL'" },
+          "label": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 24" },
+          "value": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500 && !newData.val().contains(':') && !newData.val().beginsWith('/')" },
+          "location": { ".validate": "newData.val() === 'TOPBAR_HOME' || newData.val() === 'TOPBAR_PROFILE'" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
     "orders": {
       "$sellerId": {
         ".read": "auth != null && $sellerId === auth.uid",

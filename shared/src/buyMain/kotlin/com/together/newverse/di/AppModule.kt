@@ -60,7 +60,8 @@ val appModule = module {
             // the section as unavailable instead of failing to construct the ViewModel.
             orderReminderStorage = getOrNull(),
             orderReminderScheduler = getOrNull(),
-            marketRepository = getOrNull()
+            marketRepository = getOrNull(),
+            sellerUiActionRepository = getOrNull()
         )
     }
 

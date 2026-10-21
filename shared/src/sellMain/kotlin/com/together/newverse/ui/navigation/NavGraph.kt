@@ -170,6 +170,7 @@ fun NavGraphBuilder.navGraph(
         val accessRequests = profileViewModel.accessRequests.collectAsState()
         val generatedBuyerLink = profileViewModel.generatedBuyerLink.collectAsState()
         val pricingArticles = profileViewModel.pricingArticles.collectAsState()
+        val uiActions = profileViewModel.uiActions.collectAsState()
 
         SellerProfileScreen(
             profileState = profileState.value,
@@ -194,6 +195,9 @@ fun NavGraphBuilder.navGraph(
             },
             onDeleteMarket = { marketId -> profileViewModel.removeMarket(marketId) },
             onSaveSellerContacts = { contacts -> profileViewModel.saveSellerContacts(contacts) },
+            uiActions = uiActions.value,
+            onSaveUiAction = { action -> profileViewModel.saveUiAction(action) },
+            onRemoveUiAction = { actionId -> profileViewModel.deleteUiAction(actionId) },
             onSaveClosures = { closures -> profileViewModel.saveClosures(closures) },
             onSetAllowedMarkets = { buyerId, markets ->
                 profileViewModel.setAllowedMarkets(buyerId, markets)

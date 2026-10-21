@@ -1190,6 +1190,18 @@
     <string name="fulfilment_zip">Postcode</string>
     <string name="fulfilment_city">Town</string>
     <string name="fulfilment_note_hint">Note (doorbell, gate, …)</string>
+    <string name="a11y_seller_actions">More from this seller</string>
+    <string name="seller_actions_title">Your own buttons</string>
+    <string name="seller_actions_explain">Shown in the top bar of the customer app.</string>
+    <string name="seller_actions_add">Add a button</string>
+    <string name="seller_actions_remove">Remove button</string>
+    <string name="seller_actions_label">Label</string>
+    <string name="seller_actions_value">Address (without https://)</string>
+    <string name="seller_actions_location">Where</string>
+    <string name="seller_actions_location_home">Top bar, home screen</string>
+    <string name="seller_actions_location_profile">Top bar, profile screen</string>
+    <string name="seller_actions_full">There is no room for another button here.</string>
+    <string name="seller_actions_saved">Button saved</string>
     <string name="fulfilment_use_profile_address">Use address from profile</string>
     <string name="fulfilment_save_to_profile">Save address to profile</string>
 </resources>

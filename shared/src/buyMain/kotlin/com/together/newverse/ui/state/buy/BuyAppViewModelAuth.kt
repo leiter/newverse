@@ -1072,12 +1072,15 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
                         .getOrNull() ?: MarketClosures.NONE
                     val sellerMarkets = marketRepository?.getMarkets(currentSellerId)
                         ?.getOrNull().orEmpty()
+                    val sellerUiActions = sellerUiActionRepository?.getActions(currentSellerId)
+                        ?.getOrNull().orEmpty()
                     _state.update { it.copy(
                         connectedSellerId = currentSellerId,
                         connectedSellerDisplayName = sellerDisplayName,
                         sellerContacts = sellerContacts,
                         sellerClosures = sellerClosures,
-                        sellerMarkets = sellerMarkets
+                        sellerMarkets = sellerMarkets,
+                        sellerUiActions = sellerUiActions
                     )}
                     syncReminderClosureSnapshot()
                     refreshDatesForClosures()

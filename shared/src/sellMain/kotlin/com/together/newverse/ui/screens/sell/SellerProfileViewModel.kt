@@ -11,6 +11,7 @@ import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.MarketClosure
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.SellerContact
+import com.together.newverse.domain.model.SellerUiAction
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
@@ -36,6 +37,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.repository.SellerArticleRepository
+import com.together.newverse.domain.repository.SellerUiActionRepository
 import com.together.newverse.util.Log
 
 
@@ -58,6 +60,14 @@ class SellerProfileViewModel(
      * is the same thing an uncosted catalogue produces.
      */
     private val sellerArticleRepository: SellerArticleRepository? = null,
+    /**
+     * The buttons this seller publishes into the buy app.
+     *
+     * Optional for the same reason as [sellerArticleRepository]: the existing test
+     * fixtures construct this ViewModel unchanged, and without it the section simply
+     * does not appear.
+     */
+    private val sellerUiActionRepository: SellerUiActionRepository? = null,
     private val invitationRepository: InvitationRepository = object : InvitationRepository {
         override suspend fun createInvitation(sellerId: String, sellerDisplayName: String, expiresInMillis: Long, targetBuyerId: String?) = Result.failure<Invitation>(Exception("Not configured"))
         override suspend fun getInvitation(invitationId: String) = Result.failure<Invitation>(Exception("Not configured"))
@@ -288,6 +298,7 @@ class SellerProfileViewModel(
                     // their project. Add-only, so re-running changes nothing.
                     marketRepository.migrateLegacyMarkets(sellerId, profile.markets)
                     observeMarketsForSeller(sellerId)
+                    observeUiActionsForSeller(sellerId)
                 },
                 onFailure = { e ->
                     _profileState.value = AsyncState.Error(
@@ -316,6 +327,58 @@ class SellerProfileViewModel(
                     AsyncState.Success(profile.copy(markets = markets))
                 }
             }
+        }
+    }
+
+    /**
+     * The buttons this seller has published, live.
+     *
+     * Its own flow rather than a field on the profile, because the actions are their
+     * own node: folding them into [SellerProfile] would mean a profile write could
+     * silently drop a button, which is exactly the coupling markets were moved out of
+     * the profile to escape.
+     */
+    private val _uiActions = MutableStateFlow<List<SellerUiAction>>(emptyList())
+    val uiActions: StateFlow<List<SellerUiAction>> = _uiActions.asStateFlow()
+
+    private fun observeUiActionsForSeller(sellerId: String) {
+        val repo = sellerUiActionRepository ?: return
+        viewModelScope.launch {
+            repo.observeActions(sellerId)
+                .catch { e ->
+                    // Non-fatal: the editor shows an empty list, and the buy app shows
+                    // no buttons. Neither is worth failing the profile screen over.
+                    Log.w(TAG) { "observeUiActionsForSeller: ${e.message}" }
+                }
+                .collect { actions -> _uiActions.value = actions }
+        }
+    }
+
+    /**
+     * Publish or update one button.
+     *
+     * [onResult] carries the repository's refusal — a full slot, or a row with no
+     * label — so the screen can say which it was instead of the save appearing to
+     * work and nothing changing. The live flow delivers the new row; nothing is
+     * written into [_uiActions] here.
+     */
+    fun saveUiAction(action: SellerUiAction, onResult: (Result<SellerUiAction>) -> Unit = {}) {
+        val repo = sellerUiActionRepository ?: return
+        viewModelScope.launch {
+            val sellerId = currentSellerId ?: authRepository.getCurrentUserId() ?: return@launch
+            val result = repo.saveAction(sellerId, action)
+            result.onFailure { e -> Log.w(TAG) { "saveUiAction: refused - ${e.message}" } }
+            onResult(result)
+        }
+    }
+
+    /** Take a button away. A delete, not a flag: nothing references an action by id. */
+    fun deleteUiAction(actionId: String) {
+        val repo = sellerUiActionRepository ?: return
+        viewModelScope.launch {
+            val sellerId = currentSellerId ?: authRepository.getCurrentUserId() ?: return@launch
+            repo.deleteAction(sellerId, actionId)
+                .onFailure { e -> Log.w(TAG) { "deleteUiAction: ${e.message}" } }
         }
     }
 

@@ -16,6 +16,7 @@ import com.together.newverse.data.repository.GitLiveArticleRepository
 import com.together.newverse.data.repository.GitLiveAuthRepository
 import com.together.newverse.data.repository.GitLiveOrderRepository
 import com.together.newverse.data.repository.GitLiveMarketRepository
+import com.together.newverse.data.repository.GitLiveSellerUiActionRepository
 import com.together.newverse.data.repository.GitLiveProfileRepository
 import com.together.newverse.data.repository.GitLiveSaleRepository
 import com.together.newverse.data.repository.GitLiveStockRepository
@@ -30,6 +31,7 @@ import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.OrderRepository
 import com.together.newverse.domain.repository.MarketRepository
+import com.together.newverse.domain.repository.SellerUiActionRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.SaleRepository
 import com.together.newverse.domain.repository.StockRepository
@@ -92,6 +94,10 @@ val androidDomainModule = module {
 
     // Profile Repository - GitLive cross-platform implementation
     single<MarketRepository> { GitLiveMarketRepository() }
+
+    // Buttons the seller publishes into the buy app. Both flavors: the seller edits
+    // them, the buyer renders them.
+    single<SellerUiActionRepository> { GitLiveSellerUiActionRepository() }
 
     single<ProfileRepository> {
         GitLiveProfileRepository(get<AuthRepository>())

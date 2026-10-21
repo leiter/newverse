@@ -46,6 +46,7 @@ import newverse.shared.generated.resources.*
 import androidx.compose.material3.HorizontalDivider
 import com.together.newverse.domain.model.MarketClosure
 import com.together.newverse.domain.model.SellerContact
+import com.together.newverse.domain.model.SellerUiAction
 import org.jetbrains.compose.resources.stringResource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -69,6 +70,10 @@ fun SellerProfileScreen(
     onSaveMarket: (Market) -> Unit = {},
     onDeleteMarket: (String) -> Unit = {},
     onSaveSellerContacts: (List<SellerContact>) -> Unit = {},
+    /** The buttons this seller publishes into the buy app, and how to change them. */
+    uiActions: List<SellerUiAction> = emptyList(),
+    onSaveUiAction: (SellerUiAction) -> Unit = {},
+    onRemoveUiAction: (String) -> Unit = {},
     onSaveClosures: (List<MarketClosure>) -> Unit = {},
     onSetAllowedMarkets: (String, List<String>) -> Unit = { _, _ -> },
     ordersByCycle: Map<String, Int> = emptyMap(),
@@ -172,6 +177,18 @@ fun SellerProfileScreen(
                         isSaving = isSaving,
                         onSave = onSaveSellerContacts
                     )
+
+                    // Sits beside the contacts, since both are things the seller
+                    // publishes into the buy app rather than facts about the business.
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            UiActionListEditor(
+                                actions = uiActions,
+                                onSave = onSaveUiAction,
+                                onRemove = onRemoveUiAction
+                            )
+                        }
+                    }
 
                     MarketClosuresCard(
                         closures = profile?.closures ?: emptyList(),

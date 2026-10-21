@@ -15,6 +15,8 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
+import com.together.newverse.domain.model.ActionLocation
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -28,6 +30,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -69,6 +72,7 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
 import newverse.shared.generated.resources.nav_messages
 import newverse.shared.generated.resources.a11y_contact_options
+import newverse.shared.generated.resources.a11y_seller_actions
 import newverse.shared.generated.resources.a11y_hero_total
 import newverse.shared.generated.resources.action_call
 import newverse.shared.generated.resources.action_email
@@ -512,6 +516,59 @@ private fun AppScaffoldContent(
                             )
                         }
                     }
+                    // Buttons the seller published for this screen.
+                    //
+                    // Drawn before the fixed actions so the app's own affordances keep
+                    // the outer edge: a seller adding a link must not shift the icons a
+                    // buyer has learned the position of.
+                    //
+                    // A single action is its own labelled button, because the label is
+                    // the whole point — "Wünsche" says what an icon could not. More
+                    // than one collapses into a menu rather than eating the title.
+                    // `doc/guides/seller-ui-actions.md`.
+                    val publishedActions = when (currentRoute) {
+                        NavRoutes.Home.route -> appState.topBarActionsFor(ActionLocation.TOPBAR_HOME)
+                        NavRoutes.Buy.Profile.route -> appState.topBarActionsFor(ActionLocation.TOPBAR_PROFILE)
+                        else -> emptyList()
+                    }
+                    if (publishedActions.isNotEmpty()) {
+                        val actionUriHandler = LocalUriHandler.current
+                        if (publishedActions.size == 1) {
+                            val action = publishedActions.first()
+                            TextButton(onClick = { actionUriHandler.openUri(action.toUri()) }) {
+                                Text(
+                                    text = action.label,
+                                    color = MaterialTheme.colorScheme.onSecondary
+                                )
+                            }
+                        } else {
+                            var showActionMenu by remember { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { showActionMenu = true }) {
+                                    Icon(
+                                        imageVector = Icons.Default.MoreVert,
+                                        contentDescription = stringResource(Res.string.a11y_seller_actions),
+                                        tint = MaterialTheme.colorScheme.onSecondary
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = showActionMenu,
+                                    onDismissRequest = { showActionMenu = false }
+                                ) {
+                                    publishedActions.forEach { action ->
+                                        DropdownMenuItem(
+                                            text = { Text(action.label) },
+                                            onClick = {
+                                                actionUriHandler.openUri(action.toUri())
+                                                showActionMenu = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // The seller's own contact channels, on Profile and Home.
                     //
                     // Shown only to approved buyers: a one-tap call button handed to
