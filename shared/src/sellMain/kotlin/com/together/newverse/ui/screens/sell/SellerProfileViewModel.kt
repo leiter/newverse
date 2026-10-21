@@ -104,6 +104,35 @@ class SellerProfileViewModel(
     }
 
     // Profile state using AsyncState pattern
+    // Declared here, above `init`, and not beside the functions that use them.
+    // Kotlin runs property initializers in declaration order, interleaved with init
+    // blocks: `init` starts loadProfile, which starts the actions subscription, so a
+    // flow declared further down the class is still null when a fast repository
+    // emits into it. That is an NPE with a fake and a race with Firebase.
+    /**
+     * The buttons this seller has published, live.
+     *
+     * Its own flow rather than a field on the profile, because the actions are their
+     * own node: folding them into [SellerProfile] would mean a profile write could
+     * silently drop a button, which is exactly the coupling markets were moved out of
+     * the profile to escape.
+     */
+    private val _uiActions = MutableStateFlow<List<SellerUiAction>>(emptyList())
+    val uiActions: StateFlow<List<SellerUiAction>> = _uiActions.asStateFlow()
+
+    /**
+     * Why the last publish did not go through, or null.
+     *
+     * Exists because the first version swallowed the refusal: the repository logged a
+     * warning and the editor looked exactly as it does on success. A write rejected by
+     * the rules — the shape of an undeployed ruleset — was indistinguishable from a
+     * saved button, and the only way to tell was to read the database. A refusal the
+     * seller cannot see is a refusal that costs somebody an afternoon.
+     */
+    private val _uiActionError = MutableStateFlow<String?>(null)
+    val uiActionError: StateFlow<String?> = _uiActionError.asStateFlow()
+
+
     private val _profileState = MutableStateFlow<AsyncState<SellerProfile>>(AsyncState.Loading)
     val profileState: StateFlow<AsyncState<SellerProfile>> = _profileState.asStateFlow()
 
@@ -330,17 +359,6 @@ class SellerProfileViewModel(
         }
     }
 
-    /**
-     * The buttons this seller has published, live.
-     *
-     * Its own flow rather than a field on the profile, because the actions are their
-     * own node: folding them into [SellerProfile] would mean a profile write could
-     * silently drop a button, which is exactly the coupling markets were moved out of
-     * the profile to escape.
-     */
-    private val _uiActions = MutableStateFlow<List<SellerUiAction>>(emptyList())
-    val uiActions: StateFlow<List<SellerUiAction>> = _uiActions.asStateFlow()
-
     private fun observeUiActionsForSeller(sellerId: String) {
         val repo = sellerUiActionRepository ?: return
         viewModelScope.launch {
@@ -367,7 +385,12 @@ class SellerProfileViewModel(
         viewModelScope.launch {
             val sellerId = currentSellerId ?: authRepository.getCurrentUserId() ?: return@launch
             val result = repo.saveAction(sellerId, action)
-            result.onFailure { e -> Log.w(TAG) { "saveUiAction: refused - ${e.message}" } }
+            result
+                .onSuccess { _uiActionError.value = null }
+                .onFailure { e ->
+                    Log.w(TAG) { "saveUiAction: refused - ${e.message}" }
+                    _uiActionError.value = e.message ?: "unbekannter Fehler"
+                }
             onResult(result)
         }
     }
@@ -378,7 +401,10 @@ class SellerProfileViewModel(
         viewModelScope.launch {
             val sellerId = currentSellerId ?: authRepository.getCurrentUserId() ?: return@launch
             repo.deleteAction(sellerId, actionId)
-                .onFailure { e -> Log.w(TAG) { "deleteUiAction: ${e.message}" } }
+                .onFailure { e ->
+                    Log.w(TAG) { "deleteUiAction: ${e.message}" }
+                    _uiActionError.value = e.message ?: "unbekannter Fehler"
+                }
         }
     }
 

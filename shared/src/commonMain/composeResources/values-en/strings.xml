@@ -1206,6 +1206,7 @@
     <string name="seller_actions_audience_approved">Approved customers only</string>
     <string name="seller_actions_full">There is no room for another button here.</string>
     <string name="seller_actions_incomplete">Please fill in both a label and an address.</string>
+    <string name="seller_actions_save_failed">Not saved: %1$s</string>
     <string name="seller_actions_saved">Button saved</string>
     <string name="fulfilment_use_profile_address">Use address from profile</string>
     <string name="fulfilment_save_to_profile">Save address to profile</string>

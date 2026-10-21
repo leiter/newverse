@@ -191,11 +191,32 @@ Fixed by holding edits locally and writing on an explicit save, which is what
 `SellerContactsCard` beside it already does. Nothing is written until the seller
 presses the button.
 
+**3. A refused write looked exactly like a saved one** — see the section above on
+deploying a field. And **4.**, found by the test written for 3: `_uiActions` was
+declared below the `init` block that starts its own subscription, so a repository fast
+enough to emit during construction hit a null flow. Firebase is never that fast, which
+is why it ran on a device and crashed against a fake; the flows now sit above `init`.
+
 The lesson for the tests: both the model tests and the rule tests were about what a
 seller *may store*, and they were thorough about it. Neither asked whether a published
 button ever reaches a buyer who is already looking at the screen. There are now
 regression tests for both directions of that — a button appearing and disappearing
 without a restart — and they fail if the subscription is removed.
+
+## Deploying a field is two steps, and the rules are the first
+
+`$actionId` ends in `"$other": { ".validate": false }`, which rejects any field the
+ruleset does not name. That is the right strictness and it has a consequence worth
+stating plainly: **adding a field to `SellerUiAction` breaks every write until the
+rules are redeployed.** Not the new field — the *whole row*.
+
+This bit once, with `audience`. The app wrote rows carrying it against a ruleset
+deployed before it existed, every write was denied, and the editor showed nothing. The
+order is: rules first, or app and rules together, never app first.
+
+The refusal is now visible. `SellerProfileViewModel.uiActionError` carries it to the
+editor, because the repository logging a warning while the UI looked successful is
+what made this expensive to find.
 
 ## Known limits
 

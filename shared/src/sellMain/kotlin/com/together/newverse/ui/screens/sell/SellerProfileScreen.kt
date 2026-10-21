@@ -74,6 +74,7 @@ fun SellerProfileScreen(
     uiActions: List<SellerUiAction> = emptyList(),
     onSaveUiAction: (SellerUiAction) -> Unit = {},
     onRemoveUiAction: (String) -> Unit = {},
+    uiActionError: String? = null,
     onSaveClosures: (List<MarketClosure>) -> Unit = {},
     onSetAllowedMarkets: (String, List<String>) -> Unit = { _, _ -> },
     ordersByCycle: Map<String, Int> = emptyMap(),
@@ -186,7 +187,8 @@ fun SellerProfileScreen(
                                 actions = uiActions,
                                 onSave = onSaveUiAction,
                                 onRemove = onRemoveUiAction,
-                                isSaving = isSaving
+                                isSaving = isSaving,
+                                errorMessage = uiActionError
                             )
                         }
                     }

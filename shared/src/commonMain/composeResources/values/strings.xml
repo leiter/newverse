@@ -1264,6 +1264,7 @@
     <string name="seller_actions_audience_approved">Nur freigeschaltete Kunden</string>
     <string name="seller_actions_full">Hier ist kein Platz für weitere Schaltflächen.</string>
     <string name="seller_actions_incomplete">Bitte Beschriftung und Adresse ausfüllen.</string>
+    <string name="seller_actions_save_failed">Nicht gespeichert: %1$s</string>
     <string name="seller_actions_saved">Schaltfläche gespeichert</string>
     <string name="fulfilment_use_profile_address">Adresse aus Profil übernehmen</string>
     <string name="fulfilment_save_to_profile">Adresse im Profil speichern</string>

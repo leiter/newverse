@@ -48,6 +48,7 @@ import newverse.shared.generated.resources.seller_actions_location
 import newverse.shared.generated.resources.seller_actions_location_home
 import newverse.shared.generated.resources.seller_actions_location_profile
 import newverse.shared.generated.resources.seller_actions_remove
+import newverse.shared.generated.resources.seller_actions_save_failed
 import newverse.shared.generated.resources.seller_actions_title
 import newverse.shared.generated.resources.seller_actions_value
 import org.jetbrains.compose.resources.stringResource
@@ -76,6 +77,8 @@ fun UiActionListEditor(
     onSave: (SellerUiAction) -> Unit,
     onRemove: (String) -> Unit,
     isSaving: Boolean = false,
+    /** Why the last publish was refused, if it was. See `SellerProfileViewModel.uiActionError`. */
+    errorMessage: String? = null,
     modifier: Modifier = Modifier,
 ) {
     // Re-seeded whenever the stored list changes, so a save elsewhere is picked up
@@ -154,6 +157,17 @@ fun UiActionListEditor(
             ) {
                 Text(stringResource(Res.string.button_save))
             }
+        }
+
+        // A refusal from the database, said out loud. The common one is a ruleset
+        // that does not yet know a field this app writes, which rejects the whole
+        // row — and used to look exactly like success.
+        errorMessage?.let { message ->
+            Text(
+                text = stringResource(Res.string.seller_actions_save_failed, message),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
         }
 
         // Said rather than left to a disabled button: a save that will not fire needs
