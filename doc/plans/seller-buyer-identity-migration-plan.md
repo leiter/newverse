@@ -1,9 +1,33 @@
 # Identity Rework & Sync Channel — Implementation Plan
 
-> **PARTIALLY IMPLEMENTED** (reviewed 2026-10-20) — the `Status: Plan — nothing
+> **PARTIALLY IMPLEMENTED** (reviewed 2026-10-21) — the `Status: Plan — nothing
 > implemented` line below is out of date. Phase 1 (redeem-once rule) and Phase 2b
-> (rules) are marked DONE in place. `InvitationRepository`, `BuyerAccess` and
-> `knownClientIds` all exist in the tree. Phases 2c, 3 and 4 are still open.
+> (rules) are marked DONE in place, and the rekey went further than the brief says:
+> `buyerUUID` has no occurrences left in the Kotlin, and `BuyerAccess` now *replaces*
+> the `knownClientIds` / `approvedBuyerIds` / `blockedClientIds` maps rather than
+> sitting beside them. `knownClientIds` is gone from the code and survives only as a
+> name in the `seller_profile` `$field` read denylist. Phase 4's "remove it" item is
+> therefore already most of the way done.
+>
+> The `seller_events` re-gate in the 2b brief also landed, though on
+> `buyer_access_status/$sellerId/auth.uid/status === 'APPROVED'` rather than on
+> `approvedBuyerIds[auth.uid]` as written — same effect, one fewer node. **The
+> eligibility blocker in the design doc is closed**; see its banner.
+>
+> Phase 2c is done as well: `generateBuyerLink` mints an `invite_tokens` entry carrying
+> `displayNameHint` (`SellerProfileViewModel.kt:196`), and `approveAccessRequestWithTracking`,
+> `QR_LINK_PLACEHOLDER` and the placeholder-resolution dance are all gone. With
+> `authUID` removed from the rules and the Kotlin, the **QR pre-approval bug** that
+> plan was written around no longer has a mechanism to occur in.
+>
+> **Open: Phase 3**, and the tail of Phase 4. Phase 3's remaining work is the
+> `PROFILE_CHANGED` event type, a producer at the rename site, and a seller-side drain
+> — `observeEvents` still has zero call sites in either flavor. Of the design's
+> cut-over step, `enrichWithDisplayNames` and `correctApprovedBuyerDisplayName` are
+> already gone (the seller reads `displayName` straight off `buyer_access_status` in
+> `observeBuyers`, so the N+1 poll is no more); what remains is
+> `syncDisplayNameToLinkedSellers` and the buyer's write of `displayName` into the
+> access record.
 
 **Date:** 2026-09-28
 **Status:** Plan — nothing implemented
@@ -158,9 +182,12 @@ per known order, merged with `combine`. Verified: buy and sell both compile; uni
 the same 6 pre-existing failures as the committed baseline (4 `BuyAppViewModelTest`,
 2 known `OrderDateUtilsTest`), so no regressions.
 
-**Still open:** after the rekey, `knownClientIds` has no remaining purpose — the orders gate
-was its last user and `approvedBuyerIds` is now the access list. Removing it is a candidate
-for Phase 4 cleanup.
+**Mostly done since:** after the rekey, `knownClientIds` had no remaining purpose — the
+orders gate was its last user and `BuyerAccess` / `buyer_access_status` is now the access
+list. It has since been removed from the Kotlin entirely. What is left for Phase 4 is the
+name in the `seller_profile` `$field` read denylist (line 83 of the rules), which still
+earns its place while legacy data may sit under that key, and whatever stale
+`seller_profile/<sellerUid>/knownClientIds` subtrees remain in the two Firebase projects.
 
 ### 2b. Rules — original brief
 

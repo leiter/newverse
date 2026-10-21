@@ -57,7 +57,7 @@ Proposed. Nothing in here is built unless its banner says which part is.
 | Doc | State |
 |-----|-------|
 | [order-ready-notification-design.md](design/order-ready-notification-design.md) | Options, no decision taken |
-| [seller-buyer-sync-channel-design.md](design/seller-buyer-sync-channel-design.md) | Event direction built; generalized `PROFILE_CHANGED` channel blocked |
+| [seller-buyer-sync-channel-design.md](design/seller-buyer-sync-channel-design.md) | Event direction built, eligibility blocker resolved; `PROFILE_CHANGED` event, producer and seller-side drain still missing |
 | [cas-scale-integration.md](design/cas-scale-integration.md) | Research only — no hardware, no code |
 
 ## plans/
@@ -69,7 +69,7 @@ Proposed. Nothing in here is built unless its banner says which part is.
 | [build-identity-and-firebase-wiring.md](plans/build-identity-and-firebase-wiring.md) | Which backend a build talks to — decided, not yet done |
 | [agp-9-migration-prep.md](plans/agp-9-migration-prep.md) | Groundwork; do not start during a launch |
 | [apple-store-release-plan.md](plans/apple-store-release-plan.md) | Store assets; largely unexecuted for iOS |
-| [seller-buyer-identity-migration-plan.md](plans/seller-buyer-identity-migration-plan.md) | Phases 1 and 2b done; 2c, 3, 4 open |
+| [seller-buyer-identity-migration-plan.md](plans/seller-buyer-identity-migration-plan.md) | Phases 1, 2b and 2c done; Phase 3 and the tail of 4 open |
 
 ## reports/
 

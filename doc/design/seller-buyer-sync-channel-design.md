@@ -1,11 +1,27 @@
 # Seller ↔ Buyer Sync Channel Design
 
-> **DESIGN — partially superseded** (reviewed 2026-10-20). The buyer→seller event
-> direction is built: `SellerEventRepository` / `GitLiveSellerEventRepository` exist
-> and the buy flavor writes `GUEST_DATA_DELETED` and account-upgrade events. The
-> generalized `PROFILE_CHANGED` channel described here is **not**, and remains blocked
-> on the `knownClientIds` write-eligibility gap. See
-> `plans/seller-buyer-identity-migration-plan.md` § Phase 3.
+> **DESIGN — partially superseded, and no longer blocked** (reviewed 2026-10-21).
+>
+> The buyer→seller event direction is built: `SellerEventRepository` /
+> `GitLiveSellerEventRepository` exist and the buy flavor writes `GUEST_DATA_DELETED`
+> and account-upgrade events from one site (`BuyAppViewModelAuth.kt:802`).
+>
+> **The `knownClientIds` write-eligibility gap below is resolved** — do not go looking
+> for it. The live rule gates the event write on
+> `buyer_access_status/$sellerId/auth.uid/status === 'APPROVED'`, keyed by `auth.uid`,
+> so eligibility now follows the access record every approved buyer already has. The
+> key mismatch is gone with it: `buyerUUID` has no occurrences left in the Kotlin, and
+> `BuyerAccess` is the single source of truth that replaced the `knownClientIds` /
+> `approvedBuyerIds` / `blockedClientIds` maps. `knownClientIds` survives only as a
+> name in the `seller_profile` `$field` read denylist, guarding whatever legacy data
+> still sits under it.
+>
+> **What is actually left** is ordinary work, not a decision: the `PROFILE_CHANGED`
+> event type, a producer at the rename site, and a drain on the seller side.
+> `observeEvents` has **zero call sites in either flavor** — the channel is registered
+> in Koin on both and read by nobody. Until then `displayName` still reaches the seller
+> by riding on the permission record via `syncDisplayNameToLinkedSellers`
+> (`GitLiveProfileRepository.kt:1094`), which is what this design exists to replace.
 
 **Date:** 2026-09-28
 **Status:** Design — not implemented
@@ -48,12 +64,16 @@ Two problems follow:
    guard is load-bearing for security while being incidental to the feature it
    enables. One careless rule edit and a buyer can self-approve.
 
-2. **The seller has to poll.** `SellerProfileViewModel.enrichWithDisplayNames`
-   (`:194`) re-reads `getBuyerDisplayName` for *every* buyer on *every* load, then
-   writes corrections back via `correctApprovedBuyerDisplayName`. Its comment explains
-   why it cannot be lazy: a rename lands in `buyer_access_status` invisibly, so there
-   is no signal to react to. This is an N+1 read on every customer-list load,
-   compensating for a missing notification.
+2. ~~**The seller has to poll.**~~ ✅ **No longer true** (verified 2026-10-21).
+   `enrichWithDisplayNames` and `correctApprovedBuyerDisplayName` are gone;
+   `observeBuyers` (`GitLiveProfileRepository.kt:941`) reads `displayName` straight off
+   `buyer_access_status` in the one subscription it already holds. The N+1 read on every
+   customer-list load is no more. Originally: it re-read `getBuyerDisplayName` for every
+   buyer on every load and wrote corrections back, because a rename landed in
+   `buyer_access_status` invisibly and there was no signal to react to.
+
+   This removes the *performance* argument for the channel but not the *structural* one
+   — problem 1 stands, and it is the reason this design still exists.
 
 ## The mechanism already exists
 
@@ -62,10 +82,15 @@ Two problems follow:
 ```
 seller_events/{sellerId}/{eventId}
   .read   seller only            (auth.uid === $sellerId)
-  .write  create-only, authored   (!data.exists()
+  .write  create-only, authored   (!data.exists() && newData.exists()
                                   && newData.child('firebaseUserId').val() === auth.uid
-                                  && knownClientIds[auth.uid] exists)
+                                  && buyer_access_status/$sellerId/auth.uid/status
+                                       === 'APPROVED')
+          seller may delete       (auth.uid === $sellerId && !newData.exists())
 ```
+
+*As live, post-rekey. This section originally quoted a `knownClientIds[auth.uid]`
+gate; that is the resolved blocker below.*
 
 Append-only for the buyer, readable only by the seller, and the writer is bound to
 their own auth uid so a buyer cannot forge an event as someone else. Rule behaviour is
@@ -88,9 +113,17 @@ the record "because the buyer profile is usually deleted in the same operation."
 rationale extends cleanly: for change events the seller cannot read `buyer_profile`
 *at all*, so the event must carry the payload.
 
-## Blocker: write eligibility is not guaranteed
+## Blocker: write eligibility is not guaranteed — ✅ RESOLVED (rules, 2026-09-28)
 
-The write rule gates on `knownClientIds[auth.uid]`. That set is populated from only
+> Kept for the reasoning, not as an open question. The rekey in
+> `plans/seller-buyer-identity-migration-plan.md` § 2b settled this by removing the
+> `knownClientIds` gate outright rather than choosing between A, B and C below: the
+> rule now reads `buyer_access_status/$sellerId/auth.uid/status === 'APPROVED'`. Every
+> approved buyer is eligible by construction, and there is no second identity
+> namespace left to bridge. The analysis below is why the old gate could not be
+> relied on.
+
+The write rule gated on `knownClientIds[auth.uid]`. That set is populated from only
 two call sites:
 
 - `GitLiveInvitationRepository.kt:152` — invitation acceptance
@@ -109,7 +142,8 @@ namespaces for one buyer. `SellerEvent` already carries both (`firebaseUserId` a
 `buyerUUID`), so the drain can bridge them — but the rule's gate and the seller's
 customer store are keyed differently, and that has to be explicit.
 
-This must be resolved before the channel can be relied on. Options:
+This had to be resolved before the channel could be relied on. The options weighed at
+the time, none of which was taken — the rekey removed the gate instead:
 
 | Option | Effect | Cost |
 |---|---|---|
@@ -249,8 +283,8 @@ key on auth uid. **The eligibility blocker disappears**: it becomes
 
 Step 1 of the rollout below is replaced by: split the token from the identity, rekey the
 access nodes onto auth uid, and land the pre-approval claim tests (which currently fail)
-as the red-to-green proof. The `knownClientIds` eligibility question dissolves once this
-lands.
+as the red-to-green proof. The `knownClientIds` eligibility question dissolved when this
+landed — see the banner.
 
 ## Design
 
@@ -346,13 +380,12 @@ should be retained.
 Ordered so nothing breaks mid-flight, and so the old path stays alive until the new
 one is proven:
 
-1. **Fix eligibility** (blocker above). Backfill `knownClientIds` / align on
-   `approvedBuyerIds`, and make the access-grant path's registration non-silent.
-   Add rule tests for the newly eligible buyer shape.
+1. ~~**Fix eligibility**~~ — ✅ done by the rekey (§ Blocker). Every APPROVED buyer is
+   eligible by construction; no backfill, no option to choose.
 2. **Extend the model** — `PROFILE_CHANGED`, `changedFields`. Serialization on both
    ends. No behaviour change yet.
-3. **Rules** — add `seller_event_cursor`; adjust the `seller_events` write rule per
-   the chosen eligibility option; extend `.validate` to accept `changedFields` and
+3. **Rules** — add `seller_event_cursor`; the `seller_events` write rule itself needs
+   no further change, now that it gates on `buyer_access_status`; extend `.validate` to accept `changedFields` and
    keep rejecting unknown top-level fields. Land rule tests in
    `firebase/tests/profile-orders-events.test.js` **before** deploying.
 4. **Write side** — buyer emits `PROFILE_CHANGED` on rename, *in addition to* the
