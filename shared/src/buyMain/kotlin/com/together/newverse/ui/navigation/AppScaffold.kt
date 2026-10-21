@@ -577,35 +577,35 @@ private fun AppScaffoldContent(
                     // has no real orders, so nothing to be told about, and a free
                     // channel into a small business from every anonymous installer is
                     // the same inbound noise problem.
-                    if (appState.canContactSeller &&
-                        (currentRoute == NavRoutes.Buy.Profile.route || currentRoute == NavRoutes.Home.route)
-                    ) {
-                        Box(modifier = Modifier.padding(end = 8.dp)) {
-                            IconButton(onClick = {
-                                navController.navigate(NavRoutes.Buy.Messages.route) {
-                                    launchSingleTop = true
-                                }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Email,
-                                    contentDescription = stringResource(Res.string.nav_messages),
-                                    tint = MaterialTheme.colorScheme.onSecondary
-                                )
-                            }
-                            if (appState.unreadMessageCount > 0) {
-                                Badge(
-                                    containerColor = MaterialTheme.colorScheme.tertiary,
-                                    contentColor = MaterialTheme.colorScheme.onTertiary,
-                                    modifier = Modifier.align(Alignment.TopEnd)
-                                ) {
-                                    Text(
-                                        text = appState.unreadMessageCount.toString(),
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                            }
-                        }
-                    }
+//                    if (appState.canContactSeller &&
+//                        (currentRoute == NavRoutes.Buy.Profile.route || currentRoute == NavRoutes.Home.route)
+//                    ) {
+//                        Box(modifier = Modifier.padding(end = 8.dp)) {
+//                            IconButton(onClick = {
+//                                navController.navigate(NavRoutes.Buy.Messages.route) {
+//                                    launchSingleTop = true
+//                                }
+//                            }) {
+//                                Icon(
+//                                    imageVector = Icons.Default.Email,
+//                                    contentDescription = stringResource(Res.string.nav_messages),
+//                                    tint = MaterialTheme.colorScheme.onSecondary
+//                                )
+//                            }
+//                            if (appState.unreadMessageCount > 0) {
+//                                Badge(
+//                                    containerColor = MaterialTheme.colorScheme.tertiary,
+//                                    contentColor = MaterialTheme.colorScheme.onTertiary,
+//                                    modifier = Modifier.align(Alignment.TopEnd)
+//                                ) {
+//                                    Text(
+//                                        text = appState.unreadMessageCount.toString(),
+//                                        style = MaterialTheme.typography.labelSmall
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.secondary,
