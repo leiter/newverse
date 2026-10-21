@@ -1,5 +1,6 @@
 package com.together.newverse.data.repository
 
+import com.together.newverse.domain.model.ActionAudience
 import com.together.newverse.domain.model.ActionKind
 import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.SellerUiAction
@@ -125,6 +126,9 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
             val kind = ActionKind.fromStored(fields["kind"] as? String) ?: return@mapNotNull null
             val location = ActionLocation.fromStored(fields["location"] as? String)
                 ?: return@mapNotNull null
+            // Absent reads as EVERYONE; an unknown name skips the row.
+            val audience = ActionAudience.stored(fields["audience"] as? String)
+                ?: return@mapNotNull null
             val value = fields["value"] as? String ?: return@mapNotNull null
             val label = fields["label"] as? String ?: return@mapNotNull null
             if (value.isBlank() || label.isBlank()) return@mapNotNull null
@@ -135,7 +139,8 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
                 // Normalized again on read: a record written before this ran on save,
                 // or written straight into the database by hand, still opens safely.
                 value = kind.normalize(value),
-                location = location
+                location = location,
+                audience = audience
             )
         }
     }
@@ -145,6 +150,7 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
         "kind" to action.kind.name,
         "label" to action.label,
         "value" to action.value,
-        "location" to action.location.name
+        "location" to action.location.name,
+        "audience" to action.audience.name
     )
 }

@@ -30,11 +30,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.ActionAudience
 import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.SellerUiAction
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.button_save
 import newverse.shared.generated.resources.seller_actions_add
+import newverse.shared.generated.resources.seller_actions_audience
+import newverse.shared.generated.resources.seller_actions_audience_all
+import newverse.shared.generated.resources.seller_actions_audience_demo
+import newverse.shared.generated.resources.seller_actions_audience_approved
 import newverse.shared.generated.resources.seller_actions_explain
 import newverse.shared.generated.resources.seller_actions_full
 import newverse.shared.generated.resources.seller_actions_incomplete
@@ -215,6 +220,38 @@ private fun UiActionRow(
             }
         }
 
+        // Who sees it. Beside the slot rather than below the address, because the two
+        // together are the one question the seller is answering: where, and for whom.
+        var audienceMenuOpen by remember { mutableStateOf(false) }
+        Column {
+            OutlinedTextField(
+                value = action.audience.displayName(),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(Res.string.seller_actions_audience)) },
+                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { audienceMenuOpen = true },
+                singleLine = true,
+                enabled = false
+            )
+            DropdownMenu(
+                expanded = audienceMenuOpen,
+                onDismissRequest = { audienceMenuOpen = false }
+            ) {
+                ActionAudience.entries.forEach { audience ->
+                    DropdownMenuItem(
+                        text = { Text(audience.displayName()) },
+                        onClick = {
+                            onChange(action.copy(audience = audience))
+                            audienceMenuOpen = false
+                        }
+                    )
+                }
+            }
+        }
+
         OutlinedTextField(
             value = action.label,
             onValueChange = { onChange(action.copy(label = it.take(SellerUiAction.MAX_LABEL_LENGTH))) },
@@ -231,6 +268,14 @@ private fun UiActionRow(
             singleLine = true
         )
     }
+}
+
+/** What the seller sees in the audience picker. */
+@Composable
+private fun ActionAudience.displayName(): String = when (this) {
+    ActionAudience.EVERYONE -> stringResource(Res.string.seller_actions_audience_all)
+    ActionAudience.DEMO_ONLY -> stringResource(Res.string.seller_actions_audience_demo)
+    ActionAudience.APPROVED_ONLY -> stringResource(Res.string.seller_actions_audience_approved)
 }
 
 /** What the seller sees in the slot picker. */

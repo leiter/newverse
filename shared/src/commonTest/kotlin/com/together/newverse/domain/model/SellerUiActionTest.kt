@@ -103,8 +103,8 @@ class SellerUiActionTest {
             SellerUiAction(id = "a", label = "Home", value = "example.org", location = ActionLocation.TOPBAR_HOME),
             SellerUiAction(id = "b", label = "Profil", value = "example.org", location = ActionLocation.TOPBAR_PROFILE),
         )
-        assertEquals(listOf("a"), actions.forLocation(ActionLocation.TOPBAR_HOME).map { it.id })
-        assertEquals(listOf("b"), actions.forLocation(ActionLocation.TOPBAR_PROFILE).map { it.id })
+        assertEquals(listOf("a"), actions.forLocation(ActionLocation.TOPBAR_HOME, isApproved = true, isDemo = false).map { it.id })
+        assertEquals(listOf("b"), actions.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = true, isDemo = false).map { it.id })
     }
 
     @Test
@@ -114,7 +114,7 @@ class SellerUiActionTest {
             SellerUiAction(id = "b", label = "Wünsche", value = ""),
             SellerUiAction(id = "c", label = "Gut", value = "example.org"),
         )
-        assertEquals(listOf("c"), actions.forLocation(ActionLocation.TOPBAR_PROFILE).map { it.id })
+        assertEquals(listOf("c"), actions.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = true, isDemo = false).map { it.id })
     }
 
     @Test
@@ -125,7 +125,75 @@ class SellerUiActionTest {
             SellerUiAction(id = "z", label = "Zweitens", value = "example.org"),
             SellerUiAction(id = "a", label = "Erstens", value = "example.org"),
         )
-        assertEquals(listOf("a", "z"), actions.forLocation(ActionLocation.TOPBAR_PROFILE).map { it.id })
+        assertEquals(listOf("a", "z"), actions.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = true, isDemo = false).map { it.id })
+    }
+
+    // ===== who sees it =====
+
+    @Test
+    fun `an everyone button is shown on both sides of approval`() {
+        val a = listOf(SellerUiAction(id = "a", label = "Alle", value = "example.org"))
+        assertEquals(1, a.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = true, isDemo = false).size)
+        assertEquals(1, a.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = false, isDemo = true).size)
+    }
+
+    @Test
+    fun `a demo-only button is hidden from an approved buyer`() {
+        val a = listOf(
+            SellerUiAction(id = "a", label = "Freischalten", value = "example.org", audience = ActionAudience.DEMO_ONLY)
+        )
+        assertEquals(1, a.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = false, isDemo = true).size)
+        assertTrue(a.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = true, isDemo = false).isEmpty())
+    }
+
+    @Test
+    fun `an approved-only button is hidden from a demo buyer`() {
+        val a = listOf(
+            SellerUiAction(id = "a", label = "Wochenliste", value = "example.org", audience = ActionAudience.APPROVED_ONLY)
+        )
+        assertEquals(1, a.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = true, isDemo = false).size)
+        assertTrue(a.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = false, isDemo = true).isEmpty())
+    }
+
+    @Test
+    fun `a narrowed button stays hidden while the status is still loading`() {
+        // Both flags false is what "not known yet" looks like. Showing a button here
+        // and removing it a moment later is the flash canContactSeller avoids.
+        val a = listOf(
+            SellerUiAction(id = "a", label = "Demo", value = "example.org", audience = ActionAudience.DEMO_ONLY),
+            SellerUiAction(id = "b", label = "Zu", value = "example.org", audience = ActionAudience.APPROVED_ONLY),
+            SellerUiAction(id = "c", label = "Alle", value = "example.org"),
+        )
+        assertEquals(
+            listOf("c"),
+            a.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = false, isDemo = false).map { it.id }
+        )
+    }
+
+    @Test
+    fun `an absent audience reads as everyone`() {
+        // Records written before audiences existed were shown to everyone and go on
+        // being shown to everyone.
+        assertEquals(ActionAudience.EVERYONE, ActionAudience.stored(null))
+        assertEquals(ActionAudience.DEMO_ONLY, ActionAudience.stored("DEMO_ONLY"))
+    }
+
+    @Test
+    fun `an unknown audience skips the row`() {
+        assertNull(ActionAudience.stored("SOME_FUTURE_GROUP"))
+    }
+
+    @Test
+    fun `a hidden button does not use up a place`() {
+        // The cap applies after the audience filter, or a seller targeting three
+        // demo-only buttons would leave an approved buyer with nothing.
+        val a = (1..3).map {
+            SellerUiAction(id = "d$it", label = "Demo $it", value = "example.org", audience = ActionAudience.DEMO_ONLY)
+        } + SellerUiAction(id = "z", label = "Alle", value = "example.org")
+        assertEquals(
+            listOf("z"),
+            a.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = true, isDemo = false).map { it.id }
+        )
     }
 
     @Test
@@ -135,7 +203,7 @@ class SellerUiActionTest {
         }
         assertEquals(
             SellerUiAction.MAX_PER_LOCATION,
-            actions.forLocation(ActionLocation.TOPBAR_PROFILE).size
+            actions.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = true, isDemo = false).size
         )
     }
 }

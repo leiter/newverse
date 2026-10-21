@@ -1,5 +1,6 @@
 package com.together.newverse.ui.state
 
+import com.together.newverse.domain.model.ActionAudience
 import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.SellerProfile
@@ -188,6 +189,43 @@ class BuyAppViewModelUiActionsTest {
         assertEquals(
             SellerUiAction.MAX_PER_LOCATION,
             viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_PROFILE).size
+        )
+    }
+
+    @Test
+    fun `an approved-only button is withheld from a demo buyer`() = runTest {
+        // The fixture buyer is unapproved, which is what isDemoMode reports.
+        uiActionRepository.seed(
+            "demo_seller_id",
+            SellerUiAction(
+                id = "a1", label = "Wochenliste", value = "example.org",
+                location = ActionLocation.TOPBAR_PROFILE,
+                audience = ActionAudience.APPROVED_ONLY
+            )
+        )
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.isDemoMode, "fixture is meant to be unapproved")
+        assertTrue(viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_PROFILE).isEmpty())
+    }
+
+    @Test
+    fun `a demo-only button reaches a demo buyer`() = runTest {
+        uiActionRepository.seed(
+            "demo_seller_id",
+            SellerUiAction(
+                id = "a1", label = "Freischalten", value = "example.org",
+                location = ActionLocation.TOPBAR_PROFILE,
+                audience = ActionAudience.DEMO_ONLY
+            )
+        )
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Freischalten"),
+            viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_PROFILE).map { it.label }
         )
     }
 

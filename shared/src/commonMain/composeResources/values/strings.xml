@@ -1258,6 +1258,10 @@
     <string name="seller_actions_location">Ort</string>
     <string name="seller_actions_location_home">Kopfbereich, Startseite</string>
     <string name="seller_actions_location_profile">Kopfbereich, Profil</string>
+    <string name="seller_actions_audience">Für wen</string>
+    <string name="seller_actions_audience_all">Alle Kunden</string>
+    <string name="seller_actions_audience_demo">Nur Demo-Kunden</string>
+    <string name="seller_actions_audience_approved">Nur freigeschaltete Kunden</string>
     <string name="seller_actions_full">Hier ist kein Platz für weitere Schaltflächen.</string>
     <string name="seller_actions_incomplete">Bitte Beschriftung und Adresse ausfüllen.</string>
     <string name="seller_actions_saved">Schaltfläche gespeichert</string>

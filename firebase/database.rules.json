@@ -138,6 +138,7 @@
           "label": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 24" },
           "value": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500 && !newData.val().contains(':') && !newData.val().beginsWith('/')" },
           "location": { ".validate": "newData.val() === 'TOPBAR_HOME' || newData.val() === 'TOPBAR_PROFILE'" },
+          "audience": { ".validate": "newData.val() === 'EVERYONE' || newData.val() === 'DEMO_ONLY' || newData.val() === 'APPROVED_ONLY'" },
           "$other": { ".validate": false }
         }
       }

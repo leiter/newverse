@@ -113,6 +113,25 @@ describe("seller_ui_actions", () => {
     await assertFails(write(SELLER, "act_2", action({ id: "act_2", location: "EVERYWHERE" })));
   });
 
+  // --- audience -------------------------------------------------------------
+
+  it("accepts each audience the app implements", async () => {
+    for (const audience of ["EVERYONE", "DEMO_ONLY", "APPROVED_ONLY"]) {
+      await assertSucceeds(write(SELLER, "act_2", action({ id: "act_2", audience })));
+    }
+  });
+
+  it("refuses an unknown audience", async () => {
+    await assertFails(write(SELLER, "act_2", action({ id: "act_2", audience: "STAFF" })));
+  });
+
+  it("still accepts a row with no audience at all", async () => {
+    // Optional on purpose: rows written before audiences existed were shown to
+    // everyone and must stay valid, which is why it is not in hasChildren.
+    const { audience, ...withoutAudience } = action({ id: "act_2", audience: "EVERYONE" });
+    await assertSucceeds(write(SELLER, "act_2", withoutAudience));
+  });
+
   // --- shape ----------------------------------------------------------------
 
   it("refuses an id that disagrees with its key", async () => {

@@ -279,7 +279,14 @@ data class BuyAppState(
      * button that appears only after approval reads as broken to a new install.
      */
     fun topBarActionsFor(location: ActionLocation): List<SellerUiAction> =
-        sellerUiActions.forLocation(location)
+        sellerUiActions.forLocation(
+            location = location,
+            // Both read the *loaded* status, so a narrowed button stays absent until
+            // the app knows which side of the line this buyer is on, rather than
+            // appearing at launch and vanishing. See [canContactSeller].
+            isApproved = canContactSeller,
+            isDemo = isDemoMode
+        )
 
     /** What the top-bar menu offers, already deduplicated. */
     val topBarContacts: List<SellerContact>

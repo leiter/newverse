@@ -1200,6 +1200,10 @@
     <string name="seller_actions_location">Where</string>
     <string name="seller_actions_location_home">Top bar, home screen</string>
     <string name="seller_actions_location_profile">Top bar, profile screen</string>
+    <string name="seller_actions_audience">Who sees it</string>
+    <string name="seller_actions_audience_all">All customers</string>
+    <string name="seller_actions_audience_demo">Demo customers only</string>
+    <string name="seller_actions_audience_approved">Approved customers only</string>
     <string name="seller_actions_full">There is no room for another button here.</string>
     <string name="seller_actions_incomplete">Please fill in both a label and an address.</string>
     <string name="seller_actions_saved">Button saved</string>

@@ -20,6 +20,7 @@ The seller writes a row like this on their profile screen:
 | `label` | `Wünsche` |
 | `value` | `example.org/wuensche` |
 | `location` | Top bar, profile screen |
+| `audience` | All customers |
 | `kind` | `OPEN_URL` |
 
 Every buyer's app picks it up and draws a button on that screen's top bar. Tapping it
@@ -124,6 +125,37 @@ appears only after approval reads as broken to a new install. The rule test
 `"lets an unapproved guest read them too"` pins this as a decision rather than an
 oversight.
 
+## Who sees a button
+
+`ActionAudience` narrows a button to part of the customer base:
+
+| Value | Shown to |
+|---|---|
+| `EVERYONE` | every signed-in buyer (the default) |
+| `DEMO_ONLY` | buyers the seller has not approved — still in demo mode |
+| `APPROVED_ONLY` | buyers who can place a real order |
+
+An onboarding link belongs in front of people who are not approved yet; this week's
+list belongs in front of the customers who can actually order.
+
+**Both narrowed audiences wait for the access status to be *known*.** `isApproved` and
+`isDemo` are passed separately rather than derived from each other, because both are
+false while the status is still loading — so a narrowed button is absent until the app
+knows which side of the line this buyer is on, rather than appearing at launch and
+vanishing a moment later. That is the flash `canContactSeller` documents and avoids,
+and the test `a narrowed button stays hidden while the status is still loading` pins
+it.
+
+**The cap is applied after the audience filter**, so a button hidden from this buyer
+does not use up one of the three places. A seller with three demo-only buttons would
+otherwise leave an approved buyer with nothing.
+
+`audience` is the one **optional** field on the record — deliberately not in the
+rules' `hasChildren` list. Rows written before audiences existed were shown to
+everyone and go on being shown to everyone: `ActionAudience.stored(null)` returns
+`EVERYONE`, while an *unknown* name returns null and skips the row, the same
+distinction `ActionKind` and `ActionLocation` do not need to make.
+
 ## What this is not
 
 - **Not a way to ship UI.** `kind` is an enum of behaviours the buy app already
@@ -189,7 +221,7 @@ without a restart — and they fail if the subscription is removed.
 | `buyMain/.../AppScaffold.kt` | Rendering and the enum→route mapping |
 | `sellMain/.../UiActionListEditor.kt` | The seller's editor |
 | `sellMain/.../SellerProfileViewModel.kt` | `uiActions`, `saveUiAction`, `deleteUiAction` |
-| `firebase/tests/seller-ui-actions.test.js` | 19 rule tests, mostly about `value` |
-| `commonTest/.../SellerUiActionTest.kt` | 15 model tests, mostly about schemes |
+| `firebase/tests/seller-ui-actions.test.js` | 22 rule tests, mostly about `value` |
+| `commonTest/.../SellerUiActionTest.kt` | 22 model tests: schemes, slots, audiences |
 | `buyMain/.../BuyAppViewModelAccess.kt` | The live subscription, beside access status |
-| `testBuy/.../BuyAppViewModelUiActionsTest.kt` | 8 tests: the buttons reach the state, live |
+| `testBuy/.../BuyAppViewModelUiActionsTest.kt` | 10 tests: the buttons reach the state, live, per audience |

@@ -28,6 +28,11 @@ data class SellerUiAction(
      */
     val value: String = "",
     val location: ActionLocation = ActionLocation.TOPBAR_PROFILE,
+    /**
+     * Who sees it. [ActionAudience.EVERYONE] unless the seller narrowed it, which is
+     * also what an older record with no stored audience reads as.
+     */
+    val audience: ActionAudience = ActionAudience.EVERYONE,
 ) {
     /** A button with nothing to say or nowhere to go is not shown. */
     val isUsable: Boolean get() = label.isNotBlank() && value.isNotBlank()
@@ -119,12 +124,62 @@ enum class ActionLocation {
 }
 
 /**
+ * Which buyers a published button is for.
+ *
+ * The seller's own words for these are "alle", "Demo" and "freigeschaltet". A seller
+ * running an onboarding link wants it in front of people who have not been approved
+ * yet; a link to this week's list is for the customers who can actually order.
+ *
+ * Both narrowed audiences wait for the access status to be *known*, never guessing
+ * from its default. [BuyerProfile] access loads a moment after the UI does, so
+ * deciding on an unloaded status would show a button at launch and take it away
+ * immediately — the same flash `canContactSeller` documents and avoids.
+ *
+ * Stored by [name]; an unknown value reads as null and the row is skipped, like
+ * [ActionKind] and [ActionLocation]. An *absent* value is different and reads as
+ * [EVERYONE]: records written before audiences existed were shown to everyone, and
+ * that is what they should go on doing.
+ */
+enum class ActionAudience {
+    EVERYONE,
+    /** Buyers the seller has not approved — the ones still in demo mode. */
+    DEMO_ONLY,
+    /** Buyers who can actually place a real order. */
+    APPROVED_ONLY;
+
+    /**
+     * Whether this audience includes the buyer looking at the screen.
+     *
+     * [isApproved] and [isDemo] are passed separately rather than derived from one
+     * another precisely because both are false while the status is still loading,
+     * which is what keeps a narrowed button from flashing on at launch.
+     */
+    fun includes(isApproved: Boolean, isDemo: Boolean): Boolean = when (this) {
+        EVERYONE -> true
+        DEMO_ONLY -> isDemo
+        APPROVED_ONLY -> isApproved
+    }
+
+    companion object {
+        /** Absent means [EVERYONE]; an unknown name means null, and the row is skipped. */
+        fun stored(raw: String?): ActionAudience? =
+            if (raw == null) EVERYONE else entries.firstOrNull { it.name == raw }
+    }
+}
+
+/**
  * The buttons for one slot, in a stable order and already capped.
  *
  * Sorted by label so the order does not depend on RTDB key iteration — two buttons
- * that swap places between launches read as a bug.
+ * that swap places between launches read as a bug. The cap is applied *after* the
+ * audience filter, so a button hidden from this buyer does not use up one of the
+ * three places.
  */
-fun List<SellerUiAction>.forLocation(location: ActionLocation): List<SellerUiAction> =
-    filter { it.location == location && it.isUsable }
+fun List<SellerUiAction>.forLocation(
+    location: ActionLocation,
+    isApproved: Boolean,
+    isDemo: Boolean,
+): List<SellerUiAction> =
+    filter { it.location == location && it.isUsable && it.audience.includes(isApproved, isDemo) }
         .sortedBy { it.label.lowercase() }
         .take(SellerUiAction.MAX_PER_LOCATION)
