@@ -208,6 +208,15 @@ sealed interface BuyBasketScreenAction : BuyAction {
 
     /** Edit the address this order is delivered to. */
     data class SetDeliveryAddress(val address: DeliveryAddress) : BuyBasketScreenAction
+
+    /**
+     * Keep the address typed at checkout: write street and number to the profile.
+     *
+     * Opt-in, and separate from [SetDeliveryAddress], because the order snapshots its
+     * own address — a one-off delivery somewhere else must not move the buyer's home.
+     * The note is not copied; it belongs to this order, not to the address.
+     */
+    data object SaveDeliveryAddressToProfile : BuyBasketScreenAction
         data class LoadOrder(val orderId: String, val date: String, val forceLoad: Boolean = false) : BuyBasketScreenAction
     data object UpdateOrder : BuyBasketScreenAction
     data object EnableEditing : BuyBasketScreenAction

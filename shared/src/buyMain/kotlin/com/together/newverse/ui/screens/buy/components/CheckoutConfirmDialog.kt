@@ -11,13 +11,16 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import com.together.newverse.domain.model.DeliveryAddress
 import com.together.newverse.domain.model.Fulfilment
+import newverse.shared.generated.resources.fulfilment_address_required
 import newverse.shared.generated.resources.fulfilment_choose
 import newverse.shared.generated.resources.fulfilment_city
 import newverse.shared.generated.resources.fulfilment_delivery
 import newverse.shared.generated.resources.fulfilment_house_number
 import newverse.shared.generated.resources.fulfilment_note_hint
 import newverse.shared.generated.resources.fulfilment_pickup
+import newverse.shared.generated.resources.fulfilment_save_to_profile
 import newverse.shared.generated.resources.fulfilment_street
+import newverse.shared.generated.resources.fulfilment_use_profile_address
 import newverse.shared.generated.resources.fulfilment_zip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -73,14 +76,24 @@ fun CheckoutConfirmDialog(
     isDemoMode: Boolean,
     fulfilment: Fulfilment,
     deliveryAddress: DeliveryAddress,
+    /** Street and number as the buyer's profile holds them; empty if it holds none. */
+    profileAddress: DeliveryAddress,
     orderError: String?,
     onFulfilmentChange: (Fulfilment) -> Unit,
     onDeliveryAddressChange: (DeliveryAddress) -> Unit,
+    onSaveAddressToProfile: () -> Unit,
     onConfirm: () -> Unit,
     onChangeSlot: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val isDelivery = fulfilment == Fulfilment.DELIVERY
+
+    // Delivery with nowhere to deliver to. The seller cannot read `buyer_profile`, so
+    // such an order has no destination and no way to recover one — hence the confirm
+    // button goes off rather than the refusal arriving after the tap. The ViewModel
+    // refuses it at the write too; this is the half that explains itself.
+    val addressMissing = isDelivery && !deliveryAddress.isComplete
+
     val pickup = Instant.fromEpochMilliseconds(pickupDate)
 
     // The market's own schedule. This currently produces the same instant as the
@@ -140,6 +153,49 @@ fun CheckoutConfirmDialog(
                         address = deliveryAddress,
                         onChange = onDeliveryAddressChange
                     )
+
+                    // Two ways out of an empty form, whichever the buyer's profile
+                    // makes possible: take what the profile already holds, or keep
+                    // what they just typed for next time. Never both at once — once
+                    // the fields match the profile there is nothing to copy either way.
+                    val canFillFromProfile = profileAddress.isComplete &&
+                        (profileAddress.street != deliveryAddress.street ||
+                            profileAddress.houseNumber != deliveryAddress.houseNumber)
+                    val canSaveToProfile = !canFillFromProfile &&
+                        deliveryAddress.isComplete &&
+                        (profileAddress.street != deliveryAddress.street ||
+                            profileAddress.houseNumber != deliveryAddress.houseNumber)
+
+                    if (canFillFromProfile) {
+                        TextButton(
+                            onClick = {
+                                // Street and number only: the profile holds no postcode
+                                // or town, and the note belongs to this order.
+                                onDeliveryAddressChange(
+                                    deliveryAddress.copy(
+                                        street = profileAddress.street,
+                                        houseNumber = profileAddress.houseNumber
+                                    )
+                                )
+                            }
+                        ) {
+                            Text(stringResource(Res.string.fulfilment_use_profile_address))
+                        }
+                    } else if (canSaveToProfile) {
+                        TextButton(onClick = onSaveAddressToProfile) {
+                            Text(stringResource(Res.string.fulfilment_save_to_profile))
+                        }
+                    }
+
+                    // Said before the tap, not after it: a disabled button with no
+                    // reason beside it reads as the app being broken.
+                    if (addressMissing && orderError == null) {
+                        Text(
+                            text = stringResource(Res.string.fulfilment_address_required),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
 
                 // Named only when there is more than one market to be at: with a
@@ -212,7 +268,7 @@ fun CheckoutConfirmDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm) {
+            Button(onClick = onConfirm, enabled = !addressMissing) {
                 Text(stringResource(Res.string.checkout_confirm_place))
             }
         },

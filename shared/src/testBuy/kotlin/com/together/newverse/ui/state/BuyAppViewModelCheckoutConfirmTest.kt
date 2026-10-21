@@ -84,7 +84,11 @@ class BuyAppViewModelCheckoutConfirmTest {
                 id = "buyer_1",
                 displayName = "Test",
                 emailAddress = "t@example.com",
-                telephoneNumber = "123"
+                telephoneNumber = "123",
+                // A pickup buyer, so the checkout's delivery-address gate is not
+                // what these tests are measuring. Left as the default, this profile
+                // reads as DELIVERY with no address and every order is refused.
+                isSelfPickup = true
             )
         )
         authRepository.setCurrentUserId("buyer_1")

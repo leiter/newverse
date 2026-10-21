@@ -19,6 +19,7 @@ import com.together.newverse.ui.state.MergeConflict
 import com.together.newverse.ui.state.MergeConflictType
 import com.together.newverse.ui.state.MergeResolution
 import com.together.newverse.ui.state.BuyBasketScreenAction
+import com.together.newverse.ui.state.BuyUiAction
 import com.together.newverse.domain.model.DraftBasket
 import com.together.newverse.domain.model.MarketPricing
 import com.together.newverse.domain.model.DeliveryAddress
@@ -179,6 +180,8 @@ internal fun BuyAppViewModel.handleBasketScreenAction(action: BuyBasketScreenAct
         is BuyBasketScreenAction.SetFulfilment -> basketScreenSetFulfilment(action.fulfilment)
         is BuyBasketScreenAction.SetDeliveryAddress ->
             basketScreenSetDeliveryAddress(action.address)
+        BuyBasketScreenAction.SaveDeliveryAddressToProfile ->
+            basketScreenSaveDeliveryAddressToProfile()
         is BuyBasketScreenAction.LoadOrder -> basketScreenLoadOrder(action.orderId, action.date, forceLoad = true)
         BuyBasketScreenAction.UpdateOrder -> basketScreenUpdateOrder()
         BuyBasketScreenAction.EnableEditing -> basketScreenEnableEditing()
@@ -679,20 +682,7 @@ internal fun BuyAppViewModel.basketScreenRequestCheckout() {
         return
     }
 
-    // A delivery the seller cannot deliver to must not reach the database. They cannot
-    // read `buyer_profile`, so an order with no address is an order with no destination
-    // and no way to recover one.
-    if (basket.fulfilment == Fulfilment.DELIVERY && !basket.deliveryAddress.isComplete) {
-        _state.update { current ->
-            current.copy(
-                basketScreen = current.basketScreen.copy(
-                    showCheckoutConfirm = true,
-                    orderError = "Bitte Lieferadresse angeben"
-                )
-            )
-        }
-        return
-    }
+    if (refuseAddresslessDelivery()) return
 
     _state.update { current ->
         current.copy(
@@ -701,6 +691,78 @@ internal fun BuyAppViewModel.basketScreenRequestCheckout() {
                 orderError = null
             )
         )
+    }
+}
+
+/**
+ * A delivery with nowhere to deliver to, refused.
+ *
+ * The seller cannot read `buyer_profile`, so an order with no address is an order
+ * with no destination and no way to recover one — they would have to chase the buyer
+ * by hand, if they noticed at all.
+ *
+ * Checked at every point an order is *written*, not only when the confirmation opens:
+ * the fulfilment chips live inside that dialog, so a buyer who opens it on a pickup
+ * and switches to delivery there passes the opening gate and reaches the write with a
+ * blank address. The dialog also keeps its confirm button disabled in that state;
+ * this is the line that holds when the disabled button is not the only way in — an
+ * edit of a placed order, or a dialog left open while the address was cleared.
+ *
+ * Returns true when it refused, leaving the dialog open on the error rather than
+ * closing on a silent failure. `isCheckingOut` is cleared too: the write paths set it
+ * before validating.
+ */
+internal fun BuyAppViewModel.refuseAddresslessDelivery(): Boolean {
+    val basket = _state.value.basketScreen
+    if (basket.fulfilment != Fulfilment.DELIVERY || basket.deliveryAddress.isComplete) {
+        return false
+    }
+    bLog("🛒 refuseAddresslessDelivery: delivery with no complete address")
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                isCheckingOut = false,
+                showCheckoutConfirm = true,
+                orderError = "Bitte Lieferadresse angeben"
+            )
+        )
+    }
+    return true
+}
+
+/**
+ * Keep the address typed at checkout, on the buyer asking to.
+ *
+ * Only street and number, which is all `BuyerProfile` holds and all
+ * [DeliveryAddress.isComplete] requires; the note stays on the order. An incomplete
+ * address is not written at all — half an address must not overwrite a whole one.
+ */
+internal fun BuyAppViewModel.basketScreenSaveDeliveryAddressToProfile() {
+    viewModelScope.launch {
+        val address = _state.value.basketScreen.deliveryAddress
+        if (!address.isComplete) {
+            bLog("🛒 basketScreenSaveDeliveryAddressToProfile: refused, address incomplete")
+            dispatch(BuyUiAction.ShowSnackbar("Bitte Lieferadresse angeben"))
+            return@launch
+        }
+        val current = _state.value.customerProfile.profile
+        if (current == null) {
+            dispatch(BuyUiAction.ShowSnackbar("Fehler: Kein Profil vorhanden"))
+            return@launch
+        }
+        profileRepository.saveBuyerProfile(
+            current.copy(street = address.street, houseNumber = address.houseNumber)
+        ).onSuccess { saved ->
+            _state.update { state ->
+                state.copy(
+                    customerProfile = state.customerProfile.copy(profile = saved)
+                )
+            }
+            dispatch(BuyUiAction.ShowSnackbar("Adresse im Profil gespeichert"))
+        }.onFailure { error ->
+            bLog("⚠️ basketScreenSaveDeliveryAddressToProfile: ${error.message}")
+            dispatch(BuyUiAction.ShowSnackbar("Fehler beim Speichern: ${error.message}"))
+        }
     }
 }
 
@@ -791,6 +853,11 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 setBasketError(unorderableBasketMessage(unorderable))
                 return@launch
             }
+
+            // Re-checked here, not only when the confirmation opened: the fulfilment
+            // chips are inside that dialog, so this is where a delivery chosen there
+            // is first seen by a write.
+            if (refuseAddresslessDelivery()) return@launch
 
             val buyerProfile = getBuyerProfileOrFallback(currentUserId)
 
@@ -1145,6 +1212,10 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                 setBasketError(unorderableBasketMessage(unorderable))
                 return@launch
             }
+
+            // An edit is the path a placed pickup takes to become a delivery, so it
+            // needs the destination just as much as placing one did.
+            if (refuseAddresslessDelivery()) return@launch
 
             val buyerProfile = getBuyerProfileOrFallback(currentUserId)
             val isDemo = _state.value.isDemoMode

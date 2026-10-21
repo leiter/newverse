@@ -1190,4 +1190,6 @@
     <string name="fulfilment_zip">Postcode</string>
     <string name="fulfilment_city">Town</string>
     <string name="fulfilment_note_hint">Note (doorbell, gate, …)</string>
+    <string name="fulfilment_use_profile_address">Use address from profile</string>
+    <string name="fulfilment_save_to_profile">Save address to profile</string>
 </resources>

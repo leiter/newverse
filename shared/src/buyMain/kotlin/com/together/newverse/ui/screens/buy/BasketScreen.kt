@@ -54,6 +54,7 @@ import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.DeliveryAddress
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.articleKey
 import com.together.newverse.domain.model.nearlyGoneAgainst
@@ -112,6 +113,12 @@ fun BasketScreen(
     pricedAtMarketName: String = "",
     /** The markets this buyer may collect at, for the checkout confirmation. */
     eligibleMarkets: List<Market> = emptyList(),
+    /**
+     * Street and number as the buyer's profile holds them, for the one-tap fill-in at
+     * checkout. Passed in rather than mirrored onto the basket state: the profile has
+     * one owner, and a copy on the basket would be the stale one.
+     */
+    profileAddress: DeliveryAddress = DeliveryAddress.NONE,
     orderId: String? = null,
     orderDate: String? = null
 ) {
@@ -132,7 +139,8 @@ fun BasketScreen(
         canRequestAccess = canRequestAccess,
         onRequestAccess = onRequestAccess,
         pricedAtMarketName = pricedAtMarketName,
-        eligibleMarkets = eligibleMarkets
+        eligibleMarkets = eligibleMarkets,
+        profileAddress = profileAddress
     )
 }
 
@@ -158,7 +166,8 @@ fun BasketContent(
     canRequestAccess: Boolean = false,
     onRequestAccess: () -> Unit = {},
     pricedAtMarketName: String = "",
-    eligibleMarkets: List<Market> = emptyList()
+    eligibleMarkets: List<Market> = emptyList(),
+    profileAddress: DeliveryAddress = DeliveryAddress.NONE
 ) {
     // Items the seller has withdrawn since they went into the basket. Derived from
     // the catalogue rather than stored on the state: the basket is persisted and
@@ -204,9 +213,13 @@ fun BasketContent(
             isDemoMode = isDemoMode,
             fulfilment = state.fulfilment,
             deliveryAddress = state.deliveryAddress,
+            profileAddress = profileAddress,
             orderError = state.orderError,
             onFulfilmentChange = { onAction(BuyBasketScreenAction.SetFulfilment(it)) },
             onDeliveryAddressChange = { onAction(BuyBasketScreenAction.SetDeliveryAddress(it)) },
+            onSaveAddressToProfile = {
+                onAction(BuyBasketScreenAction.SaveDeliveryAddressToProfile)
+            },
             onConfirm = { onAction(BuyBasketScreenAction.ConfirmCheckout) },
             onChangeSlot = { onAction(BuyBasketScreenAction.ShowDatePicker) },
             onDismiss = { onAction(BuyBasketScreenAction.DismissCheckout) }

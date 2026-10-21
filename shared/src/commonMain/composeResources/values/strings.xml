@@ -1248,4 +1248,6 @@
     <string name="fulfilment_zip">PLZ</string>
     <string name="fulfilment_city">Ort</string>
     <string name="fulfilment_note_hint">Hinweis (Klingel, Tor, …)</string>
+    <string name="fulfilment_use_profile_address">Adresse aus Profil übernehmen</string>
+    <string name="fulfilment_save_to_profile">Adresse im Profil speichern</string>
 </resources>

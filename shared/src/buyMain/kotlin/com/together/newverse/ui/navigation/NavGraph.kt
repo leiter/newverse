@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.savedstate.read
 import com.together.newverse.domain.model.AccessStatus
+import com.together.newverse.domain.model.DeliveryAddress
 import com.together.newverse.ui.screens.buy.BasketScreen
 import com.together.newverse.ui.screens.buy.AddBuyerContactScreen
 import com.together.newverse.ui.screens.buy.BuyerContactsScreen
@@ -90,6 +91,7 @@ fun NavGraph(
                 },
                 pricedAtMarketName = appState.adjustedPricingMarketName,
                 eligibleMarkets = appState.eligibleMarkets,
+                profileAddress = DeliveryAddress.fromProfile(appState.customerProfile.profile),
                 orderId = orderIdArg ?: appState.basket.currentOrderId,
                 orderDate = orderDateArg ?: appState.basket.currentOrderDate
             )

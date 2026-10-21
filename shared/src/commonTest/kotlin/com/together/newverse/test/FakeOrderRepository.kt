@@ -57,6 +57,7 @@ class FakeOrderRepository : OrderRepository {
      */
     fun reset() {
         _placedOrders.clear()
+        _updatedOrders.clear()
         _ordersFlow.value = emptyList()
         _statusUpdates.clear()
         _hiddenOrders.clear()
@@ -100,6 +101,7 @@ class FakeOrderRepository : OrderRepository {
     }
 
     override suspend fun updateOrder(order: Order): Result<Unit> {
+        _updatedOrders.add(order)
         val currentOrders = _ordersFlow.value.toMutableList()
         val index = currentOrders.indexOfFirst { it.id == order.id }
         if (index >= 0) {
@@ -219,6 +221,10 @@ class FakeOrderRepository : OrderRepository {
      * fake chose to hand back.
      */
     val placedOrders: List<Order> get() = _placedOrders.toList()
+
+    private val _updatedOrders = mutableListOf<Order>()
+    /** Every order handed to [updateOrder], for the same reason as [placedOrders]. */
+    val updatedOrders: List<Order> get() = _updatedOrders.toList()
 
     /** Records every transition call so tests can assert what was moved in one update. */
     val transitions = mutableListOf<Transition>()

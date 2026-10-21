@@ -185,6 +185,113 @@ class BuyAppViewModelDeliveryTest {
     }
 
     @Test
+    fun `a delivery chosen inside the confirmation cannot be placed without an address`() = runTest {
+        // The gate on pressing Bestellen saw a pickup order and let the dialog open.
+        // The buyer then switched to delivery *in* the dialog, where nothing had
+        // re-checked them — which is how an addressless delivery got written.
+        startSession(selfPickup = true, street = "", nr = "")
+        val viewModel = ready()
+
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.basketScreen.showCheckoutConfirm)
+
+        viewModel.dispatch(BuyBasketScreenAction.SetFulfilment(Fulfilment.DELIVERY))
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+
+        val basket = viewModel.state.value.basketScreen
+        assertTrue(orderRepository.placedOrders.isEmpty(), "an addressless delivery was placed")
+        assertTrue(basket.orderError != null, "no error shown for an undeliverable order")
+        // The dialog stays open on the problem rather than closing on a refusal.
+        assertTrue(basket.showCheckoutConfirm)
+    }
+
+    @Test
+    fun `an order cannot be edited into an addressless delivery`() = runTest {
+        startSession(selfPickup = true, street = "", nr = "")
+        val viewModel = ready()
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+        val placed = orderRepository.placedOrders.single()
+
+        viewModel.dispatch(BuyBasketScreenAction.EnableEditing)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.SetFulfilment(Fulfilment.DELIVERY))
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.UpdateOrder)
+        advanceUntilIdle()
+
+        assertTrue(
+            orderRepository.updatedOrders.none { it.fulfilment == Fulfilment.DELIVERY },
+            "an addressless delivery was written by an edit"
+        )
+        assertEquals(Fulfilment.PICKUP, placed.fulfilment)
+        assertTrue(viewModel.state.value.basketScreen.orderError != null)
+    }
+
+    @Test
+    fun `a half-typed address is not enough`() = runTest {
+        startSession(selfPickup = false, street = "", nr = "")
+        val viewModel = ready()
+
+        // Street without a number is not somewhere a van can stop.
+        viewModel.dispatch(
+            BuyBasketScreenAction.SetDeliveryAddress(DeliveryAddress(street = "Waldweg"))
+        )
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+
+        assertTrue(orderRepository.placedOrders.isEmpty())
+        assertTrue(viewModel.state.value.basketScreen.orderError != null)
+    }
+
+    // ===== the address the buyer keeps =====
+
+    @Test
+    fun `the address typed at checkout can be saved to the profile`() = runTest {
+        startSession(selfPickup = false, street = "", nr = "")
+        val viewModel = ready()
+
+        viewModel.dispatch(
+            BuyBasketScreenAction.SetDeliveryAddress(
+                DeliveryAddress(street = "Waldweg", houseNumber = "9", note = "hinterm Haus")
+            )
+        )
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.SaveDeliveryAddressToProfile)
+        advanceUntilIdle()
+
+        val saved = profileRepository.getBuyerProfile().getOrNull()
+        assertEquals("Waldweg", saved?.street)
+        assertEquals("9", saved?.houseNumber)
+        // The order's own note is not the profile's business.
+        assertEquals("hinterm Haus", viewModel.state.value.basketScreen.deliveryAddress.note)
+    }
+
+    @Test
+    fun `an incomplete address is not saved to the profile`() = runTest {
+        startSession(selfPickup = false, street = "Hauptstr.", nr = "4")
+        val viewModel = ready()
+
+        viewModel.dispatch(
+            BuyBasketScreenAction.SetDeliveryAddress(DeliveryAddress(street = "Waldweg"))
+        )
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.SaveDeliveryAddressToProfile)
+        advanceUntilIdle()
+
+        // Half an address must not overwrite a whole one.
+        val saved = profileRepository.getBuyerProfile().getOrNull()
+        assertEquals("Hauptstr.", saved?.street)
+        assertEquals("4", saved?.houseNumber)
+    }
+
+    @Test
     fun `switching to delivery seeds the address from the profile`() = runTest {
         startSession(selfPickup = true, street = "Bahnhofstr.", nr = "12a")
         val viewModel = ready()
