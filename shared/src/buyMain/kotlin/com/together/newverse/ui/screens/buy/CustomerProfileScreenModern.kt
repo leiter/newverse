@@ -123,6 +123,7 @@ import newverse.shared.generated.resources.a11y_sending
 import newverse.shared.generated.resources.a11y_state_collapsed
 import newverse.shared.generated.resources.a11y_state_expanded
 import newverse.shared.generated.resources.a11y_toggle_address
+import newverse.shared.generated.resources.a11y_toggle_order_reminder
 import newverse.shared.generated.resources.a11y_toggle_profile_incomplete
 import newverse.shared.generated.resources.access_request_button
 import newverse.shared.generated.resources.access_status_approved
@@ -1517,6 +1518,12 @@ private fun SaveConfirmationDialog(
  * The ordering week is fixed (deadline Tuesday 23:59, pickup Thursday), so the days are
  * offered in the order they matter for the coming pickup — Saturday through Tuesday —
  * rather than as a full week the buyer has to reason about.
+ *
+ * Collapsed, the card keeps what the buyer needs at a glance: what it is, and the switch
+ * that decides whether it fires at all. The days and the time are the detail behind that
+ * decision, so they only cost height once asked for. Anything on the card that is not
+ * itself a control is the disclosure — the whole surface toggles, and the switches, chips
+ * and the time button consume their own taps, so none of them opens or closes the card.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1529,11 +1536,23 @@ private fun OrderReminderCard(
     onOnlyWhenNotOrderedChange: (Boolean) -> Unit
 ) {
     var showTimePicker by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
     val time = "${settings.hour.toString().padStart(2, '0')}:" +
         settings.minute.toString().padStart(2, '0')
 
+    val toggleLabel = stringResource(Res.string.a11y_toggle_order_reminder)
+    val toggleState = stringResource(
+        if (expanded) Res.string.a11y_state_expanded else Res.string.a11y_state_collapsed
+    )
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                onClickLabel = toggleLabel,
+                role = Role.Button
+            ) { expanded = !expanded }
+            .semantics { stateDescription = toggleState },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
@@ -1541,14 +1560,31 @@ private fun OrderReminderCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+                .animateContentSize(animationSpec = spring()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SectionHeader(
-                icon = Icons.Default.Notifications,
-                title = stringResource(Res.string.order_reminder_section_title),
-                iconColor = MaterialTheme.colorScheme.secondary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SectionHeader(
+                    icon = Icons.Default.Notifications,
+                    title = stringResource(Res.string.order_reminder_section_title),
+                    iconColor = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.weight(1f)
+                )
+                // Visual affordance only; the card itself is the a11y toggle.
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ArrowDropDown
+                    else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.clearAndSetSemantics { }
+                )
+            }
 
             Text(
                 text = stringResource(Res.string.order_reminder_deadline_hint),
@@ -1576,32 +1612,9 @@ private fun OrderReminderCard(
                 )
             }
 
-            // The controls stay visible but inert when off, so the buyer can see what
-            // they are turning on rather than a card that collapses to one switch.
-            val controlsEnabled = settings.enabled
-
-            Text(
-                text = stringResource(Res.string.order_reminder_days),
-                style = MaterialTheme.typography.labelLarge,
-                color = if (controlsEnabled) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                REMINDER_DAY_ORDER.forEach { day ->
-                    FilterChip(
-                        selected = day in settings.days,
-                        onClick = { onDayToggle(day) },
-                        enabled = controlsEnabled,
-                        label = { Text(stringResource(day.shortLabel())) }
-                    )
-                }
-            }
-
-            if (controlsEnabled && settings.days.isEmpty()) {
+            // Stays out of the collapsible part: a reminder that is on with no day
+            // chosen never fires, and collapsing that away would hide the reason.
+            if (settings.enabled && settings.days.isEmpty()) {
                 Text(
                     text = stringResource(Res.string.order_reminder_no_days),
                     style = MaterialTheme.typography.bodySmall,
@@ -1609,39 +1622,66 @@ private fun OrderReminderCard(
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(Res.string.order_reminder_time),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (controlsEnabled) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                )
-                TextButton(onClick = { showTimePicker = true }, enabled = controlsEnabled) {
-                    Text(time, style = MaterialTheme.typography.bodyLarge)
-                }
-            }
+            if (expanded) {
+                // Expanded, the controls stay visible but inert when the reminder is off,
+                // so the buyer can see what they are turning on.
+                val controlsEnabled = settings.enabled
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Text(
-                    text = stringResource(Res.string.order_reminder_only_when_not_ordered),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.order_reminder_days),
+                    style = MaterialTheme.typography.labelLarge,
                     color = if (controlsEnabled) MaterialTheme.colorScheme.onSurface
                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 )
-                Switch(
-                    checked = settings.onlyWhenNotOrdered,
-                    onCheckedChange = onOnlyWhenNotOrderedChange,
-                    enabled = controlsEnabled
-                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    REMINDER_DAY_ORDER.forEach { day ->
+                        FilterChip(
+                            selected = day in settings.days,
+                            onClick = { onDayToggle(day) },
+                            enabled = controlsEnabled,
+                            label = { Text(stringResource(day.shortLabel())) }
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(Res.string.order_reminder_time),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (controlsEnabled) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    )
+                    TextButton(onClick = { showTimePicker = true }, enabled = controlsEnabled) {
+                        Text(time, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(Res.string.order_reminder_only_when_not_ordered),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                        color = if (controlsEnabled) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    )
+                    Switch(
+                        checked = settings.onlyWhenNotOrdered,
+                        onCheckedChange = onOnlyWhenNotOrderedChange,
+                        enabled = controlsEnabled
+                    )
+                }
             }
         }
     }

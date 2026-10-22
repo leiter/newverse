@@ -917,6 +917,7 @@
     <string name="a11y_state_collapsed">reduziert</string>
     <string name="a11y_toggle_address">Adresse ein- oder ausblenden</string>
     <string name="a11y_toggle_profile_incomplete">Fehlende Angaben ein- oder ausblenden</string>
+    <string name="a11y_toggle_order_reminder">Erinnerungseinstellungen ein- oder ausblenden</string>
     <!-- Frames the demo/production mode indicator: %s = mode name -->
     <string name="a11y_current_mode">Modus: %s</string>
     <!-- Dot badge on the profile tab while required profile data is missing -->
