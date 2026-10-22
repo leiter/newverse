@@ -1,0 +1,1181 @@
+{
+  "_test": {
+    "fixture": "busy-week",
+    "summary": "A running week: order history, an editable order, a locked one, stock, a booked sale.",
+    "generatedFor": "2026-10-22",
+    "regenerate": "python3 firebase/fixtures/generate_fixtures.py",
+    "warning": "Importing at the database root REPLACES the whole database.",
+    "seller": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+    "buyers": {
+      "bcQHALrRkuSljXKdO6sxhHlnhNv2": "Anna Berger — approved, full profile",
+      "mX4gbxB5wuNUmfj9U4PWhO7BOJD3": "unnamed buyer — not approved (demo), stored placeholder name",
+      "jOSoP5UxAohZDtdpluhHg6VrfvQ2": "Tobias Krenz — approved and market-scoped (BLOCKED in fixture 3)"
+    },
+    "markets": {
+      "mkt-thu-onkel-tom": "Donnerstag",
+      "mkt-sat-kranoldplatz": "Samstag (price conditions)",
+      "mkt-mon-breitenbachplatz": "Montag",
+      "mkt-popup-hofladen": "pop-up, runs tomorrow"
+    },
+    "dates": {
+      "openPickup": "20261029",
+      "lockedPickup": "20261023",
+      "saturdayPickup": "20261024",
+      "closedThursday": "20261119",
+      "ledgerMonth": "202610",
+      "saleMonth": "202610"
+    },
+    "timeZone": "Europe/Berlin",
+    "cases": [
+      {
+        "id": "F2-01",
+        "title": "Open order is editable, locked order is not",
+        "where": "buy flavour as bcQHALrRkuSljXKdO6sxhHlnhNv2 and jOSoP5UxAohZDtdpluhHg6VrfvQ2",
+        "steps": [
+          "Open Anna's order for next Thursday.",
+          "Open Tobias' order for the pop-up stall tomorrow."
+        ],
+        "expect": "Anna's is editable (deadline is two days before pickup at 23:59); Tobias' is LOCKED and read-only, with the pickup still in the future."
+      },
+      {
+        "id": "F2-02",
+        "title": "Order history lists three collected orders",
+        "where": "buy flavour as bcQHALrRkuSljXKdO6sxhHlnhNv2",
+        "steps": [
+          "Open the order history."
+        ],
+        "expect": "Three COMPLETED orders from the last three Thursdays plus the open one. They resolve through buyer_profile.placedOrderIds (date → orderId)."
+      },
+      {
+        "id": "F2-03",
+        "title": "Reorder builds a fresh draft",
+        "where": "buy flavour as bcQHALrRkuSljXKdO6sxhHlnhNv2",
+        "steps": [
+          "Pick the oldest completed order and reorder it."
+        ],
+        "expect": "A DRAFT with a new id, no pickup date, and today's createdDate; the old order is untouched and prices are re-checked against the catalogue."
+      },
+      {
+        "id": "F2-04",
+        "title": "A Saturday order keeps the price it was charged",
+        "where": "buy flavour as jOSoP5UxAohZDtdpluhHg6VrfvQ2, seller order detail",
+        "steps": [
+          "Open the Saturday order and its price breakdown."
+        ],
+        "expect": "Feigenbananen show 4,84 € with base 4,20 €, a 0,20 € transport surcharge and a 0,44 € stall fee. pricingRevision 3 is on the order; editing the market's conditions must not change these numbers."
+      },
+      {
+        "id": "F2-05",
+        "title": "Market scope limits the slots on offer",
+        "where": "buy flavour as jOSoP5UxAohZDtdpluhHg6VrfvQ2",
+        "steps": [
+          "Open the pickup slot picker."
+        ],
+        "expect": "Only the Kranoldplatz and pop-up stalls appear — allowedMarkets names those two. The Thursday and Monday markets are not offered."
+      },
+      {
+        "id": "F2-06",
+        "title": "A closure removes a pickup day",
+        "where": "buy flavour as bcQHALrRkuSljXKdO6sxhHlnhNv2",
+        "steps": [
+          "Scroll the pickup dates four Thursdays out."
+        ],
+        "expect": "The closed Thursday ('Feiertag') is absent, and the Monday two weeks out is absent for the Breitenbachplatz stall only."
+      },
+      {
+        "id": "F2-07",
+        "title": "Scarcity band and derived availability",
+        "where": "both flavours, Erdbeeren",
+        "steps": [
+          "Compare the seller's stock screen with the buyer's tile."
+        ],
+        "expect": "onHand 10 Schale, 3 committed by the open order, reorderLevel 6 → remaining 7 reads as PLENTIFUL and available stays true. Book 5 more and the band must fall to LIMITED, then LAST_FEW."
+      },
+      {
+        "id": "F2-08",
+        "title": "The ledger adds up to the cached level",
+        "where": "sell flavour, stock screen",
+        "steps": [
+          "Open Linda Kartoffeln's stock detail."
+        ],
+        "expect": "Intake 80 kg then a stocktake to 76,4 kg: the level shows 76,4 and lastCountedAt is set. The stocktake is absolute, not a delta."
+      },
+      {
+        "id": "F2-09",
+        "title": "A booked sale is reconciled to its order",
+        "where": "sell flavour, bookkeeping",
+        "steps": [
+          "Export sales for the current month."
+        ],
+        "expect": "One sale for ord-f2-hist-3 with two lines, found through sale_index/{seller}/{orderId} → yyyyMM. Both halves must agree or the rules would have refused the write."
+      },
+      {
+        "id": "F2-10",
+        "title": "Three audiences, three buttons",
+        "where": "buy flavour as each buyer",
+        "steps": [
+          "Check the home and profile top bars as B1, B2 and B3."
+        ],
+        "expect": "Anna and Tobias (APPROVED) see 'Hofladen' and the profile-bar 'Vorbestellung'; the pending buyer sees 'Hofladen' and 'Erst freischalten'."
+      },
+      {
+        "id": "F2-11",
+        "title": "Demo orders stay out of the seller's list",
+        "where": "sell flavour",
+        "steps": [
+          "Open the order list for the next pickup day."
+        ],
+        "expect": "The two /demo_orders entries from the pending buyer are absent: the seller subscribes to /orders only."
+      }
+    ]
+  },
+  "articles": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "art-kartoffel-linda": {
+        "productId": "0",
+        "productName": "Linda Kartoffeln",
+        "available": true,
+        "unit": "kg",
+        "price": 2.3,
+        "weightPerPiece": 0.0,
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1576373532957500855.tmp?alt=media&token=81892fcd-c346-479a-8b56-4b56d7ce8381",
+        "category": "Kartoffel",
+        "searchTerms": "Kartoffel,Linda,festkochend",
+        "detailInfo": "Festkochende Kartoffel vom Hof Apfeltraum. Ungewaschen, lose.",
+        "taxRate": 0.07,
+        "scarcity": "UNKNOWN"
+      },
+      "art-apfel-granny": {
+        "productId": "0",
+        "productName": "Granny Smith",
+        "available": true,
+        "unit": "kg",
+        "price": 3.4,
+        "weightPerPiece": 0.0,
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609270827791_tmp1052065387795357072.tmp?alt=media&token=3ae17db0-a140-4a3d-bd6d-2843cfd5b36e",
+        "category": "Apfel",
+        "searchTerms": "Apfel,Granny,saeuerlich",
+        "detailInfo": "Leicht säuerlicher Apfel aus kontrolliert biologischem Anbau.",
+        "taxRate": 0.07,
+        "scarcity": "UNKNOWN"
+      },
+      "art-banane-feige": {
+        "productId": "0",
+        "productName": "Feigenbananen",
+        "available": true,
+        "unit": "kg",
+        "price": 4.2,
+        "weightPerPiece": 0.0,
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp6852941846258768194.tmp?alt=media&token=f4b2a6a2-a8fa-495b-a093-04c269e97abe",
+        "category": "Bananen",
+        "searchTerms": "Banane,Obst,Feigenbanane",
+        "detailInfo": "Demeter Biobananen aus Peru.",
+        "taxRate": 0.07,
+        "scarcity": "UNKNOWN"
+      },
+      "art-knoblauch-frisch": {
+        "productId": "0",
+        "productName": "Knoblauch",
+        "available": true,
+        "unit": "Stück",
+        "price": 0.9,
+        "weightPerPiece": 0.08,
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2F1609405653076_tmp824873246873729560.tmp?alt=media&token=3cd22727-cec8-4d86-ba92-140b24c6675b",
+        "category": "Gemuese",
+        "searchTerms": "Knoblauch,Gemuese",
+        "detailInfo": "Vom Biohof Waldheide. Frisch geerntet.",
+        "taxRate": 0.07,
+        "scarcity": "UNKNOWN"
+      },
+      "art-erdbeere-schale": {
+        "productId": "0",
+        "productName": "Erdbeeren",
+        "available": true,
+        "unit": "Schale",
+        "price": 5.69,
+        "weightPerPiece": 0.0,
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp1145260240680560593.tmp?alt=media&token=0670c0da-e260-4d41-b5d8-1a119ea24a64",
+        "category": "Obst",
+        "searchTerms": "Erdbeere,Obst,Schale",
+        "detailInfo": "500g-Schale, je nach Wetter. Begrenzte Menge.",
+        "taxRate": 0.07,
+        "scarcity": "PLENTIFUL"
+      },
+      "art-paprika-rot": {
+        "productId": "0",
+        "productName": "Rote Paprika",
+        "available": true,
+        "unit": "kg",
+        "price": 6.9,
+        "weightPerPiece": 0.0,
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp7534516650759375907.tmp?alt=media&token=d474b967-46e9-45b2-8931-336f9c780ee3",
+        "category": "Gemuese",
+        "searchTerms": "Paprika,Gemuese,rot",
+        "detailInfo": "Knackige rote Paprika vom Biohof Waldheide.",
+        "taxRate": 0.07,
+        "scarcity": "UNKNOWN"
+      },
+      "art-basilikum-topf": {
+        "productId": "0",
+        "productName": "Basilikum im Topf",
+        "available": true,
+        "unit": "Stück",
+        "price": 2.8,
+        "weightPerPiece": 0.3,
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp274159401886863829.tmp?alt=media&token=e725f46f-5ab3-440c-9586-c04c6e1b7392",
+        "category": "Kraeuter",
+        "searchTerms": "Basilikum,Kraeuter,Topf",
+        "detailInfo": "Frischer Basilikum im Topf, Bio-Qualität.",
+        "taxRate": 0.07,
+        "scarcity": "UNKNOWN"
+      },
+      "art-sellerie-stange": {
+        "productId": "0",
+        "productName": "Stangensellerie",
+        "available": true,
+        "unit": "Stück",
+        "price": 2.5,
+        "weightPerPiece": 0.45,
+        "imageUrl": "https://firebasestorage.googleapis.com/v0/b/fire-one-58ddc.appspot.com/o/images%2Ftmp274159401886863829.tmp?alt=media&token=e725f46f-5ab3-440c-9586-c04c6e1b7392",
+        "category": "Gemuese",
+        "searchTerms": "Sellerie,Gemuese,Stange",
+        "detailInfo": "Stangensellerie, regional im Freiland gewachsen.",
+        "taxRate": 0.07,
+        "scarcity": "UNKNOWN"
+      }
+    }
+  },
+  "seller_articles": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "art-kartoffel-linda": {
+        "acquirePrice": 1.1,
+        "markupFactor": 1.3,
+        "supplier": "BTR",
+        "origin": "DE",
+        "certification": "DD",
+        "quality": "HK I",
+        "barcode": "",
+        "packageSize": 12.5,
+        "reorderLevel": 20.0,
+        "stockGated": false,
+        "sellerAvailable": true
+      },
+      "art-apfel-granny": {
+        "acquirePrice": 2.05,
+        "markupFactor": 1.3,
+        "supplier": "BTR",
+        "origin": "IT",
+        "certification": "DD",
+        "quality": "HK I",
+        "barcode": "",
+        "packageSize": 13.0,
+        "reorderLevel": 10.0,
+        "stockGated": false,
+        "sellerAvailable": true
+      },
+      "art-banane-feige": {
+        "acquirePrice": 2.6,
+        "markupFactor": 1.3,
+        "supplier": "SCH",
+        "origin": "PE",
+        "certification": "DB",
+        "quality": "HK I",
+        "barcode": "",
+        "packageSize": 18.0,
+        "reorderLevel": 0.0,
+        "stockGated": false,
+        "sellerAvailable": true
+      },
+      "art-knoblauch-frisch": {
+        "acquirePrice": 0.45,
+        "markupFactor": 1.5,
+        "supplier": "SCH",
+        "origin": "REG",
+        "certification": "DD",
+        "quality": "HK I",
+        "barcode": "",
+        "packageSize": 50.0,
+        "reorderLevel": 0.0,
+        "stockGated": false,
+        "sellerAvailable": true
+      },
+      "art-erdbeere-schale": {
+        "acquirePrice": 3.4,
+        "markupFactor": 1.5,
+        "supplier": "BTR",
+        "origin": "DE",
+        "certification": "DD",
+        "quality": "HK I",
+        "barcode": "",
+        "packageSize": 8.0,
+        "reorderLevel": 6.0,
+        "stockGated": true,
+        "sellerAvailable": true
+      },
+      "art-paprika-rot": {
+        "acquirePrice": 4.2,
+        "markupFactor": 1.3,
+        "supplier": "SCH",
+        "origin": "ES",
+        "certification": "DD",
+        "quality": "HK I",
+        "barcode": "",
+        "packageSize": 5.0,
+        "reorderLevel": 0.0,
+        "stockGated": false,
+        "sellerAvailable": true
+      },
+      "art-basilikum-topf": {
+        "acquirePrice": 1.6,
+        "markupFactor": 1.5,
+        "supplier": "SCH",
+        "origin": "DE",
+        "certification": "DD",
+        "quality": "HK I",
+        "barcode": "",
+        "packageSize": 10.0,
+        "reorderLevel": 0.0,
+        "stockGated": false,
+        "sellerAvailable": true
+      },
+      "art-sellerie-stange": {
+        "acquirePrice": 1.45,
+        "markupFactor": 1.3,
+        "supplier": "BTR",
+        "origin": "REG",
+        "certification": "DD",
+        "quality": "HK I",
+        "barcode": "",
+        "packageSize": 12.0,
+        "reorderLevel": 0.0,
+        "stockGated": false,
+        "sellerAvailable": true
+      }
+    }
+  },
+  "markets": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "mkt-thu-onkel-tom": {
+        "id": "mkt-thu-onkel-tom",
+        "name": "Wochenmarkt Onkel Toms Hütte",
+        "street": "Onkel-Tom-Straße",
+        "houseNumber": "99",
+        "city": "Berlin",
+        "zipCode": "14169",
+        "dayOfWeek": "Donnerstag",
+        "begin": "12:00",
+        "end": "18:30",
+        "dayIndex": 3,
+        "active": true,
+        "pricingRevision": 0,
+        "priceConditions": [],
+        "contacts": [
+          {
+            "channel": "PHONE",
+            "value": "+4930123456",
+            "label": "Stand Onkel Tom"
+          }
+        ]
+      },
+      "mkt-sat-kranoldplatz": {
+        "id": "mkt-sat-kranoldplatz",
+        "name": "Markt am Kranoldplatz",
+        "street": "Kranoldplatz",
+        "houseNumber": "4",
+        "city": "Berlin",
+        "zipCode": "12051",
+        "dayOfWeek": "Samstag",
+        "begin": "08:00",
+        "end": "13:00",
+        "dayIndex": 5,
+        "active": true,
+        "pricingRevision": 3,
+        "priceConditions": [
+          {
+            "cause": "STALL_FEE",
+            "scopeType": "ALL",
+            "scopeValue": "",
+            "effect": "FACTOR",
+            "amount": 1.1,
+            "note": "Standmiete Samstagsmarkt"
+          },
+          {
+            "cause": "TRANSPORT",
+            "scopeType": "CATEGORY",
+            "scopeValue": "Bananen",
+            "effect": "SURCHARGE",
+            "amount": 0.2,
+            "note": "Kühltransport"
+          }
+        ],
+        "contacts": [
+          {
+            "channel": "WHATSAPP",
+            "value": "4915112345678",
+            "label": "Kranoldplatz"
+          }
+        ]
+      },
+      "mkt-mon-breitenbachplatz": {
+        "id": "mkt-mon-breitenbachplatz",
+        "name": "Breitenbachplatz",
+        "street": "Breitenbachplatz",
+        "houseNumber": "1",
+        "city": "Berlin",
+        "zipCode": "14195",
+        "dayOfWeek": "Montag",
+        "begin": "15:00",
+        "end": "19:00",
+        "dayIndex": 0,
+        "active": true,
+        "pricingRevision": 0,
+        "priceConditions": [],
+        "contacts": []
+      },
+      "mkt-popup-hofladen": {
+        "id": "mkt-popup-hofladen",
+        "name": "Hofladen-Abholung (Pop-up)",
+        "street": "Apfeltraumweg",
+        "houseNumber": "7",
+        "city": "Müncheberg",
+        "zipCode": "15377",
+        "dayOfWeek": "Freitag",
+        "begin": "09:00",
+        "end": "17:00",
+        "dayIndex": 4,
+        "active": true,
+        "pricingRevision": 0,
+        "priceConditions": [],
+        "contacts": []
+      }
+    }
+  },
+  "seller_profile": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "id": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+      "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+      "displayName": "BodenSchätze",
+      "firstName": "Eric",
+      "lastName": "Dehn",
+      "street": "Frankfurter Allee",
+      "houseNumber": "27",
+      "city": "Berlin",
+      "zipCode": "14195",
+      "telephoneNumber": "01724623741",
+      "lat": "52.4567",
+      "lng": "13.2890",
+      "urls": [
+        "https://bodenschaetze.example"
+      ],
+      "defaultFilterChips": [
+        "Obst",
+        "Gemüse",
+        "Favouriten",
+        "Anderes"
+      ],
+      "contacts": [
+        {
+          "channel": "PHONE",
+          "value": "+4930123456",
+          "label": "Büro"
+        },
+        {
+          "channel": "EMAIL",
+          "value": "hallo@bodenschaetze.example",
+          "label": "Bestellungen"
+        }
+      ],
+      "closures": [
+        {
+          "date": "20261119",
+          "marketId": "",
+          "reason": "Feiertag"
+        },
+        {
+          "date": "20261109",
+          "marketId": "mkt-mon-breitenbachplatz",
+          "reason": "Urlaub Breitenbachplatz"
+        }
+      ],
+      "markets": [
+        {
+          "id": "mkt-thu-onkel-tom",
+          "name": "Wochenmarkt Onkel Toms Hütte",
+          "street": "Onkel-Tom-Straße",
+          "houseNumber": "99",
+          "city": "Berlin",
+          "zipCode": "14169",
+          "dayOfWeek": "Donnerstag",
+          "begin": "12:00",
+          "end": "18:30",
+          "dayIndex": 3,
+          "active": true,
+          "pricingRevision": 0,
+          "priceConditions": [],
+          "contacts": [
+            {
+              "channel": "PHONE",
+              "value": "+4930123456",
+              "label": "Stand Onkel Tom"
+            }
+          ]
+        },
+        {
+          "id": "mkt-sat-kranoldplatz",
+          "name": "Markt am Kranoldplatz",
+          "street": "Kranoldplatz",
+          "houseNumber": "4",
+          "city": "Berlin",
+          "zipCode": "12051",
+          "dayOfWeek": "Samstag",
+          "begin": "08:00",
+          "end": "13:00",
+          "dayIndex": 5,
+          "active": true,
+          "pricingRevision": 3,
+          "priceConditions": [
+            {
+              "cause": "STALL_FEE",
+              "scopeType": "ALL",
+              "scopeValue": "",
+              "effect": "FACTOR",
+              "amount": 1.1,
+              "note": "Standmiete Samstagsmarkt"
+            },
+            {
+              "cause": "TRANSPORT",
+              "scopeType": "CATEGORY",
+              "scopeValue": "Bananen",
+              "effect": "SURCHARGE",
+              "amount": 0.2,
+              "note": "Kühltransport"
+            }
+          ],
+          "contacts": [
+            {
+              "channel": "WHATSAPP",
+              "value": "4915112345678",
+              "label": "Kranoldplatz"
+            }
+          ]
+        },
+        {
+          "id": "mkt-mon-breitenbachplatz",
+          "name": "Breitenbachplatz",
+          "street": "Breitenbachplatz",
+          "houseNumber": "1",
+          "city": "Berlin",
+          "zipCode": "14195",
+          "dayOfWeek": "Montag",
+          "begin": "15:00",
+          "end": "19:00",
+          "dayIndex": 0,
+          "active": true,
+          "pricingRevision": 0,
+          "priceConditions": [],
+          "contacts": []
+        },
+        {
+          "id": "mkt-popup-hofladen",
+          "name": "Hofladen-Abholung (Pop-up)",
+          "street": "Apfeltraumweg",
+          "houseNumber": "7",
+          "city": "Müncheberg",
+          "zipCode": "15377",
+          "dayOfWeek": "Freitag",
+          "begin": "09:00",
+          "end": "17:00",
+          "dayIndex": 4,
+          "active": true,
+          "pricingRevision": 0,
+          "priceConditions": [],
+          "contacts": []
+        }
+      ],
+      "mode": -1
+    }
+  },
+  "buyer_profile": {
+    "bcQHALrRkuSljXKdO6sxhHlnhNv2": {
+      "id": "bcQHALrRkuSljXKdO6sxhHlnhNv2",
+      "displayName": "Anna Berger",
+      "emailAddress": "anna.berger@example.com",
+      "telephoneNumber": "+4915100000001",
+      "photoUrl": "",
+      "anonymous": false,
+      "defaultMarket": "mkt-thu-onkel-tom",
+      "defaultPickUpTime": "16:30",
+      "placedOrderIds": {
+        "20261001": "ord-f2-hist-1",
+        "20261008": "ord-f2-hist-2",
+        "20261015": "ord-f2-hist-3",
+        "20261029": "ord-f2-open-anna"
+      },
+      "favouriteArticles": [
+        "art-apfel-granny",
+        "art-erdbeere-schale"
+      ],
+      "street": "Argentinische Allee",
+      "houseNumber": "12",
+      "isSelfPickup": false
+    },
+    "mX4gbxB5wuNUmfj9U4PWhO7BOJD3": {
+      "id": "mX4gbxB5wuNUmfj9U4PWhO7BOJD3",
+      "displayName": "Bodenschatz",
+      "emailAddress": "",
+      "telephoneNumber": "",
+      "photoUrl": "",
+      "anonymous": true,
+      "defaultMarket": "",
+      "defaultPickUpTime": "",
+      "placedOrderIds": {},
+      "favouriteArticles": [],
+      "street": "",
+      "houseNumber": "",
+      "isSelfPickup": false
+    },
+    "jOSoP5UxAohZDtdpluhHg6VrfvQ2": {
+      "id": "jOSoP5UxAohZDtdpluhHg6VrfvQ2",
+      "displayName": "Tobias Krenz",
+      "emailAddress": "tobias.krenz@example.com",
+      "telephoneNumber": "+4915100000003",
+      "photoUrl": "",
+      "anonymous": false,
+      "defaultMarket": "mkt-sat-kranoldplatz",
+      "defaultPickUpTime": "09:15",
+      "placedOrderIds": {
+        "20261023": "ord-f2-locked-tobias",
+        "20261024": "ord-f2-saturday-tobias"
+      },
+      "favouriteArticles": [],
+      "street": "",
+      "houseNumber": "",
+      "isSelfPickup": true
+    }
+  },
+  "buyer_access_status": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "bcQHALrRkuSljXKdO6sxhHlnhNv2": {
+        "buyerId": "bcQHALrRkuSljXKdO6sxhHlnhNv2",
+        "displayName": "Anna Berger",
+        "status": "APPROVED",
+        "allowedMarkets": "",
+        "updatedAt": 1784880000000
+      },
+      "mX4gbxB5wuNUmfj9U4PWhO7BOJD3": {
+        "buyerId": "mX4gbxB5wuNUmfj9U4PWhO7BOJD3",
+        "displayName": "Bodenschatz",
+        "status": "PENDING",
+        "allowedMarkets": "",
+        "updatedAt": 1792569600000
+      },
+      "jOSoP5UxAohZDtdpluhHg6VrfvQ2": {
+        "buyerId": "jOSoP5UxAohZDtdpluhHg6VrfvQ2",
+        "displayName": "Tobias Krenz",
+        "status": "APPROVED",
+        "allowedMarkets": "mkt-popup-hofladen,mkt-sat-kranoldplatz",
+        "updatedAt": 1790928000000
+      }
+    }
+  },
+  "orders": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "20261001": {
+        "ord-f2-hist-1": {
+          "id": "ord-f2-hist-1",
+          "buyerId": "bcQHALrRkuSljXKdO6sxhHlnhNv2",
+          "buyerName": "Anna Berger",
+          "buyerEmail": "anna.berger@example.com",
+          "createdDate": 1790064720000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "marketId": "mkt-thu-onkel-tom",
+          "fulfilment": "PICKUP",
+          "pricingRevision": 0,
+          "pickUpDate": 1790805600000,
+          "message": "Bitte die Kartoffeln ungewaschen.",
+          "notFavourite": true,
+          "articles": [
+            {
+              "id": "",
+              "productId": "art-kartoffel-linda",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg",
+              "price": 2.3,
+              "amount": "3,000 kg",
+              "amountCount": 3.0,
+              "piecesCount": -1
+            },
+            {
+              "id": "",
+              "productId": "art-apfel-granny",
+              "productName": "Granny Smith",
+              "unit": "kg",
+              "price": 3.4,
+              "amount": "1,500 kg",
+              "amountCount": 1.5,
+              "piecesCount": -1
+            }
+          ],
+          "status": "COMPLETED",
+          "hiddenBySeller": false,
+          "hiddenByBuyer": false,
+          "origin": "PRODUCTION"
+        }
+      },
+      "20261008": {
+        "ord-f2-hist-2": {
+          "id": "ord-f2-hist-2",
+          "buyerId": "bcQHALrRkuSljXKdO6sxhHlnhNv2",
+          "buyerName": "Anna Berger",
+          "buyerEmail": "anna.berger@example.com",
+          "createdDate": 1790669520000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "marketId": "mkt-thu-onkel-tom",
+          "fulfilment": "PICKUP",
+          "pricingRevision": 0,
+          "pickUpDate": 1791410400000,
+          "message": "",
+          "notFavourite": true,
+          "articles": [
+            {
+              "id": "",
+              "productId": "art-kartoffel-linda",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg",
+              "price": 2.3,
+              "amount": "2,000 kg",
+              "amountCount": 2.0,
+              "piecesCount": -1
+            },
+            {
+              "id": "",
+              "productId": "art-basilikum-topf",
+              "productName": "Basilikum im Topf",
+              "unit": "Stück",
+              "price": 2.8,
+              "amount": "2 Stück",
+              "amountCount": 2.0,
+              "piecesCount": 2
+            }
+          ],
+          "status": "COMPLETED",
+          "hiddenBySeller": false,
+          "hiddenByBuyer": false,
+          "origin": "PRODUCTION"
+        }
+      },
+      "20261015": {
+        "ord-f2-hist-3": {
+          "id": "ord-f2-hist-3",
+          "buyerId": "bcQHALrRkuSljXKdO6sxhHlnhNv2",
+          "buyerName": "Anna Berger",
+          "buyerEmail": "anna.berger@example.com",
+          "createdDate": 1791274320000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "marketId": "mkt-thu-onkel-tom",
+          "fulfilment": "PICKUP",
+          "pricingRevision": 0,
+          "pickUpDate": 1792015200000,
+          "message": "",
+          "notFavourite": true,
+          "articles": [
+            {
+              "id": "",
+              "productId": "art-paprika-rot",
+              "productName": "Rote Paprika",
+              "unit": "kg",
+              "price": 6.9,
+              "amount": "0,800 kg",
+              "amountCount": 0.8,
+              "piecesCount": -1
+            },
+            {
+              "id": "",
+              "productId": "art-erdbeere-schale",
+              "productName": "Erdbeeren",
+              "unit": "Schale",
+              "price": 5.69,
+              "amount": "2,00 Schale",
+              "amountCount": 2.0,
+              "piecesCount": 2
+            }
+          ],
+          "status": "COMPLETED",
+          "hiddenBySeller": false,
+          "hiddenByBuyer": false,
+          "origin": "PRODUCTION"
+        }
+      },
+      "20261029": {
+        "ord-f2-open-anna": {
+          "id": "ord-f2-open-anna",
+          "buyerId": "bcQHALrRkuSljXKdO6sxhHlnhNv2",
+          "buyerName": "Anna Berger",
+          "buyerEmail": "anna.berger@example.com",
+          "createdDate": 1793178720000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "marketId": "mkt-thu-onkel-tom",
+          "fulfilment": "PICKUP",
+          "pricingRevision": 0,
+          "pickUpDate": 1793228400000,
+          "message": "",
+          "notFavourite": false,
+          "articles": [
+            {
+              "id": "",
+              "productId": "art-kartoffel-linda",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg",
+              "price": 2.3,
+              "amount": "2,500 kg",
+              "amountCount": 2.5,
+              "piecesCount": -1
+            },
+            {
+              "id": "",
+              "productId": "art-banane-feige",
+              "productName": "Feigenbananen",
+              "unit": "kg",
+              "price": 4.2,
+              "amount": "1,000 kg",
+              "amountCount": 1.0,
+              "piecesCount": -1
+            },
+            {
+              "id": "",
+              "productId": "art-erdbeere-schale",
+              "productName": "Erdbeeren",
+              "unit": "Schale",
+              "price": 5.69,
+              "amount": "3,00 Schale",
+              "amountCount": 3.0,
+              "piecesCount": 3
+            }
+          ],
+          "status": "PLACED",
+          "hiddenBySeller": false,
+          "hiddenByBuyer": false,
+          "origin": "PRODUCTION"
+        }
+      },
+      "20261023": {
+        "ord-f2-locked-tobias": {
+          "id": "ord-f2-locked-tobias",
+          "buyerId": "jOSoP5UxAohZDtdpluhHg6VrfvQ2",
+          "buyerName": "Tobias Krenz",
+          "buyerEmail": "tobias.krenz@example.com",
+          "createdDate": 1792311120000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "marketId": "mkt-popup-hofladen",
+          "fulfilment": "PICKUP",
+          "pricingRevision": 0,
+          "pickUpDate": 1792706400000,
+          "message": "",
+          "notFavourite": true,
+          "articles": [
+            {
+              "id": "",
+              "productId": "art-sellerie-stange",
+              "productName": "Stangensellerie",
+              "unit": "Stück",
+              "price": 2.5,
+              "amount": "2 Stück",
+              "amountCount": 2.0,
+              "piecesCount": 2
+            },
+            {
+              "id": "",
+              "productId": "art-knoblauch-frisch",
+              "productName": "Knoblauch",
+              "unit": "Stück",
+              "price": 0.9,
+              "amount": "4 Stück",
+              "amountCount": 4.0,
+              "piecesCount": 4
+            }
+          ],
+          "status": "LOCKED",
+          "hiddenBySeller": false,
+          "hiddenByBuyer": false,
+          "origin": "PRODUCTION"
+        }
+      },
+      "20261024": {
+        "ord-f2-saturday-tobias": {
+          "id": "ord-f2-saturday-tobias",
+          "buyerId": "jOSoP5UxAohZDtdpluhHg6VrfvQ2",
+          "buyerName": "Tobias Krenz",
+          "buyerEmail": "tobias.krenz@example.com",
+          "createdDate": 1792656720000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "marketId": "mkt-sat-kranoldplatz",
+          "fulfilment": "PICKUP",
+          "pricingRevision": 3,
+          "pickUpDate": 1792792800000,
+          "message": "",
+          "notFavourite": true,
+          "articles": [
+            {
+              "id": "",
+              "productId": "art-banane-feige",
+              "productName": "Feigenbananen",
+              "unit": "kg",
+              "price": 4.84,
+              "amount": "2,000 kg",
+              "amountCount": 2.0,
+              "piecesCount": -1,
+              "basePrice": 4.2,
+              "priceComponents": [
+                {
+                  "cause": "TRANSPORT",
+                  "amount": 0.2,
+                  "note": "Kühltransport"
+                },
+                {
+                  "cause": "STALL_FEE",
+                  "amount": 0.44,
+                  "note": "Standmiete Samstagsmarkt"
+                }
+              ]
+            },
+            {
+              "id": "",
+              "productId": "art-apfel-granny",
+              "productName": "Granny Smith",
+              "unit": "kg",
+              "price": 3.74,
+              "amount": "1,000 kg",
+              "amountCount": 1.0,
+              "piecesCount": -1,
+              "basePrice": 3.4,
+              "priceComponents": [
+                {
+                  "cause": "STALL_FEE",
+                  "amount": 0.34,
+                  "note": "Standmiete Samstagsmarkt"
+                }
+              ]
+            }
+          ],
+          "status": "PLACED",
+          "hiddenBySeller": false,
+          "hiddenByBuyer": false,
+          "origin": "PRODUCTION"
+        }
+      }
+    }
+  },
+  "demo_orders": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "20261029": {
+        "ord-demo-future": {
+          "id": "ord-demo-future",
+          "buyerId": "mX4gbxB5wuNUmfj9U4PWhO7BOJD3",
+          "buyerName": "Bodenschatz",
+          "buyerEmail": "",
+          "createdDate": 1793178720000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "marketId": "mkt-thu-onkel-tom",
+          "fulfilment": "PICKUP",
+          "pricingRevision": 0,
+          "pickUpDate": 1793228400000,
+          "message": "",
+          "notFavourite": true,
+          "articles": [
+            {
+              "id": "",
+              "productId": "art-apfel-granny",
+              "productName": "Granny Smith",
+              "unit": "kg",
+              "price": 3.4,
+              "amount": "1,000 kg",
+              "amountCount": 1.0,
+              "piecesCount": -1
+            }
+          ],
+          "status": "PLACED",
+          "hiddenBySeller": false,
+          "hiddenByBuyer": false,
+          "origin": "DEMO"
+        }
+      },
+      "20261008": {
+        "ord-demo-stale": {
+          "id": "ord-demo-stale",
+          "buyerId": "mX4gbxB5wuNUmfj9U4PWhO7BOJD3",
+          "buyerName": "Bodenschatz",
+          "buyerEmail": "",
+          "createdDate": 1791187920000,
+          "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+          "marketId": "mkt-thu-onkel-tom",
+          "fulfilment": "PICKUP",
+          "pricingRevision": 0,
+          "pickUpDate": 1791410400000,
+          "message": "",
+          "notFavourite": true,
+          "articles": [
+            {
+              "id": "",
+              "productId": "art-kartoffel-linda",
+              "productName": "Linda Kartoffeln",
+              "unit": "kg",
+              "price": 2.3,
+              "amount": "1,000 kg",
+              "amountCount": 1.0,
+              "piecesCount": -1
+            }
+          ],
+          "status": "PLACED",
+          "hiddenBySeller": false,
+          "hiddenByBuyer": false,
+          "origin": "DEMO"
+        }
+      }
+    }
+  },
+  "stock": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "art-kartoffel-linda": {
+        "onHand": 76.4,
+        "unit": "kg",
+        "lastMovementAt": 1792602300000,
+        "lastSource": "SCALE",
+        "lastCountedAt": 1792602300000
+      },
+      "art-erdbeere-schale": {
+        "onHand": 10.0,
+        "unit": "Schale",
+        "lastMovementAt": 1792602300000,
+        "lastSource": "MANUAL"
+      }
+    }
+  },
+  "stock_movements": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "202610": {
+        "mv-f2-kartoffel-intake": {
+          "articleId": "art-kartoffel-linda",
+          "quantity": 80.0,
+          "unit": "kg",
+          "kind": "INTAKE",
+          "source": "MANUAL",
+          "recordedAt": 1792474200000,
+          "note": "Lieferung BTR"
+        },
+        "mv-f2-kartoffel-count": {
+          "articleId": "art-kartoffel-linda",
+          "quantity": 0.0,
+          "unit": "kg",
+          "kind": "STOCKTAKE",
+          "source": "SCALE",
+          "recordedAt": 1792602300000,
+          "countedTo": 76.4,
+          "note": "Abendzählung"
+        },
+        "mv-f2-erdbeere-intake": {
+          "articleId": "art-erdbeere-schale",
+          "quantity": 20.0,
+          "unit": "Schale",
+          "kind": "INTAKE",
+          "source": "MANUAL",
+          "recordedAt": 1792474200000
+        },
+        "mv-f2-erdbeere-sale": {
+          "articleId": "art-erdbeere-schale",
+          "quantity": -2.0,
+          "unit": "Schale",
+          "kind": "SALE",
+          "source": "ORDERED",
+          "recordedAt": 1792078800000,
+          "saleId": "sale-f2-hist-3"
+        },
+        "mv-f2-erdbeere-counter": {
+          "articleId": "art-erdbeere-schale",
+          "quantity": -6.0,
+          "unit": "Schale",
+          "kind": "SALE",
+          "source": "MANUAL",
+          "recordedAt": 1792081200000,
+          "note": "Laufkundschaft"
+        },
+        "mv-f2-erdbeere-loss": {
+          "articleId": "art-erdbeere-schale",
+          "quantity": -2.0,
+          "unit": "Schale",
+          "kind": "LOSS",
+          "source": "MANUAL",
+          "recordedAt": 1792602300000,
+          "note": "Druckstellen"
+        }
+      }
+    }
+  },
+  "sales": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "202610": {
+        "sale-f2-hist-3": {
+          "orderId": "ord-f2-hist-3",
+          "confirmedAt": 1792080600000,
+          "pickUpDate": 1792015200000,
+          "lines": {
+            "0": {
+              "articleId": "art-paprika-rot",
+              "productId": "0",
+              "productName": "Rote Paprika",
+              "unit": "kg",
+              "quantity": 0.8,
+              "unitPriceCents": 690,
+              "taxRate": 0.19,
+              "acquirePriceCents": 420
+            },
+            "1": {
+              "articleId": "art-erdbeere-schale",
+              "productId": "0",
+              "productName": "Erdbeeren",
+              "unit": "Schale",
+              "quantity": 2.0,
+              "unitPriceCents": 569,
+              "taxRate": 0.07,
+              "acquirePriceCents": 340
+            }
+          }
+        }
+      }
+    }
+  },
+  "sale_index": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "ord-f2-hist-3": {
+        "sale-f2-hist-3": "202610"
+      }
+    }
+  },
+  "seller_ui_actions": {
+    "cPkcZSiF3LMXjWoqW6AqpA9paoO2": {
+      "act-shop-info": {
+        "id": "act-shop-info",
+        "kind": "OPEN_URL",
+        "label": "Hofladen",
+        "value": "bodenschaetze.example/hofladen",
+        "location": "TOPBAR_HOME",
+        "audience": "EVERYONE"
+      },
+      "act-demo-help": {
+        "id": "act-demo-help",
+        "kind": "OPEN_URL",
+        "label": "Erst freischalten",
+        "value": "bodenschaetze.example/freischalten",
+        "location": "TOPBAR_HOME",
+        "audience": "DEMO_ONLY"
+      },
+      "act-preorder": {
+        "id": "act-preorder",
+        "kind": "OPEN_URL",
+        "label": "Vorbestellung",
+        "value": "bodenschaetze.example/vorbestellung",
+        "location": "TOPBAR_PROFILE",
+        "audience": "APPROVED_ONLY"
+      }
+    }
+  }
+}

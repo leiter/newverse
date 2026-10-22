@@ -31,6 +31,7 @@ Current truth. Verified against `shared/src` on 2026-10-20 unless noted.
 | [ordering-business-rules.md](guides/ordering-business-rules.md) | Per-market pickup, deadlines, next-open-slot rule, order editing |
 | [build-flavors.md](guides/build-flavors.md) | applicationIds, BuildKonfig, **and the `combined` build** |
 | [testing.md](guides/testing.md) | Source sets, 984 tests, the 13 fakes, instrumentation, rules tests |
+| [rtdb-test-fixtures.md](guides/rtdb-test-fixtures.md) | The three importable RTDB snapshots in `firebase/fixtures/`, their identities, and the 33 test cases they are built for |
 | [localization.md](guides/localization.md) | Compose Resources, **positional `%1$s` only** |
 | [theme.md](guides/theme.md) | Material 3 theme, brand colors, typography, shapes |
 | [accessibility.md](guides/accessibility.md) | TalkBack/VoiceOver principles; coverage map is incomplete |
