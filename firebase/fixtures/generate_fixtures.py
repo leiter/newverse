@@ -140,7 +140,8 @@ def seller_article(acquire, markup, supplier, origin, cert="DD", quality="HK I",
 
 
 def market(mid, name, street, house, zip_code, city, day_index, begin, end,
-           active=True, contacts=(), price_conditions=(), pricing_revision=0):
+           active=True, allows_delivery=True, contacts=(), price_conditions=(),
+           pricing_revision=0):
     """/markets/{sellerId}/{marketId} — GitLiveMarketRepository.marketToMap."""
     return {
         "id": mid,
@@ -154,6 +155,9 @@ def market(mid, name, street, house, zip_code, city, day_index, begin, end,
         "end": end,
         "dayIndex": day_index,  # Monday = 0. The live DBs once stored Sunday = 1.
         "active": active,
+        # Whether the round that goes with this day exists. Absent reads as true,
+        # both in Kotlin and in the rules, so it is written out explicitly here.
+        "allowsDelivery": allows_delivery,
         "pricingRevision": pricing_revision,
         "priceConditions": list(price_conditions),
         "contacts": list(contacts),
@@ -408,11 +412,13 @@ def markets_for(today, pop_up=False, deactivate_monday=False):
         MKT_THU: market(
             MKT_THU, "Wochenmarkt Onkel Toms Hütte", "Onkel-Tom-Straße", "99",
             "14169", "Berlin", 3, "12:00", "18:30",
+            allows_delivery=True,
             contacts=[contact("PHONE", "+4930123456", "Stand Onkel Tom")],
         ),
         MKT_SAT: market(
             MKT_SAT, "Markt am Kranoldplatz", "Kranoldplatz", "4",
             "12051", "Berlin", 5, "08:00", "13:00",
+            allows_delivery=False,
             pricing_revision=3,
             price_conditions=[
                 condition("STALL_FEE", "FACTOR", 1.10, note="Standmiete Samstagsmarkt"),
@@ -425,6 +431,7 @@ def markets_for(today, pop_up=False, deactivate_monday=False):
             MKT_MON, "Breitenbachplatz", "Breitenbachplatz", "1",
             "14195", "Berlin", 0, "15:00", "19:00",
             active=not deactivate_monday,
+            allows_delivery=False,
         ),
     }
     if pop_up:
@@ -432,6 +439,7 @@ def markets_for(today, pop_up=False, deactivate_monday=False):
         stalls[MKT_POP] = market(
             MKT_POP, "Hofladen-Abholung (Pop-up)", "Apfeltraumweg", "7",
             "15377", "Müncheberg", tomorrow.isoweekday() - 1, "09:00", "17:00",
+            allows_delivery=True,
         )
     return stalls
 
@@ -780,6 +788,20 @@ def fixture_busy_week(today, now_ms):
              ["Check the home and profile top bars as B1, B2 and B3."],
              "Anna and Tobias (APPROVED) see 'Hofladen' and the profile-bar "
              "'Vorbestellung'; the pending buyer sees 'Hofladen' and 'Erst freischalten'."),
+        case("F2-12", "A pickup-only market offers no delivery",
+             "buy flavour as " + B3 + ", slot picker and checkout",
+             ["Open the pickup slot picker, then check out on the Kranoldplatz slot."],
+             "Kranoldplatz and Breitenbachplatz are marked 'nur Abholung' in the slot "
+             "list; only the Thursday stall and the pop-up deliver. On a Kranoldplatz "
+             "slot the checkout states 'Dieser Markt liefert nicht' instead of showing "
+             "the two chips, and the order is written as PICKUP even though "
+             "isSelfPickup is the buyer's only stated wish."),
+        case("F2-13", "Switching to a pickup-only slot converts the basket",
+             "buy flavour as " + B1,
+             ["Choose delivery at the Thursday stall, then switch the slot to Saturday."],
+             "The basket turns into a pickup and says so once ('… liefert nicht — die "
+             "Bestellung ist eine Abholung'). Switching back to Thursday does not "
+             "silently restore delivery — the buyer chooses it again."),
         case("F2-11", "Demo orders stay out of the seller's list",
              "sell flavour",
              ["Open the order list for the next pickup day."],
@@ -1117,6 +1139,14 @@ def fixture_legacy_edges(today, now_ms):
              ["Check the home top bar."],
              "'Rezepte' is visible to all three buyers. A missing audience must read as "
              "EVERYONE, not as nobody."),
+        case("F3-16", "A delivery order outlives the market's delivery",
+             "console, then sell and buy flavours",
+             ["Upload the fixture, then set markets/<seller>/" + MKT_POP +
+              "/allowsDelivery to false in the console."],
+             "ord-f3-delivery-ok stays a DELIVERY with its address — the seller may "
+             "already have loaded the van, and a capability change does not retract a "
+             "placed order. Editing it coerces it to a pickup and says so; the rules "
+             "refuse any write that keeps it a delivery."),
         case("F3-15", "The weighPerPiece typo",
              "both flavours, Knoblauch",
              ["Open the Knoblauch tile and the seller's article editor."],
@@ -1188,8 +1218,10 @@ def build(today):
                     B2: "unnamed buyer — not approved (demo), stored placeholder name",
                     B3: "Tobias Krenz — approved and market-scoped (BLOCKED in fixture 3)",
                 },
-                "markets": {MKT_THU: "Donnerstag", MKT_SAT: "Samstag (price conditions)",
-                            MKT_MON: "Montag", MKT_POP: "pop-up, runs tomorrow"},
+                "markets": {MKT_THU: "Donnerstag, delivers",
+                            MKT_SAT: "Samstag (price conditions), pickup only",
+                            MKT_MON: "Montag, pickup only",
+                            MKT_POP: "pop-up, runs tomorrow, delivers"},
                 "dates": dates,
                 "timeZone": "Europe/Berlin",
                 "cases": cases,

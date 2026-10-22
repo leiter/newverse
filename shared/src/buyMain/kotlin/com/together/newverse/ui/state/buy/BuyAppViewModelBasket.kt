@@ -27,6 +27,7 @@ import com.together.newverse.domain.model.Fulfilment
 import com.together.newverse.domain.model.PriceChange
 import com.together.newverse.domain.model.priceChanges
 import com.together.newverse.ui.state.PendingSlotPriceChange
+import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.ui.state.BuyAppState
 import com.together.newverse.domain.model.PickupSlot
 import com.together.newverse.domain.model.PickupSlots
@@ -682,7 +683,7 @@ internal fun BuyAppViewModel.basketScreenRequestCheckout() {
         return
     }
 
-    if (refuseAddresslessDelivery()) return
+    if (refuseImpossibleDelivery()) return
 
     _state.update { current ->
         current.copy(
@@ -695,11 +696,14 @@ internal fun BuyAppViewModel.basketScreenRequestCheckout() {
 }
 
 /**
- * A delivery with nowhere to deliver to, refused.
+ * A delivery that cannot happen, refused: nowhere to deliver to, or a stall that does
+ * not deliver at all.
  *
  * The seller cannot read `buyer_profile`, so an order with no address is an order
  * with no destination and no way to recover one — they would have to chase the buyer
- * by hand, if they noticed at all.
+ * by hand, if they noticed at all. A delivery against a pickup-only market is the same
+ * kind of dead end from the other side: the seller never goes there with a van, and
+ * `database.rules.json` refuses the write regardless.
  *
  * Checked at every point an order is *written*, not only when the confirmation opens:
  * the fulfilment chips live inside that dialog, so a buyer who opens it on a pickup
@@ -712,18 +716,30 @@ internal fun BuyAppViewModel.basketScreenRequestCheckout() {
  * closing on a silent failure. `isCheckingOut` is cleared too: the write paths set it
  * before validating.
  */
-internal fun BuyAppViewModel.refuseAddresslessDelivery(): Boolean {
+internal fun BuyAppViewModel.refuseImpossibleDelivery(): Boolean {
     val basket = _state.value.basketScreen
-    if (basket.fulfilment != Fulfilment.DELIVERY || basket.deliveryAddress.isComplete) {
-        return false
+    if (basket.fulfilment != Fulfilment.DELIVERY) return false
+
+    // A stall that does not deliver. The chips do not offer it and the slot settles it
+    // (see basketScreenApplySlot), but a market can be switched to pickup-only while a
+    // buyer sits in the basket, and the database rules refuse such an order anyway —
+    // better a stated reason here than a rejected write with none.
+    val market = _state.value.eligibleMarkets
+        .firstOrNull { it.id == basket.selectedMarketId }
+    val reason = when {
+        market?.allowsDelivery == false ->
+            "${market.name.ifBlank { "Dieser Markt" }} liefert nicht — bitte Abholung wählen"
+        !basket.deliveryAddress.isComplete -> "Bitte Lieferadresse angeben"
+        else -> return false
     }
-    bLog("🛒 refuseAddresslessDelivery: delivery with no complete address")
+
+    bLog("🛒 refuseImpossibleDelivery: $reason")
     _state.update { current ->
         current.copy(
             basketScreen = current.basketScreen.copy(
                 isCheckingOut = false,
                 showCheckoutConfirm = true,
-                orderError = "Bitte Lieferadresse angeben"
+                orderError = reason
             )
         )
     }
@@ -773,7 +789,13 @@ internal fun BuyAppViewModel.basketScreenSaveDeliveryAddressToProfile() {
  * yet, so the common case — a buyer whose profile already holds their address — is one
  * tap rather than retyping what the app knows.
  */
-internal fun BuyAppViewModel.basketScreenSetFulfilment(fulfilment: Fulfilment) {
+internal fun BuyAppViewModel.basketScreenSetFulfilment(requested: Fulfilment) {
+    // The stall has the last word, whatever reaches this action: the chips are built
+    // from the same rule, so this only bites if the market changed under them.
+    val market = _state.value.eligibleMarkets
+        .firstOrNull { it.id == _state.value.basketScreen.selectedMarketId }
+    val fulfilment = Fulfilment.forMarket(market, requested)
+
     _state.update { current ->
         val seeded = if (fulfilment == Fulfilment.DELIVERY &&
             current.basketScreen.deliveryAddress.isEmpty
@@ -857,7 +879,7 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
             // Re-checked here, not only when the confirmation opened: the fulfilment
             // chips are inside that dialog, so this is where a delivery chosen there
             // is first seen by a write.
-            if (refuseAddresslessDelivery()) return@launch
+            if (refuseImpossibleDelivery()) return@launch
 
             val buyerProfile = getBuyerProfileOrFallback(currentUserId)
 
@@ -1215,7 +1237,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
 
             // An edit is the path a placed pickup takes to become a delivery, so it
             // needs the destination just as much as placing one did.
-            if (refuseAddresslessDelivery()) return@launch
+            if (refuseImpossibleDelivery()) return@launch
 
             val buyerProfile = getBuyerProfileOrFallback(currentUserId)
             val isDemo = _state.value.isDemoMode
@@ -1558,18 +1580,39 @@ internal fun BuyAppViewModel.basketScreenSelectPickupDate(date: Long) {
  * business touching them — see `BasketRepository.repriceItems`.
  */
 private fun BuyAppViewModel.basketScreenApplySlot(date: Long, marketId: String) {
-    val marketChanged = marketId != _state.value.basketScreen.selectedMarketId
+    val before = _state.value.basketScreen
+    val marketChanged = marketId != before.selectedMarketId
+
+    // The slot decides whether delivery is on offer at all, so it is settled here and
+    // not at the checkout chips: a buyer can reach the write by editing a placed order
+    // without the dialog ever opening. A stall that does not deliver turns the order
+    // into a pickup, and the buyer is told rather than finding out from the order.
+    val market = _state.value.eligibleMarkets.firstOrNull { it.id == marketId }
+    val fulfilment = Fulfilment.forMarket(market, before.fulfilment)
+    val fulfilmentCoerced = fulfilment != before.fulfilment
 
     _state.update { current ->
         current.copy(
             basketScreen = current.basketScreen.copy(
                 selectedPickupDate = date,
                 selectedMarketId = marketId,
+                fulfilment = fulfilment,
                 showDatePicker = false,
                 orderError = null,
                 pendingSlotPriceChange = null
             )
         )
+    }
+
+    if (fulfilmentCoerced) {
+        bLog("🛒 basketScreenApplySlot: $marketId is pickup-only, order is now a pickup")
+        viewModelScope.launch {
+            showSnackBar(
+                "${market?.name.orEmpty().ifBlank { "Dieser Markt" }} liefert nicht — " +
+                    "die Bestellung ist eine Abholung.",
+                SnackbarType.WARNING
+            )
+        }
     }
 
     if (marketChanged) {

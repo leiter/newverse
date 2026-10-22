@@ -378,7 +378,13 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
                         error = null
                     ),
                     basketScreen = if (!seedFulfilment) current.basketScreen else {
-                        val fulfilment = Fulfilment.fromProfile(updatedProfile)
+                        // What the profile wants, as far as the chosen stall allows.
+                        val fulfilment = Fulfilment.forMarket(
+                            current.eligibleMarkets.firstOrNull {
+                                it.id == current.basketScreen.selectedMarketId
+                            },
+                            Fulfilment.fromProfile(updatedProfile)
+                        )
                         current.basketScreen.copy(
                             fulfilment = fulfilment,
                             deliveryAddress = if (fulfilment == Fulfilment.DELIVERY) {

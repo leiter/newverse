@@ -537,7 +537,12 @@ class GitLiveProfileRepository(
                                 begin = marketData["begin"] as? String ?: "",
                                 end = marketData["end"] as? String ?: "",
                                 dayIndex = (marketData["dayIndex"] as? Number)?.toInt() ?: -1,
-                                contacts = parseContacts(marketData["contacts"])
+                                contacts = parseContacts(marketData["contacts"]),
+                                // `active`, `priceConditions` and `pricingRevision`
+                                // are still dropped here: /markets stays the source
+                                // for those. Delivery is carried because the checkout
+                                // gate has to answer it from whichever list it holds.
+                                allowsDelivery = marketData["allowsDelivery"] as? Boolean ?: true
                             )
                             else -> null
                         }
@@ -706,7 +711,8 @@ class GitLiveProfileRepository(
                 "begin" to market.begin,
                 "end" to market.end,
                 "dayIndex" to market.dayIndex,
-                "contacts" to contactsToList(market.contacts)
+                "contacts" to contactsToList(market.contacts),
+                "allowsDelivery" to market.allowsDelivery
             )
         }
 

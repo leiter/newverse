@@ -34,10 +34,10 @@ import a fixture at the root rather than merging it into an existing tree.
 
 | Id | Name | Day | Notes |
 |----|------|-----|-------|
-| `mkt-thu-onkel-tom` | Wochenmarkt Onkel Toms Hütte | Thursday | the ordinary case |
-| `mkt-sat-kranoldplatz` | Markt am Kranoldplatz | Saturday | `priceConditions`: ×1.10 stall fee on everything, +0.20 € transport on `Bananen`; `pricingRevision` 3 |
-| `mkt-mon-breitenbachplatz` | Breitenbachplatz | Monday | inactive in fixture 3 |
-| `mkt-popup-hofladen` | Hofladen-Abholung (Pop-up) | **tomorrow** | fixtures 2 and 3 only; its day is whatever tomorrow is, so a locked order is always genuinely locked |
+| `mkt-thu-onkel-tom` | Wochenmarkt Onkel Toms Hütte | Thursday | the ordinary case; **the only stall that delivers**, matching the dev database |
+| `mkt-sat-kranoldplatz` | Markt am Kranoldplatz | Saturday | `priceConditions`: ×1.10 stall fee on everything, +0.20 € transport on `Bananen`; `pricingRevision` 3; **pickup only** |
+| `mkt-mon-breitenbachplatz` | Breitenbachplatz | Monday | inactive in fixture 3; **pickup only** |
+| `mkt-popup-hofladen` | Hofladen-Abholung (Pop-up) | **tomorrow** | fixtures 2 and 3 only; its day is whatever tomorrow is, so a locked order is always genuinely locked; delivers |
 
 `dayIndex` counts Monday as 0 — the order the market dialog lists the days in. The
 live databases stored Sunday=1..Saturday=7 until the migration repaired them, so a
@@ -124,6 +124,8 @@ at each. The pending buyer has two demo orders.
 | F2-08 | The ledger vs. the cached level | Kartoffeln: intake 80 kg, then a stocktake to 76,4 kg. The level reads 76,4 and `lastCountedAt` is set — a stocktake is absolute, not a delta. |
 | F2-09 | The booked sale | One sale for `ord-f2-hist-3`, two lines, found via `sale_index/{seller}/{orderId}` → `yyyyMM`. Its `SALE` movement carries `saleId`; the 6 Schale sold over the counter carry none. |
 | F2-10 | Three audiences | Anna and Tobias (approved) see `Hofladen` plus `Vorbestellung` in the profile bar; the pending buyer sees `Hofladen` plus `Erst freischalten`. |
+| F2-12 | A pickup-only market offers no delivery | Kranoldplatz and Breitenbachplatz read *nur Abholung* in the slot list; their checkout states *Dieser Markt liefert nicht* instead of the two chips, and the order is written as PICKUP even though `isSelfPickup` is false. |
+| F2-13 | Switching to a pickup-only slot | The basket converts to a pickup and says so once. Switching back does not silently restore delivery. |
 | F2-11 | Demo orders in the seller app | The pending buyer's two `/demo_orders` entries do not appear. The seller subscribes to `/orders` only — the path is the boundary, not the flag. |
 
 ## Fixture 3 — `legacy-edges`
@@ -147,6 +149,7 @@ empty), `art-nuesse-walnuss` (**no `/seller_articles` half at all**).
 | F3-11 | Three invite tokens | `tok-valid-sat` grants `APPROVED` scoped to Kranoldplatz only. `tok-expired` and `tok-redeemed` are refused, and no redemption may widen the granted markets. |
 | F3-12 | `act-no-audience` has no `audience` child | Visible to all three buyers. A missing audience reads as `EVERYONE`, not as nobody. |
 | F3-13 | Pickup slots this week | The seller-wide closure removes the next Thursday and the Monday stall is inactive, so only Saturday and the pop-up offer a slot. |
+| F3-16 | A delivery order outlives the market's delivery | After uploading, set `markets/<seller>/mkt-popup-hofladen/allowsDelivery` to `false` in the console. `ord-f3-delivery-ok` keeps its address and stays a delivery — a capability change does not retract a placed order. Editing it coerces it to a pickup and says so, and the rules refuse any write that keeps it a delivery. |
 | F3-15 | Knoblauch carries the legacy `weighPerPiece` spelling | The current reader looks for `weightPerPiece`, so the piece weight is 0,00 kg. Either the reader accepts both spellings or the editor heals it on save — it must not show a wrong weight or crash. Both live dumps have this typo. |
 | F3-14 | An order on a day that was closed afterwards | `ord-f3-delivery-no-address` sits on the closed Thursday. It stays listed and openable: a closure removes a day from what is *offered*, it does not retract orders already placed. |
 

@@ -29,6 +29,24 @@ enum class Fulfilment {
         /** Parse a stored value; anything unknown or absent reads as [PICKUP]. */
         fun stored(raw: String?): Fulfilment =
             entries.firstOrNull { it.name == raw } ?: PICKUP
+
+        /**
+         * What [preferred] becomes at [market]: the stall's capability outranks the
+         * buyer's wish.
+         *
+         * The single place the two meet. A buyer's [BuyerProfile.isSelfPickup] defaults
+         * to `false`, so [fromProfile] reads *every* untouched profile as DELIVERY —
+         * which means a pickup-only market is the common path and not a corner case. A
+         * second copy of this rule would drift from this one, and the symptom (a
+         * delivery order standing against a stall that does not deliver) reads as a
+         * seller problem long before anyone suspects the seed.
+         *
+         * A `null` market is not pickup-only: it is a market not yet chosen, or an
+         * order from before markets were an entity, and neither says anything about
+         * delivery. The database rules read an absent `allowsDelivery` the same way.
+         */
+        fun forMarket(market: Market?, preferred: Fulfilment): Fulfilment =
+            if (market?.allowsDelivery == false) PICKUP else preferred
     }
 }
 

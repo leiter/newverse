@@ -108,6 +108,12 @@ def check(path):
                     address = order["deliveryAddress"]
                     if not address.get("street") or not address.get("houseNumber"):
                         bad(f"{where} deliveryAddress is incomplete")
+                # A delivery has to name a stall that delivers, or no stall at all.
+                # The database rules refuse anything else, so a fixture holding one
+                # could never have been written by the app.
+                if (order.get("fulfilment") == "DELIVERY" and market_id and
+                        markets[market_id].get("allowsDelivery") is False):
+                    bad(f"{where} is a DELIVERY at pickup-only market {market_id!r}")
                 for i, entry in enumerate(order["articles"]):
                     key = entry["productId"] if entry["productId"] not in ("", "-1") else entry["id"]
                     if key not in articles:

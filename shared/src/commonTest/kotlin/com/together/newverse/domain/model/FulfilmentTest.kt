@@ -45,6 +45,85 @@ class FulfilmentTest {
         assertEquals(Fulfilment.DELIVERY, Fulfilment.fromProfile(null))
     }
 
+    // ===== what the market allows =====
+
+    private fun market(id: String = "m1", delivers: Boolean = true) =
+        Market(id = id, name = "Markt $id", dayIndex = 3, allowsDelivery = delivers)
+
+    @Test
+    fun `a pickup-only market turns a delivery into a pickup`() {
+        assertEquals(
+            Fulfilment.PICKUP,
+            Fulfilment.forMarket(market(delivers = false), Fulfilment.DELIVERY)
+        )
+    }
+
+    @Test
+    fun `a market that delivers leaves the choice alone`() {
+        assertEquals(
+            Fulfilment.DELIVERY,
+            Fulfilment.forMarket(market(delivers = true), Fulfilment.DELIVERY)
+        )
+        assertEquals(
+            Fulfilment.PICKUP,
+            Fulfilment.forMarket(market(delivers = true), Fulfilment.PICKUP)
+        )
+    }
+
+    @Test
+    fun `a pickup-only market does not disturb a pickup`() {
+        assertEquals(
+            Fulfilment.PICKUP,
+            Fulfilment.forMarket(market(delivers = false), Fulfilment.PICKUP)
+        )
+    }
+
+    @Test
+    fun `no market chosen is not a pickup-only market`() {
+        // An order from before markets were an entity, or a basket with no slot yet.
+        // Neither says anything about delivery, and reading it as pickup-only would
+        // withdraw delivery from every such order.
+        assertEquals(Fulfilment.DELIVERY, Fulfilment.forMarket(null, Fulfilment.DELIVERY))
+    }
+
+    @Test
+    fun `a market stored before the field keeps delivery`() {
+        // The default is true, which is what the database rules also read an absent
+        // allowsDelivery as. Flipping that default would strip delivery from every
+        // market already in the database.
+        assertTrue(Market(id = "m1").allowsDelivery)
+        assertEquals(
+            Fulfilment.DELIVERY,
+            Fulfilment.forMarket(Market(id = "m1"), Fulfilment.DELIVERY)
+        )
+    }
+
+    @Test
+    fun `the market outranks a profile that asks for delivery`() {
+        // The whole point: isSelfPickup defaults to false, so every untouched profile
+        // asks for delivery and a pickup-only stall is the common path.
+        val wanted = Fulfilment.fromProfile(profile(selfPickup = false))
+
+        assertEquals(Fulfilment.DELIVERY, wanted)
+        assertEquals(Fulfilment.PICKUP, Fulfilment.forMarket(market(delivers = false), wanted))
+    }
+
+    @Test
+    fun `an order already placed as a delivery is not rewritten by the market`() {
+        // Same discipline as a closure: the market turning pickup-only does not retract
+        // an order the seller may already have loaded onto a van. Only an edit, which
+        // goes through forMarket again, moves it.
+        val placed = Order(
+            fulfilment = Fulfilment.DELIVERY,
+            deliveryAddress = DeliveryAddress("Hauptstr.", "4"),
+            marketId = "m1",
+            status = OrderStatus.PLACED
+        )
+
+        assertEquals(Fulfilment.DELIVERY, placed.fulfilment)
+        assertTrue(placed.isDelivery)
+    }
+
     // ===== reading stored orders =====
 
     @Test

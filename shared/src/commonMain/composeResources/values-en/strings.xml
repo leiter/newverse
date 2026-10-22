@@ -1186,6 +1186,10 @@
     <string name="fulfilment_note">Note</string>
     <string name="fulfilment_address_missing">Delivery with no address — please ask the customer</string>
     <string name="fulfilment_choose">How would you like to receive it?</string>
+    <string name="fulfilment_pickup_only">This market does not deliver — you collect at the stall.</string>
+    <string name="market_pickup_only">pickup only</string>
+    <string name="market_delivery_allowed">Delivery available</string>
+    <string name="market_allows_delivery">Offer delivery</string>
     <string name="fulfilment_address_required">Please enter a delivery address</string>
     <string name="fulfilment_street">Street</string>
     <string name="fulfilment_house_number">No.</string>

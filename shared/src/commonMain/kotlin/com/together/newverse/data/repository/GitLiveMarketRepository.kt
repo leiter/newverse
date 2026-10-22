@@ -137,6 +137,7 @@ class GitLiveMarketRepository : MarketRepository {
                 // Absent means a record written before soft deletion existed, which
                 // was by definition a live market.
                 active = fields["active"] as? Boolean ?: true,
+                allowsDelivery = fields["allowsDelivery"] as? Boolean ?: true,
                 priceConditions = parseConditions(fields["priceConditions"]),
                 pricingRevision = (fields["pricingRevision"] as? Number)?.toLong() ?: 0L
             )
@@ -228,6 +229,7 @@ class GitLiveMarketRepository : MarketRepository {
         "end" to market.end,
         "dayIndex" to market.dayIndex,
         "active" to market.active,
+        "allowsDelivery" to market.allowsDelivery,
         "pricingRevision" to market.pricingRevision,
         "priceConditions" to market.priceConditions.map { conditionToMap(it) },
         "contacts" to market.contacts.filter { it.isUsable }.map { contact ->

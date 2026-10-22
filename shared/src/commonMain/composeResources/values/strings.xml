@@ -527,6 +527,7 @@
     <string name="market_day">Wochentag</string>
     <string name="market_begin">Beginn</string>
     <string name="market_end">Ende</string>
+    <string name="market_allows_delivery">Lieferung anbieten</string>
     <string name="market_save">Markt speichern</string>
     <string name="market_delete">Markt löschen</string>
     <string name="market_edit">Markt bearbeiten</string>
@@ -1244,6 +1245,9 @@
     <string name="fulfilment_note">Hinweis</string>
     <string name="fulfilment_address_missing">Lieferung ohne Adresse — bitte beim Kunden nachfragen</string>
     <string name="fulfilment_choose">Wie möchtest du erhalten?</string>
+    <string name="fulfilment_pickup_only">Dieser Markt liefert nicht — du holst am Stand ab.</string>
+    <string name="market_pickup_only">nur Abholung</string>
+    <string name="market_delivery_allowed">Lieferung möglich</string>
     <string name="fulfilment_address_required">Bitte Lieferadresse angeben</string>
     <string name="fulfilment_street">Straße</string>
     <string name="fulfilment_house_number">Nr.</string>

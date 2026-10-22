@@ -113,6 +113,13 @@ means true, so every legacy record reads as live. `removeMarket` flips the flag 
 of dropping the row, because orders reference a market by id and the seller's books are
 built from those orders. This settles open question 5.
 
+**A market says whether it delivers.** `Market.allowsDelivery`, also defaulting to true
+with absent meaning true. It belongs on the market and not on the seller: the round that
+goes with a Thursday stall may exist while the Saturday one does not. It is the stall's
+capability, and it outranks `BuyerProfile.isSelfPickup`, which stays the buyer's wish —
+reconciled in exactly one place, `Fulfilment.forMarket`. See
+`doc/guides/ordering-business-rules.md` § A market that does not deliver.
+
 ### Deployed and migrated
 
 | | Rules | Migration |

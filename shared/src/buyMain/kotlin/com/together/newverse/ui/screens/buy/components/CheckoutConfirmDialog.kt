@@ -18,6 +18,7 @@ import newverse.shared.generated.resources.fulfilment_delivery
 import newverse.shared.generated.resources.fulfilment_house_number
 import newverse.shared.generated.resources.fulfilment_note_hint
 import newverse.shared.generated.resources.fulfilment_pickup
+import newverse.shared.generated.resources.fulfilment_pickup_only
 import newverse.shared.generated.resources.fulfilment_save_to_profile
 import newverse.shared.generated.resources.fulfilment_street
 import newverse.shared.generated.resources.fulfilment_use_profile_address
@@ -88,6 +89,12 @@ fun CheckoutConfirmDialog(
 ) {
     val isDelivery = fulfilment == Fulfilment.DELIVERY
 
+    // Whether this stall delivers at all. When it does not there is no choice to
+    // present, so the row becomes a statement instead of two chips with one of them
+    // permanently out of reach. `Fulfilment.forMarket` has already settled the order's
+    // own value, so the chips cannot disagree with what will be written.
+    val deliveryOffered = market?.allowsDelivery != false
+
     // Delivery with nowhere to deliver to. The seller cannot read `buyer_profile`, so
     // such an order has no destination and no way to recover one — hence the confirm
     // button goes off rather than the refusal arriving after the tap. The ViewModel
@@ -127,25 +134,35 @@ fun CheckoutConfirmDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Pickup or delivery, for this order. First, because it decides
                 // whether the market and date below are even the relevant facts.
-                Text(
-                    text = stringResource(Res.string.fulfilment_choose),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Fulfilment.entries.forEach { option ->
-                        FilterChip(
-                            selected = option == fulfilment,
-                            onClick = { onFulfilmentChange(option) },
-                            label = {
-                                Text(
-                                    stringResource(
-                                        if (option == Fulfilment.DELIVERY) Res.string.fulfilment_delivery
-                                        else Res.string.fulfilment_pickup
+                if (deliveryOffered) {
+                    Text(
+                        text = stringResource(Res.string.fulfilment_choose),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Fulfilment.entries.forEach { option ->
+                            FilterChip(
+                                selected = option == fulfilment,
+                                onClick = { onFulfilmentChange(option) },
+                                label = {
+                                    Text(
+                                        stringResource(
+                                            if (option == Fulfilment.DELIVERY) Res.string.fulfilment_delivery
+                                            else Res.string.fulfilment_pickup
+                                        )
                                     )
-                                )
-                            }
-                        )
+                                }
+                            )
+                        }
                     }
+                } else {
+                    // Said rather than offered-and-refused: a buyer whose profile asks
+                    // for delivery would otherwise find the choice simply missing.
+                    Text(
+                        text = stringResource(Res.string.fulfilment_pickup_only),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 if (isDelivery) {

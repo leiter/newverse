@@ -717,6 +717,7 @@ private fun MarketEditDialog(
     var begin by remember { mutableStateOf(market?.begin ?: "") }
     var end by remember { mutableStateOf(market?.end ?: "") }
     var showDayPicker by remember { mutableStateOf(false) }
+    var allowsDelivery by remember { mutableStateOf(market?.allowsDelivery ?: true) }
     var contacts by remember { mutableStateOf(market?.contacts ?: emptyList()) }
     var priceConditions by remember { mutableStateOf(market?.priceConditions ?: emptyList()) }
     var validationError by remember { mutableStateOf<String?>(null) }
@@ -858,6 +859,34 @@ private fun MarketEditDialog(
                     )
                 }
 
+                // Whether the round that goes with this market day exists at all. A
+                // buyer at a stall with this off can only collect — see
+                // `Fulfilment.forMarket`.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(Res.string.market_allows_delivery),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = stringResource(
+                                if (allowsDelivery) Res.string.market_delivery_allowed
+                                else Res.string.market_pickup_only
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = allowsDelivery,
+                        onCheckedChange = { allowsDelivery = it }
+                    )
+                }
+
                 HorizontalDivider()
 
                 ContactListEditor(
@@ -917,7 +946,8 @@ private fun MarketEditDialog(
                                     if (priceConditions.normalizedForSave() == market?.priceConditions) current
                                     else current + 1
                                 },
-                                active = market?.active ?: true
+                                active = market?.active ?: true,
+                                allowsDelivery = allowsDelivery
                             )
                             onSave(newMarket)
                             onDismiss()

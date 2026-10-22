@@ -33,6 +33,18 @@ data class Market(
      */
     val active: Boolean = true,
     /**
+     * Whether an order placed against this market may be delivered instead of collected.
+     *
+     * A capability of the stall, not a preference of the buyer: the seller delivers on
+     * the round that goes with a market day, or they do not. `true` by default, so every
+     * market stored before this field keeps offering what it offered — and so that a
+     * market whose field never arrives is not quietly stripped of delivery.
+     *
+     * [BuyerProfile.isSelfPickup] stays the buyer's own wish; this outranks it. See
+     * [Fulfilment.forMarket], which is the one place the two are reconciled.
+     */
+    val allowsDelivery: Boolean = true,
+    /**
      * Why this market's prices differ, if they do. Empty means they do not.
      *
      * Stored on the market rather than in a node of its own: the market is already

@@ -339,6 +339,39 @@ one order never writes the profile.
 Switching to delivery seeds the address from the profile when nothing has been typed,
 so the common case is one tap rather than retyping what the app already holds.
 
+### A market that does not deliver
+
+Delivery is a capability of the stall, not a wish of the buyer: `Market.allowsDelivery`.
+The seller delivers on the round that goes with a market day, or they do not, and they
+set it per market in the market dialog. `true` by default, so every market stored before
+the field keeps offering what it offered — and a market whose field never arrives is not
+quietly stripped of delivery.
+
+`Fulfilment.forMarket(market, preferred)` is the **one** place the capability and the
+preference meet, and the capability wins. This is not a corner case:
+`BuyerProfile.isSelfPickup` defaults to `false`, so `fromProfile` reads every untouched
+profile as DELIVERY, and a pickup-only market is the common path. Four callers use it —
+the slot choke point (`basketScreenApplySlot`), the profile seed at startup, the
+fulfilment action, and the write gate — because a second copy of the rule would drift,
+and the symptom (a delivery standing against a stall that has no van) reads as a seller
+problem long before anyone suspects the seed.
+
+Where the buyer meets it:
+
+- **Slot picker:** a *nur Abholung* line under the stall's name — but only when another
+  offered market does deliver. A seller who delivers nowhere would otherwise have the
+  words stamped on every date, which says nothing.
+- **Switching to a pickup-only slot:** the basket converts to a pickup and says so once.
+  Switching back does not silently restore delivery; the buyer chooses it again.
+- **Checkout:** the two chips are replaced by the statement *Dieser Markt liefert nicht*.
+  A choice that is absent without explanation reads as a bug.
+- **The write:** `refuseImpossibleDelivery` refuses it, and the rules refuse it again —
+  a market can turn pickup-only while a buyer sits in the basket.
+
+A placed delivery order **stands** when its market stops delivering, the same way a
+closure does not retract orders already placed: the seller may already have loaded the
+van. Only an edit moves it, and the edit goes through `forMarket` like any other change.
+
 ### A delivery with no address cannot be placed
 
 `basketScreenRequestCheckout` refuses it before the confirmation can be accepted. This
@@ -371,11 +404,19 @@ is unbuilt).
 `fulfilment` is written on every order; `deliveryAddress` **only on a delivery** — a
 buyer's postal address is not data to scatter into orders it is irrelevant to, which is
 the class of finding in `doc/reports/buyer-profile-data-safety.md`. Both validated in
-`firebase/database.rules.json` on `orders` and `demo_orders`. **Not yet deployed.**
+`firebase/database.rules.json` on `orders` and `demo_orders`, where the `fulfilment`
+rule also reads `markets/{sellerId}/{marketId}/allowsDelivery` and refuses a delivery
+the stall cannot make. An absent `allowsDelivery` reads as *delivers* there too, so the
+rule and `Fulfilment.forMarket` agree about a market stored before the field.
+**Needs deploying:** `markets` has a closed schema (`"$other": { ".validate": false }`),
+so until the rules are live the seller app cannot save a market carrying the new field
+at all. Tests in `firebase/tests/market-delivery.test.js`.
 
 ### Still open
 
 - The seller cannot filter or group the order list by delivery, only see the badges.
+- Nothing tells a buyer whose profile asks for delivery that the stall they usually
+  collect at is the only one that delivers; they find out at the slot picker.
 - Nothing routes or orders deliveries — no round planning, no sequence.
 - `CheckoutData.deliveryAddress` remains dead code from an older design;
   `BuyOrderAction.PlaceOrder` is a no-op in both flavors.

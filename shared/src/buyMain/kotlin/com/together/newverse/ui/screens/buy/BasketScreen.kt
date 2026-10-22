@@ -190,6 +190,9 @@ fun BasketContent(
             selectedDate = state.selectedPickupDate,
             slots = state.availableSlots,
             marketNames = state.marketNames,
+            pickupOnlyMarketIds = eligibleMarkets.filterNot { it.allowsDelivery }
+                .map { it.id }.toSet(),
+            anyMarketDelivers = eligibleMarkets.any { it.allowsDelivery },
             onDateSelected = { date ->
                 onAction(BuyBasketScreenAction.SelectPickupDate(date))
             },
@@ -1397,9 +1400,17 @@ fun DatePickerDialog(
     /** Slot per offered date, when the seller runs more than one market. */
     slots: List<PickupSlot> = emptyList(),
     marketNames: Map<String, String> = emptyMap(),
+    /** Markets that do not deliver. Empty when every market does, or none. */
+    pickupOnlyMarketIds: Set<String> = emptySet(),
+    /** Whether any offered market delivers — see [showPickupOnly]. */
+    anyMarketDelivers: Boolean = false,
 ) {
     // The stall only earns a line when there is a choice to be made about it.
     val showMarket = slots.map { it.marketId }.filter { it.isNotEmpty() }.distinct().size > 1
+    // Same rule for the delivery note: it is worth saying "pickup only" about one stall
+    // only when another one delivers. A seller who delivers nowhere would otherwise have
+    // the words stamped on every date they offer, which tells the buyer nothing.
+    val showPickupOnly = anyMarketDelivers && pickupOnlyMarketIds.isNotEmpty()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -1435,7 +1446,8 @@ fun DatePickerDialog(
                             date = date,
                             isSelected = date == selectedDate,
                             onSelected = { onDateSelected(date) },
-                            marketName = if (showMarket) marketNames[marketId].orEmpty() else ""
+                            marketName = if (showMarket) marketNames[marketId].orEmpty() else "",
+                            pickupOnly = showPickupOnly && marketId in pickupOnlyMarketIds
                         )
                     }
                 }
@@ -1504,6 +1516,8 @@ private fun DateOption(
     onSelected: () -> Unit,
     /** The stall this date belongs to. Empty, or a lone market, draws no name. */
     marketName: String = "",
+    /** This stall does not deliver, and another one does. */
+    pickupOnly: Boolean = false,
 ) {
     val instant = Instant.fromEpochMilliseconds(date)
     val formatted = OrderDateUtils.formatDisplayDate(instant)
@@ -1561,6 +1575,19 @@ private fun DateOption(
                                 MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                             } else {
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            }
+                        )
+                    }
+                    // Before the slot is chosen, not at the checkout: a buyer who wants
+                    // delivery should be able to pick a date that can be delivered.
+                    if (pickupOnly) {
+                        Text(
+                            text = stringResource(Res.string.market_pickup_only),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
                             }
                         )
                     }

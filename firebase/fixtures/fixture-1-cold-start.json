@@ -12,10 +12,10 @@
       "jOSoP5UxAohZDtdpluhHg6VrfvQ2": "Tobias Krenz — approved and market-scoped (BLOCKED in fixture 3)"
     },
     "markets": {
-      "mkt-thu-onkel-tom": "Donnerstag",
-      "mkt-sat-kranoldplatz": "Samstag (price conditions)",
-      "mkt-mon-breitenbachplatz": "Montag",
-      "mkt-popup-hofladen": "pop-up, runs tomorrow"
+      "mkt-thu-onkel-tom": "Donnerstag, delivers",
+      "mkt-sat-kranoldplatz": "Samstag (price conditions), pickup only",
+      "mkt-mon-breitenbachplatz": "Montag, pickup only",
+      "mkt-popup-hofladen": "pop-up, runs tomorrow, delivers"
     },
     "dates": {
       "pickupThu": "20261029",
@@ -328,6 +328,7 @@
         "end": "18:30",
         "dayIndex": 3,
         "active": true,
+        "allowsDelivery": true,
         "pricingRevision": 0,
         "priceConditions": [],
         "contacts": [
@@ -350,6 +351,7 @@
         "end": "13:00",
         "dayIndex": 5,
         "active": true,
+        "allowsDelivery": false,
         "pricingRevision": 3,
         "priceConditions": [
           {
@@ -389,6 +391,7 @@
         "end": "19:00",
         "dayIndex": 0,
         "active": true,
+        "allowsDelivery": false,
         "pricingRevision": 0,
         "priceConditions": [],
         "contacts": []
@@ -444,6 +447,7 @@
           "end": "18:30",
           "dayIndex": 3,
           "active": true,
+          "allowsDelivery": true,
           "pricingRevision": 0,
           "priceConditions": [],
           "contacts": [
@@ -466,6 +470,7 @@
           "end": "13:00",
           "dayIndex": 5,
           "active": true,
+          "allowsDelivery": false,
           "pricingRevision": 3,
           "priceConditions": [
             {
@@ -505,6 +510,7 @@
           "end": "19:00",
           "dayIndex": 0,
           "active": true,
+          "allowsDelivery": false,
           "pricingRevision": 0,
           "priceConditions": [],
           "contacts": []
