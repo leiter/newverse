@@ -127,6 +127,19 @@ internal fun droppedFromReorderMessage(dropped: List<UnorderableItem>): String {
     return "Nicht mehr verfügbar und daher nicht übernommen: $names"
 }
 
+/**
+ * This order's edit deadline, worded for the buyer.
+ *
+ * Computed from its own pickup day, never stated as a fixed weekday. The deadline is a
+ * fixed *distance* before pickup — Tuesday for a Thursday market, Thursday for a Saturday
+ * one — which is what `Market.scheduleConfig` encodes and what these messages used to
+ * contradict by naming Tuesday outright.
+ */
+private fun editDeadlineText(pickupDate: Long): String =
+    OrderDateUtils.formatDisplayDateTime(
+        OrderDateUtils.calculateEditDeadline(Instant.fromEpochMilliseconds(pickupDate))
+    )
+
 private fun BuyAppViewModel.setBasketError(message: String?) {
     _state.update { current ->
         current.copy(
@@ -135,6 +148,13 @@ private fun BuyAppViewModel.setBasketError(message: String?) {
                 isCancelling = false,
                 isMerging = false,
                 isReordering = false,
+                // An outcome is one thing or the other. Without this the previous
+                // success banner stayed on screen underneath the new error, which is
+                // how "erfolgreich aktualisiert" and "kann nicht mehr bearbeitet
+                // werden" ended up contradicting each other on the same screen.
+                orderSuccess = false,
+                reorderSuccess = false,
+                cancelSuccess = false,
                 orderError = message
             )
         )
@@ -1174,21 +1194,27 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
 }
 
 internal fun BuyAppViewModel.basketScreenEnableEditing() {
-    val canEdit = _state.value.basketScreen.canEdit
-    if (canEdit) {
+    val basket = _state.value.basketScreen
+    val pickupDate = basket.pickupDate
+
+    // `canEdit` defaults to false and is only given a real value once an order has
+    // finished loading, so false on its own means "not known yet" as often as it means
+    // "too late". Refusing with a deadline message before anything is loaded told the
+    // buyer their deadline had passed when it had not — seen on a device with the card
+    // still reading "Bearbeitbar bis" four days out.
+    if (basket.orderId == null || pickupDate == null) {
+        bLog("🛒 BuyAppViewModel.basketScreenEnableEditing: no order loaded yet, ignoring")
+        return
+    }
+
+    if (basket.canEdit) {
         _state.update { current ->
             current.copy(
                 basketScreen = current.basketScreen.copy(isEditMode = true)
             )
         }
     } else {
-        _state.update { current ->
-            current.copy(
-                basketScreen = current.basketScreen.copy(
-                    orderError = "Bestellung kann nicht mehr bearbeitet werden (Frist: Dienstag 23:59)"
-                )
-            )
-        }
+        setBasketError("Bestellung kann nicht mehr bearbeitet werden (Frist: ${editDeadlineText(pickupDate)})")
     }
 }
 
@@ -1217,7 +1243,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
 
             val canEdit = OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
             if (!canEdit) {
-                setBasketError("Bearbeitungsfrist abgelaufen (Dienstag 23:59)")
+                setBasketError("Bearbeitungsfrist abgelaufen (${editDeadlineText(pickupDate)})")
                 return@launch
             }
 
@@ -1363,7 +1389,7 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
 
             val canEdit = OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
             if (!canEdit) {
-                setBasketError("Stornierung nicht mehr möglich (Frist: Dienstag 23:59)")
+                setBasketError("Stornierung nicht mehr möglich (Frist: ${editDeadlineText(pickupDate)})")
                 _state.update { it.copy(basketScreen = it.basketScreen.copy(isCancelling = false)) }
                 return@launch
             }
