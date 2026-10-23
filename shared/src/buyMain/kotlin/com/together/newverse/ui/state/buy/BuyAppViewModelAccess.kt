@@ -67,8 +67,13 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
                 _state.update { it.copy(accessStatus = status, isAccessStatusLoaded = true) }
                 when {
                     wasDemoMode && status == AccessStatus.APPROVED -> {
-                        // Demo → Production: move demo orders into orders/ as TRANSITIONED
-                        transitionDemoOrdersToProduction()
+                        // Approval does NOT adopt the buyer's demo orders. Moving them
+                        // turned a basket the app had called non-binding into a real
+                        // order, carrying a pickup date chosen in a session that
+                        // committed to nothing — and by then the date may well have
+                        // passed. They stay in demo_orders/, where the seller cannot
+                        // see them, until the buyer confirms one against a fresh slot.
+                        promptToConfirmDemoOrders()
                     }
                     !wasDemoMode && status != AccessStatus.APPROVED -> {
                         // Production → Demo: reset counter so the 2-Firebase-order rule applies again
@@ -181,7 +186,59 @@ internal fun BuyAppViewModel.dismissProfileIncompleteDialog() {
 }
 
 /**
+ * Tell a freshly approved buyer that their demo orders are still theirs to confirm.
+ *
+ * Approval used to adopt them silently. It no longer does: a demo order is a basket the
+ * app called non-binding, placed against a slot chosen in a session that committed to
+ * nothing, and by the time the seller gets round to approving the buyer that slot may
+ * have passed. The order stays in `demo_orders/`, where the seller cannot see it, and
+ * becomes real only when the buyer confirms it against a slot that is open now.
+ *
+ * Counted from both trunks and local storage together, because a demo order can be in
+ * either, and de-duplicated by id because it can briefly be in both.
+ */
+internal fun BuyAppViewModel.promptToConfirmDemoOrders() {
+    viewModelScope.launch {
+        val profile = profileRepository.getBuyerProfile().getOrNull()
+        val stored = orderRepository
+            .getBuyerOrders(sellerConfig.sellerId, profile?.placedOrderIds ?: emptyMap())
+            .getOrNull()
+            .orEmpty()
+        val waiting = (stored + sellerConfig.loadDemoOrders())
+            .distinctBy { it.id }
+            .count { it.origin.isDemo }
+
+        // The approval itself changes what the history shows — the badge, and whether
+        // an order is still the buyer's to confirm — so refresh it either way.
+        loadOrderHistory()
+
+        if (waiting == 0) {
+            // Nothing left to adopt, so the demo write allowance can start over if this
+            // buyer ever drops back out of approval.
+            sellerConfig.resetDemoOrderState()
+            return@launch
+        }
+
+        Log.d(TAG) { "promptToConfirmDemoOrders: $waiting demo order(s) awaiting confirmation" }
+        showSnackBar(
+            if (waiting == 1) {
+                "Du bist jetzt freigegeben. Deine Demo-Bestellung gilt noch nicht — " +
+                    "bestätige sie mit einem neuen Abholtermin."
+            } else {
+                "Du bist jetzt freigegeben. $waiting Demo-Bestellungen gelten noch nicht — " +
+                    "bestätige sie mit einem neuen Abholtermin."
+            },
+            SnackbarType.INFO
+        )
+    }
+}
+
+/**
  * Move this buyer's demo orders into production when the seller approves them.
+ *
+ * **Not called on approval any more** — see [promptToConfirmDemoOrders]. Kept because
+ * confirming an order is the same move, just initiated by the buyer and against a slot
+ * they have just chosen, which is what this will be driven by next.
  *
  * Demo orders sit in two places — the first ones under Firebase `demo_orders/`, everything
  * after the local-mode switch in local storage — and both are handed to the repository in

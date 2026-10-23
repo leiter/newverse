@@ -73,13 +73,19 @@ val BuyAppViewModel.profileStateFlow: StateFlow<AuthAwareState<BuyerProfile>>
 @OptIn(ExperimentalCoroutinesApi::class)
 val BuyAppViewModel.orderHistoryFlow: StateFlow<AuthAwareState<List<Order>>>
     get() = authFlowCoordinator.whenAuthenticated { _ ->
-        // Reactively update when isDemoMode changes to ensure we look in the right trunk
-        state.map { it.isDemoMode }.distinctUntilChanged().flatMapLatest { isDemo ->
+        // Re-read when isDemoMode changes: approval does not move a demo order any more,
+        // but it does change whether the buyer is being asked to confirm it, and the
+        // history card reads that off the state.
+        state.map { it.isDemoMode }.distinctUntilChanged().flatMapLatest { _ ->
             profileRepository.observeBuyerProfile()
                 .flatMapLatest { profile ->
-                    val localOrders = if (isDemo) sellerConfig.loadDemoOrders() else emptyList()
+                    // Loaded whatever the access status. A locally held demo order is
+                    // still the buyer's to confirm once they are approved, and gating
+                    // this on demo mode made it disappear at the moment they were let
+                    // in — the one moment they need to see it.
+                    val localOrders = sellerConfig.loadDemoOrders()
                     val firebaseOrdersFlow = if (profile != null && profile.placedOrderIds.isNotEmpty()) {
-                        orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds, isDemo = isDemo)
+                        orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds)
                     } else {
                         flowOf(emptyList())
                     }
@@ -115,14 +121,14 @@ val BuyAppViewModel.dashboardFlow: StateFlow<AuthAwareState<BuyerDashboardData>>
         
         combine(
             profileRepository.observeBuyerProfile().filterNotNull(),
-            isDemoFlow.flatMapLatest { isDemo ->
+            isDemoFlow.flatMapLatest { _ ->
                 profileRepository.observeBuyerProfile()
                     .filterNotNull()
                     .flatMapLatest { profile ->
                         if (profile.placedOrderIds.isEmpty()) {
                             flowOf(emptyList())
                         } else {
-                            orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds, isDemo = isDemo)
+                            orderRepository.observeBuyerOrders(sellerConfig.sellerId, profile.placedOrderIds)
                         }
                     }
             }
