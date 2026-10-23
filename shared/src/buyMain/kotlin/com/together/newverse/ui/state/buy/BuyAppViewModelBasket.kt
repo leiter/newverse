@@ -46,12 +46,19 @@ import com.together.newverse.util.Log
 private const val TAG = "BuyVMBasket"
 
 /**
- * The provenance an order placed right now carries: [OrderOrigin.DEMO] while the buyer is
- * not yet approved by the seller, [OrderOrigin.PRODUCTION] once they are.
- * [OrderOrigin.TRANSITIONED] is never set here — only the approval itself mints it.
+ * The provenance an order placed right now carries: [OrderOrigin.PRODUCTION] once the
+ * buyer is known to be approved, [OrderOrigin.DEMO] in every other case.
+ * [OrderOrigin.TRANSITIONED] is never set here — only adopting a demo order mints it.
+ *
+ * Keyed on [BuyAppState.isApproved] and deliberately not on `!isDemoMode`: the latter is
+ * false while the access status is still loading, so a buyer who reached checkout before
+ * the first emission placed a real order in `orders/` — binding, visible to the seller,
+ * and past every demo guard. Origin also picks the trunk the order is written to
+ * (`rootRef(order.origin.isDemo)`), so guessing wrong here puts it beyond reach of the
+ * containment as well.
  */
 internal fun BuyAppViewModel.demoOrProduction(): OrderOrigin =
-    if (_state.value.isDemoMode) OrderOrigin.DEMO else OrderOrigin.PRODUCTION
+    if (_state.value.isApproved) OrderOrigin.PRODUCTION else OrderOrigin.DEMO
 
 /**
  * Basket Screen extension functions for BuyAppViewModel

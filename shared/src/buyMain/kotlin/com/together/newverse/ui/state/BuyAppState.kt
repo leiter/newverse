@@ -133,8 +133,27 @@ data class BuyAppState(
     // App metadata
     val meta: AppMetaState = AppMetaState()
 ) {
-    /** Only treat the buyer as a demo buyer once the real status has been loaded from Firebase. */
+    /**
+     * Only *label* the buyer as a demo buyer once the real status has been loaded from
+     * Firebase, so the UI does not announce demo mode at launch and withdraw it a
+     * moment later.
+     *
+     * Presentation only. Never decide what to **write** from this: it is false while
+     * the status is still loading, which reads as "approved" and is the one answer that
+     * cannot be taken back. Use [isApproved] for that.
+     */
     val isDemoMode: Boolean get() = isAccessStatusLoaded && accessStatus != AccessStatus.APPROVED
+
+    /**
+     * Whether this buyer is known to be approved — loaded, and granted.
+     *
+     * The conservative half of [isDemoMode], and the one every write decision has to
+     * ask. An unknown status is not approval: treating it as such let a buyer who
+     * reached checkout before the access observer's first emission write a real order
+     * into `orders/`, where the seller packs it, with none of the demo containment the
+     * rest of the design relies on.
+     */
+    val isApproved: Boolean get() = isAccessStatusLoaded && accessStatus == AccessStatus.APPROVED
 
     /**
      * Whether the top-bar contact shortcut is shown.
@@ -146,8 +165,7 @@ data class BuyAppState(
      * This is friction, not protection — the contacts are readable in the database
      * by any signed-in user, and the About screen shows them to everyone.
      */
-    val canContactSeller: Boolean
-        get() = isAccessStatusLoaded && accessStatus == AccessStatus.APPROVED
+    val canContactSeller: Boolean get() = isApproved
 
     /**
      * The price conditions of the market this buyer is collecting at.
