@@ -19,6 +19,15 @@ package com.together.newverse.domain.model
 data class DemoTransitionResult(
     /** date (`yyyyMMdd`) → orderId, for the orders now living under `orders/`. */
     val transitioned: Map<String, String> = emptyMap(),
+    /**
+     * date → orderId for demo records this run deleted without moving, because their
+     * pickup day had already passed.
+     *
+     * These are the only index entries a transition may remove. [transitioned] says
+     * nothing about the orders a buyer already had, so it can never stand in for the
+     * whole index — see [applyTo].
+     */
+    val dropped: Map<String, String> = emptyMap(),
     /** How many were dropped because their pickup day had already passed. */
     val expired: Int = 0,
     /**
@@ -34,4 +43,22 @@ data class DemoTransitionResult(
     val notEligibleMarketIds: List<String> = emptyList(),
 ) {
     val hasRefusals: Boolean get() = notEligibleMarketIds.isNotEmpty()
+
+    /**
+     * This buyer's order index after the transition: what they had, minus the records
+     * that are genuinely gone, plus the ones that moved.
+     *
+     * A merge, never a replacement. [transitioned] holds only what this run moved, so
+     * assigning it to `placedOrderIds` wholesale threw away every order the buyer
+     * already had — their entire history when nothing moved, which is what a buyer
+     * approved for one market only would hit: their single demo order is refused,
+     * `transitioned` comes back empty, and the index is emptied with it. The orders
+     * themselves survived in `orders/`; only the index that finds them was lost.
+     *
+     * An order left behind on purpose — refused for a market the buyer may not use —
+     * keeps its entry, because `demo_orders/` still holds it and the buyer is meant to
+     * be asked about it.
+     */
+    fun applyTo(index: Map<String, String>): Map<String, String> =
+        (index - dropped.keys) + transitioned
 }

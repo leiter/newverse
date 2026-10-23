@@ -130,7 +130,7 @@ class GitLiveOrderRepository(
         // own buyerId, so a subscription to the parent is rejected outright. A missing
         // or since-deleted order yields null and drops out of the list — which is also
         // how an order that simply does not live in this trunk reads.
-        val perOrder = historyTrunks(isDemo).flatMap { fromDemoTrunk ->
+        val perOrder = historyTrunks().flatMap { fromDemoTrunk ->
             val trunkRef = rootRef(fromDemoTrunk).child(targetSellerId)
             placedOrderIds.map { (date, orderId) ->
                 trunkRef.child(date).child(orderId).valueEvents
@@ -194,7 +194,7 @@ class GitLiveOrderRepository(
             // (both of them while they are in demo mode — see historyTrunks). The real
             // trunk goes first, so the guard below keeps the real copy of an order that
             // exists in both.
-            historyTrunks(isDemo).forEach { fromDemoTrunk ->
+            historyTrunks().forEach { fromDemoTrunk ->
                 placedOrderIds.forEach { (date, orderId) ->
                     if (orders.any { it.id == orderId }) return@forEach
                     try {
@@ -808,6 +808,7 @@ class GitLiveOrderRepository(
             val now = Clock.System.now()
             val update = mutableMapOf<String, Any?>()
             val transitioned = mutableMapOf<String, String>()
+            val dropped = mutableMapOf<String, String>()
             var expired = 0
             val notEligible = mutableSetOf<String>()
 
@@ -841,7 +842,10 @@ class GitLiveOrderRepository(
                 }
                 update[demoPath] = null
                 if (!order.canTransitionToProduction(now)) {
+                    // Deleted but not moved, so its index entry is now dangling and is
+                    // the one thing a transition may prune.
                     expired++
+                    dropped[date] = orderId
                     Log.d(TAG) { "transitionDemoOrders: $date/$orderId pickup has passed, not moved" }
                     return@forEach
                 }
@@ -871,6 +875,7 @@ class GitLiveOrderRepository(
 
             val result = DemoTransitionResult(
                 transitioned = transitioned,
+                dropped = dropped,
                 expired = expired,
                 notEligibleMarketIds = notEligible.toList()
             )
@@ -1113,22 +1118,25 @@ internal const val LEGACY_DEMO_STATUS = "DEMO_ORDER"
 /**
  * The trunks a buyer's own order history is read from, real trunk first.
  *
- * An approved buyer reads `/orders` alone: anything they placed while unapproved was
- * moved there when they were approved. A buyer in demo mode reads **both** — their demo
- * orders under `demo_orders/`, and the real orders they placed before they lost
- * approval or before approval existed at all.
+ * Both, always, whatever the buyer's access status. Demo mode governs what a buyer may
+ * *place*, not what they may *see* of their own past, and neither trunk is exclusive to
+ * one state:
  *
- * Reading the real trunk while unapproved needs no rules change and no grandfathering:
- * the order read rule grants a buyer every order carrying their own `buyerId` and never
- * consults their access status. Being in demo mode governs what a buyer may *place*,
- * not what they may *see* of their own past.
+ *  - unapproved, they still hold the real orders they placed before approval existed,
+ *    or before they lost it;
+ *  - approved, they can still hold demo orders, because a transition deliberately
+ *    leaves behind any order placed for a market they turn out not to be scoped to —
+ *    `DemoTransitionResult.notEligibleMarketIds` exists to say so, and "the buyer is
+ *    asked" is impossible if the order they are asked about is unreadable.
+ *
+ * This read needs no rules change: the order read rule grants a buyer every order
+ * carrying their own `buyerId` and never consults their access status.
  *
  * Real first, because [combine] preserves this order and the de-duplication downstream
  * keeps the first of a repeated id — so an order present in both trunks, which is a
  * transition that did not finish, is taken from the trunk that counts.
  */
-internal fun historyTrunks(isDemo: Boolean): List<Boolean> =
-    if (isDemo) listOf(false, true) else listOf(false)
+internal fun historyTrunks(): List<Boolean> = listOf(false, true)
 
 /**
  * The origin to report for one history record, or null to leave it out.

@@ -190,9 +190,11 @@ internal fun BuyAppViewModel.dismissProfileIncompleteDialog() {
  * once the write has succeeded, so a failure here leaves the buyer with their demo orders
  * intact and the next approval emission can retry.
  *
- * The buyer's `placedOrderIds` are rewritten to the new production ids, which is what makes
- * the moved orders show up in their history again — reading a production order from the
- * demo ids would find nothing.
+ * The buyer's `placedOrderIds` gain the new production ids, which is what makes a moved
+ * order show up in their history again — a locally held order is minted a fresh id, and
+ * reading a production order from the old one would find nothing. The index is merged,
+ * never replaced: it also holds the orders this buyer had all along, and the ones a
+ * transition deliberately leaves behind.
  *
  * Orders whose pickup day has already passed are not moved; see `canTransitionToProduction`.
  */
@@ -224,9 +226,13 @@ internal fun BuyAppViewModel.transitionDemoOrdersToProduction() {
             allowedMarkets = granted
         ).onSuccess { result ->
             if (profile != null) {
-                profileRepository.saveBuyerProfile(
-                    profile.copy(placedOrderIds = result.transitioned)
-                )
+                // Merged, not replaced — see DemoTransitionResult.applyTo. Assigning
+                // `result.transitioned` here discarded every order the buyer already
+                // had, and emptied the index outright when nothing moved.
+                val index = result.applyTo(profile.placedOrderIds)
+                if (index != profile.placedOrderIds) {
+                    profileRepository.saveBuyerProfile(profile.copy(placedOrderIds = index))
+                }
             }
             // Only clear the local demo orders once nothing was refused. A refused
             // order is the buyer's to decide about, and clearing it here would

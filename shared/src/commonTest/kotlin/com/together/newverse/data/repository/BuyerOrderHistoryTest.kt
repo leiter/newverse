@@ -16,22 +16,18 @@ import kotlin.test.assertTrue
 class BuyerOrderHistoryTest {
 
     @Test
-    fun `an approved buyer reads only the real trunk`() {
-        // Anything they placed while unapproved was moved into orders/ on approval,
-        // so a second listener on demo_orders/ would find nothing but cost a read.
-        assertEquals(listOf(false), historyTrunks(isDemo = false))
-    }
-
-    @Test
-    fun `a buyer in demo mode reads both trunks`() {
-        assertEquals(listOf(false, true), historyTrunks(isDemo = true))
+    fun `both trunks are read whatever the access status`() {
+        // Approved does not mean "no demo orders left": a transition deliberately
+        // leaves behind an order placed for a market the buyer is not scoped to, and
+        // the buyer cannot be asked about an order they cannot read.
+        assertEquals(listOf(false, true), historyTrunks())
     }
 
     @Test
     fun `the real trunk is read first so a half-transitioned order resolves to the real copy`() {
         // combine() preserves this order and distinctBy keeps the first of a repeated
         // id, so "real first" is what makes the real copy win.
-        val trunks = historyTrunks(isDemo = true)
+        val trunks = historyTrunks()
         assertTrue(trunks.indexOf(false) < trunks.indexOf(true))
     }
 
@@ -72,7 +68,7 @@ class BuyerOrderHistoryTest {
         // The regression this whole change exists to prevent: the old code applied
         // `if (isDemo) copy(origin = DEMO)` to every record it read, so once both trunks
         // are read, a real order would have been shown to the buyer as a demo order.
-        val realOrdersWhileInDemoMode = historyTrunks(isDemo = true)
+        val realOrdersWhileInDemoMode = historyTrunks()
             .filterNot { it }
             .map { historyOrigin(fromDemoTrunk = it, stored = OrderOrigin.PRODUCTION) }
 
