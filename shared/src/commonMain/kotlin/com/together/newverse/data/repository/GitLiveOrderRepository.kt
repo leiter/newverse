@@ -8,6 +8,7 @@ import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderOrigin
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.model.orderIndexWith
 import com.together.newverse.domain.model.PriceCause
 import com.together.newverse.domain.model.PriceComponent
 import com.together.newverse.domain.model.canTransitionToProduction
@@ -160,6 +161,25 @@ class GitLiveOrderRepository(
     }
 
     /**
+     * File an order in the buyer's own index, so they can find it again.
+     *
+     * Best-effort by design: the order record is already written by the time this runs,
+     * and failing to index it must not report the order as unplaced. A profile that
+     * cannot be read is left alone rather than overwritten with a guess.
+     */
+    private suspend fun indexOrderForBuyer(dateString: String, orderId: String) {
+        val profile = profileRepository.getBuyerProfile().getOrNull()
+        if (profile == null) {
+            Log.w(TAG) { "indexOrderForBuyer: no profile, $orderId left unindexed" }
+            return
+        }
+        val updated = orderIndexWith(profile.placedOrderIds, dateString, orderId)
+        if (updated == profile.placedOrderIds) return
+        profileRepository.saveBuyerProfile(profile.copy(placedOrderIds = updated))
+        Log.d(TAG) { "indexOrderForBuyer: $dateString -> $orderId" }
+    }
+
+    /**
      * Get first seller ID from database.
      */
     private fun getFirstSellerId(): String {
@@ -279,14 +299,8 @@ class GitLiveOrderRepository(
             // Save to GitLive Firebase using setValue
             orderRef.setValue(orderMap)
 
-            // Update buyer profile with order ID (only if not already present)
-            val buyerProfile = profileRepository.getBuyerProfile().getOrThrow()
-            if (!buyerProfile.placedOrderIds.containsValue(orderId)) {
-                val updatedProfile = buyerProfile.copy(
-                    placedOrderIds = buyerProfile.placedOrderIds + (dateString to orderId)
-                )
-                profileRepository.saveBuyerProfile(updatedProfile)
-            }
+            // File it in the buyer's index, which is the only way they can find it.
+            indexOrderForBuyer(dateString, orderId)
 
             // Cache the order
             ordersCache[orderId] = finalOrder
@@ -333,6 +347,11 @@ class GitLiveOrderRepository(
             // Save to GitLive Firebase using the existing order ID
             val orderRef = rootRef(placed.origin.isDemo).child(targetSellerId).child(dateString).child(placed.id)
             orderRef.setValue(orderMap)
+
+            // An edit has to file the order too. It used to assume the entry was already
+            // there from placing it, which fails for an order that was deleted and saved
+            // again, and for one whose pickup day moved to another date's path.
+            indexOrderForBuyer(dateString, placed.id)
 
             // Update cache
             ordersCache[placed.id] = placed
