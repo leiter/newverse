@@ -124,29 +124,37 @@ class GitLiveOrderRepository(
         if (placedOrderIds.isEmpty()) return flowOf(emptyList())
 
         val targetSellerId = sellerId.ifEmpty { getFirstSellerId() }
-        val sellerOrdersRef = rootRef(isDemo).child(targetSellerId)
 
-        // One listener per known order rather than one on the seller's whole order
-        // tree: the rules only grant a buyer read on orders carrying their own
-        // buyerId, so a subscription to the parent is rejected outright. A missing
-        // or since-deleted order yields null and drops out of the list.
-        val perOrder = placedOrderIds.map { (date, orderId) ->
-            sellerOrdersRef.child(date).child(orderId).valueEvents
-                .map { snapshot -> if (snapshot.exists) mapSnapshotToOrder(snapshot) else null }
-                .catch { e ->
-                    Log.w(TAG) { "observeBuyerOrders: order $orderId unavailable - ${e.message}" }
-                    emit(null)
-                }
+        // One listener per known order *per trunk* rather than one on the seller's
+        // whole order tree: the rules only grant a buyer read on orders carrying their
+        // own buyerId, so a subscription to the parent is rejected outright. A missing
+        // or since-deleted order yields null and drops out of the list — which is also
+        // how an order that simply does not live in this trunk reads.
+        val perOrder = historyTrunks(isDemo).flatMap { fromDemoTrunk ->
+            val trunkRef = rootRef(fromDemoTrunk).child(targetSellerId)
+            placedOrderIds.map { (date, orderId) ->
+                trunkRef.child(date).child(orderId).valueEvents
+                    .map { snapshot ->
+                        if (!snapshot.exists) null
+                        else mapSnapshotToOrder(snapshot)?.let { order ->
+                            // The path is authoritative; see historyOrigin.
+                            historyOrigin(fromDemoTrunk, order.origin)
+                                ?.let { origin -> order.copy(origin = origin) }
+                        }
+                    }
+                    .catch { e ->
+                        Log.w(TAG) { "observeBuyerOrders: order $orderId unavailable - ${e.message}" }
+                        emit(null)
+                    }
+            }
         }
 
         return combine(perOrder) { orders ->
             orders.filterNotNull()
                 .filter { !it.hiddenByBuyer }
-                // The path is authoritative: anything under demo_orders/ is a demo order,
-                // including records written before the field existed.
-                .map { if (isDemo) it.copy(origin = OrderOrigin.DEMO) else it }
-                // For non-demo users, drop anything still marked as a demo order.
-                .filter { isDemo || it.origin.isReal }
+                // The real trunk is listened to first, so an order found in both is
+                // kept as the real one.
+                .distinctBy { it.id }
                 .also { Log.d(TAG) { "observeBuyerOrders: Emitting ${it.size} orders" } }
         }
     }
@@ -182,29 +190,35 @@ class GitLiveOrderRepository(
 
             val orders = mutableListOf<Order>()
 
-            // Fetch each order from GitLive Firebase
-            placedOrderIds.forEach { (date, orderId) ->
-                try {
-                    val orderRef = rootRef(isDemo).child(targetSellerId).child(date).child(orderId)
-                    val snapshot = orderRef.valueEvents.first()
+            // Fetch each order from GitLive Firebase, from every trunk this buyer reads
+            // (both of them while they are in demo mode — see historyTrunks). The real
+            // trunk goes first, so the guard below keeps the real copy of an order that
+            // exists in both.
+            historyTrunks(isDemo).forEach { fromDemoTrunk ->
+                placedOrderIds.forEach { (date, orderId) ->
+                    if (orders.any { it.id == orderId }) return@forEach
+                    try {
+                        val orderRef = rootRef(fromDemoTrunk)
+                            .child(targetSellerId).child(date).child(orderId)
+                        val snapshot = orderRef.valueEvents.first()
 
-                    if (snapshot.exists) {
-                        val order = mapSnapshotToOrder(snapshot)
-                        if (order != null) {
-                            val finalOrder = if (isDemo) order.copy(origin = OrderOrigin.DEMO) else order
-                            orders.add(finalOrder)
-                            ordersCache[orderId] = finalOrder
+                        if (snapshot.exists) {
+                            val order = mapSnapshotToOrder(snapshot)
+                            val origin = order?.let { historyOrigin(fromDemoTrunk, it.origin) }
+                            if (order != null && origin != null) {
+                                val finalOrder = order.copy(origin = origin)
+                                orders.add(finalOrder)
+                                ordersCache[orderId] = finalOrder
+                            }
                         }
+                    } catch (e: Exception) {
+                        Log.w(TAG) { "getBuyerOrders: Failed to fetch order $orderId: ${e.message}" }
                     }
-                } catch (e: Exception) {
-                    Log.w(TAG) { "getBuyerOrders: Failed to fetch order $orderId: ${e.message}" }
                 }
             }
 
-            val finalOrders = if (!isDemo) orders.filter { it.origin.isReal } else orders
-
-            Log.d(TAG) { "getBuyerOrders: Found ${finalOrders.size} orders after filtering" }
-            Result.success(finalOrders)
+            Log.d(TAG) { "getBuyerOrders: Found ${orders.size} orders after filtering" }
+            Result.success(orders)
 
         } catch (e: Exception) {
             Log.e(TAG) { "getBuyerOrders: Error - ${e.message}" }
@@ -1095,6 +1109,41 @@ internal fun storedOrderOrigin(
 
 /** The status value that used to carry demo-ness before [OrderOrigin] existed. */
 internal const val LEGACY_DEMO_STATUS = "DEMO_ORDER"
+
+/**
+ * The trunks a buyer's own order history is read from, real trunk first.
+ *
+ * An approved buyer reads `/orders` alone: anything they placed while unapproved was
+ * moved there when they were approved. A buyer in demo mode reads **both** — their demo
+ * orders under `demo_orders/`, and the real orders they placed before they lost
+ * approval or before approval existed at all.
+ *
+ * Reading the real trunk while unapproved needs no rules change and no grandfathering:
+ * the order read rule grants a buyer every order carrying their own `buyerId` and never
+ * consults their access status. Being in demo mode governs what a buyer may *place*,
+ * not what they may *see* of their own past.
+ *
+ * Real first, because [combine] preserves this order and the de-duplication downstream
+ * keeps the first of a repeated id — so an order present in both trunks, which is a
+ * transition that did not finish, is taken from the trunk that counts.
+ */
+internal fun historyTrunks(isDemo: Boolean): List<Boolean> =
+    if (isDemo) listOf(false, true) else listOf(false)
+
+/**
+ * The origin to report for one history record, or null to leave it out.
+ *
+ * The path decides, as it does everywhere else: a record under `demo_orders/` is a demo
+ * order whatever it stores, and a record under `/orders` keeps the provenance it stores,
+ * so [OrderOrigin.TRANSITIONED] survives being read back. A record under `/orders` that
+ * still reads as [OrderOrigin.DEMO] is a legacy half-state and is dropped rather than
+ * shown, which is what it was before a demo buyer read this trunk at all.
+ */
+internal fun historyOrigin(fromDemoTrunk: Boolean, stored: OrderOrigin): OrderOrigin? = when {
+    fromDemoTrunk -> OrderOrigin.DEMO
+    stored.isDemo -> null
+    else -> stored
+}
 
 internal fun storedOrderStatus(raw: String?): OrderStatus {
     val status = raw?.let { name -> OrderStatus.entries.find { it.name == name } }
