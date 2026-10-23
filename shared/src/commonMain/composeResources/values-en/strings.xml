@@ -780,6 +780,8 @@
     <string name="order_status_locked">Locked</string>
     <string name="order_status_completed">Completed</string>
     <string name="order_status_demo">Demo order</string>
+    <string name="order_demo_confirm_button">Confirm now</string>
+    <string name="order_demo_confirm_hint">Not valid yet — confirm it with a new pickup day</string>
     <string name="order_history_merge_title">Conflict</string>
     <string name="order_history_merge_message">You have a non-empty basket. Would you like to merge the contents or discard your current basket and load the old order?</string>
     <string name="label_total_plain">Total</string>

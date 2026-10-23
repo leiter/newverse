@@ -161,6 +161,7 @@ fun NavGraph(
                 orderHistoryState = appState.orderHistory,
                 showMergeDialog = appState.showHistoryMergeDialog,
                 tappedOrder = appState.tappedHistoryOrder,
+                isApproved = appState.isApproved,
                 onAction = onAction,
                 onNavigateToBasket = {
                     navController.navigate(NavRoutes.Buy.Basket.route) {

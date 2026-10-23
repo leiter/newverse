@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Order
+import com.together.newverse.domain.model.awaitsConfirmation
 import com.together.newverse.ui.adaptive.AdaptiveDefaults
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyProfileAction
@@ -67,6 +68,8 @@ fun OrderHistoryScreen(
     orderHistoryState: OrderHistoryScreenState,
     showMergeDialog: Boolean,
     tappedOrder: Order?,
+    /** Known-and-granted approval; a demo order only asks to be confirmed once it is true. */
+    isApproved: Boolean,
     onAction: (BuyAction) -> Unit,
     onNavigateToBasket: () -> Unit,
     onRetry: () -> Unit
@@ -214,7 +217,9 @@ fun OrderHistoryScreen(
                     items(sortedOrders) { order ->
                         OrderHistoryCard(
                             order = order,
-                            onClick = { onAction(BuyProfileAction.HistoryOrderTapped(order)) }
+                            awaitsConfirmation = order.awaitsConfirmation(isApproved),
+                            onClick = { onAction(BuyProfileAction.HistoryOrderTapped(order)) },
+                            onConfirm = { onAction(BuyProfileAction.ConfirmDemoOrder(order)) }
                         )
                     }
                 }
@@ -226,7 +231,9 @@ fun OrderHistoryScreen(
 @Composable
 private fun OrderHistoryCard(
     order: Order,
-    onClick: () -> Unit
+    awaitsConfirmation: Boolean,
+    onClick: () -> Unit,
+    onConfirm: () -> Unit
 ) {
     val pickupDate = formatDate(order.pickUpDate)
     val createdDate = formatDate(order.createdDate)
@@ -411,6 +418,25 @@ private fun OrderHistoryCard(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
+                }
+            }
+
+            // Only on a demo order the buyer is now approved to make real. It says what
+            // the Demo badge alone does not: that this one is waiting on them, and that
+            // taking it up means naming a new pickup day.
+            if (awaitsConfirmation) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(Res.string.order_demo_confirm_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = stringResource(Res.string.order_demo_confirm_button))
                 }
             }
         }

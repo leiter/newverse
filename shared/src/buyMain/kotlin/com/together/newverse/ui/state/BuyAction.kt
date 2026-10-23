@@ -114,6 +114,13 @@ sealed interface BuyProfileAction : BuyAction {
         val phone: String
         ) : BuyProfileAction
     data class HistoryOrderTapped(val order: Order) : BuyProfileAction
+
+    /**
+     * Take up a demo order the buyer still holds now that the seller has approved them.
+     * Its items go into the basket; its pickup slot does not, because that is the thing
+     * being confirmed.
+     */
+    data class ConfirmDemoOrder(val order: Order) : BuyProfileAction
     data object MergeHistoryOrder : BuyProfileAction
     data object DiscardAndLoadHistoryOrder : BuyProfileAction
     data object HideHistoryMergeDialog : BuyProfileAction

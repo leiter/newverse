@@ -15,6 +15,60 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
+/**
+ * Take up a demo order now that the seller has approved this buyer.
+ *
+ * The items come across, re-priced against the catalogue as it stands and minus anything
+ * withdrawn since. The pickup slot deliberately does not: the order was placed against a
+ * day chosen while nothing was binding, and approval can arrive long after that day has
+ * gone, so the buyer picks one that is open now and the basket re-prices against the
+ * market they pick.
+ *
+ * Nothing is written here. The demo record stays exactly where it is until the real
+ * order exists, so an abandoned confirmation costs the buyer nothing — see
+ * `basketScreenCheckout`, which clears it only after the replacement is placed.
+ */
+internal fun BuyAppViewModel.confirmDemoOrder(order: Order) {
+    viewModelScope.launch {
+        basketRepository.clearBasket()
+        val currentArticles = _state.value.mainScreen.articles
+        val correctedItems = order.articles
+            .orderableOnly(currentArticles)
+            .map { correctArticleData(it, currentArticles) }
+        for (item in correctedItems) {
+            basketRepository.addItem(item)
+        }
+
+        _state.update { current ->
+            current.copy(
+                navigateToBasketAsTopLevel = true,
+                showHistoryMergeDialog = false,
+                tappedHistoryOrder = null,
+                basketScreen = current.basketScreen.copy(
+                    items = correctedItems,
+                    total = correctedItems.sumOf { it.price * it.amountCount },
+                    // A fresh basket, not the loaded order: confirming places a new
+                    // order rather than editing the demo one in place.
+                    orderId = null,
+                    orderDate = null,
+                    pickupDate = null,
+                    createdDate = null,
+                    isEditMode = false,
+                    canEdit = true,
+                    originalOrderItems = emptyList(),
+                    hasChanges = false,
+                    selectedPickupDate = null,
+                    confirmingDemoOrderId = order.id,
+                    confirmingDemoOrderDate = basketScreenFormatDateKey(order.pickUpDate),
+                    orderSuccess = false,
+                    orderError = null
+                )
+            )
+        }
+        basketScreenLoadAvailableDates()
+    }
+}
+
 internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
     val daysUntilPickup = getDaysUntilPickup(order.pickUpDate)
     val isOutstandingOrder = daysUntilPickup >= 0

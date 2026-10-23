@@ -19,6 +19,7 @@ import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.SellerEventRepository
 import com.together.newverse.ui.state.buy.clearPendingNavigation
 import com.together.newverse.ui.state.buy.closeDrawer
+import com.together.newverse.ui.state.buy.confirmDemoOrder
 import com.together.newverse.ui.state.buy.continueAsGuest
 import com.together.newverse.ui.state.buy.handleAccountAction
 import com.together.newverse.ui.state.buy.handleBasketScreenAction
@@ -315,6 +316,7 @@ class BuyAppViewModel(
             is BuyProfileAction.RefreshCustomerProfile -> refreshCustomerProfile()
                                                 is BuyProfileAction.SaveBuyerProfile -> saveBuyerProfile(action.displayName, action.email, action.phone)
             is BuyProfileAction.HistoryOrderTapped -> handleHistoryOrderTap(action.order)
+            is BuyProfileAction.ConfirmDemoOrder -> confirmDemoOrder(action.order)
             is BuyProfileAction.MergeHistoryOrder -> mergeHistoryOrder()
             is BuyProfileAction.DiscardAndLoadHistoryOrder -> discardAndLoadHistoryOrder()
             is BuyProfileAction.FulfilmentPreferenceSaved ->

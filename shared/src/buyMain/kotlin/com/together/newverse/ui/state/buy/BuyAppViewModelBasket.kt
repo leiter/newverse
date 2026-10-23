@@ -1015,7 +1015,15 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 pickUpDate = selectedDate,
                 message = "",
                 articles = items,
-                origin = demoOrProduction(),
+                // A confirmed demo order keeps the fact that it began as one. The buyer
+                // is approved by now, so demoOrProduction() would say PRODUCTION and
+                // lose that — and the seller's list uses it to tell an order that
+                // predates the approval from one placed after it.
+                origin = if (_state.value.basketScreen.confirmingDemoOrderId != null) {
+                    OrderOrigin.TRANSITIONED
+                } else {
+                    demoOrProduction()
+                },
                 status = com.together.newverse.domain.model.OrderStatus.PLACED
             )
 
@@ -1043,6 +1051,21 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                     sellerConfig.saveDemoOrder(placedOrder)
                     loadOrderHistory()
                 }
+
+                // The confirmation is complete, so the demo record it replaced goes —
+                // after the real order is written, never before, so a failure here
+                // leaves the buyer the order they were about to confirm.
+                val confirmedId = _state.value.basketScreen.confirmingDemoOrderId
+                val confirmedDate = _state.value.basketScreen.confirmingDemoOrderDate
+                if (confirmedId != null && confirmedDate != null) {
+                    orderRepository.deleteDemoOrders(
+                        sellerConfig.sellerId,
+                        mapOf(confirmedDate to confirmedId)
+                    )
+                    sellerConfig.removeDemoOrder(confirmedId)
+                    removePlacedOrderIdReference(confirmedId)
+                    bLog("🛒 basketScreenCheckout: confirmed demo order $confirmedId")
+                }
                 // Clear draft basket — skip Firebase profile write in demo mode
                 try {
                     if (!isDemo) {
@@ -1052,6 +1075,15 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                     bLog("🛒 basketScreenCheckout: Cleared draft basket after order placed")
                 } catch (e: Exception) {
                     bLog("⚠️ basketScreenCheckout: Failed to clear draft basket: ${e.message}")
+                }
+
+                _state.update { current ->
+                    current.copy(
+                        basketScreen = current.basketScreen.copy(
+                            confirmingDemoOrderId = null,
+                            confirmingDemoOrderDate = null
+                        )
+                    )
                 }
 
                 val placedDateKey = basketScreenFormatDateKey(placedOrder.pickUpDate)

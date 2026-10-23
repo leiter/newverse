@@ -352,6 +352,16 @@ data class BasketScreenState(
     val orderDate: String? = null,
     val pickupDate: Long? = null,
     val createdDate: Long? = null,
+    /**
+     * The demo order this basket is confirming, as its date key and id, or null.
+     *
+     * Set when the buyer taps confirm on a demo order they still hold after being
+     * approved. It is what tells checkout to stamp the new order
+     * [com.together.newverse.domain.model.OrderOrigin.TRANSITIONED] rather than
+     * PRODUCTION, and which demo record to clear away once the real one exists.
+     */
+    val confirmingDemoOrderId: String? = null,
+    val confirmingDemoOrderDate: String? = null,
     val isEditMode: Boolean = false,
     val canEdit: Boolean = false,
     val isLoadingOrder: Boolean = false,

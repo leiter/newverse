@@ -833,6 +833,8 @@
     <string name="order_status_locked">Gesperrt</string>
     <string name="order_status_completed">Abgeschlossen</string>
     <string name="order_status_demo">Demo-Bestellung</string>
+    <string name="order_demo_confirm_button">Jetzt bestätigen</string>
+    <string name="order_demo_confirm_hint">Noch nicht gültig — mit neuem Abholtermin bestätigen</string>
     <string name="order_history_merge_title">Konflikt</string>
     <string name="order_history_merge_message">Sie haben einen nicht leeren Warenkorb. Möchten Sie den Inhalt zusammenführen oder den aktuellen Warenkorb verwerfen und die alte Bestellung laden?</string>
     <string name="label_total_plain">Gesamt</string>
