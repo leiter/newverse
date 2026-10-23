@@ -22,6 +22,8 @@ import com.together.newverse.test.FakeOrderRepository
 import com.together.newverse.test.FakeSellerArticleRepository
 import com.together.newverse.test.FakeStockRepository
 import com.together.newverse.test.MainDispatcherRule
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -191,6 +193,11 @@ class StockViewModelTest {
 
     // --- committed demand -----------------------------------------------------
 
+    // StockViewModel reads the system clock, and demand only counts an order whose
+    // pickup day is still ahead, so these orders are collected tomorrow. A fixed epoch
+    // value would make every one of them read as long since collected.
+    private val tomorrow = Clock.System.now().plus(1.days).toEpochMilliseconds()
+
     private fun order(
         id: String,
         articleId: String = "apple",
@@ -202,7 +209,7 @@ class StockViewModelTest {
         id = id,
         status = status,
         origin = origin,
-        pickUpDate = 100_000L,
+        pickUpDate = tomorrow,
         articles = listOf(
             OrderedProduct(productId = articleId, productName = articleId, unit = unit, amountCount = amount)
         )
@@ -410,7 +417,7 @@ class StockViewModelTest {
         buyerProfile = BuyerProfile(id = buyerId, displayName = buyer),
         status = OrderStatus.PLACED,
         origin = OrderOrigin.PRODUCTION,
-        pickUpDate = 100_000L,
+        pickUpDate = tomorrow,
         articles = listOf(
             OrderedProduct(productId = "apple", productName = "Apfel", unit = "kg", amountCount = amount)
         )

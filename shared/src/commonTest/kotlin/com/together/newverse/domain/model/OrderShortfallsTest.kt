@@ -13,6 +13,11 @@ class OrderShortfallsTest {
 
     private val zone = TimeZone.of("Europe/Berlin")
 
+    // Pinned, not the real clock: these orders are collected on fixed October days,
+    // and demand only counts an order whose pickup day is still ahead. Reading the
+    // system clock here would make the suite start failing on 22 October 2026.
+    private val now = LocalDate(2026, 10, 20).atTime(LocalTime(8, 0)).toInstant(zone)
+
     private fun pickUp(day: Int) =
         LocalDate(2026, 10, day).atTime(LocalTime(10, 0)).toInstant(zone).toEpochMilliseconds()
 
@@ -57,7 +62,7 @@ class OrderShortfallsTest {
     @Test
     fun `an order holding a short article is listed with what is missing`() {
         val shortfalls = listOf(order("o1", items = listOf("apple" to 3.0)))
-            .shortfallsAgainst(listOf(need("apple", "Äpfel", onHand = 1.0, committed = 6.0)), zone)
+            .shortfallsAgainst(listOf(need("apple", "Äpfel", onHand = 1.0, committed = 6.0)), zone, now)
 
         val shortfall = shortfalls.single()
         assertEquals("o1", shortfall.orderId)
@@ -83,7 +88,7 @@ class OrderShortfallsTest {
         )
 
         val shortfalls = orders.shortfallsAgainst(
-            listOf(need("apple", "Äpfel", onHand = 1.0, committed = 15.0)), zone
+            listOf(need("apple", "Äpfel", onHand = 1.0, committed = 15.0)), zone, now
         )
 
         assertEquals(listOf("Anna", "Bert", "Cem"), shortfalls.map { it.buyerName })
@@ -98,7 +103,8 @@ class OrderShortfallsTest {
                     need("apple", "Äpfel"),
                     need("nuts", "Nüsse", state = RefillState.OK, onHand = 50.0, committed = 2.0)
                 ),
-                zone
+                zone,
+                now
             )
 
         assertEquals(listOf("Äpfel"), shortfalls.single().lines.map { it.productName })
@@ -107,7 +113,7 @@ class OrderShortfallsTest {
     @Test
     fun `nothing short means nobody to talk to`() {
         val shortfalls = listOf(order("o1"))
-            .shortfallsAgainst(listOf(need("apple", state = RefillState.LOW, onHand = 4.0, committed = 1.0)), zone)
+            .shortfallsAgainst(listOf(need("apple", state = RefillState.LOW, onHand = 4.0, committed = 1.0)), zone, now)
 
         assertTrue(shortfalls.isEmpty())
     }
@@ -116,7 +122,7 @@ class OrderShortfallsTest {
     fun `a thin buffer is the seller's business, not the customer's`() {
         // LOW means the walk-in buffer is thin; every order can still be filled.
         val shortfalls = listOf(order("o1"))
-            .shortfallsAgainst(listOf(need("apple", state = RefillState.LOW)), zone)
+            .shortfallsAgainst(listOf(need("apple", state = RefillState.LOW)), zone, now)
 
         assertTrue(shortfalls.isEmpty())
     }
@@ -124,7 +130,7 @@ class OrderShortfallsTest {
     @Test
     fun `an uncounted article raises nobody`() {
         val shortfalls = listOf(order("o1"))
-            .shortfallsAgainst(listOf(need("apple", state = RefillState.UNCOUNTED)), zone)
+            .shortfallsAgainst(listOf(need("apple", state = RefillState.UNCOUNTED)), zone, now)
 
         assertTrue(shortfalls.isEmpty())
     }
@@ -134,7 +140,7 @@ class OrderShortfallsTest {
         // The numbers are in doubt; telling a buyer their order is short on that
         // basis would be an apology for arithmetic nobody trusts.
         val shortfalls = listOf(order("o1"))
-            .shortfallsAgainst(listOf(need("apple", unitMismatch = true)), zone)
+            .shortfallsAgainst(listOf(need("apple", unitMismatch = true)), zone, now)
 
         assertTrue(shortfalls.isEmpty())
     }
@@ -147,7 +153,7 @@ class OrderShortfallsTest {
             order("demo", origin = OrderOrigin.DEMO)
         )
 
-        assertTrue(orders.shortfallsAgainst(listOf(need("apple")), zone).isEmpty())
+        assertTrue(orders.shortfallsAgainst(listOf(need("apple")), zone, now).isEmpty())
     }
 
     @Test
@@ -157,7 +163,7 @@ class OrderShortfallsTest {
             order("sooner", buyer = "Anna", day = 22)
         )
 
-        val shortfalls = orders.shortfallsAgainst(listOf(need("apple", committed = 8.0)), zone)
+        val shortfalls = orders.shortfallsAgainst(listOf(need("apple", committed = 8.0)), zone, now)
 
         assertEquals(listOf("sooner", "later"), shortfalls.map { it.orderId })
     }
@@ -167,7 +173,7 @@ class OrderShortfallsTest {
     @Test
     fun `the draft names the buyer, the day and what is missing`() {
         val shortfall = listOf(order("o1", buyer = "Anna", items = listOf("apple" to 3.0)))
-            .shortfallsAgainst(listOf(need("apple", "Äpfel")), zone)
+            .shortfallsAgainst(listOf(need("apple", "Äpfel")), zone, now)
             .single()
 
         val draft = draftShortfallMessage(shortfall, zone)
@@ -184,7 +190,7 @@ class OrderShortfallsTest {
     @Test
     fun `a draft without a name still reads like a greeting`() {
         val shortfall = listOf(order("o1", buyer = "", buyerId = "b1"))
-            .shortfallsAgainst(listOf(need("apple", "Äpfel")), zone)
+            .shortfallsAgainst(listOf(need("apple", "Äpfel")), zone, now)
             .single()
 
         assertTrue(draftShortfallMessage(shortfall, zone).startsWith("Hallo,"))
@@ -195,7 +201,7 @@ class OrderShortfallsTest {
         // It must not commit to a refund, a substitute or a delivery: what happens
         // next is the seller's decision, taken after they have been to the market.
         val shortfall = listOf(order("o1"))
-            .shortfallsAgainst(listOf(need("apple", "Äpfel")), zone)
+            .shortfallsAgainst(listOf(need("apple", "Äpfel")), zone, now)
             .single()
 
         val draft = draftShortfallMessage(shortfall, zone)

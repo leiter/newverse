@@ -1,6 +1,7 @@
 package com.together.newverse.domain.model
 
 import com.together.newverse.util.OrderDateUtils
+import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
@@ -46,14 +47,15 @@ data class OrderShortfall(
  */
 fun List<Order>.shortfallsAgainst(
     needs: List<RefillNeed>,
-    timeZone: TimeZone = TimeZone.currentSystemDefault()
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    now: Instant = Clock.System.now()
 ): List<OrderShortfall> {
     val short = needs
         .filter { it.state == RefillState.SHORT && !it.unitMismatch }
         .associateBy { it.articleId }
     if (short.isEmpty()) return emptyList()
 
-    return filter { it.countsAsCommitted() }
+    return filter { it.countsAsCommitted(now, timeZone) }
         .mapNotNull { order ->
             val lines = order.articles.mapNotNull { item ->
                 val need = short[item.articleKey()] ?: return@mapNotNull null

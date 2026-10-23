@@ -1,5 +1,10 @@
 package com.together.newverse.domain.model
 
+import kotlin.time.Clock
+import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+
 /**
  * How much of one article buyers have ordered and not yet collected.
  *
@@ -35,9 +40,36 @@ data class ArticleDemand(
  *   past: handing an order over books a [StockMovementKind.SALE] movement, which has
  *   already taken the goods out of `onHand`. Counting a fulfilled order as demand as
  *   well would subtract it twice.
+ * - Its pickup day must not have passed, whatever the status says. Status alone is not
+ *   enough, because nothing moves an order to COMPLETED on its own: only the *buy* app
+ *   calls [Order.transitionStatusIfNeeded], and only for an order the buyer opens, so
+ *   an order nobody reopens stays PLACED for ever. Without this, a years-old order goes
+ *   on being counted as goods the seller still owes — which is exactly what production
+ *   did, where 48 orders with no stored status read as PLACED and inflated the refill
+ *   list by 21,435 units.
  */
-fun Order.countsAsCommitted(): Boolean =
-    origin.isReal && (status == OrderStatus.PLACED || status == OrderStatus.LOCKED)
+fun Order.countsAsCommitted(
+    now: Instant = Clock.System.now(),
+    timeZone: TimeZone = TimeZone.currentSystemDefault()
+): Boolean =
+    origin.isReal &&
+        (status == OrderStatus.PLACED || status == OrderStatus.LOCKED) &&
+        !pickupDayHasPassed(now, timeZone)
+
+/**
+ * Whether this order's pickup day is behind us.
+ *
+ * Compared as whole local days, not as instants: [Order.pickUpDate] is the pickup day at
+ * 00:00 local, so an instant comparison would call today's order past from 00:01 onwards
+ * and drop the market the seller is packing for this morning.
+ *
+ * An order with no pickup date at all reads as passed. It cannot be packed for any
+ * market, and the status filter has already excluded the drafts, where an unset date
+ * belongs.
+ */
+private fun Order.pickupDayHasPassed(now: Instant, timeZone: TimeZone): Boolean =
+    Instant.fromEpochMilliseconds(pickUpDate).toLocalDateTime(timeZone).date <
+        now.toLocalDateTime(timeZone).date
 
 /**
  * What buyers have ordered per article, keyed by the article id the stock ledger uses.
@@ -46,14 +78,20 @@ fun Order.countsAsCommitted(): Boolean =
  *   `Order.pickUpDate` values, as [PickupSlot.date] holds them. Null counts every
  *   order that still has to be fulfilled, which is what a buying decision wants; a
  *   date set is what packing one market's goods wants.
+ * @param now and @param timeZone decide whether an order's pickup day has passed; see
+ *   [countsAsCommitted].
  */
-fun List<Order>.committedDemand(pickupDates: Set<Long>? = null): Map<String, ArticleDemand> {
+fun List<Order>.committedDemand(
+    pickupDates: Set<Long>? = null,
+    now: Instant = Clock.System.now(),
+    timeZone: TimeZone = TimeZone.currentSystemDefault()
+): Map<String, ArticleDemand> {
     val quantities = mutableMapOf<String, Double>()
     val units = mutableMapOf<String, MutableSet<String>>()
     val orders = mutableMapOf<String, MutableSet<String>>()
 
     for (order in this) {
-        if (!order.countsAsCommitted()) continue
+        if (!order.countsAsCommitted(now, timeZone)) continue
         if (pickupDates != null && order.pickUpDate !in pickupDates) continue
         for (item in order.articles) {
             val key = item.articleKey()
