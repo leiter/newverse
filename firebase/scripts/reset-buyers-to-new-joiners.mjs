@@ -74,6 +74,10 @@ keep.add(sellerId); // the seller's own buyer profile is theirs, not a customer'
 console.log(`Seller:  ${sellerId}`);
 console.log(`Keeping: ${[...keep].join(", ")}\n`);
 
+// What the app itself writes and reads: orderToMap stores these flat on the order.
+const ORDER_IDENTITY = ["buyerName", "buyerEmail"];
+// What production's legacy orders carry instead, under a nested `buyerProfile`. No code
+// reads it, but the personal data in it is just as real, so both shapes are scrubbed.
 const IDENTITY = ["displayName", "emailAddress", "telephoneNumber", "photoUrl", "id"];
 
 // --- plan ---------------------------------------------------------------------
@@ -102,6 +106,7 @@ for (const [date, byOrder] of Object.entries(orders)) {
     if (o.buyerId && keep.has(o.buyerId)) { keptOrders++; continue; }
     const bp = o.buyerProfile ?? {};
     const dirty = o.buyerId !== undefined ||
+      ORDER_IDENTITY.some((f) => o[f] !== undefined && o[f] !== "") ||
       IDENTITY.some((f) => bp[f] !== undefined && bp[f] !== "") ||
       bp.placedOrderIds !== undefined;
     if (!dirty) { alreadyClean++; continue; }
@@ -160,6 +165,7 @@ try {
     const u = {};
     for (const { date, orderId } of orderScrubs) {
       u[`${date}/${orderId}/buyerId`] = null;
+      for (const f of ORDER_IDENTITY) u[`${date}/${orderId}/${f}`] = "";
       u[`${date}/${orderId}/buyerProfile/placedOrderIds`] = null;
       for (const f of IDENTITY) u[`${date}/${orderId}/buyerProfile/${f}`] = "";
     }

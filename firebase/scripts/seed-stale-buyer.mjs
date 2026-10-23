@@ -208,8 +208,13 @@ for (const day of pickupDays(count)) {
     value: {
       id: orderId,
       sellerId,
+      // Flat, because that is what the app writes and the only thing it reads:
+      // orderToMap stores buyerId/buyerName/buyerEmail and mapSnapshotToOrder reads
+      // them back. A nested `buyerProfile` object has no reader anywhere — production's
+      // legacy orders carry one and the app has never shown a name from it.
       buyerId: uid,
-      buyerProfile,
+      buyerName: name,
+      buyerEmail: email,
       marketId: market.id,
       createdDate: pickUpDate - 2 * 86400_000,
       pickUpDate,
