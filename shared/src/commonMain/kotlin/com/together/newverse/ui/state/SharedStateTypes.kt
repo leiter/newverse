@@ -411,6 +411,27 @@ data class BasketScreenState(
     val fulfilment: Fulfilment = Fulfilment.PICKUP,
     /** The address this order would be delivered to, seeded from the profile. */
     val deliveryAddress: DeliveryAddress = DeliveryAddress.NONE,
+    /**
+     * What the loaded order said about [fulfilment] and [deliveryAddress] when it was
+     * read, so an edit of either can be told from no edit at all.
+     *
+     * The counterpart of [originalOrderItems], and needed for the same reason: an
+     * order is loaded into the basket, so the live fields alone cannot say whether the
+     * buyer changed anything. Meaningless while [orderId] is null — a new order has no
+     * original to differ from — which is why [fulfilmentChanged] checks that first.
+     */
+    val originalFulfilment: Fulfilment = Fulfilment.PICKUP,
+    val originalDeliveryAddress: DeliveryAddress = DeliveryAddress.NONE,
+    /**
+     * The market the loaded order stands against, as the order itself records it.
+     *
+     * Separate from [selectedMarketId], which means "a market the buyer chose in this
+     * session" and is deliberately left empty by loading an order — it is saved into
+     * the draft basket and consulted by the market-pick onboarding, neither of which
+     * should hear about an order being opened. This field is read-only context: whether
+     * the stall this order belongs to delivers at all.
+     */
+    val orderMarketId: String = "",
     val isCancelling: Boolean = false,
     val cancelSuccess: Boolean = false,
     val showReorderDatePicker: Boolean = false,
@@ -426,7 +447,25 @@ data class BasketScreenState(
     val pendingOrderIdForLoad: String? = null,
     val pendingOrderDateForLoad: String? = null,
     val showCancelConfirmDialog: Boolean = false
-) : ScreenState
+) : ScreenState {
+    /**
+     * Whether the buyer has changed how this placed order reaches them.
+     *
+     * Kept apart from [hasChanges], which is recomputed from the basket items by every
+     * basket emission and would lose this on the next one. The address only counts
+     * while the order is a delivery: a buyer who switches to pickup leaves whatever
+     * they had typed standing in the fields, and [originalDeliveryAddress] is what is
+     * written back as `NONE` anyway.
+     */
+    val fulfilmentChanged: Boolean
+        get() = orderId != null && (
+            fulfilment != originalFulfilment ||
+                (fulfilment == Fulfilment.DELIVERY && deliveryAddress != originalDeliveryAddress)
+            )
+
+    /** Anything at all to save on a placed order: its items, or its fulfilment. */
+    val hasPendingEdits: Boolean get() = hasChanges || fulfilmentChanged
+}
 
 // ===== Customer Profile Screen State =====
 

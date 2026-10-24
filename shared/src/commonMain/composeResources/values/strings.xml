@@ -256,6 +256,7 @@
     <string name="basket_order_modified">Bestellung (geändert)</string>
     <string name="basket_order_details">Bestelldetails</string>
     <string name="basket_pickup">Abholung:</string>
+    <string name="basket_delivery">Lieferung:</string>
     <string name="basket_today">Heute</string>
     <string name="basket_tomorrow">Morgen</string>
     <string name="basket_in_days">in %d Tagen</string>

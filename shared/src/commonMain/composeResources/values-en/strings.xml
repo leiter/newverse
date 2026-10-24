@@ -243,6 +243,7 @@
     <string name="basket_order_modified">Order (modified)</string>
     <string name="basket_order_details">Order Details</string>
     <string name="basket_pickup">Pickup:</string>
+    <string name="basket_delivery">Delivery:</string>
     <string name="basket_today">Today</string>
     <string name="basket_tomorrow">Tomorrow</string>
     <string name="basket_in_days">in %d days</string>

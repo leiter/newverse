@@ -7,22 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.OutlinedTextField
 import com.together.newverse.domain.model.DeliveryAddress
 import com.together.newverse.domain.model.Fulfilment
-import newverse.shared.generated.resources.fulfilment_address_required
-import newverse.shared.generated.resources.fulfilment_choose
-import newverse.shared.generated.resources.fulfilment_city
-import newverse.shared.generated.resources.fulfilment_delivery
-import newverse.shared.generated.resources.fulfilment_house_number
-import newverse.shared.generated.resources.fulfilment_note_hint
-import newverse.shared.generated.resources.fulfilment_pickup
-import newverse.shared.generated.resources.fulfilment_pickup_only
-import newverse.shared.generated.resources.fulfilment_save_to_profile
-import newverse.shared.generated.resources.fulfilment_street
-import newverse.shared.generated.resources.fulfilment_use_profile_address
-import newverse.shared.generated.resources.fulfilment_zip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -134,86 +120,17 @@ fun CheckoutConfirmDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Pickup or delivery, for this order. First, because it decides
                 // whether the market and date below are even the relevant facts.
-                if (deliveryOffered) {
-                    Text(
-                        text = stringResource(Res.string.fulfilment_choose),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Fulfilment.entries.forEach { option ->
-                            FilterChip(
-                                selected = option == fulfilment,
-                                onClick = { onFulfilmentChange(option) },
-                                label = {
-                                    Text(
-                                        stringResource(
-                                            if (option == Fulfilment.DELIVERY) Res.string.fulfilment_delivery
-                                            else Res.string.fulfilment_pickup
-                                        )
-                                    )
-                                }
-                            )
-                        }
-                    }
-                } else {
-                    // Said rather than offered-and-refused: a buyer whose profile asks
-                    // for delivery would otherwise find the choice simply missing.
-                    Text(
-                        text = stringResource(Res.string.fulfilment_pickup_only),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                if (isDelivery) {
-                    DeliveryAddressFields(
-                        address = deliveryAddress,
-                        onChange = onDeliveryAddressChange
-                    )
-
-                    // Two ways out of an empty form, whichever the buyer's profile
-                    // makes possible: take what the profile already holds, or keep
-                    // what they just typed for next time. Never both at once — once
-                    // the fields match the profile there is nothing to copy either way.
-                    val canFillFromProfile = profileAddress.isComplete &&
-                        (profileAddress.street != deliveryAddress.street ||
-                            profileAddress.houseNumber != deliveryAddress.houseNumber)
-                    val canSaveToProfile = !canFillFromProfile &&
-                        deliveryAddress.isComplete &&
-                        (profileAddress.street != deliveryAddress.street ||
-                            profileAddress.houseNumber != deliveryAddress.houseNumber)
-
-                    if (canFillFromProfile) {
-                        TextButton(
-                            onClick = {
-                                // Street and number only: the profile holds no postcode
-                                // or town, and the note belongs to this order.
-                                onDeliveryAddressChange(
-                                    deliveryAddress.copy(
-                                        street = profileAddress.street,
-                                        houseNumber = profileAddress.houseNumber
-                                    )
-                                )
-                            }
-                        ) {
-                            Text(stringResource(Res.string.fulfilment_use_profile_address))
-                        }
-                    } else if (canSaveToProfile) {
-                        TextButton(onClick = onSaveAddressToProfile) {
-                            Text(stringResource(Res.string.fulfilment_save_to_profile))
-                        }
-                    }
-
-                    // Said before the tap, not after it: a disabled button with no
-                    // reason beside it reads as the app being broken.
-                    if (addressMissing && orderError == null) {
-                        Text(
-                            text = stringResource(Res.string.fulfilment_address_required),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
+                // Same row the basket shows while editing a placed order.
+                FulfilmentChoice(
+                    fulfilment = fulfilment,
+                    deliveryAddress = deliveryAddress,
+                    profileAddress = profileAddress,
+                    deliveryOffered = deliveryOffered,
+                    showAddressRequired = addressMissing && orderError == null,
+                    onFulfilmentChange = onFulfilmentChange,
+                    onDeliveryAddressChange = onDeliveryAddressChange,
+                    onSaveAddressToProfile = onSaveAddressToProfile
+                )
 
                 // Named only when there is more than one market to be at: with a
                 // single stall the buyer knows where they are collecting and the row
@@ -310,64 +227,5 @@ private fun ConfirmRow(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(text = value, style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-/**
- * The address this order is delivered to.
- *
- * Seeded from the buyer's profile when they switch to delivery, and editable here
- * because the order snapshots it: a one-off delivery somewhere else must not have to
- * go through rewriting the profile, and rewriting the profile must not re-aim orders
- * already placed.
- *
- * Street and number are what [DeliveryAddress.isComplete] requires; postcode and town
- * are optional, since this is one seller serving one area.
- */
-@Composable
-private fun DeliveryAddressFields(
-    address: DeliveryAddress,
-    onChange: (DeliveryAddress) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = address.street,
-                onValueChange = { onChange(address.copy(street = it)) },
-                label = { Text(stringResource(Res.string.fulfilment_street)) },
-                singleLine = true,
-                modifier = Modifier.weight(2f)
-            )
-            OutlinedTextField(
-                value = address.houseNumber,
-                onValueChange = { onChange(address.copy(houseNumber = it)) },
-                label = { Text(stringResource(Res.string.fulfilment_house_number)) },
-                singleLine = true,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = address.zipCode,
-                onValueChange = { onChange(address.copy(zipCode = it)) },
-                label = { Text(stringResource(Res.string.fulfilment_zip)) },
-                singleLine = true,
-                modifier = Modifier.weight(1f)
-            )
-            OutlinedTextField(
-                value = address.city,
-                onValueChange = { onChange(address.copy(city = it)) },
-                label = { Text(stringResource(Res.string.fulfilment_city)) },
-                singleLine = true,
-                modifier = Modifier.weight(2f)
-            )
-        }
-        OutlinedTextField(
-            value = address.note,
-            onValueChange = { onChange(address.copy(note = it)) },
-            label = { Text(stringResource(Res.string.fulfilment_note_hint)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }

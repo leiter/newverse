@@ -55,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.DeliveryAddress
+import com.together.newverse.domain.model.Fulfilment
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.articleKey
 import com.together.newverse.domain.model.nearlyGoneAgainst
@@ -86,6 +87,7 @@ import com.together.newverse.ui.components.displayName
 import com.together.newverse.ui.components.formatEuro
 import com.together.newverse.ui.state.PendingSlotPriceChange
 import com.together.newverse.ui.screens.buy.components.CheckoutConfirmDialog
+import com.together.newverse.ui.screens.buy.components.FulfilmentChoice
 import newverse.shared.generated.resources.price_change_body
 import newverse.shared.generated.resources.price_change_confirm
 import newverse.shared.generated.resources.price_change_title
@@ -177,6 +179,19 @@ fun BasketContent(
     }
     val unorderableIds = remember(unorderable) { unorderable.map { it.articleId }.toSet() }
 
+    // The stall this basket is aimed at: the slot the buyer picked, or the market the
+    // order being edited was placed at. Loading an order leaves `selectedMarketId`
+    // empty on purpose, so the second is the only one an edit has.
+    val basketMarket = remember(state.selectedMarketId, state.orderMarketId, eligibleMarkets) {
+        eligibleMarkets.firstOrNull { it.id == state.selectedMarketId }
+            ?: eligibleMarkets.firstOrNull { it.id == state.orderMarketId }
+    }
+
+    // A delivery with nowhere to go, read the same way the ViewModel's gate reads it
+    // so the save button goes off rather than the refusal arriving after the tap.
+    val addressMissing = state.fulfilment == Fulfilment.DELIVERY &&
+        !state.deliveryAddress.isComplete
+
     // Items the shop is nearly out of. Nothing holds them for this buyer, and
     // without a word here their first notice is checkout refusing the order.
     val nearlyGoneIds = remember(state.items, currentArticles) {
@@ -206,7 +221,7 @@ fun BasketContent(
     if (state.showCheckoutConfirm && state.selectedPickupDate != null) {
         CheckoutConfirmDialog(
             pickupDate = state.selectedPickupDate,
-            market = eligibleMarkets.firstOrNull { it.id == state.selectedMarketId },
+            market = basketMarket,
             // Named only when there is a choice of where: with one stall the row says
             // nothing the buyer does not know.
             marketName = if (state.marketNames.size > 1) {
@@ -293,6 +308,9 @@ fun BasketContent(
     if (LocalWindowWidthClass.current == WindowWidthClass.Expanded) {
         BasketTwoPane(
             state = state,
+            basketMarket = basketMarket,
+            addressMissing = addressMissing,
+            profileAddress = profileAddress,
             unorderableIds = unorderableIds,
             nearlyGoneIds = nearlyGoneIds,
             onAction = onAction,
@@ -324,9 +342,21 @@ fun BasketContent(
                     pickupDate = state.pickupDate,
                     createdDate = state.createdDate,
                     canEdit = state.canEdit,
-                    hasChanges = state.hasChanges,
+                    hasChanges = state.hasPendingEdits,
                     orderStatus = orderStatus,
                     isEditMode = state.isEditMode,
+                    fulfilment = state.fulfilment,
+                    deliveryAddress = state.deliveryAddress,
+                    profileAddress = profileAddress,
+                    deliveryOffered = basketMarket?.allowsDelivery != false,
+                    addressMissing = addressMissing,
+                    onFulfilmentChange = { onAction(BuyBasketScreenAction.SetFulfilment(it)) },
+                    onDeliveryAddressChange = {
+                        onAction(BuyBasketScreenAction.SetDeliveryAddress(it))
+                    },
+                    onSaveAddressToProfile = {
+                        onAction(BuyBasketScreenAction.SaveDeliveryAddressToProfile)
+                    },
                     onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
                     onDisableEditing = { onAction(BuyBasketScreenAction.DisableEditing) },
                     onUpdateOrder = { onAction(BuyBasketScreenAction.UpdateOrder) },
@@ -566,6 +596,11 @@ fun BasketContent(
 @Composable
 private fun BasketTwoPane(
     state: BasketScreenState,
+    /** The market this basket's order stands against, or null when none is known. */
+    basketMarket: Market?,
+    /** Whether a delivery is being asked for with no address to deliver to. */
+    addressMissing: Boolean,
+    profileAddress: DeliveryAddress,
     /** Article ids the seller has withdrawn; their rows say so and block ordering. */
     unorderableIds: Set<String>,
     /** Article ids the shop is nearly out of; their rows say so, nothing is blocked. */
@@ -650,9 +685,21 @@ private fun BasketTwoPane(
                     pickupDate = state.pickupDate,
                     createdDate = state.createdDate,
                     canEdit = state.canEdit,
-                    hasChanges = state.hasChanges,
+                    hasChanges = state.hasPendingEdits,
                     orderStatus = orderStatus,
                     isEditMode = state.isEditMode,
+                    fulfilment = state.fulfilment,
+                    deliveryAddress = state.deliveryAddress,
+                    profileAddress = profileAddress,
+                    deliveryOffered = basketMarket?.allowsDelivery != false,
+                    addressMissing = addressMissing,
+                    onFulfilmentChange = { onAction(BuyBasketScreenAction.SetFulfilment(it)) },
+                    onDeliveryAddressChange = {
+                        onAction(BuyBasketScreenAction.SetDeliveryAddress(it))
+                    },
+                    onSaveAddressToProfile = {
+                        onAction(BuyBasketScreenAction.SaveDeliveryAddressToProfile)
+                    },
                     onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
                     onDisableEditing = { onAction(BuyBasketScreenAction.DisableEditing) },
                     onUpdateOrder = { onAction(BuyBasketScreenAction.UpdateOrder) },
@@ -1045,6 +1092,17 @@ internal fun OrderInfoCard(
     hasChanges: Boolean,
     orderStatus: OrderWindowStatus,
     isEditMode: Boolean,
+    fulfilment: Fulfilment,
+    deliveryAddress: DeliveryAddress,
+    /** Street and number as the buyer's profile holds them; empty if it holds none. */
+    profileAddress: DeliveryAddress,
+    /** Whether this order's stall delivers at all. */
+    deliveryOffered: Boolean,
+    /** A delivery with no address: nothing may be saved while this holds. */
+    addressMissing: Boolean,
+    onFulfilmentChange: (Fulfilment) -> Unit,
+    onDeliveryAddressChange: (DeliveryAddress) -> Unit,
+    onSaveAddressToProfile: () -> Unit,
     onEnableEditing: () -> Unit,
     onDisableEditing: () -> Unit,
     onUpdateOrder: () -> Unit,
@@ -1094,7 +1152,9 @@ internal fun OrderInfoCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Pickup Date - Most prominent
+            // Pickup or delivery date - Most prominent. Labelled by the order's own
+            // fulfilment: calling a delivery an Abholung is how a buyer ends up at a
+            // stall waiting for an order that is on its way to their door.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1102,7 +1162,10 @@ internal fun OrderInfoCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = stringResource(Res.string.basket_pickup),
+                    text = stringResource(
+                        if (fulfilment == Fulfilment.DELIVERY) Res.string.basket_delivery
+                        else Res.string.basket_pickup
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -1193,6 +1256,30 @@ internal fun OrderInfoCard(
                 }
             }
 
+            // How this order reaches the buyer, changeable for as long as the order
+            // is. The same row the checkout confirmation shows, because this is the
+            // same decision taken again: a buyer who collected last week and wants it
+            // brought this week had no way to say so, and every untouched profile
+            // reads as delivery, so it is the common case rather than a corner.
+            //
+            // Shown outside edit mode too when the address is missing, which an order
+            // placed before `deliveryAddress` existed can be: the save button is off
+            // until there is one, and the *Bearbeiten* button is hidden while there
+            // are changes to save, so without this the buyer has no way to supply it.
+            if ((isEditMode || addressMissing) && orderStatus == OrderWindowStatus.OPEN) {
+                Spacer(modifier = Modifier.height(16.dp))
+                FulfilmentChoice(
+                    fulfilment = fulfilment,
+                    deliveryAddress = deliveryAddress,
+                    profileAddress = profileAddress,
+                    deliveryOffered = deliveryOffered,
+                    showAddressRequired = addressMissing,
+                    onFulfilmentChange = onFulfilmentChange,
+                    onDeliveryAddressChange = onDeliveryAddressChange,
+                    onSaveAddressToProfile = onSaveAddressToProfile
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // Action Buttons
@@ -1206,6 +1293,7 @@ internal fun OrderInfoCard(
                         if (hasChanges) {
                             Button(
                                 onClick = onUpdateOrder,
+                                enabled = !addressMissing,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(stringResource(Res.string.basket_update_order))

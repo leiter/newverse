@@ -94,8 +94,21 @@ class BuyAppViewModelDeliveryTest {
         authRepository.setCurrentUserId("buyer_1")
     }
 
-    private suspend fun TestScope.ready(): BuyAppViewModel {
-        marketRepository.seed("demo_seller_id", Market(id = "m1", name = "Kreuzberg", dayIndex = 3))
+    /**
+     * A session with one market, a basket with one item, and a slot chosen.
+     *
+     * [marketDelivers] has to be settled before the ViewModel exists: markets are
+     * fetched once at startup, not observed, so a stall reseeded afterwards never
+     * reaches the state.
+     */
+    private suspend fun TestScope.ready(marketDelivers: Boolean = true): BuyAppViewModel {
+        marketRepository.seed(
+            "demo_seller_id",
+            Market(
+                id = "m1", name = "Kreuzberg", dayIndex = 3,
+                allowsDelivery = marketDelivers
+            )
+        )
         basketRepository.setBasketItems(
             listOf(
                 OrderedProduct(
@@ -365,5 +378,168 @@ class BuyAppViewModelDeliveryTest {
         // The order the seller may already have packed is untouched; no second order.
         assertEquals(1, orderRepository.placedOrders.size)
         assertEquals(Fulfilment.PICKUP, orderRepository.placedOrders.single().fulfilment)
+    }
+
+    // ===== changing it on an order already placed =====
+
+    @Test
+    fun `a placed pickup can be edited into a delivery`() = runTest {
+        startSession(selfPickup = true, street = "Hauptstr.", nr = "4")
+        val viewModel = ready()
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+        assertEquals(Fulfilment.PICKUP, orderRepository.placedOrders.single().fulfilment)
+
+        viewModel.dispatch(BuyBasketScreenAction.EnableEditing)
+        advanceUntilIdle()
+        // The address comes from the profile on the switch, so this is one tap.
+        viewModel.dispatch(BuyBasketScreenAction.SetFulfilment(Fulfilment.DELIVERY))
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.UpdateOrder)
+        advanceUntilIdle()
+
+        val updated = orderRepository.updatedOrders.last()
+        assertEquals(Fulfilment.DELIVERY, updated.fulfilment)
+        assertEquals("Hauptstr. 4", updated.deliveryAddress.oneLine())
+        assertFalse(updated.isDeliveryWithoutAddress)
+    }
+
+    @Test
+    fun `a placed delivery can be edited into a pickup`() = runTest {
+        startSession(selfPickup = false)
+        val viewModel = ready()
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+        assertEquals(Fulfilment.DELIVERY, orderRepository.placedOrders.single().fulfilment)
+
+        viewModel.dispatch(BuyBasketScreenAction.EnableEditing)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.SetFulfilment(Fulfilment.PICKUP))
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.UpdateOrder)
+        advanceUntilIdle()
+
+        val updated = orderRepository.updatedOrders.last()
+        assertEquals(Fulfilment.PICKUP, updated.fulfilment)
+        // The address goes with the delivery it belonged to.
+        assertTrue(updated.deliveryAddress.isEmpty)
+    }
+
+    @Test
+    fun `a placed order's own fulfilment is not an unsaved change`() = runTest {
+        // The card offers "Aktualisieren" off this flag, so a delivery order that
+        // reads as changed the moment it is opened asks to be saved over itself.
+        startSession(selfPickup = false)
+        val viewModel = ready()
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+
+        val basket = viewModel.state.value.basketScreen
+        assertEquals(Fulfilment.DELIVERY, basket.fulfilment)
+        assertFalse(basket.fulfilmentChanged)
+        assertFalse(basket.hasPendingEdits)
+    }
+
+    @Test
+    fun `changing the fulfilment of a placed order is an unsaved change until saved`() = runTest {
+        startSession(selfPickup = true, street = "Hauptstr.", nr = "4")
+        val viewModel = ready()
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+        assertFalse(viewModel.state.value.basketScreen.hasPendingEdits)
+
+        viewModel.dispatch(BuyBasketScreenAction.EnableEditing)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.SetFulfilment(Fulfilment.DELIVERY))
+        advanceUntilIdle()
+
+        // Nothing in the basket moved, so only the fulfilment can be carrying this.
+        val edited = viewModel.state.value.basketScreen
+        assertFalse(edited.hasChanges)
+        assertTrue(edited.fulfilmentChanged)
+        assertTrue(edited.hasPendingEdits)
+
+        viewModel.dispatch(BuyBasketScreenAction.UpdateOrder)
+        advanceUntilIdle()
+
+        // The written order is the new baseline.
+        val saved = viewModel.state.value.basketScreen
+        assertFalse(saved.fulfilmentChanged)
+        assertFalse(saved.hasPendingEdits)
+    }
+
+    @Test
+    fun `editing the address of a placed delivery is an unsaved change`() = runTest {
+        startSession(selfPickup = false)
+        val viewModel = ready()
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+
+        viewModel.dispatch(BuyBasketScreenAction.EnableEditing)
+        advanceUntilIdle()
+        viewModel.dispatch(
+            BuyBasketScreenAction.SetDeliveryAddress(
+                DeliveryAddress(street = "Waldweg", houseNumber = "9", note = "Tor links")
+            )
+        )
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.basketScreen.hasPendingEdits)
+
+        viewModel.dispatch(BuyBasketScreenAction.UpdateOrder)
+        advanceUntilIdle()
+
+        val updated = orderRepository.updatedOrders.last()
+        assertEquals("Waldweg 9", updated.deliveryAddress.oneLine())
+        assertEquals("Tor links", updated.deliveryAddress.note)
+        assertFalse(viewModel.state.value.basketScreen.hasPendingEdits)
+    }
+
+    @Test
+    fun `an order at a pickup-only market cannot be edited into a delivery`() = runTest {
+        startSession(selfPickup = true)
+        val viewModel = ready(marketDelivers = false)
+
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+        val placedCount = orderRepository.placedOrders.size
+
+        viewModel.dispatch(BuyBasketScreenAction.EnableEditing)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.SetFulfilment(Fulfilment.DELIVERY))
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.UpdateOrder)
+        advanceUntilIdle()
+
+        // The stall has the last word: the switch never took.
+        assertEquals(Fulfilment.PICKUP, viewModel.state.value.basketScreen.fulfilment)
+        assertTrue(orderRepository.updatedOrders.none { it.fulfilment == Fulfilment.DELIVERY })
+        assertEquals(placedCount, orderRepository.placedOrders.size)
+    }
+
+    @Test
+    fun `a loaded order records the market it stands against`() = runTest {
+        // What the fulfilment chips are drawn from while editing. Loading an order
+        // deliberately selects no slot, so without this the stall is unknown and a
+        // pickup-only market would be offered as one that delivers.
+        startSession(selfPickup = true)
+        val viewModel = ready()
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+
+        assertEquals("m1", viewModel.state.value.basketScreen.orderMarketId)
     }
 }

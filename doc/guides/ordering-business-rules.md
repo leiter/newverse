@@ -1,6 +1,6 @@
 # Ordering Business Rules
 
-**Status:** current — verified against `shared/src` on 2026-10-20
+**Status:** current — verified against `shared/src` on 2026-10-24
 **Scope:** `OrderDateUtils`, `PickupSlots`, `Market.scheduleConfig`,
 `BuyAppViewModelBasket`, `BasketRepository`
 **Supersedes:** `archive/draft-order-behavior.md`,
@@ -330,8 +330,9 @@ same discipline as `OrderedProduct.price` and `Order.pricingRevision`.
 
 ### The choice is per order
 
-`Fulfilment` defaults from the profile (`Fulfilment.fromProfile`) and is changed at the
-checkout confirmation, not in the profile. A buyer may collect this week and want it
+`Fulfilment` defaults from the profile (`Fulfilment.fromProfile`) and is changed on the
+order, not in the profile: at the checkout confirmation before it is placed, and in the
+basket's order card — *Bestellung bearbeiten* — for as long as the order is editable. A buyer may collect this week and want it
 brought next, and a one-off delivery somewhere else must not require rewriting their
 address — nor should rewriting their address re-aim orders already placed. Choosing for
 one order never writes the profile.
@@ -365,12 +366,30 @@ Where the buyer meets it:
   Switching back does not silently restore delivery; the buyer chooses it again.
 - **Checkout:** the two chips are replaced by the statement *Dieser Markt liefert nicht*.
   A choice that is absent without explanation reads as a bug.
+- **Editing a placed order:** the same `FulfilmentChoice` row, one composable shared with
+  the confirmation. The stall is the order's own (`BasketScreenState.orderMarketId`),
+  because loading an order selects no slot — without it a pickup-only market would offer
+  delivery here and the write would be refused by the rules with no reason the buyer
+  can read.
 - **The write:** `refuseImpossibleDelivery` refuses it, and the rules refuse it again —
   a market can turn pickup-only while a buyer sits in the basket.
 
 A placed delivery order **stands** when its market stops delivering, the same way a
 closure does not retract orders already placed: the seller may already have loaded the
 van. Only an edit moves it, and the edit goes through `forMarket` like any other change.
+
+### Changing it on an order already placed
+
+Up to the deadline, in the basket's order card. The chips and the address form appear
+under *Bestellung bearbeiten*, and a changed fulfilment counts as an unsaved change the
+same way a changed quantity does (`BasketScreenState.fulfilmentChanged`, combined into
+`hasPendingEdits`): the *Aktualisieren* button appears, and the write re-snapshots
+`fulfilment` and `deliveryAddress` onto the stored order.
+
+Needed, not a convenience: `isSelfPickup` defaults to false, so a buyer who never
+touched the toggle placed a delivery, and until this existed the only way back to a
+pickup was cancelling the order. The pickup *slot* is a separate question and is still
+not editable — see **Still open**.
 
 ### A delivery with no address cannot be placed
 
@@ -418,6 +437,12 @@ at all. Tests in `firebase/tests/market-delivery.test.js`.
 - Nothing tells a buyer whose profile asks for delivery that the stall they usually
   collect at is the only one that delivers; they find out at the slot picker.
 - Nothing routes or orders deliveries — no round planning, no sequence.
+- **A placed order's pickup slot cannot be changed**, only its fulfilment. The order's
+  Firebase path is keyed by `yyyyMMdd`, and `GitLiveOrderRepository.updateOrder` writes
+  the new date's path without deleting the old one, so moving a date would leave the
+  seller the same order twice. Changing the market also has to reprice and re-check the
+  deadline at both ends. Making `updateOrder` a move — write, delete, re-index in one
+  multi-path update — is the precondition.
 - `CheckoutData.deliveryAddress` remains dead code from an older design;
   `BuyOrderAction.PlaceOrder` is a no-op in both flavors.
 

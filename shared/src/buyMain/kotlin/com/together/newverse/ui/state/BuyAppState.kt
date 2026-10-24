@@ -226,6 +226,22 @@ data class BuyAppState(
             ?.name
             .orEmpty()
 
+    /**
+     * The market the basket's order stands against: the slot the buyer picked in this
+     * session, or failing that the market the order they are editing was placed at.
+     *
+     * Both are needed because loading an order leaves [BasketScreenState.selectedMarketId]
+     * empty on purpose (see [BasketScreenState.orderMarketId]), so the slot alone says
+     * nothing about an order being edited — and it is precisely an edit that has to
+     * know whether the stall delivers. Null when neither names a market this buyer may
+     * use, which [com.together.newverse.domain.model.Fulfilment.forMarket] reads as
+     * "unknown", not as "pickup only".
+     */
+    fun marketForBasket(): Market? =
+        listOf(basketScreen.selectedMarketId, basketScreen.orderMarketId)
+            .firstOrNull { it.isNotEmpty() && eligibleMarkets.any { m -> m.id == it } }
+            ?.let { id -> eligibleMarkets.firstOrNull { it.id == id } }
+
     /** The pricing of [marketId], or [MarketPricing.NONE] when it names no eligible market. */
     fun pricingOf(marketId: String): MarketPricing =
         eligibleMarkets.firstOrNull { it.id == marketId }?.pricing ?: MarketPricing.NONE

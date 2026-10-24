@@ -442,6 +442,9 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                                 // the profile says self-pickup.
                                 fulfilment = order.fulfilment,
                                 deliveryAddress = order.deliveryAddress,
+                                originalFulfilment = order.fulfilment,
+                                originalDeliveryAddress = order.deliveryAddress,
+                                orderMarketId = order.marketId,
                                 isEditMode = false,
                                 canEdit = canEdit,
                                 originalOrderItems = order.articles,
@@ -751,8 +754,11 @@ internal fun BuyAppViewModel.refuseImpossibleDelivery(): Boolean {
     // (see basketScreenApplySlot), but a market can be switched to pickup-only while a
     // buyer sits in the basket, and the database rules refuse such an order anyway —
     // better a stated reason here than a rejected write with none.
-    val market = _state.value.eligibleMarkets
-        .firstOrNull { it.id == basket.selectedMarketId }
+    // Falling back to the loaded order's own market, which is the only one an edit
+    // has: loading an order deliberately leaves `selectedMarketId` empty, so without
+    // this an order at a pickup-only stall could be edited into a delivery here and
+    // refused by the database rules instead, with no reason the buyer can read.
+    val market = _state.value.marketForBasket()
     val reason = when {
         market?.allowsDelivery == false ->
             "${market.name.ifBlank { "Dieser Markt" }} liefert nicht — bitte Abholung wählen"
@@ -818,9 +824,9 @@ internal fun BuyAppViewModel.basketScreenSaveDeliveryAddressToProfile() {
  */
 internal fun BuyAppViewModel.basketScreenSetFulfilment(requested: Fulfilment) {
     // The stall has the last word, whatever reaches this action: the chips are built
-    // from the same rule, so this only bites if the market changed under them.
-    val market = _state.value.eligibleMarkets
-        .firstOrNull { it.id == _state.value.basketScreen.selectedMarketId }
+    // from the same rule, so this only bites if the market changed under them. The
+    // stall is the chosen slot's, or — editing a placed order — the order's own.
+    val market = _state.value.marketForBasket()
     val fulfilment = Fulfilment.forMarket(market, requested)
 
     _state.update { current ->
@@ -1187,6 +1193,9 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                             createdDate = order.createdDate,
                             fulfilment = order.fulfilment,
                             deliveryAddress = order.deliveryAddress,
+                            originalFulfilment = order.fulfilment,
+                            originalDeliveryAddress = order.deliveryAddress,
+                            orderMarketId = order.marketId,
                             isEditMode = false,
                             canEdit = canEdit,
                             isLoadingOrder = false,
@@ -1322,6 +1331,13 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                     pickUpDate = pickupDate,
                     message = "",
                     articles = items,
+                    // Carried here too, not only on the Firebase path: a local demo
+                    // order the buyer edited into a delivery otherwise reverts to a
+                    // pickup, and the baseline set below would then be a lie.
+                    fulfilment = basketState.fulfilment,
+                    deliveryAddress = if (basketState.fulfilment == Fulfilment.DELIVERY) {
+                        basketState.deliveryAddress
+                    } else DeliveryAddress.NONE,
                     origin = OrderOrigin.DEMO
                 )
             } else {
@@ -1380,6 +1396,11 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                             orderSuccess = true,
                             isEditMode = false,
                             originalOrderItems = currentItems,
+                            // The written order is the new baseline, fulfilment
+                            // included, or the card would go on offering to save an
+                            // edit that is already saved.
+                            originalFulfilment = updatedOrder.fulfilment,
+                            originalDeliveryAddress = updatedOrder.deliveryAddress,
                             hasChanges = false
                         )
                     )
