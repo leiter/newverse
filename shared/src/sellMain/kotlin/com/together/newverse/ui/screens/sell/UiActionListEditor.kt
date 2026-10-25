@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.ActionAudience
+import com.together.newverse.domain.model.ActionKind
 import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.SellerUiAction
 import newverse.shared.generated.resources.Res
@@ -39,6 +40,8 @@ import newverse.shared.generated.resources.seller_actions_add
 import newverse.shared.generated.resources.seller_actions_audience
 import newverse.shared.generated.resources.seller_actions_audience_all
 import newverse.shared.generated.resources.seller_actions_audience_demo
+import newverse.shared.generated.resources.seller_actions_announcement
+import newverse.shared.generated.resources.seller_actions_announcement_explain
 import newverse.shared.generated.resources.seller_actions_audience_approved
 import newverse.shared.generated.resources.seller_actions_explain
 import newverse.shared.generated.resources.seller_actions_full
@@ -46,6 +49,7 @@ import newverse.shared.generated.resources.seller_actions_incomplete
 import newverse.shared.generated.resources.seller_actions_label
 import newverse.shared.generated.resources.seller_actions_location
 import newverse.shared.generated.resources.seller_actions_location_home
+import newverse.shared.generated.resources.seller_actions_location_home_title
 import newverse.shared.generated.resources.seller_actions_location_profile
 import newverse.shared.generated.resources.seller_actions_remove
 import newverse.shared.generated.resources.seller_actions_save_failed
@@ -123,8 +127,10 @@ fun UiActionListEditor(
         }
 
         // Capped per slot, matching what the repository refuses, so the two agree.
+        // Per slot and not one number: the home title holds exactly one, because a
+        // title cannot collapse into an overflow menu the way buttons can.
         val slotsWithRoom = ActionLocation.entries.filter { location ->
-            rows.count { it.location == location } < SellerUiAction.MAX_PER_LOCATION
+            rows.count { it.location == location } < location.maxActions
         }
 
         Row(
@@ -134,7 +140,10 @@ fun UiActionListEditor(
         ) {
             if (slotsWithRoom.isNotEmpty()) {
                 TextButton(
-                    onClick = { rows = rows + SellerUiAction(location = slotsWithRoom.first()) }
+                    onClick = {
+                        val slot = slotsWithRoom.first()
+                        rows = rows + SellerUiAction(location = slot, kind = slot.kind)
+                    }
                 ) {
                     Icon(
                         Icons.Default.Add,
@@ -152,7 +161,9 @@ fun UiActionListEditor(
             }
 
             Button(
-                onClick = { rows.filter { it.isUsable }.forEach(onSave) },
+                // Shaped the way it will be stored before being handed over, so the
+                // announcement rows carry the derived label the rules require.
+                onClick = { rows.filter { it.isUsable }.forEach { onSave(it.readyToStore()) } },
                 enabled = !isSaving && edited && !incomplete
             ) {
                 Text(stringResource(Res.string.button_save))
@@ -190,6 +201,11 @@ private fun UiActionRow(
 ) {
     var locationMenuOpen by remember { mutableStateOf(false) }
 
+    val isAnnouncement = action.kind == ActionKind.ANNOUNCE
+    val valueLabel =
+        if (isAnnouncement) Res.string.seller_actions_announcement
+        else Res.string.seller_actions_value
+
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -217,7 +233,14 @@ private fun UiActionRow(
                         DropdownMenuItem(
                             text = { Text(location.displayName()) },
                             onClick = {
-                                onChange(action.copy(location = location))
+                                // The slot decides the kind, so switching slot
+                                // re-kinds the row. Otherwise an announcement moved
+                                // to a button slot would keep ANNOUNCE and be
+                                // refused by the rules on save, with nothing on
+                                // screen to say why.
+                                onChange(
+                                    action.copy(location = location, kind = location.kind)
+                                )
                                 locationMenuOpen = false
                             }
                         )
@@ -266,21 +289,40 @@ private fun UiActionRow(
             }
         }
 
-        OutlinedTextField(
-            value = action.label,
-            onValueChange = { onChange(action.copy(label = it.take(SellerUiAction.MAX_LABEL_LENGTH))) },
-            label = { Text(stringResource(Res.string.seller_actions_label)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
+        // An announcement has no button to label, so the seller is not asked for one.
+        // The rules still require a non-empty `label`, so it is derived from the
+        // opening words of the text: enough to recognise the row by in a list, and
+        // one field rather than two for a market trader to fill in.
+        if (!isAnnouncement) {
+            OutlinedTextField(
+                value = action.label,
+                onValueChange = {
+                    onChange(action.copy(label = it.take(SellerUiAction.MAX_LABEL_LENGTH)))
+                },
+                label = { Text(stringResource(Res.string.seller_actions_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
 
         OutlinedTextField(
             value = action.value,
             onValueChange = { onChange(action.copy(value = it)) },
-            label = { Text(stringResource(Res.string.seller_actions_value)) },
+            label = { Text(stringResource(valueLabel)) },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            // An announcement is a sentence, so it gets room to be read while being
+            // typed. An address is one line by nature.
+            singleLine = !isAnnouncement,
+            minLines = if (isAnnouncement) 2 else 1
         )
+
+        if (isAnnouncement) {
+            Text(
+                text = stringResource(Res.string.seller_actions_announcement_explain),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -297,4 +339,6 @@ private fun ActionAudience.displayName(): String = when (this) {
 private fun ActionLocation.displayName(): String = when (this) {
     ActionLocation.TOPBAR_HOME -> stringResource(Res.string.seller_actions_location_home)
     ActionLocation.TOPBAR_PROFILE -> stringResource(Res.string.seller_actions_location_profile)
+    ActionLocation.TOPBAR_HOME_TITLE ->
+        stringResource(Res.string.seller_actions_location_home_title)
 }

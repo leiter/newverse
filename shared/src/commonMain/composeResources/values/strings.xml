@@ -1275,6 +1275,11 @@
     <string name="seller_actions_incomplete">Bitte Beschriftung und Adresse ausfüllen.</string>
     <string name="seller_actions_save_failed">Nicht gespeichert: %1$s</string>
     <string name="seller_actions_saved">Schaltfläche gespeichert</string>
+    <string name="seller_actions_location_home_title">Kopfbereich, Startseite (Lauftext)</string>
+    <string name="seller_actions_announcement">Ankündigung (Lauftext)</string>
+    <string name="seller_actions_announcement_explain">Ersetzt den Titel der Startseite, bis der Kunde sie ausblendet.</string>
+    <string name="a11y_announcement">Ankündigung des Verkäufers: %1$s</string>
+    <string name="a11y_announcement_dismiss">Ankündigung ausblenden</string>
     <string name="fulfilment_use_profile_address">Adresse aus Profil übernehmen</string>
     <string name="fulfilment_save_to_profile">Adresse im Profil speichern</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.together.newverse.di
 
+import com.together.newverse.data.config.AnnouncementDismissalStorage
 import com.together.newverse.data.config.PendingInviteTokenStorage
 import com.together.newverse.data.config.DefaultOrderScheduleConfig
 import com.together.newverse.data.config.DefaultProductCatalogConfig
@@ -25,6 +26,7 @@ val webDomainModule = module {
     single { SellerIdStorage() }
     single { DemoOrderStorage() }
     single { PendingInviteTokenStorage() }
+    single { AnnouncementDismissalStorage() }
     single<SellerConfig> { DefaultSellerConfig() }
     single<OrderScheduleConfig> { DefaultOrderScheduleConfig() }
     single<ProductCatalogConfig> { DefaultProductCatalogConfig() }

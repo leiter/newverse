@@ -1217,6 +1217,11 @@
     <string name="seller_actions_incomplete">Please fill in both a label and an address.</string>
     <string name="seller_actions_save_failed">Not saved: %1$s</string>
     <string name="seller_actions_saved">Button saved</string>
+    <string name="seller_actions_location_home_title">Top bar, home screen (scrolling text)</string>
+    <string name="seller_actions_announcement">Announcement (scrolling text)</string>
+    <string name="seller_actions_announcement_explain">Replaces the home screen title until the customer hides it.</string>
+    <string name="a11y_announcement">Announcement from the seller: %1$s</string>
+    <string name="a11y_announcement_dismiss">Hide announcement</string>
     <string name="fulfilment_use_profile_address">Use address from profile</string>
     <string name="fulfilment_save_to_profile">Save address to profile</string>
 </resources>

@@ -59,7 +59,11 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
         action: SellerUiAction
     ): Result<SellerUiAction> {
         return try {
-            if (!action.isUsable) {
+            // The slot's kind and an announcement's derived label are settled before
+            // anything is checked against them — see [SellerUiAction.readyToStore],
+            // which the seller's editor calls too so the two cannot disagree.
+            val typed = action.readyToStore()
+            if (!typed.isUsable) {
                 return Result.failure(IllegalArgumentException("an action needs a label and a target"))
             }
 
@@ -70,21 +74,24 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
             // the existing actions is always allowed; it is only a *new* one that can
             // push a slot over the cap.
             val isNew = existing.none { it.id == id }
-            val inSlot = existing.count { it.location == action.location && it.id != id }
-            if (isNew && inSlot >= SellerUiAction.MAX_PER_LOCATION) {
+            val inSlot = existing.count { it.location == typed.location && it.id != id }
+            // Per slot, not one global cap: the home title holds exactly one, since a
+            // title cannot collapse into an overflow menu the way buttons can.
+            if (isNew && inSlot >= typed.location.maxActions) {
                 return Result.failure(
                     IllegalStateException(
-                        "${action.location} already holds ${SellerUiAction.MAX_PER_LOCATION} actions"
+                        "${typed.location} already holds ${typed.location.maxActions} actions"
                     )
                 )
             }
 
-            val stored = action.copy(
+            val stored = typed.copy(
                 id = id,
-                label = action.label.trim().take(SellerUiAction.MAX_LABEL_LENGTH),
-                // Normalized on save as well as on read, so what sits in the database
-                // is already scheme-less and the rules' no-colon check can hold.
-                value = action.kind.normalize(action.value).take(SellerUiAction.MAX_VALUE_LENGTH)
+                label = typed.label.trim().take(SellerUiAction.MAX_LABEL_LENGTH),
+                // Normalized on save as well as on read, so an OPEN_URL sitting in
+                // the database is already scheme-less and the rules' no-colon check
+                // can hold. For an ANNOUNCE this only trims.
+                value = typed.kind.normalize(typed.value).take(SellerUiAction.MAX_VALUE_LENGTH)
             )
             actionsRef.child(sellerId).child(id).setValue(actionToMap(stored))
             Log.d(TAG) { "saveAction: $id -> ${stored.location} for $sellerId" }
@@ -132,6 +139,10 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
             val value = fields["value"] as? String ?: return@mapNotNull null
             val label = fields["label"] as? String ?: return@mapNotNull null
             if (value.isBlank() || label.isBlank()) return@mapNotNull null
+            // A kind that does not belong in this slot is a row this app cannot
+            // render either way, so it is dropped here rather than halfway down the
+            // UI. The rules refuse the pairing too; this covers a hand-written row.
+            if (kind != location.kind) return@mapNotNull null
             SellerUiAction(
                 id = id,
                 kind = kind,

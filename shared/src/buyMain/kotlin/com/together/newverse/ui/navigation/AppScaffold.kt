@@ -16,6 +16,8 @@ import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import com.together.newverse.domain.model.ActionLocation
+import com.together.newverse.ui.components.SellerAnnouncementTitle
+import com.together.newverse.ui.state.BuyUiAction
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.DropdownMenu
@@ -342,6 +344,15 @@ private fun AppScaffoldContent(
         baseTitle
     } ?: defaultAppName
 
+    // The seller's published announcement for the home title, if there is one this
+    // buyer has not already closed. Resolved here rather than in the title slot so
+    // the check reads beside the title it replaces.
+    val homeAnnouncement = if (currentRoute == NavRoutes.Home.route) {
+        appState.homeTitleAnnouncement
+    } else {
+        null
+    }
+
     // Scroll behavior for collapsing toolbar (only for Home screen)
     // Using exitUntilCollapsedScrollBehavior for snappy hide/show behavior
     val scrollBehavior = if (currentRoute == NavRoutes.Home.route) {
@@ -453,6 +464,15 @@ private fun AppScaffoldContent(
                             )
                             Spacer(Modifier.width(12.dp))
                         }
+                    } else if (homeAnnouncement != null) {
+                        // The seller's announcement takes the whole title slot on the
+                        // home screen, and gives it back the moment the buyer closes
+                        // it. Only home: the basket and profile titles carry numbers
+                        // the buyer is acting on, which an announcement must not hide.
+                        SellerAnnouncementTitle(
+                            text = homeAnnouncement.value,
+                            onDismiss = { viewModel.dispatch(BuyUiAction.DismissHomeAnnouncement) }
+                        )
                     } else {
                         Text(
                             text = displayTitle,

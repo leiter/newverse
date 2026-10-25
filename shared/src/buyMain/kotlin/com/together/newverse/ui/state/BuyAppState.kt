@@ -4,6 +4,7 @@ import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.SellerUiAction
+import com.together.newverse.domain.model.announcementFor
 import com.together.newverse.domain.model.forLocation
 import com.together.newverse.domain.model.MarketPricing
 import com.together.newverse.domain.model.ResolvedPrice
@@ -63,6 +64,15 @@ data class BuyAppState(
      * this, which applies the per-slot ordering and cap.
      */
     val sellerUiActions: List<SellerUiAction> = emptyList(),
+    /**
+     * Announcement keys this device has dismissed, read once at startup from
+     * [com.together.newverse.data.config.AnnouncementDismissalStorage].
+     *
+     * In state rather than read from storage at render time so that the title does not
+     * touch the disk on every recomposition, and so a dismissal takes the banner away
+     * on the same frame as the tap.
+     */
+    val dismissedAnnouncements: Set<String> = emptySet(),
 
     // Invitation state
     val pendingInvitations: List<Invitation> = emptyList(),
@@ -322,6 +332,26 @@ data class BuyAppState(
             isDemo = isDemoMode
         )
 
+    /**
+     * The seller's announcement for the home title, or null — already audience-filtered
+     * and already checked against what this device has dismissed.
+     *
+     * Null covers all three ordinary cases: the seller has published nothing, the
+     * announcement is for an audience this buyer is not in, and the buyer has read it
+     * and closed it. All three mean the same thing to the top bar, which falls back to
+     * the screen's own title.
+     */
+    val homeTitleAnnouncement: SellerUiAction?
+        get() = sellerUiActions
+            .announcementFor(
+                location = ActionLocation.TOPBAR_HOME_TITLE,
+                // The *loaded* status, for the reason [topBarActionsFor] gives: a
+                // narrowed announcement must not appear at launch and vanish.
+                isApproved = canContactSeller,
+                isDemo = isDemoMode
+            )
+            ?.takeUnless { it.dismissalKey in dismissedAnnouncements }
+
     /** What the top-bar menu offers, already deduplicated. */
     val topBarContacts: List<SellerContact>
         get() = if (!canContactSeller) emptyList()
@@ -360,6 +390,11 @@ data class BuyAppState(
  * Left alone on purpose: [user], [requiresLogin] and the sign-out triggers,
  * which each caller sets to suit its flow, and the seller's catalogue in
  * [mainScreen] and [products], which is not the buyer's data.
+ *
+ * [BuyAppState.dismissedAnnouncements] is left alone for the same reason, and the
+ * decision is worth stating: it is kept per install rather than per user, so a guest
+ * who links their account does not get a banner back that they already closed. It
+ * says nothing about the buyer, only that this screen has been read.
  */
 fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
     authProvider = AuthProvider.ANONYMOUS,

@@ -206,4 +206,165 @@ class SellerUiActionTest {
             actions.forLocation(ActionLocation.TOPBAR_PROFILE, isApproved = true, isDemo = false).size
         )
     }
+
+    // ===== the home-title announcement =====
+
+    private fun announcement(text: String, id: String = "n1") = SellerUiAction(
+        id = id,
+        location = ActionLocation.TOPBAR_HOME_TITLE,
+        kind = ActionKind.ANNOUNCE,
+        value = text,
+    ).readyToStore()
+
+    @Test
+    fun `an announcement keeps the seller's sentence intact`() {
+        // The URL normalizer would eat the colon and the leading words. Nothing about
+        // an announcement is ever handed to a URI handler, so nothing is stripped.
+        val text = "Heute ab 9: Bodenschätze aus der Region"
+        assertEquals(text, announcement(text).value)
+        assertEquals("", ActionKind.ANNOUNCE.scheme)
+    }
+
+    @Test
+    fun `an announcement is labelled by its opening words`() {
+        // The rules require a non-empty label and the seller is not asked for one, so
+        // it is derived. Buyers never see it; it is what the row is recognised by.
+        val stored = announcement("Heute ab 9 Uhr gibt es frische Bodenschätze")
+        assertEquals("Heute ab 9 Uhr gibt es", stored.label)
+        assertTrue(stored.label.length <= SellerUiAction.MAX_LABEL_LENGTH)
+        assertTrue(stored.isUsable)
+    }
+
+    @Test
+    fun `an announcement with no text is not shown`() {
+        assertFalse(announcement("").isUsable)
+    }
+
+    @Test
+    fun `the slot decides the kind`() {
+        // A row saved against the title slot is an ANNOUNCE whatever the caller said,
+        // and one saved against a button slot is an OPEN_URL.
+        val titled = SellerUiAction(
+            id = "n1",
+            location = ActionLocation.TOPBAR_HOME_TITLE,
+            kind = ActionKind.OPEN_URL,
+            value = "Frische Ware",
+        ).readyToStore()
+        assertEquals(ActionKind.ANNOUNCE, titled.kind)
+
+        val button = SellerUiAction(
+            id = "a1",
+            location = ActionLocation.TOPBAR_HOME,
+            kind = ActionKind.ANNOUNCE,
+            label = "Wünsche",
+            value = "example.org",
+        ).readyToStore()
+        assertEquals(ActionKind.OPEN_URL, button.kind)
+    }
+
+    @Test
+    fun `a kind that does not belong in its slot is not shown`() {
+        // Neither pairing has a sensible rendering: an ANNOUNCE in a button slot has
+        // nothing to open, an OPEN_URL in the title has no button to be tapped.
+        assertFalse(
+            SellerUiAction(
+                id = "a1",
+                location = ActionLocation.TOPBAR_HOME,
+                kind = ActionKind.ANNOUNCE,
+                label = "Wünsche",
+                value = "example.org",
+            ).isUsable
+        )
+        assertFalse(
+            SellerUiAction(
+                id = "n1",
+                location = ActionLocation.TOPBAR_HOME_TITLE,
+                kind = ActionKind.OPEN_URL,
+                label = "Neu",
+                value = "example.org",
+            ).isUsable
+        )
+    }
+
+    @Test
+    fun `the title slot holds exactly one`() {
+        assertEquals(1, ActionLocation.TOPBAR_HOME_TITLE.maxActions)
+        assertEquals(SellerUiAction.MAX_PER_LOCATION, ActionLocation.TOPBAR_HOME.maxActions)
+    }
+
+    @Test
+    fun `an announcement is not a button and never renders as one`() {
+        // forLocation is the button path. A title row must not reach it even when
+        // asked for by name, or it would be drawn as a TextButton labelled with the
+        // first few words of a sentence.
+        val rows = listOf(announcement("Heute ab 9: Bodenschätze"))
+        assertTrue(
+            rows.forLocation(ActionLocation.TOPBAR_HOME, isApproved = true, isDemo = false).isEmpty()
+        )
+    }
+
+    @Test
+    fun `the lowest id wins when a seller has published two`() {
+        // Deterministic rather than whichever RTDB iterated first: two buyers must
+        // not see different announcements, and one buyer must not see them alternate.
+        val rows = listOf(announcement("Zweite", id = "n2"), announcement("Erste", id = "n1"))
+        val picked = rows.announcementFor(
+            ActionLocation.TOPBAR_HOME_TITLE,
+            isApproved = true,
+            isDemo = false,
+        )
+        assertEquals("n1", picked?.id)
+    }
+
+    @Test
+    fun `a narrowed announcement waits for the access status`() {
+        // Both flags false means "not loaded yet". Showing it then and taking it away
+        // a moment later is the flash canContactSeller exists to avoid.
+        val rows = listOf(
+            announcement("Nur für Freigeschaltete").copy(audience = ActionAudience.APPROVED_ONLY)
+        )
+        assertNull(
+            rows.announcementFor(ActionLocation.TOPBAR_HOME_TITLE, isApproved = false, isDemo = false)
+        )
+        assertEquals(
+            "n1",
+            rows.announcementFor(ActionLocation.TOPBAR_HOME_TITLE, isApproved = true, isDemo = false)?.id
+        )
+    }
+
+    // ===== dismissal =====
+
+    @Test
+    fun `re-wording an announcement brings it back`() {
+        // The point of hashing the text into the key. Keyed on the id alone, a seller
+        // correcting the wording in place would never reach a buyer who had dismissed
+        // the previous version.
+        val first = announcement("Heute ab 9 Uhr")
+        val corrected = first.copy(value = "Heute ab 10 Uhr")
+        assertTrue(first.dismissalKey != corrected.dismissalKey)
+    }
+
+    @Test
+    fun `the same announcement stays dismissed`() {
+        val read = announcement("Heute ab 9 Uhr")
+        val again = announcement("Heute ab 9 Uhr")
+        assertEquals(read.dismissalKey, again.dismissalKey)
+    }
+
+    @Test
+    fun `two sellers' identical announcements are dismissed separately`() {
+        // Hence the id in the key as well as the text.
+        assertTrue(
+            announcement("Frische Ware", id = "n1").dismissalKey !=
+                announcement("Frische Ware", id = "n2").dismissalKey
+        )
+    }
+
+    @Test
+    fun `a dismissal key holds no newline`() {
+        // Platform storage joins the keys with newlines, so one inside a key would
+        // split it in two and silently un-dismiss everything after it.
+        val key = announcement("Zeile eins\nZeile zwei").dismissalKey
+        assertFalse(key.contains("\n"))
+    }
 }

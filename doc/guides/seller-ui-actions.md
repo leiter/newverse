@@ -1,7 +1,8 @@
 # Seller-Published Buttons in the Buy App
 
 **Status:** Implemented 2026-10-21; two bugs found on first device use the same day
-and fixed — see **What went wrong first time**.
+and fixed — see **What went wrong first time**. The home-title announcement
+(`TOPBAR_HOME_TITLE`) was added 2026-10-25 and has not yet run on a device.
 **Scope:** `shared/src/commonMain` (model + repository), `buyMain` (top-bar
 rendering, app state), `sellMain` (editor on the profile screen),
 `firebase/database.rules.json` (+ `firebase/tests/seller-ui-actions.test.js`)
@@ -94,13 +95,18 @@ Enforced in three places, deliberately:
 
 ## Where buttons appear
 
-`ActionLocation` names whole slots — `TOPBAR_HOME`, `TOPBAR_PROFILE` — rather than
+`ActionLocation` names whole slots — `TOPBAR_HOME`, `TOPBAR_PROFILE`, and
+`TOPBAR_HOME_TITLE`, which is not a button at all — rather than
 carrying a free-form surface and screen pair. A typo in `"topbar,profileScreen"`
 either renders nowhere and looks like data loss, or renders everywhere; an unknown
 enum name is skipped and the row is simply not shown. The enum→route mapping lives in
 `AppScaffold`, not in the model: a domain type has no business knowing `NavRoutes`.
 
 In the top bar itself:
+
+(`TOPBAR_HOME_TITLE` is reached through `BuyAppState.homeTitleAnnouncement`, never
+through `forLocation`, so an announcement is never drawn as a button. The test *"an
+announcement is not drawn as a button"* pins it.)
 
 - **One action** is its own labelled `TextButton`, because the label is the point —
   "Wünsche" says what no icon could.
@@ -124,6 +130,144 @@ A link the seller chose to publish is the thing they want seen, and a button tha
 appears only after approval reads as broken to a new install. The rule test
 `"lets an unapproved guest read them too"` pins this as a decision rather than an
 oversight.
+
+## The home title: an announcement, not a button
+
+`ActionLocation.TOPBAR_HOME_TITLE` is the one slot that is not a button. While the
+seller has an announcement published and the buyer has not closed it, the seller's
+text **replaces the home screen's title**, scrolling if it is longer than the bar, with
+a close button on the right. Dismissing it gives the ordinary title back.
+
+| Field | Example |
+|---|---|
+| `kind` | `ANNOUNCE` (never the seller's choice — see below) |
+| `value` | `Heute ab 9: Bodenschätze aus der Region` |
+| `label` | `Heute ab 9:` (derived; the seller is not asked) |
+| `location` | Top bar, home screen (scrolling text) |
+
+### The slot decides the kind
+
+`ActionLocation` now carries the one `ActionKind` it renders, and
+`SellerUiAction.readyToStore()` applies it on save — in the repository *and* in the
+seller's editor, which is why it lives on the model rather than at either call site.
+The seller never picks a kind; they pick a slot.
+
+The two mismatched pairings are refused rather than rendered somehow. An `ANNOUNCE`
+in a button slot has nothing to open, and an `OPEN_URL` in the title has no button to
+be tapped; neither has a sensible default, so both are dropped by `isUsable`, skipped
+by `parseActions`, and rejected by the rules. The same reasoning as an unknown `kind`,
+applied to a *known* kind in the wrong place.
+
+### An announcement is text, so the no-colon rule is lifted — for it alone
+
+The `value` rule still bans `:` and a leading `/`, but only when `kind` is `OPEN_URL`:
+
+```
+"value": "… && (newData.parent().child('kind').val() === 'ANNOUNCE' || (!contains(':') && !beginsWith('/')))"
+```
+
+This is safe for exactly one reason, and the reason is worth being explicit about:
+**an announcement has no path to the platform's URI handler.** The colon ban exists to
+stop a stored scheme reaching `openUri`; `ActionKind.ANNOUNCE` has an empty `scheme`,
+an identity `normalize`, and is rendered as `Text`, never handed to `LocalUriHandler`.
+`OPEN_URL` is untouched, and the rule tests pin both halves — *"lets an announcement
+carry a colon"* beside *"still refuses a colon in an OPEN_URL value"*.
+
+Without this, "Heute ab 9: Bodenschätze" — an ordinary German sentence — would be
+refused by the database, and running it through the URL normalizer would quietly eat
+the leading words.
+
+### Exactly one, picked deterministically
+
+`TOPBAR_HOME_TITLE.maxActions` is 1, where the button slots keep 3. A title is one
+thing: two cannot collapse into an overflow menu the way two buttons can, and
+concatenating them would make one buyer's dismissal apply to a sentence the seller
+never wrote. The cap is per slot now, enforced in the repository and the editor as
+before, since RTDB still cannot count children.
+
+Should two somehow exist — written by hand, or from two devices —
+`announcementFor` takes the **lowest id**, not the lowest label. Two buyers must not
+see different announcements, and one buyer must not see them alternate between
+launches.
+
+### `label` is derived, not asked for
+
+The rules require a non-empty `label`, and an announcement has no button to label. So
+`readyToStore()` fills it with the opening words of the text, cut at a word boundary —
+asking a market trader to write a sentence *and* name it is one field too many. It is
+what the row is recognised by in the seller's own list; buyers never see it.
+
+## Cancelling an announcement
+
+The buyer's close button is the point of the feature as much as the text is. It is
+part of `SellerAnnouncementTitle` rather than a top-bar action, because it has to
+disappear with the announcement, and an icon in the action slot would sit beyond the
+app's own icons and read as one of them.
+
+### The key is the id *and* a hash of the text
+
+`SellerUiAction.dismissalKey` is `"$id:${value.stableHash()}"`.
+
+Keyed on the **id alone**, a seller who corrects the wording of an announcement in
+place would never reach a buyer who dismissed the previous one — the silent-stale-
+configuration failure this feature has already shipped twice (see **What went wrong
+first time**). Keyed on the **text alone**, two sellers' identical announcements would
+share one dismissal. Together: re-reading the same words stays gone, new words come
+back.
+
+`stableHash` is a hand-rolled FNV-1a rather than `String.hashCode()`, which promises
+nothing across platforms or app versions. The key is written to device storage, where
+a changed algorithm would silently un-dismiss every announcement. It is not a security
+property — a collision costs one buyer one unseen announcement.
+
+### Stored per install, not per buyer
+
+`AnnouncementDismissalStorage` is the one storage class in `data/config/` with **no**
+`setActiveUserId`. `DemoOrderStorage` and `PendingInviteTokenStorage` give every userId
+its own container because they hold the buyer's own data, which must not leak between
+accounts on a shared phone. A dismissed announcement is not the buyer's data; it is
+this screen's answer to "I have read this". Per-user scoping would bring the banner
+back the moment a guest links their account, which is when they are least interested
+in reading it again.
+
+For the same reason `clearedForSignOut` leaves `dismissedAnnouncements` alone, which
+is called out in that function's doc so it is not later read as an oversight.
+
+Dismissal **does not expire**. A buyer who said they are done with a sentence is done
+with it; the seller re-words the row when there is something new to say. The stored set
+is capped at `MAX_DISMISSAL_KEYS` (50) and evicts oldest-first, because nothing ever
+removes a key — the worst an evicted key can do is show a long-deleted announcement
+once more, which cannot happen since the seller deleted the row.
+
+### What the buyer sees fail soft
+
+The dismissal is applied to state whether or not the write lands. The buyer asked for
+the banner to go away, and it going away is the part they can see; a failed write means
+it returns next launch, which is a much smaller surprise than a close button that does
+nothing. Likewise `loadDismissedAnnouncements` swallows a read failure to "nothing
+dismissed" — the cost is one announcement shown again, against failing startup over a
+read of a UI preference.
+
+## Rolling text
+
+`SellerAnnouncementTitle` uses `Modifier.basicMarquee(iterations = Int.MAX_VALUE)`.
+
+Chosen over a hand-rolled offset animation for one specific property: **it animates
+only when the content actually overflows its box.** A short announcement therefore
+sits still, and text that jitters when it already fits reads as a bug. The title also
+lives in the home screen's `exitUntilCollapsedScrollBehavior` bar, so it has to
+tolerate a shrinking container, which the marquee re-measures into.
+
+Accessibility: a marquee animates a *visual* offset, so the node carries the whole
+sentence as its `contentDescription` and is marked a `heading()`. A screen reader reads
+the announcement once, in full, rather than whichever fragment is on screen.
+
+**Not handled in this iteration:** reduced-motion. Compose Multiplatform has no common
+API for the platform's "reduce motion" setting, and the marquee will animate for a
+buyer who has asked it not to. Worth an expect/actual if anyone reports it.
+
+Only the home screen's title is replaced. The basket and profile titles carry an item
+count and a total the buyer is acting on right now, which an announcement must not hide.
 
 ## Who sees a button
 

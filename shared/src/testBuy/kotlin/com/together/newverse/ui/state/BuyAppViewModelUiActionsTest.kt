@@ -242,4 +242,115 @@ class BuyAppViewModelUiActionsTest {
 
         assertTrue(viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_PROFILE).isEmpty())
     }
+
+    // ===== the home-title announcement =====
+
+    private fun announcement(id: String, text: String) = SellerUiAction(
+        id = id,
+        location = ActionLocation.TOPBAR_HOME_TITLE,
+        value = text,
+    ).readyToStore()
+
+    @Test
+    fun `an announcement the seller publishes reaches the home title`() = runTest {
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(
+            "Heute ab 9: Bodenschätze",
+            viewModel.state.value.homeTitleAnnouncement?.value
+        )
+    }
+
+    @Test
+    fun `an announcement is not drawn as a button`() = runTest {
+        // The title slot is reached through homeTitleAnnouncement only. Were it to
+        // reach topBarActionsFor as well, the buyer would get the announcement twice:
+        // once as the title and once as a TextButton labelled with its opening words.
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_HOME).isEmpty())
+        assertTrue(viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_PROFILE).isEmpty())
+    }
+
+    @Test
+    fun `the buyer can close an announcement`() = runTest {
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.homeTitleAnnouncement != null)
+
+        viewModel.dispatch(BuyUiAction.DismissHomeAnnouncement)
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.state.value.homeTitleAnnouncement)
+    }
+
+    @Test
+    fun `a closed announcement stays closed while the seller leaves it published`() = runTest {
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.dispatch(BuyUiAction.DismissHomeAnnouncement)
+        advanceUntilIdle()
+
+        // The live subscription re-emits the same row. A dismissal that did not
+        // survive that would last until the next snapshot, which is no time at all.
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.state.value.homeTitleAnnouncement)
+    }
+
+    @Test
+    fun `re-wording an announcement brings it back`() = runTest {
+        // The reason the dismissal key hashes the text. The seller corrects the time
+        // on the row they already have; every buyer who closed the old one must see
+        // the new one, or the correction reaches nobody.
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9 Uhr"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.dispatch(BuyUiAction.DismissHomeAnnouncement)
+        advanceUntilIdle()
+        assertEquals(null, viewModel.state.value.homeTitleAnnouncement)
+
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 10 Uhr"))
+        advanceUntilIdle()
+
+        assertEquals("Heute ab 10 Uhr", viewModel.state.value.homeTitleAnnouncement?.value)
+    }
+
+    @Test
+    fun `a narrowed announcement waits for the access status`() = runTest {
+        uiActionRepository.seed(
+            "demo_seller_id",
+            announcement("n1", "Nur für Freigeschaltete")
+                .copy(audience = ActionAudience.APPROVED_ONLY)
+        )
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // This buyer is not approved in this fixture, so the announcement is absent
+        // rather than shown and withdrawn once the status lands.
+        assertEquals(null, viewModel.state.value.homeTitleAnnouncement)
+    }
+
+    @Test
+    fun `an announcement the seller withdraws disappears without a restart`() = runTest {
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.homeTitleAnnouncement != null)
+
+        uiActionRepository.deleteAction("demo_seller_id", "n1")
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.state.value.homeTitleAnnouncement)
+    }
 }

@@ -73,8 +73,11 @@ import newverse.shared.generated.resources.snackbar_added_to_basket
 import org.jetbrains.compose.resources.getString
 import com.together.newverse.util.Log
 import com.together.newverse.ui.state.buy.loadReminderSettings
+import com.together.newverse.ui.state.buy.loadDismissedAnnouncements
+import com.together.newverse.ui.state.buy.dismissHomeAnnouncement
 import com.together.newverse.ui.state.buy.handleReminderAction
 import com.together.newverse.domain.reminder.OrderReminderScheduler
+import com.together.newverse.data.config.AnnouncementDismissalStorage
 import com.together.newverse.data.config.OrderReminderStorage
 
 
@@ -106,7 +109,13 @@ class BuyAppViewModel(
     /** Optional so the existing tests, which do not care about markets, keep their shape. */
     internal val marketRepository: MarketRepository? = null,
     /** Optional for the same reason; absent simply means no published buttons. */
-    internal val sellerUiActionRepository: SellerUiActionRepository? = null
+    internal val sellerUiActionRepository: SellerUiActionRepository? = null,
+    /**
+     * Optional like the rest; absent means nothing is remembered as dismissed, so a
+     * published announcement simply keeps showing. A test that does not care about
+     * announcements does not have to supply storage.
+     */
+    internal val announcementDismissalStorage: AnnouncementDismissalStorage? = null
 ) : BaseAppViewModel<BuyAppState, BuyAction>(authRepository) {
 
     /**
@@ -179,6 +188,11 @@ class BuyAppViewModel(
         // Observe unread message count
         Log.d(TAG) { "init: Setting up unread messages observer..." }
         observeUnreadMessages()
+
+        // Read once, here, rather than at render time: the home title must not touch
+        // the disk on every recomposition, and an announcement the buyer closed on a
+        // previous launch must not flash up before the read lands.
+        loadDismissedAnnouncements()
 
         Log.d(TAG) { "init: END" }
         // Load MainScreen articles after auth is ready (handled by observeAuthStateChanges)
@@ -291,6 +305,7 @@ class BuyAppViewModel(
 
     private fun handleUiAction(action: BuyUiAction) {
         when (action) {
+            is BuyUiAction.DismissHomeAnnouncement -> dismissHomeAnnouncement()
             is BuyUiAction.ShowSnackbar -> showSnackbar(action.message, action.type)
             is BuyUiAction.HideSnackbar -> hideSnackbar()
             is BuyUiAction.ShowDialog -> showDialog(action.dialog)

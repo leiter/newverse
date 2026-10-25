@@ -86,6 +86,15 @@ sealed interface BuyOrderAction : BuyAction {
 
 // ===== UI Actions =====
 sealed interface BuyUiAction : BuyAction {
+    /**
+     * The buyer closed the seller's home-title announcement.
+     *
+     * Carries no key: the only announcement that can be dismissed is the one being
+     * shown, and the state already knows which that is. Passing a key from the UI
+     * would let a stale recomposition dismiss an announcement the seller replaced
+     * while the frame was in flight.
+     */
+    data object DismissHomeAnnouncement : BuyUiAction
     data class ShowSnackbar(val message: String, val type: SnackbarType = SnackbarType.INFO) : BuyUiAction
     data object HideSnackbar : BuyUiAction
     data class ShowDialog(val dialog: DialogState) : BuyUiAction

@@ -231,7 +231,7 @@ Most-used:
 - `doc/guides/auth-and-accounts.md` - Startup auth, guest accounts, linking, deletion
 - `doc/guides/ordering-business-rules.md` - Order logic, per-market pickup, editing
 - `doc/guides/stock-driven-availability-design.md` - Stock vs. demand, derived `available`, refill reminder
-- `doc/guides/seller-ui-actions.md` - Seller-published top-bar buttons; the scheme is never stored
+- `doc/guides/seller-ui-actions.md` - Seller-published top-bar buttons and the home-title announcement; the scheme is never stored
 - `doc/guides/build-flavors.md` - applicationIds, BuildKonfig, the combined build
 - `doc/guides/testing.md` - Source sets, fakes, how to run what
 - `doc/plans/TODO.md` - Feature status and roadmap

@@ -42,22 +42,27 @@ class FakeSellerUiActionRepository : SellerUiActionRepository {
         action: SellerUiAction
     ): Result<SellerUiAction> {
         if (shouldFailSave) return Result.failure(Exception("Test error"))
-        if (!action.isUsable) {
+        // Kind and derived label settled before anything is checked against them,
+        // as the real repository does, so a test that saves a title row without
+        // naming ANNOUNCE is not refused for a reason production would not give.
+        val typed = action.readyToStore()
+        if (!typed.isUsable) {
             return Result.failure(IllegalArgumentException("an action needs a label and a target"))
         }
 
         val existing = actions.value[sellerId].orEmpty()
         val id = action.id.ifEmpty { "act_${existing.size + 1}" }
         val isNew = existing.none { it.id == id }
-        val inSlot = existing.count { it.location == action.location && it.id != id }
-        if (isNew && inSlot >= SellerUiAction.MAX_PER_LOCATION) {
-            return Result.failure(IllegalStateException("${action.location} is full"))
+        val inSlot = existing.count { it.location == typed.location && it.id != id }
+        // Per slot, matching the real cap, so a test that expects a refusal gets one.
+        if (isNew && inSlot >= typed.location.maxActions) {
+            return Result.failure(IllegalStateException("${typed.location} is full"))
         }
 
-        val stored = action.copy(
+        val stored = typed.copy(
             id = id,
-            label = action.label.trim().take(SellerUiAction.MAX_LABEL_LENGTH),
-            value = action.kind.normalize(action.value)
+            label = typed.label.trim().take(SellerUiAction.MAX_LABEL_LENGTH),
+            value = typed.kind.normalize(typed.value)
         )
         actions.value = actions.value + (
             sellerId to existing.filterNot { it.id == id } + stored

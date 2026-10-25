@@ -34,8 +34,57 @@ data class SellerUiAction(
      */
     val audience: ActionAudience = ActionAudience.EVERYONE,
 ) {
-    /** A button with nothing to say or nowhere to go is not shown. */
-    val isUsable: Boolean get() = label.isNotBlank() && value.isNotBlank()
+    /**
+     * A button with nothing to say or nowhere to go is not shown, and neither is a
+     * row whose [kind] does not belong in its [location].
+     *
+     * The slot decides the kind — see [ActionLocation.kind]. An `OPEN_URL` in the
+     * title slot has no button to be tapped, and an `ANNOUNCE` in a button slot has
+     * nothing to open. Both are nonsense rather than a degraded rendering, so both
+     * are dropped here as well as refused by the rules.
+     */
+    val isUsable: Boolean
+        get() = value.isNotBlank() && kind == location.kind &&
+            // An announcement has no button, so there is nothing for the seller to
+            // label and nothing to withhold the row for. [readyToStore] derives the
+            // `label` the rules still require from the text itself.
+            (label.isNotBlank() || kind == ActionKind.ANNOUNCE)
+
+    /**
+     * This row as it should be written: the slot's kind, and a label the rules accept.
+     *
+     * Both derivations live here rather than at either call site so that the editor
+     * and the repository cannot disagree about what a saved row looks like. The two
+     * disagreeing is how this feature's second bug happened.
+     *
+     * The kind comes from the slot, never from the caller — an `ANNOUNCE` in a button
+     * slot has nothing to open and an `OPEN_URL` in the title slot has no button to be
+     * tapped. The label of an announcement is its opening words, because the rules
+     * require a non-empty `label` and asking a market trader to write a sentence *and*
+     * name it would be one field too many; it is what the row is recognised by in the
+     * seller's own list, and buyers never see it.
+     */
+    fun readyToStore(): SellerUiAction {
+        val storedKind = location.kind
+        val storedLabel = when {
+            label.isNotBlank() -> label
+            storedKind == ActionKind.ANNOUNCE -> value.trim().firstWords(MAX_LABEL_LENGTH)
+            else -> label
+        }
+        return copy(kind = storedKind, label = storedLabel)
+    }
+
+    /**
+     * What a buyer's dismissal of this row is remembered by.
+     *
+     * The id *and* a hash of the text, deliberately. Keyed on the id alone, a seller
+     * who corrects the wording of an announcement in place would never reach a buyer
+     * who had dismissed the previous one — the silent-stale-configuration failure this
+     * feature has already been bitten by twice. Keyed on the text alone, two sellers'
+     * identical announcements would share one dismissal. Together: a re-read of the
+     * same words stays gone, and new words come back.
+     */
+    val dismissalKey: String get() = "$id:${value.stableHash()}"
 
     /**
      * The URI handed to the platform's URI handler.
@@ -81,7 +130,20 @@ data class SellerUiAction(
  * older one — the same degradation as [ContactChannel] and `storedOrderOrigin`.
  */
 enum class ActionKind(val scheme: String) {
-    OPEN_URL("https://");
+    OPEN_URL("https://"),
+
+    /**
+     * Text the buy app shows, rather than a target it opens.
+     *
+     * Its scheme is empty and its [normalize] is the identity, because nothing about
+     * an announcement is ever handed to a URI handler. That is also why the rules may
+     * safely let an `ANNOUNCE` value carry a colon while an `OPEN_URL` value may not:
+     * the no-colon check exists to stop a stored scheme reaching `openUri`, and an
+     * announcement has no path to `openUri` at all. "Heute ab 9: Bodenschätze" is an
+     * ordinary sentence, and running it through the URL normalizer would quietly
+     * mangle it.
+     */
+    ANNOUNCE("");
 
     /**
      * Strip what the scheme must not carry. Applied when the seller saves, so the
@@ -95,6 +157,8 @@ enum class ActionKind(val scheme: String) {
             .removePrefix("https://")
             .removePrefix("http://")
             .trimStart('/')
+        // Trimmed only. The seller's own sentence, kept as written.
+        ANNOUNCE -> raw.trim()
     }
 
     companion object {
@@ -113,9 +177,29 @@ enum class ActionKind(val scheme: String) {
  * rendered — the mapping lives in the UI layer, since a domain model has no business
  * knowing `NavRoutes`.
  */
-enum class ActionLocation {
-    TOPBAR_HOME,
-    TOPBAR_PROFILE;
+enum class ActionLocation(
+    /**
+     * The one [ActionKind] this slot carries, so the seller never has to pick a kind
+     * and an impossible pairing cannot be stored. See [SellerUiAction.isUsable].
+     */
+    val kind: ActionKind,
+    /** How many rows this slot will show. */
+    val maxActions: Int,
+) {
+    TOPBAR_HOME(ActionKind.OPEN_URL, SellerUiAction.MAX_PER_LOCATION),
+    TOPBAR_PROFILE(ActionKind.OPEN_URL, SellerUiAction.MAX_PER_LOCATION),
+
+    /**
+     * The home screen's title, replaced by the seller's announcement while one is
+     * published and the buyer has not dismissed it.
+     *
+     * Not a button slot, and so not reachable through [forLocation] — read it with
+     * [announcementFor], which returns at most one. A title is one thing: two of
+     * them cannot collapse into an overflow menu the way two buttons can, and
+     * concatenating them would make one buyer's dismissal apply to a sentence the
+     * seller never wrote. The cap is 1 here, enforced where actions are saved.
+     */
+    TOPBAR_HOME_TITLE(ActionKind.ANNOUNCE, maxActions = 1);
 
     companion object {
         /** The stored name, or null when written by a version that knows more slots. */
@@ -183,3 +267,53 @@ fun List<SellerUiAction>.forLocation(
     filter { it.location == location && it.isUsable && it.audience.includes(isApproved, isDemo) }
         .sortedBy { it.label.lowercase() }
         .take(SellerUiAction.MAX_PER_LOCATION)
+
+/**
+ * The one announcement for a slot, or null.
+ *
+ * Audience-filtered like [forLocation], and for the same reason: a narrowed
+ * announcement stays absent until the app knows which side of the approval line this
+ * buyer is on. The winner is picked by id rather than by label so that a seller who
+ * has somehow published two — by hand, or from two devices — gets the same one on
+ * every buyer's phone and on every launch, instead of whichever RTDB iterated first.
+ */
+fun List<SellerUiAction>.announcementFor(
+    location: ActionLocation,
+    isApproved: Boolean,
+    isDemo: Boolean,
+): SellerUiAction? =
+    filter { it.location == location && it.isUsable && it.audience.includes(isApproved, isDemo) }
+        .minByOrNull { it.id }
+
+/**
+ * The opening words of a string, within [limit] characters.
+ *
+ * Cut at a space rather than mid-character, because a seller reading
+ * "Heute ab 9 Uhr gibt es f" in their own list of rows would reasonably think
+ * something had gone wrong. Falls back to a hard cut for a single word longer than
+ * the limit, where there is no boundary to find.
+ */
+private fun String.firstWords(limit: Int): String {
+    if (length <= limit) return this
+    val cut = take(limit + 1)
+    val lastSpace = cut.lastIndexOf(' ')
+    return if (lastSpace > 0) cut.take(lastSpace) else take(limit)
+}
+
+/**
+ * A short, stable digest of a string — FNV-1a, 32-bit, lowercase hex.
+ *
+ * Hand-rolled because this has to agree across launches, platforms and app versions,
+ * which `String.hashCode()` does not promise, and because it is written into device
+ * storage where a changed algorithm would silently un-dismiss every announcement.
+ * Not a security property: it keys a UI preference, and a collision costs one buyer
+ * one unseen announcement.
+ */
+internal fun String.stableHash(): String {
+    var hash = 2166136261u
+    for (char in this) {
+        hash = hash xor char.code.toUInt()
+        hash *= 16777619u
+    }
+    return hash.toString(16).padStart(8, '0')
+}

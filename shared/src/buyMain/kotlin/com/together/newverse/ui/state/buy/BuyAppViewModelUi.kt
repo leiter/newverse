@@ -6,6 +6,7 @@ import com.together.newverse.ui.state.BottomSheetState
 import com.together.newverse.ui.state.DialogState
 import com.together.newverse.ui.state.SnackbarState
 import com.together.newverse.ui.state.SnackbarType
+import com.together.newverse.util.Log
 import kotlinx.coroutines.flow.update
 
 /**
@@ -141,5 +142,48 @@ internal fun BuyAppViewModel.setAuthError(error: String) {
                 isSuccess = false  // Ensure success state is cleared
             )
         )
+    }
+}
+
+// ===== The seller's home-title announcement ================================
+
+/**
+ * Read this device's dismissed announcement keys into state.
+ *
+ * Called once from `init`. Synchronous because the underlying storage is
+ * SharedPreferences or NSUserDefaults rather than a network call, and because the
+ * alternative — rendering before the read lands — would flash an announcement the
+ * buyer closed on a previous launch.
+ *
+ * A failure is swallowed to an empty set. The cost is one announcement shown again;
+ * the cost of failing startup over a read of a UI preference is the whole app.
+ */
+internal fun BuyAppViewModel.loadDismissedAnnouncements() {
+    val storage = announcementDismissalStorage ?: return
+    val dismissed = try {
+        storage.dismissed()
+    } catch (e: Exception) {
+        Log.w("BuyVMUi") { "loadDismissedAnnouncements: ${e.message}" }
+        return
+    }
+    _state.update { it.copy(dismissedAnnouncements = it.dismissedAnnouncements + dismissed) }
+}
+
+/**
+ * Stop showing the announcement currently in the home title.
+ *
+ * The key is taken from state rather than from the caller, so a tap can only ever
+ * dismiss the sentence that was on screen. State is updated whether or not the write
+ * succeeds: the buyer asked for the banner to go away, and it going away is the part
+ * they can see. A failed write means it comes back next launch, which is a far smaller
+ * surprise than a close button that does nothing.
+ */
+internal fun BuyAppViewModel.dismissHomeAnnouncement() {
+    val key = _state.value.homeTitleAnnouncement?.dismissalKey ?: return
+    _state.update { it.copy(dismissedAnnouncements = it.dismissedAnnouncements + key) }
+    try {
+        announcementDismissalStorage?.dismiss(key)
+    } catch (e: Exception) {
+        Log.w("BuyVMUi") { "dismissHomeAnnouncement: $key not persisted - ${e.message}" }
     }
 }

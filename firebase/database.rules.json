@@ -135,10 +135,10 @@
         "$actionId": {
           ".validate": "newData.hasChildren(['id', 'kind', 'label', 'value', 'location']) && newData.child('id').val() === $actionId",
           "id": { ".validate": "newData.isString()" },
-          "kind": { ".validate": "newData.val() === 'OPEN_URL'" },
+          "kind": { ".validate": "(newData.val() === 'OPEN_URL' && newData.parent().child('location').val() !== 'TOPBAR_HOME_TITLE') || (newData.val() === 'ANNOUNCE' && newData.parent().child('location').val() === 'TOPBAR_HOME_TITLE')" },
           "label": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 24" },
-          "value": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500 && !newData.val().contains(':') && !newData.val().beginsWith('/')" },
-          "location": { ".validate": "newData.val() === 'TOPBAR_HOME' || newData.val() === 'TOPBAR_PROFILE'" },
+          "value": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500 && (newData.parent().child('kind').val() === 'ANNOUNCE' || (!newData.val().contains(':') && !newData.val().beginsWith('/')))" },
+          "location": { ".validate": "newData.val() === 'TOPBAR_HOME' || newData.val() === 'TOPBAR_PROFILE' || newData.val() === 'TOPBAR_HOME_TITLE'" },
           "audience": { ".validate": "newData.val() === 'EVERYONE' || newData.val() === 'DEMO_ONLY' || newData.val() === 'APPROVED_ONLY'" },
           "$other": { ".validate": false }
         }

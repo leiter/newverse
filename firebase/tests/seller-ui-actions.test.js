@@ -113,6 +113,66 @@ describe("seller_ui_actions", () => {
     await assertFails(write(SELLER, "act_2", action({ id: "act_2", location: "EVERYWHERE" })));
   });
 
+  // --- the slot decides the kind -------------------------------------------
+  //
+  // An ANNOUNCE in a button slot has nothing to open and an OPEN_URL in the title
+  // slot has no button to be tapped. Neither is a degraded rendering the app could
+  // fall back on, so the pairing is refused here rather than filtered in the client.
+
+  const announcement = (overrides = {}) => action({
+    kind: "ANNOUNCE",
+    location: "TOPBAR_HOME_TITLE",
+    label: "Bodenschätze",
+    value: "Heute ab 9: Bodenschätze aus der Region",
+    ...overrides
+  });
+
+  it("accepts an announcement on the home title", async () => {
+    await assertSucceeds(write(SELLER, "act_2", announcement({ id: "act_2" })));
+  });
+
+  it("refuses an OPEN_URL on the home title", async () => {
+    await assertFails(
+      write(SELLER, "act_2", announcement({ id: "act_2", kind: "OPEN_URL", value: "example.org" }))
+    );
+  });
+
+  it("refuses an ANNOUNCE in a button slot", async () => {
+    await assertFails(
+      write(SELLER, "act_2", announcement({ id: "act_2", location: "TOPBAR_HOME" }))
+    );
+  });
+
+  // --- an announcement is text, not an address -----------------------------
+
+  it("lets an announcement carry a colon", async () => {
+    // The no-colon check exists to stop a stored scheme reaching the platform's URI
+    // handler. An announcement never reaches it, and "Heute ab 9: ..." is an ordinary
+    // German sentence. Loosened for this kind alone, deliberately.
+    await assertSucceeds(
+      write(SELLER, "act_2", announcement({ id: "act_2", value: "Neu: Bodenschätze" }))
+    );
+  });
+
+  it("still refuses a colon in an OPEN_URL value", async () => {
+    await assertFails(
+      write(SELLER, "act_2", action({ id: "act_2", value: "https://evil.test" }))
+    );
+  });
+
+  it("still refuses a leading slash in an OPEN_URL value", async () => {
+    // "//evil.test" would resolve against the scheme and reach another host.
+    await assertFails(
+      write(SELLER, "act_2", action({ id: "act_2", value: "/evil.test" }))
+    );
+  });
+
+  it("refuses an announcement longer than the stored cap", async () => {
+    await assertFails(
+      write(SELLER, "act_2", announcement({ id: "act_2", value: "x".repeat(501) }))
+    );
+  });
+
   // --- audience -------------------------------------------------------------
 
   it("accepts each audience the app implements", async () => {
