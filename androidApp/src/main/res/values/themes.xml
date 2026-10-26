@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base application theme -->
-    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- The parent stays Light because Theme.DeviceDefault.DayNight needs API 29
+         and minSdk is 23. Compose draws every pixel of the UI; the only thing the
+         platform theme contributes is the window background, and that follows
+         values-night/colors.xml, so the launch does not flash white in dark mode. -->
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 
     <!-- Splash screen theme with background drawable -->
     <style name="AppTheme.Splash" parent="android:Theme.Material.Light.NoActionBar">

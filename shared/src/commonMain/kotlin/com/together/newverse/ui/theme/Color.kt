@@ -2,34 +2,41 @@ package com.together.newverse.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary Colors - Organic & Fresh
-val BrightGreen = Color(0xFF008577)  // Keep original teal-green
-val DarkGreen = Color(0xFF00574B)
-val FabGreen = Color(0xFF2E7D32)     // Material Green 700 - more modern
-val LeafGreen = Color(0xFF66BB6A)    // Fresh leaf green for highlights
+// =============================================================================
+// Bodenschätze palette (taken from the neighbourhood flyer)
+// =============================================================================
+// Paper   #F6F2E8  warm off-white background
+// Card    #FFFDF8  slightly lighter card surface
+// Ink     #1B2A16  near-black with a green cast, for text
+// Muted   #4A5145  secondary text
+// Green   #0A6308  brand green (headings, primary buttons)
+// Orange  #FA9C4D  brand orange (badges, highlights, app icon)
+// Soil    #5A3E2B  soil brown (section labels, secondary actions)
+// Potato  #C9A27A  light earth tone
+//
+// Every text/background pair below meets WCAG AA (4.5:1) in both themes.
+// The brand orange is never used as a text colour on light backgrounds
+// (only 2:1); it is a container fill with Ink on top (7.2:1).
+// =============================================================================
 
-// Accent Colors - Warm & Natural
-val Orange = Color(0xFFFF6F00)       // Vibrant orange for CTAs
-val SoftOrange = Color(0xFFFFB74D)   // Softer orange for badges
-val BrownAccent = Color(0xFF6D4C41)  // Refined brown
-val BrandOrange = Color(0xFFFA9C4D)
-// Background Colors - Organic & Earthy
-val OrganicBeige = Color(0xFFF5E6D3)     // Warm organic beige
-val LightCream = Color(0xFFFFF8E1)       // Cream for light backgrounds
-val SandColor = Color(0xFFE8D5C4)        // Sand color for cards
-val BeigeCard = Color(0xFFEFE5D8)        // Updated softer beige
+// Brand raw values
+val BodenPaper = Color(0xFFF6F2E8)
+val BodenCard = Color(0xFFFFFDF8)
+val BodenInk = Color(0xFF1B2A16)
+val BodenMuted = Color(0xFF4A5145)
+val BodenGreen = Color(0xFF0A6308)
+val BodenOrange = Color(0xFFFA9C4D)
+val BodenSoil = Color(0xFF5A3E2B)
+val BodenPotato = Color(0xFFC9A27A)
+val BodenNight = Color(0xFF14120E)   // "dark soil", dark theme background
 
-// Semantic Colors
-val ErrorRed = Color(0xFFD32F2F)         // Material Error
-val SuccessGreen = Color(0xFF4CAF50)     // Material Success
-val InfoBlue = Color(0xFF1976D2)         // Material Info
-val WarningOrange = Color(0xFFF57C00)    // Material Warning
+// Semantic colours (unchanged)
+val ErrorRed = Color(0xFFD32F2F)
+val SuccessGreen = Color(0xFF4CAF50)
+val InfoBlue = Color(0xFF1976D2)
+val WarningOrange = Color(0xFFF57C00)
 
-// Surface Colors
-val SurfaceElevated = Color(0xFFFFFBF5)  // Slightly warm white
-val SoftBrown = Color(0xFFBCAAA4)        // Softer brown for dividers
-
-// Neutral Colors
+// Neutral colours (unchanged)
 val White = Color(0xFFFFFFFF)
 val Black = Color(0xFF000000)
 val Gray50 = Color(0xFFFAFAFA)
@@ -43,71 +50,123 @@ val Gray700 = Color(0xFF616161)
 val Gray800 = Color(0xFF424242)
 val Gray900 = Color(0xFF212121)
 
-// Light Theme Colors
-val LightPrimary = BrightGreen
+// =============================================================================
+// Light theme
+// =============================================================================
+val LightPrimary = BodenGreen
 val LightOnPrimary = White
-val LightPrimaryContainer = Color(0xFFB3E5E0)
-val LightOnPrimaryContainer = DarkGreen
+val LightPrimaryContainer = Color(0xFFC6E8BC)
+val LightOnPrimaryContainer = Color(0xFF052E03)
 
-val LightSecondary = FabGreen
+val LightSecondary = BodenSoil
 val LightOnSecondary = White
-val LightSecondaryContainer = Color(0xFFC8E6C9)
-val LightOnSecondaryContainer = Color(0xFF053004)
+val LightSecondaryContainer = Color(0xFFEADBC8)
+val LightOnSecondaryContainer = Color(0xFF2B1C11)
 
-val LightTertiary = Orange
+val LightTertiary = Color(0xFF8F4A0E)            // darkened orange, usable as text/button
 val LightOnTertiary = White
-val LightTertiaryContainer = Color(0xFFFFDDB3)
-val LightOnTertiaryContainer = BrownAccent
+val LightTertiaryContainer = BodenOrange         // the flyer's badge orange
+val LightOnTertiaryContainer = BodenInk
 
-val LightError = ErrorRed
+val LightError = Color(0xFFB3261E)
 val LightOnError = White
-val LightErrorContainer = Color(0xFFFFDAD6)
-val LightOnErrorContainer = Color(0xFF410002)
+val LightErrorContainer = Color(0xFFF9DEDC)
+val LightOnErrorContainer = Color(0xFF410E0B)
 
-val LightBackground = White
-val LightOnBackground = Gray900
-val LightSurface = White
-val LightOnSurface = Gray900
-val LightSurfaceVariant = Gray100
-val LightOnSurfaceVariant = Gray700
+val LightBackground = BodenPaper
+val LightOnBackground = BodenInk
+val LightSurface = BodenPaper
+val LightOnSurface = BodenInk
+val LightSurfaceVariant = Color(0xFFECE5D6)
+val LightOnSurfaceVariant = BodenMuted
 
-val LightOutline = Gray400
-val LightOutlineVariant = Gray300
+val LightSurfaceContainerLowest = White
+val LightSurfaceContainerLow = BodenCard         // elevated cards, like the flyer cards
+val LightSurfaceContainer = Color(0xFFF0EBDF)    // navigation bar, menus
+val LightSurfaceContainerHigh = Color(0xFFEAE4D6)
+val LightSurfaceContainerHighest = Color(0xFFE4DDCD) // filled cards, text fields
 
-// Dark Theme Colors - Improved for better readability and organic feel
-// Using a warm-tinted dark theme that complements the organic/fresh theme
+val LightOutline = Color(0xFF7A7466)
+val LightOutlineVariant = Color(0xFFD9D0BC)      // the flyer's card border
 
-// Primary - Lighter, more vibrant green for dark mode
-val DarkPrimary = Color(0xFF4DB6AC)  // Teal-green, brighter than light mode
-val DarkOnPrimary = Color(0xFF00251F)
-val DarkPrimaryContainer = Color(0xFF00574B)
-val DarkOnPrimaryContainer = Color(0xFFB2DFDB)
+val LightInverseSurface = Color(0xFF2E2A22)
+val LightInverseOnSurface = BodenPaper
+val LightInversePrimary = Color(0xFF8FD47F)
 
-// Secondary - Fresh green tones
-val DarkSecondary = Color(0xFF81C784)  // Light green for good contrast
-val DarkOnSecondary = Color(0xFF1B5E20)
-val DarkSecondaryContainer = Color(0xFF2E7D32)
-val DarkOnSecondaryContainer = Color(0xFFC8E6C9)
+// =============================================================================
+// Dark theme ("night soil")
+// =============================================================================
+val DarkPrimary = Color(0xFF8FD47F)              // light leaf green
+val DarkOnPrimary = Color(0xFF053902)
+val DarkPrimaryContainer = BodenGreen            // the brand green as container
+val DarkOnPrimaryContainer = Color(0xFFC6E8BC)
 
-// Tertiary - Warm orange accents
-val DarkTertiary = Color(0xFFFFB74D)  // Warm orange, softer than light mode
-val DarkOnTertiary = Color(0xFF5D2F00)
-val DarkTertiaryContainer = Color(0xFF8D4E00)
-val DarkOnTertiaryContainer = Color(0xFFFFE0B2)
+val DarkSecondary = Color(0xFFE2C3A3)            // potato
+val DarkOnSecondary = Color(0xFF3F2B1D)
+val DarkSecondaryContainer = BodenSoil
+val DarkOnSecondaryContainer = Color(0xFFF2DFCB)
 
-// Error colors
-val DarkError = Color(0xFFEF9A9A)
-val DarkOnError = Color(0xFF5F0A0A)
-val DarkErrorContainer = Color(0xFFC62828)
-val DarkOnErrorContainer = Color(0xFFFFCDD2)
+val DarkTertiary = Color(0xFFFFB77C)
+val DarkOnTertiary = Color(0xFF4A2500)
+val DarkTertiaryContainer = BodenOrange          // badges stay recognisably orange
+val DarkOnTertiaryContainer = BodenInk
 
-// Background & Surface - Darker with organic warmth
-val DarkBackground = Color(0xFF0F0E0D)  // Very dark brown-black (almost black)
-val DarkOnBackground = Color(0xFFF5F5F0)
-val DarkSurface = Color(0xFF1A1816)     // Dark brown surface
-val DarkOnSurface = Color(0xFFF5F5F0)
-val DarkSurfaceVariant = Color(0xFF2C2826)  // Elevated card backgrounds
-val DarkOnSurfaceVariant = Color(0xFFE0D8D3)
+val DarkError = Color(0xFFF2B8B5)
+val DarkOnError = Color(0xFF601410)
+val DarkErrorContainer = Color(0xFF8C1D18)
+val DarkOnErrorContainer = Color(0xFFF9DEDC)
 
-val DarkOutline = Color(0xFF8D8985)
-val DarkOutlineVariant = Color(0xFF5C5955)
+val DarkBackground = BodenNight
+val DarkOnBackground = Color(0xFFECE6D8)
+val DarkSurface = BodenNight
+val DarkOnSurface = Color(0xFFECE6D8)
+val DarkSurfaceVariant = Color(0xFF3A342A)
+val DarkOnSurfaceVariant = Color(0xFFC9C1AE)
+
+val DarkSurfaceContainerLowest = Color(0xFF0F0D0A)
+val DarkSurfaceContainerLow = Color(0xFF1C1914)
+val DarkSurfaceContainer = Color(0xFF211D17)
+val DarkSurfaceContainerHigh = Color(0xFF2B261F)
+val DarkSurfaceContainerHighest = Color(0xFF36302A)
+
+val DarkOutline = Color(0xFF968E7C)
+val DarkOutlineVariant = Color(0xFF4A4338)
+
+val DarkInverseSurface = Color(0xFFECE6D8)
+val DarkInverseOnSurface = Color(0xFF2E2A22)
+val DarkInversePrimary = BodenGreen
+
+// =============================================================================
+// Legacy names — kept so the build stays green while screens migrate.
+// They now point at the new palette. Replace usages with
+// MaterialTheme.colorScheme.* (see the migration table in the guide),
+// otherwise these screens ignore the dark theme.
+// =============================================================================
+@Deprecated("Use MaterialTheme.colorScheme.primary", ReplaceWith("MaterialTheme.colorScheme.primary"))
+val BrightGreen = BodenGreen
+@Deprecated("Use MaterialTheme.colorScheme.onPrimaryContainer", ReplaceWith("MaterialTheme.colorScheme.onPrimaryContainer"))
+val DarkGreen = Color(0xFF052E03)
+@Deprecated("Use MaterialTheme.colorScheme.primary", ReplaceWith("MaterialTheme.colorScheme.primary"))
+val FabGreen = BodenGreen
+@Deprecated("Use MaterialTheme.colorScheme.primaryContainer", ReplaceWith("MaterialTheme.colorScheme.primaryContainer"))
+val LeafGreen = Color(0xFF8FD47F)
+@Deprecated("Use MaterialTheme.colorScheme.tertiary", ReplaceWith("MaterialTheme.colorScheme.tertiary"))
+val Orange = Color(0xFF8F4A0E)
+@Deprecated("Use MaterialTheme.colorScheme.tertiaryContainer", ReplaceWith("MaterialTheme.colorScheme.tertiaryContainer"))
+val SoftOrange = BodenOrange
+@Deprecated("Use MaterialTheme.colorScheme.tertiaryContainer", ReplaceWith("MaterialTheme.colorScheme.tertiaryContainer"))
+val BrandOrange = BodenOrange
+@Deprecated("Use MaterialTheme.colorScheme.secondary", ReplaceWith("MaterialTheme.colorScheme.secondary"))
+val BrownAccent = BodenSoil
+@Deprecated("Use MaterialTheme.colorScheme.background", ReplaceWith("MaterialTheme.colorScheme.background"))
+val OrganicBeige = BodenPaper
+@Deprecated("Use MaterialTheme.colorScheme.surfaceContainerLow", ReplaceWith("MaterialTheme.colorScheme.surfaceContainerLow"))
+val LightCream = BodenCard
+@Deprecated("Use MaterialTheme.colorScheme.surfaceContainerHighest", ReplaceWith("MaterialTheme.colorScheme.surfaceContainerHighest"))
+val SandColor = Color(0xFFE4DDCD)
+@Deprecated("Use MaterialTheme.colorScheme.surfaceContainerHigh", ReplaceWith("MaterialTheme.colorScheme.surfaceContainerHigh"))
+val BeigeCard = Color(0xFFEAE4D6)
+@Deprecated("Use MaterialTheme.colorScheme.surfaceContainerLow", ReplaceWith("MaterialTheme.colorScheme.surfaceContainerLow"))
+val SurfaceElevated = BodenCard
+@Deprecated("Use MaterialTheme.colorScheme.outlineVariant", ReplaceWith("MaterialTheme.colorScheme.outlineVariant"))
+val SoftBrown = Color(0xFFD9D0BC)

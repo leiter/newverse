@@ -2,4 +2,8 @@
 <resources>
     <!-- Splash screen colors -->
     <color name="orange">#FA9C4D</color>
+
+    <!-- Window background behind the app, before Compose draws.
+         Night variant in values-night/colors.xml. -->
+    <color name="window_background">#F6F2E8</color>
 </resources>

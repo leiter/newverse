@@ -46,15 +46,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.together.newverse.ui.theme.BrandOrange
-import com.together.newverse.ui.theme.BrownAccent
-import com.together.newverse.ui.theme.ErrorRed
-import com.together.newverse.ui.theme.FabGreen
-import com.together.newverse.ui.theme.Gray600
-import com.together.newverse.ui.theme.InfoBlue
-import com.together.newverse.ui.theme.LeafGreen
-import com.together.newverse.ui.theme.SuccessGreen
-import com.together.newverse.ui.theme.White
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.about_contact_title
 import newverse.shared.generated.resources.about_email
@@ -116,7 +107,7 @@ fun AboutScreenModern(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                LeafGreen.copy(alpha = 0.05f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
                                 Color.Transparent
                             )
                         )
@@ -166,7 +157,7 @@ private fun HeroSection() {
             // Logo/Icon
             Surface(
                 shape = CircleShape,
-                color = BrandOrange,
+                color = MaterialTheme.colorScheme.tertiaryContainer,
                 modifier = Modifier.size(80.dp)
             ) {
                 Image(
@@ -183,7 +174,7 @@ private fun HeroSection() {
                 text = stringResource(Res.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = FabGreen
+                color = MaterialTheme.colorScheme.primary
             )
 
             Text(
@@ -197,12 +188,12 @@ private fun HeroSection() {
 
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = SuccessGreen.copy(alpha = 0.1f)
+                color = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Text(
                     text = stringResource(Res.string.app_established),
                     style = MaterialTheme.typography.labelMedium,
-                    color = SuccessGreen,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                 )
             }
@@ -232,13 +223,13 @@ private fun ContactCard(
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = FabGreen,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         Icons.Default.Email,
                         contentDescription = null,
-                        tint = White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(10.dp)
@@ -320,7 +311,7 @@ private fun ContactCard(
             ContactRow(
                 icon = Icons.Default.LocationOn,
                 text = stringResource(Res.string.about_location),
-                iconColor = FabGreen
+                iconColor = MaterialTheme.colorScheme.primary
             )
         }
     }
@@ -345,13 +336,13 @@ private fun LegalInfoCard() {
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = BrownAccent,
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         Icons.Default.Person,
                         contentDescription = null,
-                        tint = White,
+                        tint = MaterialTheme.colorScheme.onSecondary,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(10.dp)
@@ -410,13 +401,13 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = InfoBlue,
+                    color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         Icons.Default.Lock,
                         contentDescription = null,
-                        tint = White,
+                        tint = MaterialTheme.colorScheme.onTertiary,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(10.dp)
@@ -457,11 +448,11 @@ private fun PrivacyCard(uriHandler: androidx.compose.ui.platform.UriHandler) {
                     uriHandler.openUri("https://leiter.github.io/newverse/de/privacy.html")
                 },
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = FabGreen
+                    contentColor = MaterialTheme.colorScheme.primary
                 ),
                 border = ButtonDefaults.outlinedButtonBorder.copy(
                     brush = Brush.linearGradient(
-                        colors = listOf(FabGreen, FabGreen)
+                        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary)
                     )
                 )
             ) {
@@ -477,7 +468,7 @@ private fun MissionCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = LeafGreen.copy(alpha = 0.1f)
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -490,7 +481,7 @@ private fun MissionCard() {
             Icon(
                 Icons.Default.Favorite,
                 contentDescription = null,
-                tint = ErrorRed,
+                tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(32.dp)
             )
 
@@ -500,7 +491,7 @@ private fun MissionCard() {
                 text = stringResource(Res.string.about_mission_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = FabGreen,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { heading() }
             )
@@ -510,7 +501,7 @@ private fun MissionCard() {
             Text(
                 text = stringResource(Res.string.about_mission_text),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 textAlign = TextAlign.Center,
                 lineHeight = 22.sp
             )
@@ -522,7 +513,7 @@ private fun MissionCard() {
 private fun ContactRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     text: String,
-    iconColor: Color = Gray600
+    iconColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -585,13 +576,13 @@ private fun ContactLine(
         Icon(
             icon,
             contentDescription = null,
-            tint = FabGreen,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp)
         )
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = FabGreen,
+            color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium,
             textDecoration = TextDecoration.Underline,
             modifier = Modifier

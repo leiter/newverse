@@ -75,3 +75,27 @@ fun PickDayScreenPreview() {
         }
     }
 }
+
+// =====================================================================
+// Both themes side by side — see LightDarkPreview
+// =====================================================================
+
+@LightDarkPreview
+@Composable
+fun OverviewScreenThemesPreview() {
+    NewverseTheme {
+        Surface {
+            OverviewScreen()
+        }
+    }
+}
+
+@LightDarkPreview
+@Composable
+fun OrdersScreenThemesPreview() {
+    NewverseTheme {
+        Surface {
+            OrdersScreen()
+        }
+    }
+}

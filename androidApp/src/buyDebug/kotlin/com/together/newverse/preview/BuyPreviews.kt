@@ -214,3 +214,35 @@ fun BasketScreenCheckingOutPreview() {
 //        }
 //    }
 //}
+
+// =====================================================================
+// Both themes side by side — see LightDarkPreview
+// =====================================================================
+
+@LightDarkPreview
+@Composable
+fun MainScreenThemesPreview() {
+    NewverseTheme {
+        MainScreenModern(
+            state = PreviewData.sampleMainScreenState,
+            onAction = {}
+        )
+    }
+}
+
+@LightDarkPreview
+@Composable
+fun BasketScreenThemesPreview() {
+    NewverseTheme {
+        Surface {
+            BasketContent(
+                state = BasketScreenState(
+                    items = PreviewData.sampleOrderedProducts.take(3),
+                    total = 12.50
+                ),
+                currentArticles = emptyList(),
+                onAction = {}
+            )
+        }
+    }
+}

@@ -33,7 +33,7 @@ Current truth. Verified against `shared/src` on 2026-10-20 unless noted.
 | [testing.md](guides/testing.md) | Source sets, 984 tests, the 13 fakes, instrumentation, rules tests |
 | [rtdb-test-fixtures.md](guides/rtdb-test-fixtures.md) | The three importable RTDB snapshots in `firebase/fixtures/`, their identities, and the 36 test cases they are built for |
 | [localization.md](guides/localization.md) | Compose Resources, **positional `%1$s` only** |
-| [theme.md](guides/theme.md) | Material 3 theme, brand colors, typography, shapes |
+| [theme.md](guides/theme.md) | Material 3 theme, the **Bodenschätze palette** from the flyer, the Nachterde dark scheme, why dark mode can look like light mode |
 | [accessibility.md](guides/accessibility.md) | TalkBack/VoiceOver principles; coverage map is incomplete |
 | [image-loading.md](guides/image-loading.md) | Coil 3.3.0, caching, platform support |
 | [market-pricing-and-access-design.md](guides/market-pricing-and-access-design.md) | Markets as an entity, per-market pricing, eligibility, slots, closures (implemented 2026-10-19) |

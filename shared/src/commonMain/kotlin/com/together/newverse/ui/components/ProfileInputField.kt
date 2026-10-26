@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.together.newverse.ui.theme.FabGreen
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -35,7 +34,7 @@ fun ProfileInputField(
         // Icon on the left with green background
         Surface(
             shape = RoundedCornerShape(8.dp),
-            color = FabGreen,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(64.dp)
         ) {
             Box(
@@ -45,7 +44,7 @@ fun ProfileInputField(
                 Icon(
                     imageVector = icon,
                     contentDescription = hint,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -93,7 +92,7 @@ fun ProfileInputField(
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = stringResource(Res.string.cd_clear_input),
-                tint = FabGreen,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(32.dp)
             )
         }

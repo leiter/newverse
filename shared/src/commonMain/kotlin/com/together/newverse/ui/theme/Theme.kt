@@ -34,9 +34,22 @@ private val LightColorScheme = lightColorScheme(
     onSurface = LightOnSurface,
     surfaceVariant = LightSurfaceVariant,
     onSurfaceVariant = LightOnSurfaceVariant,
+    surfaceTint = LightPrimary,
+
+    surfaceContainerLowest = LightSurfaceContainerLowest,
+    surfaceContainerLow = LightSurfaceContainerLow,
+    surfaceContainer = LightSurfaceContainer,
+    surfaceContainerHigh = LightSurfaceContainerHigh,
+    surfaceContainerHighest = LightSurfaceContainerHighest,
+    surfaceBright = LightSurfaceContainerLowest,
+    surfaceDim = LightSurfaceContainerHighest,
 
     outline = LightOutline,
     outlineVariant = LightOutlineVariant,
+
+    inverseSurface = LightInverseSurface,
+    inverseOnSurface = LightInverseOnSurface,
+    inversePrimary = LightInversePrimary,
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -67,22 +80,30 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = DarkOnSurface,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceTint = DarkPrimary,
+
+    surfaceContainerLowest = DarkSurfaceContainerLowest,
+    surfaceContainerLow = DarkSurfaceContainerLow,
+    surfaceContainer = DarkSurfaceContainer,
+    surfaceContainerHigh = DarkSurfaceContainerHigh,
+    surfaceContainerHighest = DarkSurfaceContainerHighest,
+    surfaceBright = DarkSurfaceContainerHighest,
+    surfaceDim = DarkSurfaceContainerLowest,
 
     outline = DarkOutline,
     outlineVariant = DarkOutlineVariant,
+
+    inverseSurface = DarkInverseSurface,
+    inverseOnSurface = DarkInverseOnSurface,
+    inversePrimary = DarkInversePrimary,
 )
 
 /**
- * Newverse App Theme
+ * Newverse App Theme — Bodenschätze palette
  *
- * Migrated from the universe project with Material3 design system.
- *
- * Features:
- * - Light and dark theme support
- * - Brand colors from universe project (teal/green primary)
- * - Material3 color system
- * - Custom typography scale
- * - Rounded corner shapes
+ * Colours follow the neighbourhood flyer: paper background, brand green,
+ * brand orange as badge/highlight fill, soil brown as secondary.
+ * The dark variant ("night soil") keeps green and orange recognisable.
  *
  * @param darkTheme Whether to use dark theme (defaults to system preference)
  * @param content The composable content to theme
@@ -92,27 +113,17 @@ fun NewverseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) {
-        DarkColorScheme
-    } else {
-        LightColorScheme
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         typography = AppTypography,
         shapes = AppShapes,
         content = content
     )
 }
 
-/**
- * Light theme variant (always uses light colors)
- */
+/** Light theme variant (always uses light colors) */
 @Composable
-fun NewverseLightTheme(
-    content: @Composable () -> Unit
-) {
+fun NewverseLightTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = LightColorScheme,
         typography = AppTypography,
@@ -121,13 +132,9 @@ fun NewverseLightTheme(
     )
 }
 
-/**
- * Dark theme variant (always uses dark colors)
- */
+/** Dark theme variant (always uses dark colors) */
 @Composable
-fun NewverseDarkTheme(
-    content: @Composable () -> Unit
-) {
+fun NewverseDarkTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = DarkColorScheme,
         typography = AppTypography,

@@ -25,3 +25,23 @@ fun LoginScreenPreview() {
         LoginScreen()
     }
 }
+
+// =====================================================================
+// Both themes side by side — see LightDarkPreview
+// =====================================================================
+
+@LightDarkPreview
+@Composable
+fun AboutScreenThemesPreview() {
+    NewverseTheme {
+        AboutScreenModern()
+    }
+}
+
+@LightDarkPreview
+@Composable
+fun LoginScreenThemesPreview() {
+    NewverseTheme {
+        LoginScreen()
+    }
+}
