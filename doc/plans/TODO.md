@@ -251,9 +251,79 @@ The following features are planned but not yet implemented, or are only partiall
     - Google OAuth web flow, FCM with a service worker, offline caching, keyboard handling on mobile web.
 
 ### Medium Priority: Tablet Layout
+
+Audited 2026-10-26 against the buy flavor. Milestones 1 and 2 are in `main`; ten
+buyer screens adapt, the phone portrait lock holds, and the rail switches at
+Expanded. The conventions themselves are written down nowhere — see the fourth
+item below.
+
+- **Four buy-reachable screens have no adaptation at all**
+  - **Status:** Open — found 2026-10-26; none of them uses the adaptive toolkit
+  - **Issue:** They stretch to the full width of a tablet. `CustomerProfileScreenModern`
+    is the one that matters: it is a bottom-bar tab, so it is one tap away, and it is
+    the same single-`Column` `fillMaxSize().verticalScroll()` form shape as the Tier 1
+    forms that each took a one-line `.constrainedContentWidth()`. It looks simply
+    missed — the Tier 1 list was Login, Register, AddBuyerContact, and Profile was
+    not on it.
+  - **Tasks:**
+    - `CustomerProfileScreenModern` (buy Profile tab) — `.constrainedContentWidth()`.
+    - `AboutScreenModern` (commonMain, so it fixes both flavors) — same.
+    - `MessagesScreen` — width cap; see the two-pane item below.
+    - `ConversationDetailScreen` — same.
+
 - **Messages two-pane**
   - **Status:** Deferred at the user's request
-  - **Issue:** Milestone 2 (two-pane list-detail) left out Messages ↔ ConversationDetail; those screens only have width caps.
+  - **Issue:** Milestone 2 (two-pane list-detail) left out Messages ↔ ConversationDetail.
+    *Corrected 2026-10-26:* this entry used to say those screens "only have width
+    caps". They have none — both are bare `fillMaxSize()`. The gap is larger than
+    it read, and the width caps are the first item above.
+
+- **No preview above 411dp**
+  - **Status:** Open — found 2026-10-26
+  - **Issue:** All four device-comparison previews in `BuyPreviews.kt` are Compact
+    (375/411). Nothing renders at Medium (600–839) or Expanded (840+), so a tablet
+    regression cannot be seen in Android Studio and only shows up on a device.
+  - **Tasks:**
+    - Add a `@WidthClassPreview` multipreview next to `@LightDarkPreview`
+      (`androidApp/src/debug/.../preview/ThemePreviews.kt`), rendering Compact,
+      Medium and Expanded.
+    - Put it on the screens that branch on width: Home, Basket, ProductDetail.
+
+- **The adaptive conventions are not in `doc/`**
+  - **Status:** Open — found 2026-10-26
+  - **Issue:** Width-class-never-orientation, the phone portrait lock in
+    `BuyMainActivity`/`SellMainActivity`, the `AdaptiveDefaults` values
+    (`FormMaxWidth` 480, `ListItemMinWidth` 300, `ListMaxWidth` 640,
+    `FeedMaxWidth` 960) and the tier plan exist only in the code and in session
+    memory. `navigation.md` mentions the rail and `accessibility.md` mentions
+    `BasketTwoPane`, but there is no guide, so the next person has no way to know
+    the rules before breaking one.
+  - **Tasks:**
+    - Write `doc/guides/adaptive-layout.md` and index it in `doc/README.md`.
+
+- **iOS status bar is unstyled, and unreadable on the brown top bar**
+  - **Status:** Open — found 2026-10-26, not verified on a device (no Mac available)
+  - **Issue:** Nothing in `iosApp` sets a status bar style: no
+    `UIViewControllerBasedStatusBarAppearance`, no `preferredStatusBarStyle`
+    override, no `UIStatusBarStyle` in `Info.plist`. So it is `.default`, which is
+    **dark** content in light mode, and Compose draws the brown `#5A3E2B` top bar
+    edge-to-edge underneath it: **2.16:1**, against the 3:1 a control needs. Light
+    content would be 9.73:1. Dark mode is fine by accident. This predates the
+    palette work — it is the iOS mirror of the Android bug fixed in `cfe5693`.
+    iPhone has no navigation bar (the home indicator adapts itself), so only the
+    status bar is affected.
+  - **Note:** `SystemBarIcons` has an iOS `actual`, but it is a deliberate no-op —
+    the status bar style is a `UIViewController` property, not something a
+    Compose side effect can set. The `expect/actual` existing does **not** mean
+    iOS is covered.
+  - **Tasks:**
+    - Decide between the cheap fix (`UIViewControllerBasedStatusBarAppearance=false`
+      plus `UIStatusBarStyle=UIStatusBarStyleLightContent` in `Info.plist` — right
+      on every screen inside the scaffold, wrong on Splash and the login screens,
+      which have no brown bar) and the correct one (a hosting controller overriding
+      `preferredStatusBarStyle` with `setNeedsStatusBarAppearanceUpdate()`, matching
+      the per-screen behaviour Android now has).
+    - Verify on a device before shipping either.
 
 ### Low Priority: Housekeeping
 - **Unused build-logic convention plugin**
