@@ -140,6 +140,34 @@ older code keeps compiling. Migration table:
 `secondary`, or add extension colors through a `CompositionLocal` with a light
 and a dark value.
 
+## The top bar
+
+The buy scaffold's top bar is soil brown `#5A3E2B` in **both** themes, the way
+the badge orange is the same orange in both.
+
+No single Material role does that. `secondary` is an accent role, so it flips
+from dark brown in the light scheme to pale potato `#E2C3A3` in the dark one —
+and a bar painted with `secondary` becomes the brightest thing on a dark
+screen, which reads at a glance as "the theme did not switch". The two schemes
+therefore reach the same brown by different roles:
+
+| | Light | Dark |
+|---|---|---|
+| container | `secondary` `#5A3E2B` | `secondaryContainer` `#5A3E2B` |
+| content | `onSecondary` `#FFFFFF` (9.7:1) | `onSecondaryContainer` `#F2DFCB` (7.5:1) |
+
+Both halves live in `TopBarColors`, provided by the theme and read as
+`LocalTopBarColors.current`. Container and content travel as one value so a
+later change cannot leave the title on a bar it has no contrast against; the
+bar's title, navigation icon, action icons and the five tints inside it all use
+`topBarColors.content`.
+
+To make the bar recede in dark mode instead, change `DarkTopBarColors` in
+`Theme.kt` to `surfaceContainer` / `onSurface`. That is the whole change.
+
+The sell flavour's scaffold sets no top-bar colours and is on Material
+defaults; it has not been reviewed for the Bodenschätze palette.
+
 ## Why dark mode can look like light mode
 
 The theme itself is wired correctly: every entry point (`BuyMainActivity`,

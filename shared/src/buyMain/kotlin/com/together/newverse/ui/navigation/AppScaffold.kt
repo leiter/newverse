@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import com.together.newverse.ui.theme.LocalTopBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -328,6 +329,10 @@ private fun AppScaffoldContent(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.Home.route
 
+    // Container and content for the top bar. Soil brown in both themes; the
+    // pair travels together so the title and every tint stay readable on it.
+    val topBarColors = LocalTopBarColors.current
+
     // Get screen title based on current route
     val defaultAppName = stringResource(Res.string.app_name)
     val screenTitle = remember(currentRoute, appState.basketScreen.total) {
@@ -455,7 +460,7 @@ private fun AppScaffoldContent(
                                 text = buildAnnotatedString {
                                     withStyle(style = SpanStyle(
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSecondary,
+                                        color = topBarColors.content,
                                         fontSize = 16.sp
                                     )) {
                                         append("${appState.basketScreen.total.formatPrice()} €")
@@ -518,7 +523,7 @@ private fun AppScaffoldContent(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Default.List,
                                 contentDescription = stringResource(Res.string.action_orders),
-                                tint = MaterialTheme.colorScheme.onSecondary
+                                tint = topBarColors.content
                             )
                         }
                     }
@@ -558,7 +563,7 @@ private fun AppScaffoldContent(
                             TextButton(onClick = { actionUriHandler.openUri(action.toUri()) }) {
                                 Text(
                                     text = action.label,
-                                    color = MaterialTheme.colorScheme.onSecondary
+                                    color = topBarColors.content
                                 )
                             }
                         } else {
@@ -568,7 +573,7 @@ private fun AppScaffoldContent(
                                     Icon(
                                         imageVector = Icons.Default.MoreVert,
                                         contentDescription = stringResource(Res.string.a11y_seller_actions),
-                                        tint = MaterialTheme.colorScheme.onSecondary
+                                        tint = topBarColors.content
                                     )
                                 }
                                 DropdownMenu(
@@ -608,7 +613,7 @@ private fun AppScaffoldContent(
                                 Icon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = stringResource(Res.string.a11y_contact_options),
-                                    tint = MaterialTheme.colorScheme.onSecondary
+                                    tint = topBarColors.content
                                 )
                             }
 
@@ -666,7 +671,7 @@ private fun AppScaffoldContent(
 //                                Icon(
 //                                    imageVector = Icons.Default.Email,
 //                                    contentDescription = stringResource(Res.string.nav_messages),
-//                                    tint = MaterialTheme.colorScheme.onSecondary
+//                                    tint = topBarColors.content
 //                                )
 //                            }
 //                            if (appState.unreadMessageCount > 0) {
@@ -685,9 +690,11 @@ private fun AppScaffoldContent(
 //                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    titleContentColor = MaterialTheme.colorScheme.onSecondary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSecondary
+                    containerColor = topBarColors.container,
+                    scrolledContainerColor = topBarColors.container,
+                    titleContentColor = topBarColors.content,
+                    navigationIconContentColor = topBarColors.content,
+                    actionIconContentColor = topBarColors.content
                 ),
                 scrollBehavior = scrollBehavior
             )
