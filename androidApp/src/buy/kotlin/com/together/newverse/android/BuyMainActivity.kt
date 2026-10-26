@@ -102,11 +102,14 @@ class BuyMainActivity : ComponentActivity() {
         // Create ImagePicker BEFORE setContent (required by Activity Result API)
         imagePicker = ImagePicker(this)
 
-        // Both bars the app draws against the system bars are soil brown in
-        // either theme, so the status and navigation icons are light in both.
         // Transparent, not coloured: Window.setNavigationBarColor is a no-op for
-        // apps targeting SDK 35+, so the only portable way to own that strip is
-        // to let the app's own bars paint behind it.
+        // apps targeting SDK 35+, so the only portable way to own those strips
+        // is to let the app's own bars paint behind them.
+        //
+        // The light/dark icon choice here is only the opening value for the
+        // first frame. What is behind each bar differs per screen — brown on a
+        // tab screen, the page itself on a detail or login screen — so the
+        // scaffold corrects it through SystemBarIcons as each screen composes.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),

@@ -182,11 +182,34 @@ coloured system bar would appear on an old phone and silently not on a new one.
 
 `BuyMainActivity` and `DebugMainActivity` therefore call
 `enableEdgeToEdge(SystemBarStyle.dark(TRANSPARENT), SystemBarStyle.dark(TRANSPARENT))`
-— `dark` meaning light icons, which is what the brown needs in both themes —
 and set `isNavigationBarContrastEnforced = false` on API 29+. Without that last
 line the system lays a translucent scrim over the transparent navigation bar,
 which is what used to put a near-white strip under the bottom bar in the light
 theme.
+
+**The icon colour is decided per screen, not once.** The values passed to
+`enableEdgeToEdge` are only the opening state for the first frame. What sits
+behind a system bar differs by route:
+
+| | Behind the status bar | Behind the navigation bar |
+|---|---|---|
+| Home, Warenkorb, Profil (Compact/Medium) | brown top bar | brown bottom bar |
+| Any other route | brown top bar | the page |
+| Any route at Expanded | brown top bar | the page — the rail takes the left edge, not the bottom |
+| Splash, Login, Register, forced login | the page (these render outside the Scaffold) | the page |
+
+So the scaffold calls `SystemBarIcons(lightStatusIcons, lightNavIcons)` — an
+`expect/actual`, implemented on Android only — and derives `lightNavIcons` from
+`(showBottomBar && !useNavRail) || darkPage`, where `darkPage` is the
+background's luminance rather than `isSystemInDarkTheme()`, so a forced
+`NewverseLightTheme`/`NewverseDarkTheme` is still obeyed.
+
+Getting this wrong hides the system buttons rather than merely looking off:
+forcing light icons everywhere measured **1.54:1** on paper, against the 3:1 a
+control needs. Per-screen it is 4.7:1 on the brown bar, 18.7:1 on Nachterde and
+2.9:1 on paper — the last one being Android 11's own translucent rendering of
+its buttons, which the app does not control; what the app controls is the
+light/dark choice, and that is now right.
 
 To make the bars recede in dark mode instead, change `DarkBarColors` in
 `Theme.kt` to `surfaceContainer` / `onSurface`. That is the whole change,

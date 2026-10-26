@@ -35,7 +35,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.luminance
 import com.together.newverse.ui.theme.LocalBarColors
+import com.together.newverse.ui.theme.SystemBarIcons
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -199,8 +201,24 @@ private fun AppScaffoldContent(
     val basketRepository = koinInject<BasketRepository>()
     val basketItems by basketRepository.observeBasket().collectAsState()
 
+    // How dark the page itself is, for the screens that have no bar behind a
+    // system bar. Read from the scheme rather than isSystemInDarkTheme() so a
+    // forced NewverseLightTheme/NewverseDarkTheme is still obeyed.
+    val darkPage = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+    val showSplash = appState.meta.isInitializing
+    val showAuth = appState.user is com.together.newverse.ui.state.UserState.NotAuthenticated
+    val showForcedLogin = appState.requiresLogin
+
+    // Splash and the login screens render outside the Scaffold, so neither the
+    // brown top bar nor the bottom bar is behind a system bar there: the icons
+    // have to read against the page.
+    if (showSplash || showAuth || showForcedLogin) {
+        SystemBarIcons(lightStatusIcons = darkPage, lightNavIcons = darkPage)
+    }
+
     // Check if app is still initializing
-    if (appState.meta.isInitializing) {
+    if (showSplash) {
         // Show splash screen during initialization
         SplashScreen(
             initializationStep = appState.meta.initializationStep
@@ -209,7 +227,7 @@ private fun AppScaffoldContent(
     }
 
     // Check if user needs to authenticate (no session, show login/register screen)
-    if (appState.user is com.together.newverse.ui.state.UserState.NotAuthenticated) {
+    if (showAuth) {
         when (appState.auth.mode) {
             com.together.newverse.ui.state.AuthMode.REGISTER -> {
                 // Show register screen
@@ -239,7 +257,7 @@ private fun AppScaffoldContent(
     }
 
     // Check if login is required (seller flavor without authentication)
-    if (appState.requiresLogin) {
+    if (showForcedLogin) {
         // Show forced login screen
         com.together.newverse.ui.screens.common.ForcedLoginScreen(
             authState = appState.auth,
@@ -373,6 +391,15 @@ private fun AppScaffoldContent(
 
     // On Expanded windows (tablet landscape) the tabs render as a side rail instead
     val useNavRail = LocalWindowWidthClass.current == WindowWidthClass.Expanded
+
+    // The brown top bar is behind the status bar on every route in here. The
+    // navigation bar only has the brown bottom bar behind it when that bar is
+    // actually shown — not on a detail screen, and not at Expanded width, where
+    // the rail takes the left edge and leaves the bottom to the page.
+    SystemBarIcons(
+        lightStatusIcons = true,
+        lightNavIcons = (showBottomBar && !useNavRail) || darkPage,
+    )
 
     val onNavigateToTab: (String) -> Unit = { route ->
         Log.d(TAG) { "AppScaffold: onNavigate called, route=$route" }
