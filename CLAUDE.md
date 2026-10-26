@@ -233,12 +233,14 @@ Most-used:
 - `doc/guides/stock-driven-availability-design.md` - Stock vs. demand, derived `available`, refill reminder
 - `doc/guides/seller-ui-actions.md` - Seller-published top-bar buttons and the home-title announcement; the scheme is never stored
 - `doc/guides/build-flavors.md` - applicationIds, BuildKonfig, the combined build
+- `doc/guides/theme.md` - The Bodenschätze palette from the flyer, the Nachterde dark scheme, the brown bars; never take colour from a palette constant
 - `doc/guides/testing.md` - Source sets, fakes, how to run what
 - `doc/plans/TODO.md` - Feature status and roadmap
 - `doc/plans/pre-release-checklist.md` - What must happen before a release reaches a user
 
 Note: `docs/` at the repo root is the GitHub Pages site (privacy/terms/support),
-not developer documentation.
+not developer documentation. It is still on the **old** teal brand (`#008577`),
+which the app left behind on 2026-10-26 — see `GITHUB_PAGES_SETUP.md`.
 
 Guest access, for the avoidance of doubt: **the buy flavor does not sign anyone in
 automatically.** A buyer with no session sees the login screen, and an anonymous

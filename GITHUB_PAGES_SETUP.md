@@ -39,6 +39,13 @@ GitHub Pages has been configured for the Newverse project with support, privacy,
 All pages feature:
 - **Responsive Design**: Mobile-friendly, centered layout
 - **Brand Colors**: Teal/Green gradient (#008577 to #0A6308)
+
+> **The site and the app no longer match.** On 2026-10-26 the app moved to the
+> Bodenschätze flyer palette: brand green `#0A6308`, badge orange `#FA9C4D`,
+> soil brown `#5A3E2B` on paper `#F6F2E8` (`doc/guides/theme.md`). The teal
+> `#008577` below is still what `docs/` actually serves — this section is
+> accurate about the site, not a description of the app's brand. Bringing the
+> site across is an open decision, not an oversight.
 - **Modern UI**: Card-based layout with shadows and rounded corners
 - **Clean Typography**: System fonts for fast loading
 - **Smooth Animations**: Hover effects on links and buttons

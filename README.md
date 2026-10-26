@@ -96,16 +96,23 @@ For more details, please refer to the [feature status document](doc/plans/TODO.m
 
 ## Theme System
 
-The project uses a comprehensive Material3 theme system migrated from the Universe project:
+Material 3, in the colours of the Bodenschätze neighbourhood flyer, so flyer,
+app icon and app read as one brand.
 
 ### Brand Colors
-- **Primary**: Teal/Green (#008577) - Main brand color
-- **Secondary**: Dark Green (#0A6308) - Secondary actions
-- **Tertiary**: Orange (#FA9C4D) - Accent color
+- **Primary**: Brand green (#0A6308) — headings, primary buttons
+- **Secondary**: Soil brown (#5A3E2B) — the top and bottom bars, section labels
+- **Tertiary container**: Badge orange (#FA9C4D) — badges and the selected tab.
+  A fill, never a text colour: on paper it is only 1.9:1. Orange text uses
+  #8F4A0E.
+- **Background**: Paper (#F6F2E8) in the light theme, "Nachterde" (#14120E) in
+  the dark one
 
 ### Features
-- ✅ Light and dark theme support
-- ✅ Material3 design system
+- ✅ Light and dark theme, with every text/background pair at 4.5:1 or better
+- ✅ Brand constants: the badge orange and the brown bars are the same colour in
+  both themes
+- ✅ Material3 design system, with the `surfaceContainer*` and `inverse*` roles set
 - ✅ Complete typography scale
 - ✅ Consistent rounded corners (4dp to 28dp)
 - ✅ Semantic color roles for accessibility

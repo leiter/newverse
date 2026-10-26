@@ -33,7 +33,7 @@ Current truth. Verified against `shared/src` on 2026-10-20 unless noted.
 | [testing.md](guides/testing.md) | Source sets, 984 tests, the 13 fakes, instrumentation, rules tests |
 | [rtdb-test-fixtures.md](guides/rtdb-test-fixtures.md) | The three importable RTDB snapshots in `firebase/fixtures/`, their identities, and the 36 test cases they are built for |
 | [localization.md](guides/localization.md) | Compose Resources, **positional `%1$s` only** |
-| [theme.md](guides/theme.md) | Material 3 theme, the **Bodenschätze palette** from the flyer, the Nachterde dark scheme, why dark mode can look like light mode |
+| [theme.md](guides/theme.md) | Material 3 theme, the **Bodenschätze palette** from the flyer, the Nachterde dark scheme, the brown bars and transparent system bars, why dark mode can look like light mode |
 | [accessibility.md](guides/accessibility.md) | TalkBack/VoiceOver principles; coverage map is incomplete |
 | [image-loading.md](guides/image-loading.md) | Coil 3.3.0, caching, platform support |
 | [market-pricing-and-access-design.md](guides/market-pricing-and-access-design.md) | Markets as an entity, per-market pricing, eligibility, slots, closures (implemented 2026-10-19) |
@@ -117,13 +117,13 @@ The reorganization turned up these contradictions between the docs and the code:
 | Buy flavor auto-signs-in as a guest when no session exists | A guest account is created **only** when the buyer taps "Continue as Guest" |
 | `UnifiedAppViewModel`, `BuildFlavor.kt`, `BuildFlavor.allowsGuestAccess` | None of them exist any more |
 | Two flavors, buy and sell | Three configurations — a `combined` build sets **both** booleans to `false` |
-| 234 unit tests, 6 fakes | 984 `@Test` across 68 files, 13 fakes |
+| 234 unit tests, 6 fakes | 984 `@Test` across 68 files, 13 fakes at the time of the reorganization; **1341 across 97 files** as of 2026-10-26 |
 | One `commonMain/NavGraph.kt`; 11 routes | Nav graph and scaffold are **per flavor**; ~26 routes |
 | Pickup is Thursday; picker offers five dates | Pickup is per market; next open slot only, and it is implemented |
 | Stock keeping "not yet implemented" | Implemented end to end, rules tests included |
 | Account clearing is a plan | Implemented |
 | Coil 3.0.4, Ktor 3.0.1, Navigation 2.8.0-alpha10 | Coil 3.3.0, Ktor 3.3.0, Navigation 2.9.1 |
-| `FabGreen #0A6308`, `Orange #FA9C4D`, `ErrorRed #D51D47` | `#2E7D32`, `#FF6F00`, `#D32F2F` |
+| `FabGreen #0A6308`, `Orange #FA9C4D`, `ErrorRed #D51D47` | Was `#2E7D32`, `#FF6F00`, `#D32F2F` at the time of the reorganization. **Superseded 2026-10-26:** the palette is now the flyer's — `#0A6308` green, `#FA9C4D` badge orange, `#5A3E2B` soil brown. See [guides/theme.md](guides/theme.md) |
 | Bare `%s` / `%d` are fine in strings | Only positional `%1$s` is substituted; bare reaches the user literally |
 | `BuyerStoriesRunner` debug walkthroughs | Removed |
 

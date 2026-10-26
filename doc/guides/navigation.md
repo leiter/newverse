@@ -29,7 +29,14 @@ buyMain/ui/navigation/              sellMain/ui/navigation/
 └── MainAppScaffold.buy.kt
 ```
 
-The buy flavor has a bottom bar; the sell flavor does not. Both have a drawer.
+Both flavors have a bottom bar — `BuyerBottomNavigationBar` (`BuyerBottomBar.kt`)
+and `SellerBottomNavigationBar` (`sellMain/ui/components/SellerBottomBar.kt`,
+used at `sellMain/.../AppScaffold.kt:285`) — and both have a drawer. On an
+Expanded window the buy flavor swaps its bottom bar for `BuyerNavigationRail`.
+
+The buy flavor's bars are brand-coloured and its system bars are transparent so
+the colour reaches both screen edges; the sell flavor's are on Material
+defaults. See [theme.md](theme.md) § The bars that frame the app.
 
 ## Routes
 

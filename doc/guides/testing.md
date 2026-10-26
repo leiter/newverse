@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Status:** current — counts and layout verified on 2026-10-20
+**Status:** current — counts and layout verified on 2026-10-26
 **Scope:** `shared/src/{commonTest,testBuy,testSell}`,
 `androidApp/src/androidTest`, `firebase/tests`
 
@@ -40,10 +40,15 @@ by what it needs rather than what it tests:
 
 | Source set | What goes there | Files | `@Test` |
 |------------|-----------------|-------|---------|
-| `commonTest` | Model, parser, repository, util, core state — anything flavor-agnostic. Also all the fakes. | 49 | 606 |
-| `testBuy` | Tests that need buy-flavor `BuildKonfig` or `buyMain` types | 6 | 101 |
-| `testSell` | Tests that need sell-flavor `BuildKonfig` or `sellMain` types | 13 | 277 |
-| **Total** | | **68** | **984** |
+| `commonTest` | Model, parser, repository, util, core state — anything flavor-agnostic. Also all the fakes. | 69 | 854 |
+| `testBuy` | Tests that need buy-flavor `BuildKonfig` or `buyMain` types | 14 | 183 |
+| `testSell` | Tests that need sell-flavor `BuildKonfig` or `sellMain` types | 14 | 304 |
+| **Total** | | **97** | **1341** |
+
+No single run executes all 1341: `commonTest` runs in both flavors, so
+`testBuyDebugUnitTest` reports 1037 (854 + 183) and `testSellDebugUnitTest`
+1158 (854 + 304). Both were green on 2026-10-26, with nothing skipped or
+`@Ignore`d.
 
 A ViewModel test lands in `testBuy`/`testSell` because `BuyAppViewModel` and
 `SellAppViewModel` live in the flavor source sets. Everything they depend on —

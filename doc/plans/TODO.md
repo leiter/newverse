@@ -16,7 +16,7 @@ This document outlines the current implementation status of core features and a 
 - ✅ Koin for dependency injection
 - ✅ MVVM architecture with refactored ViewModels
 - ✅ Clean Architecture principles
-- ✅ Complete Material3 theme system (light/dark themes)
+- ✅ Complete Material3 theme system (light/dark themes) — on the Bodenschätze flyer palette since 2026-10-26, see `doc/guides/theme.md`
 - ✅ Type-safe, flavor-aware navigation system with modal drawer
 
 ### iOS Platform Features

@@ -264,12 +264,13 @@ Detail is in TODO.md under **High Priority: Release**; the blockers in short:
 
 ## Gate 5 — Quality baseline
 
-- [ ] **6 failing unit tests**, all stale expectations rather than live bugs
-      (diagnosed 2026-10-06, see TODO.md → Known failing unit tests). Fix or delete
-      them so a real regression is visible: `calculateEditDeadline throws for
-      non-pickup day` needs a decision on whether the commented-out `require`
-      belongs; the 4 `BuyAppViewModelTest` and 1 `SellAppViewModelTest` failures
-      assert a startup/navigation design that no longer exists.
+- [x] **6 failing unit tests** — **resolved** (`71fa5a5`, 2026-10-19; see TODO.md →
+      Known failing unit tests). Re-verified 2026-10-26: `testBuyDebugUnitTest`
+      1037 tests and `testSellDebugUnitTest` 1158, both 0 failures, 0 skipped,
+      with no `@Ignore` in any test source set — so a real regression is now
+      visible. `calculateEditDeadline throws for non-pickup day` no longer
+      exists; the `require` decision in `OrderDateUtils` is still recorded in
+      TODO.md as the reasoning behind deleting it.
 - [ ] **User-visible localization gaps** in a German-primary app: G1 (46 untranslated
       strings — German text in the English UI) and G2/G3 (hardcoded English error
       messages in the German app). TODO.md, Suspected Bugs.

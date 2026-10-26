@@ -36,6 +36,18 @@ Screen-reader support for the shared Compose UI (TalkBack on Android, VoiceOver 
 6. **Toggles expose state, not a renamed label.** A favourite toggle keeps one stable
    `contentDescription` and reports on/off through `stateDescription`.
 
+7. **Take colour from the scheme, and contrast comes for free.** Every
+   text/background pair in both themes is at 4.5:1 or better, checked against
+   the values as committed. That guarantee only holds for colours read from
+   `MaterialTheme.colorScheme` (or `LocalBarColors` for the top and bottom
+   bars) — a hardcoded colour owns its own contrast, and in practice also
+   ignores the dark theme entirely. See [theme.md](theme.md).
+
+8. **Colour is never the only signal.** The selected bottom-bar tab carries an
+   orange pill *and* a label; the profile badge marks a state that is also
+   reachable in text. A user who cannot separate the two colours must still be
+   able to tell the states apart.
+
 ## Building blocks
 
 | Helper | Location | Purpose |
