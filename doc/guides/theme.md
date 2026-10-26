@@ -140,10 +140,11 @@ older code keeps compiling. Migration table:
 `secondary`, or add extension colors through a `CompositionLocal` with a light
 and a dark value.
 
-## The top bar
+## The bars that frame the app
 
-The buy scaffold's top bar is soil brown `#5A3E2B` in **both** themes, the way
-the badge orange is the same orange in both.
+The buy flavour's top app bar, bottom navigation bar and navigation rail are
+all soil brown `#5A3E2B` in **both** themes, the way the badge orange is the
+same orange in both.
 
 No single Material role does that. `secondary` is an accent role, so it flips
 from dark brown in the light scheme to pale potato `#E2C3A3` in the dark one —
@@ -156,17 +157,44 @@ therefore reach the same brown by different roles:
 | container | `secondary` `#5A3E2B` | `secondaryContainer` `#5A3E2B` |
 | content | `onSecondary` `#FFFFFF` (9.7:1) | `onSecondaryContainer` `#F2DFCB` (7.5:1) |
 
-Both halves live in `TopBarColors`, provided by the theme and read as
-`LocalTopBarColors.current`. Container and content travel as one value so a
-later change cannot leave the title on a bar it has no contrast against; the
-bar's title, navigation icon, action icons and the five tints inside it all use
-`topBarColors.content`.
+Both halves live in `BarColors`, provided by the theme and read as
+`LocalBarColors.current`. Container and content travel as one value so a later
+change cannot leave text on a bar it has no contrast against; the top bar's
+title, navigation icon, action icons and the five tints inside it all use
+`barColors.content`.
 
-To make the bar recede in dark mode instead, change `DarkTopBarColors` in
-`Theme.kt` to `surfaceContainer` / `onSurface`. That is the whole change.
+### The selected tab
 
-The sell flavour's scaffold sets no top-bar colours and is on Material
-defaults; it has not been reviewed for the Bodenschätze palette.
+`NavigationBarItem`'s default indicator is `secondaryContainer`, which in the
+dark scheme is this very brown — the selected tab would have disappeared into
+the bar. The indicator is therefore the badge orange (`selectionIndicator`,
+identical in both themes, 4.6:1 against the brown) with Ink on it (7.2:1).
+Unselected items are `content` at `UnselectedItemAlpha` (0.74), which still
+clears 4.5:1 on the brown in both themes (6.2:1 light, 4.9:1 dark).
+
+### The system bars
+
+The status bar and the navigation bar are **transparent**, and the app's own
+bars paint behind them, so the brown runs to both edges of the screen. This is
+the only portable way to own that space: `Window.setNavigationBarColor` is
+deprecated and a no-op for apps targeting SDK 35+, and `targetSdk` is 36, so a
+coloured system bar would appear on an old phone and silently not on a new one.
+
+`BuyMainActivity` and `DebugMainActivity` therefore call
+`enableEdgeToEdge(SystemBarStyle.dark(TRANSPARENT), SystemBarStyle.dark(TRANSPARENT))`
+— `dark` meaning light icons, which is what the brown needs in both themes —
+and set `isNavigationBarContrastEnforced = false` on API 29+. Without that last
+line the system lays a translucent scrim over the transparent navigation bar,
+which is what used to put a near-white strip under the bottom bar in the light
+theme.
+
+To make the bars recede in dark mode instead, change `DarkBarColors` in
+`Theme.kt` to `surfaceContainer` / `onSurface`. That is the whole change,
+though the system bar icons would then want `SystemBarStyle.auto`.
+
+The sell flavour's scaffold sets no bar colours, is on Material defaults, and
+still calls `enableEdgeToEdge()` bare; it has not been reviewed for the
+Bodenschätze palette.
 
 ## Why dark mode can look like light mode
 

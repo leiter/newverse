@@ -3,11 +3,14 @@ package com.together.newverse.android
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.net.Uri
+import android.graphics.Color as AndroidColor
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -39,7 +42,6 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import org.koin.android.ext.android.inject
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.core.content.ContextCompat
-import android.os.Build
 import android.content.pm.PackageManager
 import android.Manifest
 
@@ -100,7 +102,21 @@ class BuyMainActivity : ComponentActivity() {
         // Create ImagePicker BEFORE setContent (required by Activity Result API)
         imagePicker = ImagePicker(this)
 
-        enableEdgeToEdge()
+        // Both bars the app draws against the system bars are soil brown in
+        // either theme, so the status and navigation icons are light in both.
+        // Transparent, not coloured: Window.setNavigationBarColor is a no-op for
+        // apps targeting SDK 35+, so the only portable way to own that strip is
+        // to let the app's own bars paint behind it.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+        )
+        // Otherwise the system lays a translucent scrim over the transparent
+        // navigation bar, which is what put a near-white strip under the bottom
+        // bar in the light theme.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
         setContent {
             NewverseTheme {
                 // Provide ImagePicker to entire app via CompositionLocal

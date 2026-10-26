@@ -35,7 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import com.together.newverse.ui.theme.LocalTopBarColors
+import com.together.newverse.ui.theme.LocalBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -331,7 +331,7 @@ private fun AppScaffoldContent(
 
     // Container and content for the top bar. Soil brown in both themes; the
     // pair travels together so the title and every tint stay readable on it.
-    val topBarColors = LocalTopBarColors.current
+    val topBarColors = LocalBarColors.current
 
     // Get screen title based on current route
     val defaultAppName = stringResource(Res.string.app_name)

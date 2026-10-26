@@ -104,9 +104,10 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 /**
- * The top bar's container colour and the colour of everything drawn on it.
+ * The colours of the bars that frame the app: the top app bar and the bottom
+ * navigation bar.
  *
- * The bar is soil brown in both themes, the way the badge orange is the same
+ * Both are soil brown in both themes, the way the badge orange is the same
  * orange in both. That cannot be expressed with a single Material role:
  * `secondary` is an accent, so it flips from dark brown in the light scheme to
  * pale potato in the dark one, and a bar painted with it turns into the
@@ -114,38 +115,49 @@ private val DarkColorScheme = darkColorScheme(
  * brown through different roles, and this pair carries the result.
  *
  * Content and container travel together so a future change cannot leave text
- * on a bar it has no contrast against. Read it as [LocalTopBarColors].
+ * on a bar it has no contrast against. Read it as [LocalBarColors].
+ *
+ * [selectionIndicator] is the pill behind the selected bottom-bar icon. It is
+ * the badge orange, identical in both themes: the bar's own `secondaryContainer`
+ * is that same brown in the dark scheme, so an indicator taken from the scheme
+ * would be brown on brown and the selected tab would disappear.
  */
 @Immutable
-data class TopBarColors(
+data class BarColors(
     val container: Color,
     val content: Color,
+    val selectionIndicator: Color,
+    val onSelectionIndicator: Color,
 )
 
-private val LightTopBarColors = TopBarColors(
-    container = LightSecondary,          // #5A3E2B soil brown
-    content = LightOnSecondary,          // white, 9.7:1
+private val LightBarColors = BarColors(
+    container = LightSecondary,                  // #5A3E2B soil brown
+    content = LightOnSecondary,                  // white, 9.7:1
+    selectionIndicator = LightTertiaryContainer, // badge orange #FA9C4D
+    onSelectionIndicator = LightOnTertiaryContainer, // Ink, 7.2:1
 )
 
-private val DarkTopBarColors = TopBarColors(
-    container = DarkSecondaryContainer,  // #5A3E2B, the same brown
-    content = DarkOnSecondaryContainer,  // cream #F2DFCB, 7.5:1
+private val DarkBarColors = BarColors(
+    container = DarkSecondaryContainer,          // #5A3E2B, the same brown
+    content = DarkOnSecondaryContainer,          // cream #F2DFCB, 7.5:1
+    selectionIndicator = DarkTertiaryContainer,  // the same badge orange
+    onSelectionIndicator = DarkOnTertiaryContainer,
 )
 
 /**
- * The top bar colours for the current theme. Always provided by
- * [NewverseTheme], [NewverseLightTheme] and [NewverseDarkTheme]; the default
- * is the light pair so a stray preview outside the theme still renders.
+ * The bar colours for the current theme. Always provided by [NewverseTheme],
+ * [NewverseLightTheme] and [NewverseDarkTheme]; the default is the light pair
+ * so a stray preview outside the theme still renders.
  */
-val LocalTopBarColors = staticCompositionLocalOf { LightTopBarColors }
+val LocalBarColors = staticCompositionLocalOf { LightBarColors }
 
 @Composable
 private fun NewverseMaterialTheme(
     colorScheme: ColorScheme,
-    topBarColors: TopBarColors,
+    barColors: BarColors,
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalTopBarColors provides topBarColors) {
+    CompositionLocalProvider(LocalBarColors provides barColors) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = AppTypography,
@@ -172,7 +184,7 @@ fun NewverseTheme(
 ) {
     NewverseMaterialTheme(
         colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
-        topBarColors = if (darkTheme) DarkTopBarColors else LightTopBarColors,
+        barColors = if (darkTheme) DarkBarColors else LightBarColors,
         content = content
     )
 }
@@ -182,7 +194,7 @@ fun NewverseTheme(
 fun NewverseLightTheme(content: @Composable () -> Unit) {
     NewverseMaterialTheme(
         colorScheme = LightColorScheme,
-        topBarColors = LightTopBarColors,
+        barColors = LightBarColors,
         content = content
     )
 }
@@ -192,7 +204,7 @@ fun NewverseLightTheme(content: @Composable () -> Unit) {
 fun NewverseDarkTheme(content: @Composable () -> Unit) {
     NewverseMaterialTheme(
         colorScheme = DarkColorScheme,
-        topBarColors = DarkTopBarColors,
+        barColors = DarkBarColors,
         content = content
     )
 }

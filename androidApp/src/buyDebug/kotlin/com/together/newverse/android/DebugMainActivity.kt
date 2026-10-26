@@ -2,6 +2,7 @@ package com.together.newverse.android
 
 import android.graphics.Bitmap
 import android.os.Build
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
@@ -10,6 +11,7 @@ import android.util.Log
 import android.view.PixelCopy
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
@@ -70,7 +72,21 @@ class DebugMainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setTheme(R.style.AppTheme)
-        enableEdgeToEdge()
+        // Both bars the app draws against the system bars are soil brown in
+        // either theme, so the status and navigation icons are light in both.
+        // Transparent, not coloured: Window.setNavigationBarColor is a no-op for
+        // apps targeting SDK 35+, so the only portable way to own that strip is
+        // to let the app's own bars paint behind it.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+        )
+        // Otherwise the system lays a translucent scrim over the transparent
+        // navigation bar, which is what put a near-white strip under the bottom
+        // bar in the light theme.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
 
         setContent {
             NewverseTheme {

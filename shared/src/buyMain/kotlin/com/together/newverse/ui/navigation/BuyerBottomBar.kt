@@ -13,11 +13,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
@@ -28,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import com.together.newverse.ui.theme.LocalBarColors
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -67,6 +69,13 @@ val BuyerBottomNavItems = listOf(
     )
 )
 
+/**
+ * Unselected bar items are dimmed for hierarchy, but not so far that they stop
+ * being readable: at this alpha the content still clears 4.5:1 on the brown bar
+ * in both themes (6.2:1 light, 4.9:1 dark).
+ */
+private const val UnselectedItemAlpha = 0.74f
+
 @Composable
 fun BuyerBottomNavigationBar(
     currentRoute: String,
@@ -92,7 +101,24 @@ fun BuyerBottomNavigationBar(
         prevBasketCount = basketItemCount
     }
 
-    NavigationBar {
+    // Soil brown, the same bar colour as the top app bar, so the app is framed
+    // by the brand in both themes. The item colours have to be spelled out:
+    // NavigationBarItem's defaults put the selected icon on a secondaryContainer
+    // pill, which is this very brown in the dark scheme, and the selected tab
+    // would vanish into the bar.
+    val barColors = LocalBarColors.current
+    val itemColors = NavigationBarItemDefaults.colors(
+        selectedIconColor = barColors.onSelectionIndicator,
+        selectedTextColor = barColors.content,
+        indicatorColor = barColors.selectionIndicator,
+        unselectedIconColor = barColors.content.copy(alpha = UnselectedItemAlpha),
+        unselectedTextColor = barColors.content.copy(alpha = UnselectedItemAlpha),
+    )
+
+    NavigationBar(
+        containerColor = barColors.container,
+        contentColor = barColors.content,
+    ) {
         BuyerBottomNavItems.forEach { item ->
             val label = stringResource(item.labelRes)
             val isSelected = currentRoute == item.route ||
@@ -129,6 +155,7 @@ fun BuyerBottomNavigationBar(
                 },
                 label = { Text(label) },
                 selected = isSelected,
+                colors = itemColors,
                 onClick = {
                     if (!isSelected) onNavigate(item.route)
                 }
@@ -148,8 +175,18 @@ fun BuyerNavigationRail(
     showProfileBadge: Boolean = false,
     onNavigate: (String) -> Unit
 ) {
+    val barColors = LocalBarColors.current
+    val itemColors = NavigationRailItemDefaults.colors(
+        selectedIconColor = barColors.onSelectionIndicator,
+        selectedTextColor = barColors.content,
+        indicatorColor = barColors.selectionIndicator,
+        unselectedIconColor = barColors.content.copy(alpha = UnselectedItemAlpha),
+        unselectedTextColor = barColors.content.copy(alpha = UnselectedItemAlpha),
+    )
+
     NavigationRail(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer
+        containerColor = barColors.container,
+        contentColor = barColors.content,
     ) {
         Spacer(Modifier.weight(1f))
         BuyerBottomNavItems.forEach { item ->
@@ -182,6 +219,7 @@ fun BuyerNavigationRail(
                 },
                 label = { Text(label) },
                 selected = isSelected,
+                colors = itemColors,
                 onClick = {
                     if (!isSelected) onNavigate(item.route)
                 }
