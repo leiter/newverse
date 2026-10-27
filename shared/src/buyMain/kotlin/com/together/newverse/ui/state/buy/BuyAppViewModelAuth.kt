@@ -15,6 +15,8 @@ import com.together.newverse.domain.model.SellerEventType
 import com.together.newverse.util.AppleTokenRevoker
 import com.together.newverse.ui.state.AuthProvider
 import com.together.newverse.ui.state.AuthScreenState
+import com.together.newverse.ui.state.ChangePasswordState
+import com.together.newverse.ui.state.changePasswordError
 import com.together.newverse.ui.state.clearedForSignOut
 import com.together.newverse.ui.state.UserRole
 import com.together.newverse.ui.state.UserState
@@ -26,6 +28,7 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.account_deleted_success
 import newverse.shared.generated.resources.account_deletion_incomplete
 import newverse.shared.generated.resources.account_deleted_with_cancellations
+import newverse.shared.generated.resources.change_password_success
 import newverse.shared.generated.resources.error_email_in_use
 import newverse.shared.generated.resources.error_email_invalid
 import newverse.shared.generated.resources.error_login_failed
@@ -302,6 +305,12 @@ internal fun BuyAppViewModel.handleAccountAction(action: BuyAccountAction) {
         is BuyAccountAction.UpdateEmailLinkingPassword -> updateEmailLinkingPassword(action.password)
         is BuyAccountAction.UpdateEmailLinkingConfirmPassword -> updateEmailLinkingConfirmPassword(action.confirmPassword)
         is BuyAccountAction.ConfirmDeleteAccount -> confirmDeleteAccount()
+        is BuyAccountAction.ShowChangePasswordDialog -> showChangePasswordDialog()
+        is BuyAccountAction.DismissChangePasswordDialog -> dismissChangePasswordDialog()
+        is BuyAccountAction.UpdateChangePasswordCurrent -> updateChangePasswordField { it.copy(currentPassword = action.password, currentPasswordError = null) }
+        is BuyAccountAction.UpdateChangePasswordNew -> updateChangePasswordField { it.copy(newPassword = action.password, newPasswordError = null) }
+        is BuyAccountAction.UpdateChangePasswordConfirm -> updateChangePasswordField { it.copy(confirmPassword = action.password) }
+        is BuyAccountAction.SubmitChangePassword -> submitChangePassword()
     }
 }
 
@@ -584,6 +593,94 @@ internal fun BuyAppViewModel.linkWithEmail(email: String, password: String) {
             }
     }
 }
+// ===== Change Password =====
+
+internal fun BuyAppViewModel.showChangePasswordDialog() {
+    _state.update { current ->
+        current.copy(
+            customerProfile = current.customerProfile.copy(
+                // Start from a clean state rather than whatever a cancelled
+                // attempt left behind.
+                changePassword = ChangePasswordState(visible = true)
+            )
+        )
+    }
+}
+
+internal fun BuyAppViewModel.dismissChangePasswordDialog() {
+    _state.update { current ->
+        current.copy(
+            customerProfile = current.customerProfile.copy(
+                changePassword = current.customerProfile.changePassword.cleared()
+            )
+        )
+    }
+}
+
+internal fun BuyAppViewModel.updateChangePasswordField(
+    transform: (ChangePasswordState) -> ChangePasswordState
+) {
+    _state.update { current ->
+        current.copy(
+            customerProfile = current.customerProfile.copy(
+                changePassword = transform(current.customerProfile.changePassword)
+            )
+        )
+    }
+}
+
+/**
+ * Re-authenticate with the current password, then set the new one.
+ *
+ * Two calls, not one: Firebase rejects a password change on a session older
+ * than a few minutes, and these sessions are long-lived, so the
+ * re-authentication is the normal path rather than a fallback. Splitting them
+ * also means a wrong current password lands under the field the user typed it
+ * into instead of under the new one.
+ *
+ * None of the three values is logged, at any level. They are secrets, not PII.
+ */
+internal fun BuyAppViewModel.submitChangePassword() {
+    viewModelScope.launch {
+        val fields = _state.value.customerProfile.changePassword
+
+        updateChangePasswordField {
+            it.copy(isSubmitting = true, currentPasswordError = null, newPasswordError = null)
+        }
+
+        val reauth = authRepository.reauthenticateWithPassword(fields.currentPassword)
+        if (reauth.isFailure) {
+            val message = changePasswordError(
+                reauth.exceptionOrNull() ?: Exception()
+            )
+            Log.w(TAG) { "submitChangePassword: Re-authentication rejected" }
+            updateChangePasswordField {
+                it.copy(isSubmitting = false, currentPasswordError = message)
+            }
+            return@launch
+        }
+
+        authRepository.updatePassword(fields.newPassword)
+            .onSuccess {
+                Log.d(TAG) { "submitChangePassword: Password changed" }
+                // Clear the dialog so the typed passwords do not stay in state.
+                updateChangePasswordField { it.cleared() }
+                // The password is already changed at this point, so a confirmation
+                // label that cannot be resolved must not turn a success into a
+                // reported failure.
+                runCatching { getString(Res.string.change_password_success) }
+                    .onSuccess { showSnackBar(it, SnackbarType.SUCCESS) }
+            }
+            .onFailure { error ->
+                val message = changePasswordError(error)
+                Log.e(TAG) { "submitChangePassword: Setting the new password failed" }
+                updateChangePasswordField {
+                    it.copy(isSubmitting = false, newPasswordError = message)
+                }
+            }
+    }
+}
+
 internal fun BuyAppViewModel.showEmailLinkingDialog() {
     _state.update { current ->
         current.copy(

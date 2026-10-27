@@ -36,6 +36,7 @@ This document outlines the current implementation status of core features and a 
 - ✅ Order history
 - ✅ Favorites persistence
 - ✅ Password reset flow
+- ✅ Change password while signed in (both flavors)
 
 ### Seller Features (Sell App)
 - ✅ User authentication

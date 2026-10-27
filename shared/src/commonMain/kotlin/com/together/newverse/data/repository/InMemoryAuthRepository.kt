@@ -33,6 +33,10 @@ class InMemoryAuthRepository : AuthRepository {
     // Flag to track if we've checked persisted auth
     private var hasCheckedPersistedAuth = false
 
+    // Who has re-proved their password, standing in for Firebase's recent-login
+    // window. Cleared on sign-out and once a change has used it.
+    private var reauthenticatedUserId: String? = null
+
     init {
         // Add some test users for development
         users["test@buyer.com"] = UserCredentials(
@@ -169,6 +173,7 @@ class InMemoryAuthRepository : AuthRepository {
             _currentUserId.value = null
             // Clear persisted session
             persistedUserId = null
+            reauthenticatedUserId = null
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(Exception("Sign out failed: ${e.message}"))
@@ -289,6 +294,75 @@ class InMemoryAuthRepository : AuthRepository {
             Result.success(currentUserId)
         } catch (e: Exception) {
             Result.failure(Exception("Account linking failed: ${e.message}"))
+        }
+    }
+
+    override suspend fun reauthenticateWithPassword(currentPassword: String): Result<Unit> {
+        return try {
+            // Simulate network delay
+            delay(500)
+
+            if (currentPassword.isBlank()) {
+                return Result.failure(Exception("Password cannot be empty"))
+            }
+
+            val currentUserId = _currentUserId.value
+                ?: return Result.failure(Exception("No user is currently signed in"))
+
+            val user = users.values.find { it.userId == currentUserId }
+                ?: return Result.failure(Exception("This account has no password to change"))
+
+            if (user.password != currentPassword) {
+                reauthenticatedUserId = null
+                return Result.failure(Exception("Incorrect password"))
+            }
+
+            reauthenticatedUserId = currentUserId
+
+            Log.d(TAG) { "Re-authenticated ${user.email}" }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(Exception("Re-authentication failed: ${e.message}"))
+        }
+    }
+
+    override suspend fun updatePassword(newPassword: String): Result<Unit> {
+        return try {
+            // Simulate network delay
+            delay(500)
+
+            if (newPassword.isBlank()) {
+                return Result.failure(Exception("Password cannot be empty"))
+            }
+
+            if (newPassword.length < 6) {
+                return Result.failure(Exception("Password must be at least 6 characters"))
+            }
+
+            val currentUserId = _currentUserId.value
+                ?: return Result.failure(Exception("No user is currently signed in"))
+
+            val user = users.values.find { it.userId == currentUserId }
+                ?: return Result.failure(Exception("This account has no password to change"))
+
+            // Firebase refuses this on a stale session, so the double does too:
+            // a caller that forgets to re-authenticate first should fail here in
+            // a test rather than in front of a user.
+            if (reauthenticatedUserId != currentUserId) {
+                return Result.failure(
+                    Exception("Please sign out and sign in again before changing your password")
+                )
+            }
+
+            users[user.email] = user.copy(password = newPassword)
+
+            // One re-authentication buys one change.
+            reauthenticatedUserId = null
+
+            Log.d(TAG) { "Password changed for ${user.email}" }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(Exception("Password change failed: ${e.message}"))
         }
     }
 

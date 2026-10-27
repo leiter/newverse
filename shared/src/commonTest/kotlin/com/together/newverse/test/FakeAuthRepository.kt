@@ -21,6 +21,10 @@ class FakeAuthRepository : AuthRepository {
     var shouldFailSignIn = false
     var shouldFailSignUp = false
     var shouldFailSignOut = false
+    // Separate switches: a password change fails differently depending on which
+    // half of it failed, and the UI puts the two errors under different fields.
+    var shouldFailReauthenticate = false
+    var shouldFailUpdatePassword = false
     var failureMessage = "Test error"
 
     // Track method calls for verification
@@ -29,6 +33,14 @@ class FakeAuthRepository : AuthRepository {
     var lastSignInEmail: String? = null
         private set
     var lastSignInPassword: String? = null
+        private set
+    var reauthenticateCalled = false
+        private set
+    var updatePasswordCalled = false
+        private set
+    var lastReauthenticatePassword: String? = null
+        private set
+    var lastUpdatedPassword: String? = null
         private set
 
     /**
@@ -50,10 +62,16 @@ class FakeAuthRepository : AuthRepository {
         shouldFailSignIn = false
         shouldFailSignUp = false
         shouldFailSignOut = false
+        shouldFailReauthenticate = false
+        shouldFailUpdatePassword = false
         failureMessage = "Test error"
         signOutCalled = false
         lastSignInEmail = null
         lastSignInPassword = null
+        reauthenticateCalled = false
+        updatePasswordCalled = false
+        lastReauthenticatePassword = null
+        lastUpdatedPassword = null
     }
 
     override suspend fun checkPersistedAuth(): Result<String?> {
@@ -163,6 +181,32 @@ class FakeAuthRepository : AuthRepository {
         val currentUserId = _currentUserId.value
             ?: return Result.failure(Exception("No user signed in"))
         return Result.success(currentUserId)
+    }
+
+    override suspend fun reauthenticateWithPassword(currentPassword: String): Result<Unit> {
+        lastReauthenticatePassword = currentPassword
+        reauthenticateCalled = true
+
+        if (_currentUserId.value == null) {
+            return Result.failure(Exception("No user signed in"))
+        }
+        if (shouldFailReauthenticate) {
+            return Result.failure(Exception(failureMessage))
+        }
+        return Result.success(Unit)
+    }
+
+    override suspend fun updatePassword(newPassword: String): Result<Unit> {
+        lastUpdatedPassword = newPassword
+        updatePasswordCalled = true
+
+        if (_currentUserId.value == null) {
+            return Result.failure(Exception("No user signed in"))
+        }
+        if (shouldFailUpdatePassword) {
+            return Result.failure(Exception(failureMessage))
+        }
+        return Result.success(Unit)
     }
 
     override suspend fun getCurrentUserInfo(): AuthUserInfo? {

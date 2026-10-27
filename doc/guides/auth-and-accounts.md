@@ -114,6 +114,39 @@ including the Web Client ID and SHA-1 fingerprint, is in
 `refreshAuthProvider()` (`:917`) re-resolves the provider after linking, falling back
 to `AuthProvider.ANONYMOUS` when no provider is linked.
 
+## Changing a password while signed in
+
+A signed-in user whose account has a `password` provider can change that password
+from inside the app — the buyer from the account card, the seller from their
+profile. Both drive the same `ChangePasswordDialog` in `commonMain`; the entry
+point is hidden for a Google- or Apple-only account, which has no password to
+change.
+
+It takes two repository calls, in order:
+
+```kotlin
+authRepository.reauthenticateWithPassword(currentPassword)  // must succeed first
+authRepository.updatePassword(newPassword)
+```
+
+Firebase refuses a password change on a session older than a few minutes
+(`REQUIRES_RECENT_LOGIN`), and these sessions live for weeks, so
+re-authentication is the normal path rather than a fallback — which is why the
+dialog asks for the current password at all. Keeping the two calls apart is what
+lets a wrong current password be reported under the field it was typed into,
+rather than as a generic failure.
+
+The current, new and confirmation values are **never logged, at any level.** They
+are secrets, not PII, so the standing allowance for PII in `Log.d` does not
+extend to them.
+
+Errors come back as `StringResource` identifiers from `changePasswordError()` and
+are resolved in the dialog; a ViewModel has no resource environment to resolve
+them in, and `getString` cannot run in a plain JVM unit test.
+
+Changing the *email* address is not implemented — see
+`plans/change-password-plan.md` for why it is a larger question.
+
 ## Debugging
 
 ```bash

@@ -34,7 +34,9 @@ import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.ui.adaptive.constrainedContentWidth
+import com.together.newverse.ui.components.ChangePasswordDialog
 import com.together.newverse.ui.components.QrCodeImage
+import com.together.newverse.ui.state.ChangePasswordState
 import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.button_save
@@ -63,6 +65,15 @@ fun SellerProfileScreen(
     isSaving: Boolean = false,
     onNotificationSettingsClick: () -> Unit = {},
     onLogout: () -> Unit = {},
+    /** Hidden unless the account is backed by a password. */
+    canChangePassword: Boolean = false,
+    changePasswordState: ChangePasswordState = ChangePasswordState(),
+    onShowChangePassword: () -> Unit = {},
+    onDismissChangePassword: () -> Unit = {},
+    onChangePasswordCurrent: (String) -> Unit = {},
+    onChangePasswordNew: (String) -> Unit = {},
+    onChangePasswordConfirm: (String) -> Unit = {},
+    onSubmitChangePassword: () -> Unit = {},
     onShowPaymentInfo: () -> Unit = {},
     onHidePaymentInfo: () -> Unit = {},
     onShowMarketDialog: (Market?) -> Unit = {},
@@ -359,6 +370,17 @@ fun SellerProfileScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
+                    // Above sign-out, because it is the gentler of the two and
+                    // the one more likely to be wanted on purpose.
+                    if (canChangePassword) {
+                        OutlinedButton(
+                            onClick = onShowChangePassword,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(Res.string.action_change_password))
+                        }
+                    }
+
                     OutlinedButton(
                         onClick = onLogout,
                         modifier = Modifier.fillMaxWidth()
@@ -375,6 +397,18 @@ fun SellerProfileScreen(
                 modifier = Modifier.align(Alignment.Center)
             )
         }
+    }
+
+    // Change Password Dialog
+    if (changePasswordState.visible) {
+        ChangePasswordDialog(
+            state = changePasswordState,
+            onCurrentPasswordChange = onChangePasswordCurrent,
+            onNewPasswordChange = onChangePasswordNew,
+            onConfirmPasswordChange = onChangePasswordConfirm,
+            onConfirm = onSubmitChangePassword,
+            onDismiss = onDismissChangePassword
+        )
     }
 
     // Payment Info Dialog

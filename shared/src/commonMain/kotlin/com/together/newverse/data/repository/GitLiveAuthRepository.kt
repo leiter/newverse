@@ -321,6 +321,69 @@ class GitLiveAuthRepository : AuthRepository {
     }
 
     /**
+     * Re-prove the signed-in user's identity with their current password.
+     *
+     * The email comes from the session rather than the caller: the credential
+     * has to belong to the account being changed, and the UI has no business
+     * being able to get that wrong.
+     */
+    override suspend fun reauthenticateWithPassword(currentPassword: String): Result<Unit> {
+        return try {
+            if (currentPassword.isBlank()) {
+                return Result.failure(Exception("Password cannot be empty"))
+            }
+
+            val currentUser = auth.currentUser
+                ?: return Result.failure(Exception("No user is currently signed in"))
+
+            val email = currentUser.email
+            if (email.isNullOrBlank()) {
+                return Result.failure(Exception("This account has no email address"))
+            }
+
+            if (!currentUser.hasPasswordProvider()) {
+                return Result.failure(Exception("This account has no password to change"))
+            }
+
+            Log.d(TAG) { "reauthenticateWithPassword: Re-authenticating $email" }
+
+            currentUser.reauthenticate(EmailAuthProvider.credential(email, currentPassword))
+
+            Log.d(TAG) { "reauthenticateWithPassword: Success" }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            handlePasswordChangeException(e, "Re-authentication")
+        }
+    }
+
+    /**
+     * Set a new password on the signed-in account.
+     */
+    override suspend fun updatePassword(newPassword: String): Result<Unit> {
+        return try {
+            if (newPassword.isBlank()) {
+                return Result.failure(Exception("Password cannot be empty"))
+            }
+
+            val currentUser = auth.currentUser
+                ?: return Result.failure(Exception("No user is currently signed in"))
+
+            if (!currentUser.hasPasswordProvider()) {
+                return Result.failure(Exception("This account has no password to change"))
+            }
+
+            Log.d(TAG) { "updatePassword: Setting a new password for ${currentUser.uid}" }
+
+            currentUser.updatePassword(newPassword)
+
+            Log.d(TAG) { "updatePassword: Success" }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            handlePasswordChangeException(e, "Password change")
+        }
+    }
+
+    /**
      * Link anonymous account with email and password credentials.
      * Converts a guest account to a permanent email-authenticated account.
      */
@@ -376,6 +439,50 @@ class GitLiveAuthRepository : AuthRepository {
             exception.message?.contains("NETWORK_ERROR") == true -> "Network error. Please check your connection"
             exception.message?.contains("NETWORK_REQUEST_FAILED") == true -> "Network error. Please check your connection"
             exception.message?.contains("OPERATION_NOT_ALLOWED") == true -> "This sign-in method is not enabled"
+            else -> exception.message ?: "$operation failed"
+        }
+
+        Log.e(TAG) { "$operation error - $errorMessage" }
+        return Result.failure(Exception(errorMessage))
+    }
+
+    /**
+     * Whether this account is backed by a password at all. A Google- or
+     * Apple-only account has nothing to re-authenticate against and nothing to
+     * change.
+     */
+    private fun FirebaseUser.hasPasswordProvider(): Boolean =
+        try {
+            providerData.any { it.providerId == "password" }
+        } catch (e: Exception) {
+            Log.w(TAG) { "hasPasswordProvider: Error - ${e.message}" }
+            // Let the operation proceed and fail with the provider's own error
+            // rather than refusing on a reading we could not take.
+            true
+        }
+
+    /**
+     * Handle re-authentication and password-change exceptions.
+     *
+     * REQUIRES_RECENT_LOGIN is listed for completeness, but it should not reach
+     * the user: the re-authentication that precedes the update is what clears
+     * it. Seeing it means the two calls were made out of order.
+     */
+    private fun handlePasswordChangeException(
+        exception: Exception,
+        operation: String
+    ): Result<Nothing> {
+        val errorMessage = when {
+            exception.message?.contains("WRONG_PASSWORD") == true -> "Incorrect password"
+            exception.message?.contains("INVALID_CREDENTIAL") == true -> "Incorrect password"
+            exception.message?.contains("INVALID_LOGIN_CREDENTIALS") == true -> "Incorrect password"
+            exception.message?.contains("WEAK_PASSWORD") == true -> "Password is too weak (minimum 6 characters)"
+            exception.message?.contains("REQUIRES_RECENT_LOGIN") == true -> "Please sign out and sign in again before changing your password"
+            exception.message?.contains("USER_NOT_FOUND") == true -> "No account found"
+            exception.message?.contains("USER_DISABLED") == true -> "This account has been disabled"
+            exception.message?.contains("TOO_MANY_REQUESTS") == true -> "Too many failed attempts. Please try again later"
+            exception.message?.contains("NETWORK_ERROR") == true -> "Network error. Please check your connection"
+            exception.message?.contains("NETWORK_REQUEST_FAILED") == true -> "Network error. Please check your connection"
             else -> exception.message ?: "$operation failed"
         }
 

@@ -389,6 +389,7 @@
     <string name="action_link_email">Link with Email</string>
     <string name="action_logout">Sign Out</string>
     <string name="action_delete_account">Delete Account</string>
+    <string name="action_change_password">Change Password</string>
 
     <!-- Logout Warning Dialog -->
     <string name="logout_warning_title">Data will be lost!</string>
@@ -412,6 +413,19 @@
     <string name="link_email_dialog_title">Link with Email</string>
     <string name="link_email_dialog_message">Create an email and password to permanently secure your guest account.</string>
     <string name="link_email_dialog_confirm">Link Account</string>
+
+    <!-- Change Password Dialog -->
+    <string name="change_password_title">Change Password</string>
+    <string name="change_password_message">Enter your current password first. That is how we confirm it is you.</string>
+    <string name="change_password_current_label">Current password</string>
+    <string name="change_password_new_label">New password</string>
+    <string name="change_password_confirm_label">Confirm new password</string>
+    <string name="change_password_confirm">Change Password</string>
+    <string name="change_password_same_as_current">The new password must differ from the current one</string>
+    <string name="change_password_success">Password changed</string>
+    <string name="change_password_failed">Could not change the password</string>
+    <string name="change_password_requires_recent_login">Please sign out and sign in again to change your password</string>
+    <string name="change_password_no_password_account">This account has no password</string>
 
     <!-- Delete Account Dialog -->
     <string name="delete_account_title">Delete Account?</string>
@@ -885,6 +899,7 @@
     <!-- Spoken progress while an account dialog action is running -->
     <string name="a11y_deleting_account">Deleting account</string>
     <string name="a11y_linking_account">Linking account</string>
+    <string name="a11y_changing_password">Changing password</string>
     <!-- Spoken progress on the sign-in / sign-up buttons -->
     <string name="a11y_signing_in">Signing in</string>
     <string name="a11y_creating_account">Creating account</string>

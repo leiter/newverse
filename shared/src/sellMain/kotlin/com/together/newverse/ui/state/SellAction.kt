@@ -27,6 +27,12 @@ sealed interface SellUserAction : SellAction {
     data class Register(val email: String, val password: String, val name: String) : SellUserAction
     data class UpdateProfile(val profile: UserProfile) : SellUserAction
     data class RequestPasswordReset(val email: String) : SellUserAction
+    data object ShowChangePasswordDialog : SellUserAction
+    data object DismissChangePasswordDialog : SellUserAction
+    data class UpdateChangePasswordCurrent(val password: String) : SellUserAction
+    data class UpdateChangePasswordNew(val password: String) : SellUserAction
+    data class UpdateChangePasswordConfirm(val password: String) : SellUserAction
+    data object SubmitChangePassword : SellUserAction
 }
 
 // ===== Order Actions =====

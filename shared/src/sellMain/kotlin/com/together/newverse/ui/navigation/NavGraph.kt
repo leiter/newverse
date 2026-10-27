@@ -28,6 +28,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import com.together.newverse.ui.state.NotificationSettings
 import com.together.newverse.ui.state.SellAppState
 import com.together.newverse.ui.state.SellAction
+import com.together.newverse.ui.state.SellUserAction
 
 /**
  * Sell (Merchant) Navigation Routes Module
@@ -183,6 +184,14 @@ fun NavGraphBuilder.navGraph(
             isSaving = isSaving.value,
             onNotificationSettingsClick = onNavigateToNotificationSettings,
             onLogout = onLogout,
+            canChangePassword = appState.canChangePassword,
+            changePasswordState = appState.changePassword,
+            onShowChangePassword = { onAction(SellUserAction.ShowChangePasswordDialog) },
+            onDismissChangePassword = { onAction(SellUserAction.DismissChangePasswordDialog) },
+            onChangePasswordCurrent = { onAction(SellUserAction.UpdateChangePasswordCurrent(it)) },
+            onChangePasswordNew = { onAction(SellUserAction.UpdateChangePasswordNew(it)) },
+            onChangePasswordConfirm = { onAction(SellUserAction.UpdateChangePasswordConfirm(it)) },
+            onSubmitChangePassword = { onAction(SellUserAction.SubmitChangePassword) },
             onShowPaymentInfo = { profileViewModel.showPaymentInfo() },
             onHidePaymentInfo = { profileViewModel.hidePaymentInfo() },
             onShowMarketDialog = { market -> profileViewModel.showMarketDialog(market) },

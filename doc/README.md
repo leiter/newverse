@@ -72,6 +72,7 @@ Proposed. Nothing in here is built unless its banner says which part is.
 | [agp-9-migration-prep.md](plans/agp-9-migration-prep.md) | Groundwork; do not start during a launch |
 | [apple-store-release-plan.md](plans/apple-store-release-plan.md) | Store assets; largely unexecuted for iOS |
 | [seller-buyer-identity-migration-plan.md](plans/seller-buyer-identity-migration-plan.md) | Phases 1, 2b and 2c done; Phase 3 and the tail of 4 open |
+| [change-password-plan.md](plans/change-password-plan.md) | In-app password change, both flavors — implemented 2026-10-27, not yet device-verified |
 
 ## reports/
 
