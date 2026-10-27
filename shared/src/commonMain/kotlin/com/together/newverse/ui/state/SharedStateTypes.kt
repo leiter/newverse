@@ -492,7 +492,13 @@ data class CustomerProfileScreenState(
     val emailLinkingEmail: String = "",
     val emailLinkingPassword: String = "",
     val emailLinkingConfirmPassword: String = "",
-    val emailLinkingError: String? = null
+    val emailLinkingError: String? = null,
+    /**
+     * Changing the password of an email/password account. One nested object
+     * rather than six more flat fields, because the seller's profile carries
+     * the identical state and the dialog is shared between the two.
+     */
+    val changePassword: ChangePasswordState = ChangePasswordState()
 ) : ScreenState
 
 /**

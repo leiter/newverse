@@ -56,6 +56,12 @@ sealed interface BuyAccountAction : BuyAction {
     data class UpdateEmailLinkingPassword(val password: String) : BuyAccountAction
     data class UpdateEmailLinkingConfirmPassword(val confirmPassword: String) : BuyAccountAction
     data object ConfirmDeleteAccount : BuyAccountAction
+    data object ShowChangePasswordDialog : BuyAccountAction
+    data object DismissChangePasswordDialog : BuyAccountAction
+    data class UpdateChangePasswordCurrent(val password: String) : BuyAccountAction
+    data class UpdateChangePasswordNew(val password: String) : BuyAccountAction
+    data class UpdateChangePasswordConfirm(val password: String) : BuyAccountAction
+    data object SubmitChangePassword : BuyAccountAction
 }
 
 // ===== Product Actions =====

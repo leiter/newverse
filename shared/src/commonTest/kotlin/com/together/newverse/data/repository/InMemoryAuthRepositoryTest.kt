@@ -21,6 +21,7 @@ import kotlin.test.assertTrue
  * - Account linking
  * - Delete account
  * - Password reset
+ * - Changing the password while signed in
  * - Auth state observation
  */
 class InMemoryAuthRepositoryTest {
@@ -408,5 +409,101 @@ class InMemoryAuthRepositoryTest {
         repository.signOut()
 
         assertNull(repository.getCurrentUserInfo())
+    }
+
+    // ===== K. Change Password (9 tests) =====
+
+    @Test
+    fun `reauthenticateWithPassword succeeds with the current password`() = runTest {
+        repository.signInWithEmail("test@buyer.com", "password123")
+
+        val result = repository.reauthenticateWithPassword("password123")
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `reauthenticateWithPassword fails with the wrong password`() = runTest {
+        repository.signInWithEmail("test@buyer.com", "password123")
+
+        val result = repository.reauthenticateWithPassword("not-my-password")
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("Incorrect password") == true)
+    }
+
+    @Test
+    fun `reauthenticateWithPassword fails when nobody is signed in`() = runTest {
+        val result = repository.reauthenticateWithPassword("password123")
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("No user") == true)
+    }
+
+    @Test
+    fun `reauthenticateWithPassword fails for an anonymous account`() = runTest {
+        repository.signInAnonymously()
+
+        val result = repository.reauthenticateWithPassword("password123")
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("no password") == true)
+    }
+
+    @Test
+    fun `updatePassword changes what signInWithEmail accepts`() = runTest {
+        repository.signInWithEmail("test@buyer.com", "password123")
+        repository.reauthenticateWithPassword("password123")
+
+        assertTrue(repository.updatePassword("newpass1").isSuccess)
+
+        repository.signOut()
+        assertTrue(repository.signInWithEmail("test@buyer.com", "newpass1").isSuccess)
+        assertTrue(repository.signInWithEmail("test@buyer.com", "password123").isFailure)
+    }
+
+    @Test
+    fun `updatePassword fails without a prior reauthentication`() = runTest {
+        repository.signInWithEmail("test@buyer.com", "password123")
+
+        val result = repository.updatePassword("newpass1")
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("sign in again") == true)
+    }
+
+    @Test
+    fun `one reauthentication allows only one change`() = runTest {
+        repository.signInWithEmail("test@buyer.com", "password123")
+        repository.reauthenticateWithPassword("password123")
+
+        assertTrue(repository.updatePassword("newpass1").isSuccess)
+
+        // The window is spent; a second change needs proving the password again.
+        assertTrue(repository.updatePassword("newpass2").isFailure)
+    }
+
+    @Test
+    fun `updatePassword rejects a password below the minimum length`() = runTest {
+        repository.signInWithEmail("test@buyer.com", "password123")
+        repository.reauthenticateWithPassword("password123")
+
+        val result = repository.updatePassword("ab1")
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("at least 6") == true)
+    }
+
+    @Test
+    fun `signing out clears the reauthentication`() = runTest {
+        repository.signInWithEmail("test@buyer.com", "password123")
+        repository.reauthenticateWithPassword("password123")
+        repository.signOut()
+        repository.signInWithEmail("test@buyer.com", "password123")
+
+        val result = repository.updatePassword("newpass1")
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("sign in again") == true)
     }
 }

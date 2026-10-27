@@ -35,6 +35,7 @@ import newverse.shared.generated.resources.account_status_guest
 import newverse.shared.generated.resources.account_status_guest_warning
 import newverse.shared.generated.resources.account_status_signed_in
 import newverse.shared.generated.resources.account_status_title
+import newverse.shared.generated.resources.action_change_password
 import newverse.shared.generated.resources.action_delete_account
 import newverse.shared.generated.resources.action_link_email
 import newverse.shared.generated.resources.action_link_google
@@ -66,6 +67,7 @@ fun LoginStatusCard(
     @Suppress("UNUSED_PARAMETER") onLinkWithEmail: () -> Unit,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit,
+    onChangePassword: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -112,7 +114,8 @@ fun LoginStatusCard(
                     userEmail = userEmail,
                     authProviders = authProviders.ifEmpty { listOf(authProvider) },
                     onLogout = onLogout,
-                    onDeleteAccount = onDeleteAccount
+                    onDeleteAccount = onDeleteAccount,
+                    onChangePassword = onChangePassword
                 )
             }
         }
@@ -175,7 +178,8 @@ private fun AuthenticatedStatus(
     userEmail: String?,
     authProviders: List<AuthProvider>,
     onLogout: () -> Unit,
-    onDeleteAccount: () -> Unit
+    onDeleteAccount: () -> Unit,
+    onChangePassword: () -> Unit
 ) {
     // Format: "Angemeldet mit Google, Apple" (Compose Resources doesn't support %s
     // format). An account can be linked to several providers, so all are listed.
@@ -214,6 +218,16 @@ private fun AuthenticatedStatus(
     }
 
     Spacer(modifier = Modifier.height(16.dp))
+
+    // Account maintenance sits on its own row, above the pair that ends the
+    // session or the account: changing a password is not that kind of action,
+    // and crowding three buttons into one SpaceBetween row reads as if it were.
+    // Only shown for an account that actually has a password.
+    if (authProviders.contains(AuthProvider.EMAIL)) {
+        TextButton(onClick = onChangePassword) {
+            Text(stringResource(Res.string.action_change_password))
+        }
+    }
 
     // Action buttons
     Row(

@@ -26,6 +26,21 @@ data class SellAppState(
     // Screen states
     val auth: AuthScreenState = AuthScreenState(),
 
+    /**
+     * Changing the seller's own password. Lives here rather than on
+     * `SellerProfileViewModel` so the success snackbar goes through the same
+     * host the scaffold already feeds from this state, and so the buy and sell
+     * flavors drive the shared dialog the same way.
+     */
+    val changePassword: ChangePasswordState = ChangePasswordState(),
+
+    /**
+     * Whether this account is backed by a password. A Google-only seller has
+     * nothing to change, so the entry point stays hidden rather than offering
+     * a dialog that could only fail.
+     */
+    val canChangePassword: Boolean = false,
+
     // Messaging
     val unreadMessageCount: Int = 0,
 

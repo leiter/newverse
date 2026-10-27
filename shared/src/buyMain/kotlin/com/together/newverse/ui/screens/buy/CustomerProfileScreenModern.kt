@@ -98,6 +98,7 @@ import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.MissingProfileData
 import com.together.newverse.ui.screens.buy.components.ConnectionConfirmDialog
+import com.together.newverse.ui.components.ChangePasswordDialog
 import com.together.newverse.ui.screens.buy.components.DeleteAccountDialog
 import com.together.newverse.ui.screens.buy.components.EmailLinkingDialog
 import com.together.newverse.ui.screens.buy.components.LinkAccountDialog
@@ -325,6 +326,18 @@ fun CustomerProfileScreenModern(
                 )
             },
             onDismiss = { onAction(BuyAccountAction.DismissEmailLinkingDialog) }
+        )
+    }
+
+    // Change Password Dialog
+    if (state.changePassword.visible) {
+        ChangePasswordDialog(
+            state = state.changePassword,
+            onCurrentPasswordChange = { onAction(BuyAccountAction.UpdateChangePasswordCurrent(it)) },
+            onNewPasswordChange = { onAction(BuyAccountAction.UpdateChangePasswordNew(it)) },
+            onConfirmPasswordChange = { onAction(BuyAccountAction.UpdateChangePasswordConfirm(it)) },
+            onConfirm = { onAction(BuyAccountAction.SubmitChangePassword) },
+            onDismiss = { onAction(BuyAccountAction.DismissChangePasswordDialog) }
         )
     }
 
@@ -585,7 +598,8 @@ fun CustomerProfileScreenModern(
                                 onAction(BuyUserAction.Logout)
                             }
                         },
-                        onDeleteAccount = { onAction(BuyAccountAction.ShowDeleteAccountDialog) }
+                        onDeleteAccount = { onAction(BuyAccountAction.ShowDeleteAccountDialog) },
+                        onChangePassword = { onAction(BuyAccountAction.ShowChangePasswordDialog) }
                     )
 
                     // Quick Actions

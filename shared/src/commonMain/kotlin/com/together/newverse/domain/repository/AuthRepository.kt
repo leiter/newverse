@@ -123,6 +123,36 @@ interface AuthRepository {
     suspend fun linkWithEmail(email: String, password: String): Result<String>
 
     /**
+     * Re-prove the signed-in user's identity with the password they have now.
+     *
+     * Firebase refuses [updatePassword] on a session older than a few minutes
+     * with REQUIRES_RECENT_LOGIN, and sessions in this app are long-lived, so
+     * this is the normal first half of a password change rather than a rare
+     * extra step. The email is read from the session; only the password is
+     * passed in.
+     *
+     * Kept separate from [updatePassword] so the UI can tell a wrong *current*
+     * password from a rejected *new* one and put the error under the right
+     * field.
+     *
+     * @param currentPassword The password the account has now
+     * @return Success, or an error if the password is wrong, the account has no
+     *   password provider, or nobody is signed in
+     */
+    suspend fun reauthenticateWithPassword(currentPassword: String): Result<Unit>
+
+    /**
+     * Set a new password on the signed-in account.
+     *
+     * Call [reauthenticateWithPassword] first; without it this fails with
+     * REQUIRES_RECENT_LOGIN on anything but a freshly signed-in session.
+     *
+     * @param newPassword The password to set
+     * @return Success or error
+     */
+    suspend fun updatePassword(newPassword: String): Result<Unit>
+
+    /**
      * Get current authenticated user's info from the auth provider.
      * Returns email, display name, and photo URL if available.
      * @return User info or null if not authenticated

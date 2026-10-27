@@ -142,6 +142,7 @@ class SellAppViewModel(
                             is AuthState.Authenticated -> {
                                 Log.d(TAG) { "observeAuthStateChanges: Setting meta to Authenticated/Complete" }
                                 observeAccessRequestCount(authState.userId)
+                                refreshPasswordProvider()
                                 current.meta.copy(
                                     isInitializing = false,
                                     isInitialized = true,
@@ -169,6 +170,23 @@ class SellAppViewModel(
             role = UserRole.SELLER,
             profileImageUrl = photoUrl
         )
+    }
+
+    /**
+     * Whether the signed-in seller has a password at all.
+     *
+     * `getProviderIds` returns an empty list when it cannot tell, which would
+     * hide the button on a password account; so an empty reading is treated as
+     * "offer it" and the repository refuses later if there really is no
+     * password. Better a dialog that reports the truth than a button that
+     * silently is not there.
+     */
+    private fun refreshPasswordProvider() {
+        viewModelScope.launch {
+            val providers = authRepository.getProviderIds()
+            val hasPassword = providers.isEmpty() || providers.contains("password")
+            _state.update { it.copy(canChangePassword = hasPassword) }
+        }
     }
 
     private var accessRequestJob: kotlinx.coroutines.Job? = null
@@ -221,6 +239,67 @@ class SellAppViewModel(
             is SellUserAction.Register -> register(action.email, action.password, action.name)
             is SellUserAction.UpdateProfile -> { /* Handled by SellerProfileViewModel.saveProfile() */ }
             is SellUserAction.RequestPasswordReset -> sendPasswordResetEmail(action.email)
+            is SellUserAction.ShowChangePasswordDialog ->
+                // Start clean rather than from whatever a cancelled attempt left.
+                _state.update { it.copy(changePassword = ChangePasswordState(visible = true)) }
+            is SellUserAction.DismissChangePasswordDialog ->
+                _state.update { it.copy(changePassword = it.changePassword.cleared()) }
+            is SellUserAction.UpdateChangePasswordCurrent ->
+                updateChangePassword { it.copy(currentPassword = action.password, currentPasswordError = null) }
+            is SellUserAction.UpdateChangePasswordNew ->
+                updateChangePassword { it.copy(newPassword = action.password, newPasswordError = null) }
+            is SellUserAction.UpdateChangePasswordConfirm ->
+                updateChangePassword { it.copy(confirmPassword = action.password) }
+            is SellUserAction.SubmitChangePassword -> submitChangePassword()
+        }
+    }
+
+    private fun updateChangePassword(transform: (ChangePasswordState) -> ChangePasswordState) {
+        _state.update { it.copy(changePassword = transform(it.changePassword)) }
+    }
+
+    /**
+     * Re-authenticate with the current password, then set the new one.
+     *
+     * Firebase rejects a password change on a session older than a few minutes,
+     * and the seller stays signed in for weeks, so the re-authentication is the
+     * normal path rather than a fallback. Keeping the two calls apart also puts
+     * a wrong current password under the field it was typed into.
+     *
+     * None of the three values is logged, at any level. They are secrets.
+     */
+    private fun submitChangePassword() {
+        viewModelScope.launch {
+            val fields = _state.value.changePassword
+
+            updateChangePassword {
+                it.copy(isSubmitting = true, currentPasswordError = null, newPasswordError = null)
+            }
+
+            val reauth = authRepository.reauthenticateWithPassword(fields.currentPassword)
+            if (reauth.isFailure) {
+                val message = changePasswordError(reauth.exceptionOrNull() ?: Exception())
+                Log.w(TAG) { "submitChangePassword: Re-authentication rejected" }
+                updateChangePassword { it.copy(isSubmitting = false, currentPasswordError = message) }
+                return@launch
+            }
+
+            authRepository.updatePassword(fields.newPassword)
+                .onSuccess {
+                    Log.d(TAG) { "submitChangePassword: Password changed" }
+                    // Clear the dialog so the typed passwords do not stay in state.
+                    updateChangePassword { it.cleared() }
+                    // The password is already changed at this point, so a
+                    // confirmation label that cannot be resolved must not turn a
+                    // success into a reported failure.
+                    runCatching { getString(Res.string.change_password_success) }
+                        .onSuccess { showSnackbarInState(it, SnackbarType.SUCCESS) }
+                }
+                .onFailure { error ->
+                    val message = changePasswordError(error)
+                    Log.e(TAG) { "submitChangePassword: Setting the new password failed" }
+                    updateChangePassword { it.copy(isSubmitting = false, newPasswordError = message) }
+                }
         }
     }
 
