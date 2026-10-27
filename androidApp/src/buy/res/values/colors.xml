@@ -6,4 +6,7 @@
     <!-- Buy flavor specific colors -->
     <color name="flavor_primary">#0A6308</color>
     <color name="flavor_accent">#FA9C4D</color>
+
+    <!-- Launcher icon background: BodenOrange, with the black mark. -->
+    <color name="icon_background">#FA9C4D</color>
 </resources>

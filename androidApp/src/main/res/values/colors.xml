@@ -6,4 +6,7 @@
     <!-- Window background behind the app, before Compose draws.
          Night variant in values-night/colors.xml. -->
     <color name="window_background">#F6F2E8</color>
+
+    <!-- Launcher icon background. The mark itself is baked into ic_launcher_foreground. -->
+    <color name="icon_background">#FA9C4D</color>
 </resources>
