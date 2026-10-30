@@ -1,10 +1,12 @@
 package com.together.newverse.ui.state
 
+import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.Article
-import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.DeliveryAddress
 import com.together.newverse.domain.model.Fulfilment
+import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.model.SellerUiAction
 import com.together.newverse.ui.navigation.NavRoutes
 import kotlinx.datetime.DayOfWeek
 
@@ -101,6 +103,53 @@ sealed interface BuyUiAction : BuyAction {
      * while the frame was in flight.
      */
     data object DismissHomeAnnouncement : BuyUiAction
+
+    /**
+     * The buyer closed the seller's message box on [location].
+     *
+     * Carries the slot rather than the key, for the reason [DismissHomeAnnouncement]
+     * carries nothing: the state resolves which row is in that slot, so a stale
+     * recomposition cannot suppress a question the seller published while the frame
+     * was in flight. The slot *is* needed — there are two input slots, and closing
+     * the one on the profile screen must not take the one on home away.
+     */
+    data class DismissPrompt(val location: ActionLocation) : BuyUiAction
+
+    /**
+     * The buyer pressed send in the message box on [location].
+     *
+     * The text comes from the UI because it is the buyer's own typing and lives in
+     * the field until it is sent; everything else about the message — who asked, what
+     * was asked, which kind of box — is resolved from state, so a caller cannot
+     * misattribute an answer.
+     */
+    data class SendPrompt(val location: ActionLocation, val text: String) : BuyUiAction
+
+    /**
+     * A failed send has been shown to the buyer, so stop holding on to it.
+     *
+     * The failure is kept in state as a `StringResource` rather than a resolved
+     * message, because a ViewModel has no resource environment to resolve one in —
+     * the lesson the change-password dialog's error slots learned. Resolving it and
+     * putting it in front of the buyer is the top bar's job; this is how the top bar
+     * says it has done so, and why a refusal is announced once rather than on every
+     * recomposition.
+     */
+    data object ClearPromptError : BuyUiAction
+
+    /**
+     * The buyer tapped a published button, so a row the seller marked
+     * [com.together.newverse.domain.model.ActionPersistence.HIDE_ON_ACTION] should now
+     * go.
+     *
+     * Carries the row rather than its id, because hiding it needs the text as well:
+     * the key is the id *and* a hash of the wording, so a reworded row comes back.
+     * Dispatched for *every* tap and filtered in the handler — the top bar should not
+     * have to know what the flag means, and the one place that does is the one place
+     * that decides.
+     */
+    data class NotePublishedActionUsed(val action: SellerUiAction) : BuyUiAction
+
     data class ShowSnackbar(val message: String, val type: SnackbarType = SnackbarType.INFO) : BuyUiAction
     data object HideSnackbar : BuyUiAction
     data class ShowDialog(val dialog: DialogState) : BuyUiAction

@@ -150,7 +150,8 @@ Realtime Database, top-level node first, then owner:
 /stock_movements/{sellerId}/{yyyyMM}/{id}  # Stock ledger, append-only (seller-only)
 /stock/{sellerId}/{articleId}              # The level those movements add up to
 /markets/{sellerId}/{marketId}            # Seller's markets, readable by every signed-in user
-/seller_ui_actions/{sellerId}/{id}        # Buttons the seller publishes into the buy app
+/seller_ui_actions/{sellerId}/{id}        # Buttons, announcements and message boxes the seller publishes into the buy app
+/seller_inbox/{sellerId}/{messageId}      # What buyers sent back through a published message box (seller-readable, add-only)
 /seller_profile/{sellerId}                # Seller profile
 /buyer_profile/{buyerId}                  # Buyer profile with order history
 ```
@@ -232,6 +233,7 @@ Most-used:
 - `doc/guides/ordering-business-rules.md` - Order logic, per-market pickup, editing
 - `doc/guides/stock-driven-availability-design.md` - Stock vs. demand, derived `available`, refill reminder
 - `doc/guides/seller-ui-actions.md` - Seller-published top-bar buttons and the home-title announcement; the scheme is never stored
+- `doc/guides/quick-message-wishbox.md` - The seller's published message box, the `seller_inbox` it sends to, and the `active`/`persistence` flags on every published row
 - `doc/guides/build-flavors.md` - applicationIds, BuildKonfig, the combined build
 - `doc/guides/theme.md` - The Bodenschätze palette from the flyer, the Nachterde dark scheme, the brown bars; never take colour from a palette constant
 - `doc/guides/testing.md` - Source sets, fakes, how to run what

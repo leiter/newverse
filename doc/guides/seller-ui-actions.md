@@ -3,6 +3,8 @@
 **Status:** Implemented 2026-10-21; two bugs found on first device use the same day
 and fixed — see **What went wrong first time**. The home-title announcement
 (`TOPBAR_HOME_TITLE`) was added 2026-10-25 and has not yet run on a device.
+**See also:** `quick-message-wishbox.md` — the same mechanism with an answer coming
+back, which also adds the `active` and `persistence` flags to every published row.
 **Scope:** `shared/src/commonMain` (model + repository), `buyMain` (top-bar
 rendering, app state), `sellMain` (editor on the profile screen),
 `firebase/database.rules.json` (+ `firebase/tests/seller-ui-actions.test.js`)
@@ -44,6 +46,12 @@ read map anyway, while coupling a button to every profile write.
 Removal is a **delete, not a flag.** Unlike a market, which `Order.marketId` points at
 long after it is retired, nothing references an action by id. There is no dangling
 reference to protect and no reason to keep a withdrawn button readable.
+
+**Since 2026-10-30 there is also an off switch**, which does not contradict that: the
+reasoning above is about dangling references and still holds. What it missed is that a
+seller sometimes wants the *wording* back. `active: false` parks a row without
+deleting it — see `quick-message-wishbox.md`, which also adds the `persistence` flag
+deciding whether a row goes when the buyer acts on it or only when they close it.
 
 ## Why not `seller_events`
 
@@ -95,8 +103,9 @@ Enforced in three places, deliberately:
 
 ## Where buttons appear
 
-`ActionLocation` names whole slots — `TOPBAR_HOME`, `TOPBAR_PROFILE`, and
-`TOPBAR_HOME_TITLE`, which is not a button at all — rather than
+`ActionLocation` names whole slots — `TOPBAR_HOME`, `TOPBAR_PROFILE`,
+`TOPBAR_HOME_TITLE`, which is not a button at all, and the two message-box slots
+`quick-message-wishbox.md` adds — rather than
 carrying a free-form surface and screen pair. A typo in `"topbar,profileScreen"`
 either renders nowhere and looks like data loss, or renders everywhere; an unknown
 enum name is skipped and the row is simply not shown. The enum→route mapping lives in
@@ -106,7 +115,10 @@ In the top bar itself:
 
 (`TOPBAR_HOME_TITLE` is reached through `BuyAppState.homeTitleAnnouncement`, never
 through `forLocation`, so an announcement is never drawn as a button. The test *"an
-announcement is not drawn as a button"* pins it.)
+announcement is not drawn as a button"* pins it. Since 2026-10-30 this is structural
+rather than conventional: `forLocation` returns nothing for a slot where
+`ActionLocation.isButtonSlot` is false, so a careless call site cannot draw a title or
+a message box as a button nobody can tap.)
 
 - **One action** is its own labelled `TextButton`, because the label is the point —
   "Wünsche" says what no icon could.
@@ -371,9 +383,9 @@ what made this expensive to find.
 - **`MAX_PER_LOCATION` is not enforceable in rules.** A client writing directly to the
   database could exceed it. The render-side `take()` means the buy app still shows at
   most three, so the failure mode is an ignored row rather than a broken top bar.
-- **Only two slots exist.** Adding one is an enum entry, a rules literal, a route
-  branch in `AppScaffold`, and a display name — in that order, or the editor will
-  offer a slot the renderer drops.
+- **Adding a slot** is an enum entry, a rules literal, a route branch in
+  `AppScaffold`, and a display name — in that order, or the editor will offer a slot
+  the renderer drops. Done twice since, for the message box.
 
 ## Files
 

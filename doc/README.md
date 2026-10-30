@@ -39,6 +39,7 @@ Current truth. Verified against `shared/src` on 2026-10-20 unless noted.
 | [market-pricing-and-access-design.md](guides/market-pricing-and-access-design.md) | Markets as an entity, per-market pricing, eligibility, slots, closures (implemented 2026-10-19) |
 | [seller-contact-design.md](guides/seller-contact-design.md) | Seller contact channels, market scope, visibility (implemented 2026-10-19) |
 | [seller-ui-actions.md](guides/seller-ui-actions.md) | Seller-published top-bar buttons: the `seller_ui_actions` node, why not `seller_events`, why the seller never picks a scheme (implemented 2026-10-21) |
+| [quick-message-wishbox.md](guides/quick-message-wishbox.md) | The seller's published message box and the `seller_inbox` it sends to; the `active` and `persistence` flags on every published row (implemented 2026-10-30, rules not yet deployed) |
 | [stock-driven-availability-design.md](guides/stock-driven-availability-design.md) | Committed demand, refill list, derived `available`, the placement gate, the refill reminder, the scarcity band (implemented 2026-10-20) |
 | [demo-order-provenance.md](guides/demo-order-provenance.md) | `Order.origin`, path as the traffic boundary, demo→production transition |
 | [demo-mode-and-profile-indication.md](guides/demo-mode-and-profile-indication.md) | Telling the buyer "finish this" vs. "not live yet" |

@@ -66,6 +66,8 @@ sealed class NavRoutes(val route: String) {
         data object NotificationSettings : Sell("sell/notification_settings")
         data object ImportPreview : Sell("sell/import_preview")
         data object Conversations : Sell("sell/conversations")
+        /** What customers sent through a published message box. */
+        data object Inbox : Sell("sell/inbox")
         data object ConversationDetail : Sell("sell/conversation/{conversationId}") {
             fun createRoute(conversationId: String): String {
                 return "sell/conversation/$conversationId"
@@ -107,7 +109,8 @@ sealed class NavRoutes(val route: String) {
             Sell.Profile,
             Sell.PickDay,
             Sell.Conversations,
-            Sell.ConversationDetail
+            Sell.ConversationDetail,
+            Sell.Inbox
         )
 
         // Get all routes for navigation drawer (filtered by build flavor)
@@ -175,6 +178,7 @@ sealed class NavRoutes(val route: String) {
             Buy.BuyerContacts -> Res.string.contacts_title
             Buy.AddBuyerContact -> Res.string.contacts_add
             Sell.Conversations -> Res.string.nav_messages
+            Sell.Inbox -> Res.string.inbox_title
             Sell.ConversationDetail -> Res.string.nav_messages
             Sell.Abrechnung -> Res.string.topbar_abrechnung
             Sell.Stock -> Res.string.topbar_stock

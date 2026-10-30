@@ -5,6 +5,7 @@ import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.SellerUiAction
 import com.together.newverse.domain.model.announcementFor
+import com.together.newverse.domain.model.promptFor
 import com.together.newverse.domain.model.forLocation
 import com.together.newverse.domain.model.MarketPricing
 import com.together.newverse.domain.model.ResolvedPrice
@@ -65,14 +66,27 @@ data class BuyAppState(
      */
     val sellerUiActions: List<SellerUiAction> = emptyList(),
     /**
-     * Announcement keys this device has dismissed, read once at startup from
-     * [com.together.newverse.data.config.AnnouncementDismissalStorage].
+     * Keys of published rows this device has been told to stop showing, read once at
+     * startup from [com.together.newverse.data.config.AnnouncementDismissalStorage].
      *
-     * In state rather than read from storage at render time so that the title does not
-     * touch the disk on every recomposition, and so a dismissal takes the banner away
+     * Covers every kind of published row, not just announcements: a button the seller
+     * marked [com.together.newverse.domain.model.ActionPersistence.HIDE_ON_ACTION]
+     * lands here once it has been tapped, and a message box when it is closed or sent
+     * through. The key is the row id plus a hash of its text, so re-wording brings it
+     * back — see [com.together.newverse.domain.model.SellerUiAction.dismissalKey].
+     *
+     * In state rather than read from storage at render time so that the top bar does
+     * not touch the disk on every recomposition, and so a dismissal takes the row away
      * on the same frame as the tap.
      */
-    val dismissedAnnouncements: Set<String> = emptySet(),
+    val dismissedRows: Set<String> = emptySet(),
+    /**
+     * Where a message the buyer typed into a published box currently stands.
+     *
+     * One slot of state for both input slots, because a buyer can only be sending
+     * from the box they are looking at. See [QuickMessageState].
+     */
+    val quickMessage: QuickMessageState = QuickMessageState(),
 
     // Invitation state
     val pendingInvitations: List<Invitation> = emptyList(),
@@ -323,14 +337,20 @@ data class BuyAppState(
      * button that appears only after approval reads as broken to a new install.
      */
     fun topBarActionsFor(location: ActionLocation): List<SellerUiAction> =
-        sellerUiActions.forLocation(
-            location = location,
-            // Both read the *loaded* status, so a narrowed button stays absent until
-            // the app knows which side of the line this buyer is on, rather than
-            // appearing at launch and vanishing. See [canContactSeller].
-            isApproved = canContactSeller,
-            isDemo = isDemoMode
-        )
+        sellerUiActions
+            // A button the seller marked HIDE_ON_ACTION and this buyer has already
+            // tapped. Filtered before the cap, like the audience, so a button this
+            // buyer is done with does not use up one of the three places.
+            .filterNot { it.dismissalKey in dismissedRows }
+            .forLocation(
+                location = location,
+                // Both read the *loaded* status, so a narrowed button stays absent
+                // until the app knows which side of the line this buyer is on,
+                // rather than appearing at launch and vanishing. See
+                // [canContactSeller].
+                isApproved = canContactSeller,
+                isDemo = isDemoMode
+            )
 
     /**
      * The seller's announcement for the home title, or null — already audience-filtered
@@ -350,7 +370,28 @@ data class BuyAppState(
                 isApproved = canContactSeller,
                 isDemo = isDemoMode
             )
-            ?.takeUnless { it.dismissalKey in dismissedAnnouncements }
+            ?.takeUnless { it.dismissalKey in dismissedRows }
+
+    /**
+     * The seller's message box for one title slot, or null — audience-filtered and
+     * already checked against what this device has suppressed.
+     *
+     * The same three ordinary cases as [homeTitleAnnouncement] collapse to null: none
+     * published, not for this buyer, and closed by this buyer. A fourth is specific to
+     * this slot and deliberate: a box is **not** hidden after a message is sent. A
+     * buyer with a second wish should be able to send it, and the seller asked a
+     * standing question rather than ran a one-answer poll. Closing it is how a buyer
+     * says they are done — see [BuyUiAction.DismissPrompt].
+     */
+    fun titlePromptFor(location: ActionLocation): SellerUiAction? =
+        sellerUiActions
+            .promptFor(
+                location = location,
+                // The *loaded* status, for the reason [topBarActionsFor] gives.
+                isApproved = canContactSeller,
+                isDemo = isDemoMode
+            )
+            ?.takeUnless { it.dismissalKey in dismissedRows }
 
     /** What the top-bar menu offers, already deduplicated. */
     val topBarContacts: List<SellerContact>
@@ -391,7 +432,7 @@ data class BuyAppState(
  * which each caller sets to suit its flow, and the seller's catalogue in
  * [mainScreen] and [products], which is not the buyer's data.
  *
- * [BuyAppState.dismissedAnnouncements] is left alone for the same reason, and the
+ * [BuyAppState.dismissedRows] is left alone for the same reason, and the
  * decision is worth stating: it is kept per install rather than per user, so a guest
  * who links their account does not get a banner back that they already closed. It
  * says nothing about the buyer, only that this screen has been read.
@@ -410,6 +451,7 @@ fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
     allowedMarkets = emptyList(),
     sellerClosures = MarketClosures.NONE,
     sellerUiActions = emptyList(),
+    quickMessage = QuickMessageState(),
     pendingInvitations = emptyList(),
     showConnectionConfirmDialog = null,
     basket = BasketState(),

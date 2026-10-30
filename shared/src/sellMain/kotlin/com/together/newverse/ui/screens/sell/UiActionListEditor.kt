@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,12 +28,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.ActionAudience
 import com.together.newverse.domain.model.ActionKind
 import com.together.newverse.domain.model.ActionLocation
+import com.together.newverse.domain.model.ActionPersistence
 import com.together.newverse.domain.model.SellerUiAction
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.button_save
@@ -51,7 +54,15 @@ import newverse.shared.generated.resources.seller_actions_location
 import newverse.shared.generated.resources.seller_actions_location_home
 import newverse.shared.generated.resources.seller_actions_location_home_title
 import newverse.shared.generated.resources.seller_actions_location_profile
+import newverse.shared.generated.resources.seller_actions_location_home_input
+import newverse.shared.generated.resources.seller_actions_location_profile_input
+import newverse.shared.generated.resources.seller_actions_prompt
+import newverse.shared.generated.resources.seller_actions_prompt_explain
 import newverse.shared.generated.resources.seller_actions_remove
+import newverse.shared.generated.resources.seller_actions_active
+import newverse.shared.generated.resources.seller_actions_persistence
+import newverse.shared.generated.resources.seller_actions_persistence_hide_on_action
+import newverse.shared.generated.resources.seller_actions_persistence_until_cancelled
 import newverse.shared.generated.resources.seller_actions_save_failed
 import newverse.shared.generated.resources.seller_actions_title
 import newverse.shared.generated.resources.seller_actions_value
@@ -90,8 +101,12 @@ fun UiActionListEditor(
     // replaces the blank one a fresh row carried.
     var rows by remember(actions) { mutableStateOf(actions) }
 
-    val edited = rows.filter { it.isUsable } != actions.filter { it.isUsable }
-    val incomplete = rows.any { !it.isUsable && (it.label.isNotBlank() || it.value.isNotBlank()) }
+    // Compared and saved on *completeness*, not usability: a row the seller has just
+    // switched off is complete, is an edit, and must be saved — which is the whole
+    // point of there being a switch.
+    val edited = rows.filter { it.isComplete } != actions.filter { it.isComplete }
+    val incomplete =
+        rows.any { !it.isComplete && (it.label.isNotBlank() || it.value.isNotBlank()) }
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -163,7 +178,7 @@ fun UiActionListEditor(
             Button(
                 // Shaped the way it will be stored before being handed over, so the
                 // announcement rows carry the derived label the rules require.
-                onClick = { rows.filter { it.isUsable }.forEach { onSave(it.readyToStore()) } },
+                onClick = { rows.filter { it.isComplete }.forEach { onSave(it.readyToStore()) } },
                 enabled = !isSaving && edited && !incomplete
             ) {
                 Text(stringResource(Res.string.button_save))
@@ -200,11 +215,18 @@ private fun UiActionRow(
     onRemove: () -> Unit,
 ) {
     var locationMenuOpen by remember { mutableStateOf(false) }
+    val activeDescription = stringResource(Res.string.seller_actions_active)
 
     val isAnnouncement = action.kind == ActionKind.ANNOUNCE
-    val valueLabel =
-        if (isAnnouncement) Res.string.seller_actions_announcement
-        else Res.string.seller_actions_value
+    val isPrompt = action.kind == ActionKind.QUICK_MESSAGE
+    // Both of these are the seller's own prose rather than an address, so they get the
+    // room and the wording a sentence needs — and neither asks for a label.
+    val isProse = isAnnouncement || isPrompt
+    val valueLabel = when {
+        isAnnouncement -> Res.string.seller_actions_announcement
+        isPrompt -> Res.string.seller_actions_prompt
+        else -> Res.string.seller_actions_value
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
@@ -248,6 +270,17 @@ private fun UiActionRow(
                 }
             }
 
+            // Off, not gone. A seller parking the wishbox over winter should not have
+            // to retype the question in spring, and a buyer with the app open sees it
+            // go either way — the buy app watches this node.
+            Switch(
+                checked = action.isActive,
+                onCheckedChange = { onChange(action.copy(isActive = it)) },
+                modifier = Modifier.semantics {
+                    contentDescription = activeDescription
+                }
+            )
+
             IconButton(onClick = onRemove) {
                 Icon(
                     Icons.Default.Delete,
@@ -289,11 +322,49 @@ private fun UiActionRow(
             }
         }
 
-        // An announcement has no button to label, so the seller is not asked for one.
+        // What makes it go away for one buyer. Not offered for an announcement, which
+        // has no action to hide on — see ActionKind.hasAction — so the only honest
+        // answer there is the default, and asking would invite the wrong one.
+        if (action.kind.hasAction) {
+            var persistenceMenuOpen by remember { mutableStateOf(false) }
+            Column {
+                OutlinedTextField(
+                    value = action.persistence.displayName(),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(stringResource(Res.string.seller_actions_persistence)) },
+                    trailingIcon = {
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { persistenceMenuOpen = true },
+                    singleLine = true,
+                    enabled = false
+                )
+                DropdownMenu(
+                    expanded = persistenceMenuOpen,
+                    onDismissRequest = { persistenceMenuOpen = false }
+                ) {
+                    ActionPersistence.entries.forEach { persistence ->
+                        DropdownMenuItem(
+                            text = { Text(persistence.displayName()) },
+                            onClick = {
+                                onChange(action.copy(persistence = persistence))
+                                persistenceMenuOpen = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // An announcement and a message box have no button to label, so the seller is
+        // not asked for one.
         // The rules still require a non-empty `label`, so it is derived from the
         // opening words of the text: enough to recognise the row by in a list, and
         // one field rather than two for a market trader to fill in.
-        if (!isAnnouncement) {
+        if (!isProse) {
             OutlinedTextField(
                 value = action.label,
                 onValueChange = {
@@ -312,18 +383,30 @@ private fun UiActionRow(
             modifier = Modifier.fillMaxWidth(),
             // An announcement is a sentence, so it gets room to be read while being
             // typed. An address is one line by nature.
-            singleLine = !isAnnouncement,
-            minLines = if (isAnnouncement) 2 else 1
+            singleLine = !isProse,
+            minLines = if (isProse) 2 else 1
         )
 
-        if (isAnnouncement) {
+        if (isProse) {
             Text(
-                text = stringResource(Res.string.seller_actions_announcement_explain),
+                text = stringResource(
+                    if (isPrompt) Res.string.seller_actions_prompt_explain
+                    else Res.string.seller_actions_announcement_explain
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
+}
+
+/** What the seller sees in the picker for what makes a row go away. */
+@Composable
+private fun ActionPersistence.displayName(): String = when (this) {
+    ActionPersistence.UNTIL_CANCELLED ->
+        stringResource(Res.string.seller_actions_persistence_until_cancelled)
+    ActionPersistence.HIDE_ON_ACTION ->
+        stringResource(Res.string.seller_actions_persistence_hide_on_action)
 }
 
 /** What the seller sees in the audience picker. */
@@ -341,4 +424,8 @@ private fun ActionLocation.displayName(): String = when (this) {
     ActionLocation.TOPBAR_PROFILE -> stringResource(Res.string.seller_actions_location_profile)
     ActionLocation.TOPBAR_HOME_TITLE ->
         stringResource(Res.string.seller_actions_location_home_title)
+    ActionLocation.TOPBAR_HOME_INPUT ->
+        stringResource(Res.string.seller_actions_location_home_input)
+    ActionLocation.TOPBAR_PROFILE_INPUT ->
+        stringResource(Res.string.seller_actions_location_profile_input)
 }
