@@ -2,6 +2,7 @@ package com.together.newverse.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -34,12 +35,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.SellerInboxMessage
 import com.together.newverse.ui.theme.LocalBarColors
+import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.formatString
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_quick_message
 import newverse.shared.generated.resources.quick_message_dismiss
 import newverse.shared.generated.resources.quick_message_send
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * The seller's question in place of a screen's title, with a field to answer it in and
@@ -120,33 +123,41 @@ fun QuickMessageInput(
             // OutlinedTextField: a Material text field is taller than a top bar and
             // brings a container colour of its own, which would put a light box in
             // the middle of the brown bar.
-            BasicTextField(
-                value = draft,
-                onValueChange = {
-                    // Capped where it is typed as well as where it is sent, so the
-                    // buyer finds out at the keyboard rather than at the refusal.
-                    draft = it.take(SellerInboxMessage.MAX_TEXT_LENGTH)
-                },
-                textStyle = LocalTextStyle.current.merge(
-                    MaterialTheme.typography.bodyLarge.copy(color = barColors.content)
-                ),
-                cursorBrush = SolidColor(barColors.content),
-                singleLine = true,
-                enabled = !isSending,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = { submit() }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = description }
-            )
+
             if (draft.isEmpty()) {
+
                 Text(
                     text = prompt,
                     style = MaterialTheme.typography.bodyLarge,
                     color = barColors.content.copy(alpha = 0.7f),
                     maxLines = 1
                 )
+
             }
+            else {
+
+                BasicTextField(
+                    value = draft,
+                    onValueChange = {
+                        // Capped where it is typed as well as where it is sent, so the
+                        // buyer finds out at the keyboard rather than at the refusal.
+                        draft = it.take(SellerInboxMessage.MAX_TEXT_LENGTH)
+                    },
+                    textStyle = LocalTextStyle.current.merge(
+                        MaterialTheme.typography.bodyLarge.copy(color = barColors.content)
+                    ),
+                    cursorBrush = SolidColor(barColors.content),
+                    singleLine = true,
+                    enabled = !isSending,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { submit() }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = description },
+
+                    )
+            }
+
         }
 
         if (isSending) {
@@ -187,6 +198,20 @@ fun QuickMessageInput(
                 imageVector = Icons.Default.Close,
                 contentDescription = stringResource(Res.string.quick_message_dismiss),
                 tint = barColors.content
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun QuickMessagePreview() {
+    NewverseTheme {
+        Column {
+            QuickMessageInput(
+                prompt = "sdfa",
+                onSend = { },
+                onDismiss = { }
             )
         }
     }

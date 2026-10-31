@@ -128,6 +128,7 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+            implementation(compose.preview)
 
             // Koin for Dependency Injection
             implementation("io.insert-koin:koin-core:4.1.0")

@@ -10,9 +10,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.ui.navigation.AppScaffold
 import com.together.newverse.ui.navigation.PlatformAction
+import com.together.newverse.ui.state.QuickMessageState
 import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.GoogleSignInHelper
 import com.together.newverse.util.DocumentPicker

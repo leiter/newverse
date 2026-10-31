@@ -1,5 +1,6 @@
 package com.together.newverse.preview
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
@@ -7,6 +8,7 @@ import com.together.newverse.ui.mainscreen.MainScreenModern
 import com.together.newverse.ui.screens.buy.BasketContent
 import com.together.newverse.ui.screens.buy.CustomerProfileScreenModern
 import com.together.newverse.ui.state.BasketScreenState
+import com.together.newverse.ui.state.QuickMessageState
 import com.together.newverse.ui.theme.NewverseTheme
 
 // =====================================================================
@@ -246,3 +248,5 @@ fun BasketScreenThemesPreview() {
         }
     }
 }
+
+

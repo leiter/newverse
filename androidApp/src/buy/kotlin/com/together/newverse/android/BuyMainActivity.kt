@@ -44,6 +44,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import android.Manifest
+import androidx.compose.ui.tooling.preview.Preview
 
 /**
  * Buy flavor MainActivity
@@ -427,3 +428,4 @@ class BuyMainActivity : ComponentActivity() {
     }
 
 }
+
