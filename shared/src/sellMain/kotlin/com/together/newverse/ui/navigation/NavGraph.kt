@@ -22,6 +22,7 @@ import com.together.newverse.ui.screens.sell.OverviewViewModel
 import com.together.newverse.ui.screens.sell.PickDayScreen
 import com.together.newverse.ui.screens.sell.SellerConversationDetailScreen
 import com.together.newverse.ui.screens.sell.ConversationListScreen
+import com.together.newverse.ui.screens.sell.SellerInboxScreen
 import com.together.newverse.ui.screens.sell.SellerProfileScreen
 import com.together.newverse.ui.screens.sell.SellerProfileViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -183,6 +184,7 @@ fun NavGraphBuilder.navGraph(
             invitationState = invitationState.value,
             isSaving = isSaving.value,
             onNotificationSettingsClick = onNavigateToNotificationSettings,
+            onOpenInbox = { navController.navigate(NavRoutes.Sell.Inbox.route) },
             onLogout = onLogout,
             canChangePassword = appState.canChangePassword,
             changePasswordState = appState.changePassword,
@@ -269,6 +271,12 @@ fun NavGraphBuilder.navGraph(
             conversationId = conversationId,
             onNavigateBack = onNavigateBack
         )
+    }
+
+    // What customers sent through a published message box. Its own screen rather than
+    // a card on the profile: a list that grows does not belong on a form.
+    composable(NavRoutes.Sell.Inbox.route) {
+        SellerInboxScreen(onNavigateBack = onNavigateBack)
     }
 
     composable(NavRoutes.Sell.NotificationSettings.route) {

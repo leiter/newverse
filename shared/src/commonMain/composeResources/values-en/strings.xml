@@ -1239,4 +1239,25 @@
     <string name="a11y_announcement_dismiss">Hide announcement</string>
     <string name="fulfilment_use_profile_address">Use address from profile</string>
     <string name="fulfilment_save_to_profile">Save address to profile</string>
+    <!-- Message box the seller publishes into the buy app -->
+    <string name="seller_actions_location_home_input">Top bar, home screen (message box)</string>
+    <string name="seller_actions_location_profile_input">Top bar, profile (message box)</string>
+    <string name="seller_actions_prompt">Question for your customers</string>
+    <string name="seller_actions_prompt_explain">Replaces the title with an input field. Answers arrive in your wishes.</string>
+    <string name="quick_message_send">Send</string>
+    <string name="quick_message_sent">Thanks, that arrived</string>
+    <string name="quick_message_failed">Could not be sent</string>
+    <string name="quick_message_dismiss">Hide field</string>
+    <string name="a11y_quick_message">Question from the seller: %1$s</string>
+    <!-- The seller's inbox -->
+    <string name="inbox_title">Wishes</string>
+    <string name="inbox_open">Customer wishes</string>
+    <string name="inbox_empty">No messages yet.</string>
+    <string name="inbox_anonymous">No name given</string>
+    <string name="inbox_delete">Delete message</string>
+    <string name="inbox_count">%1$d message(s)</string>
+    <string name="seller_actions_active">Active</string>
+    <string name="seller_actions_persistence">Disappears</string>
+    <string name="seller_actions_persistence_until_cancelled">only when the customer hides it</string>
+    <string name="seller_actions_persistence_hide_on_action">once the customer has responded</string>
 </resources>

@@ -18,9 +18,13 @@ import com.together.newverse.domain.repository.SellerUiActionRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.SellerEventRepository
 import com.together.newverse.ui.state.buy.clearPendingNavigation
+import com.together.newverse.ui.state.buy.clearPromptError
 import com.together.newverse.ui.state.buy.closeDrawer
 import com.together.newverse.ui.state.buy.confirmDemoOrder
 import com.together.newverse.ui.state.buy.continueAsGuest
+import com.together.newverse.ui.state.buy.dismissPrompt
+import com.together.newverse.ui.state.buy.notePublishedActionUsed
+import com.together.newverse.ui.state.buy.sendPrompt
 import com.together.newverse.ui.state.buy.handleAccountAction
 import com.together.newverse.ui.state.buy.handleBasketScreenAction
 import com.together.newverse.ui.state.buy.handleMainScreenAction
@@ -78,6 +82,7 @@ import com.together.newverse.ui.state.buy.dismissHomeAnnouncement
 import com.together.newverse.ui.state.buy.handleReminderAction
 import com.together.newverse.domain.reminder.OrderReminderScheduler
 import com.together.newverse.data.config.AnnouncementDismissalStorage
+import com.together.newverse.domain.repository.SellerInboxRepository
 import com.together.newverse.data.config.OrderReminderStorage
 
 
@@ -115,7 +120,13 @@ class BuyAppViewModel(
      * published announcement simply keeps showing. A test that does not care about
      * announcements does not have to supply storage.
      */
-    internal val announcementDismissalStorage: AnnouncementDismissalStorage? = null
+    internal val announcementDismissalStorage: AnnouncementDismissalStorage? = null,
+    /**
+     * Where a message typed into a published box goes. Optional like the rest; absent
+     * means a box the seller published cannot be sent from, which the field says
+     * rather than failing silently.
+     */
+    internal val sellerInboxRepository: SellerInboxRepository? = null
 ) : BaseAppViewModel<BuyAppState, BuyAction>(authRepository) {
 
     /**
@@ -306,6 +317,10 @@ class BuyAppViewModel(
     private fun handleUiAction(action: BuyUiAction) {
         when (action) {
             is BuyUiAction.DismissHomeAnnouncement -> dismissHomeAnnouncement()
+            is BuyUiAction.DismissPrompt -> dismissPrompt(action.location)
+            is BuyUiAction.SendPrompt -> sendPrompt(action.location, action.text)
+            is BuyUiAction.ClearPromptError -> clearPromptError()
+            is BuyUiAction.NotePublishedActionUsed -> notePublishedActionUsed(action.action)
             is BuyUiAction.ShowSnackbar -> showSnackbar(action.message, action.type)
             is BuyUiAction.HideSnackbar -> hideSnackbar()
             is BuyUiAction.ShowDialog -> showDialog(action.dialog)

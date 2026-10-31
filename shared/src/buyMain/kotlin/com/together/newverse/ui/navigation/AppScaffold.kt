@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import com.together.newverse.domain.model.ActionLocation
+import com.together.newverse.ui.components.QuickMessageInput
 import com.together.newverse.ui.components.SellerAnnouncementTitle
 import com.together.newverse.ui.state.BuyUiAction
 import androidx.compose.material.icons.filled.MoreVert
@@ -301,6 +302,20 @@ private fun AppScaffoldContent(
         }
     }
 
+    // A refused message, said once.
+    //
+    // Resolved here because the ViewModel holds it as a StringResource: it has no
+    // resource environment to resolve one in, and `getString` throws in a plain JVM
+    // test. Cleared after showing, so a recomposition does not announce it again.
+    val quickMessageError = appState.quickMessage.error
+    val quickMessageErrorText = quickMessageError?.let { stringResource(it) }
+    LaunchedEffect(quickMessageError) {
+        if (quickMessageErrorText != null) {
+            snackbarHostState.showSnackbar(quickMessageErrorText)
+            viewModel.dispatch(BuyUiAction.ClearPromptError)
+        }
+    }
+
     // Observe snackbar state changes from ViewModel
     LaunchedEffect(appState.ui.snackbar) {
         appState.ui.snackbar?.let { snackbar ->
@@ -374,6 +389,21 @@ private fun AppScaffoldContent(
         appState.homeTitleAnnouncement
     } else {
         null
+    }
+
+    // The seller's message box for this screen, if there is one this buyer has not
+    // closed. Resolved beside the announcement because the two compete for the same
+    // slot on the home screen, and the tie has to be broken somewhere visible:
+    // **the announcement wins.** A sentence the seller is telling every buyer is
+    // worth more than a question only some will answer, and the box comes back the
+    // moment the announcement is read and closed.
+    val titlePrompt = when (currentRoute) {
+        NavRoutes.Home.route ->
+            if (homeAnnouncement != null) null
+            else appState.titlePromptFor(ActionLocation.TOPBAR_HOME_INPUT)
+        NavRoutes.Buy.Profile.route ->
+            appState.titlePromptFor(ActionLocation.TOPBAR_PROFILE_INPUT)
+        else -> null
     }
 
     // Scroll behavior for collapsing toolbar (only for Home screen)
@@ -496,6 +526,26 @@ private fun AppScaffoldContent(
                             )
                             Spacer(Modifier.width(12.dp))
                         }
+                    } else if (titlePrompt != null) {
+                        // The seller's question takes the title slot and gives it
+                        // back when the buyer closes it. Checked before the
+                        // announcement only because the announcement already won the
+                        // contest for this slot above, where the reasoning sits.
+                        QuickMessageInput(
+                            prompt = titlePrompt.value,
+                            onSend = { text ->
+                                viewModel.dispatch(
+                                    BuyUiAction.SendPrompt(titlePrompt.location, text)
+                                )
+                            },
+                            onDismiss = {
+                                viewModel.dispatch(
+                                    BuyUiAction.DismissPrompt(titlePrompt.location)
+                                )
+                            },
+                            isSending = appState.quickMessage.isSending,
+                            sentCount = appState.quickMessage.sentCount
+                        )
                     } else if (homeAnnouncement != null) {
                         // The seller's announcement takes the whole title slot on the
                         // home screen, and gives it back the moment the buyer closes
@@ -587,7 +637,14 @@ private fun AppScaffoldContent(
                         val actionUriHandler = LocalUriHandler.current
                         if (publishedActions.size == 1) {
                             val action = publishedActions.first()
-                            TextButton(onClick = { actionUriHandler.openUri(action.toUri()) }) {
+                            TextButton(onClick = {
+                                actionUriHandler.openUri(action.toUri())
+                                // Every tap is reported; only a row the seller marked
+                                // hide-on-action actually goes.
+                                viewModel.dispatch(
+                                    BuyUiAction.NotePublishedActionUsed(action)
+                                )
+                            }) {
                                 Text(
                                     text = action.label,
                                     color = topBarColors.content
@@ -612,6 +669,9 @@ private fun AppScaffoldContent(
                                             text = { Text(action.label) },
                                             onClick = {
                                                 actionUriHandler.openUri(action.toUri())
+                                                viewModel.dispatch(
+                                                    BuyUiAction.NotePublishedActionUsed(action)
+                                                )
                                                 showActionMenu = false
                                             }
                                         )

@@ -62,7 +62,8 @@ val appModule = module {
             orderReminderScheduler = getOrNull(),
             marketRepository = getOrNull(),
             sellerUiActionRepository = getOrNull(),
-            announcementDismissalStorage = getOrNull()
+            announcementDismissalStorage = getOrNull(),
+            sellerInboxRepository = getOrNull()
         )
     }
 

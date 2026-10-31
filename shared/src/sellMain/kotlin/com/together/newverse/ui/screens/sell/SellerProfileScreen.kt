@@ -7,6 +7,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -64,6 +69,8 @@ fun SellerProfileScreen(
     invitationState: InvitationManagementState = InvitationManagementState(),
     isSaving: Boolean = false,
     onNotificationSettingsClick: () -> Unit = {},
+    /** Opens what customers have sent through a published message box. */
+    onOpenInbox: () -> Unit = {},
     onLogout: () -> Unit = {},
     /** Hidden unless the account is backed by a password. */
     canChangePassword: Boolean = false,
@@ -201,6 +208,21 @@ fun SellerProfileScreen(
                                 isSaving = isSaving,
                                 errorMessage = uiActionError
                             )
+
+                            // The answers, where the question is. A message box the
+                            // seller publishes here sends what customers type to the
+                            // inbox, and a published question with no visible way to
+                            // the replies is a question nobody reads.
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                            TextButton(onClick = onOpenInbox) {
+                                Icon(
+                                    Icons.Default.Email,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(Res.string.inbox_open))
+                            }
                         }
                     }
 

@@ -18,6 +18,7 @@ import com.together.newverse.domain.repository.MessageRepository
 import com.together.newverse.domain.repository.SellerEventRepository
 import com.together.newverse.ui.screens.sell.AbrechnungViewModel
 import com.together.newverse.ui.screens.sell.ConversationListViewModel
+import com.together.newverse.ui.screens.sell.SellerInboxViewModel
 import com.together.newverse.ui.screens.sell.CustomerDetailViewModel
 import com.together.newverse.ui.screens.sell.SellerConversationDetailViewModel
 import com.together.newverse.ui.screens.sell.SellerProfileViewModel
@@ -81,6 +82,9 @@ val appModule = module {
 
     // Messaging ViewModels
     viewModel { ConversationListViewModel(get(), get()) }
+
+    // What customers sent through a published message box.
+    viewModel { SellerInboxViewModel(get(), get()) }
     viewModel { SellerConversationDetailViewModel(get(), get()) }
     viewModel { CustomerDetailViewModel(get(), get(), get()) }
 }

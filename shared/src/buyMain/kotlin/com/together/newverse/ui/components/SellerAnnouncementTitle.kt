@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.together.newverse.ui.theme.LocalBarColors
 import com.together.newverse.util.formatString
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_announcement
@@ -64,10 +65,11 @@ fun SellerAnnouncementTitle(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        val topBarColors = LocalBarColors.current
         Text(
             text = text,
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSecondary,
+            color = topBarColors.content,
             maxLines = 1,
             // Reached only by the frames before the marquee measures; without it a
             // long sentence wraps and changes the bar's height on the first frame.
@@ -88,7 +90,7 @@ fun SellerAnnouncementTitle(
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = stringResource(Res.string.a11y_announcement_dismiss),
-                tint = MaterialTheme.colorScheme.onSecondary
+                tint = topBarColors.content
             )
         }
     }

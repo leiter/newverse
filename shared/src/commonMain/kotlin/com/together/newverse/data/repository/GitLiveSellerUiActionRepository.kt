@@ -3,6 +3,7 @@ package com.together.newverse.data.repository
 import com.together.newverse.domain.model.ActionAudience
 import com.together.newverse.domain.model.ActionKind
 import com.together.newverse.domain.model.ActionLocation
+import com.together.newverse.domain.model.ActionPersistence
 import com.together.newverse.domain.model.SellerUiAction
 import com.together.newverse.domain.repository.SellerUiActionRepository
 import com.together.newverse.util.Log
@@ -63,7 +64,9 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
             // anything is checked against them — see [SellerUiAction.readyToStore],
             // which the seller's editor calls too so the two cannot disagree.
             val typed = action.readyToStore()
-            if (!typed.isUsable) {
+            // Completeness, not usability: a finished row the seller has just
+            // switched off is exactly what a save has to be able to carry.
+            if (!typed.isComplete) {
                 return Result.failure(IllegalArgumentException("an action needs a label and a target"))
             }
 
@@ -136,6 +139,13 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
             // Absent reads as EVERYONE; an unknown name skips the row.
             val audience = ActionAudience.stored(fields["audience"] as? String)
                 ?: return@mapNotNull null
+            // Absent reads as UNTIL_CANCELLED, which is what rows written before the
+            // field existed were doing; an unknown name skips the row.
+            val persistence = ActionPersistence.stored(fields["persistence"] as? String)
+                ?: return@mapNotNull null
+            // Absent reads as active: rows written before the switch existed were
+            // being shown, and must go on being shown.
+            val isActive = fields["active"] as? Boolean ?: true
             val value = fields["value"] as? String ?: return@mapNotNull null
             val label = fields["label"] as? String ?: return@mapNotNull null
             if (value.isBlank() || label.isBlank()) return@mapNotNull null
@@ -151,7 +161,9 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
                 // or written straight into the database by hand, still opens safely.
                 value = kind.normalize(value),
                 location = location,
-                audience = audience
+                audience = audience,
+                isActive = isActive,
+                persistence = persistence
             )
         }
     }
@@ -162,6 +174,8 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
         "label" to action.label,
         "value" to action.value,
         "location" to action.location.name,
-        "audience" to action.audience.name
+        "audience" to action.audience.name,
+        "active" to action.isActive,
+        "persistence" to action.persistence.name
     )
 }

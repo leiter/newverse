@@ -46,7 +46,9 @@ class FakeSellerUiActionRepository : SellerUiActionRepository {
         // as the real repository does, so a test that saves a title row without
         // naming ANNOUNCE is not refused for a reason production would not give.
         val typed = action.readyToStore()
-        if (!typed.isUsable) {
+        // Completeness, not usability: a finished row the seller has just switched
+        // off is exactly what a save has to be able to carry.
+        if (!typed.isComplete) {
             return Result.failure(IllegalArgumentException("an action needs a label and a target"))
         }
 

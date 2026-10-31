@@ -1297,4 +1297,25 @@
     <string name="a11y_announcement_dismiss">Ankündigung ausblenden</string>
     <string name="fulfilment_use_profile_address">Adresse aus Profil übernehmen</string>
     <string name="fulfilment_save_to_profile">Adresse im Profil speichern</string>
+    <!-- Nachrichtenfeld, das der Verkäufer in die Käufer-App einstellt -->
+    <string name="seller_actions_location_home_input">Kopfbereich, Startseite (Nachrichtenfeld)</string>
+    <string name="seller_actions_location_profile_input">Kopfbereich, Profil (Nachrichtenfeld)</string>
+    <string name="seller_actions_prompt">Frage an die Kunden</string>
+    <string name="seller_actions_prompt_explain">Ersetzt den Titel durch ein Eingabefeld. Antworten landen in den Wünschen.</string>
+    <string name="quick_message_send">Senden</string>
+    <string name="quick_message_sent">Danke, ist angekommen</string>
+    <string name="quick_message_failed">Konnte nicht gesendet werden</string>
+    <string name="quick_message_dismiss">Feld ausblenden</string>
+    <string name="a11y_quick_message">Frage des Verkäufers: %1$s</string>
+    <!-- Posteingang des Verkäufers -->
+    <string name="inbox_title">Wünsche</string>
+    <string name="inbox_open">Wünsche der Kunden</string>
+    <string name="inbox_empty">Noch keine Nachrichten.</string>
+    <string name="inbox_anonymous">Ohne Namen</string>
+    <string name="inbox_delete">Nachricht löschen</string>
+    <string name="inbox_count">%1$d Nachricht(en)</string>
+    <string name="seller_actions_active">Aktiv</string>
+    <string name="seller_actions_persistence">Verschwindet</string>
+    <string name="seller_actions_persistence_until_cancelled">erst wenn der Kunde es ausblendet</string>
+    <string name="seller_actions_persistence_hide_on_action">sobald der Kunde reagiert hat</string>
 </resources>

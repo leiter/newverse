@@ -216,4 +216,90 @@ describe("seller_ui_actions", () => {
       write(SELLER, "act_2", action({ id: "act_2", onTap: "doSomethingElse" }))
     );
   });
+
+  // --- the message box ------------------------------------------------------
+
+  const box = (overrides = {}) => ({
+    id: "q_1",
+    kind: "QUICK_MESSAGE",
+    label: "Was fehlt euch",
+    value: "Was fehlt euch im Angebot?",
+    location: "TOPBAR_HOME_INPUT",
+    ...overrides
+  });
+
+  it("accepts a message box in either input slot", async () => {
+    for (const location of ["TOPBAR_HOME_INPUT", "TOPBAR_PROFILE_INPUT"]) {
+      await assertSucceeds(write(SELLER, "q_1", box({ location })));
+    }
+  });
+
+  it("lets a question carry a colon", async () => {
+    // Same lift as an announcement, and for the same reason: a QUICK_MESSAGE value is
+    // a sentence shown as a placeholder, never handed to a URI handler.
+    await assertSucceeds(write(SELLER, "q_1", box({ value: "Frage: was fehlt euch?" })));
+  });
+
+  it("still refuses a colon in an OPEN_URL value", async () => {
+    await assertFails(write(SELLER, "act_2", action({ id: "act_2", value: "javascript:alert(1)" })));
+  });
+
+  it("refuses a QUICK_MESSAGE outside an input slot", async () => {
+    // Nothing to render: a message box in a button slot has no room, and in the
+    // announcement slot there would be two things claiming the title.
+    for (const location of ["TOPBAR_HOME", "TOPBAR_PROFILE", "TOPBAR_HOME_TITLE"]) {
+      await assertFails(write(SELLER, "q_1", box({ location })));
+    }
+  });
+
+  it("refuses a button or an announcement in an input slot", async () => {
+    await assertFails(
+      write(SELLER, "q_1", box({ kind: "OPEN_URL", value: "example.org" }))
+    );
+    await assertFails(write(SELLER, "q_1", box({ kind: "ANNOUNCE" })));
+  });
+
+  // --- switched off, and hidden once used -----------------------------------
+
+  it("accepts a row the seller switched off", async () => {
+    // Off, not gone: the seller keeps the wording. The buy app drops it on read.
+    await assertSucceeds(write(SELLER, "act_2", action({ id: "act_2", active: false })));
+  });
+
+  it("refuses a non-boolean active flag", async () => {
+    await assertFails(write(SELLER, "act_2", action({ id: "act_2", active: "no" })));
+  });
+
+  it("accepts both persistence values on a row that can be acted on", async () => {
+    for (const persistence of ["UNTIL_CANCELLED", "HIDE_ON_ACTION"]) {
+      await assertSucceeds(write(SELLER, "act_2", action({ id: "act_2", persistence })));
+      await assertSucceeds(write(SELLER, "q_1", box({ persistence })));
+    }
+  });
+
+  it("refuses HIDE_ON_ACTION on an announcement", async () => {
+    // An announcement has no action to hide on, so the pairing is nonsense rather
+    // than a degraded rendering — refused here as well as settled in the model.
+    await assertFails(
+      write(SELLER, "n_1", announcement({ id: "n_1", persistence: "HIDE_ON_ACTION" }))
+    );
+  });
+
+  it("accepts UNTIL_CANCELLED on an announcement", async () => {
+    await assertSucceeds(
+      write(SELLER, "n_1", announcement({ id: "n_1", persistence: "UNTIL_CANCELLED" }))
+    );
+  });
+
+  it("refuses an unknown persistence", async () => {
+    await assertFails(
+      write(SELLER, "act_2", action({ id: "act_2", persistence: "HIDE_AFTER_A_WEEK" }))
+    );
+  });
+
+  it("still accepts a row with neither flag", async () => {
+    // Both optional, like audience: rows written before the flags existed were active
+    // and stayed until cancelled, and must remain valid.
+    await assertSucceeds(write(SELLER, "act_2", action({ id: "act_2" })));
+  });
 });

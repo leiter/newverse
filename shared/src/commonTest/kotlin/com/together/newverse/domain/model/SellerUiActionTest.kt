@@ -367,4 +367,195 @@ class SellerUiActionTest {
         val key = announcement("Zeile eins\nZeile zwei").dismissalKey
         assertFalse(key.contains("\n"))
     }
+
+    // ===== the message box =====
+
+    private fun box(
+        question: String,
+        id: String = "q1",
+        location: ActionLocation = ActionLocation.TOPBAR_HOME_INPUT,
+        persistence: ActionPersistence = ActionPersistence.UNTIL_CANCELLED,
+    ) = SellerUiAction(
+        id = id,
+        location = location,
+        kind = ActionKind.QUICK_MESSAGE,
+        value = question,
+        persistence = persistence,
+    ).readyToStore()
+
+    @Test
+    fun `an input slot decides on QUICK_MESSAGE`() {
+        val stored = SellerUiAction(
+            id = "q1",
+            location = ActionLocation.TOPBAR_PROFILE_INPUT,
+            kind = ActionKind.OPEN_URL,
+            value = "Was fehlt euch?",
+        ).readyToStore()
+        assertEquals(ActionKind.QUICK_MESSAGE, stored.kind)
+        assertTrue(stored.isUsable)
+    }
+
+    @Test
+    fun `a question keeps its colon`() {
+        // The whole reason QUICK_MESSAGE normalizes like ANNOUNCE rather than like a
+        // URL: "Frage: was fehlt?" is a sentence, and the URL normalizer would eat
+        // the opening words.
+        // Normalization is the repository's job on save, like an announcement's, and
+        // for this kind it only trims.
+        assertEquals(
+            "Frage: was fehlt euch?",
+            ActionKind.QUICK_MESSAGE.normalize("  Frage: was fehlt euch?  ")
+        )
+    }
+
+    @Test
+    fun `a message box is labelled by its opening words`() {
+        val stored = box("Was fehlt euch im Angebot dieser Woche?")
+        assertTrue(stored.label.isNotBlank())
+        assertTrue(stored.label.length <= SellerUiAction.MAX_LABEL_LENGTH)
+    }
+
+    @Test
+    fun `a message box with no question is not shown`() {
+        assertFalse(box("").isUsable)
+    }
+
+    @Test
+    fun `a message box in a button slot is not shown`() {
+        assertFalse(
+            SellerUiAction(
+                id = "q1",
+                location = ActionLocation.TOPBAR_HOME,
+                kind = ActionKind.QUICK_MESSAGE,
+                label = "Wünsche",
+                value = "Was fehlt euch?",
+            ).isUsable
+        )
+    }
+
+    @Test
+    fun `each input slot holds exactly one`() {
+        assertEquals(1, ActionLocation.TOPBAR_HOME_INPUT.maxActions)
+        assertEquals(1, ActionLocation.TOPBAR_PROFILE_INPUT.maxActions)
+    }
+
+    @Test
+    fun `promptFor finds the box for its own slot only`() {
+        val rows = listOf(
+            box("Was fehlt euch?", id = "q1"),
+            box("Kommt ihr Samstag?", id = "q2", location = ActionLocation.TOPBAR_PROFILE_INPUT),
+        )
+        assertEquals(
+            "q1",
+            rows.promptFor(ActionLocation.TOPBAR_HOME_INPUT, isApproved = true, isDemo = false)?.id
+        )
+        assertEquals(
+            "q2",
+            rows.promptFor(ActionLocation.TOPBAR_PROFILE_INPUT, isApproved = true, isDemo = false)?.id
+        )
+    }
+
+    @Test
+    fun `promptFor picks the lowest id when two somehow exist`() {
+        // Two buyers must not see different questions, and one buyer must not see them
+        // alternate between launches.
+        val rows = listOf(box("Zweite", id = "q2"), box("Erste", id = "q1"))
+        assertEquals(
+            "q1",
+            rows.promptFor(ActionLocation.TOPBAR_HOME_INPUT, isApproved = true, isDemo = false)?.id
+        )
+    }
+
+    @Test
+    fun `a narrowed box stays hidden while the status is still loading`() {
+        // Both flags are false while the access status is loading, which is what keeps
+        // a narrowed row from flashing on at launch.
+        val rows = listOf(box("Was fehlt euch?").copy(audience = ActionAudience.APPROVED_ONLY))
+        assertNull(rows.promptFor(ActionLocation.TOPBAR_HOME_INPUT, isApproved = false, isDemo = false))
+        assertTrue(
+            rows.promptFor(ActionLocation.TOPBAR_HOME_INPUT, isApproved = true, isDemo = false) != null
+        )
+    }
+
+    // ===== switched off, and hidden once used =====
+
+    @Test
+    fun `a deactivated row is not shown`() {
+        val off = box("Was fehlt euch?").copy(isActive = false)
+        assertFalse(off.isUsable)
+        assertNull(off.let(::listOf).promptFor(ActionLocation.TOPBAR_HOME_INPUT, true, false))
+    }
+
+    @Test
+    fun `a deactivated row is still complete, so it can be saved`() {
+        // Filtering a save on isUsable would make switching a row off impossible to
+        // store, which is the whole point of having a switch.
+        val off = box("Was fehlt euch?").copy(isActive = false)
+        assertTrue(off.isComplete)
+        assertFalse(off.isUsable)
+    }
+
+    @Test
+    fun `a deactivated button disappears from its slot`() {
+        val rows = listOf(
+            action("example.org", label = "Wünsche").copy(location = ActionLocation.TOPBAR_HOME),
+            action("example.org/b", label = "Liste")
+                .copy(id = "a2", location = ActionLocation.TOPBAR_HOME, isActive = false),
+        )
+        val shown = rows.forLocation(ActionLocation.TOPBAR_HOME, isApproved = true, isDemo = false)
+        assertEquals(listOf("Wünsche"), shown.map { it.label })
+    }
+
+    @Test
+    fun `persistence defaults to staying until cancelled`() {
+        assertEquals(ActionPersistence.UNTIL_CANCELLED, box("Was fehlt euch?").persistence)
+        assertFalse(box("Was fehlt euch?").hidesAfterUse)
+    }
+
+    @Test
+    fun `a box marked hide-on-action hides after use`() {
+        assertTrue(
+            box("Was fehlt euch?", persistence = ActionPersistence.HIDE_ON_ACTION).hidesAfterUse
+        )
+    }
+
+    @Test
+    fun `a button marked hide-on-action hides after use`() {
+        val tapped = action("example.org", label = "Umfrage")
+            .copy(persistence = ActionPersistence.HIDE_ON_ACTION)
+        assertTrue(tapped.hidesAfterUse)
+    }
+
+    @Test
+    fun `an announcement cannot be stored as hide-on-action`() {
+        // It has no action to hide on, so the only honest value is the default — and
+        // the seller was never shown the picker.
+        val stored = SellerUiAction(
+            id = "n1",
+            location = ActionLocation.TOPBAR_HOME_TITLE,
+            kind = ActionKind.ANNOUNCE,
+            value = "Heute ab 9",
+            persistence = ActionPersistence.HIDE_ON_ACTION,
+        ).readyToStore()
+        assertEquals(ActionPersistence.UNTIL_CANCELLED, stored.persistence)
+        assertFalse(stored.hidesAfterUse)
+    }
+
+    @Test
+    fun `an absent persistence reads as staying until cancelled`() {
+        assertEquals(ActionPersistence.UNTIL_CANCELLED, ActionPersistence.stored(null))
+    }
+
+    @Test
+    fun `an unknown persistence skips the row`() {
+        assertNull(ActionPersistence.stored("HIDE_AFTER_A_WEEK"))
+    }
+
+    @Test
+    fun `re-wording a question asks again`() {
+        // The same rule as a reworded announcement, and it matters more here: a buyer
+        // who answered one question has not answered a different one.
+        val first = box("Was fehlt euch?")
+        assertTrue(first.dismissalKey != first.copy(value = "Was fehlt euch diese Woche?").dismissalKey)
+    }
 }
