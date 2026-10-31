@@ -26,6 +26,7 @@ import dev.gitlive.firebase.database.DataSnapshot
 import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -167,52 +168,76 @@ class GitLiveProfileRepository(
         }
     }
 
-    override suspend fun getSellerContacts(sellerId: String): Result<SellerContactDirectory> {
-        return try {
-            if (sellerId.isEmpty()) return Result.success(SellerContactDirectory())
+    override fun observeSellerContacts(sellerId: String): Flow<SellerContactDirectory> {
+        if (sellerId.isEmpty()) return flowOf(SellerContactDirectory())
 
-            sellerProfileCache[sellerId]?.let { return Result.success(it.toContactDirectory()) }
-
-            // Two child reads, not one node read: a buyer may read the individual
-            // fields of a seller profile but not the profile itself, which also
-            // carries lat/lng and the seller's own address.
-            val contacts = parseContacts(
-                sellersRef.child(sellerId).child("contacts").valueEvents.first().value
-            )
-            // Markets moved to a node of their own; the profile's list is the
-            // fallback until the migration script has run — see
-            // `doc/guides/market-pricing-and-access-design.md` §1.
-            val fromNode = marketsRef.child(sellerId).valueEvents.first().value
-            val marketsValue = fromNode
-                ?: sellersRef.child(sellerId).child("markets").valueEvents.first().value
-            val marketRows = when (marketsValue) {
-                is List<*> -> marketsValue
-                is Map<*, *> -> marketsValue.values.toList()
-                else -> emptyList()
+        // Two live children rather than one node read, for the same reason
+        // getSellerContacts reads them separately: a buyer may read the individual
+        // fields of a seller profile but not the profile itself.
+        //
+        // Deliberately not served from sellerProfileCache. The cache exists to spare
+        // repeated one-shot reads; a subscription that answered from it would report
+        // the state at connect time for the rest of the session, which is the staleness
+        // this method exists to remove.
+        val contacts = sellersRef.child(sellerId).child("contacts").valueEvents
+            .map { parseContacts(it.value) }
+            .catch { e ->
+                // No contacts published, or the child unreadable: an empty list is the
+                // honest answer and lets the top bar hide its button. Failing the whole
+                // flow would instead freeze every reader on its last value.
+                Log.w(TAG) { "observeSellerContacts: contacts unreadable - ${e.message}" }
+                emit(emptyList())
             }
 
-            val marketContacts = mutableMapOf<String, List<SellerContact>>()
-            val marketNames = mutableMapOf<String, String>()
-            marketRows.forEach { row ->
-                val fields = row as? Map<*, *> ?: return@forEach
-                val id = fields["id"] as? String ?: return@forEach
-                if (id.isEmpty()) return@forEach
-                marketNames[id] = fields["name"] as? String ?: ""
-                val own = parseContacts(fields["contacts"])
-                if (own.isNotEmpty()) marketContacts[id] = own
-            }
-
-            Result.success(
-                SellerContactDirectory(
-                    sellerContacts = contacts,
-                    marketContacts = marketContacts,
-                    marketNames = marketNames
-                )
+        return combine(contacts, observeMarketRows(sellerId)) { own, markets ->
+            SellerContactDirectory(
+                sellerContacts = own,
+                marketContacts = markets.mapNotNull { (id, row) ->
+                    row.contacts.takeIf { it.isNotEmpty() }?.let { id to it }
+                }.toMap(),
+                marketNames = markets.mapValues { (_, row) -> row.name }
             )
-        } catch (e: Exception) {
-            Log.e(TAG) { "getSellerContacts: Error - ${e.message}" }
-            Result.failure(e)
         }
+    }
+
+    /** Id to name-and-contacts for every market, live. */
+    private fun observeMarketRows(sellerId: String): Flow<Map<String, MarketContactRow>> =
+        marketsRef.child(sellerId).valueEvents
+            .map { parseMarketRows(it.value) }
+            .map { rows ->
+                // An absent or empty node means the seller has not been migrated, not
+                // that they have no markets -- the same two-step getMarkets does. Taking
+                // the empty node at face value would silently drop every stall contact
+                // of an unmigrated seller. See market-pricing-and-access-design.md §1.
+                rows.ifEmpty { parseMarketRows(legacyMarketsValue(sellerId)) }
+            }
+            .catch { e ->
+                Log.w(TAG) { "observeSellerContacts: markets unreadable - ${e.message}" }
+                emit(
+                    runCatching { parseMarketRows(legacyMarketsValue(sellerId)) }
+                        .getOrDefault(emptyMap())
+                )
+            }
+
+    private suspend fun legacyMarketsValue(sellerId: String): Any? =
+        sellersRef.child(sellerId).child("markets").valueEvents.first().value
+
+    private data class MarketContactRow(val name: String, val contacts: List<SellerContact>)
+
+    private fun parseMarketRows(value: Any?): Map<String, MarketContactRow> {
+        val rows = when (value) {
+            is List<*> -> value
+            is Map<*, *> -> value.values.toList()
+            else -> return emptyMap()
+        }
+        return rows.mapNotNull { row ->
+            val fields = row as? Map<*, *> ?: return@mapNotNull null
+            val id = (fields["id"] as? String)?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            id to MarketContactRow(
+                name = fields["name"] as? String ?: "",
+                contacts = parseContacts(fields["contacts"])
+            )
+        }.toMap()
     }
 
     override suspend fun getSellerClosures(sellerId: String): Result<MarketClosures> {

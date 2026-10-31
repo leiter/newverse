@@ -15,6 +15,11 @@ import com.together.newverse.ui.state.OrderHistoryScreenState
 import com.together.newverse.ui.state.ProductsScreenState
 import com.together.newverse.ui.state.SnackbarType
 import kotlin.time.Clock
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.together.newverse.util.Log
@@ -187,6 +192,43 @@ private fun BuyAppViewModel.rejectPendingInvitation(invitationId: String) {
     }
 }
 
+/**
+ * Keeps [BuyAppState.sellerContacts] current for whichever seller is connected.
+ *
+ * Started once from init and left running: the connected seller is the key, so a
+ * connect, a switch and a disconnect are all the same event here, and nothing has to
+ * remember to re-subscribe. Disconnecting empties the directory rather than leaving
+ * the previous seller's numbers in the top bar.
+ *
+ * The single writer of `sellerContacts`. Connect-time code used to fetch the
+ * directory once and store it, which meant the buy app showed whatever the seller
+ * had published at the moment that buyer last connected -- a number changed in the
+ * morning was still being dialled in the afternoon. Because everything that shows a
+ * contact reads this one field, the top bar's overflow and the About card now move
+ * together by construction.
+ */
+internal fun BuyAppViewModel.observeSellerContacts() {
+    viewModelScope.launch {
+        _state
+            .map { it.connectedSellerId }
+            .distinctUntilChanged()
+            .flatMapLatest { sellerId ->
+                if (sellerId.isEmpty()) flowOf(SellerContactDirectory())
+                else profileRepository.observeSellerContacts(sellerId)
+            }
+            // A directory that cannot be read is no contacts, not a crash: the top bar
+            // hides its button and About falls back to the bundled strings, which is
+            // the same degradation the one-shot fetch had.
+            .catch { e ->
+                Log.w(TAG) { "observeSellerContacts: ${e.message}" }
+                emit(SellerContactDirectory())
+            }
+            .collect { directory ->
+                _state.update { it.copy(sellerContacts = directory) }
+            }
+    }
+}
+
 internal fun BuyAppViewModel.performConnection(sellerId: String) {
     viewModelScope.launch {
         try {
@@ -220,15 +262,6 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
                 ""
             }
 
-            // Fetch the seller's contact channels. Non-fatal: the About screen falls
-            // back to the bundled strings and the top bar simply hides its icon.
-            val sellerContacts = try {
-                profileRepository.getSellerContacts(sellerId).getOrNull() ?: SellerContactDirectory()
-            } catch (e: Exception) {
-                Log.d(TAG) { "performConnection: getSellerContacts failed (non-fatal) - ${e.message}" }
-                SellerContactDirectory()
-            }
-
             val sellerClosures = try {
                 profileRepository.getSellerClosures(sellerId).getOrNull() ?: MarketClosures.NONE
             } catch (e: Exception) {
@@ -258,7 +291,8 @@ internal fun BuyAppViewModel.performConnection(sellerId: String) {
                 current.copy(
                     connectedSellerId = sellerConfig.sellerId,
                     connectedSellerDisplayName = sellerDisplayName,
-                    sellerContacts = sellerContacts,
+                    // sellerContacts is not set here: observeSellerContacts owns it
+                    // and re-keys itself off connectedSellerId above.
                     sellerClosures = sellerClosures,
                     sellerMarkets = sellerMarkets,
                     sellerUiActions = sellerUiActions,

@@ -24,6 +24,7 @@ import com.together.newverse.ui.state.buy.confirmDemoOrder
 import com.together.newverse.ui.state.buy.continueAsGuest
 import com.together.newverse.ui.state.buy.dismissPrompt
 import com.together.newverse.ui.state.buy.notePublishedActionUsed
+import com.together.newverse.ui.state.buy.observeSellerContacts
 import com.together.newverse.ui.state.buy.sendPrompt
 import com.together.newverse.ui.state.buy.handleAccountAction
 import com.together.newverse.ui.state.buy.handleBasketScreenAction
@@ -169,6 +170,10 @@ class BuyAppViewModel(
 
         // Observe Apple Sign-In completion to force-refresh auth state on iOS
         observeAppleSignInCompletion()
+
+        // Keep the seller's contact channels current for as long as the app runs.
+        // Keyed off the connected seller, so it needs no prompting on connect.
+        observeSellerContacts()
 
         // Read the order-reminder settings and re-arm the background work. Done here
         // rather than when the profile screen opens: a buyer who never visits that

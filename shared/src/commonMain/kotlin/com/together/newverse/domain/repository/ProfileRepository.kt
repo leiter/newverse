@@ -50,13 +50,24 @@ interface ProfileRepository {
     suspend fun getSellerDisplayName(sellerId: String): Result<String>
 
     /**
-     * Get the ways a buyer may reach this seller: the business's own contacts and
-     * each market's.
+     * The same directory as [getSellerContacts], but kept current.
      *
-     * Reads the two public children rather than the profile node, for the same
-     * reason as [getSellerDisplayName].
+     * The seller edits contacts from their own app, and a buyer holding a number
+     * that was changed this morning is worse than a buyer holding none: they ring
+     * it, nobody answers, and the business looks shut. So the buy app subscribes
+     * rather than fetching once at connect, and the top bar, the About card and
+     * anything else reading the directory all move together because they all read
+     * the same state.
+     *
+     * Emits immediately with what the database has, then on every change to either
+     * half — the business's own contacts and the markets' — so no caller needs a
+     * one-shot read to paint its first frame.
+     *
+     * An empty directory is a normal value, not an error: a seller may simply have
+     * published nothing. Implementations degrade to that rather than failing, which
+     * is what lets the top bar hide its button instead of showing a broken one.
      */
-    suspend fun getSellerContacts(sellerId: String): Result<SellerContactDirectory>
+    fun observeSellerContacts(sellerId: String): Flow<SellerContactDirectory>
 
     /**
      * Get the days on which this seller's markets do not happen, so they can be

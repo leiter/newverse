@@ -112,8 +112,12 @@ class FakeProfileRepository : ProfileRepository {
     override suspend fun getSellerDisplayName(sellerId: String): Result<String> =
         Result.success(_sellerProfile.value?.displayName ?: "")
 
-    override suspend fun getSellerContacts(sellerId: String): Result<SellerContactDirectory> =
-        Result.success(_sellerProfile.value?.toContactDirectory() ?: SellerContactDirectory())
+    /**
+     * Live off the same StateFlow [setSellerProfile] writes, so a test can change the
+     * seller's contacts mid-test and assert that what reads them followed.
+     */
+    override fun observeSellerContacts(sellerId: String): Flow<SellerContactDirectory> =
+        _sellerProfile.map { it?.toContactDirectory() ?: SellerContactDirectory() }
 
     override suspend fun getSellerClosures(sellerId: String): Result<MarketClosures> =
         Result.success(MarketClosures(_sellerProfile.value?.closures.orEmpty()))

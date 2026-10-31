@@ -1163,8 +1163,6 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
                 try {
                     val sellerDisplayName = profileRepository.getSellerDisplayName(currentSellerId)
                         .getOrNull() ?: ""
-                    val sellerContacts = profileRepository.getSellerContacts(currentSellerId)
-                        .getOrNull() ?: SellerContactDirectory()
                     val sellerClosures = profileRepository.getSellerClosures(currentSellerId)
                         .getOrNull() ?: MarketClosures.NONE
                     val sellerMarkets = marketRepository?.getMarkets(currentSellerId)
@@ -1174,7 +1172,8 @@ internal fun BuyAppViewModel.resumeInitializationAfterAuth(authUserInfo: AuthUse
                     _state.update { it.copy(
                         connectedSellerId = currentSellerId,
                         connectedSellerDisplayName = sellerDisplayName,
-                        sellerContacts = sellerContacts,
+                        // Not set here: observeSellerContacts keeps it current,
+                        // keyed off connectedSellerId which this update sets.
                         sellerClosures = sellerClosures,
                         sellerMarkets = sellerMarkets,
                         sellerUiActions = sellerUiActions

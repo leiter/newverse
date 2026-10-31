@@ -60,8 +60,9 @@ class MockProfileRepository : ProfileRepository {
     override suspend fun getSellerDisplayName(sellerId: String): Result<String> =
         Result.success(PreviewData.sampleSellerProfile.displayName)
 
-    override suspend fun getSellerContacts(sellerId: String): Result<SellerContactDirectory> =
-        Result.success(PreviewData.sampleSellerProfile.toContactDirectory())
+    // Preview data never changes, so one emission is the whole truth here.
+    override fun observeSellerContacts(sellerId: String): Flow<SellerContactDirectory> =
+        flowOf(PreviewData.sampleSellerProfile.toContactDirectory())
 
     override suspend fun getSellerClosures(sellerId: String): Result<MarketClosures> =
         Result.success(MarketClosures(PreviewData.sampleSellerProfile.closures))
