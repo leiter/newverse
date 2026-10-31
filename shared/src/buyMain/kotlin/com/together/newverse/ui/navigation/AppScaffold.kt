@@ -1,5 +1,6 @@
 package com.together.newverse.ui.navigation
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -482,82 +483,102 @@ private fun AppScaffoldContent(
         topBar = {
             TopAppBar(
                 title = {
-                    if (isBasketScreen) {
-                        val basketCount = appState.basketScreen.items.size
-                        // Fragments ("Warenkorb (3)" + "7,50 €") read as one heading.
-                        val basketTitleDescription = listOf(
-                            stringResource(Res.string.nav_shopping_basket),
-                            pluralStringResource(
-                                Res.plurals.a11y_basket_item_count,
-                                basketCount,
-                                basketCount
-                            ),
-                            formatString(
-                                stringResource(Res.string.a11y_hero_total),
-                                appState.basketScreen.total.formatPrice()
-                            )
-                        ).joinToString(", ")
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .semantics(mergeDescendants = true) {
-                                    heading()
-                                    contentDescription = basketTitleDescription
+                    // Which of the four things the slot is showing. Computed as a
+                    // value so AnimatedContent can tell one from another; the bodies
+                    // below read it rather than the outer `titlePrompt` and
+                    // `homeAnnouncement`, so the outgoing half of a transition keeps
+                    // drawing what it was drawing instead of the thing replacing it.
+                    val titleSlot: TopBarTitleSlot = when {
+                        isBasketScreen -> TopBarTitleSlot.Basket
+                        titlePrompt != null ->
+                            TopBarTitleSlot.Prompt(titlePrompt.location, titlePrompt.value)
+                        homeAnnouncement != null ->
+                            TopBarTitleSlot.Announcement(homeAnnouncement.value)
+                        else -> TopBarTitleSlot.Plain(displayTitle)
+                    }
+
+                    AnimatedContent(
+                        targetState = titleSlot,
+                        transitionSpec = { topBarTitleTransition() },
+                        label = "topBarTitle"
+                    ) { slot ->
+                        if (slot is TopBarTitleSlot.Basket) {
+                            val basketCount = appState.basketScreen.items.size
+                            // Fragments ("Warenkorb (3)" + "7,50 €") read as one heading.
+                            val basketTitleDescription = listOf(
+                                stringResource(Res.string.nav_shopping_basket),
+                                pluralStringResource(
+                                    Res.plurals.a11y_basket_item_count,
+                                    basketCount,
+                                    basketCount
+                                ),
+                                formatString(
+                                    stringResource(Res.string.a11y_hero_total),
+                                    appState.basketScreen.total.formatPrice()
+                                )
+                            ).joinToString(", ")
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .semantics(mergeDescendants = true) {
+                                        heading()
+                                        contentDescription = basketTitleDescription
+                                    },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.nav_shopping_basket) +  " ($basketCount) ",
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = buildAnnotatedString {
+                                        withStyle(style = SpanStyle(
+                                            fontWeight = FontWeight.Bold,
+                                            color = topBarColors.content,
+                                            fontSize = 16.sp
+                                        )) {
+                                            append("${appState.basketScreen.total.formatPrice()} €")
+                                        }
+                                    },
+                                )
+                                Spacer(Modifier.width(12.dp))
+                            }
+                        } else if (slot is TopBarTitleSlot.Prompt) {
+                            // The seller's question takes the title slot and gives it
+                            // back when the buyer closes it. Checked before the
+                            // announcement only because the announcement already won the
+                            // contest for this slot above, where the reasoning sits.
+                            QuickMessageInput(
+                                prompt = slot.question,
+                                onSend = { text ->
+                                    viewModel.dispatch(
+                                        BuyUiAction.SendPrompt(slot.location, text)
+                                    )
                                 },
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.nav_shopping_basket) +  " ($basketCount) ",
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = buildAnnotatedString {
-                                    withStyle(style = SpanStyle(
-                                        fontWeight = FontWeight.Bold,
-                                        color = topBarColors.content,
-                                        fontSize = 16.sp
-                                    )) {
-                                        append("${appState.basketScreen.total.formatPrice()} €")
-                                    }
+                                onDismiss = {
+                                    viewModel.dispatch(
+                                        BuyUiAction.DismissPrompt(slot.location)
+                                    )
                                 },
+                                isSending = appState.quickMessage.isSending,
+                                sentCount = appState.quickMessage.sentCount
                             )
-                            Spacer(Modifier.width(12.dp))
+                        } else if (slot is TopBarTitleSlot.Announcement) {
+                            // The seller's announcement takes the whole title slot on the
+                            // home screen, and gives it back the moment the buyer closes
+                            // it. Only home: the basket and profile titles carry numbers
+                            // the buyer is acting on, which an announcement must not hide.
+                            SellerAnnouncementTitle(
+                                text = slot.text,
+                                onDismiss = { viewModel.dispatch(BuyUiAction.DismissHomeAnnouncement) }
+                            )
+                        } else if (slot is TopBarTitleSlot.Plain) {
+                            Text(
+                                text = slot.text,
+                                modifier = Modifier.semantics { heading() }
+                            )
                         }
-                    } else if (titlePrompt != null) {
-                        // The seller's question takes the title slot and gives it
-                        // back when the buyer closes it. Checked before the
-                        // announcement only because the announcement already won the
-                        // contest for this slot above, where the reasoning sits.
-                        QuickMessageInput(
-                            prompt = titlePrompt.value,
-                            onSend = { text ->
-                                viewModel.dispatch(
-                                    BuyUiAction.SendPrompt(titlePrompt.location, text)
-                                )
-                            },
-                            onDismiss = {
-                                viewModel.dispatch(
-                                    BuyUiAction.DismissPrompt(titlePrompt.location)
-                                )
-                            },
-                            isSending = appState.quickMessage.isSending,
-                            sentCount = appState.quickMessage.sentCount
-                        )
-                    } else if (homeAnnouncement != null) {
-                        // The seller's announcement takes the whole title slot on the
-                        // home screen, and gives it back the moment the buyer closes
-                        // it. Only home: the basket and profile titles carry numbers
-                        // the buyer is acting on, which an announcement must not hide.
-                        SellerAnnouncementTitle(
-                            text = homeAnnouncement.value,
-                            onDismiss = { viewModel.dispatch(BuyUiAction.DismissHomeAnnouncement) }
-                        )
-                    } else {
-                        Text(
-                            text = displayTitle,
-                            modifier = Modifier.semantics { heading() }
-                        )
                     }
                 },
                 navigationIcon = {
@@ -631,48 +652,67 @@ private fun AppScaffoldContent(
                         NavRoutes.Buy.Profile.route -> appState.topBarActionsFor(ActionLocation.TOPBAR_PROFILE)
                         else -> emptyList()
                     }
-                    if (publishedActions.isNotEmpty()) {
-                        val actionUriHandler = LocalUriHandler.current
-                        if (publishedActions.size == 1) {
-                            val action = publishedActions.first()
-                            TextButton(onClick = {
-                                actionUriHandler.openUri(action.toUri())
-                                // Every tap is reported; only a row the seller marked
-                                // hide-on-action actually goes.
-                                viewModel.dispatch(
-                                    BuyUiAction.NotePublishedActionUsed(action)
-                                )
-                            }) {
-                                Text(
-                                    text = action.label,
-                                    color = topBarColors.content
-                                )
-                            }
-                        } else {
-                            var showActionMenu by remember { mutableStateOf(false) }
-                            Box {
-                                IconButton(onClick = { showActionMenu = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.MoreVert,
-                                        contentDescription = stringResource(Res.string.a11y_seller_actions),
-                                        tint = topBarColors.content
+                    // Animated rather than simply present: a seller publishes while
+                    // the buyer is looking at the screen, and a button that blinks into
+                    // existence under a moving finger is a tap on something that was not
+                    // there. The empty case is a state of its own so withdrawal animates
+                    // too -- the list the body reads is the one that state carries, so
+                    // the outgoing half keeps drawing the button being taken away.
+                    val actionUriHandler = LocalUriHandler.current
+                    AnimatedContent(
+                        targetState = publishedActions,
+                        transitionSpec = { topBarActionTransition() },
+                        label = "publishedActions"
+                    ) { actions ->
+                        when {
+                            // Nothing published, or the last row withdrawn: an empty
+                            // body so the outgoing button still has something to
+                            // animate out of.
+                            actions.isEmpty() -> Unit
+
+                            actions.size == 1 -> {
+                                val action = actions.first()
+                                TextButton(onClick = {
+                                    actionUriHandler.openUri(action.toUri())
+                                    // Every tap is reported; only a row the seller marked
+                                    // hide-on-action actually goes.
+                                    viewModel.dispatch(
+                                        BuyUiAction.NotePublishedActionUsed(action)
+                                    )
+                                }) {
+                                    Text(
+                                        text = action.label,
+                                        color = topBarColors.content
                                     )
                                 }
-                                DropdownMenu(
-                                    expanded = showActionMenu,
-                                    onDismissRequest = { showActionMenu = false }
-                                ) {
-                                    publishedActions.forEach { action ->
-                                        DropdownMenuItem(
-                                            text = { Text(action.label) },
-                                            onClick = {
-                                                actionUriHandler.openUri(action.toUri())
-                                                viewModel.dispatch(
-                                                    BuyUiAction.NotePublishedActionUsed(action)
-                                                )
-                                                showActionMenu = false
-                                            }
+                            }
+
+                            else -> {
+                                var showActionMenu by remember { mutableStateOf(false) }
+                                Box {
+                                    IconButton(onClick = { showActionMenu = true }) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = stringResource(Res.string.a11y_seller_actions),
+                                            tint = topBarColors.content
                                         )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showActionMenu,
+                                        onDismissRequest = { showActionMenu = false }
+                                    ) {
+                                        actions.forEach { action ->
+                                            DropdownMenuItem(
+                                                text = { Text(action.label) },
+                                                onClick = {
+                                                    actionUriHandler.openUri(action.toUri())
+                                                    viewModel.dispatch(
+                                                        BuyUiAction.NotePublishedActionUsed(action)
+                                                    )
+                                                    showActionMenu = false
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -686,50 +726,61 @@ private fun AppScaffoldContent(
                     // business. Everyone still reaches the same numbers through About.
                     // Hidden entirely when the seller has published none, rather than
                     // opening an empty menu.
-                    val contacts = appState.topBarContacts
-                    if (contacts.isNotEmpty() &&
-                        (currentRoute == NavRoutes.Buy.Profile.route || currentRoute == NavRoutes.Home.route)
-                    ) {
-                        val uriHandler = LocalUriHandler.current
-                        var showContactMenu by remember { mutableStateOf(false) }
+                    //
+                    // Animated for the same reason as the published buttons, and now
+                    // with more occasion to move: the directory is a live subscription,
+                    // so a seller adding their first number makes this button appear
+                    // mid-session rather than at the next launch.
+                    val onContactRoute = currentRoute == NavRoutes.Buy.Profile.route ||
+                        currentRoute == NavRoutes.Home.route
+                    val contacts = if (onContactRoute) appState.topBarContacts else emptyList()
+                    val uriHandler = LocalUriHandler.current
+                    AnimatedContent(
+                        targetState = contacts,
+                        transitionSpec = { topBarActionTransition() },
+                        label = "contactShortcut"
+                    ) { shown ->
+                        if (shown.isNotEmpty()) {
+                            var showContactMenu by remember { mutableStateOf(false) }
 
-                        Box(modifier = Modifier.padding(end = 8.dp)) {
-                            IconButton(onClick = { showContactMenu = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = stringResource(Res.string.a11y_contact_options),
-                                    tint = topBarColors.content
-                                )
-                            }
-
-                            DropdownMenu(
-                                expanded = showContactMenu,
-                                onDismissRequest = { showContactMenu = false }
-                            ) {
-                                contacts.forEach { contact ->
-                                    val label = contact.label.ifBlank { contact.channel.displayName() }
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                            ) {
-                                                Icon(
-                                                    contact.channel.icon(),
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                                Text(label)
-                                            }
-                                        },
-                                        onClick = {
-                                            uriHandler.openUri(contact.toUri())
-                                            showContactMenu = false
-                                        }
+                            Box(modifier = Modifier.padding(end = 8.dp)) {
+                                IconButton(onClick = { showContactMenu = true }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = stringResource(Res.string.a11y_contact_options),
+                                        tint = topBarColors.content
                                     )
                                 }
+
+                                DropdownMenu(
+                                    expanded = showContactMenu,
+                                    onDismissRequest = { showContactMenu = false }
+                                ) {
+                                    shown.forEach { contact ->
+                                        val label = contact.label.ifBlank { contact.channel.displayName() }
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    Icon(
+                                                        contact.channel.icon(),
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary
+                                                    )
+                                                    Text(label)
+                                                }
+                                            },
+                                            onClick = {
+                                                uriHandler.openUri(contact.toUri())
+                                                showContactMenu = false
+                                            }
+                                        )
+                                    }
+                                }
                             }
-                        }
+                    }
                     }
 
                     // The way into the conversation with the seller, on Profile and

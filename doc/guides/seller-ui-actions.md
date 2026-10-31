@@ -312,6 +312,38 @@ everyone and go on being shown to everyone: `ActionAudience.stored(null)` return
 `EVERYONE`, while an *unknown* name returns null and skips the row, the same
 distinction `ActionKind` and `ActionLocation` do not need to make.
 
+## Motion: where a thing came from
+
+Two different events share the top bar, and they must not look the same.
+
+A **route change** relabels the title. The buyer caused it, they already know what they
+tapped, and a title that flew in would read as a second navigation stacked on the one
+they just made. So it crossfades, and nothing moves.
+
+A **remote item** — an announcement, a message box, a published button, the contact
+shortcut — arrives on its own, from someone else, possibly while the buyer is looking at
+the screen. Appearing instantly is how a tap lands on a thing that was not there when
+the finger started moving. These drop in from above and lift back out, which says where
+they came from and gives the eye something to follow. Buttons among the fixed icons
+scale from 0.8 instead of sliding, because a slide would shove the app's own affordances
+sideways and the whole reason published buttons are drawn inboard is that a seller must
+never move an icon the buyer has learned the position of.
+
+Both are short — 220ms in, 160ms out. The exit is the quicker of the two on purpose: the
+slot has to be free before the next thing can use it, and an announcement that lingers
+delays the title the buyer is waiting for.
+
+The spec lives in `TopBarMotion.kt`, with `TopBarTitleSlot` as the key the title
+animates between. That key carries what the slot needs to draw itself and nothing that
+changes more often than the slot does — not the basket's live count, not the draft in a
+message box. Keying on those would restart the transition on every keystroke and every
+tap of a plus button; the bodies read them straight from state instead, which recomposes
+without animating.
+
+Each animated body also reads the state it was handed rather than the surrounding
+variables, so the outgoing half of a transition keeps drawing the thing being taken away
+instead of flipping to its replacement halfway out.
+
 ## What this is not
 
 - **Not a way to ship UI.** `kind` is an enum of behaviours the buy app already
