@@ -64,6 +64,7 @@ import com.together.newverse.ui.components.SellerAnnouncementTitle
 import com.together.newverse.ui.components.displayName
 import com.together.newverse.ui.components.icon
 import com.together.newverse.ui.screens.SplashScreen
+import com.together.newverse.ui.screens.rememberSplashVisible
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.ui.state.BuyUiAction
@@ -202,7 +203,9 @@ private fun AppScaffoldContent(
     // forced NewverseLightTheme/NewverseDarkTheme is still obeyed.
     val darkPage = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    val showSplash = appState.meta.isInitializing
+    // Held for a minimum beat even on a warm start, so the logo is seen rather
+    // than flashed -- see rememberSplashVisible.
+    val showSplash = rememberSplashVisible(appState.meta.isInitializing)
     val showAuth = appState.user is com.together.newverse.ui.state.UserState.NotAuthenticated
     val showForcedLogin = appState.requiresLogin
 
