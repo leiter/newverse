@@ -32,6 +32,108 @@ class SellerContactTest {
         assertEquals("https://instagram.com/stall", SellerContact(ContactChannel.INSTAGRAM, "@stall").toUri())
     }
 
+    // ===== Location is one more channel, not a second kind of thing =====
+
+    @Test
+    fun `a location opens a map at the pin`() {
+        val contact = SellerContact(ContactChannel.LOCATION, "52.5200,13.4050", "Stand")
+        assertEquals(
+            "https://www.google.com/maps/search/?api=1&query=52.5200,13.4050",
+            contact.toUri()
+        )
+    }
+
+    @Test
+    fun `a pasted pair loses the decoration a map app puts round it`() {
+        // What comes off a long-press on a map, or out of a browser's address bar.
+        assertEquals("52.5200,13.4050", ContactChannel.LOCATION.normalize(" 52.5200° N, 13.4050° E "))
+    }
+
+    @Test
+    fun `a southern or western pin keeps its sign`() {
+        assertEquals("-33.8688,-151.2093", ContactChannel.LOCATION.normalize("-33.8688, -151.2093"))
+    }
+
+    @Test
+    fun `normalization keeps the seller's own precision rather than reprinting it`() {
+        // Round-tripping through Double can produce "1.0E-5", which no map reads back.
+        assertEquals("52.52000000,13.40500000", ContactChannel.LOCATION.normalize("52.52000000,13.40500000"))
+    }
+
+    @Test
+    fun `one figure is not a location`() {
+        assertEquals("", ContactChannel.LOCATION.normalize("52.5200"))
+    }
+
+    @Test
+    fun `a location parses into its two figures`() {
+        val point = SellerContact(ContactChannel.LOCATION, "52.5200,13.4050").latLng
+        assertEquals(52.52, point?.latitude)
+        assertEquals(13.405, point?.longitude)
+    }
+
+    @Test
+    fun `a pin off the globe is withheld rather than clamped`() {
+        // 95 is a typo. Clamping it to 90 would send the buyer somewhere confidently
+        // wrong; showing nothing at least says nothing.
+        assertNull(LatLng.parse("95.0,13.4"))
+        assertNull(LatLng.parse("52.5,181.0"))
+        assertFalse(SellerContact(ContactChannel.LOCATION, "95.0,13.4").isUsable)
+    }
+
+    @Test
+    fun `a half-finished pair is not usable but is not an error either`() {
+        assertFalse(SellerContact(ContactChannel.LOCATION, "52.5,").isUsable)
+        assertFalse(SellerContact(ContactChannel.LOCATION, ",").isUsable)
+        assertNull(LatLng.parse("52.5,"))
+    }
+
+    @Test
+    fun `a complete pair is usable`() {
+        assertTrue(SellerContact(ContactChannel.LOCATION, "52.5200,13.4050").isUsable)
+    }
+
+    @Test
+    fun `an unusable location never reaches a buyer`() {
+        // isUsable is what resolveFor filters on, so a broken pin cannot be dialled
+        // from the top bar however it got into the database.
+        val broken = SellerContact(ContactChannel.LOCATION, "95.0,13.4")
+        val good = SellerContact(ContactChannel.LOCATION, "52.5200,13.4050")
+        val withBoth = SellerContactDirectory(sellerContacts = listOf(broken, good))
+        assertEquals(listOf(good), withBoth.resolveFor(null))
+    }
+
+    @Test
+    fun `a location on a market joins the business's own contacts`() {
+        // The seller sets a pin per stall as well as for the business: both editors
+        // are the same composable over the same list, so both carry every channel.
+        val pin = SellerContact(ContactChannel.LOCATION, "52.5200,13.4050", "Kreuzberg")
+        val both = SellerContactDirectory(
+            sellerContacts = listOf(office),
+            marketContacts = mapOf("m1" to listOf(pin))
+        )
+        assertEquals(listOf(office, pin), both.resolveFor("m1"))
+    }
+
+    @Test
+    fun `the same pin on business and market is shown once`() {
+        val pin = SellerContact(ContactChannel.LOCATION, "52.5200,13.4050")
+        val both = SellerContactDirectory(
+            sellerContacts = listOf(pin),
+            marketContacts = mapOf("m1" to listOf(pin.copy(label = "Stand")))
+        )
+        assertEquals(1, both.resolveFor("m1").size)
+    }
+
+    @Test
+    fun `a directory holding only a broken pin counts as empty`() {
+        // Which is what hides the top bar's person button.
+        val onlyBroken = SellerContactDirectory(
+            sellerContacts = listOf(SellerContact(ContactChannel.LOCATION, "95.0,13.4"))
+        )
+        assertTrue(onlyBroken.isEmpty)
+    }
+
     // ===== Unknown channels degrade rather than fail =====
 
     @Test

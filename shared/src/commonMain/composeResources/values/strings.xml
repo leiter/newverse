@@ -1176,6 +1176,11 @@
     <string name="contact_channel_signal">Signal</string>
     <string name="contact_channel_web">Webseite</string>
     <string name="contact_channel_instagram">Instagram</string>
+    <string name="contact_channel_location">Standort</string>
+    <string name="contact_latitude">Breitengrad</string>
+    <string name="contact_longitude">Längengrad</string>
+    <string name="contact_location_hint">Zwei Dezimalzahlen, z. B. 52.5200 und 13.4050</string>
+    <string name="contact_location_invalid">Breitengrad −90 bis 90, Längengrad −180 bis 180</string>
     <string name="closures_title">Markttage, die entfallen</string>
     <string name="closures_empty">Keine Ausfalltage eingetragen</string>
     <string name="closures_add">Tag eintragen</string>

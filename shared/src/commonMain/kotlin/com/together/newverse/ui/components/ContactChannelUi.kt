@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.runtime.Composable
@@ -13,6 +14,7 @@ import org.jetbrains.compose.resources.stringResource
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.contact_channel_email
 import newverse.shared.generated.resources.contact_channel_instagram
+import newverse.shared.generated.resources.contact_channel_location
 import newverse.shared.generated.resources.contact_channel_phone
 import newverse.shared.generated.resources.contact_channel_signal
 import newverse.shared.generated.resources.contact_channel_web
@@ -34,6 +36,7 @@ fun ContactChannel.displayName(): String = stringResource(
         ContactChannel.SIGNAL -> Res.string.contact_channel_signal
         ContactChannel.WEB -> Res.string.contact_channel_web
         ContactChannel.INSTAGRAM -> Res.string.contact_channel_instagram
+        ContactChannel.LOCATION -> Res.string.contact_channel_location
     }
 )
 
@@ -43,4 +46,5 @@ fun ContactChannel.icon(): ImageVector = when (this) {
     ContactChannel.WHATSAPP, ContactChannel.SIGNAL -> Icons.Default.Chat
     ContactChannel.WEB -> Icons.Default.Language
     ContactChannel.INSTAGRAM -> Icons.Default.PhotoCamera
+    ContactChannel.LOCATION -> Icons.Default.LocationOn
 }

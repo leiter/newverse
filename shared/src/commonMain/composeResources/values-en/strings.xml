@@ -1117,6 +1117,11 @@
     <string name="contact_channel_signal">Signal</string>
     <string name="contact_channel_web">Website</string>
     <string name="contact_channel_instagram">Instagram</string>
+    <string name="contact_channel_location">Location</string>
+    <string name="contact_latitude">Latitude</string>
+    <string name="contact_longitude">Longitude</string>
+    <string name="contact_location_hint">Two decimal numbers, e.g. 52.5200 and 13.4050</string>
+    <string name="contact_location_invalid">Latitude −90 to 90, longitude −180 to 180</string>
     <string name="closures_title">Days without a market</string>
     <string name="closures_empty">No closures entered</string>
     <string name="closures_add">Add a day</string>

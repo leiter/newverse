@@ -15,7 +15,23 @@ data class SellerContact(
     /** Optional override for the menu entry, e.g. "Bestellhotline". Empty means the channel's own label. */
     val label: String = "",
 ) {
-    val isUsable: Boolean get() = value.isNotBlank()
+    /**
+     * Whether this row is worth showing a buyer.
+     *
+     * Blank is the ordinary case — an editor row the seller started and abandoned.
+     * [ContactChannel.LOCATION] adds a second one: a pair that does not parse, or
+     * sits off the globe, is a pin that would drop the buyer in the ocean, so it is
+     * withheld exactly like a blank number rather than offered and apologised for.
+     */
+    val isUsable: Boolean
+        get() = value.isNotBlank() && (channel != ContactChannel.LOCATION || latLng != null)
+
+    /**
+     * The coordinates this contact carries, or null when it is not a location or
+     * does not parse. Reading the stored string rather than extra fields keeps every
+     * channel one row of `{channel, value, label}` — see [ContactChannel.LOCATION].
+     */
+    val latLng: LatLng? get() = LatLng.parse(value)
 
     /**
      * The URI handed to the platform's URI handler.
@@ -40,7 +56,22 @@ enum class ContactChannel(val scheme: String) {
     WHATSAPP("https://wa.me/"),
     SIGNAL("https://signal.me/#p/"),
     WEB("https://"),
-    INSTAGRAM("https://instagram.com/");
+    INSTAGRAM("https://instagram.com/"),
+
+    /**
+     * Where the stall actually stands, as `latitude,longitude`.
+     *
+     * A web map link rather than the `geo:` URI the coordinates deserve: `geo:` is
+     * the standard and Android honours it, but iOS does not register a handler for
+     * it, so a seller's pin would simply do nothing on half the installs. The https
+     * form opens the maps app on Android, Apple Maps or Safari on iOS, and a browser
+     * on anything else — the one shape that works everywhere this app runs.
+     *
+     * The pair lives in the same `value` string as every other channel's, so a
+     * location is stored, validated and rendered as one more contact row and needs
+     * no schema change, no rules change and no second code path.
+     */
+    LOCATION("https://www.google.com/maps/search/?api=1&query=");
 
     /**
      * Strip what the scheme cannot carry. Applied when the seller saves, so the
@@ -51,6 +82,14 @@ enum class ContactChannel(val scheme: String) {
         EMAIL -> raw.trim()
         WEB -> raw.trim().removePrefix("https://").removePrefix("http://")
         INSTAGRAM -> raw.trim().removePrefix("@")
+        // Kept as text rather than round-tripped through Double: re-emitting a
+        // parsed number can produce "1.0E-5", which no map will read back. Strips
+        // whatever a keyboard or a paste added around the two figures -- degree
+        // signs, spaces, N/E letters -- and leaves the digits the seller meant.
+        LOCATION -> raw.split(',')
+            .let { if (it.size < 2) return@let emptyList<String>() else it.take(2) }
+            .map { part -> part.trim().filter { it.isDigit() || it == '-' || it == '.' } }
+            .let { parts -> if (parts.size == 2) parts.joinToString(",") else "" }
     }
 
     companion object {
@@ -102,3 +141,33 @@ fun SellerProfile.toContactDirectory(): SellerContactDirectory = SellerContactDi
     marketContacts = markets.filter { it.contacts.isNotEmpty() }.associate { it.id to it.contacts },
     marketNames = markets.associate { it.id to it.name }
 )
+
+/**
+ * A point on the globe, as a [SellerContact] of channel [ContactChannel.LOCATION]
+ * carries it.
+ *
+ * Parsing is total and never throws: the value is whatever a seller typed into two
+ * text fields, and a half-finished pair is an ordinary state during editing, not an
+ * error. Out-of-range figures are rejected rather than clamped — a latitude of 95 is
+ * a typo, and clamping it to 90 would send the buyer somewhere confidently wrong
+ * instead of showing nothing.
+ */
+data class LatLng(val latitude: Double, val longitude: Double) {
+
+    /** The stored form, which is also what [ContactChannel.LOCATION] appends to its scheme. */
+    fun stored(): String = "$latitude,$longitude"
+
+    companion object {
+        /** Null unless [raw] holds two in-range figures separated by a comma. */
+        fun parse(raw: String): LatLng? {
+            val parts = raw.split(',')
+            if (parts.size != 2) return null
+            val lat = parts[0].trim().toDoubleOrNull() ?: return null
+            val lng = parts[1].trim().toDoubleOrNull() ?: return null
+            if (lat.isNaN() || lng.isNaN()) return null
+            if (lat < -90.0 || lat > 90.0) return null
+            if (lng < -180.0 || lng > 180.0) return null
+            return LatLng(lat, lng)
+        }
+    }
+}

@@ -28,8 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
 import com.together.newverse.domain.model.ContactChannel
+import com.together.newverse.domain.model.LatLng
 import com.together.newverse.domain.model.SellerContact
 import com.together.newverse.ui.components.displayName
 import org.jetbrains.compose.resources.stringResource
@@ -37,6 +40,10 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.contact_add
 import newverse.shared.generated.resources.contact_channel
 import newverse.shared.generated.resources.contact_label_hint
+import newverse.shared.generated.resources.contact_latitude
+import newverse.shared.generated.resources.contact_location_hint
+import newverse.shared.generated.resources.contact_location_invalid
+import newverse.shared.generated.resources.contact_longitude
 import newverse.shared.generated.resources.contact_remove
 import newverse.shared.generated.resources.contact_value
 
@@ -140,13 +147,20 @@ private fun ContactRow(
             }
         }
 
-        OutlinedTextField(
-            value = contact.value,
-            onValueChange = { onChange(contact.copy(value = it)) },
-            label = { Text(stringResource(Res.string.contact_value)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
+        if (contact.channel == ContactChannel.LOCATION) {
+            LocationFields(
+                value = contact.value,
+                onValueChange = { onChange(contact.copy(value = it)) }
+            )
+        } else {
+            OutlinedTextField(
+                value = contact.value,
+                onValueChange = { onChange(contact.copy(value = it)) },
+                label = { Text(stringResource(Res.string.contact_value)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
 
         OutlinedTextField(
             value = contact.label,
@@ -158,10 +172,74 @@ private fun ContactRow(
     }
 }
 
+
+/**
+ * The two halves of a [ContactChannel.LOCATION] value, as two fields.
+ *
+ * One field holding "52.5200,13.4050" would be a format to be taught; two labelled
+ * ones are a pair of numbers to be copied, which is what the seller is actually doing
+ * -- reading them off a map on another screen. They are joined back into the single
+ * stored string on every keystroke, so the rest of the app keeps seeing one contact
+ * row like any other.
+ *
+ * Both fields are text, not numbers: a half-typed "52." or a lone "-" has to survive
+ * long enough to be finished. The error is shown only once both sides have something
+ * in them, so it appears when the pair is wrong rather than while it is incomplete,
+ * and the row is simply withheld from buyers until it parses ([SellerContact.isUsable]).
+ */
+@Composable
+private fun LocationFields(
+    value: String,
+    onValueChange: (String) -> Unit,
+) {
+    val parts = value.split(',')
+    val latitude = parts.getOrNull(0).orEmpty()
+    val longitude = parts.getOrNull(1).orEmpty()
+    val bothEntered = latitude.isNotBlank() && longitude.isNotBlank()
+    val invalid = bothEntered && LatLng.parse(value) == null
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedTextField(
+            value = latitude,
+            onValueChange = { onValueChange("$it,$longitude") },
+            label = { Text(stringResource(Res.string.contact_latitude)) },
+            isError = invalid,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.weight(1f),
+            singleLine = true
+        )
+        OutlinedTextField(
+            value = longitude,
+            onValueChange = { onValueChange("$latitude,$it") },
+            label = { Text(stringResource(Res.string.contact_longitude)) },
+            isError = invalid,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.weight(1f),
+            singleLine = true
+        )
+    }
+
+    Text(
+        text = stringResource(
+            if (invalid) Res.string.contact_location_invalid else Res.string.contact_location_hint
+        ),
+        style = MaterialTheme.typography.bodySmall,
+        color = if (invalid) MaterialTheme.colorScheme.error
+        else MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
 /**
  * Drop the blank rows an editor leaves behind and store each value in the shape its
  * scheme needs. Called once, when the seller saves.
  */
 fun List<SellerContact>.normalizedForSave(): List<SellerContact> =
-    filter { it.value.isNotBlank() }
-        .map { it.copy(value = it.channel.normalize(it.value), label = it.label.trim()) }
+    map { it.copy(value = it.channel.normalize(it.value), label = it.label.trim()) }
+        // Filtered *after* normalizing, not before: a row whose value survives the
+        // editor but not its own scheme -- a phone of "n/a", half a coordinate --
+        // would otherwise be stored as an empty string that no screen can show and
+        // the seller cannot see to delete.
+        .filter { it.isUsable }

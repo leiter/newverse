@@ -83,7 +83,7 @@ but the profile is not. (Separately, the `sellerId.isEmpty()` branch does
 The seller wants to add and remove options, so the model is a list, not a fixed pair:
 
 ```kotlin
-enum class ContactChannel { PHONE, EMAIL, WHATSAPP, SIGNAL, WEB, INSTAGRAM }
+enum class ContactChannel { PHONE, EMAIL, WHATSAPP, SIGNAL, WEB, INSTAGRAM, LOCATION }
 
 data class SellerContact(
     val channel: ContactChannel = ContactChannel.PHONE,
@@ -105,6 +105,34 @@ the icon, in the app:
 | `SIGNAL` | `https://signal.me/#p/` | — |
 | `WEB` | `https://` | — |
 | `INSTAGRAM` | `https://instagram.com/` | — |
+| `LOCATION` | `https://www.google.com/maps/search/?api=1&query=` | `Icons.Default.LocationOn` |
+
+### `LOCATION`
+
+A pin — where the stall actually stands — entered as a latitude and a longitude and
+stored as one `"lat,lng"` string in the same `value` field every other channel uses. So
+it needs no schema change, no rules change (`value` is already any string up to 200
+characters) and no second code path: it is validated, resolved, deduplicated, hidden when
+empty and kept live by exactly the machinery the phone number goes through. Available on
+the business *and* on each market, because both editors are one composable over one list.
+
+A web map URL rather than the `geo:` URI the coordinates deserve. `geo:` is the standard
+and Android honours it, but iOS registers no handler, so a seller's pin would silently do
+nothing on half the installs. The https form opens the maps app on Android, Apple Maps or
+Safari on iOS, and a browser anywhere else.
+
+Two rules the pair does not share with the other channels:
+
+* **The editor shows two fields, not one.** A single box holding `52.5200,13.4050` is a
+  format to be taught; two labelled boxes are two numbers to be copied, which is what the
+  seller is actually doing — reading them off a map on another screen. They are text
+  fields, not numeric ones, because a half-typed `52.` or a lone `-` has to survive long
+  enough to be finished.
+* **An out-of-range figure is withheld, never clamped.** A latitude of 95 is a typo;
+  clamping it to 90 would send the buyer somewhere confidently wrong, so `isUsable` is
+  false and the row simply never reaches them. `normalize` keeps the seller's own digits
+  rather than reprinting a parsed `Double`, which can yield `1.0E-5` — a string no map
+  reads back.
 
 If the seller could store a raw URI, write access to this node would become the ability
 to make the buy app hand an arbitrary scheme to `uriHandler.openUri`. Only the seller can
@@ -288,12 +316,32 @@ is why `getSellerProfile` cannot be reused as-is (see §Where it stands today).
 So the buy app needs a narrow new method reading exactly those two fields:
 
 ```kotlin
-suspend fun getSellerContacts(sellerId: String): Result<SellerContactDirectory>
+fun observeSellerContacts(sellerId: String): Flow<SellerContactDirectory>
 ```
 
 Two child reads, no access to `lat`, `lng` or the seller's street address — the fields
 stay closed by default rather than being published wholesale, which was the objection to
 relaxing the parent `.read`.
+
+**A subscription, not a fetch.** This shipped first as
+`suspend fun getSellerContacts(): Result<…>`, called once when the buy app connected to
+a seller and once more after auth. That made the directory a snapshot of whatever the
+seller had published the last time that buyer connected: a number changed in the morning
+was still being dialled in the afternoon, and a contact withdrawn entirely stayed in the
+top bar until the app was killed. The one-shot has been removed rather than kept
+alongside, so there is no stale path left for a future caller to pick by accident.
+
+`BuyAppViewModel.observeSellerContacts()` starts the collection once, keyed off
+`connectedSellerId`, so connect, switch and disconnect are one event and nothing has to
+remember to re-subscribe. It is the single writer of `BuyAppState.sellerContacts`;
+everything on screen derives from that one field, which is what makes the top bar
+overflow and the About card agree by construction rather than by two subscriptions
+happening to stay in step.
+
+The markets half falls back to the legacy `seller_profile/{sellerId}/markets` list when
+the `/markets/{sellerId}` node is *empty*, not only when it errors — an unmigrated seller
+has markets, they are just not in the node yet, and treating the empty node as the answer
+would silently drop every stall contact they have.
 
 ### What this costs
 
@@ -341,8 +389,8 @@ empty dropdown is worse than no icon.
 3. **Seller editing** — a contact list in the profile form, and the same list inside the
    market dialog (`SellerProfileScreen.kt:828`). One composable used twice. The largest
    chunk.
-4. **Buy app read** — `getSellerContacts`, reading the two fields rather than the node,
-   plus the union-and-dedup resolution.
+4. **Buy app read** — `observeSellerContacts`, reading the two fields rather than the
+   node, plus the union-and-dedup resolution.
 5. **The four call sites.** All four move together or the app shows different numbers on
    different screens.
 6. **Visibility rule** — `canContactSeller`, plus the contact link in `AccessStatusCard`.
