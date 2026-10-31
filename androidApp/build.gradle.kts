@@ -19,6 +19,11 @@ val versionProps = Properties().apply {
 fun versionCodeFor(flavor: String): Int =
     versionProps.getProperty("VERSION_CODE_${flavor.uppercase()}", "1").toInt()
 
+// Lets a local release build skip R8. See the release build type below.
+val skipMinify = providers.gradleProperty("newverse.skipMinify")
+    .map { it.toBoolean() }
+    .getOrElse(false)
+
 android {
     namespace = "com.together.newverse.android"
     compileSdk = 36
@@ -92,8 +97,12 @@ android {
         }
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true
-            isShrinkResources = true // Remove unused resources
+            // Off only when -Pnewverse.skipMinify=true is passed, which the local
+            // install scripts do: a sideloaded build is for trying the app out, and
+            // R8 costs minutes and turns any stack trace into unmapped line numbers.
+            // Anything heading for Play leaves the property alone and is minified.
+            isMinifyEnabled = !skipMinify
+            isShrinkResources = !skipMinify // Remove unused resources; needs minify on
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

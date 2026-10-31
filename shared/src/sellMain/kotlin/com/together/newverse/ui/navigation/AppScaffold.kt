@@ -29,6 +29,7 @@ import com.together.newverse.ui.components.SellerBottomNavigationBar
 import com.together.newverse.ui.components.SellerNavigationRail
 import com.together.newverse.ui.components.SellerTopBar
 import com.together.newverse.ui.screens.SplashScreen
+import com.together.newverse.ui.screens.rememberSplashVisible
 import com.together.newverse.ui.state.NotificationAction
 import com.together.newverse.ui.state.NotificationSettings
 import com.together.newverse.ui.state.SellAppViewModel
@@ -172,7 +173,9 @@ private fun AppScaffoldContent(
     }
 
     // Check if app is still initializing
-    if (state.meta.isInitializing) {
+    // Held for a minimum beat even on a warm start, so the logo is seen rather
+    // than flashed -- see rememberSplashVisible.
+    if (rememberSplashVisible(state.meta.isInitializing)) {
         SplashScreen(
             initializationStep = state.meta.initializationStep
         )

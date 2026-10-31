@@ -13,19 +13,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Contacts
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Person
-import com.together.newverse.domain.model.ActionLocation
-import com.together.newverse.ui.components.QuickMessageInput
-import com.together.newverse.ui.components.SellerAnnouncementTitle
-import com.together.newverse.ui.state.BuyUiAction
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Badge
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -36,9 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.ui.graphics.luminance
-import com.together.newverse.ui.theme.LocalBarColors
-import com.together.newverse.ui.theme.SystemBarIcons
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
@@ -63,38 +54,43 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.ui.adaptive.LocalWindowWidthClass
 import com.together.newverse.ui.adaptive.ProvideWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
+import com.together.newverse.ui.components.QuickMessageInput
+import com.together.newverse.ui.components.SellerAnnouncementTitle
+import com.together.newverse.ui.components.displayName
+import com.together.newverse.ui.components.icon
 import com.together.newverse.ui.screens.SplashScreen
+import com.together.newverse.ui.screens.rememberSplashVisible
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.BuySellerAction
+import com.together.newverse.ui.state.BuyUiAction
 import com.together.newverse.ui.state.DeepLinkRouter
+import com.together.newverse.ui.theme.LocalBarColors
+import com.together.newverse.ui.theme.NewverseTheme
+import com.together.newverse.ui.theme.SystemBarIcons
+import com.together.newverse.util.Log
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.formatString
 import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
-import newverse.shared.generated.resources.nav_messages
 import newverse.shared.generated.resources.a11y_contact_options
-import newverse.shared.generated.resources.a11y_seller_actions
 import newverse.shared.generated.resources.a11y_hero_total
-import newverse.shared.generated.resources.action_call
-import newverse.shared.generated.resources.action_email
+import newverse.shared.generated.resources.a11y_seller_actions
 import newverse.shared.generated.resources.action_orders
 import newverse.shared.generated.resources.app_name
 import newverse.shared.generated.resources.back
 import newverse.shared.generated.resources.contacts_title
 import newverse.shared.generated.resources.nav_shopping_basket
 import org.jetbrains.compose.resources.pluralStringResource
-import com.together.newverse.ui.components.displayName
-import com.together.newverse.ui.components.icon
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-import com.together.newverse.util.Log
-
 
 private const val TAG = "AppScaffold"
 
@@ -207,7 +203,9 @@ private fun AppScaffoldContent(
     // forced NewverseLightTheme/NewverseDarkTheme is still obeyed.
     val darkPage = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    val showSplash = appState.meta.isInitializing
+    // Held for a minimum beat even on a warm start, so the logo is seen rather
+    // than flashed -- see rememberSplashVisible.
+    val showSplash = rememberSplashVisible(appState.meta.isInitializing)
     val showAuth = appState.user is com.together.newverse.ui.state.UserState.NotAuthenticated
     val showForcedLogin = appState.requiresLogin
 
@@ -872,5 +870,17 @@ private fun formatOrderDateForSubtitle(dateKey: String): String {
         "$dayOfWeek. $day.$month."
     } catch (e: Exception) {
         dateKey
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview
+@Composable
+fun PreviewCompose(){
+    NewverseTheme {
+        QuickMessageInput(
+            prompt = "",
+            onSend = {},
+            onDismiss = {}
+        )
     }
 }

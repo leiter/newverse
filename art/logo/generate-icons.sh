@@ -162,6 +162,12 @@ compose 512 "$STORE_FRAC" "$BUY_BG" "$BUY_FG" rounded \
 # Shown on the About screen; 512 so it stays sharp on tablets.
 compose 512 "$STORE_FRAC" "$BUY_BG" "$BUY_FG" rounded \
     "$ROOT/shared/src/commonMain/composeResources/drawable/app_icon.png"
+# The bare mark for the splash screen, transparent and trimmed to the art. The
+# fill baked in here is irrelevant: the splash tints it from the running colour
+# scheme, so one file serves the light and the dark theme and both flavors.
+# 1024 wide covers the 220dp it is drawn at, at xxxhdpi, without an upscale.
+render_mark 1024 "$BUY_FG" \
+    "$ROOT/shared/src/commonMain/composeResources/drawable/logo_mark.png"
 
 echo
 echo "done."

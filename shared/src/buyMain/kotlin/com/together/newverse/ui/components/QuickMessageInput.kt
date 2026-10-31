@@ -2,6 +2,7 @@ package com.together.newverse.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,15 +32,18 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.SellerInboxMessage
 import com.together.newverse.ui.theme.LocalBarColors
+import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.util.formatString
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_quick_message
 import newverse.shared.generated.resources.quick_message_dismiss
 import newverse.shared.generated.resources.quick_message_send
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * The seller's question in place of a screen's title, with a field to answer it in and
@@ -120,6 +124,18 @@ fun QuickMessageInput(
             // OutlinedTextField: a Material text field is taller than a top bar and
             // brings a container colour of its own, which would put a light box in
             // the middle of the brown bar.
+            //
+            // The placeholder is drawn through decorationBox rather than stacked over
+            // the field or swapped with it. Stacking left the hint and the typed text
+            // on two different baselines; swapping removed the field whenever it was
+            // empty, which is every moment before the first keystroke -- so there was
+            // nothing to tap and it could never take focus. Inside decorationBox the
+            // hint occupies the field's own text slot, in the field's own text style,
+            // so the two cannot drift apart.
+            val fieldStyle = LocalTextStyle.current.merge(
+                MaterialTheme.typography.bodyLarge.copy(color = barColors.content)
+            )
+
             BasicTextField(
                 value = draft,
                 onValueChange = {
@@ -127,9 +143,7 @@ fun QuickMessageInput(
                     // buyer finds out at the keyboard rather than at the refusal.
                     draft = it.take(SellerInboxMessage.MAX_TEXT_LENGTH)
                 },
-                textStyle = LocalTextStyle.current.merge(
-                    MaterialTheme.typography.bodyLarge.copy(color = barColors.content)
-                ),
+                textStyle = fieldStyle,
                 cursorBrush = SolidColor(barColors.content),
                 singleLine = true,
                 enabled = !isSending,
@@ -137,16 +151,23 @@ fun QuickMessageInput(
                 keyboardActions = KeyboardActions(onSend = { submit() }),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .semantics { contentDescription = description }
+                    .semantics { contentDescription = description },
+                decorationBox = { innerTextField ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (draft.isEmpty()) {
+                            Text(
+                                text = prompt,
+                                style = fieldStyle.copy(
+                                    color = barColors.content.copy(alpha = 0.7f)
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
             )
-            if (draft.isEmpty()) {
-                Text(
-                    text = prompt,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = barColors.content.copy(alpha = 0.7f),
-                    maxLines = 1
-                )
-            }
         }
 
         if (isSending) {
@@ -187,6 +208,20 @@ fun QuickMessageInput(
                 imageVector = Icons.Default.Close,
                 contentDescription = stringResource(Res.string.quick_message_dismiss),
                 tint = barColors.content
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun QuickMessagePreview() {
+    NewverseTheme {
+        Column {
+            QuickMessageInput(
+                prompt = "sdfa",
+                onSend = { },
+                onDismiss = { }
             )
         }
     }
