@@ -307,12 +307,6 @@ private fun ContactCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Location
-            ContactRow(
-                icon = Icons.Default.LocationOn,
-                text = stringResource(Res.string.about_location),
-                iconColor = MaterialTheme.colorScheme.primary
-            )
         }
     }
 }
