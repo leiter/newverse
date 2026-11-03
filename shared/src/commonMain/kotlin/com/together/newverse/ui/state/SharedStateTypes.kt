@@ -3,6 +3,8 @@ package com.together.newverse.ui.state
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Conversation
+import com.together.newverse.domain.model.filterByCategory
+import com.together.newverse.domain.model.filterByFavourite
 import com.together.newverse.domain.model.filterByQuery
 import com.together.newverse.domain.model.DeliveryAddress
 import com.together.newverse.domain.model.Fulfilment
@@ -575,13 +577,6 @@ enum class AuthProvider {
 
 // ===== Main Screen State =====
 
-enum class ProductFilter {
-    ALL,
-    FAVOURITES,
-    OBST,
-    GEMUESE
-}
-
 /**
  * An add the buyer asked for that could not be carried out yet, kept so it can be.
  *
@@ -605,7 +600,8 @@ data class MainScreenState(
     val cartItemCount: Int = 0,
     val basketItems: List<OrderedProduct> = emptyList(),
     val favouriteArticles: List<String> = emptyList(),
-    val activeFilter: ProductFilter = ProductFilter.ALL,
+    /** What the chip row narrows to. See [ProductFilterState]. */
+    val filterState: ProductFilterState = ProductFilterState.Unfiltered,
     val canEditOrder: Boolean = true,
     val showNewOrderSnackbar: Boolean = false,
     /** The add that is waiting for a new order to put it in. See [PendingBasketAdd]. */
@@ -613,19 +609,27 @@ data class MainScreenState(
     val searchQuery: String = ""
 ) : ScreenState {
 
+    /**
+     * The catalogue after everything the buyer has asked for, narrowed in one place.
+     *
+     * Four stages that each only ever remove, applied in a fixed order so the result
+     * does not depend on which chip was tapped last:
+     *
+     *  1. availability — buyers only ever see what can be ordered. The seller list
+     *     deliberately does not apply this baseline, which is why it is here and not
+     *     in the shared matching.
+     *  2. the search query, over name, search terms and category.
+     *  3. the favourite axis — bypassed, positive or negative.
+     *  4. the category axis.
+     *
+     * Stages 3 and 4 are independent, so Favoriten + Obst is the favourite fruit.
+     */
     val filteredArticles: List<Article>
-        get() {
-            // Buyers only ever see what can be ordered; the seller list deliberately
-            // does not apply this baseline. The matching itself is shared.
-            val filtered = articles.filter { it.available }.filterByQuery(searchQuery)
-
-            return when (activeFilter) {
-                ProductFilter.ALL -> filtered
-                ProductFilter.FAVOURITES -> filtered.filter { favouriteArticles.contains(it.id) }
-                ProductFilter.OBST -> filtered.filter { it.searchTerms.contains("obst", ignoreCase = true) }
-                ProductFilter.GEMUESE -> filtered.filter { it.searchTerms.contains("gemüse", ignoreCase = true) }
-            }
-        }
+        get() = articles
+            .filter { it.available }
+            .filterByQuery(searchQuery)
+            .filterByFavourite(filterState.includeFavourite, favouriteArticles)
+            .filterByCategory(filterState.category)
 }
 
 /**

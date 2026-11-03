@@ -193,6 +193,7 @@
     <!-- ========================================= -->
     <string name="filter_all">All</string>
     <string name="filter_favourites">Favorites</string>
+    <string name="filter_without_favourites">Without favorites</string>
     <string name="filter_obst">Fruit</string>
     <string name="filter_gemuese">Vegetables</string>
 
@@ -702,6 +703,9 @@
     <!-- Demo Mode -->
     <string name="demo_limit_reached">Demo limit reached. Please request access.</string>
     <string name="basket_demo_order_notice">Demo order — not binding</string>
+    <string name="orders_show_outdated">Show past (%1$d)</string>
+    <string name="orders_hide_outdated">Hide past</string>
+    <string name="orders_no_current_message">No current orders</string>
     <string name="demo_orders_clear_button">Clear demo orders (&gt; 1 month)</string>
     <string name="demo_orders_clear_result">%1$d demo order(s) deleted</string>
     <string name="demo_orders_clear_none">No old demo orders found</string>
@@ -877,6 +881,7 @@
     <string name="a11y_reason_choose_amount">choose an amount first</string>
     <string name="a11y_reason_no_changes">nothing changed</string>
     <!-- Expand/collapse state for a disclosure control -->
+    <string name="a11y_toggle_section">Expand or collapse section</string>
     <string name="a11y_state_expanded">expanded</string>
     <string name="a11y_state_collapsed">collapsed</string>
     <string name="a11y_toggle_address">Show or hide the address</string>
@@ -1112,6 +1117,8 @@
     <string name="contact_value">Number or address</string>
     <string name="contact_label_hint">Label (optional)</string>
     <string name="contact_channel_phone">Phone</string>
+    <string name="contact_channel_sms">SMS</string>
+    <string name="contact_channel_answering_machine">Answering machine</string>
     <string name="contact_channel_email">Email</string>
     <string name="contact_channel_whatsapp">WhatsApp</string>
     <string name="contact_channel_signal">Signal</string>

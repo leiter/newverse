@@ -83,7 +83,9 @@ but the profile is not. (Separately, the `sellerId.isEmpty()` branch does
 The seller wants to add and remove options, so the model is a list, not a fixed pair:
 
 ```kotlin
-enum class ContactChannel { PHONE, EMAIL, WHATSAPP, SIGNAL, WEB, INSTAGRAM, LOCATION }
+enum class ContactChannel {
+    PHONE, SMS, ANSWERING_MACHINE, EMAIL, WHATSAPP, SIGNAL, WEB, INSTAGRAM, LOCATION
+}
 
 data class SellerContact(
     val channel: ContactChannel = ContactChannel.PHONE,
@@ -100,12 +102,33 @@ the icon, in the app:
 | Channel | Scheme | Icon |
 |---|---|---|
 | `PHONE` | `tel:` | `Icons.Default.Phone` |
+| `SMS` | `sms:` | `Icons.Default.Sms` |
+| `ANSWERING_MACHINE` | `tel:` | `Icons.Default.Voicemail` |
 | `EMAIL` | `mailto:` | `Icons.Default.Email` |
 | `WHATSAPP` | `https://wa.me/` | — |
 | `SIGNAL` | `https://signal.me/#p/` | — |
 | `WEB` | `https://` | — |
 | `INSTAGRAM` | `https://instagram.com/` | — |
 | `LOCATION` | `https://www.google.com/maps/search/?api=1&query=` | `Icons.Default.LocationOn` |
+
+### `SMS` and `ANSWERING_MACHINE`
+
+Both hold a phone number and both normalize like `PHONE`, so neither needs a schema,
+rules or editor change. What separates them from `PHONE` is not the data:
+
+* **`SMS` differs in the action.** `sms:` opens the messaging app with the number filled
+  in and nothing sent, so the buyer still writes and sends it themselves. Registered by
+  both platforms. A seller who answers texts but never a ringing stall phone can now say
+  so, which a flag on `PHONE` could not express.
+* **`ANSWERING_MACHINE` differs only in the promise.** It dials through `tel:` exactly
+  like `PHONE`, because dialling is all a phone can do with a number. The channel earns
+  its place by telling the buyer nobody will pick up — the difference between a seller who
+  looks unreachable and one who has said where to leave an order.
+
+Because the two share `tel:` with `PHONE`, deduplication matters: `resolveFor` collapses
+on `(channel, normalized value)`, so one number listed as both a line and a mailbox stays
+two rows, as the seller intended, while the same number repeated under one channel on
+business and market still shows once.
 
 ### `LOCATION`
 

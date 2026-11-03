@@ -8,7 +8,7 @@ import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.ErrorState
 import com.together.newverse.ui.state.PendingBasketAdd
 import com.together.newverse.ui.state.ErrorType
-import com.together.newverse.ui.state.ProductFilter
+import com.together.newverse.ui.state.ProductFilterState
 import com.together.newverse.ui.state.BuyMainScreenAction
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
@@ -27,7 +27,7 @@ private const val TAG = "BuyVMMain"
  * - handleMainScreenAction
  * - Edit lock guards (handleAddToCart, handleRemoveFromBasket) and applyPendingAdd
  * - showNewOrderSnackbar, dismissNewOrderSnackbar, startNewOrder
- * - setMainScreenFilter
+ * - updateMainScreenFilter
  * - selectMainScreenArticle
  * - updateMainScreenQuantity, updateMainScreenQuantityFromText
  * - addMainScreenToCart, removeMainScreenFromBasket
@@ -45,7 +45,9 @@ internal fun BuyAppViewModel.handleMainScreenAction(action: BuyMainScreenAction)
         BuyMainScreenAction.AddToCart -> handleAddToCart()
         BuyMainScreenAction.RemoveFromBasket -> handleRemoveFromBasket()
         is BuyMainScreenAction.ToggleFavourite -> toggleMainScreenFavourite(action.articleId)
-        is BuyMainScreenAction.SetFilter -> setMainScreenFilter(action.filter)
+        is BuyMainScreenAction.ToggleFavouriteFilter -> updateMainScreenFilter { it.toggleFavourite(action.include) }
+        is BuyMainScreenAction.ToggleCategoryFilter -> updateMainScreenFilter { it.toggleCategory(action.category) }
+        BuyMainScreenAction.ResetFilters -> updateMainScreenFilter { ProductFilterState.Unfiltered }
         is BuyMainScreenAction.UpdateSearchQuery -> updateSearchQuery(action.query)
         BuyMainScreenAction.ClearSearchQuery -> updateSearchQuery("")
         BuyMainScreenAction.Refresh -> refreshMainScreen()
@@ -197,11 +199,21 @@ private fun BuyAppViewModel.applyPendingAdd() {
     Log.d(TAG) { "applyPendingAdd: carried ${pending.quantity} of ${article.productName} into the new order" }
 }
 
-internal fun BuyAppViewModel.setMainScreenFilter(filter: ProductFilter) {
+/**
+ * Apply [transform] to the chip row's filter state.
+ *
+ * One entry point for all three chip actions, so the next state is always derived
+ * from the current one by [ProductFilterState]'s own rules rather than assembled at
+ * each call site. Nothing else about the screen is touched — in particular not the
+ * search query, which the chips must not clear.
+ */
+internal fun BuyAppViewModel.updateMainScreenFilter(
+    transform: (ProductFilterState) -> ProductFilterState
+) {
     _state.update { current ->
         current.copy(
             mainScreen = current.mainScreen.copy(
-                activeFilter = filter
+                filterState = transform(current.mainScreen.filterState)
             )
         )
     }

@@ -7,16 +7,20 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Sms
+import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.together.newverse.domain.model.ContactChannel
 import org.jetbrains.compose.resources.stringResource
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.contact_channel_answering_machine
 import newverse.shared.generated.resources.contact_channel_email
 import newverse.shared.generated.resources.contact_channel_instagram
 import newverse.shared.generated.resources.contact_channel_location
 import newverse.shared.generated.resources.contact_channel_phone
 import newverse.shared.generated.resources.contact_channel_signal
+import newverse.shared.generated.resources.contact_channel_sms
 import newverse.shared.generated.resources.contact_channel_web
 import newverse.shared.generated.resources.contact_channel_whatsapp
 
@@ -31,6 +35,8 @@ import newverse.shared.generated.resources.contact_channel_whatsapp
 fun ContactChannel.displayName(): String = stringResource(
     when (this) {
         ContactChannel.PHONE -> Res.string.contact_channel_phone
+        ContactChannel.SMS -> Res.string.contact_channel_sms
+        ContactChannel.ANSWERING_MACHINE -> Res.string.contact_channel_answering_machine
         ContactChannel.EMAIL -> Res.string.contact_channel_email
         ContactChannel.WHATSAPP -> Res.string.contact_channel_whatsapp
         ContactChannel.SIGNAL -> Res.string.contact_channel_signal
@@ -42,6 +48,8 @@ fun ContactChannel.displayName(): String = stringResource(
 
 fun ContactChannel.icon(): ImageVector = when (this) {
     ContactChannel.PHONE -> Icons.Default.Phone
+    ContactChannel.SMS -> Icons.Default.Sms
+    ContactChannel.ANSWERING_MACHINE -> Icons.Default.Voicemail
     ContactChannel.EMAIL -> Icons.Default.Email
     ContactChannel.WHATSAPP, ContactChannel.SIGNAL -> Icons.Default.Chat
     ContactChannel.WEB -> Icons.Default.Language

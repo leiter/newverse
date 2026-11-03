@@ -94,6 +94,8 @@ fun UiActionListEditor(
     isSaving: Boolean = false,
     /** Why the last publish was refused, if it was. See `SellerProfileViewModel.uiActionError`. */
     errorMessage: String? = null,
+    /** False when the surrounding card already shows the section title. */
+    showTitle: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     // Re-seeded whenever the stored list changes, so a save elsewhere is picked up
@@ -112,11 +114,15 @@ fun UiActionListEditor(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(
-            text = stringResource(Res.string.seller_actions_title),
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.semantics { heading() }
-        )
+        // Off when the surrounding card already carries the title in its own
+        // header, so the section is not announced twice.
+        if (showTitle) {
+            Text(
+                text = stringResource(Res.string.seller_actions_title),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() }
+            )
+        }
         Text(
             text = stringResource(Res.string.seller_actions_explain),
             style = MaterialTheme.typography.bodySmall,

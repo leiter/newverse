@@ -46,3 +46,45 @@ fun List<Article>.presentCategories(): List<String> {
     val known = ProductCategory.entries.map { it.displayName }.filter { it in present }
     return known + present.filterNot { it in known }.sorted()
 }
+
+/**
+ * Whether this article belongs to the category [name], matched case-insensitively.
+ *
+ * Checks [Article.category] *or* [Article.searchTerms], because the catalogue is fed
+ * from two directions and they disagree: `BnnParser` derives a real `category` from
+ * the product name on import, while the hand-maintained and seeded articles carry the
+ * category as a tag in `searchTerms` ("Äpfel,obst") and leave `category` blank. The
+ * buy screen's chips matched `searchTerms` only, so every imported Terra article was
+ * invisible to them. An OR keeps both kinds reachable without a data migration.
+ *
+ * The `searchTerms` half is a substring match on a comma-joined string, so "Obst"
+ * also matches a term like "Trockenobst". That is the pre-existing behaviour and it
+ * errs towards showing an article rather than hiding it, which is the right way for a
+ * category chip to be wrong.
+ */
+fun Article.matchesCategory(name: String): Boolean {
+    val needle = name.trim().lowercase()
+    if (needle.isEmpty()) return true
+    return category.lowercase() == needle || searchTerms.lowercase().contains(needle)
+}
+
+/** [matchesCategory] over a list, keeping order. A null [name] keeps everything. */
+fun List<Article>.filterByCategory(name: String?): List<Article> =
+    if (name.isNullOrBlank()) this else filter { it.matchesCategory(name) }
+
+/**
+ * The articles kept by the favourite axis: all of them when [include] is null, the
+ * favourites when it is true, everything else when it is false.
+ *
+ * [favouriteIds] is passed in rather than read off the article because being a
+ * favourite is a fact about the buyer, not about the article — it lives in
+ * `BuyerProfile.favouriteArticles`.
+ */
+fun List<Article>.filterByFavourite(
+    include: Boolean?,
+    favouriteIds: Collection<String>
+): List<Article> = when (include) {
+    null -> this
+    true -> filter { it.id in favouriteIds }
+    false -> filterNot { it.id in favouriteIds }
+}

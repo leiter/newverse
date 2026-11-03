@@ -38,6 +38,9 @@ import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.ui.state.core.AsyncStateContent
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toLocalDateTime
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -62,6 +65,11 @@ fun OrdersScreen(
     // On Expanded windows (tablet landscape) show list + detail side by side
     val useTwoPane = LocalWindowWidthClass.current == WindowWidthClass.Expanded
     var selectedOrderId by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // Orders whose pickup day has gone by are the seller's archive, not their work
+    // list: hidden until asked for, so the screen opens on what still has to be
+    // packed. The choice is per visit, not persisted.
+    var showOutdated by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -130,6 +138,8 @@ fun OrdersScreen(
                         Box(modifier = Modifier.weight(0.42f).fillMaxHeight()) {
                             OrdersContent(
                                 orders = orders,
+                                showOutdated = showOutdated,
+                                onToggleShowOutdated = { showOutdated = !showOutdated },
                                 onOrderClick = { selectedOrderId = it },
                                 onClearDemoOrders = onClearDemoOrders
                             )
@@ -151,6 +161,8 @@ fun OrdersScreen(
                 } else {
                     OrdersContent(
                         orders = orders,
+                        showOutdated = showOutdated,
+                        onToggleShowOutdated = { showOutdated = !showOutdated },
                         onOrderClick = onOrderClick,
                         onClearDemoOrders = onClearDemoOrders
                     )
@@ -174,15 +186,56 @@ private fun OrderDetailPlaceholder() {
     }
 }
 
+/**
+ * An order counts as outdated once its pickup *day* is over, not once its pickup
+ * time has passed: an order picked up at 9:00 is still today's work at 14:00, and
+ * the seller is standing at the stall with the day's list open.
+ */
+private fun startOfTodayMillis(): Long {
+    val timeZone = TimeZone.currentSystemDefault()
+    return kotlin.time.Clock.System.now()
+        .toLocalDateTime(timeZone)
+        .date
+        .atStartOfDayIn(timeZone)
+        .toEpochMilliseconds()
+}
+
 @Composable
 private fun OrdersContent(
     orders: List<Order>,
+    showOutdated: Boolean,
+    onToggleShowOutdated: () -> Unit,
     onOrderClick: (String) -> Unit,
     onClearDemoOrders: () -> Unit = {}
 ) {
+    val startOfToday = remember { startOfTodayMillis() }
+    val outdatedCount = remember(orders, startOfToday) {
+        orders.count { it.pickUpDate < startOfToday }
+    }
+    val visibleOrders = remember(orders, showOutdated, startOfToday) {
+        if (showOutdated) orders else orders.filter { it.pickUpDate >= startOfToday }
+    }
+    val showAllLabel = formatString(
+        stringResource(Res.string.orders_show_outdated),
+        outdatedCount
+    )
+    val hideLabel = stringResource(Res.string.orders_hide_outdated)
+
     Column(modifier = Modifier.fillMaxSize()) {
-        if (orders.isEmpty()) {
-            // Empty state
+        if (outdatedCount > 0) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onToggleShowOutdated) {
+                    Text(text = if (showOutdated) hideLabel else showAllLabel)
+                }
+            }
+        }
+
+        if (visibleOrders.isEmpty()) {
+            // Empty state. "No orders at all" and "nothing current, but there is an
+            // archive" are different things to tell the seller.
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -190,7 +243,13 @@ private fun OrdersContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = stringResource(Res.string.no_orders_message),
+                    text = stringResource(
+                        if (outdatedCount > 0 && !showOutdated) {
+                            Res.string.orders_no_current_message
+                        } else {
+                            Res.string.no_orders_message
+                        }
+                    ),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.semantics { heading() }
@@ -204,7 +263,7 @@ private fun OrdersContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(orders) { order ->
+                items(visibleOrders) { order ->
                     SellerOrderCard(
                         order = order,
                         onClick = { onOrderClick(order.id) }

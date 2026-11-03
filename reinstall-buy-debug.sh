@@ -1,14 +1,50 @@
 #!/bin/bash
+set -u
+
+cd "$(dirname "$0")"
+
+# The real applicationId: base com.together plus the flavor suffix (see
+# doc/guides/build-flavors.md). It is NOT com.together.newverse.buy -- that name
+# was wrong here for as long as this script existed, so the uninstall below always
+# silently removed nothing, and a debug install over a release-signed build then
+# failed with INSTALL_FAILED_UPDATE_INCOMPATIBLE.
+APP_ID="com.together.buy"
+
+# Gradle's installBuyDebug targets every attached device, and a bare `adb` command
+# refuses to run at all with more than one. Pick one and hold it for the whole run:
+# ANDROID_SERIAL is honoured by both adb and the Android Gradle plugin.
+if [ -z "${ANDROID_SERIAL:-}" ]; then
+  mapfile -t DEVICES < <(adb devices | awk '/\tdevice$/ {print $1}')
+  if [ "${#DEVICES[@]}" -eq 0 ]; then
+    echo "No device attached. Plug one in or start an emulator." >&2
+    exit 1
+  elif [ "${#DEVICES[@]}" -gt 1 ]; then
+    echo "More than one device attached:" >&2
+    for d in "${DEVICES[@]}"; do
+      echo "  $d  ($(adb -s "$d" shell getprop ro.product.model | tr -d '\r'))" >&2
+    done
+    echo "Choose one:  ANDROID_SERIAL=<serial> $0" >&2
+    exit 1
+  fi
+  export ANDROID_SERIAL="${DEVICES[0]}"
+fi
 
 echo "=== Device Info ==="
-ANDROID_VERSION=$(adb shell getprop ro.build.version.release)
-SDK_VERSION=$(adb shell getprop ro.build.version.sdk)
+echo "Device: $ANDROID_SERIAL ($(adb shell getprop ro.product.model | tr -d '\r'))"
+ANDROID_VERSION=$(adb shell getprop ro.build.version.release | tr -d '\r')
+SDK_VERSION=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
 echo "Android Version: $ANDROID_VERSION (SDK $SDK_VERSION)"
 echo "Note: Adaptive icons require Android 8.0+ (SDK 26+)"
 
 echo ""
 echo "=== Uninstalling old app ==="
-adb uninstall com.together.newverse.buy
+# Uninstall rather than install over the top: the previous build may be signed with
+# the release key, and Android rejects a signature change on update.
+if [ -n "$(adb shell pm path "$APP_ID" | tr -d '\r')" ]; then
+  adb uninstall "$APP_ID"
+else
+  echo "$APP_ID not installed on $ANDROID_SERIAL; nothing to remove."
+fi
 
 echo ""
 echo "=== Clearing launcher cache (multiple launchers) ==="
@@ -25,12 +61,15 @@ adb shell pm clear com.android.packageinstaller 2>/dev/null
 
 echo ""
 echo "=== Building fresh APK ==="
-cd "$(dirname "$0")"
 ./gradlew clean :androidApp:assembleBuyDebug
 
 echo ""
 echo "=== Installing new app ==="
-./gradlew :androidApp:installBuyDebug
+if ! ./gradlew :androidApp:installBuyDebug; then
+  echo "" >&2
+  echo "Install failed -- stopping before the icon check below reports success." >&2
+  exit 1
+fi
 
 echo ""
 echo "=== Killing launcher to force refresh ==="
