@@ -193,6 +193,7 @@
     <!-- ========================================= -->
     <string name="filter_all">Alle</string>
     <string name="filter_favourites">Favoriten</string>
+    <string name="filter_without_favourites">Ohne Favoriten</string>
     <string name="filter_obst">Obst</string>
     <string name="filter_gemuese">Gemüse</string>
 
