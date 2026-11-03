@@ -52,6 +52,30 @@ data class SellerContact(
  */
 enum class ContactChannel(val scheme: String) {
     PHONE("tel:"),
+
+    /**
+     * A number to text rather than ring, as `sms:`.
+     *
+     * Its own channel and not a flag on [PHONE]: the two differ in what the buyer's
+     * tap does, and a seller who answers texts but not a ringing stall phone is
+     * saying something a shared row could not express. Both platforms register a
+     * handler for `sms:`, which opens the messaging app with the number filled in
+     * and nothing sent, so the buyer still writes and sends it themselves.
+     */
+    SMS("sms:"),
+
+    /**
+     * A line that is only ever a mailbox — call it and leave the order.
+     *
+     * Dials through `tel:` exactly like [PHONE], because that is all a phone can do
+     * with a number. The channel exists for the promise around the number, not the
+     * action: it tells the buyer nobody will pick up, which is the difference between
+     * a seller who looks unreachable and one who has said where to leave a message.
+     * Listed separately so a seller can offer both without the second looking like a
+     * duplicate of the first.
+     */
+    ANSWERING_MACHINE("tel:"),
+
     EMAIL("mailto:"),
     WHATSAPP("https://wa.me/"),
     SIGNAL("https://signal.me/#p/"),
@@ -78,7 +102,7 @@ enum class ContactChannel(val scheme: String) {
      * stored value is already dialable, and again on read so older records behave.
      */
     fun normalize(raw: String): String = when (this) {
-        PHONE, WHATSAPP, SIGNAL -> raw.filter { it.isDigit() || it == '+' }
+        PHONE, SMS, ANSWERING_MACHINE, WHATSAPP, SIGNAL -> raw.filter { it.isDigit() || it == '+' }
         EMAIL -> raw.trim()
         WEB -> raw.trim().removePrefix("https://").removePrefix("http://")
         INSTAGRAM -> raw.trim().removePrefix("@")

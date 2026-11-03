@@ -32,6 +32,49 @@ class SellerContactTest {
         assertEquals("https://instagram.com/stall", SellerContact(ContactChannel.INSTAGRAM, "@stall").toUri())
     }
 
+    // ===== Texting and mailbox lines are phone numbers with a different promise =====
+
+    @Test
+    fun `sms opens the messaging app rather than the dialler`() {
+        val contact = SellerContact(ContactChannel.SMS, "0170 123 45 67")
+        assertEquals("sms:01701234567", contact.toUri())
+    }
+
+    @Test
+    fun `sms strips what a messaging app cannot address`() {
+        assertEquals("+4917012345678", ContactChannel.SMS.normalize("+49 (170) 123 456 78"))
+    }
+
+    @Test
+    fun `an answering machine still dials, because that is all a phone can do`() {
+        val contact = SellerContact(ContactChannel.ANSWERING_MACHINE, "030 - 2023 9477", "Bestellband")
+        assertEquals("tel:03020239477", contact.toUri())
+    }
+
+    @Test
+    fun `an answering machine is a separate row from the phone it shares a scheme with`() {
+        // The seller offers both: a stall line and a mailbox to leave an order on.
+        // Same scheme, different promise -- deduplication must not collapse them.
+        val phone = SellerContact(ContactChannel.PHONE, "03020239477")
+        val mailbox = SellerContact(ContactChannel.ANSWERING_MACHINE, "03020239477")
+        val directory = SellerContactDirectory(sellerContacts = listOf(phone, mailbox))
+        assertEquals(listOf(phone, mailbox), directory.resolveFor(null))
+    }
+
+    @Test
+    fun `a blank texting or mailbox number never reaches a buyer`() {
+        assertFalse(SellerContact(ContactChannel.SMS, "   ").isUsable)
+        assertFalse(SellerContact(ContactChannel.ANSWERING_MACHINE, "").isUsable)
+        assertTrue(SellerContact(ContactChannel.SMS, "017012345678").isUsable)
+        assertTrue(SellerContact(ContactChannel.ANSWERING_MACHINE, "03020239477").isUsable)
+    }
+
+    @Test
+    fun `the new channels round-trip through their stored names`() {
+        assertEquals(ContactChannel.SMS, ContactChannel.fromStored("SMS"))
+        assertEquals(ContactChannel.ANSWERING_MACHINE, ContactChannel.fromStored("ANSWERING_MACHINE"))
+    }
+
     // ===== Location is one more channel, not a second kind of thing =====
 
     @Test

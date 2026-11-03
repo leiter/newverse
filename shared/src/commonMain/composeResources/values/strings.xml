@@ -1171,6 +1171,8 @@
     <string name="contact_value">Nummer oder Adresse</string>
     <string name="contact_label_hint">Bezeichnung (optional)</string>
     <string name="contact_channel_phone">Telefon</string>
+    <string name="contact_channel_sms">SMS</string>
+    <string name="contact_channel_answering_machine">Anrufbeantworter</string>
     <string name="contact_channel_email">E-Mail</string>
     <string name="contact_channel_whatsapp">WhatsApp</string>
     <string name="contact_channel_signal">Signal</string>

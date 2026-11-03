@@ -1112,6 +1112,8 @@
     <string name="contact_value">Number or address</string>
     <string name="contact_label_hint">Label (optional)</string>
     <string name="contact_channel_phone">Phone</string>
+    <string name="contact_channel_sms">SMS</string>
+    <string name="contact_channel_answering_machine">Answering machine</string>
     <string name="contact_channel_email">Email</string>
     <string name="contact_channel_whatsapp">WhatsApp</string>
     <string name="contact_channel_signal">Signal</string>
