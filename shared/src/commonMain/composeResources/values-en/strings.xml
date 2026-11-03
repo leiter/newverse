@@ -702,6 +702,9 @@
     <!-- Demo Mode -->
     <string name="demo_limit_reached">Demo limit reached. Please request access.</string>
     <string name="basket_demo_order_notice">Demo order — not binding</string>
+    <string name="orders_show_outdated">Show past (%1$d)</string>
+    <string name="orders_hide_outdated">Hide past</string>
+    <string name="orders_no_current_message">No current orders</string>
     <string name="demo_orders_clear_button">Clear demo orders (&gt; 1 month)</string>
     <string name="demo_orders_clear_result">%1$d demo order(s) deleted</string>
     <string name="demo_orders_clear_none">No old demo orders found</string>
