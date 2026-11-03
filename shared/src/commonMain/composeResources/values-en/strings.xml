@@ -881,6 +881,7 @@
     <string name="a11y_reason_choose_amount">choose an amount first</string>
     <string name="a11y_reason_no_changes">nothing changed</string>
     <!-- Expand/collapse state for a disclosure control -->
+    <string name="a11y_toggle_section">Expand or collapse section</string>
     <string name="a11y_state_expanded">expanded</string>
     <string name="a11y_state_collapsed">collapsed</string>
     <string name="a11y_toggle_address">Show or hide the address</string>

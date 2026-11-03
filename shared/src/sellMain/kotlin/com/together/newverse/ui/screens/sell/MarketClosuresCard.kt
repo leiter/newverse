@@ -38,6 +38,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
+import com.together.newverse.ui.components.ExpandableCard
 import com.together.newverse.util.formatString
 import newverse.shared.generated.resources.closures_orders_blocked
 import newverse.shared.generated.resources.closures_range_backwards
@@ -71,6 +72,8 @@ fun MarketClosuresCard(
     /** Live orders per pickup day, `yyyyMMdd` to count. A day with orders cannot be closed. */
     ordersByCycle: Map<String, Int> = emptyMap(),
     pickupDay: DayOfWeek = DayOfWeek.THURSDAY,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     onSave: (List<MarketClosure>) -> Unit,
 ) {
     var draft by remember(closures) { mutableStateOf(closures) }
@@ -87,163 +90,157 @@ fun MarketClosuresCard(
     val rangeEmpty = stringResource(Res.string.closures_range_empty)
     val ordersBlocked = stringResource(Res.string.closures_orders_blocked)
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+    ExpandableCard(
+        title = stringResource(Res.string.closures_title),
+        count = closures.size,
+        expanded = expanded,
+        onExpandedChange = onExpandedChange
+    ) {
+        if (draft.isEmpty()) {
             Text(
-                text = stringResource(Res.string.closures_title),
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() }
+                text = stringResource(Res.string.closures_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
 
-            if (draft.isEmpty()) {
-                Text(
-                    text = stringResource(Res.string.closures_empty),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            draft.sortedBy { it.date }.forEach { closure ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = formatClosureDate(closure.date),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        val scope = if (closure.isSellerWide) allMarkets
-                        else markets.firstOrNull { it.id == closure.marketId }?.name.orEmpty()
-                        val detail = listOf(scope, closure.reason).filter { it.isNotBlank() }
-                        if (detail.isNotEmpty()) {
-                            Text(
-                                text = detail.joinToString(" · "),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    IconButton(onClick = { draft = draft - closure }) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(Res.string.closures_remove),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-
-            OutlinedTextField(
-                value = dateInput,
-                onValueChange = { dateInput = it; error = null },
-                label = { Text(stringResource(Res.string.closures_date_hint)) },
+        draft.sortedBy { it.date }.forEach { closure ->
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                isError = error != null
-            )
-
-            OutlinedTextField(
-                value = untilInput,
-                onValueChange = { untilInput = it; error = null },
-                label = { Text(stringResource(Res.string.closures_until_hint)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = reasonInput,
-                onValueChange = { reasonInput = it },
-                label = { Text(stringResource(Res.string.closures_reason_hint)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            if (markets.isNotEmpty()) {
-                Column {
-                    OutlinedTextField(
-                        value = markets.firstOrNull { it.id == marketInput }?.name ?: allMarkets,
-                        onValueChange = {},
-                        readOnly = true,
-                        enabled = false,
-                        label = { Text(stringResource(Res.string.closures_market)) },
-                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { marketMenuOpen = true }
-                    )
-                    DropdownMenu(
-                        expanded = marketMenuOpen,
-                        onDismissRequest = { marketMenuOpen = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(allMarkets) },
-                            onClick = { marketInput = ""; marketMenuOpen = false }
-                        )
-                        markets.forEach { market ->
-                            DropdownMenuItem(
-                                text = { Text(market.name) },
-                                onClick = { marketInput = market.id; marketMenuOpen = false }
-                            )
-                        }
-                    }
-                }
-            }
-
-            error?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            TextButton(onClick = {
-                when (
-                    val outcome = resolveClosureAddition(
-                        fromInput = dateInput,
-                        untilInput = untilInput,
-                        markets = markets,
-                        marketId = marketInput,
-                        pickupDay = pickupDay,
-                        ordersByCycle = ordersByCycle
-                    )
-                ) {
-                    ClosureAddition.InvalidDate -> error = invalidDate
-                    ClosureAddition.Backwards -> error = rangeBackwards
-                    ClosureAddition.NoMarketDay -> error = rangeEmpty
-                    is ClosureAddition.HasOrders ->
-                        error = formatString(ordersBlocked, outcome.orderCount)
-                    is ClosureAddition.Days -> {
-                        // Replacing rather than appending keeps one entry per day and
-                        // scope, so entering the same day twice is a correction.
-                        draft = draft.filterNot { existing ->
-                            existing.marketId == marketInput && existing.date in outcome.keys
-                        } + outcome.keys.map {
-                            MarketClosure(date = it, marketId = marketInput, reason = reasonInput.trim())
-                        }
-                        dateInput = ""
-                        untilInput = ""
-                        reasonInput = ""
-                        error = null
-                    }
-                }
-            }) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(stringResource(Res.string.closures_add))
-            }
-
-            Button(
-                onClick = { onSave(draft) },
-                enabled = !isSaving && draft.toSet() != closures.toSet(),
-                modifier = Modifier.align(Alignment.End)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(Res.string.button_save))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = formatClosureDate(closure.date),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    val scope = if (closure.isSellerWide) allMarkets
+                    else markets.firstOrNull { it.id == closure.marketId }?.name.orEmpty()
+                    val detail = listOf(scope, closure.reason).filter { it.isNotBlank() }
+                    if (detail.isNotEmpty()) {
+                        Text(
+                            text = detail.joinToString(" · "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                IconButton(onClick = { draft = draft - closure }) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(Res.string.closures_remove),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
+        }
+
+        OutlinedTextField(
+            value = dateInput,
+            onValueChange = { dateInput = it; error = null },
+            label = { Text(stringResource(Res.string.closures_date_hint)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            isError = error != null
+        )
+
+        OutlinedTextField(
+            value = untilInput,
+            onValueChange = { untilInput = it; error = null },
+            label = { Text(stringResource(Res.string.closures_until_hint)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = reasonInput,
+            onValueChange = { reasonInput = it },
+            label = { Text(stringResource(Res.string.closures_reason_hint)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        if (markets.isNotEmpty()) {
+            Column {
+                OutlinedTextField(
+                    value = markets.firstOrNull { it.id == marketInput }?.name ?: allMarkets,
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text(stringResource(Res.string.closures_market)) },
+                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { marketMenuOpen = true }
+                )
+                DropdownMenu(
+                    expanded = marketMenuOpen,
+                    onDismissRequest = { marketMenuOpen = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(allMarkets) },
+                        onClick = { marketInput = ""; marketMenuOpen = false }
+                    )
+                    markets.forEach { market ->
+                        DropdownMenuItem(
+                            text = { Text(market.name) },
+                            onClick = { marketInput = market.id; marketMenuOpen = false }
+                        )
+                    }
+                }
+            }
+        }
+
+        error?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        TextButton(onClick = {
+            when (
+                val outcome = resolveClosureAddition(
+                    fromInput = dateInput,
+                    untilInput = untilInput,
+                    markets = markets,
+                    marketId = marketInput,
+                    pickupDay = pickupDay,
+                    ordersByCycle = ordersByCycle
+                )
+            ) {
+                ClosureAddition.InvalidDate -> error = invalidDate
+                ClosureAddition.Backwards -> error = rangeBackwards
+                ClosureAddition.NoMarketDay -> error = rangeEmpty
+                is ClosureAddition.HasOrders ->
+                    error = formatString(ordersBlocked, outcome.orderCount)
+                is ClosureAddition.Days -> {
+                    // Replacing rather than appending keeps one entry per day and
+                    // scope, so entering the same day twice is a correction.
+                    draft = draft.filterNot { existing ->
+                        existing.marketId == marketInput && existing.date in outcome.keys
+                    } + outcome.keys.map {
+                        MarketClosure(date = it, marketId = marketInput, reason = reasonInput.trim())
+                    }
+                    dateInput = ""
+                    untilInput = ""
+                    reasonInput = ""
+                    error = null
+                }
+            }
+        }) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(stringResource(Res.string.closures_add))
+        }
+
+        Button(
+            onClick = { onSave(draft) },
+            enabled = !isSaving && draft.toSet() != closures.toSet(),
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text(stringResource(Res.string.button_save))
         }
     }
 }

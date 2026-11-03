@@ -934,6 +934,7 @@
     <string name="a11y_reason_choose_amount">zuerst Menge wählen</string>
     <string name="a11y_reason_no_changes">keine Änderungen</string>
     <!-- Expand/collapse state for a disclosure control -->
+    <string name="a11y_toggle_section">Abschnitt auf- oder zuklappen</string>
     <string name="a11y_state_expanded">erweitert</string>
     <string name="a11y_state_collapsed">reduziert</string>
     <string name="a11y_toggle_address">Adresse ein- oder ausblenden</string>

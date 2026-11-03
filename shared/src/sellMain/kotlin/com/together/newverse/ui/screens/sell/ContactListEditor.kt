@@ -69,11 +69,16 @@ fun ContactListEditor(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.semantics { heading() }
-        )
+        // Blank means the caller already has a heading for this list — the
+        // collapsible card on the profile screen puts it in its own header — and a
+        // second one would be read out twice and look like two sections.
+        if (title.isNotBlank()) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() }
+            )
+        }
 
         contacts.forEachIndexed { index, contact ->
             ContactRow(

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -40,6 +41,7 @@ import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.SellerProfile
 import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.components.ChangePasswordDialog
+import com.together.newverse.ui.components.ExpandableCard
 import com.together.newverse.ui.components.QrCodeImage
 import com.together.newverse.ui.state.ChangePasswordState
 import com.together.newverse.ui.state.core.AsyncState
@@ -156,6 +158,33 @@ fun SellerProfileScreen(
                         modifier = Modifier.semantics { heading() }
                     )
 
+                    // Which list cards are open. Hoisted here rather than kept inside
+                    // each card so the screen can decide what a fresh visit looks
+                    // like, and rememberSaveable so a rotation does not fold
+                    // everything the seller just opened.
+                    //
+                    // Collapsed is the default: the lists are long, the cards carry
+                    // their counts in the header, and the seller came for one of them,
+                    // not all of them.
+                    var contactsExpanded by rememberSaveable { mutableStateOf(false) }
+                    var uiActionsExpanded by rememberSaveable { mutableStateOf(false) }
+                    var closuresExpanded by rememberSaveable { mutableStateOf(false) }
+                    var marketsExpanded by rememberSaveable { mutableStateOf(false) }
+                    var approvedExpanded by rememberSaveable { mutableStateOf(false) }
+                    var blockedExpanded by rememberSaveable { mutableStateOf(false) }
+
+                    // Access requests are the exception, because they are the one card
+                    // with something that has to be acted on, and they arrive
+                    // asynchronously — a default computed at first composition would
+                    // always see an empty list and stay shut.
+                    //
+                    // null means the seller has not touched it, and the card follows
+                    // the data: open while requests are pending, shut when there are
+                    // none. The first tap writes a real value and their choice wins
+                    // from then on.
+                    var accessChoice by rememberSaveable { mutableStateOf<Boolean?>(null) }
+                    val accessExpanded = accessChoice ?: accessRequests.isNotEmpty()
+
                     // Profile info card — merge name, phone and address into one stop.
                     Card(
                         modifier = Modifier
@@ -194,35 +223,42 @@ fun SellerProfileScreen(
                     SellerContactsCard(
                         contacts = profile?.contacts ?: emptyList(),
                         isSaving = isSaving,
+                        expanded = contactsExpanded,
+                        onExpandedChange = { contactsExpanded = it },
                         onSave = onSaveSellerContacts
                     )
 
                     // Sits beside the contacts, since both are things the seller
                     // publishes into the buy app rather than facts about the business.
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            UiActionListEditor(
-                                actions = uiActions,
-                                onSave = onSaveUiAction,
-                                onRemove = onRemoveUiAction,
-                                isSaving = isSaving,
-                                errorMessage = uiActionError
-                            )
+                    ExpandableCard(
+                        title = stringResource(Res.string.seller_actions_title),
+                        count = uiActions.size,
+                        expanded = uiActionsExpanded,
+                        onExpandedChange = { uiActionsExpanded = it }
+                    ) {
+                        UiActionListEditor(
+                            actions = uiActions,
+                            onSave = onSaveUiAction,
+                            onRemove = onRemoveUiAction,
+                            isSaving = isSaving,
+                            errorMessage = uiActionError,
+                            // The card's header is the heading now.
+                            showTitle = false
+                        )
 
-                            // The answers, where the question is. A message box the
-                            // seller publishes here sends what customers type to the
-                            // inbox, and a published question with no visible way to
-                            // the replies is a question nobody reads.
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                            TextButton(onClick = onOpenInbox) {
-                                Icon(
-                                    Icons.Default.Email,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(Res.string.inbox_open))
-                            }
+                        // The answers, where the question is. A message box the
+                        // seller publishes here sends what customers type to the
+                        // inbox, and a published question with no visible way to
+                        // the replies is a question nobody reads.
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        TextButton(onClick = onOpenInbox) {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(Res.string.inbox_open))
                         }
                     }
 
@@ -231,6 +267,8 @@ fun SellerProfileScreen(
                         markets = profile?.markets ?: emptyList(),
                         isSaving = isSaving,
                         ordersByCycle = ordersByCycle,
+                        expanded = closuresExpanded,
+                        onExpandedChange = { closuresExpanded = it },
                         onSave = onSaveClosures
                     )
 
@@ -255,47 +293,41 @@ fun SellerProfileScreen(
                     )
 
                     // Edit Profile - Markets Section
+                    //
+                    // The whole card used to be one tap target that opened the add
+                    // dialog, which cannot coexist with a header that folds the card.
+                    // Add is now its own button: a deliberate target rather than the
+                    // consequence of touching the card anywhere.
                     val addMarketLabel = stringResource(Res.string.seller_profile_add_market)
-                    OutlinedCard(
-                        onClick = { onShowMarketDialog(null) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics { onClick(label = addMarketLabel, action = null) }
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.seller_profile_markets),
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
+                    val markets = profile?.markets ?: emptyList()
+                    ExpandableCard(
+                        title = stringResource(Res.string.seller_profile_markets),
+                        count = markets.size,
+                        expanded = marketsExpanded,
+                        onExpandedChange = { marketsExpanded = it },
+                        headerAction = {
+                            IconButton(onClick = { onShowMarketDialog(null) }) {
                                 Icon(
                                     imageVector = Icons.Default.Add,
-                                    contentDescription = null, // card's click action is already labelled "add market"
+                                    contentDescription = addMarketLabel,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
-
-                            if (profile?.markets.isNullOrEmpty()) {
-                                Text(
-                                    text = stringResource(Res.string.seller_profile_no_markets),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    ) {
+                        if (markets.isEmpty()) {
+                            Text(
+                                text = stringResource(Res.string.seller_profile_no_markets),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            markets.forEach { market ->
+                                MarketListItem(
+                                    market = market,
+                                    onEdit = { onShowMarketDialog(market) },
+                                    onDelete = { onDeleteMarket(market.id) }
                                 )
-                            } else {
-                                profile?.markets?.forEach { market ->
-                                    MarketListItem(
-                                        market = market,
-                                        onEdit = { onShowMarketDialog(market) },
-                                        onDelete = { onDeleteMarket(market.id) }
-                                    )
-                                }
                             }
                         }
                     }
@@ -348,6 +380,8 @@ fun SellerProfileScreen(
                     // Access Requests Card
                     AccessRequestsCard(
                         requests = accessRequests,
+                        expanded = accessExpanded,
+                        onExpandedChange = { accessChoice = it },
                         onApprove = onApproveRequest,
                         onBlock = onBlockBuyer
                     )
@@ -359,6 +393,8 @@ fun SellerProfileScreen(
                         emptyText = stringResource(Res.string.approved_buyers_empty),
                         actionLabel = stringResource(Res.string.customer_management_block),
                         actionColor = MaterialTheme.colorScheme.error,
+                        expanded = approvedExpanded,
+                        onExpandedChange = { approvedExpanded = it },
                         onAction = onBlockApprovedBuyer,
                         onBuyerClick = onBuyerClick,
                         markets = profile?.markets ?: emptyList(),
@@ -373,6 +409,8 @@ fun SellerProfileScreen(
                             emptyText = "",
                             actionLabel = stringResource(Res.string.customer_management_unblock),
                             actionColor = MaterialTheme.colorScheme.primary,
+                            expanded = blockedExpanded,
+                            onExpandedChange = { blockedExpanded = it },
                             onAction = onUnblockApprovedBuyer,
                             onBuyerClick = onBuyerClick
                         )
@@ -1032,30 +1070,38 @@ private fun MarketEditDialog(
 private fun SellerContactsCard(
     contacts: List<SellerContact>,
     isSaving: Boolean,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     onSave: (List<SellerContact>) -> Unit,
 ) {
     // Re-seeded whenever the stored list changes, so a save elsewhere is picked up
     // rather than silently overwritten by a stale draft.
+    //
+    // Folding the card takes this with it: `remember` does not survive leaving
+    // composition, so unsaved edits are gone when it reopens. Known and accepted
+    // for now — making the draft outlive a collapse means hoisting it or giving it
+    // a Saver.
     var draft by remember(contacts) { mutableStateOf(contacts) }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            ContactListEditor(
-                title = stringResource(Res.string.contact_section_seller),
-                contacts = draft,
-                onContactsChange = { draft = it }
-            )
+    ExpandableCard(
+        title = stringResource(Res.string.contact_section_seller),
+        count = contacts.size,
+        expanded = expanded,
+        onExpandedChange = onExpandedChange
+    ) {
+        ContactListEditor(
+            // The card's header is the heading now.
+            title = "",
+            contacts = draft,
+            onContactsChange = { draft = it }
+        )
 
-            Button(
-                onClick = { onSave(draft.normalizedForSave()) },
-                enabled = !isSaving && draft.normalizedForSave() != contacts,
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                Text(stringResource(Res.string.button_save))
-            }
+        Button(
+            onClick = { onSave(draft.normalizedForSave()) },
+            enabled = !isSaving && draft.normalizedForSave() != contacts,
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text(stringResource(Res.string.button_save))
         }
     }
 }
@@ -1201,79 +1247,74 @@ private fun formatRelativeTime(epochMillis: Long): String {
 @Composable
 private fun AccessRequestsCard(
     requests: List<AccessRequest>,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     onApprove: (String) -> Unit,
     onBlock: (String) -> Unit
 ) {
     var buyerToBlock by remember { mutableStateOf<String?>(null) }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+    ExpandableCard(
+        // The title string carries the count itself, so no `count` here.
+        title = stringResource(Res.string.access_requests_title, requests.size),
+        expanded = expanded,
+        onExpandedChange = onExpandedChange
+    ) {
+        if (requests.isEmpty()) {
             Text(
-                text = stringResource(Res.string.access_requests_title, requests.size),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() }
+                text = stringResource(Res.string.access_requests_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (requests.isEmpty()) {
-                Text(
-                    text = stringResource(Res.string.access_requests_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                requests.forEach { request ->
-                    val requesterName = request.buyerDisplayName.ifEmpty { stringResource(Res.string.access_requests_anonymous) }
-                    val requestedAgo = if (request.requestedAt > 0) formatRelativeTime(request.requestedAt) else null
-                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                // Merge name + "requested X ago"; the raw UUID stays visible
-                                // but is read out separately only on demand.
-                                .semantics(mergeDescendants = true) {
-                                    contentDescription = listOfNotNull(requesterName, requestedAgo).joinToString(", ")
-                                }
-                        ) {
-                            Text(
-                                text = requesterName,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = request.buyerId,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.clearAndSetSemantics { }
-                            )
-                            if (request.requestedAt > 0) {
-                                Text(
-                                    text = formatRelativeTime(request.requestedAt),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+        } else {
+            requests.forEach { request ->
+                val requesterName = request.buyerDisplayName.ifEmpty { stringResource(Res.string.access_requests_anonymous) }
+                val requestedAgo = if (request.requestedAt > 0) formatRelativeTime(request.requestedAt) else null
+                OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .padding(12.dp)
+                            // Merge name + "requested X ago"; the raw UUID stays visible
+                            // but is read out separately only on demand.
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = listOfNotNull(requesterName, requestedAgo).joinToString(", ")
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = requesterName,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = request.buyerId,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.clearAndSetSemantics { }
+                        )
+                        if (request.requestedAt > 0) {
+                            Text(
+                                text = formatRelativeTime(request.requestedAt),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { onApprove(request.buyerId) },
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Button(
-                                    onClick = { onApprove(request.buyerId) },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text(stringResource(Res.string.access_requests_approve))
-                                }
-                                OutlinedButton(
-                                    onClick = { buyerToBlock = request.buyerId },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error
-                                    )
-                                ) {
-                                    Text(stringResource(Res.string.access_requests_block))
-                                }
+                                Text(stringResource(Res.string.access_requests_approve))
+                            }
+                            OutlinedButton(
+                                onClick = { buyerToBlock = request.buyerId },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Text(stringResource(Res.string.access_requests_block))
                             }
                         }
                     }
@@ -1317,41 +1358,36 @@ private fun BuyerListCard(
     emptyText: String,
     actionLabel: String,
     actionColor: androidx.compose.ui.graphics.Color,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     onAction: (String) -> Unit,
     onBuyerClick: (BuyerEntry) -> Unit = {},
     markets: List<Market> = emptyList(),
     onSetAllowedMarkets: (String, List<String>) -> Unit = { _, _ -> },
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+    ExpandableCard(
+        title = title,
+        count = buyers.size,
+        expanded = expanded,
+        onExpandedChange = onExpandedChange
+    ) {
+        if (buyers.isEmpty()) {
             Text(
-                text = "$title (${buyers.size})",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() }
+                text = emptyText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (buyers.isEmpty()) {
-                Text(
-                    text = emptyText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            buyers.forEach { entry ->
+                BuyerListItem(
+                    entry = entry,
+                    actionLabel = actionLabel,
+                    actionColor = actionColor,
+                    onAction = { onAction(entry.id) },
+                    onClick = { onBuyerClick(entry) },
+                    markets = markets,
+                    onSetAllowedMarkets = { scope -> onSetAllowedMarkets(entry.id, scope) }
                 )
-            } else {
-                buyers.forEach { entry ->
-                    BuyerListItem(
-                        entry = entry,
-                        actionLabel = actionLabel,
-                        actionColor = actionColor,
-                        onAction = { onAction(entry.id) },
-                        onClick = { onBuyerClick(entry) },
-                        markets = markets,
-                        onSetAllowedMarkets = { scope -> onSetAllowedMarkets(entry.id, scope) }
-                    )
-                }
             }
         }
     }
