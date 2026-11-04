@@ -83,6 +83,11 @@ fun NavGraph(
                 currentArticles = appState.mainScreen.articles,
                 onAction = { action -> onAction(action) },
                 onNavigateToOrders = { navController.navigate(NavRoutes.Buy.OrderHistory.route) },
+                // The detail page is where a basket row's amount gets changed. Its
+                // own add/remove buttons pop back here, so the trip is a loop.
+                onNavigateToProductDetail = { articleId ->
+                    navController.navigate(NavRoutes.Buy.ProductDetail.createRoute(articleId))
+                },
                 isDemoMode = appState.isDemoMode,
                 // BLOCKED and PENDING buyers have nothing left to request.
                 canRequestAccess = appState.accessStatus == AccessStatus.NONE,

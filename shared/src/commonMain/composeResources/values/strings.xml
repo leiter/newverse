@@ -273,6 +273,7 @@
     <string name="basket_choose_pickup_date">Abholdatum wählen</string>
     <string name="basket_no_dates_available">Derzeit sind keine Abholtermine verfügbar.</string>
     <string name="basket_selected">Ausgewählt</string>
+    <string name="basket_edit_amount">Menge ändern</string>
     <string name="basket_time_remaining">Verbleibende Zeit: %s</string>
     <string name="duration_days_hours">%1$d Tage, %2$d Stunden</string>
     <string name="duration_one_day_hours">1 Tag, %1$d Stunden</string>
@@ -976,6 +977,7 @@
     <string name="a11y_contact_options">Kontaktoptionen</string>
     <!-- Remove button in the basket list names its line item: %1$s = product -->
     <string name="a11y_remove_item">%1$s entfernen</string>
+    <string name="a11y_edit_amount_item">Menge von %1$s ändern</string>
     <!-- Messaging: spoken labels for the conversation list and message bubbles -->
     <string name="a11y_open_conversation">Unterhaltung öffnen</string>
     <string name="a11y_message_you">Du</string>

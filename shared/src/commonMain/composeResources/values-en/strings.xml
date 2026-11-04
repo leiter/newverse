@@ -260,6 +260,7 @@
     <string name="basket_choose_pickup_date">Choose Pickup Date</string>
     <string name="basket_no_dates_available">No pickup dates are currently available.</string>
     <string name="basket_selected">Selected</string>
+    <string name="basket_edit_amount">Change amount</string>
     <string name="basket_time_remaining">Time remaining: %s</string>
     <string name="duration_days_hours">%1$d days, %2$d hours</string>
     <string name="duration_one_day_hours">1 day, %1$d hours</string>
@@ -923,6 +924,7 @@
     <string name="a11y_contact_options">Contact options</string>
     <!-- Remove button in the basket list names its line item: %1$s = product -->
     <string name="a11y_remove_item">Remove %1$s</string>
+    <string name="a11y_edit_amount_item">Change amount of %1$s</string>
     <!-- Messaging: spoken labels for the conversation list and message bubbles -->
     <string name="a11y_open_conversation">Open conversation</string>
     <string name="a11y_message_you">You</string>

@@ -109,6 +109,8 @@ fun BasketScreen(
     currentArticles: List<Article>,
     onAction: (BuyBasketScreenAction) -> Unit,
     onNavigateToOrders: () -> Unit = {},
+    /** Opens one article's detail page, by article id — where a row's amount is set. */
+    onNavigateToProductDetail: (String) -> Unit = {},
     isDemoMode: Boolean = false,
     canRequestAccess: Boolean = false,
     onRequestAccess: () -> Unit = {},
@@ -138,6 +140,7 @@ fun BasketScreen(
         currentArticles = currentArticles,
         onAction = onAction,
         onNavigateToOrders = onNavigateToOrders,
+        onNavigateToProductDetail = onNavigateToProductDetail,
         isDemoMode = isDemoMode,
         canRequestAccess = canRequestAccess,
         onRequestAccess = onRequestAccess,
@@ -154,6 +157,7 @@ fun BasketScreen(
  * @param currentArticles The list of currently loaded articles with current prices
  * @param onAction Callback for user actions
  * @param onNavigateToOrders Callback to navigate to order history
+ * @param onNavigateToProductDetail Opens an article's detail page, by article id
  * @param isDemoMode Whether this order would be placed as a demo order
  * @param canRequestAccess Whether requesting access is still an option (AccessStatus.NONE)
  * @param onRequestAccess Opens the access card on the profile page
@@ -165,6 +169,7 @@ fun BasketContent(
     currentArticles: List<Article>,
     onAction: (BuyBasketScreenAction) -> Unit,
     onNavigateToOrders: () -> Unit = {},
+    onNavigateToProductDetail: (String) -> Unit = {},
     isDemoMode: Boolean = false,
     canRequestAccess: Boolean = false,
     onRequestAccess: () -> Unit = {},
@@ -316,6 +321,7 @@ fun BasketContent(
             nearlyGoneIds = nearlyGoneIds,
             onAction = onAction,
             onNavigateToOrders = onNavigateToOrders,
+            onNavigateToProductDetail = onNavigateToProductDetail,
             isDemoMode = isDemoMode,
             canRequestAccess = canRequestAccess,
             onRequestAccess = onRequestAccess,
@@ -526,7 +532,10 @@ fun BasketContent(
                     canEdit = state.isEditMode || state.orderId == null,
                     isUnorderable = item.articleKey() in unorderableIds,
                     isNearlyGone = item.articleKey() in nearlyGoneIds,
-                    onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) }
+                    onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) },
+                    onOpenDetail = item.articleKey()
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { key -> { onNavigateToProductDetail(key) } }
                 )
             }
 
@@ -608,6 +617,7 @@ private fun BasketTwoPane(
     nearlyGoneIds: Set<String>,
     onAction: (BuyBasketScreenAction) -> Unit,
     onNavigateToOrders: () -> Unit,
+    onNavigateToProductDetail: (String) -> Unit,
     isDemoMode: Boolean,
     canRequestAccess: Boolean,
     onRequestAccess: () -> Unit,
@@ -658,7 +668,10 @@ private fun BasketTwoPane(
                             canEdit = state.isEditMode || state.orderId == null,
                             isUnorderable = item.articleKey() in unorderableIds,
                             isNearlyGone = item.articleKey() in nearlyGoneIds,
-                            onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) }
+                            onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) },
+                            onOpenDetail = item.articleKey()
+                                .takeIf { it.isNotEmpty() }
+                                ?.let { key -> { onNavigateToProductDetail(key) } }
                         )
                     }
                 }
@@ -985,6 +998,23 @@ private fun BasketItemCard(
      */
     isNearlyGone: Boolean = false,
     onRemove: () -> Unit = {},
+    /**
+     * Opens this article's detail page, where the amount can be set properly, or null
+     * when there is no page to open.
+     *
+     * The row shows the amount but cannot change it, so a buyer editing a placed order
+     * could previously only remove a line and add it again. The detail page already has
+     * the quantity field and already writes through to an existing basket item, so this
+     * is a way in rather than a second editor.
+     *
+     * Null for a line that names no article — old orders carry those, and they cannot
+     * be looked up in the catalogue. The button is also left off an [isUnorderable]
+     * row: a withdrawn article is either gone from the catalogue, so the page would
+     * say "not found", or still in it and unavailable, so the page would invite an
+     * amount for something that cannot be ordered. Either way the only useful action
+     * on that row is removing it.
+     */
+    onOpenDetail: (() -> Unit)? = null,
 //    onQuantityChange: (Double) -> Unit = {}
 ) {
     // The whole line item reads as one node instead of four cryptic fragments
@@ -1001,6 +1031,9 @@ private fun BasketItemCard(
         formatString(stringResource(Res.string.a11y_hero_total), (price * quantity).formatPrice())
     ).joinToString(", ")
     val removeLabel = formatString(stringResource(Res.string.a11y_remove_item), productName)
+    // "Menge ändern" alone would be read once per row with nothing to tell the rows
+    // apart, the same reason the remove button names the article.
+    val editAmountLabel = formatString(stringResource(Res.string.a11y_edit_amount_item), productName)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1064,7 +1097,8 @@ private fun BasketItemCard(
                 }
             }
 
-            // Only show remove button if order is editable
+            // Both row actions hang on the same gate as before: nothing to change
+            // while the order is past its deadline.
             if (canEdit) {
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -1072,6 +1106,16 @@ private fun BasketItemCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
+                    // Changing the amount before removing it: the destructive one
+                    // stays last, where it was.
+                    if (onOpenDetail != null && !isUnorderable) {
+                        TextButton(
+                            onClick = onOpenDetail,
+                            modifier = Modifier.semantics { contentDescription = editAmountLabel }
+                        ) {
+                            Text(stringResource(Res.string.basket_edit_amount))
+                        }
+                    }
                     TextButton(
                         onClick = onRemove,
                         modifier = Modifier.semantics { contentDescription = removeLabel }
