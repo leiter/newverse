@@ -2,6 +2,7 @@ package com.together.newverse.ui.navigation
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -44,6 +45,7 @@ import kotlin.time.Clock
 import com.together.newverse.util.DocumentPickerResult
 import com.together.newverse.util.LocalDocumentPicker
 import com.together.newverse.util.rememberKeyboardManager
+import com.together.newverse.util.keyboardPadding
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -299,7 +301,19 @@ private fun AppScaffoldContent(
         }
     ) { innerPadding ->
         // Navigation content, with side rail on Expanded windows
-        Row(modifier = Modifier.padding(innerPadding)) {
+        Row(
+            modifier = Modifier
+                .padding(innerPadding)
+                // The bars have already spent their insets above; saying so is
+                // what stops keyboardPadding spending the bottom bar's height a
+                // second time, so the content gives up exactly
+                // max(bottom bar, keyboard) at the bottom. Without the keyboard
+                // inset the window is not resized at all -- the app draws edge
+                // to edge -- and every form's lower half sits behind the
+                // keyboard with no scroll range left to reach it.
+                .consumeWindowInsets(innerPadding)
+                .keyboardPadding()
+        ) {
             if (useNavRail &&
                 currentRoute != NavRoutes.Sell.CustomerDetail.route &&
                 currentRoute != NavRoutes.Sell.Create.route

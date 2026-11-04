@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import com.together.newverse.util.keyboardPadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -192,6 +193,9 @@ fun ForcedLoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                // Before verticalScroll, so it shrinks the viewport the fields
+                // are scrolled inside rather than riding along with them.
+                .keyboardPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp)
                 .constrainedContentWidth(),
@@ -484,7 +488,10 @@ fun ForcedLoginScreen(
                 )
             },
             text = {
-                Column {
+                // Scrollable because the keyboard shrinks the dialog window: the
+                // field under this line of explanation is otherwise clipped out
+                // of reach. Same guard the other input dialogs here carry.
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     Text(
                         text = stringResource(Res.string.password_reset_description),
                         style = MaterialTheme.typography.bodyMedium,

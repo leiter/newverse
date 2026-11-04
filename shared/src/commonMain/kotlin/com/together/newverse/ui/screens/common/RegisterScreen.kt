@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.AuthScreenState
 import com.together.newverse.ui.components.AppLogoMark
+import com.together.newverse.util.keyboardPadding
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -140,6 +142,10 @@ fun RegisterScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
+            // consumeWindowInsets first, so the navigation bar inset already in
+            // paddingValues is not charged twice against the keyboard.
+            .consumeWindowInsets(paddingValues)
+            .keyboardPadding()
             .padding(horizontal = 24.dp)
             .constrainedContentWidth()
             .verticalScroll(rememberScrollState()),

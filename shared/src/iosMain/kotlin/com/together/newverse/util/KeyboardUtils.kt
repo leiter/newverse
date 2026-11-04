@@ -1,6 +1,7 @@
 package com.together.newverse.util
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSSelectorFromString
 import platform.UIKit.UIApplication
@@ -27,3 +28,11 @@ actual class KeyboardManager {
 actual fun rememberKeyboardManager(): KeyboardManager {
     return KeyboardManager()
 }
+
+/**
+ * Nothing to do: `ComposeUIViewController` runs with the default
+ * `OnFocusBehavior.FocusableAboveKeyboard`, which already lifts the focused
+ * view above the keyboard for the whole scene, dialogs included. Adding the IME
+ * inset on top would shift a focused field twice.
+ */
+actual fun Modifier.keyboardPadding(): Modifier = this

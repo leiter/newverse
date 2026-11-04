@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.together.newverse.util.keyboardPadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -135,6 +136,9 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .systemBarsPadding()
+            // Shrinks the scroll viewport by the keyboard, so the password field
+            // and the buttons under it can be scrolled up into view.
+            .keyboardPadding()
             .padding(24.dp)
             .constrainedContentWidth()
             .verticalScroll(rememberScrollState()),
@@ -433,7 +437,10 @@ fun LoginScreen(
                 )
             },
             text = {
-                Column {
+                // Scrollable because the keyboard shrinks the dialog window: the
+                // field under this line of explanation is otherwise clipped out
+                // of reach. Same guard the other input dialogs here carry.
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     Text(
                         text = stringResource(Res.string.password_reset_description),
                         style = MaterialTheme.typography.bodyMedium,

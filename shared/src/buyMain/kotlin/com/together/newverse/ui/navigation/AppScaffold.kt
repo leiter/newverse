@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -77,6 +78,7 @@ import com.together.newverse.util.Log
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.formatString
 import com.together.newverse.util.rememberKeyboardManager
+import com.together.newverse.util.keyboardPadding
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
 import newverse.shared.generated.resources.a11y_contact_options
@@ -836,7 +838,19 @@ private fun AppScaffoldContent(
             )
         }
     ) { paddingValues ->
-        Row(modifier = Modifier.padding(paddingValues)) {
+        Row(
+            modifier = Modifier
+                .padding(paddingValues)
+                // The bars have already spent their insets above; saying so is
+                // what stops keyboardPadding spending the bottom bar's height a
+                // second time, so the content gives up exactly
+                // max(bottom bar, keyboard) at the bottom. Without the keyboard
+                // inset the window is not resized at all -- the app draws edge
+                // to edge -- and every form's lower half sits behind the
+                // keyboard with no scroll range left to reach it.
+                .consumeWindowInsets(paddingValues)
+                .keyboardPadding()
+        ) {
             if (showBottomBar && useNavRail) {
                 BuyerNavigationRail(
                     currentRoute = currentRoute,
