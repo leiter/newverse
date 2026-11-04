@@ -147,7 +147,7 @@ fun BuyerBottomNavigationBar(
 
 /**
  * Side navigation rail shown instead of the bottom bar on Expanded windows
- * (tablet landscape). Same items, routes and badges as the bottom bar.
+ * (tablet landscape). Same items, routes, badges and cart shake as the bottom bar.
  */
 @Composable
 fun BuyerNavigationRail(
@@ -156,6 +156,7 @@ fun BuyerNavigationRail(
     showProfileBadge: Boolean = false,
     onNavigate: (String) -> Unit
 ) {
+    val cartShake = rememberCartShake(basketItemCount)
     val barColors = LocalBarColors.current
     val itemColors = NavigationRailItemDefaults.colors(
         selectedIconColor = barColors.onSelectionIndicator,
@@ -187,6 +188,8 @@ fun BuyerNavigationRail(
 
             val badgeText = badgeDescription(badgeCount, showAttentionDot)
 
+            val isCartItem = item.route == NavRoutes.Buy.Basket.route
+
             NavigationRailItem(
                 modifier = Modifier
                     .padding(horizontal = 12.dp)
@@ -195,7 +198,8 @@ fun BuyerNavigationRail(
                     BuyerNavItemIcon(
                         item = item,
                         badgeCount = badgeCount,
-                        showAttentionDot = showAttentionDot
+                        showAttentionDot = showAttentionDot,
+                        modifier = if (isCartItem) cartShake else Modifier
                     )
                 },
                 label = { Text(label) },
@@ -354,8 +358,9 @@ fun BuyerBasketAction(
 /**
  * A modifier that rocks the cart icon whenever [basketItemCount] changes.
  *
- * Shared by the basket tab and the top-bar basket action, so the two carts on the
- * home screen rock together instead of one twitching while the other sits still.
+ * Shared by every cart the buyer can see -- the bottom bar's tab, the rail's tab
+ * at Expanded width, and the top-bar action -- so the two that are on screen
+ * together rock together instead of one twitching while the other sits still.
  *
  * The rotation is read inside [graphicsLayer]'s block rather than returned as a
  * number: that defers the read to draw time, so eleven frames of animation do not
