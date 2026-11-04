@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -28,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import com.together.newverse.ui.theme.LocalBarColors
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -311,4 +313,58 @@ private fun itemSemantics(label: String, badgeText: String?): Modifier {
     if (badgeText == null) return Modifier
     val description = stringResource(Res.string.a11y_label_with_badge, label, badgeText)
     return Modifier.semantics { contentDescription = description }
+}
+
+/**
+ * The basket as a top-bar action, for screens that want it within thumb reach of
+ * the bar rather than only on the tab row.
+ *
+ * Shares this file with [BuyerBottomNavigationBar] on purpose rather than living
+ * at the call site: the icon, the count, the pluralised badge wording and the
+ * "name, badge" reading order are all decisions already made for the basket tab,
+ * and two copies would eventually describe the same basket two different ways.
+ * The way in is the caller's, so it can be the very same tab navigation.
+ */
+@Composable
+fun BuyerBasketAction(
+    basketItemCount: Int,
+    tint: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val label = stringResource(Res.string.nav_shopping_basket)
+    val badgeText = badgeDescription(basketItemCount, showAttentionDot = false)
+    // "Warenkorb, 3 Artikel" -- the name before the count, joined by the same
+    // resource the bar items use so a locale can order it differently.
+    val description = if (badgeText == null) {
+        label
+    } else {
+        stringResource(Res.string.a11y_label_with_badge, label, badgeText)
+    }
+
+    IconButton(onClick = onClick, modifier = modifier) {
+        if (basketItemCount > 0) {
+            BadgedBox(
+                // Muted, because the count is already part of the button's own
+                // description; read on its own it would arrive after the name.
+                badge = {
+                    Badge(modifier = Modifier.clearAndSetSemantics { }) {
+                        Text(basketItemCount.toString())
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ShoppingCart,
+                    contentDescription = description,
+                    tint = tint
+                )
+            }
+        } else {
+            Icon(
+                imageVector = Icons.Default.ShoppingCart,
+                contentDescription = description,
+                tint = tint
+            )
+        }
+    }
 }

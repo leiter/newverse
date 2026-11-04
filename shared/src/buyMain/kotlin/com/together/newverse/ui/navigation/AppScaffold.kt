@@ -826,6 +826,21 @@ private fun AppScaffoldContent(
 //                            }
 //                        }
 //                    }
+
+                    // The basket, last and therefore outermost -- and it stays last.
+                    // Everything above it either comes and goes with the route or is
+                    // published by the seller mid-session, so any other position would
+                    // let the one affordance a buyer reaches for by muscle memory slide
+                    // sideways under their thumb. Same icon, count and way in as the
+                    // basket tab, via the same onNavigateToTab, so the two cannot
+                    // disagree about where the basket is.
+                    if (currentRoute == NavRoutes.Home.route) {
+                        BuyerBasketAction(
+                            basketItemCount = basketItems.size,
+                            tint = topBarColors.content,
+                            onClick = { onNavigateToTab(NavRoutes.Buy.Basket.route) }
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = topBarColors.container,
