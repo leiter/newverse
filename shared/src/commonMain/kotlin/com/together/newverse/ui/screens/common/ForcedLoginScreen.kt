@@ -42,7 +42,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,7 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -70,9 +68,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.AuthScreenState
+import com.together.newverse.ui.components.AppLogoMark
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_signing_in
-import newverse.shared.generated.resources.app_leaf_icon
 import newverse.shared.generated.resources.button_sign_in
 import newverse.shared.generated.resources.divider_or
 import newverse.shared.generated.resources.error_email_invalid
@@ -202,27 +200,10 @@ fun ForcedLoginScreen(
         ) {
             Spacer(modifier = Modifier.weight(0.2f))
 
-            // Logo/Branding Section
-            Surface(
-                modifier = Modifier
-                    .size(120.dp)
-                    .scale(logoScale),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary,
-                shadowElevation = 8.dp
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    Text(
-                        text = stringResource(Res.string.app_leaf_icon),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.clearAndSetSemantics { }
-                    )
-                }
-            }
+            // Logo/Branding Section. The entry animation stays on the mark itself:
+            // the circle it used to sit in held an emoji placeholder, and a tinted
+            // mark needs no plate behind it.
+            AppLogoMark(modifier = Modifier.scale(logoScale))
 
             Spacer(modifier = Modifier.height(32.dp))
 

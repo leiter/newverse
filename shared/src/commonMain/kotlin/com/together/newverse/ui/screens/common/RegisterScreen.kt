@@ -29,10 +29,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.AuthScreenState
+import com.together.newverse.ui.components.AppLogoMark
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -145,20 +145,10 @@ fun RegisterScreen(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logo or App Name
-        Card(
-            modifier = Modifier.padding(bottom = 24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
-        ) {
-            Text(
-                text = stringResource(Res.string.app_leaf_icon),
-                style = MaterialTheme.typography.displayMedium,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .clearAndSetSemantics { },
-                textAlign = TextAlign.Center
-            )
-        }
+        AppLogoMark(
+            modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
+            width = 150.dp
+        )
 
         Text(
             text = stringResource(Res.string.register_title),

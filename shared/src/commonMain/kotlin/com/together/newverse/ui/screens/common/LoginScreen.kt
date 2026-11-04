@@ -43,14 +43,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.together.newverse.data.config.Platform
 import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.AuthScreenState
+import com.together.newverse.ui.components.AppLogoMark
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_signing_in
-import newverse.shared.generated.resources.app_leaf_icon
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_continue_guest
 import newverse.shared.generated.resources.button_sign_in
@@ -142,20 +141,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Logo or App Name
-        Card(
-            modifier = Modifier.padding(bottom = 32.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
-        ) {
-            Text(
-                text = stringResource(Res.string.app_leaf_icon),
-                style = MaterialTheme.typography.displayLarge,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .clearAndSetSemantics { },
-                textAlign = TextAlign.Center
-            )
-        }
+        AppLogoMark(modifier = Modifier.padding(bottom = 32.dp))
 
         Text(
             text = stringResource(Res.string.login_title),
