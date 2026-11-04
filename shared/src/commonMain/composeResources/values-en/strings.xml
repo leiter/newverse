@@ -314,6 +314,8 @@
     <string name="label_pickup_time">Pickup Time</string>
     <string name="label_pickup_time_hint">Valid from 7:00 to 18:00 (format HH:mm)</string>
     <string name="pickup_time_format">%s</string>
+    <string name="pickup_time_unset">--:--</string>
+    <string name="pickup_time_unset_hint">Tap to set</string>
     <string name="pickup_time_empty">Please enter a pickup time</string>
     <string name="pickup_time_invalid_format">Invalid format. Use HH:mm (e.g. 14:30)</string>
     <string name="pickup_time_outside_hours">Pickup time must be between 7:00 and 18:00</string>

@@ -164,6 +164,8 @@ import newverse.shared.generated.resources.pickup_time_empty
 import newverse.shared.generated.resources.pickup_time_format
 import newverse.shared.generated.resources.pickup_time_invalid_format
 import newverse.shared.generated.resources.pickup_time_outside_hours
+import newverse.shared.generated.resources.pickup_time_unset
+import newverse.shared.generated.resources.pickup_time_unset_hint
 import newverse.shared.generated.resources.profile_incomplete_dialog_message
 import newverse.shared.generated.resources.access_requires_profile
 import newverse.shared.generated.resources.label_name
@@ -1061,7 +1063,11 @@ private fun GemusedateCard(
 
             // Pickup Time
             if (isEditing) {
-                val isPickupTimeValid = ProfileValidation.isTimeInBusinessHours(pickupTime)
+                // An unset time is incomplete, not wrong: a buyer opening the editor
+                // for the first time should not meet an error-styled field before
+                // typing a character.
+                val isPickupTimeValid =
+                    pickupTime.isBlank() || ProfileValidation.isTimeInBusinessHours(pickupTime)
                 val errorMessage = when {
                     pickupTimeError != null -> when (pickupTimeError) {
                         "pickup_time_empty" -> stringResource(Res.string.pickup_time_empty)
@@ -1083,11 +1089,16 @@ private fun GemusedateCard(
                     errorMessage = errorMessage
                 )
             } else {
+                val hasPickupTime = pickupTime.isNotBlank()
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp)),
-                    color = MaterialTheme.colorScheme.surfaceVariant
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    // The pencil in the header is small and easy to miss, and an unset
+                    // time is the one thing holding the profile incomplete. The row
+                    // opens the same editor.
+                    onClick = onEditClick
                 ) {
                     Row(
                         modifier = Modifier
@@ -1109,11 +1120,26 @@ private fun GemusedateCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = formatString(stringResource(Res.string.pickup_time_format), pickupTime),
+                                text = if (hasPickupTime) {
+                                    formatString(stringResource(Res.string.pickup_time_format), pickupTime)
+                                } else {
+                                    stringResource(Res.string.pickup_time_unset)
+                                },
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = if (hasPickupTime) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
                             )
+                            if (!hasPickupTime) {
+                                Text(
+                                    text = stringResource(Res.string.pickup_time_unset_hint),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }

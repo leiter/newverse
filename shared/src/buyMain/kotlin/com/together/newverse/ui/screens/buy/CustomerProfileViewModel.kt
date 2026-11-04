@@ -56,7 +56,11 @@ class CustomerProfileViewModel(
         currentProfile = profile
         val formData = ProfileFormData.fromProfile(profile)
         _formState.value = formStateOf(formData)
-        _pickupTime.value = profile.defaultPickUpTime.ifEmpty { "15:45" }
+        // No invented fallback. A "15:45" the buyer never chose was shown as if it
+        // were their pickup time while `defaultPickUpTime` stayed empty, so
+        // `missingProfileData()` kept reporting Abholzeit as missing and
+        // `requestAccess()` stayed blocked against a field that looked filled in.
+        _pickupTime.value = profile.defaultPickUpTime
         _isSelfPickup.value = profile.isSelfPickup
     }
 
@@ -149,7 +153,7 @@ class CustomerProfileViewModel(
     fun cancelEditingPickupTime() {
         // Reset to current profile values
         currentProfile?.let {
-            _pickupTime.value = it.defaultPickUpTime.ifEmpty { "15:45" }
+            _pickupTime.value = it.defaultPickUpTime
             _isSelfPickup.value = it.isSelfPickup
         }
         _pickupTimeError.value = null
