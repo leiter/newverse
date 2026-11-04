@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.ResolvedPrice
 import com.together.newverse.ui.a11y.productCardSemantics
 import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.adaptive.AdaptiveDefaults
@@ -73,6 +74,8 @@ fun FavoritesScreen(
 ) {
     FavoritesContent(
         articles = state.articles.filter { it.available },
+        // The market's prices, from the same state the shelf and the basket use.
+        priceOf = state::priceOf,
         favouriteIds = state.favouriteArticles,
         onToggleFavorite = { articleId ->
             onAction(BuyMainScreenAction.ToggleFavourite(articleId))
@@ -83,6 +86,7 @@ fun FavoritesScreen(
 @Composable
 private fun FavoritesContent(
     articles: List<Article>,
+    priceOf: (Article) -> ResolvedPrice,
     favouriteIds: List<String>,
     onToggleFavorite: (String) -> Unit
 ) {
@@ -126,10 +130,12 @@ private fun FavoritesContent(
         when (selectedTabIndex) {
             0 -> FavoritesTab(
                 articles = favoriteArticles,
+                priceOf = priceOf,
                 onRemoveFavorite = onToggleFavorite
             )
             1 -> DiscoverTab(
                 articles = nonFavoriteArticles,
+                priceOf = priceOf,
                 onAddFavorite = onToggleFavorite
             )
         }
@@ -139,6 +145,7 @@ private fun FavoritesContent(
 @Composable
 private fun FavoritesTab(
     articles: List<Article>,
+    priceOf: (Article) -> ResolvedPrice,
     onRemoveFavorite: (String) -> Unit
 ) {
     if (articles.isEmpty()) {
@@ -154,6 +161,7 @@ private fun FavoritesTab(
             items(articles, key = { it.id }) { article ->
                 FavoriteProductCard(
                     article = article,
+                    price = priceOf(article),
                     isFavorite = true,
                     onToggleFavorite = { onRemoveFavorite(article.id) }
                 )
@@ -165,6 +173,7 @@ private fun FavoritesTab(
 @Composable
 private fun DiscoverTab(
     articles: List<Article>,
+    priceOf: (Article) -> ResolvedPrice,
     onAddFavorite: (String) -> Unit
 ) {
     if (articles.isEmpty()) {
@@ -180,6 +189,7 @@ private fun DiscoverTab(
             items(articles, key = { it.id }) { article ->
                 FavoriteProductCard(
                     article = article,
+                    price = priceOf(article),
                     isFavorite = false,
                     onToggleFavorite = { onAddFavorite(article.id) }
                 )
@@ -191,11 +201,13 @@ private fun DiscoverTab(
 @Composable
 private fun FavoriteProductCard(
     article: Article,
+    /** The market's price, not `article.price` — see `MainScreenState.priceOf`. */
+    price: ResolvedPrice,
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val infoDescription = "${article.productName}, ${productPriceLabel(article.price, article.unit)}"
+    val infoDescription = "${article.productName}, ${productPriceLabel(price.gross, article.unit)}"
     val favouriteState = stringResource(
         if (isFavorite) Res.string.a11y_state_favourite_on else Res.string.a11y_state_favourite_off
     )
@@ -236,7 +248,7 @@ private fun FavoriteProductCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${article.price.formatPrice()}€ / ${article.unit}",
+                    text = "${price.gross.formatPrice()}€ / ${article.unit}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )

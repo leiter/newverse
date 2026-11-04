@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.ArticleScarcity
+import com.together.newverse.domain.model.ResolvedPrice
 import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.components.ProductImage
 import com.together.newverse.util.formatPrice
@@ -74,6 +75,12 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun HeroProductCard(
     product: Article,
+    /**
+     * What this article costs at the market in context — `MainScreenState.priceOf`.
+     * Not `product.price`: this card is where the buyer reads the price they are
+     * about to be charged, and it quoted the base price instead.
+     */
+    price: ResolvedPrice,
     quantity: Double,
     originalQuantity: Double,
     isInBasket: Boolean,
@@ -102,7 +109,7 @@ internal fun HeroProductCard(
     // --- Accessibility labels ---------------------------------------------------
     // One spoken summary for the whole card: name, price per unit, and — once an
     // amount is chosen — the running total and the amount itself.
-    val priceLabel = productPriceLabel(product.price, product.unit)
+    val priceLabel = productPriceLabel(price.gross, product.unit)
     val scarcityLabel = when (product.scarcity) {
         ArticleScarcity.LAST_FEW -> stringResource(Res.string.product_scarcity_last_few)
         ArticleScarcity.LIMITED -> stringResource(Res.string.product_scarcity_limited)
@@ -117,7 +124,7 @@ internal fun HeroProductCard(
         // Said early, before the price of something that may not be there.
         scarcityLabel?.let { append(", "); append(it) }
         if (quantity > 0.0) {
-            val total = product.price * quantity
+            val total = price.gross * quantity
             append(", ")
             append(formatString(stringResource(Res.string.a11y_hero_total), total.formatPrice()))
             append(", ")
@@ -264,7 +271,7 @@ internal fun HeroProductCard(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Text(
-                                        text = "${product.price.formatPrice()}€ / ${product.unit}",
+                                        text = "${price.gross.formatPrice()}€ / ${product.unit}",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -275,7 +282,7 @@ internal fun HeroProductCard(
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                        val totalPrice = product.price * quantity
+                                        val totalPrice = price.gross * quantity
                                         Text(
                                             text = "${totalPrice.formatPrice()}€",
                                             style = MaterialTheme.typography.titleMedium,

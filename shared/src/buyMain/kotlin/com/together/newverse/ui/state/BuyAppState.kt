@@ -208,6 +208,18 @@ data class BuyAppState(
     fun priceOf(article: Article): ResolvedPrice = resolvePrice(article, activePricing)
 
     /**
+     * [mainScreen] with the active market's conditions attached — what every catalogue
+     * screen must be given.
+     *
+     * `mainScreen` is stored state with a dozen writers, so a `pricing` field kept in
+     * it would be one `copy()` away from going stale, which is the shape of the bug
+     * this fixes: the shelf priced against no market while the basket priced against
+     * the chosen one. Derived here instead, so there is exactly one writer and it
+     * cannot be forgotten.
+     */
+    val mainScreenState: MainScreenState get() = mainScreen.copy(pricing = activePricing)
+
+    /**
      * The market the buyer said they collect at, if it is still one they may use.
      *
      * Re-checked against [eligibleMarkets] rather than trusted: the seller can narrow a

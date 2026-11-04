@@ -176,7 +176,7 @@ fun NavGraph(
 
         composable(NavRoutes.Buy.Favorites.route) {
             FavoritesScreen(
-                state = appState.mainScreen,
+                state = appState.mainScreenState,
                 onAction = onAction,
                 onNavigateBack = { navController.popBackStack() }
             )
@@ -251,6 +251,7 @@ fun NavGraph(
 
             ProductDetailScreen(
                 article = article,
+                priceOf = appState.mainScreenState::priceOf,
                 basketItems = appState.mainScreen.basketItems,
                 favouriteArticles = appState.mainScreen.favouriteArticles,
                 onAddToCart = { art, qty ->

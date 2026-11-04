@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.ResolvedPrice
 import com.together.newverse.domain.model.ArticleScarcity
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.ui.a11y.productPriceLabel
@@ -88,6 +89,11 @@ private const val BUTTON_LABEL_MAX_LINES = 3
 @Composable
 fun ProductDetailScreen(
     article: Article?,
+    /**
+     * What an article costs at the market in context — `MainScreenState::priceOf`.
+     * A lambda rather than a resolved price because [article] may not be there yet.
+     */
+    priceOf: (Article) -> ResolvedPrice,
     basketItems: List<OrderedProduct>,
     favouriteArticles: List<String>,
     onAddToCart: (Article, Double) -> Unit,
@@ -145,6 +151,7 @@ fun ProductDetailScreen(
             ) {
                 ProductDetailsColumn(
                     article = article,
+                    price = priceOf(article),
                     isWeightBased = isWeightBased,
                     isInBasket = isInBasket,
                     originalQuantity = originalQuantity,
@@ -171,6 +178,7 @@ fun ProductDetailScreen(
             )
             ProductDetailsColumn(
                 article = article,
+                price = priceOf(article),
                 isWeightBased = isWeightBased,
                 isInBasket = isInBasket,
                 originalQuantity = originalQuantity,
@@ -235,6 +243,8 @@ private fun ProductImageSection(
 @Composable
 private fun ProductDetailsColumn(
     article: Article,
+    /** The market's price, not `article.price` — see [ProductDetailScreen]. */
+    price: ResolvedPrice,
     isWeightBased: Boolean,
     isInBasket: Boolean,
     originalQuantity: Double,
@@ -254,13 +264,13 @@ private fun ProductDetailsColumn(
     val productSummary = buildString {
         append(article.productName)
         append(", ")
-        append(productPriceLabel(article.price, article.unit))
+        append(productPriceLabel(price.gross, article.unit))
         if (quantity > 0) {
             append(", ")
             append(
                 formatString(
                     stringResource(Res.string.a11y_hero_total),
-                    (article.price * quantity).formatPrice()
+                    (price.gross * quantity).formatPrice()
                 )
             )
             append(", ")
@@ -309,7 +319,7 @@ private fun ProductDetailsColumn(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "${article.price.formatPrice()}€ / ${article.unit}",
+                    text = "${price.gross.formatPrice()}€ / ${article.unit}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -322,7 +332,7 @@ private fun ProductDetailsColumn(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${(article.price * quantity).formatPrice()}€",
+                        text = "${(price.gross * quantity).formatPrice()}€",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.secondary

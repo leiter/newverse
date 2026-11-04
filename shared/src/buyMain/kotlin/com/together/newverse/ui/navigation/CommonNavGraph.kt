@@ -28,7 +28,9 @@ fun NavGraphBuilder.commonNavGraph(
     // Home/Main Screen
     composable(NavRoutes.Home.route) {
         MainScreenModern(
-            state = appState.mainScreen,
+            // mainScreenState, not mainScreen: it carries the active market's
+            // conditions, so the shelf quotes the price the basket will charge.
+            state = appState.mainScreenState,
             onAction = onAction,
             onNavigateToProductDetail = { articleId ->
                 navController.navigate(NavRoutes.Buy.ProductDetail.createRoute(articleId))

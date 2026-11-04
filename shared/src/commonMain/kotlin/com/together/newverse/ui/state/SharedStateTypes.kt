@@ -1,6 +1,9 @@
 package com.together.newverse.ui.state
 
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.MarketPricing
+import com.together.newverse.domain.model.ResolvedPrice
+import com.together.newverse.domain.model.resolvePrice
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Conversation
 import com.together.newverse.domain.model.filterByCategory
@@ -606,8 +609,34 @@ data class MainScreenState(
     val showNewOrderSnackbar: Boolean = false,
     /** The add that is waiting for a new order to put it in. See [PendingBasketAdd]. */
     val pendingAdd: PendingBasketAdd? = null,
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    /**
+     * The price conditions of the market this catalogue is being browsed against.
+     *
+     * The catalogue used to render `Article.price` raw, so the shelf quoted the base
+     * price while the basket charged the market's — the list said 2,30 €/kg and the
+     * basket 2,48 €/kg for the same article. [MarketPricing.NONE] means "as the seller
+     * entered it", which is every single-market seller with no conditions, and also the
+     * seller app, whose own home screen is built with a default [MainScreenState].
+     *
+     * Derived, never stored: `BuyAppState.mainScreenState` fills it from
+     * `activePricing` on the way to the screen, so none of the many writers that
+     * `copy()` this state can leave it behind.
+     */
+    val pricing: MarketPricing = MarketPricing.NONE
 ) : ScreenState {
+
+    /**
+     * What [article] costs here, and why.
+     *
+     * Every price the buyer is shown goes through this, so the shelf, the hero card,
+     * the favourites list and the detail screen cannot each pick a different market.
+     * It returns a [ResolvedPrice] rather than a `Double` on purpose: `resolvePrice`
+     * takes `Article.price` as its *base*, so a gross price written back onto an
+     * article and resolved a second time would charge the surcharge twice. The type
+     * keeps the resolved number from ever being mistaken for a base one.
+     */
+    fun priceOf(article: Article): ResolvedPrice = resolvePrice(article, pricing)
 
     /**
      * The catalogue after everything the buyer has asked for, narrowed in one place.

@@ -2240,7 +2240,7 @@ internal fun BuyAppViewModel.confirmHistoryMergeIntoDraft() {
                 draftItems = draftItems,
                 conflicts = basketState.mergeConflicts
             )
-            val merged = mergedRaw.map { correctArticleData(it, currentArticles) }
+            val merged = mergedRaw.map { correctArticleData(it, currentArticles, _state.value.activePricing) }
 
             basketRepository.clearBasket()
             for (item in merged) basketRepository.addItem(item)

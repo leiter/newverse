@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.ArticleScarcity
+import com.together.newverse.domain.model.ResolvedPrice
 import com.together.newverse.ui.a11y.productCardSemantics
 import com.together.newverse.ui.a11y.productPriceLabel
 import com.together.newverse.ui.components.ProductImage
@@ -34,6 +35,12 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun ModernProductCard(
     product: Article,
+    /**
+     * What this article costs at the market in context — `MainScreenState.priceOf`.
+     * Not `product.price`, which is the seller's base price and quoted a different
+     * number from the one the basket charged.
+     */
+    price: ResolvedPrice,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
@@ -48,7 +55,7 @@ internal fun ModernProductCard(
     val cardDescription = buildString {
         append(product.productName)
         append(", ")
-        append(productPriceLabel(product.price, product.unit))
+        append(productPriceLabel(price.gross, product.unit))
         scarcityLabel?.let { append(", "); append(it) }
         if (isBio) append(", Bio")
     }
@@ -97,7 +104,7 @@ internal fun ModernProductCard(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = "${product.price.formatPrice()}€",
+                    text = "${price.gross.formatPrice()}€",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

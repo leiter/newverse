@@ -136,6 +136,7 @@ private fun MainScreenModernContent(
                                 val isFavourite = state.favouriteArticles.contains(product.id)
                                 HeroProductCard(
                                     product = product,
+                                    price = state.priceOf(product),
                                     quantity = quantity,
                                     originalQuantity = originalQuantity,
                                     isInBasket = isInBasket,
@@ -244,6 +245,7 @@ private fun MainScreenModernContent(
                         productRow.forEach { product ->
                             ModernProductCard(
                                 product = product,
+                                price = state.priceOf(product),
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     onAction(BuyMainScreenAction.SelectArticle(product))

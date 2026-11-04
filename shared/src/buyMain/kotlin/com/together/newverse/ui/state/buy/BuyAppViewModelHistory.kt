@@ -2,6 +2,9 @@ package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.Article
+import com.together.newverse.domain.model.MarketPricing
+import com.together.newverse.domain.model.pricedWith
+import com.together.newverse.domain.model.resolvePrice
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.articleKey
@@ -32,9 +35,10 @@ internal fun BuyAppViewModel.confirmDemoOrder(order: Order) {
     viewModelScope.launch {
         basketRepository.clearBasket()
         val currentArticles = _state.value.mainScreen.articles
+        val pricing = _state.value.activePricing
         val correctedItems = order.articles
             .orderableOnly(currentArticles)
-            .map { correctArticleData(it, currentArticles) }
+            .map { correctArticleData(it, currentArticles, pricing) }
         for (item in correctedItems) {
             basketRepository.addItem(item)
         }
@@ -79,11 +83,12 @@ internal fun BuyAppViewModel.handleHistoryOrderTap(order: Order) {
         viewModelScope.launch {
             basketRepository.clearBasket()
             val currentArticles = _state.value.mainScreen.articles
+            val pricing = _state.value.activePricing
             // A withdrawn article does not come back into the basket with the rest
             // of the order; it would only be refused at checkout.
             val correctedItems = order.articles
                 .orderableOnly(currentArticles)
-                .map { correctArticleData(it, currentArticles) }
+                .map { correctArticleData(it, currentArticles, pricing) }
             for (item in correctedItems) {
                 basketRepository.addItem(item)
             }
@@ -119,11 +124,12 @@ internal fun BuyAppViewModel.mergeHistoryOrder() {
         val tappedOrder = _state.value.tappedHistoryOrder ?: return@launch
         val currentBasketItems = basketRepository.observeBasket().value
         val currentArticles = _state.value.mainScreen.articles
+        val pricing = _state.value.activePricing
 
         val historicItems = tappedOrder.articles
             .orderableOnly(currentArticles)
-            .map { correctArticleData(it, currentArticles) }
-        val draftItems = currentBasketItems.map { correctArticleData(it, currentArticles) }
+            .map { correctArticleData(it, currentArticles, pricing) }
+        val draftItems = currentBasketItems.map { correctArticleData(it, currentArticles, pricing) }
 
         val conflicts = basketScreenCalculateMergeConflicts(
             newItems = draftItems,
@@ -203,14 +209,25 @@ internal fun BuyAppViewModel.hideHistoryMergeDialog() {
  * refresh the price of one that slipped through would only show the buyer an old
  * price for something they cannot order anyway.
  */
-internal fun correctArticleData(item: OrderedProduct, currentArticles: List<Article>): OrderedProduct {
+internal fun correctArticleData(
+    item: OrderedProduct,
+    currentArticles: List<Article>,
+    /**
+     * The conditions of the market the basket is heading to. Without it this set
+     * `price = article.price` — the seller's base price — so an order brought back
+     * from history was repriced as if no market applied, and the stale
+     * `priceComponents` were left describing a total they no longer summed to.
+     * [MarketPricing.NONE] reproduces the old behaviour for a market with no
+     * conditions, which is the only case where it was right.
+     */
+    pricing: MarketPricing,
+): OrderedProduct {
     val article = currentArticles.find { it.id == item.articleKey() }
     return if (article != null) {
         item.copy(
-            price = article.price,
             productName = article.productName,
             unit = article.unit
-        )
+        ).pricedWith(resolvePrice(article, pricing))
     } else item
 }
 
