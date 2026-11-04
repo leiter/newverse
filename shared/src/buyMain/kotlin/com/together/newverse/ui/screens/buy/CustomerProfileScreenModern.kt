@@ -9,6 +9,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -1979,9 +1980,18 @@ private fun AccessStatusCard(
             if (accessStatus != AccessStatus.APPROVED && sellerContacts.isNotEmpty()) {
                 val uriHandler = LocalUriHandler.current
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
+                // FlowRow, not Row: the seller sets how many contact channels
+                // there are and how long each label is, so a single line is a
+                // promise this card cannot keep -- anything past the card's width
+                // was simply cut off, with no scroll to reach it. Wrapping keeps
+                // every channel tappable at any count and any font scale.
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    // Keeps what the Row stated: within a line, centre the items
+                    // on each other rather than hanging them from the top.
+                    itemVerticalAlignment = Alignment.CenterVertically
                 ) {
                     sellerContacts.forEach { contact ->
                         val label = contact.label.ifBlank { contact.channel.displayName() }
