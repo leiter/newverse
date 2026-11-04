@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -253,7 +255,12 @@ private fun ShortfallMessageDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.stock_message_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Scrollable because the keyboard shrinks the dialog window, and a
+            // six-line message box leaves nothing to spare.
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text(
                     text = draft.buyerName,
                     style = MaterialTheme.typography.bodyMedium,
@@ -411,7 +418,12 @@ private fun BookingDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(editor.kind.titleRes())) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Scrollable because the keyboard shrinks the dialog window and this
+            // one holds two fields under a heading.
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(text = editor.productName, style = MaterialTheme.typography.titleSmall)
 
                 OutlinedTextField(

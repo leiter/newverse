@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import com.together.newverse.domain.model.DeliveryAddress
@@ -118,7 +120,12 @@ fun CheckoutConfirmDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Scrollable because the delivery address field opens the keyboard,
+            // which shrinks the dialog window around everything below it.
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 // Pickup or delivery, for this order. First, because it decides
                 // whether the market and date below are even the relevant facts.
                 // Same row the basket shows while editing a placed order.

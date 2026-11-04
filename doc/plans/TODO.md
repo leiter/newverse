@@ -59,6 +59,43 @@ This document outlines the current implementation status of core features and a 
 The following features are planned but not yet implemented, or are only partially complete.
 
 ### High Priority: User Experience
+- **The keyboard covered the bottom of every form**
+  - **Status:** Fixed 2026-11-04 on Android (compiles, 2381 unit tests pass, both debug
+    APKs build). **Not checked on a device, and not checked on iOS at all.**
+  - **Issue:** The app draws edge to edge (`enableEdgeToEdge` in all three activities, no
+    `windowSoftInputMode` anywhere), so the window is *not* resized when the keyboard
+    opens. Nothing in the app consumed `WindowInsets.ime` — `imePadding` appeared in no
+    file. Almost every screen with a field already had a scroll container, but a scroll
+    container does not help: the layout still ended behind the keyboard, so there was no
+    scroll range to bring the lower fields up. Anything in the bottom half of a form —
+    the password field on login, the lower rows of the buyer and seller profiles, the
+    message composer in both conversation screens, the delivery address in the checkout
+    dialog — was unreachable while typing.
+  - **Fix:** `Modifier.keyboardPadding()`, an expect/actual in `KeyboardUtils.kt` beside
+    the existing `KeyboardManager`, applied at the one place each surface passes through:
+    the `Scaffold` content row of both flavors' `AppScaffold.kt`, plus the three screens
+    that render outside it (`LoginScreen`, `RegisterScreen`, `ForcedLoginScreen`). The
+    scaffolds pair it with `consumeWindowInsets(innerPadding)` so the bottom bar's height
+    is not charged twice and the content gives up exactly `max(bottom bar, keyboard)`.
+    Five input dialogs that had no scroll of their own got one, matching what
+    `ChangePasswordDialog`, `EmailLinkingDialog`, `MarketEditDialog` and
+    `PickupEditorDialog` already did: the two password-reset dialogs,
+    `CheckoutConfirmDialog`, and `StockScreen`'s booking and shortfall dialogs.
+  - **Why it is a no-op on iOS:** `ComposeUIViewController` runs with the default
+    `OnFocusBehavior.FocusableAboveKeyboard`, which lifts the focused view for the whole
+    scene, dialogs included — padding as well would move a focused field twice. The
+    documented alternative is `OnFocusBehavior.DoNothing` plus explicit insets, which
+    would also mean padding every dialog by hand, since an iOS dialog is drawn inside the
+    same Compose scene rather than in a window of its own. Left as it was.
+  - **Tasks:**
+    - Check the five screenshot-run fixes and this one on a phone and on an iOS
+      simulator. Watch for the bottom bar: it stays put behind the keyboard by design.
+    - On iOS, confirm a long form (`CustomerProfileScreenModern`) and a dialog with a
+      field still reach their lower fields; if not, switch `MainViewController` to
+      `OnFocusBehavior.DoNothing` and make `keyboardPadding()` real there — at which
+      point every dialog with a field needs it too.
+    - `androidApp/.../ui/NotificationSettingsScreen.kt` has no callers. It was left
+      untouched; delete it or wire it up.
 - **Pickup confirmation at checkout, one slot per market**
   - **Status:** Decided 2026-10-16, not implemented. Reasoning in
     `doc/guides/ordering-business-rules.md` §2; what it does to the slot picker in
