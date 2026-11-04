@@ -1437,7 +1437,7 @@ fun PickupDateSelector(
                     val deadlineFormatted = OrderDateUtils.formatDisplayDateTime(deadline)
 
                     Text(
-                        text = "${stringResource(Res.string.day_thursday)}, $formatted",
+                        text = "${instant.toLocalDateTime(TimeZone.currentSystemDefault()).dayOfWeek.displayName()}, $formatted",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -1827,7 +1827,7 @@ private fun ReorderDateOption(
                 .padding(16.dp)
         ) {
             Text(
-                text = "${stringResource(Res.string.day_thursday)}, $formatted",
+                text = "${instant.toLocalDateTime(TimeZone.currentSystemDefault()).dayOfWeek.displayName()}, $formatted",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
