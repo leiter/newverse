@@ -205,7 +205,7 @@ The following features are planned but not yet implemented, or are only partiall
   - **Status:** Not submittable (see `doc/reports/apple-store-release-status.md`)
   - **Tasks:**
     - Fix the `CFBundleVersion` / `CURRENT_PROJECT_VERSION` build-number wiring.
-    - ~~Capture screenshots.~~ **Retaken 2026-11-04** in the new design (`d2db7dd`), iPhone 6.9" and iPad 13". Not uploaded: 1.0 is live and its screenshots are locked, so they need an editable 1.0.1 version in App Store Connect first.
+    - ~~Capture screenshots.~~ **Retaken 2026-11-04** in the new design (`d2db7dd`), iPhone 6.9" and iPad 13". Uploaded the same day to version 1.0.1 (Prepare for Submission), screenshots only — no metadata, no build.
     - Replace the generic "Newverse" store metadata and add the two `subtitle.txt` files.
     - Run the app on a device — so far it has only been compiled. Known code issues: iOS `NetworkConnectivity` always reports online; `HeroProductCard` uses a fixed width.
 
