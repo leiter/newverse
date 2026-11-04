@@ -676,9 +676,7 @@ private fun ProfileHeaderCard(
     }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(animationSpec = spring()),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -686,6 +684,15 @@ private fun ProfileHeaderCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                // Inside the Card, never on it. animateContentSize clips to its own
+                // bounds, and a card's elevation shadow is drawn *outside* them: put
+                // it on the Card and the shadow is cut to a rectangle, so all that
+                // survives is the wedge between the square bounds and the rounded
+                // corner -- two grey crescents at the bottom corners, where Material
+                // casts the shadow hardest. The card still grows and shrinks with its
+                // content, because the Card measures this Box. Same placement as the
+                // other three cards on this screen.
+                .animateContentSize(animationSpec = spring())
                 .clearAndSetSemantics { contentDescription = headerSummary }
         ) {
             // Background pattern
