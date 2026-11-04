@@ -165,6 +165,17 @@ The following features are planned but not yet implemented, or are only partiall
     - G2/G3: hardcoded English error messages in the German app.
   - **Tasks:**
     - Run the remaining steps on a device, mark each verdict, then fix the confirmed ones — E2 next.
+- **Found while retaking the App Store screenshots**
+  - **Status:** Open — observed 2026-11-04 on the iPhone 17 Pro Max and iPad Pro 13" simulators, Debug-Buy, as a fresh guest against the live backend; not yet traced in the code
+  - **Issue:**
+    - **Wrong weekday in the basket.** The pickup picker offered "Freitag, 06.11.2026" (Ökomarkt im Hansaviertel); once picked, the basket's Abholdatum card read "Donnerstag, 06.11.2026". The date is right, the weekday is not — it looks hardcoded to Thursday, the old global pickup day. The Thursday slot (12.11.2026) displays correctly, which hides it.
+    - **List and basket disagree on price.** After choosing Ökomarkt im Hansaviertel in the first-run market dialog, the product list and hero card showed 2,30 €/kg while the basket charged 2,48 €/kg for the same articles. Picking a slot at another market raised "Preise ändern sich" (2,48 € → 2,30 €), after which both agreed. One of the two is pricing against a different market than the buyer chose.
+    - **Pickup time shown but not saved.** A new guest's profile shows "Abholzeit 15:45 Uhr", yet `missingProfileData()` reports `pickupTime` missing ("Profil unvollständig", "Für die Anfrage fehlen noch: Abholzeit") until the buyer opens the field and saves it unchanged. The displayed default is never written to `defaultPickUpTime`, so the buyer is told to fill in something that already looks filled in, and `requestAccess()` stays blocked.
+    - **English in the German pickup picker.** Each slot reads "Verbleibende Zeit: 10 hours, 38 minutes" / "1 day, 10 hours".
+    - **Placeholder logo on the login screen.** `LoginScreen.kt` still draws the `app_leaf_icon` emoji (🌿) in a `primary` card where the logo belongs — the same leftover the splash had before `3ac2a0b`. Shared code, so Android shows it too. `logo_mark.png` already exists for this.
+  - **Tasks:**
+    - Fix the weekday first — it tells a buyer the wrong day to come.
+    - Then the price mismatch: find which side ignores the chosen market.
 
 ### High Priority: Release
 
@@ -194,7 +205,7 @@ The following features are planned but not yet implemented, or are only partiall
   - **Status:** Not submittable (see `doc/reports/apple-store-release-status.md`)
   - **Tasks:**
     - Fix the `CFBundleVersion` / `CURRENT_PROJECT_VERSION` build-number wiring.
-    - Capture screenshots.
+    - ~~Capture screenshots.~~ **Retaken 2026-11-04** in the new design (`d2db7dd`), iPhone 6.9" and iPad 13". Not uploaded: 1.0 is live and its screenshots are locked, so they need an editable 1.0.1 version in App Store Connect first.
     - Replace the generic "Newverse" store metadata and add the two `subtitle.txt` files.
     - Run the app on a device — so far it has only been compiled. Known code issues: iOS `NetworkConnectivity` always reports online; `HeroProductCard` uses a fixed width.
 
