@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Market
 import com.together.newverse.ui.components.displayName
+import com.together.newverse.ui.components.timeUntilDeadlineText
 import com.together.newverse.util.DeadlineWarningLevel
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
@@ -99,7 +100,7 @@ fun CheckoutConfirmDialog(
     val config = OrderDateUtils.scheduleConfigFor(market)
 
     val deadline = OrderDateUtils.calculateEditDeadline(pickup, config = config)
-    val timeLeft = OrderDateUtils.formatTimeUntilDeadline(pickup, config = config)
+    val timeLeft = timeUntilDeadlineText(pickup, config = config)
     val warning = OrderDateUtils.getDeadlineWarningLevel(pickup, config = config)
 
     val day = market?.pickupDay?.displayName().orEmpty()

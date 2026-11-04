@@ -132,7 +132,10 @@ data class Order(
     }
 
     /**
-     * Get time remaining until deadline as formatted string
+     * Get time remaining until deadline as formatted string.
+     *
+     * English only — see [OrderDateUtils.formatTimeUntilDeadline]. No UI calls this;
+     * a screen uses the composable `timeUntilDeadlineText` instead.
      */
     fun getTimeUntilDeadline(now: Instant = Clock.System.now()): String {
         return OrderDateUtils.formatTimeUntilDeadline(

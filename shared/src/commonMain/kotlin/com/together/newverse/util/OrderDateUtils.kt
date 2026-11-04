@@ -228,6 +228,13 @@ object OrderDateUtils {
      * @param timeZone Time zone for calculations (defaults to system)
      * @param config Order schedule configuration
      * @return Formatted string like "2 days, 5 hours" or "Deadline passed"
+     *
+     * **English only, and never for the screen.** The wording here is hardcoded, so
+     * it read "10 hours, 38 minutes" inside the German pickup picker until
+     * 2026-11-04. Anything a buyer sees must use the composable
+     * `timeUntilDeadlineText`, which takes the same arithmetic from
+     * [timeUntilDeadline] and the words from the string resources. This stays for
+     * logs, tests and debug output.
      */
     fun formatTimeUntilDeadline(
         pickupDate: Instant,

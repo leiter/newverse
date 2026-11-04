@@ -262,6 +262,14 @@
     <string name="basket_no_dates_available">No pickup dates are currently available.</string>
     <string name="basket_selected">Selected</string>
     <string name="basket_time_remaining">Time remaining: %s</string>
+    <string name="duration_days_hours">%1$d days, %2$d hours</string>
+    <string name="duration_one_day_hours">1 day, %1$d hours</string>
+    <string name="duration_hours_minutes">%1$d hours, %2$d minutes</string>
+    <string name="duration_one_hour_minutes">1 hour, %1$d minutes</string>
+    <string name="duration_minutes">%1$d minutes</string>
+    <string name="duration_one_minute">1 minute</string>
+    <string name="duration_under_one_minute">Less than 1 minute</string>
+    <string name="duration_deadline_passed">Deadline passed</string>
     <string name="basket_choose_new_date">Choose New Pickup Date</string>
     <string name="basket_reorder_info">Select a new date for your order. Prices will be automatically updated.</string>
     <string name="basket_updating_prices">Updating prices...</string>

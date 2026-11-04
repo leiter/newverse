@@ -84,6 +84,7 @@ import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.pluralStringResource
 import com.together.newverse.domain.model.PickupSlot
 import com.together.newverse.ui.components.displayName
+import com.together.newverse.ui.components.timeUntilDeadlineText
 import com.together.newverse.ui.components.formatEuro
 import com.together.newverse.ui.state.PendingSlotPriceChange
 import com.together.newverse.ui.screens.buy.components.CheckoutConfirmDialog
@@ -1614,7 +1615,7 @@ private fun DateOption(
     val weekday = instant.toLocalDateTime(TimeZone.currentSystemDefault()).dayOfWeek.displayName()
     val deadline = OrderDateUtils.calculateEditDeadline(instant)
     val deadlineFormatted = OrderDateUtils.formatDisplayDateTime(deadline)
-    val timeRemaining = OrderDateUtils.formatTimeUntilDeadline(instant)
+    val timeRemaining = timeUntilDeadlineText(instant)
 
     Card(
         modifier = Modifier

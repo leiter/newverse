@@ -275,6 +275,14 @@
     <string name="basket_no_dates_available">Derzeit sind keine Abholtermine verfügbar.</string>
     <string name="basket_selected">Ausgewählt</string>
     <string name="basket_time_remaining">Verbleibende Zeit: %s</string>
+    <string name="duration_days_hours">%1$d Tage, %2$d Stunden</string>
+    <string name="duration_one_day_hours">1 Tag, %1$d Stunden</string>
+    <string name="duration_hours_minutes">%1$d Stunden, %2$d Minuten</string>
+    <string name="duration_one_hour_minutes">1 Stunde, %1$d Minuten</string>
+    <string name="duration_minutes">%1$d Minuten</string>
+    <string name="duration_one_minute">1 Minute</string>
+    <string name="duration_under_one_minute">Weniger als 1 Minute</string>
+    <string name="duration_deadline_passed">Frist abgelaufen</string>
     <string name="basket_choose_new_date">Neues Abholdatum wählen</string>
     <string name="basket_reorder_info">Wählen Sie ein neues Datum für Ihre Bestellung. Die Preise werden automatisch aktualisiert.</string>
     <string name="basket_updating_prices">Preise werden aktualisiert...</string>
