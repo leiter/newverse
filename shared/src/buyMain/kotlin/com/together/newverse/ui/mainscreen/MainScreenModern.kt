@@ -165,8 +165,8 @@ private fun MainScreenModernContent(
                         // Category Filter Chips
                         CategoryChips(
                             filterState = state.filterState,
-                            onToggleFavourite = { include ->
-                                onAction(BuyMainScreenAction.ToggleFavouriteFilter(include))
+                            onCycleFavourite = {
+                                onAction(BuyMainScreenAction.CycleFavouriteFilter)
                             },
                             onToggleCategory = { category ->
                                 onAction(BuyMainScreenAction.ToggleCategoryFilter(category))

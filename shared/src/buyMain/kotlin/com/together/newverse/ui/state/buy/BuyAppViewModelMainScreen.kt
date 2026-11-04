@@ -45,7 +45,7 @@ internal fun BuyAppViewModel.handleMainScreenAction(action: BuyMainScreenAction)
         BuyMainScreenAction.AddToCart -> handleAddToCart()
         BuyMainScreenAction.RemoveFromBasket -> handleRemoveFromBasket()
         is BuyMainScreenAction.ToggleFavourite -> toggleMainScreenFavourite(action.articleId)
-        is BuyMainScreenAction.ToggleFavouriteFilter -> updateMainScreenFilter { it.toggleFavourite(action.include) }
+        BuyMainScreenAction.CycleFavouriteFilter -> updateMainScreenFilter { it.cycleFavourite() }
         is BuyMainScreenAction.ToggleCategoryFilter -> updateMainScreenFilter { it.toggleCategory(action.category) }
         BuyMainScreenAction.ResetFilters -> updateMainScreenFilter { ProductFilterState.Unfiltered }
         is BuyMainScreenAction.UpdateSearchQuery -> updateSearchQuery(action.query)

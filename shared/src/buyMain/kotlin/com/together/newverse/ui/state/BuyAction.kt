@@ -219,12 +219,11 @@ sealed interface BuyMainScreenAction : BuyAction {
     data object RemoveFromBasket : BuyMainScreenAction
     data class ToggleFavourite(val articleId: String) : BuyMainScreenAction
     /**
-     * Tap on one of the two favourite chips: [include] is what that chip stands for,
-     * true for "Favoriten" and false for "Ohne Favoriten". Tapping the chip that is
-     * already on sends it again, and the state turns the axis off — the UI does not
-     * have to work out the next state itself.
+     * Tap on the favourite chip. Carries no payload on purpose: the chip has three
+     * states and the next one follows from the current one, which
+     * [ProductFilterState.cycleFavourite] owns — the UI does not work it out itself.
      */
-    data class ToggleFavouriteFilter(val include: Boolean) : BuyMainScreenAction
+    data object CycleFavouriteFilter : BuyMainScreenAction
     /** Tap on a category chip. Tapping the active one clears it. */
     data class ToggleCategoryFilter(val category: String) : BuyMainScreenAction
     /** The "Alle" chip: every axis bypassed. Leaves the typed search query alone. */

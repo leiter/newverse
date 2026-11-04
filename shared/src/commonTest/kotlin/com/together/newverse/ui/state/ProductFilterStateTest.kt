@@ -80,19 +80,42 @@ class ProductFilterStateTest {
         assertTrue(filtered.isEmpty())
     }
 
-    // ----- toggling: every state one tap in, one tap out -----
+    // ----- the favourite chip's cycle, and the category chips' toggle -----
 
     @Test
-    fun `tapping the favourite chip twice turns the axis off`() {
-        val once = ProductFilterState.Unfiltered.toggleFavourite(true)
-        assertEquals(true, once.includeFavourite)
-        assertNull(once.toggleFavourite(true).includeFavourite)
+    fun `the favourite chip cycles bypassed - favourites - all but favourites`() {
+        // One chip for the whole axis, so the order of the three states is the
+        // contract: the inverted state has to be reachable, and reachable last,
+        // because it is the surprising one.
+        val neutral = ProductFilterState.Unfiltered
+        assertNull(neutral.includeFavourite)
+
+        val positive = neutral.cycleFavourite()
+        assertEquals(true, positive.includeFavourite)
+
+        val negative = positive.cycleFavourite()
+        assertEquals(false, negative.includeFavourite)
     }
 
     @Test
-    fun `tapping the other favourite chip switches ends rather than clearing`() {
-        val positive = ProductFilterState(includeFavourite = true)
-        assertEquals(false, positive.toggleFavourite(false).includeFavourite)
+    fun `three taps of the favourite chip return the axis to bypassed`() {
+        // No state is a dead end: the buyer always gets back to the full list on
+        // this chip alone, without having to find Alle.
+        val state = ProductFilterState.Unfiltered
+            .cycleFavourite()
+            .cycleFavourite()
+            .cycleFavourite()
+        assertNull(state.includeFavourite)
+        assertTrue(state.isUnfiltered)
+    }
+
+    @Test
+    fun `cycling the favourite chip leaves the category axis alone`() {
+        // Two independent axes: Favoriten + Obst is the favourite fruit, so the
+        // chip must not clear the category on its way round.
+        val withCategory = ProductFilterState(category = "Obst")
+        assertEquals("Obst", withCategory.cycleFavourite().category)
+        assertEquals("Obst", withCategory.cycleFavourite().cycleFavourite().category)
     }
 
     @Test

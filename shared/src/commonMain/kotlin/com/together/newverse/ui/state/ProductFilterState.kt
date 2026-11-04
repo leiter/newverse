@@ -47,15 +47,22 @@ data class ProductFilterState(
     fun withCategory(name: String?): ProductFilterState = copy(category = name)
 
     /**
-     * The favourite axis after tapping the chip that stands for [include].
+     * The favourite axis after one tap of its chip: bypassed -> favourites ->
+     * everything but favourites -> bypassed.
      *
-     * Each of the two favourite chips is an ordinary two-state chip: tapping the one
-     * that is already on turns it off rather than doing nothing, so every state is
-     * one tap in and one tap out and the row can never trap the buyer in an inverted
-     * filter they cannot see.
+     * One chip for all three states, which only works because the chip *shows* all
+     * three. The inverted state is the dangerous one -- a buyer looking at a list
+     * with their favourites missing has to be able to see why -- so it carries both
+     * its own label and a cancel icon, not just a fill. Three taps is the whole
+     * cycle, so no state is more than two taps from being off.
      */
-    fun toggleFavourite(include: Boolean): ProductFilterState =
-        withFavourite(if (includeFavourite == include) null else include)
+    fun cycleFavourite(): ProductFilterState = withFavourite(
+        when (includeFavourite) {
+            null -> true
+            true -> false
+            false -> null
+        }
+    )
 
     /** The category axis after tapping [name]'s chip; tapping the active one clears it. */
     fun toggleCategory(name: String): ProductFilterState =
