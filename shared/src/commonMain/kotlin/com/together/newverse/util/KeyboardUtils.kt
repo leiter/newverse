@@ -36,3 +36,19 @@ expect fun rememberKeyboardManager(): KeyboardManager
  * field twice. Hence a no-op, not an oversight.
  */
 expect fun Modifier.keyboardPadding(): Modifier
+
+/**
+ * Whether the soft keyboard is currently sitting over the bottom bar, leaving
+ * whatever the bar holds out of the buyer's reach.
+ *
+ * The counterpart to [keyboardPadding], and platform-dependent for the same
+ * reason. On Android the window is not resized, so the keyboard draws straight
+ * over the bottom bar and the bar's items cannot be tapped. On iOS the whole
+ * scene pans up instead, carrying the bar with it, so the bar is never covered
+ * and the answer is simply no.
+ *
+ * This is a question about the bar, not about the keyboard: ask it only to decide
+ * whether something the bottom bar offers has to be offered somewhere else.
+ */
+@Composable
+expect fun isKeyboardHidingBottomBar(): Boolean

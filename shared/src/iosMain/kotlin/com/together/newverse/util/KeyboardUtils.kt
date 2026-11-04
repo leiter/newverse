@@ -36,3 +36,10 @@ actual fun rememberKeyboardManager(): KeyboardManager {
  * inset on top would shift a focused field twice.
  */
 actual fun Modifier.keyboardPadding(): Modifier = this
+
+/**
+ * Never, on this platform: `OnFocusBehavior.FocusableAboveKeyboard` pans the whole
+ * scene, so the bottom bar rides up with it and stays reachable.
+ */
+@Composable
+actual fun isKeyboardHidingBottomBar(): Boolean = false

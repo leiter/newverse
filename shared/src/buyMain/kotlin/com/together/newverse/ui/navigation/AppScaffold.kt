@@ -78,6 +78,7 @@ import com.together.newverse.util.Log
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.formatString
 import com.together.newverse.util.rememberKeyboardManager
+import com.together.newverse.util.isKeyboardHidingBottomBar
 import com.together.newverse.util.keyboardPadding
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
@@ -834,12 +835,30 @@ private fun AppScaffoldContent(
                     // sideways under their thumb. Same icon, count and way in as the
                     // basket tab, via the same onNavigateToTab, so the two cannot
                     // disagree about where the basket is.
-                    if (currentRoute == NavRoutes.Home.route) {
-                        BuyerBasketAction(
-                            basketItemCount = basketItems.size,
-                            tint = topBarColors.content,
-                            onClick = { onNavigateToTab(NavRoutes.Buy.Basket.route) }
-                        )
+                    //
+                    // Only while the keyboard is over the bottom bar, which is what
+                    // this button is for. The bar already holds the basket, so two
+                    // carts at once is one cart too many -- but the keyboard draws
+                    // straight across the bar and takes it away, and that is exactly
+                    // when the buyer typing a search wants to go and look at what they
+                    // have collected. So it stands in for the bar for as long as the
+                    // bar is gone, and there is never a moment with both.
+                    val basketCoveredInBar = currentRoute == NavRoutes.Home.route &&
+                        showBottomBar && !useNavRail && isKeyboardHidingBottomBar()
+                    AnimatedContent(
+                        targetState = basketCoveredInBar,
+                        transitionSpec = { topBarActionTransition() },
+                        label = "topBarBasket"
+                    ) { show ->
+                        // The empty case is a body of its own so the outgoing button
+                        // has something to animate out of, as with the actions above.
+                        if (show) {
+                            BuyerBasketAction(
+                                basketItemCount = basketItems.size,
+                                tint = topBarColors.content,
+                                onClick = { onNavigateToTab(NavRoutes.Buy.Basket.route) }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

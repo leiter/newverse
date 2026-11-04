@@ -89,7 +89,9 @@ The following features are planned but not yet implemented, or are only partiall
     same Compose scene rather than in a window of its own. Left as it was.
   - **Tasks:**
     - Check the five screenshot-run fixes and this one on a phone and on an iOS
-      simulator. Watch for the bottom bar: it stays put behind the keyboard by design.
+      simulator. Watch for the bottom bar: it stays put behind the keyboard by design,
+      and on Home the basket stands in for it as a top-bar action for as long as it is
+      covered (`isKeyboardHidingBottomBar`, false on iOS because the scene pans there).
     - On iOS, confirm a long form (`CustomerProfileScreenModern`) and a dialog with a
       field still reach their lower fields; if not, switch `MainViewController` to
       `OnFocusBehavior.DoNothing` and make `keyboardPadding()` real there — at which

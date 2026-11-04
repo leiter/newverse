@@ -12,3 +12,7 @@ actual fun rememberKeyboardManager(): KeyboardManager = KeyboardManager()
 
 /** A browser has no soft keyboard inset to respect. */
 actual fun Modifier.keyboardPadding(): Modifier = this
+
+/** A browser has no soft keyboard to cover anything. */
+@Composable
+actual fun isKeyboardHidingBottomBar(): Boolean = false
