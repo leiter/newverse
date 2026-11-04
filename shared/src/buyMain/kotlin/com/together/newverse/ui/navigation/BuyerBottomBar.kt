@@ -85,23 +85,7 @@ fun BuyerBottomNavigationBar(
     showProfileBadge: Boolean = false,
     onNavigate: (String) -> Unit
 ) {
-    // Shake animation for the cart icon
-    val cartShake = remember { Animatable(0f) }
-    var prevBasketCount by remember { mutableStateOf(basketItemCount) }
-
-    LaunchedEffect(basketItemCount) {
-        if (basketItemCount != prevBasketCount && !(prevBasketCount == 0 && basketItemCount == 0)) {
-            cartShake.animateTo(15f, animationSpec = tween(50))
-            cartShake.animateTo(-15f, animationSpec = tween(100))
-            cartShake.animateTo(10f, animationSpec = tween(100))
-            cartShake.animateTo(-10f, animationSpec = tween(100))
-            cartShake.animateTo(0f, animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessHigh
-            ))
-        }
-        prevBasketCount = basketItemCount
-    }
+    val cartShake = rememberCartShake(basketItemCount)
 
     // Soil brown, the same bar colour as the top app bar, so the app is framed
     // by the brand in both themes. The item colours have to be spelled out:
@@ -143,16 +127,11 @@ fun BuyerBottomNavigationBar(
             NavigationBarItem(
                 modifier = itemSemantics(label, badgeText),
                 icon = {
-                    val iconModifier = if (isCartItem) {
-                        Modifier.graphicsLayer { rotationZ = cartShake.value }
-                    } else {
-                        Modifier
-                    }
                     BuyerNavItemIcon(
                         item = item,
                         badgeCount = badgeCount,
                         showAttentionDot = showAttentionDot,
-                        modifier = iconModifier
+                        modifier = if (isCartItem) cartShake else Modifier
                     )
                 },
                 label = { Text(label) },
@@ -332,6 +311,7 @@ fun BuyerBasketAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val cartShake = rememberCartShake(basketItemCount)
     val label = stringResource(Res.string.nav_shopping_basket)
     val badgeText = badgeDescription(basketItemCount, showAttentionDot = false)
     // "Warenkorb, 3 Artikel" -- the name before the count, joined by the same
@@ -356,15 +336,56 @@ fun BuyerBasketAction(
                 Icon(
                     imageVector = Icons.Default.ShoppingCart,
                     contentDescription = description,
-                    tint = tint
+                    tint = tint,
+                    modifier = cartShake
                 )
             }
         } else {
             Icon(
                 imageVector = Icons.Default.ShoppingCart,
                 contentDescription = description,
-                tint = tint
+                tint = tint,
+                modifier = cartShake
             )
         }
     }
+}
+
+/**
+ * A modifier that rocks the cart icon whenever [basketItemCount] changes.
+ *
+ * Shared by the basket tab and the top-bar basket action, so the two carts on the
+ * home screen rock together instead of one twitching while the other sits still.
+ *
+ * The rotation is read inside [graphicsLayer]'s block rather than returned as a
+ * number: that defers the read to draw time, so eleven frames of animation do not
+ * recompose the bar that holds it.
+ *
+ * It does not fire on first composition -- the previous count starts out as the
+ * current one -- so arriving at a screen with a full basket is not an event. Only
+ * a change while the buyer is looking at it is.
+ */
+@Composable
+private fun rememberCartShake(basketItemCount: Int): Modifier {
+    val rotation = remember { Animatable(0f) }
+    var previousCount by remember { mutableStateOf(basketItemCount) }
+
+    LaunchedEffect(basketItemCount) {
+        if (basketItemCount != previousCount) {
+            rotation.animateTo(15f, animationSpec = tween(50))
+            rotation.animateTo(-15f, animationSpec = tween(100))
+            rotation.animateTo(10f, animationSpec = tween(100))
+            rotation.animateTo(-10f, animationSpec = tween(100))
+            rotation.animateTo(
+                0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessHigh
+                )
+            )
+        }
+        previousCount = basketItemCount
+    }
+
+    return Modifier.graphicsLayer { rotationZ = rotation.value }
 }
