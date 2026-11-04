@@ -168,14 +168,65 @@ The following features are planned but not yet implemented, or are only partiall
 - **Found while retaking the App Store screenshots**
   - **Status:** Open — observed 2026-11-04 on the iPhone 17 Pro Max and iPad Pro 13" simulators, Debug-Buy, as a fresh guest against the live backend; not yet traced in the code
   - **Issue:**
-    - **Wrong weekday in the basket.** The pickup picker offered "Freitag, 06.11.2026" (Ökomarkt im Hansaviertel); once picked, the basket's Abholdatum card read "Donnerstag, 06.11.2026". The date is right, the weekday is not — it looks hardcoded to Thursday, the old global pickup day. The Thursday slot (12.11.2026) displays correctly, which hides it.
+    - ~~**Wrong weekday in the basket.**~~ **Fixed 2026-11-04.** The pickup picker offered "Freitag, 06.11.2026" (Ökomarkt im Hansaviertel); once picked, the basket's Abholdatum card read "Donnerstag, 06.11.2026". `PickupDateSelector` and `ReorderDateOption` in `BasketScreen.kt` printed `day_thursday` as a literal next to the real date — the last two sites the `DayOfWeek.displayName()` helper was written for and missed. Both now derive the weekday from the same instant and zone as the date itself.
     - **List and basket disagree on price.** After choosing Ökomarkt im Hansaviertel in the first-run market dialog, the product list and hero card showed 2,30 €/kg while the basket charged 2,48 €/kg for the same articles. Picking a slot at another market raised "Preise ändern sich" (2,48 € → 2,30 €), after which both agreed. One of the two is pricing against a different market than the buyer chose.
-    - **Pickup time shown but not saved.** A new guest's profile shows "Abholzeit 15:45 Uhr", yet `missingProfileData()` reports `pickupTime` missing ("Profil unvollständig", "Für die Anfrage fehlen noch: Abholzeit") until the buyer opens the field and saves it unchanged. The displayed default is never written to `defaultPickUpTime`, so the buyer is told to fill in something that already looks filled in, and `requestAccess()` stays blocked.
-    - **English in the German pickup picker.** Each slot reads "Verbleibende Zeit: 10 hours, 38 minutes" / "1 day, 10 hours".
-    - **Placeholder logo on the login screen.** `LoginScreen.kt` still draws the `app_leaf_icon` emoji (🌿) in a `primary` card where the logo belongs — the same leftover the splash had before `3ac2a0b`. Shared code, so Android shows it too. `logo_mark.png` already exists for this.
+    - ~~**Pickup time shown but not saved.**~~ **Fixed 2026-11-04.** A new guest's profile showed "Abholzeit 15:45 Uhr" while `defaultPickUpTime` stayed empty, so `missingProfileData()` kept reporting Abholzeit missing and `requestAccess()` stayed blocked against a field that looked filled in. The "15:45" was invented in `CustomerProfileViewModel` for display only and is gone: an unset time now reads `--:--` with "Zum Festlegen tippen", the row opens the editor, and the editor no longer styles a blank field as an error. The screen and the gate now say the same thing, and the seller only ever gets a time the buyer chose. **The concept behind it is still open — see "Pickup time is not part of an order" below.**
+    - ~~**English in the German pickup picker.**~~ **Fixed 2026-11-04.** `OrderDateUtils.formatTimeUntilDeadline` builds that sentence out of hardcoded English, and a plain util cannot read Compose resources. The arithmetic stays in the util; the wording moved to a composable, `timeUntilDeadlineText` (`ui/components/DurationText.kt`), over eight new `duration_*` strings in both locales. The same leak was in the checkout confirmation dialog, which the screenshot run had not reached — fixed too. The util is now documented as logs-and-tests only.
+    - ~~**Placeholder logo on the login screen.**~~ **Fixed 2026-11-04.** The same 🌿 leftover was on all three auth screens, not just login: `LoginScreen` and `RegisterScreen` in a `primary` card, `ForcedLoginScreen` in a 120dp circle. All three now draw `logo_mark.png` through one shared `AppLogoMark` composable, tinted from the scheme the way the splash does, so they cannot drift apart again. `ForcedLoginScreen` keeps its entry animation, now on the mark itself. The orphaned `app_leaf_icon` string is gone from both locales.
   - **Tasks:**
-    - Fix the weekday first — it tells a buyer the wrong day to come.
-    - Then the price mismatch: find which side ignores the chosen market.
+    - ~~Fix the weekday first — it tells a buyer the wrong day to come.~~ Done.
+    - ~~The three easier ones: English remaining-time text, the placeholder logo, the unsaved pickup-time default.~~ Done 2026-11-04.
+    - The price mismatch: find which side ignores the chosen market. **Next, and the last one left in this block.**
+
+- **Pickup time is not part of an order**
+  - **Status:** Open — design, not a bug report. Traced 2026-11-04 while fixing the unsaved-default bug above; nothing here is started.
+  - **Issue:** `BuyerProfile.defaultPickUpTime` is the only place a pickup time is ever
+    stored, and it is a *current preference*, not a snapshot. Everything else about an
+    order — `fulfilment`, `pricingRevision`, every price and its breakdown — is
+    snapshotted onto the order precisely so it cannot change under the seller. The time
+    the buyer says they will turn up is the exception.
+    - **The seller cannot see it at all.** `orderToMap` writes `buyerId`, `buyerName`
+      and `buyerEmail` and nothing else from the profile, and the seller cannot read
+      `/buyer_profile`. So the one field the buy app makes a buyer fill in before they
+      may order never reaches the person waiting at the stall.
+    - **`Order` has no time field, and the seller's screens pretend it does.**
+      `Order.pickUpDate` is a single epoch-millis and the slots come from
+      `calculateNextPickupDate`, which ends in `.atTime(0, 0)`. So
+      `Order.getFormattedPickupDateAndTime()` — "Abholung DD.MM.YYYY um HH:MM Uhr" —
+      renders **"um 00:00 Uhr"** on `OrdersScreen` (card and its accessibility text)
+      and on `OrderDetailScreen`. Live today, in the seller app.
+    - **No per-order override.** A buyer who will come late next Thursday can only
+      change their standing default, which is the wrong scope and silently re-describes
+      nothing (no order holds the value). The ask — prefill from the profile, snapshot
+      onto the order, editable as long as `canEdit()` says the order is — is the
+      snapshot pattern the codebase already uses everywhere else.
+    - **Changing the default must not rewrite placed orders**, and editing the time on
+      an order must go through the same deadline gate as editing its articles. Neither
+      rule can be broken today only because there is no field to break.
+    - **The window is global, not the market's.** `ProfileValidation.MIN_HOUR = 7` /
+      `MAX_HOUR = 18` is hardcoded ("Gültig von 7:00 - 18:00 Uhr"), while
+      `Market.begin` / `Market.end` hold the stall's real hours. A buyer can save 07:30
+      for a market that opens at 10:00. Once the time belongs to an order, the chosen
+      market's own window is the bound that matters.
+    - **Delivery.** For a `Fulfilment.DELIVERY` order "Abholzeit" is a delivery time,
+      and the profile's `isSelfPickup` is a separate flag from `Order.fulfilment`. The
+      naming needs settling before the field spreads further.
+    - **Dead DTO carrying the opposite story.** `OrderDto`/`BuyerProfileDto` do
+      serialise the time (as `defaultTime`, "to match universe project") and have no
+      callers outside their own file and tests — the live path is
+      `GitLiveOrderRepository`'s hand-written maps. Reading `OrderDto` suggests the time
+      is already stored per order. It is not. Delete it or wire it, but do not leave
+      both stories in the tree.
+  - **Tasks:**
+    - Decide the field: a time on `Order` (prefilled from the profile, snapshotted at
+      placement) versus a timestamp that carries its own time of day. A field is
+      probably right — `pickUpDate`'s midnight is load-bearing for date keys
+      (`yyyyMMdd` paths), deadlines and `BookingPeriod`.
+    - Then: write it in `orderToMap`, read it back, show it on both seller screens
+      instead of the midnight-derived "um 00:00 Uhr", and make it editable under
+      `canEdit()`.
+    - Bound the picker by the chosen market's `begin`/`end` instead of 7–18.
+    - Settle the delivery wording, and resolve `OrderDto`.
 
 ### High Priority: Release
 
