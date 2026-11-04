@@ -326,7 +326,7 @@
     <string name="section_delivery_preferences">Gemüsedate</string>
     <string name="label_marketplace">Marktplatz</string>
     <string name="label_pickup_time">Abholzeit</string>
-    <string name="label_pickup_time_hint">Gültig von 7:00 - 18:00 Uhr (Format: HH:mm)</string>
+    <string name="label_pickup_time_hint">Gültig von 7:00 - 18:00 Uhr\n(Format: HH:mm)</string>
     <string name="pickup_time_format">%s Uhr</string>
     <string name="pickup_time_unset">--:--</string>
     <string name="pickup_time_unset_hint">Zum Festlegen tippen</string>

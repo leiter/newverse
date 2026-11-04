@@ -313,7 +313,7 @@
     <string name="section_delivery_preferences">Veggie Date</string>
     <string name="label_marketplace">Marketplace</string>
     <string name="label_pickup_time">Pickup Time</string>
-    <string name="label_pickup_time_hint">Valid from 7:00 to 18:00 (format HH:mm)</string>
+    <string name="label_pickup_time_hint">Valid from 7:00 to 18:00\n(format HH:mm)</string>
     <string name="pickup_time_format">%s</string>
     <string name="pickup_time_unset">--:--</string>
     <string name="pickup_time_unset_hint">Tap to set</string>
