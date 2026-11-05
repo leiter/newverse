@@ -135,13 +135,13 @@
         "$actionId": {
           ".validate": "newData.hasChildren(['id', 'kind', 'label', 'value', 'location']) && newData.child('id').val() === $actionId",
           "id": { ".validate": "newData.isString()" },
-          "kind": { ".validate": "(newData.val() === 'OPEN_URL' && (newData.parent().child('location').val() === 'TOPBAR_HOME' || newData.parent().child('location').val() === 'TOPBAR_PROFILE')) || (newData.val() === 'ANNOUNCE' && newData.parent().child('location').val() === 'TOPBAR_HOME_TITLE') || (newData.val() === 'QUICK_MESSAGE' && (newData.parent().child('location').val() === 'TOPBAR_HOME_INPUT' || newData.parent().child('location').val() === 'TOPBAR_PROFILE_INPUT'))" },
+          "kind": { ".validate": "(newData.val() === 'OPEN_URL' && (newData.parent().child('location').val() === 'TOPBAR_HOME' || newData.parent().child('location').val() === 'TOPBAR_PROFILE' || newData.parent().child('location').val() === 'TOPBAR_HOME_BRAND_ICON')) || (newData.val() === 'ANNOUNCE' && newData.parent().child('location').val() === 'TOPBAR_HOME_TITLE') || (newData.val() === 'QUICK_MESSAGE' && (newData.parent().child('location').val() === 'TOPBAR_HOME_INPUT' || newData.parent().child('location').val() === 'TOPBAR_PROFILE_INPUT'))" },
           "label": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 24" },
           "value": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500 && (newData.parent().child('kind').val() === 'ANNOUNCE' || newData.parent().child('kind').val() === 'QUICK_MESSAGE' || (!newData.val().contains(':') && !newData.val().beginsWith('/')))" },
-          "location": { ".validate": "newData.val() === 'TOPBAR_HOME' || newData.val() === 'TOPBAR_PROFILE' || newData.val() === 'TOPBAR_HOME_TITLE' || newData.val() === 'TOPBAR_HOME_INPUT' || newData.val() === 'TOPBAR_PROFILE_INPUT'" },
+          "location": { ".validate": "newData.val() === 'TOPBAR_HOME' || newData.val() === 'TOPBAR_PROFILE' || newData.val() === 'TOPBAR_HOME_TITLE' || newData.val() === 'TOPBAR_HOME_INPUT' || newData.val() === 'TOPBAR_PROFILE_INPUT' || newData.val() === 'TOPBAR_HOME_BRAND_ICON'" },
           "audience": { ".validate": "newData.val() === 'EVERYONE' || newData.val() === 'DEMO_ONLY' || newData.val() === 'APPROVED_ONLY'" },
           "active": { ".validate": "newData.isBoolean()" },
-          "persistence": { ".validate": "newData.val() === 'UNTIL_CANCELLED' || (newData.val() === 'HIDE_ON_ACTION' && newData.parent().child('kind').val() !== 'ANNOUNCE')" },
+          "persistence": { ".validate": "newData.val() === 'UNTIL_CANCELLED' || (newData.val() === 'HIDE_ON_ACTION' && newData.parent().child('kind').val() !== 'ANNOUNCE' && newData.parent().child('location').val() !== 'TOPBAR_HOME_BRAND_ICON')" },
           "$other": { ".validate": false }
         }
       }

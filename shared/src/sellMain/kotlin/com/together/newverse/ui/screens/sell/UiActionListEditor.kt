@@ -54,6 +54,7 @@ import newverse.shared.generated.resources.seller_actions_location
 import newverse.shared.generated.resources.seller_actions_location_home
 import newverse.shared.generated.resources.seller_actions_location_home_title
 import newverse.shared.generated.resources.seller_actions_location_profile
+import newverse.shared.generated.resources.seller_actions_location_home_brand
 import newverse.shared.generated.resources.seller_actions_location_home_input
 import newverse.shared.generated.resources.seller_actions_location_profile_input
 import newverse.shared.generated.resources.seller_actions_prompt
@@ -434,4 +435,9 @@ private fun ActionLocation.displayName(): String = when (this) {
         stringResource(Res.string.seller_actions_location_home_input)
     ActionLocation.TOPBAR_PROFILE_INPUT ->
         stringResource(Res.string.seller_actions_location_profile_input)
+    // The one slot that is already occupied: naming it as the logo rather than as a
+    // place says what publishing here actually does, which is redirect a tap the
+    // buyer can already make rather than add something new.
+    ActionLocation.TOPBAR_HOME_BRAND_ICON ->
+        stringResource(Res.string.seller_actions_location_home_brand)
 }

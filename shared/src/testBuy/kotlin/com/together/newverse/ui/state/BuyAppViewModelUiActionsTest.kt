@@ -341,6 +341,116 @@ class BuyAppViewModelUiActionsTest {
         assertEquals(null, viewModel.state.value.homeTitleAnnouncement)
     }
 
+    // ===== the brand-icon seat =====
+
+    private fun brandOverride(
+        id: String = "b1",
+        label: String = "Hofladen",
+        value: String = "example.org/hofladen",
+    ) = SellerUiAction(
+        id = id,
+        label = label,
+        value = value,
+        location = ActionLocation.TOPBAR_HOME_BRAND_ICON
+    )
+
+    @Test
+    fun `a seller who published nothing leaves the brand icon to the app`() = runTest {
+        // Null here is not "nothing to draw" — the seat is occupied by the app's own
+        // mark, which opens About. This is the ordinary case and the one the renderer
+        // must read as "keep the default".
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.state.value.homeBrandIconOverride)
+    }
+
+    @Test
+    fun `a published override reaches the seat`() = runTest {
+        uiActionRepository.seed("demo_seller_id", brandOverride())
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val override = viewModel.state.value.homeBrandIconOverride
+        assertEquals("Hofladen", override?.label)
+        assertEquals("https://example.org/hofladen", override?.toUri())
+    }
+
+    @Test
+    fun `an override is not offered as a top-bar button`() = runTest {
+        // The seat replaces one of the app's own icons; drawn as a button as well it
+        // would be two ways to the same place, one of them unlabelled.
+        uiActionRepository.seed("demo_seller_id", brandOverride())
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertTrue(
+            viewModel.state.value.topBarActionsFor(ActionLocation.TOPBAR_HOME).isEmpty()
+        )
+    }
+
+    @Test
+    fun `an override the seller withdraws gives the seat back without a restart`() = runTest {
+        uiActionRepository.seed("demo_seller_id", brandOverride())
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.homeBrandIconOverride != null)
+
+        uiActionRepository.deleteAction("demo_seller_id", "b1")
+        advanceUntilIdle()
+
+        // Back to the app's own mark and About, with nothing missing from the bar.
+        assertEquals(null, viewModel.state.value.homeBrandIconOverride)
+    }
+
+    @Test
+    fun `a deactivated override leaves the default standing`() = runTest {
+        uiActionRepository.seed(
+            "demo_seller_id",
+            brandOverride().copy(isActive = false)
+        )
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.state.value.homeBrandIconOverride)
+    }
+
+    @Test
+    fun `a narrowed override waits for the access status`() = runTest {
+        uiActionRepository.seed(
+            "demo_seller_id",
+            brandOverride().copy(audience = ActionAudience.APPROVED_ONLY)
+        )
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // Unapproved in this fixture. The seat shows the app's own mark rather than
+        // flashing the seller's and taking it away once the status lands.
+        assertEquals(null, viewModel.state.value.homeBrandIconOverride)
+    }
+
+    @Test
+    fun `an override is not taken away by the buyer tapping it`() = runTest {
+        // Every other published row can be dismissed. This one must not be: the seat
+        // is where the stand-in basket appears, and an empty seat would take that
+        // with it. NotePublishedActionUsed is still dispatched, so the only thing
+        // under test is that it changes nothing here.
+        uiActionRepository.seed("demo_seller_id", brandOverride())
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        val override = viewModel.state.value.homeBrandIconOverride
+        assertTrue(override != null)
+
+        viewModel.dispatch(BuyUiAction.NotePublishedActionUsed(override!!))
+        advanceUntilIdle()
+
+        assertEquals("Hofladen", viewModel.state.value.homeBrandIconOverride?.label)
+    }
+
     @Test
     fun `an announcement the seller withdraws disappears without a restart`() = runTest {
         uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))

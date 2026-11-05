@@ -551,6 +551,103 @@ class SellerUiActionTest {
         assertNull(ActionPersistence.stored("HIDE_AFTER_A_WEEK"))
     }
 
+    // ===== the icon seat: the one slot that is occupied by default =====
+
+    private fun brandOverride(
+        value: String = "example.org/hofladen",
+        label: String = "Hofladen",
+        persistence: ActionPersistence = ActionPersistence.UNTIL_CANCELLED,
+    ) = SellerUiAction(
+        id = "b1",
+        label = label,
+        value = value,
+        location = ActionLocation.TOPBAR_HOME_BRAND_ICON,
+        kind = ActionKind.OPEN_URL,
+        persistence = persistence,
+    )
+
+    @Test
+    fun `the brand icon is not a button slot`() {
+        // It replaces one of the app's own icons rather than adding a labelled button
+        // beside them, so a caller that asks for buttons must not be handed it.
+        assertFalse(ActionLocation.TOPBAR_HOME_BRAND_ICON.isButtonSlot)
+        assertTrue(ActionLocation.TOPBAR_HOME_BRAND_ICON.isIconSeat)
+    }
+
+    @Test
+    fun `an icon override is not drawn as a button`() {
+        assertTrue(
+            listOf(brandOverride()).forLocation(
+                ActionLocation.TOPBAR_HOME_BRAND_ICON,
+                isApproved = true,
+                isDemo = false
+            ).isEmpty()
+        )
+    }
+
+    @Test
+    fun `an icon override is read through overrideFor`() {
+        val rows = listOf(brandOverride())
+        assertEquals(
+            "Hofladen",
+            rows.overrideFor(
+                ActionLocation.TOPBAR_HOME_BRAND_ICON,
+                isApproved = true,
+                isDemo = false
+            )?.label
+        )
+    }
+
+    @Test
+    fun `nothing published means no override, which is the app's own default`() {
+        assertNull(
+            emptyList<SellerUiAction>().overrideFor(
+                ActionLocation.TOPBAR_HOME_BRAND_ICON,
+                isApproved = true,
+                isDemo = false
+            )
+        )
+    }
+
+    @Test
+    fun `an icon override cannot be stored as hide-on-action`() {
+        // A buyer tapping the brand mark has not asked the top bar to lose an icon,
+        // and the seat has to stay for the stand-in basket to appear in. OPEN_URL
+        // *can* be acted on, so this is the location's rule, not the kind's.
+        val stored = brandOverride(persistence = ActionPersistence.HIDE_ON_ACTION)
+            .readyToStore()
+        assertEquals(ActionPersistence.UNTIL_CANCELLED, stored.persistence)
+        assertFalse(stored.hidesAfterUse)
+    }
+
+    @Test
+    fun `a button in an ordinary slot still may hide on action`() {
+        // The guard above is the location's and must not have widened to every
+        // OPEN_URL row.
+        val stored = action("example.org", label = "Umfrage")
+            .copy(persistence = ActionPersistence.HIDE_ON_ACTION)
+            .readyToStore()
+        assertEquals(ActionPersistence.HIDE_ON_ACTION, stored.persistence)
+    }
+
+    @Test
+    fun `an icon override still needs a label, because it is read aloud`() {
+        // An icon with no name cannot be reached by a screen reader at all. This is
+        // the one slot where the label is spoken rather than drawn.
+        assertFalse(brandOverride(label = "").isComplete)
+        assertTrue(brandOverride().isComplete)
+    }
+
+    @Test
+    fun `the icon seat takes the scheme from the kind like any other button`() {
+        assertEquals("https://example.org/hofladen", brandOverride().toUri())
+    }
+
+    @Test
+    fun `the icon seat holds one row`() {
+        assertEquals(1, ActionLocation.TOPBAR_HOME_BRAND_ICON.maxActions)
+    }
+
     @Test
     fun `re-wording a question asks again`() {
         // The same rule as a reworded announcement, and it matters more here: a buyer

@@ -1299,6 +1299,7 @@
     <string name="fulfilment_city">Ort</string>
     <string name="fulfilment_note_hint">Hinweis (Klingel, Tor, …)</string>
     <string name="a11y_seller_actions">Weitere Angebote des Verkäufers</string>
+    <string name="a11y_home_brand_about">Bodenschätze — über die App</string>
     <string name="seller_actions_title">Eigene Schaltflächen</string>
     <string name="seller_actions_explain">Erscheinen im Kopfbereich der Kunden-App.</string>
     <string name="seller_actions_add">Schaltfläche hinzufügen</string>
@@ -1344,6 +1345,7 @@
     <!-- Nachrichtenfeld, das der Verkäufer in die Käufer-App einstellt -->
     <string name="seller_actions_location_home_input">Kopfbereich, Startseite (Nachrichtenfeld)</string>
     <string name="seller_actions_location_profile_input">Kopfbereich, Profil (Nachrichtenfeld)</string>
+    <string name="seller_actions_location_home_brand">Logo, Startseite (öffnet sonst „Über uns“)</string>
     <string name="seller_actions_prompt">Frage an die Kunden</string>
     <string name="seller_actions_prompt_explain">Ersetzt den Titel durch ein Eingabefeld. Antworten landen in den Wünschen.</string>
     <string name="quick_message_send">Senden</string>

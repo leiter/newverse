@@ -116,8 +116,15 @@ data class SellerUiAction(
         // claiming it will. Settled here rather than refused, because the seller never
         // chose it: the kind did, and an announcement whose picker was never shown
         // should not carry whatever the field happened to default to.
+        // The icon seat is excluded as well as the kinds that cannot be acted on: a
+        // tap there must not take an icon out of the top bar, and the seat has to stay
+        // for the stand-in basket to appear in. See [ActionLocation.isIconSeat].
         val storedPersistence =
-            if (storedKind.hasAction) persistence else ActionPersistence.UNTIL_CANCELLED
+            if (storedKind.hasAction && !location.isIconSeat) {
+                persistence
+            } else {
+                ActionPersistence.UNTIL_CANCELLED
+            }
         return copy(kind = storedKind, label = storedLabel, persistence = storedPersistence)
     }
 
@@ -325,21 +332,59 @@ enum class ActionLocation(
      * has a title the buyer is not acting on. A seller running both puts the
      * announcement on home and the wishbox on profile.
      */
-    TOPBAR_PROFILE_INPUT(ActionKind.QUICK_MESSAGE, maxActions = 1);
+    TOPBAR_PROFILE_INPUT(ActionKind.QUICK_MESSAGE, maxActions = 1),
+
+    /**
+     * The home top bar's brand icon — the seat the basket is held open in.
+     *
+     * Unlike every other slot, something is **always** in this one. The seat exists
+     * because the stand-in basket arrives exactly as the buyer reaches for the number
+     * pad, and a bar that shuffled sideways under their finger at that moment is the
+     * worst possible moment for it; so the width is spent either way. It held a blank
+     * spacer, and now holds the brand mark, which by default opens the About page.
+     *
+     * A published row here therefore does not *fill* the seat, it **overrides** what
+     * the seat already does. That makes it the one slot where nothing published means
+     * something is still shown, and it has two consequences the others do not have:
+     *
+     *  - **It is not a button slot.** It replaces one of the app's own icons rather
+     *    than adding a labelled button beside them, so [forLocation] returns nothing
+     *    for it and the renderer reads it through its own accessor.
+     *  - **It cannot be dismissed, and cannot hide on action.** A buyer tapping the
+     *    brand mark has not asked for the top bar to lose an icon, and the seat has to
+     *    stay for the basket to appear in. [SellerUiAction.readyToStore] forces
+     *    [ActionPersistence.UNTIL_CANCELLED] here and the rules refuse anything else.
+     *
+     * The `label` is still required, and here it is the icon's accessibility
+     * description — an icon with no name is unreachable by a screen reader, so this is
+     * the one slot where the label is read out rather than drawn.
+     */
+    TOPBAR_HOME_BRAND_ICON(ActionKind.OPEN_URL, maxActions = 1);
 
     /** Whether this slot renders a message box rather than a button or a title. */
     val isInput: Boolean get() = kind == ActionKind.QUICK_MESSAGE
 
     /**
+     * Whether this slot overrides one of the app's own icons rather than adding a row.
+     *
+     * The one slot that is occupied before any seller publishes anything, which is
+     * why it is asked about by name in three places: [isButtonSlot] excludes it,
+     * [SellerUiAction.readyToStore] will not let it hide on action, and the renderer
+     * draws the app's own default when nothing is published.
+     */
+    val isIconSeat: Boolean get() = this == TOPBAR_HOME_BRAND_ICON
+
+    /**
      * Whether this slot draws buttons, as opposed to replacing a title.
      *
-     * [forLocation] returns nothing for a slot where this is false, so a title or a
-     * message box cannot be rendered as a button even by a caller that asks for one.
+     * [forLocation] returns nothing for a slot where this is false, so a title, a
+     * message box or an icon override cannot be rendered as a button even by a caller
+     * that asks for one.
      * Convention used to carry that — the title slot was simply never passed to
      * `forLocation` — and a convention is one careless call site away from drawing an
      * announcement as a button nobody can tap.
      */
-    val isButtonSlot: Boolean get() = kind == ActionKind.OPEN_URL
+    val isButtonSlot: Boolean get() = kind == ActionKind.OPEN_URL && !isIconSeat
 
     companion object {
         /** The stored name, or null when written by a version that knows more slots. */
@@ -478,6 +523,21 @@ fun List<SellerUiAction>.announcementFor(
  * and a call site asking for a prompt should say so.
  */
 fun List<SellerUiAction>.promptFor(
+    location: ActionLocation,
+    isApproved: Boolean,
+    isDemo: Boolean,
+): SellerUiAction? = singleFor(location, isApproved, isDemo)
+
+/**
+ * The seller's override for a slot the app already fills, or null for the default.
+ *
+ * The same resolution as [announcementFor] and [promptFor] — all three slots hold
+ * exactly one row — under its own name, because this is the one whose null is not
+ * "nothing here": it means the app's own icon and the app's own action. A call site
+ * asking for an override should say so, and should be reading it to decide whether to
+ * replace a default rather than whether to draw anything at all.
+ */
+fun List<SellerUiAction>.overrideFor(
     location: ActionLocation,
     isApproved: Boolean,
     isDemo: Boolean,

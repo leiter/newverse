@@ -5,6 +5,7 @@ import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.SellerUiAction
 import com.together.newverse.domain.model.announcementFor
+import com.together.newverse.domain.model.overrideFor
 import com.together.newverse.domain.model.promptFor
 import com.together.newverse.domain.model.forLocation
 import com.together.newverse.domain.model.MarketPricing
@@ -409,6 +410,30 @@ data class BuyAppState(
                 isDemo = isDemoMode
             )
             ?.takeUnless { it.dismissalKey in dismissedRows }
+
+    /**
+     * What the seller has put in the home bar's brand-icon seat, or null for the
+     * app's own mark and the About page.
+     *
+     * Null is the ordinary case and is **not** "nothing to draw": the seat is occupied
+     * before any seller publishes anything, because it is the place the stand-in
+     * basket appears in and the width is spent whether the basket is there or not. So
+     * the renderer reads this to decide whether to replace a default, never whether to
+     * draw one — see [ActionLocation.TOPBAR_HOME_BRAND_ICON].
+     *
+     * Audience-filtered on the *loaded* status like every other slot, for the reason
+     * [topBarActionsFor] gives. Deliberately **not** filtered against
+     * [dismissedRows]: a buyer who taps the brand mark has not asked the top bar to
+     * lose an icon, and a seat that could empty would take the basket's place with it.
+     * `readyToStore` will not store a hide-on-action row here and the rules refuse
+     * one, so there is nothing for a dismissal to key on.
+     */
+    val homeBrandIconOverride: SellerUiAction?
+        get() = sellerUiActions.overrideFor(
+            location = ActionLocation.TOPBAR_HOME_BRAND_ICON,
+            isApproved = canContactSeller,
+            isDemo = isDemoMode
+        )
 
     /** What the top-bar menu offers, already deduplicated. */
     val topBarContacts: List<SellerContact>

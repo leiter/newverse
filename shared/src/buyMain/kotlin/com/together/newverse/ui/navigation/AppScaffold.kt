@@ -871,9 +871,37 @@ private fun AppScaffoldContent(
                                     onClick = { onNavigateToTab(NavRoutes.Buy.Basket.route) }
                                 )
                             } else {
-                                // One IconButton's worth, the size BuyerBasketAction
-                                // takes: the minimum touch target.
-                                Spacer(Modifier.width(48.dp))
+                                // One IconButton's worth either way, the size
+                                // BuyerBasketAction takes. It held a blank spacer of
+                                // that width; it now holds the brand mark, which opens
+                                // About — the one place that says whose shop this is
+                                // and how to reach them, and which the bar otherwise
+                                // offered no way to.
+                                //
+                                // The seller can point the tap somewhere else; null is
+                                // the ordinary case and means the app's own mark and
+                                // the app's own action. See
+                                // ActionLocation.TOPBAR_HOME_BRAND_ICON.
+                                HomeBrandAction(
+                                    override = appState.homeBrandIconOverride,
+                                    tint = topBarColors.content,
+                                    onOpenAbout = {
+                                        navController.navigate(NavRoutes.About.route) {
+                                            launchSingleTop = true
+                                        }
+                                    },
+                                    onOpenOverride = { action ->
+                                        actionUriHandler.openUri(action.toUri())
+                                        // Reported like every other published tap.
+                                        // Nothing hides on it — the seat has to stay
+                                        // for the basket to appear in — but the
+                                        // seller's own counting should not have a hole
+                                        // in it where this slot is.
+                                        viewModel.dispatch(
+                                            BuyUiAction.NotePublishedActionUsed(action)
+                                        )
+                                    }
+                                )
                             }
                         }
                     }

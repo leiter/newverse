@@ -297,6 +297,73 @@ describe("seller_ui_actions", () => {
     );
   });
 
+  // --- the brand-icon seat --------------------------------------------------
+
+  const brandOverride = (overrides = {}) => action({
+    id: "brand_1",
+    kind: "OPEN_URL",
+    label: "Hofladen",
+    value: "example.org/hofladen",
+    location: "TOPBAR_HOME_BRAND_ICON",
+    ...overrides
+  });
+
+  it("accepts an OPEN_URL row in the brand-icon seat", async () => {
+    await assertSucceeds(write(SELLER, "brand_1", brandOverride()));
+  });
+
+  it("refuses an announcement in the brand-icon seat", async () => {
+    // The seat is an icon with a tap, not a place to put a sentence.
+    await assertFails(
+      write(SELLER, "brand_1", brandOverride({ kind: "ANNOUNCE" }))
+    );
+  });
+
+  it("refuses a message box in the brand-icon seat", async () => {
+    await assertFails(
+      write(SELLER, "brand_1", brandOverride({ kind: "QUICK_MESSAGE" }))
+    );
+  });
+
+  it("refuses HIDE_ON_ACTION in the brand-icon seat", async () => {
+    // A buyer tapping the brand mark has not asked the top bar to lose an icon, and
+    // the seat has to stay for the stand-in basket to appear in. OPEN_URL may hide on
+    // action everywhere else, so this is the location's rule and not the kind's.
+    await assertFails(
+      write(SELLER, "brand_1", brandOverride({ persistence: "HIDE_ON_ACTION" }))
+    );
+  });
+
+  it("accepts HIDE_ON_ACTION on an ordinary button, so the guard did not widen", async () => {
+    await assertSucceeds(
+      write(SELLER, "act_2", action({ id: "act_2", persistence: "HIDE_ON_ACTION" }))
+    );
+  });
+
+  it("accepts UNTIL_CANCELLED in the brand-icon seat", async () => {
+    await assertSucceeds(
+      write(SELLER, "brand_1", brandOverride({ persistence: "UNTIL_CANCELLED" }))
+    );
+  });
+
+  it("still requires a label in the brand-icon seat", async () => {
+    // Here the label is the icon's accessibility description: an icon with no name
+    // cannot be reached by a screen reader at all.
+    await assertFails(write(SELLER, "brand_1", brandOverride({ label: "" })));
+  });
+
+  it("refuses a stored scheme in the brand-icon seat like any other button", async () => {
+    await assertFails(
+      write(SELLER, "brand_1", brandOverride({ value: "https://example.org" }))
+    );
+  });
+
+  it("refuses an unknown slot that looks like the seat", async () => {
+    await assertFails(
+      write(SELLER, "brand_1", brandOverride({ location: "TOPBAR_HOME_BRAND" }))
+    );
+  });
+
   it("still accepts a row with neither flag", async () => {
     // Both optional, like audience: rows written before the flags existed were active
     // and stayed until cancelled, and must remain valid.

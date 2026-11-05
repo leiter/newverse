@@ -2,7 +2,10 @@
 
 **Status:** Implemented 2026-10-21; two bugs found on first device use the same day
 and fixed — see **What went wrong first time**. The home-title announcement
-(`TOPBAR_HOME_TITLE`) was added 2026-10-25 and has not yet run on a device.
+(`TOPBAR_HOME_TITLE`) was added 2026-10-25 and the brand-icon seat
+(`TOPBAR_HOME_BRAND_ICON`) on 2026-11-05; **neither has run on a device**. The seat's
+*default* — the logo opening About — needs no seller configuration and is the part most
+worth looking at first.
 **See also:** `quick-message-wishbox.md` — the same mechanism with an answer coming
 back, which also adds the `active` and `persistence` flags to every published row.
 **Scope:** `shared/src/commonMain` (model + repository), `buyMain` (top-bar
@@ -104,8 +107,9 @@ Enforced in three places, deliberately:
 ## Where buttons appear
 
 `ActionLocation` names whole slots — `TOPBAR_HOME`, `TOPBAR_PROFILE`,
-`TOPBAR_HOME_TITLE`, which is not a button at all, and the two message-box slots
-`quick-message-wishbox.md` adds — rather than
+`TOPBAR_HOME_TITLE`, which is not a button at all, the two message-box slots
+`quick-message-wishbox.md` adds, and `TOPBAR_HOME_BRAND_ICON`, which is occupied
+before any seller publishes anything — rather than
 carrying a free-form surface and screen pair. A typo in `"topbar,profileScreen"`
 either renders nowhere and looks like data loss, or renders everywhere; an unknown
 enum name is skipped and the row is simply not shown. The enum→route mapping lives in
@@ -131,6 +135,70 @@ a message box as a button nobody can tap.)
 **The cap is enforced in the repository and the editor, not the rules** — RTDB cannot
 count children. `FakeSellerUiActionRepository` reproduces it for the same reason, so a
 test that expects a refusal gets one.
+
+## The brand icon: a slot that is already full
+
+**Built 2026-11-05.** `ActionLocation.TOPBAR_HOME_BRAND_ICON` is the home top bar's
+logo, and it is the one slot where *nothing published still shows something*.
+
+### Why there is a seat there at all
+
+The stand-in basket (`e8a37c5`) appears in the home bar only while the hero card's
+amount field has focus, because the number pad is then covering the basket tab. A
+button that arrives at that exact moment must not shift the bar sideways under the
+buyer's finger — so the seat is held open at one `IconButton`'s width whether the
+basket is in it or not.
+
+It held a blank 48dp `Spacer`: width spent on nothing, a hole in the bar where every
+other screen has an affordance. It now holds `AppLogoMark`, and tapping it opens
+**About** — where the app says whose shop this is and how to reach them, which is the
+question a brand mark invites and which the bar offered no way to.
+
+The seat is still the basket's. While the number pad is up, the basket takes the place
+back; being able to reach the basket at that moment is worth more than a logo. The
+crossfade between them is the one the seat already had.
+
+### So a published row here is an override, not a filling
+
+That single difference drives three others:
+
+- **It is not a button slot.** `ActionLocation.isIconSeat` is true, so `isButtonSlot`
+  is false and `forLocation` returns nothing for it. Drawn as a button *as well*, an
+  override would be two ways to the same place, one of them unlabelled.
+- **It is read through `BuyAppState.homeBrandIconOverride`**, whose null means "the
+  app's own mark and the app's own action" rather than "draw nothing". A call site
+  reading it to decide whether to draw anything has misread it.
+- **It cannot hide on action and is not dismissible.** `readyToStore` forces
+  `UNTIL_CANCELLED` here and the rules refuse anything else, and
+  `homeBrandIconOverride` deliberately does not filter against `dismissedRows`. A
+  buyer tapping the brand mark has not asked the top bar to lose an icon — and a seat
+  that could empty would take the stand-in basket's place with it. This is the
+  *location's* rule, not the kind's: an ordinary `OPEN_URL` button may still hide on
+  action, and a test pins that the guard did not widen.
+
+### The label is read aloud, not drawn
+
+This is the one slot whose `label` the buyer never sees. It becomes the icon's
+`contentDescription`, because an icon with no name cannot be reached by a screen
+reader at all — so the label stays required, and "Hofladen" is what tells a buyer
+where the tap goes before they take it.
+
+### The icon itself is not yet overridable
+
+Only the action and the name are. Nothing in `SellerUiAction` can name an image:
+`value` is a host-and-path with no scheme, and the record is deliberately an enum of
+behaviours the app already implements rather than a payload it has to trust — see
+*The scheme is never the seller's to choose*. Giving a seller the icon needs one of
+two things, and the choice is a product decision rather than a refactor:
+
+- **A named-icon vocabulary** — a `BrandIcon` enum the seller picks from, which keeps
+  the trust model exactly as it is but limits them to icons this app ships.
+- **An image URL** loaded through Coil, which would be the first piece of
+  seller-controlled *content* the top bar renders, and so the first place a compromised
+  seller account could put an arbitrary image inside the app's own chrome.
+
+Until then the mark stays the app's own. `HomeBrandAction` is where either would land,
+and it is the only place that draws it.
 
 ## Visibility: not gated on approval
 
@@ -417,7 +485,11 @@ what made this expensive to find.
   most three, so the failure mode is an ignored row rather than a broken top bar.
 - **Adding a slot** is an enum entry, a rules literal, a route branch in
   `AppScaffold`, and a display name — in that order, or the editor will offer a slot
-  the renderer drops. Done twice since, for the message box.
+  the renderer drops. Done three times since: the message box, and the brand-icon
+  seat. The exhaustive `when` in `UiActionListEditor.displayName()` is what catches a
+  forgotten display name at compile time, and it did again for the seat.
+- **The brand icon cannot be changed by the seller, only its action.** See *The icon
+  itself is not yet overridable* above for the two ways in and what each costs.
 
 ## Files
 
@@ -430,7 +502,8 @@ what made this expensive to find.
 | `buyMain/.../AppScaffold.kt` | Rendering and the enum→route mapping |
 | `sellMain/.../UiActionListEditor.kt` | The seller's editor |
 | `sellMain/.../SellerProfileViewModel.kt` | `uiActions`, `saveUiAction`, `deleteUiAction` |
-| `firebase/tests/seller-ui-actions.test.js` | 22 rule tests, mostly about `value` |
-| `commonTest/.../SellerUiActionTest.kt` | 22 model tests: schemes, slots, audiences |
+| `firebase/tests/seller-ui-actions.test.js` | 31 rule tests: mostly `value`, plus the seat's kind and persistence |
+| `buyMain/.../HomeBrandAction.kt` | The brand icon in the held seat, and the one place an icon override would land |
+| `commonTest/.../SellerUiActionTest.kt` | 63 model tests: schemes, slots, audiences, the icon seat |
 | `buyMain/.../BuyAppViewModelAccess.kt` | The live subscription, beside access status |
-| `testBuy/.../BuyAppViewModelUiActionsTest.kt` | 10 tests: the buttons reach the state, live, per audience |
+| `testBuy/.../BuyAppViewModelUiActionsTest.kt` | 24 tests: the buttons reach the state, live, per audience; the seat's default and override |

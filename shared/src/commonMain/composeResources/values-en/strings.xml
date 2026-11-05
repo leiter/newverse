@@ -1241,6 +1241,7 @@
     <string name="fulfilment_city">Town</string>
     <string name="fulfilment_note_hint">Note (doorbell, gate, …)</string>
     <string name="a11y_seller_actions">More from this seller</string>
+    <string name="a11y_home_brand_about">Bodenschätze — about this app</string>
     <string name="seller_actions_title">Your own buttons</string>
     <string name="seller_actions_explain">Shown in the top bar of the customer app.</string>
     <string name="seller_actions_add">Add a button</string>
@@ -1286,6 +1287,7 @@
     <!-- Message box the seller publishes into the buy app -->
     <string name="seller_actions_location_home_input">Top bar, home screen (message box)</string>
     <string name="seller_actions_location_profile_input">Top bar, profile (message box)</string>
+    <string name="seller_actions_location_home_brand">Logo, home screen (otherwise opens About)</string>
     <string name="seller_actions_prompt">Question for your customers</string>
     <string name="seller_actions_prompt_explain">Replaces the title with an input field. Answers arrive in your wishes.</string>
     <string name="quick_message_send">Send</string>
