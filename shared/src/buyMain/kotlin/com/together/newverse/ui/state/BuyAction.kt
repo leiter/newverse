@@ -253,7 +253,19 @@ sealed interface BuySellerAction : BuyAction {
     data class RejectPendingInvitation(val invitationId: String) : BuySellerAction
     data object ConfirmConnection : BuySellerAction
     data object DismissConnectionDialog : BuySellerAction
+    /**
+     * Tap on *Zugang anfragen*: open the sheet that composes the request.
+     *
+     * Opening rather than sending. The request carries a name and, optionally, a line
+     * the seller can recognise the buyer by, and asking for those is the request —
+     * not a precondition checked before one can be made.
+     */
     data object RequestAccess : BuySellerAction
+    data class UpdateAccessRequestName(val name: String) : BuySellerAction
+    data class UpdateAccessRequestNote(val note: String) : BuySellerAction
+    /** Send it, or redeem the invite token the sheet is standing in front of. */
+    data object SubmitAccessRequest : BuySellerAction
+    data object DismissAccessRequest : BuySellerAction
     data object DismissProfileIncompleteDialog : BuySellerAction
     data object RetryPendingConnection : BuySellerAction
 

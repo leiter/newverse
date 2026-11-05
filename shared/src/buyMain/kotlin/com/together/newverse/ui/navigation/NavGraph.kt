@@ -142,6 +142,7 @@ fun NavGraph(
                 connectedSellerDisplayName = appState.connectedSellerDisplayName,
                 isDemoMode = appState.isDemoMode,
                 missingProfileData = appState.missingProfileData,
+                accessRequestDraft = appState.accessRequestDraft,
                 accessStatus = appState.accessStatus,
                 sellerContacts = appState.sellerContacts.sellerContacts.filter { it.isUsable },
                 buyerId = appState.customerProfile.profile?.id ?: "",

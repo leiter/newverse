@@ -277,7 +277,11 @@
         "$buyerUid": {
           ".read": "auth != null && $buyerUid === auth.uid",
           ".write": "auth != null && $buyerUid === auth.uid && root.child('buyer_access_status').child($sellerId).child($buyerUid).child('status').val() !== 'BLOCKED'",
-          "marketId": { ".validate": "newData.isString() && (newData.val() === '' || root.child('markets').child($sellerId).child(newData.val()).exists())" }
+          "marketId": { ".validate": "newData.isString() && (newData.val() === '' || root.child('markets').child($sellerId).child(newData.val()).exists())" },
+          "displayName": { ".validate": "newData.isString() && newData.val().length < 100" },
+          "note": { ".validate": "newData.isString() && newData.val().length <= 280" },
+          "requestedAt": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
         }
       }
     },

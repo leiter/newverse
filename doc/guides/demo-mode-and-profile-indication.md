@@ -21,31 +21,49 @@ directions:
    The `access_status_approved` string already reads "Produktionsmodus aktiv",
    so the Access card on the profile page is *already* a mode indicator.
 
-2. **Complete profile data is the precondition for leaving demo mode.**
-   - `BuyAppViewModelAccess.kt:115` — `requestAccess()` calls
-     `checkProfileCompleteness()` first and returns without sending anything if
-     fields are missing, raising `showProfileIncompleteDialog` (all missing) or a
-     missing-fields snackbar (some missing).
-   - `BuyAppViewModelAccess.kt:229` — `connectWithToken()` parks the seller's
-     token in `pendingConnectToken` and raises the same dialog. Even a buyer the
-     seller has already authorised by QR code stays in demo mode until their own
-     profile is filled in.
+2. **The access request asks for what it needs; the profile is not a gate.**
+   *(Rewritten 2026-11-05. What this section described — a profile-completeness
+   precondition in front of `requestAccess()` — no longer exists.)*
 
-   Required fields (`MissingProfileData`): display name and default pickup time.
+   Tapping *Zugang anfragen* opens `AccessRequestSheet`, which collects the two
+   things the seller's approve/block decision rests on:
 
-   **The delivery address is not among them** (changed 2026-11-05). It used to be
-   — street and house number, unless `isSelfPickup` — which asked every buyer for
-   an address in order to serve the few wanting delivery, and blocked the ones who
-   only ever meant to collect, since `isSelfPickup` defaults to `false`. The address
-   is now required at the point it is used: placing or editing a *delivery* order,
-   gated by `DeliveryAddress.isComplete` and enforced by `refuseImpossibleDelivery()`
-   in `BuyAppViewModelBasket.kt`. The profile still holds one — an order seeds its
-   snapshot from it and can save a new one back — but an empty one costs the buyer
-   nothing until they ask to be delivered to.
+   | Field | Required | Why |
+   |-------|----------|-----|
+   | Name | yes | A request from nobody cannot be answered. Pre-filled from the profile. |
+   | Note — *"Woher kennen wir dich?"* | no | `AccessRequest.note`. The seller's list used to show a display name and a raw UUID; a line in the buyer's own words is what turns that into a person they can place. |
 
-So profile data is not merely *nicer to have* in demo mode; it is the gate. Any
-rule that hides the requirement while in demo mode hides it in precisely the
-state where it blocks the buyer.
+   On submit the name is also kept in the profile, so the sheet is pre-filled next
+   time and the seller's customer list agrees with the request they approved. That
+   write is best-effort: the name travels on the request itself, so a failed profile
+   save costs a pre-filled field, not the ask.
+
+   A buyer arriving by **QR link** goes through the same sheet. The token proves the
+   seller authorised them, so there is nothing to qualify for — but the access record
+   still carries a name, so one is asked for, the token is held in
+   `AccessRequestDraft.pendingToken`, and submitting redeems it instead of sending a
+   request. This replaces the old park-in-`pendingConnectToken`-and-raise-a-dialog
+   path. `connectWithToken` takes the name as an argument for exactly this reason:
+   re-reading it from the profile would reopen the sheet whenever the profile write
+   had not taken, which is a loop.
+
+   **What is no longer required for access:** the delivery address (moved
+   2026-11-05 to the point of placing or editing a *delivery* order, gated by
+   `DeliveryAddress.isComplete` and enforced by `refuseImpossibleDelivery()`), and
+   the profile-completeness check in front of the request. `MissingProfileData` is
+   down to the default pickup time, which now **gates nothing** — the next step moves
+   it to checkout, after which the type goes away.
+
+   The **"Profil unvollständig" banner is switched off** (commented out in
+   `CustomerProfileScreenModern.kt`) because it now warns about nothing: there is no
+   gate behind it. The text that used to sit next to the *Zugang anfragen* button
+   saying what the request "still needs" is gone for the same reason — the sheet asks
+   for it, and a missing name is raised there.
+
+   Note (`note` is buyer-written text in a seller-readable node) is capped at 280
+   characters by `database.rules.json`, which also rejects unknown fields on a
+   request. Tests: `firebase/tests/access.test.js`,
+   `BuyAppViewModelAccessRequestSheetTest`.
 
 ---
 

@@ -789,6 +789,19 @@
     <string name="access_requests_block_title">Käufer blockieren?</string>
     <string name="access_requests_block_message">Dieser Käufer wird dauerhaft blockiert und kann keine Anfragen mehr senden.</string>
 
+    <!-- Access Request (Buyer composes it) -->
+    <string name="access_request_sheet_title">Zugang anfragen</string>
+    <string name="access_request_sheet_intro">Der Verkäufer sieht diese Angaben, um dich freizugeben.</string>
+    <string name="access_request_name_label">Name</string>
+    <string name="access_request_name_required">Bitte gib einen Namen an</string>
+    <string name="access_request_note_label">Woher kennen wir dich? (optional)</string>
+    <string name="access_request_note_hint">z. B. „war Donnerstag am Stand, hab nach Kartoffeln gefragt“</string>
+    <string name="access_request_send">Anfrage senden</string>
+    <string name="access_request_cancel">Abbrechen</string>
+    <string name="access_requests_note_label">Notiz des Käufers</string>
+    <string name="access_requests_market_label">Markt: %1$s</string>
+    <string name="access_requests_market_any">Markt: überall</string>
+
     <!-- Relative Time -->
     <string name="time_just_now">gerade eben</string>
     <string name="time_minutes_ago">vor %1$d Min.</string>
@@ -815,7 +828,6 @@
     <string name="missing_fields_list">Fehlende Angaben: %1$s</string>
     <string name="profile_incomplete_fill_now">Jetzt ausfüllen</string>
     <!-- Precondition shown above the access request button: %1$s = missing fields -->
-    <string name="access_requires_profile">Für die Anfrage fehlen noch: %1$s</string>
 
     <!-- ========================================= -->
     <!-- APP INITIALIZATION STEPS -->

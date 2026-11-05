@@ -736,6 +736,19 @@
     <string name="access_requests_block_title">Block buyer?</string>
     <string name="access_requests_block_message">This buyer will be permanently blocked and cannot send requests anymore.</string>
 
+    <!-- Access Request (Buyer composes it) -->
+    <string name="access_request_sheet_title">Request access</string>
+    <string name="access_request_sheet_intro">The seller sees this to decide whether to approve you.</string>
+    <string name="access_request_name_label">Name</string>
+    <string name="access_request_name_required">Please give a name</string>
+    <string name="access_request_note_label">How do we know you? (optional)</string>
+    <string name="access_request_note_hint">e.g. “was at the Thursday stall, asked about potatoes”</string>
+    <string name="access_request_send">Send request</string>
+    <string name="access_request_cancel">Cancel</string>
+    <string name="access_requests_note_label">Buyer's note</string>
+    <string name="access_requests_market_label">Market: %1$s</string>
+    <string name="access_requests_market_any">Market: anywhere</string>
+
     <!-- Relative Time -->
     <string name="time_just_now">just now</string>
     <string name="time_minutes_ago">%1$d min ago</string>
@@ -762,7 +775,6 @@
     <string name="missing_fields_list">Missing: %1$s</string>
     <string name="profile_incomplete_fill_now">Fill in now</string>
     <!-- Precondition shown above the access request button: %1$s = missing fields -->
-    <string name="access_requires_profile">Still needed for the request: %1$s</string>
 
     <!-- ========================================= -->
     <!-- APP INITIALIZATION STEPS -->

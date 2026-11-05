@@ -54,6 +54,7 @@ import newverse.shared.generated.resources.eligibility_summary_all
 import newverse.shared.generated.resources.*
 import androidx.compose.material3.HorizontalDivider
 import com.together.newverse.domain.model.MarketClosure
+import com.together.newverse.util.formatString
 import com.together.newverse.domain.model.SellerContact
 import com.together.newverse.domain.model.SellerUiAction
 import org.jetbrains.compose.resources.stringResource
@@ -380,6 +381,11 @@ fun SellerProfileScreen(
                     // Access Requests Card
                     AccessRequestsCard(
                         requests = accessRequests,
+                        // Named, not shown as an id: the request asks to collect at a
+                        // particular stall and approving it grants that stall, so the
+                        // seller should be able to read which.
+                        marketNames = (profile?.markets ?: emptyList())
+                            .associate { it.id to it.name },
                         expanded = accessExpanded,
                         onExpandedChange = { accessChoice = it },
                         onApprove = onApproveRequest,
@@ -1247,6 +1253,8 @@ private fun formatRelativeTime(epochMillis: Long): String {
 @Composable
 private fun AccessRequestsCard(
     requests: List<AccessRequest>,
+    /** Market id to display name, for naming the stall a request asks about. */
+    marketNames: Map<String, String>,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onApprove: (String) -> Unit,
@@ -1270,6 +1278,17 @@ private fun AccessRequestsCard(
             requests.forEach { request ->
                 val requesterName = request.buyerDisplayName.ifEmpty { stringResource(Res.string.access_requests_anonymous) }
                 val requestedAgo = if (request.requestedAt > 0) formatRelativeTime(request.requestedAt) else null
+                // An empty marketId means "anywhere" — a single-market seller, or a
+                // buyer who deferred the question. An id with no market behind it any
+                // more falls back to the id, which is at least traceable.
+                val marketLine = if (request.marketId.isEmpty()) {
+                    stringResource(Res.string.access_requests_market_any)
+                } else {
+                    formatString(
+                        stringResource(Res.string.access_requests_market_label),
+                        marketNames[request.marketId] ?: request.marketId
+                    )
+                }
                 OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier
@@ -1277,12 +1296,39 @@ private fun AccessRequestsCard(
                             // Merge name + "requested X ago"; the raw UUID stays visible
                             // but is read out separately only on demand.
                             .semantics(mergeDescendants = true) {
-                                contentDescription = listOfNotNull(requesterName, requestedAgo).joinToString(", ")
+                                contentDescription = listOfNotNull(
+                                    requesterName,
+                                    request.note.ifEmpty { null },
+                                    marketLine,
+                                    requestedAgo
+                                ).joinToString(", ")
                             }
                     ) {
                         Text(
                             text = requesterName,
                             style = MaterialTheme.typography.bodyMedium
+                        )
+                        // The buyer's own words, and the heart of this card: a
+                        // display name and a UUID are not a person the seller can
+                        // recognise, and recognising them is the whole decision.
+                        if (request.note.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(Res.string.access_requests_note_label),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = request.note,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        Text(
+                            text = marketLine,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = request.buyerId,

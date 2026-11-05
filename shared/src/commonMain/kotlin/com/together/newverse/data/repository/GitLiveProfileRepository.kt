@@ -787,7 +787,8 @@ class GitLiveProfileRepository(
     override suspend fun submitAccessRequest(
         sellerId: String,
         displayName: String,
-        marketId: String
+        marketId: String,
+        note: String
     ): Result<Unit> {
         return try {
             val uid = authRepository.getCurrentUserId()
@@ -801,6 +802,10 @@ class GitLiveProfileRepository(
                     // request grants this market, so the seller answers the
                     // question that was asked rather than inventing a scope.
                     "marketId" to marketId,
+                    // Trimmed and bounded here as well as in the rules: the rules
+                    // reject an over-long note outright, which would fail the whole
+                    // request rather than the field the buyer could fix.
+                    "note" to note.trim().take(280),
                     "requestedAt" to now
                 )
             )
@@ -964,6 +969,7 @@ class GitLiveProfileRepository(
                     // Absent on requests made before they carried a market, which
                     // asked to order anywhere — and still do.
                     marketId = data["marketId"] as? String ?: "",
+                    note = data["note"] as? String ?: "",
                     requestedAt = (data["requestedAt"] as? Number)?.toLong() ?: 0L
                 )
             }

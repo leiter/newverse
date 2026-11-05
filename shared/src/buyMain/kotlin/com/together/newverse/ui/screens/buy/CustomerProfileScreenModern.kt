@@ -98,6 +98,8 @@ import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
 import com.together.newverse.domain.model.MissingProfileData
+import com.together.newverse.ui.screens.buy.components.AccessRequestSheet
+import com.together.newverse.ui.state.AccessRequestDraft
 import com.together.newverse.ui.screens.buy.components.ConnectionConfirmDialog
 import com.together.newverse.ui.components.ChangePasswordDialog
 import com.together.newverse.ui.screens.buy.components.DeleteAccountDialog
@@ -168,7 +170,6 @@ import newverse.shared.generated.resources.pickup_time_outside_hours
 import newverse.shared.generated.resources.pickup_time_unset
 import newverse.shared.generated.resources.pickup_time_unset_hint
 import newverse.shared.generated.resources.profile_incomplete_dialog_message
-import newverse.shared.generated.resources.access_requires_profile
 import newverse.shared.generated.resources.label_name
 import newverse.shared.generated.resources.missing_fields_list
 import newverse.shared.generated.resources.mode_demo
@@ -235,6 +236,8 @@ fun CustomerProfileScreenModern(
     connectedSellerDisplayName: String = "",
     isDemoMode: Boolean = true,
     missingProfileData: MissingProfileData = MissingProfileData(),
+    /** Non-null while the buyer is composing an access request. */
+    accessRequestDraft: AccessRequestDraft? = null,
     accessStatus: AccessStatus = AccessStatus.NONE,
     sellerContacts: List<SellerContact> = emptyList(),
     buyerId: String = "",
@@ -363,6 +366,19 @@ fun CustomerProfileScreenModern(
         )
     }
 
+    // Asking for access: the request is composed here, in a sheet of its own, rather
+    // than gated behind a complete profile. See AccessRequestSheet.
+    if (accessRequestDraft != null) {
+        AccessRequestSheet(
+            draft = accessRequestDraft,
+            isSubmitting = isRequestingAccess,
+            onNameChange = { onAction(BuySellerAction.UpdateAccessRequestName(it)) },
+            onNoteChange = { onAction(BuySellerAction.UpdateAccessRequestNote(it)) },
+            onSubmit = { onAction(BuySellerAction.SubmitAccessRequest) },
+            onDismiss = { onAction(BuySellerAction.DismissAccessRequest) }
+        )
+    }
+
     // Profile Incomplete Dialog
     if (showProfileIncompleteDialog) {
         AlertDialog(
@@ -438,29 +454,40 @@ fun CustomerProfileScreenModern(
                         .padding(bottom = if (isEditing) 80.dp else 0.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    // Required data the buyer still has to supply. It sits at the
-                    // top of this page rather than on the home screen: it is their
-                    // task, and this is where the fields are.
-                    if (!missingProfileData.isComplete) {
-                        ProfileIncompleteNotice(
-                            missing = missingProfileData,
-                            expanded = isIncompleteNoticeExpanded,
-                            onToggleExpanded = {
-                                isIncompleteNoticeExpanded = !isIncompleteNoticeExpanded
-                            },
-                            onFillInClick = {
-                                coroutineScope.launch {
-                                    profileViewModel.startEditing()
-                                    val target = scrollState.value +
-                                        (personalInfoTop - scrollContentTop)
-                                    scrollState.animateScrollTo(
-                                        target.roundToInt()
-                                            .coerceIn(0, scrollState.maxValue)
-                                    )
-                                }
-                            }
-                        )
-                    }
+                    // The "Profil unvollständig" banner, switched off.
+                    //
+                    // It warned against a standard the buyer never agreed to, and now
+                    // warns against nothing at all: the access request asks for its own
+                    // name in its own sheet, and the delivery address is asked for at
+                    // the delivery. What is left in `missingProfileData` is the default
+                    // pickup time, which gates nothing — so the banner had become a nag
+                    // with no consequence behind it.
+                    //
+                    // Commented rather than deleted: `ProfileIncompleteNotice` and
+                    // `missingProfileData` still work, and the next step moves the
+                    // pickup time to checkout, after which there is nothing for this to
+                    // say and it can go for good.
+                    //
+                    // if (!missingProfileData.isComplete) {
+                    //     ProfileIncompleteNotice(
+                    //         missing = missingProfileData,
+                    //         expanded = isIncompleteNoticeExpanded,
+                    //         onToggleExpanded = {
+                    //             isIncompleteNoticeExpanded = !isIncompleteNoticeExpanded
+                    //         },
+                    //         onFillInClick = {
+                    //             coroutineScope.launch {
+                    //                 profileViewModel.startEditing()
+                    //                 val target = scrollState.value +
+                    //                     (personalInfoTop - scrollContentTop)
+                    //                 scrollState.animateScrollTo(
+                    //                     target.roundToInt()
+                    //                         .coerceIn(0, scrollState.maxValue)
+                    //                 )
+                    //             }
+                    //         }
+                    //     )
+                    // }
 
                     // Profile Header Card
                     ProfileHeaderCard(
@@ -2017,20 +2044,12 @@ private fun AccessStatusCard(
                 }
             }
 
-            // The access gate in requestAccess() refuses while profile data is
-            // missing, so the requirement is stated here, next to the button it
-            // blocks, instead of only after the buyer has tapped it.
-            if (accessStatus == AccessStatus.NONE && !missingProfileData.isComplete) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = formatString(
-                        stringResource(Res.string.access_requires_profile),
-                        missingFieldsText(missingProfileData)
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = contentColor
-                )
-            }
+            // Nothing stated here any more about profile data the request "still
+            // needs". It does not need any: tapping the button opens a sheet that asks
+            // for the name and the optional note the seller's decision actually rests
+            // on, and that sheet is where a missing name is raised. Telling the buyer
+            // in advance what a form will ask them was only ever necessary because the
+            // form was somewhere else.
             if (accessStatus != AccessStatus.APPROVED) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(

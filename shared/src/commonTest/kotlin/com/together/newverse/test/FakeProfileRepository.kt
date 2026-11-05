@@ -210,6 +210,9 @@ class FakeProfileRepository : ProfileRepository {
         _accessRequests.value = requests
     }
 
+    /** Every request submitted so far, for asserting what the seller would see. */
+    val accessRequests: List<AccessRequest> get() = _accessRequests.value
+
     private fun putAccess(sellerId: String, access: BuyerAccess) {
         _buyers.update { all ->
             all + (sellerId to (all[sellerId].orEmpty() + (access.buyerId to access)))
@@ -235,12 +238,20 @@ class FakeProfileRepository : ProfileRepository {
     override suspend fun submitAccessRequest(
         sellerId: String,
         displayName: String,
-        marketId: String
+        marketId: String,
+        note: String
     ): Result<Unit> {
         lastRequestedMarketId = marketId
         putAccess(sellerId, BuyerAccess(currentBuyerId, displayName, AccessStatus.PENDING, updatedAt = 1L))
         _accessRequests.update { requests ->
-            requests + AccessRequest(sellerId, currentBuyerId, displayName, marketId, requestedAt = 1L)
+            requests + AccessRequest(
+                sellerId = sellerId,
+                buyerId = currentBuyerId,
+                buyerDisplayName = displayName,
+                marketId = marketId,
+                note = note,
+                requestedAt = 1L
+            )
         }
         return Result.success(Unit)
     }

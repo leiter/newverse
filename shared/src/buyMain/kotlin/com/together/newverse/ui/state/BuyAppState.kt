@@ -48,6 +48,16 @@ data class BuyAppState(
     val accessStatus: AccessStatus = AccessStatus.NONE,
     val isAccessStatusLoaded: Boolean = false,
     val isRequestingAccess: Boolean = false,
+    /**
+     * The access request the buyer is composing, or null when the sheet is closed.
+     *
+     * The request *is* the identity step, so it collects what the seller needs to
+     * answer it and nothing else — see [AccessRequestDraft]. Before this, tapping
+     * *Zugang anfragen* with an incomplete profile raised a dialog that sent the buyer
+     * off to a profile form to satisfy a gate, which is a different thing from asking
+     * them a question.
+     */
+    val accessRequestDraft: AccessRequestDraft? = null,
     val sellerContacts: SellerContactDirectory = SellerContactDirectory(),
     /** The seller's active markets, as the buy app last read them. */
     val sellerMarkets: List<Market> = emptyList(),
@@ -479,10 +489,39 @@ fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
     navigateToBasketAsTopLevel = false,
     triggerScrollToAccessInProfile = false,
     showProfileIncompleteDialog = false,
+    accessRequestDraft = null,
     showMarketPicker = false,
     marketChoiceDeferred = false,
     pendingConnectToken = null
 )
+
+/**
+ * What the buyer is about to send a seller when asking for access.
+ *
+ * Two fields, because the seller's decision needs exactly two things: who is this, and
+ * why should I recognise them. [name] is pre-filled from the profile when there is one
+ * and is the only requirement; [note] is optional and is what actually makes the
+ * request answerable (see `AccessRequest.note`).
+ *
+ * [nameError] is set on submit rather than while typing: telling someone their name is
+ * missing before they have had a chance to type it is nagging, not validating.
+ */
+data class AccessRequestDraft(
+    val name: String = "",
+    val note: String = "",
+    val nameError: Boolean = false,
+    /**
+     * The invite token this sheet is standing in front of, if any.
+     *
+     * A buyer arriving by QR link is already authorised, but the access record still
+     * carries a name, so they are asked for one the same way — and on submit the token
+     * is redeemed instead of a request being sent. Holding it here replaces the old
+     * park-the-token-and-raise-a-dialog dance.
+     */
+    val pendingToken: Pair<String, String>? = null,
+) {
+    val canSubmit: Boolean get() = name.isNotBlank()
+}
 
 /**
  * Data for the connection confirmation dialog.

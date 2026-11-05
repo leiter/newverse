@@ -2,8 +2,9 @@ package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
 import com.together.newverse.domain.model.AccessStatus
-import com.together.newverse.domain.model.MissingProfileData
+import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.OrderOrigin
+import com.together.newverse.ui.state.AccessRequestDraft
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.SnackbarType
 import kotlin.uuid.ExperimentalUuidApi
@@ -15,23 +16,6 @@ import com.together.newverse.util.Log
 
 
 private const val TAG = "BuyVMAccess"
-
-/**
- * The buyer's missing profile fields, read from state so the gate below and the
- * badge/prompts in the UI can never disagree.
- */
-internal fun BuyAppViewModel.checkProfileCompleteness(): MissingProfileData =
-    _state.value.missingProfileData
-
-/**
- * Build a user-facing message listing which fields are still missing.
- */
-internal fun buildMissingFieldsMessage(missing: MissingProfileData): String {
-    val fields = mutableListOf<String>()
-    if (missing.name) fields.add("Name")
-    if (missing.pickupTime) fields.add("Abholzeit")
-    return "Fehlende Angaben: ${fields.joinToString(", ")}"
-}
 
 /**
  * Access request extension functions for BuyAppViewModel.
@@ -112,62 +96,168 @@ internal fun BuyAppViewModel.startObservingAccessStatus() {
 }
 
 /**
- * Request access from the connected seller.
- * The request is keyed by the buyer's auth uid, so there is no identifier to mint.
+ * Open the sheet that composes an access request.
+ *
+ * The request is the identity step, so this is where the buyer is asked who they are —
+ * not before, on a profile form, as the price of being allowed to ask. The name is
+ * pre-filled from the profile when there is one, which makes the common case a glance
+ * and a tap.
+ *
+ * [pendingToken] is set when a QR link brought the buyer here: they are already
+ * authorised, but the access record still carries a name, so they are asked the same
+ * question and submitting redeems the token instead of sending a request.
  */
-@OptIn(ExperimentalUuidApi::class)
-internal fun BuyAppViewModel.requestAccess() {
+internal fun BuyAppViewModel.openAccessRequestSheet(
+    pendingToken: Pair<String, String>? = null
+) {
     val sellerId = sellerConfig.sellerId
-    if (sellerId.isEmpty()) {
+    if (sellerId.isEmpty() && pendingToken == null) {
         viewModelScope.launch {
             showSnackBar("Bitte zuerst mit einem Verkäufer verbinden", SnackbarType.ERROR)
         }
         return
     }
+    _state.update { current ->
+        current.copy(
+            accessRequestDraft = AccessRequestDraft(
+                name = current.customerProfile.profile?.displayName.orEmpty(),
+                pendingToken = pendingToken
+            )
+        )
+    }
+}
 
-    // Check profile completeness before requesting access
-    val missing = checkProfileCompleteness()
-    if (!missing.isComplete) {
-        if (missing.allMissing) {
-            _state.update { it.copy(showProfileIncompleteDialog = true) }
-        } else {
-            viewModelScope.launch {
-                showSnackBar(buildMissingFieldsMessage(missing), SnackbarType.WARNING)
-            }
-        }
-        _state.update { it.copy(isRequestingAccess = false) }
+internal fun BuyAppViewModel.updateAccessRequestName(name: String) {
+    _state.update { current ->
+        current.accessRequestDraft?.let {
+            // The error clears as soon as there is something in the field: it was
+            // raised by a submit, and it is answered by typing.
+            current.copy(accessRequestDraft = it.copy(name = name, nameError = false))
+        } ?: current
+    }
+}
+
+internal fun BuyAppViewModel.updateAccessRequestNote(note: String) {
+    _state.update { current ->
+        current.accessRequestDraft?.let {
+            current.copy(accessRequestDraft = it.copy(note = note))
+        } ?: current
+    }
+}
+
+internal fun BuyAppViewModel.dismissAccessRequestSheet() {
+    _state.update { it.copy(accessRequestDraft = null, isRequestingAccess = false) }
+}
+
+/**
+ * Send the composed request, or redeem the token it stands in front of.
+ *
+ * The name is kept in the profile on the way through, so it becomes the default for
+ * the next time and the seller's own customer list agrees with the request they just
+ * approved. That is the only profile write this does — the buyer typed a name to
+ * identify themselves, not to fill in a form.
+ */
+internal fun BuyAppViewModel.submitAccessRequestDraft() {
+    val draft = _state.value.accessRequestDraft ?: return
+    val name = draft.name.trim()
+    if (name.isEmpty()) {
+        _state.update { it.copy(accessRequestDraft = draft.copy(nameError = true)) }
         return
     }
 
-    _state.update { it.copy(isRequestingAccess = true) }
+    _state.update {
+        it.copy(isRequestingAccess = true, accessRequestDraft = draft.copy(name = name))
+    }
 
     viewModelScope.launch {
-        try {
-            val displayName = _state.value.customerProfile.profile?.displayName
-                ?.takeIf { it.isNotBlank() } ?: "Guest"
+        persistAccessRequestName(name)
 
-            // The request names the stall the buyer wants to collect at, so the seller
-            // approves that rather than guessing. `contextualMarketId` resolves to the
-            // market they stated during onboarding (`chooseDefaultMarket`), which is
-            // the point of asking: this field used to be filled in as a side effect of
-            // opening the slot picker. Still empty for a single-market seller, and for
-            // a buyer who deferred the question — both of which mean "anywhere".
-            val marketId = _state.value.contextualMarketId.orEmpty()
-
-            profileRepository.submitAccessRequest(sellerId, displayName, marketId)
-                .onSuccess {
-                    _state.update { it.copy(isRequestingAccess = false) }
-                    startObservingAccessStatus()
-                    showSnackBar("Zugangsanfrage gesendet", SnackbarType.SUCCESS)
-                }
-                .onFailure { e ->
-                    _state.update { it.copy(isRequestingAccess = false) }
-                    showSnackBar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
-                }
-        } catch (e: Exception) {
-            _state.update { it.copy(isRequestingAccess = false) }
-            showSnackBar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
+        val token = draft.pendingToken
+        if (token != null) {
+            _state.update { it.copy(accessRequestDraft = null) }
+            // The name goes with it. Re-reading it from the profile would reopen this
+            // very sheet whenever the profile write above did not take — no profile
+            // yet, or a failed save — and reopening it from the submit is a loop.
+            connectWithToken(token.first, token.second, displayName = name)
+            return@launch
         }
+        requestAccess(name, draft.note)
+    }
+}
+
+/**
+ * Keep the name the buyer just gave, so it is the default next time.
+ *
+ * Best-effort on purpose: a profile write that fails must not stop the request going
+ * out. The name travels on the request itself, so the seller sees it either way —
+ * losing it from the profile costs a pre-filled field, not the ask.
+ */
+private suspend fun BuyAppViewModel.persistAccessRequestName(name: String) {
+    val existing = _state.value.customerProfile.profile
+    if (existing?.displayName == name) return
+    // A buyer who has never had a profile is the common case here, not an edge: the
+    // whole point is that nothing made them fill one in first. Their name still
+    // deserves keeping, so one is started from it.
+    val profile = existing ?: BuyerProfile(
+        id = authRepository.getCurrentUserId().orEmpty(),
+        displayName = name,
+        emailAddress = ""
+    )
+    runCatching { profileRepository.saveBuyerProfile(profile.copy(displayName = name)) }
+        .onSuccess { saved ->
+            saved.getOrNull()?.let { updated ->
+                _state.update {
+                    it.copy(customerProfile = it.customerProfile.copy(profile = updated))
+                }
+            }
+            Log.d(TAG) { "persistAccessRequestName: display name kept as the default" }
+        }
+        .onFailure { e ->
+            Log.w(TAG) { "persistAccessRequestName: not saved - ${e.message}" }
+        }
+}
+
+/**
+ * Write the access request. The request is keyed by the buyer's auth uid, so there is
+ * no identifier to mint.
+ *
+ * No profile gate in front of it any more: what the seller needs to answer the request
+ * is [displayName] and [note], and both arrive here from the sheet that asked for
+ * them. The profile is a source of defaults, not a checklist standing in the way.
+ */
+@OptIn(ExperimentalUuidApi::class)
+internal suspend fun BuyAppViewModel.requestAccess(displayName: String, note: String) {
+    val sellerId = sellerConfig.sellerId
+    if (sellerId.isEmpty()) {
+        _state.update { it.copy(isRequestingAccess = false, accessRequestDraft = null) }
+        showSnackBar("Bitte zuerst mit einem Verkäufer verbinden", SnackbarType.ERROR)
+        return
+    }
+
+    try {
+        // The request names the stall the buyer wants to collect at, so the seller
+        // approves that rather than guessing. `contextualMarketId` resolves to the
+        // market they stated during onboarding (`chooseDefaultMarket`), which is
+        // the point of asking: this field used to be filled in as a side effect of
+        // opening the slot picker. Still empty for a single-market seller, and for
+        // a buyer who deferred the question — both of which mean "anywhere".
+        val marketId = _state.value.contextualMarketId.orEmpty()
+
+        profileRepository.submitAccessRequest(sellerId, displayName, marketId, note)
+            .onSuccess {
+                _state.update { it.copy(isRequestingAccess = false, accessRequestDraft = null) }
+                startObservingAccessStatus()
+                showSnackBar("Zugangsanfrage gesendet", SnackbarType.SUCCESS)
+            }
+            .onFailure { e ->
+                // The sheet stays open: the buyer wrote something, and a failed send
+                // must not throw it away.
+                _state.update { it.copy(isRequestingAccess = false) }
+                showSnackBar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
+            }
+    } catch (e: Exception) {
+        _state.update { it.copy(isRequestingAccess = false) }
+        showSnackBar("Zugangsanfrage fehlgeschlagen: ${e.message}", SnackbarType.ERROR)
     }
 }
 
@@ -351,18 +441,30 @@ internal fun BuyAppViewModel.applyPreApprovedAccess(token: String) {
  * verify against the token's redeemedBy. If the token is already spent, expired or
  * unknown, redemption fails and the buyer falls back to a normal access request.
  */
-internal fun BuyAppViewModel.connectWithToken(sellerId: String, token: String) {
+internal fun BuyAppViewModel.connectWithToken(
+    sellerId: String,
+    token: String,
+    /**
+     * The name to redeem under, when the caller already has it.
+     *
+     * Null means "look it up", which is the deep-link entry point. Non-null means the
+     * sheet has just asked for it and is handing it over — and that distinction is
+     * what stops the ask from repeating: the submit path never re-reads a profile that
+     * may not have been written yet.
+     */
+    displayName: String? = null,
+) {
     if (sellerId.isEmpty() || token.isEmpty()) return
 
-    val missing = checkProfileCompleteness()
-    if (!missing.isComplete) {
-        // Hold the token so redemption can be retried once the profile is complete.
-        _state.update {
-            it.copy(
-                pendingConnectToken = Pair(sellerId, token),
-                showProfileIncompleteDialog = true
-            )
-        }
+    // A redeemed token writes an access record, and that record carries a name. So a
+    // buyer arriving by QR link is asked for one — in the same sheet, holding the
+    // token, and submitting redeems it. They are not sent to a profile form: the token
+    // already says the seller authorised them, so there is nothing to qualify for.
+    val knownName = displayName?.takeIf { it.isNotBlank() }
+        ?: _state.value.customerProfile.profile?.displayName?.takeIf { it.isNotBlank() }
+    if (knownName == null) {
+        Log.d(TAG) { "connectWithToken: no name yet, asking for one before redeeming" }
+        openAccessRequestSheet(pendingToken = Pair(sellerId, token))
         return
     }
 
@@ -372,9 +474,6 @@ internal fun BuyAppViewModel.connectWithToken(sellerId: String, token: String) {
     performConnection(sellerId)
 
     viewModelScope.launch {
-        val displayName = _state.value.customerProfile.profile?.displayName
-            ?.takeIf { it.isNotBlank() } ?: "Guest"
-
         when (profileRepository.getAccessStatus(sellerId)) {
             AccessStatus.APPROVED, AccessStatus.BLOCKED -> {
                 // Already settled with this seller; never overwrite it with a redemption.
@@ -382,7 +481,7 @@ internal fun BuyAppViewModel.connectWithToken(sellerId: String, token: String) {
                 pendingTokenStorage?.clear()
             }
             else -> {
-                profileRepository.redeemInviteToken(sellerId, token, displayName)
+                profileRepository.redeemInviteToken(sellerId, token, knownName)
                     .onSuccess {
                         // The ticket is spent; identity is the auth uid from here on.
                         pendingTokenStorage?.clear()
@@ -391,7 +490,12 @@ internal fun BuyAppViewModel.connectWithToken(sellerId: String, token: String) {
                     .onFailure { e ->
                         Log.w(TAG) { "connectWithToken: redemption failed - ${e.message}" }
                         profileRepository.submitAccessRequest(
-                            sellerId, displayName, _state.value.contextualMarketId.orEmpty()
+                            sellerId,
+                            knownName,
+                            _state.value.contextualMarketId.orEmpty(),
+                            // Nothing to pass on: a token redemption that fell back to
+                            // a request was never composed in the sheet.
+                            note = ""
                         )
                             .onSuccess { Log.d(TAG) { "connectWithToken: fell back to an access request" } }
                             .onFailure { err -> Log.e(TAG) { "connectWithToken: request failed - ${err.message}" } }

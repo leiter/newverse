@@ -136,11 +136,14 @@ interface ProfileRepository {
      * @param marketId the market the buyer is asking to collect at. Approving the
      *   request grants exactly this market. Empty asks to order anywhere, which is
      *   what a single-market seller's buyer means.
+     * @param note what the buyer wrote to identify themselves, in their own words.
+     *   Optional; see [com.together.newverse.domain.model.AccessRequest.note].
      */
     suspend fun submitAccessRequest(
         sellerId: String,
         displayName: String,
-        marketId: String = ""
+        marketId: String = "",
+        note: String = ""
     ): Result<Unit>
 
     /**

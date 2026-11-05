@@ -143,7 +143,8 @@ class MockProfileRepository : ProfileRepository {
     override suspend fun submitAccessRequest(
         sellerId: String,
         displayName: String,
-        marketId: String
+        marketId: String,
+        note: String
     ): Result<Unit> = Result.success(Unit)
 
     override suspend fun cancelAccessRequest(sellerId: String): Result<Unit> =

@@ -75,6 +75,37 @@ describe("access requests and approval", () => {
     );
   });
 
+  // --- the buyer's note ----------------------------------------------------
+
+  // The note is free text a buyer writes into a node the seller reads, so the
+  // length bound is enforced in the rules and not only in the UI.
+
+  it("allows a buyer to submit a request with a note", async () => {
+    await assertSucceeds(
+      asUser(env, MALLORY).ref(`access_requests/${SELLER}/${MALLORY}`).set({
+        displayName: "Mallory",
+        note: "war Donnerstag am Stand, hab nach Kartoffeln gefragt",
+        requestedAt: 2
+      })
+    );
+  });
+
+  it("denies a note longer than the 280-character bound", async () => {
+    await assertFails(
+      asUser(env, MALLORY).ref(`access_requests/${SELLER}/${MALLORY}`).set({
+        displayName: "Mallory", note: "x".repeat(281), requestedAt: 2
+      })
+    );
+  });
+
+  it("denies smuggling unknown fields into a request", async () => {
+    await assertFails(
+      asUser(env, MALLORY).ref(`access_requests/${SELLER}/${MALLORY}`).set({
+        displayName: "Mallory", requestedAt: 2, status: "APPROVED"
+      })
+    );
+  });
+
   // --- redemption grants access -------------------------------------------
 
   it("allows a buyer who redeemed a token to approve themselves through it", async () => {
