@@ -68,6 +68,34 @@ curl -s -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 databases are in different regions, and `firebase database:settings:get` cannot read
 rules.)
 
+*Re-deployed 2026-11-05 to **both** projects*, and verified by the read-back below:
+**173 of 173 rules on each, nothing missing, nothing extra, nothing differing.** Both
+are level with `HEAD` (`8e68477`). That deploy cleared a backlog of four commits that
+had been live on neither project:
+
+```
+acefe1a  Let a market say whether it delivers        (markets.allowsDelivery)
+f1ea2b1  Rolling announcement in the buy app         (seller_ui_actions)
+2866345  Seller-published message box                (seller_ui_actions, seller_inbox)
+b5f0b3d  Access request note + closed request schema (access_requests)
+1477831  Order pickup time                           (orders, demo_orders)
+2f9ffdc  Order collector name and phone              (orders, demo_orders)
+```
+
+Two of those were not merely absent but **actively blocking**: `markets` has a closed
+schema, so the seller app could not save a market carrying `allowsDelivery` at all, and
+every `seller_ui_actions` write was denied. Both work now.
+
+One hazard was checked rather than assumed, since this is the third time the project has
+had to learn it: `b5f0b3d` closes `access_requests/$sellerId/$buyerUid` with
+`"$other": { ".validate": false }`, and the **first** version of `submitAccessRequest`
+(`ff6a721`, 2026-03) wrote a `buyerUUID` field that the closed schema now refuses. That
+write was removed on 2026-09-30 by `c173ab2`, well before the newest release tag
+(`ios-53`, 2026-11-03), so no current build sends it. An install older than that would
+have its access request denied — but such an install predates the uid rekey and is
+already broken by the 2026-10-08 deploy, so nothing that works today was broken by this
+one.
+
 These six rules commits had, until then, been deployed only to dev:
 
 ```
