@@ -530,13 +530,30 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
     }
 }
 
+/**
+ * Mark the unsaved change as this screen's, so it keeps its confirmation.
+ *
+ * Called by every mutation the basket screen owns. The flag is what stops the
+ * auto-save from committing an edit the buyer is still looking at — see
+ * [BasketScreenState.editedOnBasketScreen]. Only meaningful for a placed order; on a
+ * draft there is nothing to confirm against and checkout asks anyway.
+ */
+private fun BuyAppViewModel.markEditedOnBasketScreen() {
+    if (_state.value.basketScreen.orderId == null) return
+    _state.update { current ->
+        current.copy(basketScreen = current.basketScreen.copy(editedOnBasketScreen = true))
+    }
+}
+
 internal fun BuyAppViewModel.basketScreenAddItem(item: OrderedProduct) {
+    markEditedOnBasketScreen()
     viewModelScope.launch {
         basketRepository.addItem(item)
     }
 }
 
 internal fun BuyAppViewModel.basketScreenRemoveItem(productId: String) {
+    markEditedOnBasketScreen()
     viewModelScope.launch {
         basketRepository.removeItem(productId)
 
@@ -566,6 +583,7 @@ internal fun BuyAppViewModel.basketScreenRemoveItem(productId: String) {
 }
 
 internal fun BuyAppViewModel.basketScreenUpdateQuantity(productId: String, newQuantity: Double) {
+    markEditedOnBasketScreen()
     viewModelScope.launch {
         basketRepository.updateQuantity(productId, newQuantity)
     }
@@ -675,6 +693,7 @@ internal fun BuyAppViewModel.basketScreenLoadHistoryOrderAsReorder(order: Order)
 }
 
 internal fun BuyAppViewModel.basketScreenClearBasket() {
+    markEditedOnBasketScreen()
     viewModelScope.launch {
         basketRepository.clearBasket()
     }
@@ -841,6 +860,9 @@ internal fun BuyAppViewModel.basketScreenSetFulfilment(requested: Fulfilment) {
             basketScreen = current.basketScreen.copy(
                 fulfilment = fulfilment,
                 deliveryAddress = seeded,
+                // Asked only here and in the checkout dialog, so a change to it is
+                // always this screen's and always keeps its confirmation.
+                editedOnBasketScreen = current.basketScreen.orderId != null,
                 orderError = null
             )
         )
@@ -852,6 +874,7 @@ internal fun BuyAppViewModel.basketScreenSetDeliveryAddress(address: DeliveryAdd
         current.copy(
             basketScreen = current.basketScreen.copy(
                 deliveryAddress = address,
+                editedOnBasketScreen = current.basketScreen.orderId != null,
                 orderError = null
             )
         )
@@ -1202,7 +1225,10 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                             items = finalBasketItems,
                             total = finalBasketItems.sumOf { it.price * it.amountCount },
                             originalOrderItems = order.articles,
-                            hasChanges = hasChanges
+                            hasChanges = hasChanges,
+                            // A freshly loaded order carries no edit of this screen's,
+                            // even when the draft it merged with left `hasChanges` set.
+                            editedOnBasketScreen = false
                         )
                     )
                 }
@@ -1259,16 +1285,36 @@ internal fun BuyAppViewModel.basketScreenEnableEditing() {
     }
 }
 
-internal fun BuyAppViewModel.basketScreenUpdateOrder() {
+/**
+ * Write the basket back to the placed order it was loaded from.
+ *
+ * The one writer for an edit, reached two ways. [silent] is the difference between
+ * them, and it is about *who is watching*, not about what is written — the order,
+ * every check in front of it and the new baseline afterwards are identical.
+ *
+ * Loud (the default) is the *Bestellung aktualisieren* button on the basket screen:
+ * the buyer is on that screen, so the spinner, the success banner and leaving edit
+ * mode all land where they can be seen.
+ *
+ * Silent is the auto-save behind an edit made on the home or product-detail screen
+ * (see [autoSaveStandingOrder]). The buyer is somewhere else entirely, so a banner on
+ * a screen they are not looking at would greet them later as a stale announcement, and
+ * dropping them out of edit mode would undo a state they set deliberately. What they
+ * get instead is a snackbar, where they are — and that matters most when it fails,
+ * because `orderError` alone would leave them believing a write that never happened.
+ */
+internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
     viewModelScope.launch {
-        bLog("🛒 BuyAppViewModel.basketScreenUpdateOrder: START")
-        _state.update { current ->
-            current.copy(
-                basketScreen = current.basketScreen.copy(
-                    isCheckingOut = true,
-                    orderError = null
+        bLog("🛒 BuyAppViewModel.basketScreenUpdateOrder: START silent=$silent")
+        if (!silent) {
+            _state.update { current ->
+                current.copy(
+                    basketScreen = current.basketScreen.copy(
+                        isCheckingOut = true,
+                        orderError = null
+                    )
                 )
-            )
+            }
         }
 
         try {
@@ -1278,25 +1324,25 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
             val createdDate = basketState.createdDate
 
             if (orderId == null || pickupDate == null || createdDate == null) {
-                setBasketError("Bestellinformationen fehlen")
+                failUpdate(silent, "Bestellinformationen fehlen")
                 return@launch
             }
 
             val canEdit = OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
             if (!canEdit) {
-                setBasketError("Bearbeitungsfrist abgelaufen (${editDeadlineText(pickupDate)})")
+                failUpdate(silent, "Bearbeitungsfrist abgelaufen (${editDeadlineText(pickupDate)})")
                 return@launch
             }
 
             val currentUserId = authRepository.getCurrentUserId()
             if (currentUserId == null) {
-                setBasketError("Benutzer nicht angemeldet")
+                failUpdate(silent, "Benutzer nicht angemeldet")
                 return@launch
             }
 
             val items = basketState.items
             if (items.isEmpty()) {
-                setBasketError("Warenkorb ist leer")
+                failUpdate(silent, "Warenkorb ist leer")
                 return@launch
             }
 
@@ -1305,13 +1351,26 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
             val unorderable = unorderableInBasket(items)
             if (unorderable.isNotEmpty()) {
                 bLog("🛒 basketScreenUpdateOrder: refused, unorderable=${unorderable.map { it.articleId }}")
-                setBasketError(unorderableBasketMessage(unorderable))
+                failUpdate(silent, unorderableBasketMessage(unorderable))
                 return@launch
             }
 
             // An edit is the path a placed pickup takes to become a delivery, so it
             // needs the destination just as much as placing one did.
-            if (refuseImpossibleDelivery()) return@launch
+            if (refuseImpossibleDelivery()) {
+                // It sets `orderError` and reopens the confirmation, which says
+                // nothing to a buyer on the home screen. The reason it just recorded
+                // is what they need to hear, so pass it on rather than inventing one.
+                if (silent) {
+                    val reason = _state.value.basketScreen.orderError
+                    dispatch(
+                        BuyUiAction.ShowSnackbar(
+                            "Bestellung nicht aktualisiert: ${reason ?: "Lieferung nicht möglich"}"
+                        )
+                    )
+                }
+                return@launch
+            }
 
             val buyerProfile = getBuyerProfileOrFallback(currentUserId)
             val isDemo = _state.value.isDemoMode
@@ -1350,7 +1409,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
                 val stored = orderRepository
                     .loadOrder(sellerConfig.sellerId, orderId, "$root/${sellerConfig.sellerId}/$dateKey/$orderId")
                     .getOrElse {
-                        setBasketError("Bestellung konnte nicht geladen werden")
+                        failUpdate(silent, "Bestellung konnte nicht geladen werden")
                         return@launch
                     }
                 // The market moves only if the buyer actually chose one in this
@@ -1389,28 +1448,120 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder() {
             }
             result.onSuccess {
                 val currentItems = _state.value.basketScreen.items
+                if (silent) {
+                    bLog("🛒 basketScreenUpdateOrder: standing order $orderId auto-saved")
+                    dispatch(BuyUiAction.ShowSnackbar("Bestellung aktualisiert"))
+                }
                 _state.update { current ->
                     current.copy(
                         basketScreen = current.basketScreen.copy(
                             isCheckingOut = false,
-                            orderSuccess = true,
-                            isEditMode = false,
+                            // Not announced on a screen the buyer has left; the
+                            // snackbar above has already told them where they are.
+                            orderSuccess = !silent,
+                            isEditMode = if (silent) current.basketScreen.isEditMode else false,
                             originalOrderItems = currentItems,
                             // The written order is the new baseline, fulfilment
                             // included, or the card would go on offering to save an
                             // edit that is already saved.
                             originalFulfilment = updatedOrder.fulfilment,
                             originalDeliveryAddress = updatedOrder.deliveryAddress,
-                            hasChanges = false
+                            hasChanges = false,
+                            editedOnBasketScreen = false
                         )
                     )
                 }
             }.onFailure { error ->
-                setBasketError(error.message ?: "Aktualisierung fehlgeschlagen")
+                failUpdate(silent, error.message ?: "Aktualisierung fehlgeschlagen")
             }
         } catch (e: Exception) {
-            setBasketError(e.message ?: "Ein Fehler ist aufgetreten")
+            failUpdate(silent, e.message ?: "Ein Fehler ist aufgetreten")
         }
+    }
+}
+
+/**
+ * Report a failed update, to the screen or to the buyer.
+ *
+ * `orderError` is recorded either way, so the basket screen still explains itself when
+ * the buyer gets there. A silent save adds a snackbar, because a buyer who is on the
+ * home screen would otherwise have been told nothing at all and would carry on
+ * believing their order had changed.
+ */
+/**
+ * Write a standing order straight back after an edit made somewhere other than the
+ * basket screen.
+ *
+ * A buyer with a placed, still-editable order who dials an amount on the home screen
+ * or the product detail and taps add has already said what they want. Before this,
+ * nothing was written: the basket gained the item, `hasChanges` went true, and the
+ * order only actually changed once they walked to the basket screen and pressed
+ * *Bestellung aktualisieren*. Two buyers out of two read the add as done, and the
+ * order went to the seller without it.
+ *
+ * The confirmation is not gone, it has moved to where it means something — see
+ * [BasketScreenState.editedOnBasketScreen]. This stands down in these cases, each for
+ * its own reason:
+ *
+ *  - **No placed order**, or one past its deadline. A draft is confirmed at checkout
+ *    and a locked order cannot be touched at all; `canEdit` is the same deadline the
+ *    write re-checks, so this only avoids a doomed round trip.
+ *  - **An edit of the basket screen's own is waiting.** Committing now would carry it
+ *    along unconfirmed, which is precisely what that confirmation exists to prevent.
+ *    The home add joins it and the button covers both.
+ *  - **The basket is empty.** An order with no articles is a cancelled order, and
+ *    cancelling is never something to do on a buyer's behalf from another screen.
+ *    `basketScreenRemoveItem` has the deliberate path for that, behind its own dialog.
+ *  - **A write is already in flight**, so two taps in a row cannot race each other
+ *    into two concurrent order writes.
+ *  - **Nothing differs** from the order as placed, so re-adding the amount an article
+ *    already had writes nothing.
+ */
+internal fun BuyAppViewModel.autoSaveStandingOrder() {
+    // The repository, not state. `addItem` sets `_basket.value` before it returns,
+    // while `basketScreen.items` waits for observeBasketScreenItems to be scheduled —
+    // so reading state straight after an add can still show the basket as it stood
+    // *before* it, and this would write that to the order and report success. Silently
+    // saving the wrong order is worse than not saving at all.
+    val items = basketRepository.observeBasket().value
+    val basket = _state.value.basketScreen
+    val hasChanges = basketScreenCheckIfHasChanges(items, basket.originalOrderItems)
+
+    val standDown = when {
+        basket.orderId == null -> "no placed order"
+        !basket.canEdit -> "edit deadline passed"
+        basket.editedOnBasketScreen -> "an unconfirmed basket-screen edit is waiting"
+        items.isEmpty() -> "basket is empty; emptying an order is a cancellation"
+        basket.isCheckingOut -> "a write is already in flight"
+        !hasChanges && !basket.fulfilmentChanged -> "nothing to save"
+        else -> null
+    }
+    if (standDown != null) {
+        bLog("🛒 autoSaveStandingOrder: standing down — $standDown")
+        return
+    }
+
+    // Bring the screen's copy level with the repository before the write reads it, so
+    // the order, the basket and the totals all come from one list.
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                items = items,
+                total = basketRepository.getTotal(),
+                hasChanges = hasChanges
+            )
+        )
+    }
+
+    bLog("🛒 autoSaveStandingOrder: saving ${basket.orderId} without confirmation")
+    basketScreenUpdateOrder(silent = true)
+}
+
+private fun BuyAppViewModel.failUpdate(silent: Boolean, message: String) {
+    setBasketError(message)
+    if (silent) {
+        bLog("🛒 basketScreenUpdateOrder: auto-save failed — $message")
+        dispatch(BuyUiAction.ShowSnackbar("Bestellung nicht aktualisiert: $message"))
     }
 }
 

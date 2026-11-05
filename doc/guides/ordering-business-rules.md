@@ -56,6 +56,31 @@ that read dates without a market.
   - After deadline: Read-only
   - Stored in Firebase
 
+#### 3.2.1 Where the edit was made decides whether it is confirmed
+
+A placed, still-editable order is a *standing* order, and an edit to it is written
+back in one of two ways depending on which screen it came from:
+
+| Edit made on | What happens | Why |
+|--------------|--------------|-----|
+| Home screen, product detail | **Written straight to the order.** A snackbar says so. | The buyer dialled an amount and tapped add — they have already said what they want. Sending them to the basket screen to press *Bestellung aktualisieren* asked the same question twice, and when they did not, the order reached the seller without the item. |
+| Basket screen (rows, fulfilment, address) | **Keeps the *Bestellung aktualisieren* button.** | This is the screen where a whole order is reviewed at once, and a review ends in a confirmation. |
+
+`BasketScreenState.editedOnBasketScreen` is the flag that records the origin;
+`autoSaveStandingOrder()` is the auto-save and `basketScreenUpdateOrder(silent = true)`
+the write. There is one writer for both paths — `silent` changes only who is told, not
+what is written, so every guard in front of it (the deadline, withdrawn articles, an
+impossible delivery) applies equally.
+
+The auto-save stands down, leaving the button as the way to save, when: the basket
+screen has an unconfirmed edit of its own waiting (committing would carry it along);
+the basket is now empty (that is a cancellation, which is never done on the buyer's
+behalf from another screen — `basketScreenRemoveItem` has the deliberate path behind
+its own dialog); the deadline has passed; a write is already in flight; or nothing
+actually differs from the order as placed.
+
+Tests: `BuyAppViewModelAutoSaveStandingOrderTest`.
+
 #### 3.3 Past Orders
 - **Status:** `COMPLETED` / `PAST`
 - **Behavior:**

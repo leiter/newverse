@@ -272,6 +272,18 @@ internal fun BuyAppViewModel.updateMainScreenQuantityFromText(text: String) {
     updateMainScreenQuantity(quantity)
 }
 
+/**
+ * Add the hero card's article and amount to the basket — and, if that basket *is* a
+ * standing order, into the order itself.
+ *
+ * Reached from the home screen and from the product detail, which dispatches the same
+ * [BuyMainScreenAction.AddToCart]. Every branch below ends in
+ * [autoSaveStandingOrder], and each one waits for the repository write it follows: the
+ * basket is the authority on what the order should say, and asking it before it has
+ * been written is how an add gets saved one tap late.
+ *
+ * On a draft basket the auto-save stands down and this is an ordinary add.
+ */
 internal fun BuyAppViewModel.addMainScreenToCart() {
     val selectedArticle = _state.value.mainScreen.selectedArticle ?: return
     val quantity = _state.value.mainScreen.selectedQuantity
@@ -280,6 +292,7 @@ internal fun BuyAppViewModel.addMainScreenToCart() {
         // If quantity is 0, remove from basket if it exists
         viewModelScope.launch {
             basketRepository.removeItem(selectedArticle.id)
+            autoSaveStandingOrder()
         }
         return
     }
@@ -292,6 +305,7 @@ internal fun BuyAppViewModel.addMainScreenToCart() {
         // Update existing item quantity
         viewModelScope.launch {
             basketRepository.updateQuantity(selectedArticle.id, quantity)
+            autoSaveStandingOrder()
         }
         Log.d(TAG) { "addMainScreenToCart: Updated ${selectedArticle.productName} to ${quantity} ${selectedArticle.unit}" }
     } else {
@@ -331,6 +345,7 @@ internal fun BuyAppViewModel.addMainScreenToCart() {
         // Add to basket via BasketRepository
         viewModelScope.launch {
             basketRepository.addItem(orderedProduct)
+            autoSaveStandingOrder()
         }
         Log.d(TAG) { "addMainScreenToCart: Added ${selectedArticle.productName} (${quantity} ${selectedArticle.unit}) to basket" }
     }
@@ -347,6 +362,10 @@ internal fun BuyAppViewModel.removeMainScreenFromBasket() {
                 mainScreen = current.mainScreen.copy(selectedQuantity = 0.0)
             )
         }
+        // Taking the last article out is not a removal the order can absorb — it would
+        // be a cancellation — so the auto-save refuses that one and the buyer is sent
+        // to the basket screen for it. See autoSaveStandingOrder.
+        autoSaveStandingOrder()
     }
 
     Log.d(TAG) { "removeMainScreenFromBasket: Removed ${selectedArticle.productName} from basket" }

@@ -372,6 +372,23 @@ data class BasketScreenState(
     val isLoadingOrder: Boolean = false,
     val originalOrderItems: List<OrderedProduct> = emptyList(),
     val hasChanges: Boolean = false,
+    /**
+     * Whether the unsaved change to this placed order was made *on the basket screen*.
+     *
+     * [hasChanges] says an edit exists; this says where it came from, and that is what
+     * decides whether the buyer is asked to confirm it. An edit made on the home or
+     * product-detail screen is written to the standing order straight away — the buyer
+     * dialled an amount and tapped add, and sending them to a third screen to repeat
+     * themselves is asking the same question twice. An edit made here, among the rows
+     * and the totals, keeps the *Bestellung aktualisieren* button: this is the screen
+     * where a whole order is reviewed at once, and a review ends in a confirmation.
+     *
+     * Set by the basket screen's own mutations, cleared by anything that re-establishes
+     * a baseline (a write, a load, a reset). While it is true the auto-save stands
+     * down completely: committing a home add would carry the unconfirmed basket edits
+     * with it, which is the one thing the confirmation exists to prevent.
+     */
+    val editedOnBasketScreen: Boolean = false,
     val selectedPickupDate: Long? = null,
     val availablePickupDates: List<Long> = emptyList(),
     /**
