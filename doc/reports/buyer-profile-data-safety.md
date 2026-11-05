@@ -3,6 +3,14 @@
 > **REVIEW — 2026-09-28, 5 findings.** The PII-in-logging finding has since been
 > fixed. The main open one is the buyer email embedded in every order. Logging policy:
 > PII is acceptable in `Log.d` (stripped from release), never in `Log.w`/`Log.e`.
+>
+> **Update 2026-11-05.** An order can now carry `pickupPhone`, a number the buyer types
+> for *that order*. This is deliberately not the finding below in a new place: it is
+> entered per order, written only when non-blank, and clearable on any order, whereas
+> `emailAddress` rides along on every order whether or not it is wanted there. The
+> profile's `telephoneNumber` is now only a pre-fill — it still reaches no order unless
+> the buyer leaves it in the field. See `ordering-business-rules.md` § Who takes
+> receipt.
 
 **Date:** 2026-09-28
 **Scope:** `BuyerProfile` model, Firebase security rules, order serialization, logging

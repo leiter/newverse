@@ -441,15 +441,31 @@ data class BasketScreenState(
      * stood between a buyer and asking for access, and no seller screen ever read it.
      * Now the order carries it and the seller sees it on the order.
      *
-     * Empty is a complete answer. Only a value that is neither empty nor a readable
-     * `HH:mm` is refused — the time picker cannot produce one, but a restored state
-     * could — and that is `refuseUnreadablePickupTime`'s job.
+     * Empty is a complete answer. A time that is given has to be one the stall could
+     * meet — a readable `HH:mm` between 7:00 and 18:59, the same range the profile
+     * field insists on — which the picker is the only way to produce and
+     * `refuseUnusablePickupTime` is the backstop for.
      */
     val pickupTime: String = "",
     /**
-     * What the loaded order said about [fulfilment], [deliveryAddress] and
-     * [pickupTime] when it was read, so an edit of any of them can be told from no
-     * edit at all.
+     * Who is collecting this order, seeded from the buyer's own name.
+     *
+     * Per order because the person who placed it routinely is not the person who
+     * turns up. Left as it was seeded it means "me" — [Order.statedPickupName] is what
+     * the seller's screens read, and it ignores a name that matches the buyer's.
+     */
+    val pickupName: String = "",
+    /**
+     * A number to reach whoever collects, seeded from the profile. Optional.
+     *
+     * The profile has held `telephoneNumber` all along and never sent it anywhere;
+     * this is the field that actually reaches the seller, per order and clearable.
+     */
+    val pickupPhone: String = "",
+    /**
+     * What the loaded order said about [fulfilment], [deliveryAddress], [pickupTime],
+     * [pickupName] and [pickupPhone] when it was read, so an edit of any of them can
+     * be told from no edit at all.
      *
      * The counterpart of [originalOrderItems], and needed for the same reason: an
      * order is loaded into the basket, so the live fields alone cannot say whether the
@@ -459,6 +475,8 @@ data class BasketScreenState(
     val originalFulfilment: Fulfilment = Fulfilment.PICKUP,
     val originalDeliveryAddress: DeliveryAddress = DeliveryAddress.NONE,
     val originalPickupTime: String = "",
+    val originalPickupName: String = "",
+    val originalPickupPhone: String = "",
     /**
      * The market the loaded order stands against, as the order itself records it.
      *
@@ -503,8 +521,25 @@ data class BasketScreenState(
                 (fulfilment == Fulfilment.PICKUP && pickupTime != originalPickupTime)
             )
 
-    /** Anything at all to save on a placed order: its items, or its fulfilment. */
-    val hasPendingEdits: Boolean get() = hasChanges || fulfilmentChanged
+    /**
+     * Whether the buyer has changed who is collecting this placed order, or the
+     * number to reach them on.
+     *
+     * Apart from [fulfilmentChanged] because it is true of a delivery and a pickup
+     * alike: somebody takes receipt either way. Apart from [hasChanges] for the same
+     * reason that one is — it is recomputed from the basket items on every emission
+     * and would drop this.
+     */
+    val contactChanged: Boolean
+        get() = orderId != null &&
+            (pickupName != originalPickupName || pickupPhone != originalPickupPhone)
+
+    /**
+     * Anything at all to save on a placed order: its items, how it reaches the buyer,
+     * or who takes receipt of it.
+     */
+    val hasPendingEdits: Boolean
+        get() = hasChanges || fulfilmentChanged || contactChanged
 }
 
 // ===== Customer Profile Screen State =====

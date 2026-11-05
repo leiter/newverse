@@ -618,6 +618,8 @@ class GitLiveOrderRepository(
                         // Absent on every order placed before the time was asked for
                         // at checkout, and on every order whose buyer named none.
                         pickupTime = value["pickupTime"] as? String ?: "",
+                        pickupName = value["pickupName"] as? String ?: "",
+                        pickupPhone = value["pickupPhone"] as? String ?: "",
                         pricingRevision = (value["pricingRevision"] as? Number)?.toLong() ?: 0L,
                         pickUpDate = (value["pickUpDate"] as? Number)?.toLong() ?: 0L,
                         message = value["message"] as? String ?: "",
@@ -707,6 +709,12 @@ class GitLiveOrderRepository(
             // seller's round reaches it, and a buyer who named no time has said all
             // they intend to. `statedPickupTime` is the one reading of both.
             "pickupTime" to order.statedPickupTime,
+            // Both written only where they say something the order's own buyerName
+            // does not: a different collector, and a number that was actually given.
+            // A phone number is not data to scatter into every order — see
+            // `doc/reports/buyer-profile-data-safety.md`.
+            "pickupName" to order.statedPickupName,
+            "pickupPhone" to order.statedPickupPhone,
             "pricingRevision" to order.pricingRevision,
             "pickUpDate" to order.pickUpDate,
             "message" to order.message,

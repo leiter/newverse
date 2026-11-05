@@ -1264,11 +1264,23 @@
     <string name="a11y_announcement">Announcement from the seller: %1$s</string>
     <string name="a11y_announcement_dismiss">Hide announcement</string>
     <string name="fulfilment_pickup_time_label">Pickup time (optional)</string>
-    <string name="fulfilment_pickup_time_hint">Not specified — tap to choose</string>
-    <string name="fulfilment_pickup_time_unreadable">Please give a time of day, e.g. 14:30</string>
+    <string name="fulfilment_pickup_time_hint">Not specified — tap to choose (7:00 – 18:00)</string>
     <string name="fulfilment_use_profile_time">Use my usual time</string>
     <string name="fulfilment_save_time_to_profile">Save as my usual time</string>
     <string name="order_pickup_time_stated">Coming around %1$s</string>
+    <string name="pickup_contact_pickup_intro">Who is collecting? If you are coming yourself, just leave the name as it is.</string>
+    <string name="pickup_contact_delivery_intro">Who takes the delivery in? If you are there yourself, just leave the name as it is.</string>
+    <string name="pickup_contact_name_label">Name</string>
+    <string name="pickup_contact_name_hint">e.g. a flatmate, a partner</string>
+    <string name="pickup_contact_phone_label">Phone (optional)</string>
+    <string name="pickup_contact_phone_invalid">Digits and + ( ) / - only</string>
+    <string name="pickup_contact_use_profile_phone">Use number from profile</string>
+    <string name="pickup_contact_save_phone">Save number to profile</string>
+    <string name="pickup_contact_pickup_who">Collected by</string>
+    <string name="pickup_contact_delivery_who">Received by</string>
+    <string name="pickup_contact_phone_short">Phone</string>
+    <string name="order_pickup_name_stated">Collected by %1$s</string>
+    <string name="order_delivery_name_stated">Received by %1$s</string>
     <string name="fulfilment_use_profile_address">Use address from profile</string>
     <string name="fulfilment_save_to_profile">Save address to profile</string>
     <!-- Message box the seller publishes into the buy app -->

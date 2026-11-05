@@ -214,6 +214,10 @@ internal fun BuyAppViewModel.handleBasketScreenAction(action: BuyBasketScreenAct
         is BuyBasketScreenAction.SetPickupTime -> basketScreenSetPickupTime(action.time)
         BuyBasketScreenAction.SavePickupTimeToProfile ->
             basketScreenSavePickupTimeToProfile()
+        is BuyBasketScreenAction.SetPickupName -> basketScreenSetPickupName(action.name)
+        is BuyBasketScreenAction.SetPickupPhone -> basketScreenSetPickupPhone(action.phone)
+        BuyBasketScreenAction.SavePickupPhoneToProfile ->
+            basketScreenSavePickupPhoneToProfile()
         is BuyBasketScreenAction.LoadOrder -> basketScreenLoadOrder(action.orderId, action.date, forceLoad = true)
         BuyBasketScreenAction.UpdateOrder -> basketScreenUpdateOrder()
         BuyBasketScreenAction.EnableEditing -> basketScreenEnableEditing()
@@ -447,9 +451,19 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                                 fulfilment = order.fulfilment,
                                 deliveryAddress = order.deliveryAddress,
                                 pickupTime = order.pickupTime,
+                                pickupName = order.pickupName
+                                    .ifBlank { order.buyerProfile.displayName },
+                                pickupPhone = order.pickupPhone,
                                 originalFulfilment = order.fulfilment,
                                 originalDeliveryAddress = order.deliveryAddress,
                                 originalPickupTime = order.pickupTime,
+                                // The baseline is what was *loaded*, not what the
+                                // field was seeded with: an order placed by the buyer
+                                // themselves stores no name, and reading the seeded
+                                // one as an edit would ask to save it over itself.
+                                originalPickupName = order.pickupName
+                                    .ifBlank { order.buyerProfile.displayName },
+                                originalPickupPhone = order.pickupPhone,
                                 orderMarketId = order.marketId,
                                 isEditMode = false,
                                 canEdit = canEdit,
@@ -934,7 +948,7 @@ internal fun BuyAppViewModel.basketScreenSetPickupTime(time: String) {
 internal fun BuyAppViewModel.basketScreenSavePickupTimeToProfile() {
     viewModelScope.launch {
         val time = _state.value.basketScreen.pickupTime
-        if (!isReadablePickupTime(time) || time.isBlank()) {
+        if (time.isBlank() || !isUsablePickupTime(time)) {
             bLog("🛒 basketScreenSavePickupTimeToProfile: refused, time='$time'")
             dispatch(BuyUiAction.ShowSnackbar("Bitte Abholzeit angeben"))
             return@launch
@@ -959,33 +973,153 @@ internal fun BuyAppViewModel.basketScreenSavePickupTimeToProfile() {
     }
 }
 
-/** Blank, or a time a clock could show. Both are answers; anything else is a typo. */
-internal fun isReadablePickupTime(time: String): Boolean =
-    time.isBlank() || ProfileValidation.isValidTimeFormat(time)
+/**
+ * Blank, or a time the buyer could actually turn up at.
+ *
+ * One rule for the profile field and the order, which is
+ * [ProfileValidation.isTimeInBusinessHours]: a readable `HH:mm` between 7:00 and 18:59.
+ * Blank is still an answer — the time is optional per order — but a time that is given
+ * is a time the stall is open, and the picker offers no other.
+ *
+ * Deliberately not "any hour of the day". An order promising collection at 03:00 is
+ * not a promise anyone can keep, and the seller reading the list has no way to tell it
+ * from a typo. When a market gains its own opening hours, this is the one place that
+ * has to learn about them.
+ */
+internal fun isUsablePickupTime(time: String): Boolean =
+    time.isBlank() || ProfileValidation.isTimeInBusinessHours(time)
 
 /**
- * Refuse an order whose collection time cannot be read.
+ * Refuse an order whose collection time is not one the stall could meet.
  *
- * Deliberately the whole of the rule: any `HH:mm` is accepted, including one outside
- * the hours the *profile* field insists on. A market's own hours are not modelled, and
- * a stall that opens at six would otherwise have its own customers refused. The
- * database rules check the same shape, so this is the half that explains itself rather
- * than the only guard.
+ * The picker produces nothing else, so this is a backstop for state that arrived some
+ * other way — and the half that explains itself, since the database rules check the
+ * same hours and would refuse the whole write with no reason the buyer can read.
  *
  * Returns true when it refused, leaving the confirmation open on the reason.
  */
-internal fun BuyAppViewModel.refuseUnreadablePickupTime(): Boolean {
-    val basket = _state.value.basketScreen
-    if (basket.fulfilment != Fulfilment.PICKUP) return false
-    if (isReadablePickupTime(basket.pickupTime)) return false
+/**
+ * Who is collecting this order.
+ *
+ * No validation beyond the length the rules bound: it is a person's name, and the app
+ * is in no position to say what one looks like. Blank means the buyer themselves,
+ * which is also what their own name left as it was seeded means.
+ */
+internal fun BuyAppViewModel.basketScreenSetPickupName(name: String) {
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                pickupName = name,
+                editedOnBasketScreen = current.basketScreen.orderId != null,
+                orderError = null
+            )
+        )
+    }
+}
 
-    bLog("🛒 refuseUnreadablePickupTime: '${basket.pickupTime}'")
+/** A number for this order. Blank is an answer; the seller then has the app only. */
+internal fun BuyAppViewModel.basketScreenSetPickupPhone(phone: String) {
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                pickupPhone = phone,
+                editedOnBasketScreen = current.basketScreen.orderId != null,
+                orderError = null
+            )
+        )
+    }
+}
+
+/**
+ * Keep the number given at checkout in the profile, on the buyer asking to.
+ *
+ * Opt-in, like the address and the time. The profile has held `telephoneNumber` for as
+ * long as there has been a profile page and never sent it anywhere; this is the path by
+ * which a number typed for one order becomes the default for the next, and it is still
+ * only a default.
+ */
+internal fun BuyAppViewModel.basketScreenSavePickupPhoneToProfile() {
+    viewModelScope.launch {
+        val phone = _state.value.basketScreen.pickupPhone.trim()
+        if (phone.isBlank() || !isUsablePickupPhone(phone)) {
+            bLog("🛒 basketScreenSavePickupPhoneToProfile: refused, phone='$phone'")
+            dispatch(BuyUiAction.ShowSnackbar("Bitte Telefonnummer angeben"))
+            return@launch
+        }
+        val current = _state.value.customerProfile.profile
+        if (current == null) {
+            dispatch(BuyUiAction.ShowSnackbar("Fehler: Kein Profil vorhanden"))
+            return@launch
+        }
+        profileRepository.saveBuyerProfile(current.copy(telephoneNumber = phone))
+            .onSuccess { saved ->
+                _state.update { state ->
+                    state.copy(
+                        customerProfile = state.customerProfile.copy(profile = saved)
+                    )
+                }
+                dispatch(BuyUiAction.ShowSnackbar("Telefonnummer im Profil gespeichert"))
+            }.onFailure { error ->
+                bLog("⚠️ basketScreenSavePickupPhoneToProfile: ${error.message}")
+                dispatch(BuyUiAction.ShowSnackbar("Fehler beim Speichern: ${error.message}"))
+            }
+    }
+}
+
+/**
+ * Blank, or something a person could dial.
+ *
+ * The same reading the profile form uses, [ProfileValidation.hasValidPhoneChars], plus
+ * the length the rules bound. Deliberately about characters rather than shape: there is
+ * no format a number has to take, and a rule insisting on one would refuse real numbers
+ * written the way their owners write them.
+ */
+internal fun isUsablePickupPhone(phone: String): Boolean =
+    phone.isBlank() || (phone.length <= 30 && ProfileValidation.hasValidPhoneChars(phone))
+
+/**
+ * Refuse an order carrying a contact the seller could not use.
+ *
+ * Only the number, and only its characters: a name is whatever the person says it is.
+ * Both are bounded by `database.rules.json`, which refuses the whole write rather than
+ * the field, so this is the half that can say which field and why.
+ *
+ * Returns true when it refused, leaving the confirmation open on the reason.
+ */
+internal fun BuyAppViewModel.refuseUnusablePickupContact(): Boolean {
+    val basket = _state.value.basketScreen
+    val reason = when {
+        !isUsablePickupPhone(basket.pickupPhone) ->
+            "Telefonnummer bitte nur mit Ziffern und + ( ) / - angeben"
+        basket.pickupName.trim().length >= 100 -> "Name ist zu lang"
+        else -> return false
+    }
+
+    bLog("🛒 refuseUnusablePickupContact: $reason")
     _state.update { current ->
         current.copy(
             basketScreen = current.basketScreen.copy(
                 isCheckingOut = false,
                 showCheckoutConfirm = true,
-                orderError = "Abholzeit bitte als Uhrzeit angeben, z. B. 14:30"
+                orderError = reason
+            )
+        )
+    }
+    return true
+}
+
+internal fun BuyAppViewModel.refuseUnusablePickupTime(): Boolean {
+    val basket = _state.value.basketScreen
+    if (basket.fulfilment != Fulfilment.PICKUP) return false
+    if (isUsablePickupTime(basket.pickupTime)) return false
+
+    bLog("🛒 refuseUnusablePickupTime: '${basket.pickupTime}'")
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                isCheckingOut = false,
+                showCheckoutConfirm = true,
+                orderError = "Abholzeit bitte zwischen 7:00 und 18:00 angeben"
             )
         )
     }
@@ -1047,7 +1181,8 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
             // chips are inside that dialog, so this is where a delivery chosen there
             // is first seen by a write.
             if (refuseImpossibleDelivery()) return@launch
-            if (refuseUnreadablePickupTime()) return@launch
+            if (refuseUnusablePickupTime()) return@launch
+            if (refuseUnusablePickupContact()) return@launch
 
             val buyerProfile = getBuyerProfileOrFallback(currentUserId)
 
@@ -1155,6 +1290,11 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 pickupTime = if (_state.value.basketScreen.fulfilment == Fulfilment.PICKUP) {
                     _state.value.basketScreen.pickupTime
                 } else "",
+                // Who takes receipt, and how to reach them. Both apply to a delivery
+                // as much as a pickup — somebody is at the door — so neither is
+                // conditioned on the fulfilment.
+                pickupName = _state.value.basketScreen.pickupName.trim(),
+                pickupPhone = _state.value.basketScreen.pickupPhone.trim(),
                 // Snapshotted beside the prices it produced: the seller may edit
                 // conditions tomorrow, and this is what says the articles above were
                 // priced against yesterday's.
@@ -1335,9 +1475,15 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                             fulfilment = order.fulfilment,
                             deliveryAddress = order.deliveryAddress,
                             pickupTime = order.pickupTime,
+                            pickupName = order.pickupName
+                                .ifBlank { order.buyerProfile.displayName },
+                            pickupPhone = order.pickupPhone,
                             originalFulfilment = order.fulfilment,
                             originalDeliveryAddress = order.deliveryAddress,
                             originalPickupTime = order.pickupTime,
+                            originalPickupName = order.pickupName
+                                .ifBlank { order.buyerProfile.displayName },
+                            originalPickupPhone = order.pickupPhone,
                             orderMarketId = order.marketId,
                             isEditMode = false,
                             canEdit = canEdit,
@@ -1475,11 +1621,24 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
                 return@launch
             }
 
-            if (refuseUnreadablePickupTime()) {
+            if (refuseUnusablePickupTime()) {
                 if (silent) {
+                    val reason = _state.value.basketScreen.orderError
                     dispatch(
                         BuyUiAction.ShowSnackbar(
-                            "Bestellung nicht aktualisiert: Abholzeit ist unlesbar"
+                            "Bestellung nicht aktualisiert: ${reason ?: "Abholzeit"}"
+                        )
+                    )
+                }
+                return@launch
+            }
+
+            if (refuseUnusablePickupContact()) {
+                if (silent) {
+                    val reason = _state.value.basketScreen.orderError
+                    dispatch(
+                        BuyUiAction.ShowSnackbar(
+                            "Bestellung nicht aktualisiert: ${reason ?: "Kontaktdaten"}"
                         )
                     )
                 }
@@ -1531,6 +1690,8 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
                     pickupTime = if (basketState.fulfilment == Fulfilment.PICKUP) {
                         basketState.pickupTime
                     } else "",
+                    pickupName = basketState.pickupName.trim(),
+                    pickupPhone = basketState.pickupPhone.trim(),
                     origin = OrderOrigin.DEMO
                 )
             } else {
@@ -1564,6 +1725,8 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
                     pickupTime = if (basketState.fulfilment == Fulfilment.PICKUP) {
                         basketState.pickupTime
                     } else "",
+                    pickupName = basketState.pickupName.trim(),
+                    pickupPhone = basketState.pickupPhone.trim(),
                     marketId = keptMarketId,
                     pricingRevision = if (keptMarketId == stored.marketId) stored.pricingRevision
                     else _state.value.pricingRevisionOf(keptMarketId)
@@ -1585,6 +1748,8 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
             }
             result.onSuccess {
                 val currentItems = _state.value.basketScreen.items
+                val writtenPickupName = updatedOrder.pickupName
+                    .ifBlank { updatedOrder.buyerProfile.displayName }
                 if (silent) {
                     bLog("🛒 basketScreenUpdateOrder: standing order $orderId auto-saved")
                     dispatch(BuyUiAction.ShowSnackbar("Bestellung aktualisiert"))
@@ -1604,6 +1769,16 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
                             originalFulfilment = updatedOrder.fulfilment,
                             originalDeliveryAddress = updatedOrder.deliveryAddress,
                             originalPickupTime = updatedOrder.pickupTime,
+                            // Both the field and its baseline, from the same value.
+                            // The order stores no name when the buyer collects it
+                            // themselves, and the field shows their name — so setting
+                            // only the baseline leaves the two disagreeing and the
+                            // card offering to save an order it has just saved.
+                            // Trimming does the same for a number typed with spaces.
+                            pickupName = writtenPickupName,
+                            originalPickupName = writtenPickupName,
+                            pickupPhone = updatedOrder.pickupPhone,
+                            originalPickupPhone = updatedOrder.pickupPhone,
                             hasChanges = false,
                             editedOnBasketScreen = false
                         )
@@ -1671,7 +1846,8 @@ internal fun BuyAppViewModel.autoSaveStandingOrder() {
         basket.editedOnBasketScreen -> "an unconfirmed basket-screen edit is waiting"
         items.isEmpty() -> "basket is empty; emptying an order is a cancellation"
         basket.isCheckingOut -> "a write is already in flight"
-        !hasChanges && !basket.fulfilmentChanged -> "nothing to save"
+        !hasChanges && !basket.fulfilmentChanged && !basket.contactChanged ->
+            "nothing to save"
         else -> null
     }
     if (standDown != null) {

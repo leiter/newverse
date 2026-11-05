@@ -498,6 +498,7 @@ Exactly the delivery address's, for the same reasons:
 | **Saved back** | On request, `SavePickupTimeToProfile`. Never implicitly: coming early once is not a change of habit. A blank is not written over a stored default |
 | **Snapshotted** | On the order. The seller cannot read `buyer_profile`, so a time that lives only there reaches them not at all |
 | **Optional** | Blank is a complete answer. The picker has a *Keine Abholzeit angeben* way back, because a field that can be filled but not emptied is not optional |
+| **Bounded** | A time that *is* given is between 7:00 and 18:59 — one rule, `ProfileValidation.isTimeInBusinessHours`, shared with the profile field and with the picker's own hour range |
 | **Pickup only** | Written as empty for a delivery, which arrives when the seller's round reaches it. `Order.statedPickupTime` is the one reading of "a time worth showing" |
 
 An edit of it counts as an unsaved change through `BasketScreenState.fulfilmentChanged`,
@@ -518,13 +519,18 @@ field in the first place.
 
 ### Validation
 
-Any readable `HH:mm`, and **no hour range**. The profile form insists on 7:00–18:00; the
-order does not, because a market's own opening hours are not modelled and a stall that
-starts at six has customers who come at six. `refuseUnreadablePickupTime` refuses
-anything that is neither blank nor a time, and `database.rules.json` validates the same
-shape on `orders` and `demo_orders` — written as `null` rather than `""` when absent, so
-the empty string is refused there too. Tests:
-`firebase/tests/order-pickup-time.test.js`, `BuyAppViewModelPickupTimeTest`.
+Blank, or a readable `HH:mm` between 7:00 and 18:59 — **the same rule as the profile
+field**, `ProfileValidation.isTimeInBusinessHours`, which is also the range the time
+picker's hour wheel offers. A collection promised at 03:00 is not a promise anyone can
+keep, and the seller reading a day's list has no way to tell one from a typo.
+
+`refuseUnusablePickupTime` refuses anything else and says why, and
+`database.rules.json` validates the same range on `orders` and `demo_orders` —
+written as `null` rather than `""` when absent, so the empty string is refused there
+too. Three places state the range, which is one too many: when a market gains its own
+opening hours, `isTimeInBusinessHours` is the one that has to learn them, and the
+picker and the rules follow. Tests: `firebase/tests/order-pickup-time.test.js`,
+`BuyAppViewModelPickupTimeTest`.
 
 ### Still open
 
@@ -534,7 +540,80 @@ the empty string is refused there too. Tests:
 - `Order.getFormattedPickupDateAndTime()` renders a time of day out of the pickup
   *timestamp*, which is not a time anyone stated. The seller's card and detail still
   show it, now with the buyer's real time beneath. Worth collapsing into one line.
-- The profile field's own 7:00–18:00 validation is now stricter than the order's.
+- Three copies of the 7:00–18:59 range: `ProfileValidation`, the picker's hour wheel,
+  and the database rules' regex. A per-market opening time would have to reconcile them.
+
+## Who takes receipt, and on what number
+
+**Built 2026-11-05.** `Order.pickupName` and `Order.pickupPhone`: who is collecting
+this order — or taking it in at the door — and a number to reach them on.
+
+### What each one fixes
+
+**The name.** The person who places an order routinely is not the person who turns up:
+a flatmate, a partner, somebody sent round on the way home. The seller's card was
+titled with the account holder's name and said nothing else, so the only way to tell
+them otherwise was to write it into the free-text order message and hope it was read.
+
+**The number.** `BuyerProfile.telephoneNumber` has been collected on the profile page
+for as long as there has been one, and `GitLiveOrderRepository.orderToMap` never wrote
+it: `OrderDetailScreen` carried a phone row that **could not fill**. Collected and
+delivered nowhere, exactly like the pickup time. Asked per order it is also
+*withdrawable* per order, which a profile field is not — and it is written only when
+non-blank, so it does not scatter into orders with no use for it
+(`doc/reports/buyer-profile-data-safety.md`).
+
+### The shape
+
+| | |
+|---|---|
+| **Asked** | `PickupContactFields`, in the checkout confirmation and again in the basket while the order is editable — below the pickup-or-delivery choice, since those are facts about the order and these about the handover |
+| **Both fulfilments** | Unlike the address and the time, which are exclusive by construction: somebody takes receipt at a stall or at a door either way. Only the wording changes (*Abholung durch* / *Annahme durch*) |
+| **Pre-filled** | Name from `displayName`, number from `telephoneNumber` |
+| **Saved back** | The **number** only, on request (`SavePickupPhoneToProfile`). The name deliberately has no such offer: a flatmate's name is not the buyer's name |
+| **Optional** | A blank number is an answer. A name left as pre-filled means "me" |
+| **Written when it says something** | `Order.statedPickupName` ignores a name matching the buyer's own, `statedPickupPhone` a blank number, and `orderToMap` writes `null` for both — so the seller's screens have nothing to suppress |
+
+An edit of either counts as an unsaved change through
+`BasketScreenState.contactChanged`, kept apart from `fulfilmentChanged` because it
+applies to a delivery too, and from `hasChanges` because that is recomputed from the
+basket items on every emission and would drop it. `hasPendingEdits` is now the union of
+all three, and the standing-order auto-save stands down on all three alike.
+
+One asymmetry had to be handled explicitly: the order stores **no** name when the buyer
+collects it themselves, while the field shows their name. So loading an order seeds the
+field — and its baseline — with `pickupName.ifBlank { buyerProfile.displayName }`, and a
+successful update writes the same resolved value into both. Setting only the baseline
+left the two disagreeing and the card offering to save an order it had just saved;
+two auto-save tests caught it.
+
+### What the seller sees
+
+- **Order list**: *"Abholung durch Jonas Weber"* in bold under the pickup date — bold
+  because it is the line that contradicts the name at the top of the card, and it is
+  read while handing a box over. The number joins the card's accessibility description.
+- **Order detail**: a *Abholung durch* row in the customer section, and the phone row
+  that finally fills. It falls back to `buyerProfile.telephoneNumber` for an order
+  written by some other path that does carry a profile.
+
+### Validation
+
+The name is bounded at 100 characters and otherwise unchecked — it is a person's name,
+and the app is in no position to say what one looks like. The number is characters
+only, `ProfileValidation.hasValidPhoneChars` (digits and `+ ( ) / - .`), at most 30:
+there is no shape a phone number has to take, and a rule insisting on one refuses real
+numbers written the way their owners write them. `refuseUnusablePickupContact` says
+which field and why; `database.rules.json` validates both on `orders` and
+`demo_orders`, refusing the empty string in each since absent is written as `null`.
+Tests: `firebase/tests/order-pickup-time.test.js`,
+`BuyAppViewModelPickupContactTest`.
+
+### Still open
+
+- Nothing lets the seller *call* the number — no `tel:` link on the detail screen.
+- A name on the order is unverified, and deliberately: the seller decides at the stall
+  whether the person in front of them is the one named. Worth saying out loud because
+  it is the kind of field an identity check gets bolted onto later.
 
 ## Order Editing
 

@@ -27,7 +27,11 @@ data class DemoOrderDto(
      * the next time the order is opened. Absent in records written before the time
      * was asked for at checkout.
      */
-    val pickupTime: String = ""
+    val pickupTime: String = "",
+    /** Who is collecting; empty for the buyer themselves. */
+    val pickupName: String = "",
+    /** A number for this order; empty for none. */
+    val pickupPhone: String = ""
 )
 
 @Serializable
@@ -53,7 +57,9 @@ fun Order.toDemoDto(): DemoOrderDto = DemoOrderDto(
     status = status.name,
     articles = articles.map { it.toDemoDto() },
     origin = origin.name,
-    pickupTime = pickupTime
+    pickupTime = pickupTime,
+    pickupName = pickupName,
+    pickupPhone = pickupPhone
 )
 
 fun DemoOrderDto.toOrder(): Order = Order(
@@ -68,7 +74,9 @@ fun DemoOrderDto.toOrder(): Order = Order(
     status = OrderStatus.entries.find { it.name == status } ?: OrderStatus.PLACED,
     articles = articles.map { it.toOrderedProduct() },
     origin = OrderOrigin.entries.find { it.name == origin } ?: OrderOrigin.DEMO,
-    pickupTime = pickupTime
+    pickupTime = pickupTime,
+    pickupName = pickupName,
+    pickupPhone = pickupPhone
 )
 
 private fun OrderedProduct.toDemoDto(): DemoOrderedProductDto = DemoOrderedProductDto(

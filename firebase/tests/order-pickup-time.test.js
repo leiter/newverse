@@ -10,10 +10,11 @@ import { createTestEnv, asUser, seed, SELLER, ALICE } from "./helpers.js";
  * code. It was collected as a *required* profile field for a long time and shown to
  * nobody; now the order carries it and the seller's list reads it.
  *
- * So the rule is only about shape. The node is either absent or a readable `HH:mm` —
- * nothing else reaches the seller's screen as a time of day. No hour range: a market's
- * own opening hours are not modelled here, and a stall that starts at six has
- * customers who come at six.
+ * The node is either absent or a time the stall could meet: a readable `HH:mm` between
+ * 7:00 and 18:59, which is the same range `ProfileValidation.isTimeInBusinessHours`
+ * applies to the profile field and the same range the picker offers. A collection
+ * promised at 03:00 is not a promise anyone can keep, and the seller reading the list
+ * has no way to tell it from a typo.
  *
  * See doc/guides/ordering-business-rules.md § Pickup time.
  */
@@ -60,12 +61,24 @@ describe("order pickup time", () => {
     await assertSucceeds(place({ pickupTime: "14:30" }));
   });
 
-  it("accepts an early hour, since a market's opening time is its own business", async () => {
-    await assertSucceeds(place({ pickupTime: "06:15" }));
+  it("accepts the first minute the stall is open", async () => {
+    await assertSucceeds(place({ pickupTime: "07:00" }));
   });
 
-  it("accepts the last minute of the day", async () => {
-    await assertSucceeds(place({ pickupTime: "23:59" }));
+  it("accepts the last, which is 18:59 — the profile reads hour 18 as in range", async () => {
+    await assertSucceeds(place({ pickupTime: "18:59" }));
+  });
+
+  it("denies an hour before the stall opens", async () => {
+    await assertFails(place({ pickupTime: "06:15" }));
+  });
+
+  it("denies an hour after it closes", async () => {
+    await assertFails(place({ pickupTime: "19:00" }));
+  });
+
+  it("denies the middle of the night", async () => {
+    await assertFails(place({ pickupTime: "03:00" }));
   });
 
   it("accepts an order that names no time at all", async () => {
@@ -79,16 +92,13 @@ describe("order pickup time", () => {
     await assertFails(place({ pickupTime: "14" }));
   });
 
-  it("denies an unpadded hour, which would sort wrong in the seller's list", async () => {
-    await assertFails(place({ pickupTime: "9:30" }));
-  });
-
-  it("denies an hour past the clock", async () => {
-    await assertFails(place({ pickupTime: "24:00" }));
-  });
-
   it("denies minutes past the clock", async () => {
     await assertFails(place({ pickupTime: "14:60" }));
+  });
+
+  it("denies 9:30 spelled without its leading zero", async () => {
+    // Also sorts wrong in the seller's list, which reads these as strings.
+    await assertFails(place({ pickupTime: "9:30" }));
   });
 
   it("denies a sentence where a time belongs", async () => {
@@ -135,6 +145,57 @@ describe("order pickup time", () => {
 
     await assertFails(
       asUser(env, ALICE).ref(`orders/${SELLER}/${DATE}/order1/pickupTime`).set("halb drei")
+    );
+  });
+
+  // --- who is collecting, and on what number ----------------------------------
+
+  it("accepts a different collector's name", async () => {
+    await assertSucceeds(place({ pickupName: "Jonas Weber" }));
+  });
+
+  it("accepts an order that names no collector, which means the buyer", async () => {
+    await assertSucceeds(place({}));
+  });
+
+  it("denies a collector name long enough to be a message", async () => {
+    await assertFails(place({ pickupName: "x".repeat(100) }));
+  });
+
+  it("denies an empty collector name, which is how absent is spelled", async () => {
+    await assertFails(place({ pickupName: "" }));
+  });
+
+  it("accepts a phone number written the way people write them", async () => {
+    await assertSucceeds(place({ pickupPhone: "+49 (030) 12 34-56" }));
+  });
+
+  it("accepts a number with a slash, as German numbers are often written", async () => {
+    await assertSucceeds(place({ pickupPhone: "030 / 1234567" }));
+  });
+
+  it("denies letters in a phone number", async () => {
+    // The row is dialled, not read: a sentence here is a second message field.
+    await assertFails(place({ pickupPhone: "ruft bitte an" }));
+  });
+
+  it("denies a number longer than any real one", async () => {
+    await assertFails(place({ pickupPhone: "1".repeat(31) }));
+  });
+
+  it("denies an empty phone number", async () => {
+    await assertFails(place({ pickupPhone: "" }));
+  });
+
+  it("lets the buyer take their number back off a placed order", async () => {
+    await seed(env, async (db) => {
+      await db.ref(`orders/${SELLER}/${DATE}/order1`)
+        .set(order({ pickupPhone: "0170 1234567" }));
+    });
+
+    // Asked per order means withdrawable per order, which a profile field is not.
+    await assertSucceeds(
+      asUser(env, ALICE).ref(`orders/${SELLER}/${DATE}/order1/pickupPhone`).remove()
     );
   });
 

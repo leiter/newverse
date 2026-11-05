@@ -75,12 +75,21 @@ fun CheckoutConfirmDialog(
     pickupTime: String,
     /** Their usual time as the profile holds it; empty if it holds none. */
     profilePickupTime: String,
+    /** Who is taking receipt; pre-filled with the buyer's own name. */
+    pickupName: String,
+    /** A number for this order; blank for none. */
+    pickupPhone: String,
+    /** The number the profile holds; empty if it holds none. */
+    profilePhone: String,
     orderError: String?,
     onFulfilmentChange: (Fulfilment) -> Unit,
     onDeliveryAddressChange: (DeliveryAddress) -> Unit,
     onSaveAddressToProfile: () -> Unit,
     onPickupTimeChange: (String) -> Unit,
     onSavePickupTimeToProfile: () -> Unit,
+    onPickupNameChange: (String) -> Unit,
+    onPickupPhoneChange: (String) -> Unit,
+    onSavePhoneToProfile: () -> Unit,
     onConfirm: () -> Unit,
     onChangeSlot: () -> Unit,
     onDismiss: () -> Unit,
@@ -151,6 +160,20 @@ fun CheckoutConfirmDialog(
                     onSaveAddressToProfile = onSaveAddressToProfile,
                     onPickupTimeChange = onPickupTimeChange,
                     onSavePickupTimeToProfile = onSavePickupTimeToProfile
+                )
+
+                // Who takes receipt, and on what number. After the pickup-or-delivery
+                // choice, which decides whether they are standing at a stall or at
+                // their own door, and before the market and date — those are facts
+                // about the order, these are about the handover.
+                PickupContactFields(
+                    fulfilment = fulfilment,
+                    pickupName = pickupName,
+                    pickupPhone = pickupPhone,
+                    profilePhone = profilePhone,
+                    onNameChange = onPickupNameChange,
+                    onPhoneChange = onPickupPhoneChange,
+                    onSavePhoneToProfile = onSavePhoneToProfile
                 )
 
                 // Named only when there is more than one market to be at: with a

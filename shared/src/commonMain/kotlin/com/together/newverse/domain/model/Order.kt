@@ -49,6 +49,38 @@ data class Order(
      */
     val pickupTime: String = "",
     /**
+     * Who is collecting this order — or taking it in at the door.
+     *
+     * Pre-filled with the buyer's own name and editable per order, because the person
+     * who placed it is routinely not the person who turns up: a flatmate, a partner,
+     * a colleague sent round on the way home. The seller's card used to say the
+     * account holder's name and nothing else, so the only way to tell them it would
+     * be someone else was the free-text order message, if they thought of it.
+     *
+     * Empty means the buyer themselves. So does the buyer's own name left as it was
+     * pre-filled — see [statedPickupName], which is what the seller's screens read, so
+     * an untouched field adds no row saying what the card's title already says.
+     *
+     * Snapshotted like everything else on an order: the seller cannot read
+     * `buyer_profile`, and a buyer who renames themselves afterwards has not changed
+     * who is coming for an order already placed.
+     */
+    val pickupName: String = "",
+    /**
+     * A number to reach whoever is collecting, for this order.
+     *
+     * Optional, and the first time a phone number actually reaches the seller.
+     * `BuyerProfile.telephoneNumber` has been collected on the profile page for as
+     * long as there has been one, and `orderToMap` never wrote it: the seller's detail
+     * screen has a phone row that could not fill. Asked here, pre-filled from the
+     * profile, it is given for a specific order and can be cleared on any of them.
+     *
+     * Written only when it is not blank, like the delivery address — a number is not
+     * data to scatter into orders that have no use for it. See
+     * `doc/reports/buyer-profile-data-safety.md`.
+     */
+    val pickupPhone: String = "",
+    /**
      * The [Market.pricingRevision] the articles were priced against.
      *
      * Snapshotted so a price that was charged can always be told apart from the price
@@ -82,6 +114,20 @@ data class Order(
     /** A collection time the buyer actually stated, for a pickup that has one. */
     val statedPickupTime: String?
         get() = pickupTime.takeIf { !isDelivery && it.isNotBlank() }
+
+    /**
+     * A collector worth naming: someone other than the buyer on the order.
+     *
+     * The seller's card is already titled with the buyer's name, so a field left as
+     * it was pre-filled has nothing to add and is deliberately read as "no, it's me".
+     */
+    val statedPickupName: String?
+        get() = pickupName
+            .takeIf { it.isNotBlank() && it.trim() != buyerProfile.displayName.trim() }
+
+    /** A number the buyer gave for this order, if they gave one. */
+    val statedPickupPhone: String?
+        get() = pickupPhone.takeIf { it.isNotBlank() }
 
     /**
      * Check if this order can be edited based on current time

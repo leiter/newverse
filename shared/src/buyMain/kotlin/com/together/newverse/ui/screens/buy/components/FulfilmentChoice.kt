@@ -28,8 +28,8 @@ import newverse.shared.generated.resources.fulfilment_pickup
 import newverse.shared.generated.resources.fulfilment_pickup_only
 import newverse.shared.generated.resources.fulfilment_pickup_time_hint
 import newverse.shared.generated.resources.fulfilment_pickup_time_label
-import newverse.shared.generated.resources.fulfilment_pickup_time_unreadable
 import newverse.shared.generated.resources.fulfilment_save_time_to_profile
+import newverse.shared.generated.resources.pickup_time_outside_hours
 import newverse.shared.generated.resources.fulfilment_use_profile_time
 import newverse.shared.generated.resources.fulfilment_save_to_profile
 import newverse.shared.generated.resources.fulfilment_street
@@ -193,7 +193,10 @@ private fun PickupTimeField(
     onChange: (String) -> Unit,
     onSaveToProfile: () -> Unit,
 ) {
-    val readable = pickupTime.isBlank() || ProfileValidation.isValidTimeFormat(pickupTime)
+    // The same reading the checkout gate and the database rules use: blank, or a
+    // time the stall is open. The picker offers nothing else, so this only shows for
+    // a value that arrived some other way.
+    val usable = pickupTime.isBlank() || ProfileValidation.isTimeInBusinessHours(pickupTime)
 
     TimePickerField(
         value = pickupTime,
@@ -201,9 +204,9 @@ private fun PickupTimeField(
         label = stringResource(Res.string.fulfilment_pickup_time_label),
         hint = stringResource(Res.string.fulfilment_pickup_time_hint),
         leadingIcon = Icons.Default.DateRange,
-        isValid = readable,
-        errorMessage = if (readable) null else {
-            stringResource(Res.string.fulfilment_pickup_time_unreadable)
+        isValid = usable,
+        errorMessage = if (usable) null else {
+            stringResource(Res.string.pickup_time_outside_hours)
         },
         // Optional means reversible: a buyer who named a time must be able to take
         // it back, both at checkout and while the order is still editable.
@@ -213,7 +216,7 @@ private fun PickupTimeField(
     val canFillFromProfile = profilePickupTime.isNotBlank() &&
         profilePickupTime != pickupTime
     val canSaveToProfile = !canFillFromProfile &&
-        pickupTime.isNotBlank() && readable &&
+        pickupTime.isNotBlank() && usable &&
         profilePickupTime != pickupTime
 
     if (canFillFromProfile) {

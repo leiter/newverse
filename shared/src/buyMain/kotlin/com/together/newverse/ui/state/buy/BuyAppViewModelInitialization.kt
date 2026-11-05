@@ -371,13 +371,21 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
                 val seedFulfilment = current.basketScreen.orderId == null &&
                     current.basketScreen.deliveryAddress.isEmpty
 
+                // Who collects and on what number seed on their own condition: an
+                // empty field and no order loaded. They have nothing to do with the
+                // address, so a basket that already holds one must not keep them
+                // blank — and an order being edited keeps what it was placed with.
+                val seedContact = current.basketScreen.orderId == null
+
                 current.copy(
                     customerProfile = current.customerProfile.copy(
                         profile = updatedProfile,
                         isLoading = false,
                         error = null
                     ),
-                    basketScreen = if (!seedFulfilment) current.basketScreen else {
+                    basketScreen = if (!seedFulfilment && !seedContact) {
+                        current.basketScreen
+                    } else {
                         // What the profile wants, as far as the chosen stall allows.
                         val fulfilment = Fulfilment.forMarket(
                             current.eligibleMarkets.firstOrNull {
@@ -385,17 +393,30 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
                             },
                             Fulfilment.fromProfile(updatedProfile)
                         )
-                        current.basketScreen.copy(
-                            fulfilment = fulfilment,
-                            deliveryAddress = if (fulfilment == Fulfilment.DELIVERY) {
-                                DeliveryAddress.fromProfile(updatedProfile)
-                            } else DeliveryAddress.NONE,
+                        val basket = current.basketScreen
+                        basket.copy(
+                            fulfilment = if (seedFulfilment) fulfilment else basket.fulfilment,
+                            deliveryAddress = when {
+                                !seedFulfilment -> basket.deliveryAddress
+                                fulfilment == Fulfilment.DELIVERY ->
+                                    DeliveryAddress.fromProfile(updatedProfile)
+                                else -> DeliveryAddress.NONE
+                            },
                             // The usual collection time, offered rather than imposed:
                             // the checkout field is editable and may be cleared, and
                             // an empty profile default simply asks nothing.
-                            pickupTime = if (fulfilment == Fulfilment.PICKUP) {
-                                updatedProfile.defaultPickUpTime
-                            } else ""
+                            pickupTime = when {
+                                !seedFulfilment -> basket.pickupTime
+                                fulfilment == Fulfilment.PICKUP ->
+                                    updatedProfile.defaultPickUpTime
+                                else -> ""
+                            },
+                            pickupName = if (seedContact && basket.pickupName.isBlank()) {
+                                updatedProfile.displayName
+                            } else basket.pickupName,
+                            pickupPhone = if (seedContact && basket.pickupPhone.isBlank()) {
+                                updatedProfile.telephoneNumber
+                            } else basket.pickupPhone
                         )
                     }
                 )

@@ -89,6 +89,7 @@ import com.together.newverse.ui.components.formatEuro
 import com.together.newverse.ui.state.PendingSlotPriceChange
 import com.together.newverse.ui.screens.buy.components.CheckoutConfirmDialog
 import com.together.newverse.ui.screens.buy.components.FulfilmentChoice
+import com.together.newverse.ui.screens.buy.components.PickupContactFields
 import newverse.shared.generated.resources.price_change_body
 import newverse.shared.generated.resources.price_change_confirm
 import newverse.shared.generated.resources.price_change_title
@@ -126,6 +127,10 @@ fun BasketScreen(
     profileAddress: DeliveryAddress = DeliveryAddress.NONE,
     /** The buyer's usual collection time from their profile; empty if they hold none. */
     profilePickupTime: String = "",
+    /** The number their profile holds, for the one-tap fill-in; empty if none. */
+    profilePhone: String = "",
+    /** The buyer's own name, to tell "somebody else is collecting" from "me". */
+    profileName: String = "",
     orderId: String? = null,
     orderDate: String? = null
 ) {
@@ -149,7 +154,9 @@ fun BasketScreen(
         pricedAtMarketName = pricedAtMarketName,
         eligibleMarkets = eligibleMarkets,
         profileAddress = profileAddress,
-        profilePickupTime = profilePickupTime
+        profilePickupTime = profilePickupTime,
+        profilePhone = profilePhone,
+        profileName = profileName
     )
 }
 
@@ -180,7 +187,11 @@ fun BasketContent(
     eligibleMarkets: List<Market> = emptyList(),
     profileAddress: DeliveryAddress = DeliveryAddress.NONE,
     /** The buyer's usual collection time from their profile; empty if they hold none. */
-    profilePickupTime: String = ""
+    profilePickupTime: String = "",
+    /** The number their profile holds, for the one-tap fill-in; empty if none. */
+    profilePhone: String = "",
+    /** The buyer's own name, to tell "somebody else is collecting" from "me". */
+    profileName: String = ""
 ) {
     // Items the seller has withdrawn since they went into the basket. Derived from
     // the catalogue rather than stored on the state: the basket is persisted and
@@ -245,6 +256,9 @@ fun BasketContent(
             profileAddress = profileAddress,
             pickupTime = state.pickupTime,
             profilePickupTime = profilePickupTime,
+            pickupName = state.pickupName,
+            pickupPhone = state.pickupPhone,
+            profilePhone = profilePhone,
             orderError = state.orderError,
             onFulfilmentChange = { onAction(BuyBasketScreenAction.SetFulfilment(it)) },
             onDeliveryAddressChange = { onAction(BuyBasketScreenAction.SetDeliveryAddress(it)) },
@@ -254,6 +268,11 @@ fun BasketContent(
             onPickupTimeChange = { onAction(BuyBasketScreenAction.SetPickupTime(it)) },
             onSavePickupTimeToProfile = {
                 onAction(BuyBasketScreenAction.SavePickupTimeToProfile)
+            },
+            onPickupNameChange = { onAction(BuyBasketScreenAction.SetPickupName(it)) },
+            onPickupPhoneChange = { onAction(BuyBasketScreenAction.SetPickupPhone(it)) },
+            onSavePhoneToProfile = {
+                onAction(BuyBasketScreenAction.SavePickupPhoneToProfile)
             },
             onConfirm = { onAction(BuyBasketScreenAction.ConfirmCheckout) },
             onChangeSlot = { onAction(BuyBasketScreenAction.ShowDatePicker) },
@@ -329,6 +348,8 @@ fun BasketContent(
             addressMissing = addressMissing,
             profileAddress = profileAddress,
             profilePickupTime = profilePickupTime,
+            profilePhone = profilePhone,
+            profileName = profileName,
             unorderableIds = unorderableIds,
             nearlyGoneIds = nearlyGoneIds,
             onAction = onAction,
@@ -369,6 +390,10 @@ fun BasketContent(
                     profileAddress = profileAddress,
                     pickupTime = state.pickupTime,
                     profilePickupTime = profilePickupTime,
+                    pickupName = state.pickupName,
+                    pickupPhone = state.pickupPhone,
+                    profilePhone = profilePhone,
+                    profileName = profileName,
                     deliveryOffered = basketMarket?.allowsDelivery != false,
                     addressMissing = addressMissing,
                     onFulfilmentChange = { onAction(BuyBasketScreenAction.SetFulfilment(it)) },
@@ -381,6 +406,11 @@ fun BasketContent(
                     onPickupTimeChange = { onAction(BuyBasketScreenAction.SetPickupTime(it)) },
                     onSavePickupTimeToProfile = {
                         onAction(BuyBasketScreenAction.SavePickupTimeToProfile)
+                    },
+                    onPickupNameChange = { onAction(BuyBasketScreenAction.SetPickupName(it)) },
+                    onPickupPhoneChange = { onAction(BuyBasketScreenAction.SetPickupPhone(it)) },
+                    onSavePhoneToProfile = {
+                        onAction(BuyBasketScreenAction.SavePickupPhoneToProfile)
                     },
                     onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
                     onDisableEditing = { onAction(BuyBasketScreenAction.DisableEditing) },
@@ -631,6 +661,10 @@ private fun BasketTwoPane(
     profileAddress: DeliveryAddress,
     /** The buyer's usual collection time from their profile; empty if none. */
     profilePickupTime: String,
+    /** The number their profile holds; empty if none. */
+    profilePhone: String,
+    /** The buyer's own name; a pickup name matching it means "me". */
+    profileName: String,
     /** Article ids the seller has withdrawn; their rows say so and block ordering. */
     unorderableIds: Set<String>,
     /** Article ids the shop is nearly out of; their rows say so, nothing is blocked. */
@@ -727,6 +761,10 @@ private fun BasketTwoPane(
                     profileAddress = profileAddress,
                     pickupTime = state.pickupTime,
                     profilePickupTime = profilePickupTime,
+                    pickupName = state.pickupName,
+                    pickupPhone = state.pickupPhone,
+                    profilePhone = profilePhone,
+                    profileName = profileName,
                     deliveryOffered = basketMarket?.allowsDelivery != false,
                     addressMissing = addressMissing,
                     onFulfilmentChange = { onAction(BuyBasketScreenAction.SetFulfilment(it)) },
@@ -739,6 +777,11 @@ private fun BasketTwoPane(
                     onPickupTimeChange = { onAction(BuyBasketScreenAction.SetPickupTime(it)) },
                     onSavePickupTimeToProfile = {
                         onAction(BuyBasketScreenAction.SavePickupTimeToProfile)
+                    },
+                    onPickupNameChange = { onAction(BuyBasketScreenAction.SetPickupName(it)) },
+                    onPickupPhoneChange = { onAction(BuyBasketScreenAction.SetPickupPhone(it)) },
+                    onSavePhoneToProfile = {
+                        onAction(BuyBasketScreenAction.SavePickupPhoneToProfile)
                     },
                     onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
                     onDisableEditing = { onAction(BuyBasketScreenAction.DisableEditing) },
@@ -1171,6 +1214,14 @@ internal fun OrderInfoCard(
     pickupTime: String,
     /** Their usual time as the profile holds it; empty if it holds none. */
     profilePickupTime: String,
+    /** Who is taking receipt of this order; pre-filled with the buyer's own name. */
+    pickupName: String,
+    /** A number for this order; blank for none. */
+    pickupPhone: String,
+    /** The number the profile holds; empty if it holds none. */
+    profilePhone: String,
+    /** The buyer's own name; a pickup name matching it means they come themselves. */
+    profileName: String,
     /** Whether this order's stall delivers at all. */
     deliveryOffered: Boolean,
     /** A delivery with no address: nothing may be saved while this holds. */
@@ -1180,6 +1231,9 @@ internal fun OrderInfoCard(
     onSaveAddressToProfile: () -> Unit,
     onPickupTimeChange: (String) -> Unit,
     onSavePickupTimeToProfile: () -> Unit,
+    onPickupNameChange: (String) -> Unit,
+    onPickupPhoneChange: (String) -> Unit,
+    onSavePhoneToProfile: () -> Unit,
     onEnableEditing: () -> Unit,
     onDisableEditing: () -> Unit,
     onUpdateOrder: () -> Unit,
@@ -1270,25 +1324,42 @@ internal fun OrderInfoCard(
             // and a row saying so would read as something still to be filled in.
             if (fulfilment != Fulfilment.DELIVERY && pickupTime.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics(mergeDescendants = true) { },
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = stringResource(Res.string.label_pickup_time),
-                        style = MaterialTheme.typography.bodyMedium
+                OrderInfoRow(
+                    label = stringResource(Res.string.label_pickup_time),
+                    value = formatString(
+                        stringResource(Res.string.pickup_time_format),
+                        pickupTime
                     )
-                    Text(
-                        text = formatString(
-                            stringResource(Res.string.pickup_time_format),
-                            pickupTime
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                )
+            }
+
+            // Who is coming for it, when that is not the buyer. Their own name adds
+            // nothing — the order is theirs — and a row stating it would make the
+            // ordinary case look like something was filled in.
+            val collector = pickupName.trim()
+                .takeIf { it.isNotEmpty() && it != profileName.trim() }
+            if (collector != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                OrderInfoRow(
+                    label = stringResource(
+                        if (fulfilment == Fulfilment.DELIVERY) {
+                            Res.string.pickup_contact_delivery_who
+                        } else {
+                            Res.string.pickup_contact_pickup_who
+                        }
+                    ),
+                    value = collector
+                )
+            }
+
+            // Shown back because it is what the seller will see, and the buyer is
+            // entitled to know which number they handed over with this order.
+            if (pickupPhone.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                OrderInfoRow(
+                    label = stringResource(Res.string.pickup_contact_phone_short),
+                    value = pickupPhone
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -1385,6 +1456,18 @@ internal fun OrderInfoCard(
                     onPickupTimeChange = onPickupTimeChange,
                     onSavePickupTimeToProfile = onSavePickupTimeToProfile
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                PickupContactFields(
+                    fulfilment = fulfilment,
+                    pickupName = pickupName,
+                    pickupPhone = pickupPhone,
+                    profilePhone = profilePhone,
+                    onNameChange = onPickupNameChange,
+                    onPhoneChange = onPickupPhoneChange,
+                    onSavePhoneToProfile = onSavePhoneToProfile
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1440,6 +1523,24 @@ internal fun OrderInfoCard(
                 }
             }
         }
+    }
+}
+
+/** Label and value, read as one node by a screen reader ("Abholzeit, 14:00 Uhr"). */
+@Composable
+private fun OrderInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { },
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

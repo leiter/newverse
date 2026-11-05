@@ -1322,11 +1322,23 @@
     <string name="a11y_announcement">Ankündigung des Verkäufers: %1$s</string>
     <string name="a11y_announcement_dismiss">Ankündigung ausblenden</string>
     <string name="fulfilment_pickup_time_label">Abholzeit (optional)</string>
-    <string name="fulfilment_pickup_time_hint">Keine Angabe — zum Wählen tippen</string>
-    <string name="fulfilment_pickup_time_unreadable">Bitte als Uhrzeit angeben, z. B. 14:30</string>
+    <string name="fulfilment_pickup_time_hint">Keine Angabe — zum Wählen tippen (7:00 – 18:00)</string>
     <string name="fulfilment_use_profile_time">Übliche Zeit übernehmen</string>
     <string name="fulfilment_save_time_to_profile">Als übliche Zeit speichern</string>
     <string name="order_pickup_time_stated">Kommt gegen %1$s Uhr</string>
+    <string name="pickup_contact_pickup_intro">Wer holt ab? Wenn du selbst kommst, lass den Namen einfach stehen.</string>
+    <string name="pickup_contact_delivery_intro">Wer nimmt die Lieferung an? Wenn du selbst da bist, lass den Namen einfach stehen.</string>
+    <string name="pickup_contact_name_label">Name</string>
+    <string name="pickup_contact_name_hint">z. B. Mitbewohnerin, Partner</string>
+    <string name="pickup_contact_phone_label">Telefon (optional)</string>
+    <string name="pickup_contact_phone_invalid">Nur Ziffern und + ( ) / - </string>
+    <string name="pickup_contact_use_profile_phone">Nummer aus Profil übernehmen</string>
+    <string name="pickup_contact_save_phone">Nummer im Profil speichern</string>
+    <string name="pickup_contact_pickup_who">Abholung durch</string>
+    <string name="pickup_contact_delivery_who">Annahme durch</string>
+    <string name="pickup_contact_phone_short">Telefon</string>
+    <string name="order_pickup_name_stated">Abholung durch %1$s</string>
+    <string name="order_delivery_name_stated">Annahme durch %1$s</string>
     <string name="fulfilment_use_profile_address">Adresse aus Profil übernehmen</string>
     <string name="fulfilment_save_to_profile">Adresse im Profil speichern</string>
     <!-- Nachrichtenfeld, das der Verkäufer in die Käufer-App einstellt -->

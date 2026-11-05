@@ -328,6 +328,18 @@ private fun SellerOrderCard(
     val pickupTimeLine = order.statedPickupTime?.let { time ->
         formatString(stringResource(Res.string.order_pickup_time_stated), time)
     }
+    // Who is coming for it, when that is not the buyer whose name titles the card.
+    // The seller handing over a box needs this before the name on their list is the
+    // one thing that does not match the person in front of them.
+    val collectorLine = order.statedPickupName?.let { name ->
+        formatString(
+            stringResource(
+                if (order.isDelivery) Res.string.order_delivery_name_stated
+                else Res.string.order_pickup_name_stated
+            ),
+            name
+        )
+    }
     val addressMissingLabel = stringResource(Res.string.fulfilment_address_missing)
     // One stop per card, read in a deliberate order, instead of a stop each for
     // the name, count, pickup date, message and every product row.
@@ -340,6 +352,8 @@ private fun SellerOrderCard(
             append(order.deliveryAddress.oneLine().ifBlank { addressMissingLabel })
         }
         append(", "); append(productCountLabel)
+        collectorLine?.let { append(", "); append(it) }
+        order.statedPickupPhone?.let { append(", "); append(it) }
         append(", "); append(order.getFormattedPickupDateAndTime())
         pickupTimeLine?.let { append(", "); append(it) }
         if (order.message.isNotEmpty()) { append(", "); append(order.message) }
@@ -439,6 +453,17 @@ private fun SellerOrderCard(
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Emphasised rather than greyed: this is the line that contradicts the
+            // name at the top of the card, and it is read while handing a box over.
+            collectorLine?.let { line ->
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 

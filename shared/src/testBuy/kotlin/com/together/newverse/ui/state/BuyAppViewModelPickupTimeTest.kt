@@ -231,19 +231,35 @@ class BuyAppViewModelPickupTimeTest {
     }
 
     @Test
-    fun `any hour of the day is accepted, not only the profile form's business hours`() =
-        runTest {
-            // The profile field insists on 7–18. A market's own hours are not
-            // modelled, so imposing that here would refuse a stall that opens at six.
-            startSession(usualTime = "")
-            val viewModel = ready()
+    fun `a time outside the stall's hours is refused, as it is in the profile`() = runTest {
+        // One rule for both: the profile field insists on 7:00-18:59 and so does the
+        // order. A collection promised at 06:15 is not a promise anyone can keep, and
+        // the seller reading the list cannot tell it from a typo.
+        startSession(usualTime = "")
+        val viewModel = ready()
 
-            viewModel.dispatch(BuyBasketScreenAction.SetPickupTime("06:15"))
-            advanceUntilIdle()
-            placeOrder(viewModel)
+        viewModel.dispatch(BuyBasketScreenAction.SetPickupTime("06:15"))
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
 
-            assertEquals("06:15", orderRepository.placedOrders.single().pickupTime)
-        }
+        assertTrue(orderRepository.placedOrders.isEmpty(), "an unmeetable time was written")
+        assertTrue(viewModel.state.value.basketScreen.orderError != null)
+    }
+
+    @Test
+    fun `the whole of the stall's day is accepted`() = runTest {
+        startSession(usualTime = "")
+        val viewModel = ready()
+
+        viewModel.dispatch(BuyBasketScreenAction.SetPickupTime("07:00"))
+        advanceUntilIdle()
+        placeOrder(viewModel)
+
+        assertEquals("07:00", orderRepository.placedOrders.single().pickupTime)
+    }
 
     // ===== changing it while the order is editable =====
 

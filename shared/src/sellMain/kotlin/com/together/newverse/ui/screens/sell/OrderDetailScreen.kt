@@ -185,10 +185,17 @@ private fun OrderDetailContent(order: Order, pickupSection: @Composable () -> Un
                         value = order.buyerProfile.emailAddress
                     )
                 }
-                if (order.buyerProfile.telephoneNumber.isNotEmpty()) {
+                // The number the buyer gave *for this order*. The row used to read
+                // `buyerProfile.telephoneNumber`, which no order ever carried — the
+                // profile collected a number and `orderToMap` never wrote it, so this
+                // row could not fill. The fallback is kept for orders written by some
+                // other path that does carry the profile.
+                val phone = order.statedPickupPhone
+                    ?: order.buyerProfile.telephoneNumber.takeIf { it.isNotEmpty() }
+                if (phone != null) {
                     OrderDetailRow(
                         label = stringResource(Res.string.label_phone),
-                        value = order.buyerProfile.telephoneNumber
+                        value = phone
                     )
                 }
             }
@@ -210,6 +217,18 @@ private fun OrderDetailContent(order: Order, pickupSection: @Composable () -> Un
                 // when they named one: the field is optional at checkout, and an
                 // empty row would read as data the app failed to collect rather than
                 // a buyer who did not commit to an hour.
+                // Who is actually turning up. Named only when it is not the buyer:
+                // the section above is already titled with their name, and repeating
+                // it would make the ordinary case look like an exception.
+                order.statedPickupName?.let { name ->
+                    OrderDetailRow(
+                        label = stringResource(
+                            if (order.isDelivery) Res.string.pickup_contact_delivery_who
+                            else Res.string.pickup_contact_pickup_who
+                        ),
+                        value = name
+                    )
+                }
                 order.statedPickupTime?.let { time ->
                     OrderDetailRow(
                         label = stringResource(Res.string.label_pickup_time),

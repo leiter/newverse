@@ -326,6 +326,27 @@ sealed interface BuyBasketScreenAction : BuyAction {
 
     /** Keep the time chosen here as the buyer's usual one. Opt-in; blank is ignored. */
     data object SavePickupTimeToProfile : BuyBasketScreenAction
+
+    /**
+     * Who is collecting this order — pre-filled with the buyer's own name.
+     *
+     * Per order because the person who placed it routinely is not the person who
+     * turns up: a flatmate, a partner, somebody sent round on the way home. Left as
+     * it was pre-filled it means "me", and the seller's screens say nothing extra.
+     */
+    data class SetPickupName(val name: String) : BuyBasketScreenAction
+
+    /**
+     * A number to reach whoever collects. Optional, pre-filled from the profile.
+     *
+     * The first path by which a phone number actually reaches the seller: the profile
+     * has held one for as long as there has been a profile page, and no order ever
+     * carried it.
+     */
+    data class SetPickupPhone(val phone: String) : BuyBasketScreenAction
+
+    /** Keep the number given here in the profile. Opt-in; blank is ignored. */
+    data object SavePickupPhoneToProfile : BuyBasketScreenAction
         data class LoadOrder(val orderId: String, val date: String, val forceLoad: Boolean = false) : BuyBasketScreenAction
     data object UpdateOrder : BuyBasketScreenAction
     data object EnableEditing : BuyBasketScreenAction

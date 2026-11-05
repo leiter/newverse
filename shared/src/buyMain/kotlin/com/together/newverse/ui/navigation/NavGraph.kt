@@ -98,6 +98,8 @@ fun NavGraph(
                 eligibleMarkets = appState.eligibleMarkets,
                 profileAddress = DeliveryAddress.fromProfile(appState.customerProfile.profile),
                 profilePickupTime = appState.customerProfile.profile?.defaultPickUpTime.orEmpty(),
+                profilePhone = appState.customerProfile.profile?.telephoneNumber.orEmpty(),
+                profileName = appState.customerProfile.profile?.displayName.orEmpty(),
                 orderId = orderIdArg ?: appState.basket.currentOrderId,
                 orderDate = orderDateArg ?: appState.basket.currentOrderDate
             )
