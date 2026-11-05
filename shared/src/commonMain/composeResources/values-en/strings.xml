@@ -307,7 +307,7 @@
 
     <!-- Personal Information Section -->
     <string name="section_personal_info">Personal Information</string>
-    <string name="profile_address_optional_self_pickup">Address is optional for self-collection</string>
+    <string name="profile_address_for_delivery">Address is only needed for deliveries — an order fills it in from here.</string>
 
     <!-- Delivery Preferences Section -->
     <string name="section_delivery_preferences">Veggie Date</string>

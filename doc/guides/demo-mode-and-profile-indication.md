@@ -31,9 +31,17 @@ directions:
      seller has already authorised by QR code stays in demo mode until their own
      profile is filled in.
 
-   Required fields (`MissingProfileData`, `BuyAppViewModelAccess.kt:20`):
-   display name, default pickup time, and — unless `isSelfPickup` — street and
-   house number.
+   Required fields (`MissingProfileData`): display name and default pickup time.
+
+   **The delivery address is not among them** (changed 2026-11-05). It used to be
+   — street and house number, unless `isSelfPickup` — which asked every buyer for
+   an address in order to serve the few wanting delivery, and blocked the ones who
+   only ever meant to collect, since `isSelfPickup` defaults to `false`. The address
+   is now required at the point it is used: placing or editing a *delivery* order,
+   gated by `DeliveryAddress.isComplete` and enforced by `refuseImpossibleDelivery()`
+   in `BuyAppViewModelBasket.kt`. The profile still holds one — an order seeds its
+   snapshot from it and can save a new one back — but an empty one costs the buyer
+   nothing until they ask to be delivered to.
 
 So profile data is not merely *nicer to have* in demo mode; it is the gate. Any
 rule that hides the requirement while in demo mode hides it in precisely the

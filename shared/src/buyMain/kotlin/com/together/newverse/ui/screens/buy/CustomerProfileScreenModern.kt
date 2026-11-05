@@ -175,7 +175,7 @@ import newverse.shared.generated.resources.mode_demo
 import newverse.shared.generated.resources.mode_production
 import newverse.shared.generated.resources.profile_incomplete_fill_now
 import newverse.shared.generated.resources.profile_incomplete_dialog_title
-import newverse.shared.generated.resources.profile_address_optional_self_pickup
+import newverse.shared.generated.resources.profile_address_for_delivery
 import newverse.shared.generated.resources.profile_incomplete_go_to_profile
 import newverse.shared.generated.resources.profile_new_customer
 import newverse.shared.generated.resources.profile_no_email
@@ -484,7 +484,6 @@ fun CustomerProfileScreenModern(
                             phone = phone,
                             street = street,
                             houseNumber = houseNumber,
-                            isSelfPickup = isSelfPickup,
                             isEditing = isEditingPersonalInfo,
                             isSubmitting = formState.isSubmitting,
                             emailError = formState.getFieldError(ProfileValidation.FIELD_EMAIL),
@@ -794,7 +793,6 @@ private fun PersonalInfoCard(
     phone: String,
     street: String,
     houseNumber: String,
-    isSelfPickup: Boolean,
     isEditing: Boolean,
     isSubmitting: Boolean = false,
     emailError: String? = null,
@@ -938,15 +936,20 @@ private fun PersonalInfoCard(
                         errorMessage = resolvedPhoneError
                     )
 
-                    if (isSelfPickup && !isEditing) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(Res.string.profile_address_optional_self_pickup),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 16.dp)
-                        )
-                    }
+                    // Said for every buyer, not just the self-collectors it used to
+                    // address: the street and number stopped being a precondition for
+                    // the access request (see MissingProfileData), so an empty address
+                    // here is now unremarkable. What it is *for* is the next delivery
+                    // order, which seeds its own copy from these fields and can save a
+                    // new one back — so this explains why the fields exist rather than
+                    // excusing them being blank.
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(Res.string.profile_address_for_delivery),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -1245,8 +1248,6 @@ private fun missingFieldsText(missing: MissingProfileData): String {
     val fields = mutableListOf<String>()
     if (missing.name) fields.add(stringResource(Res.string.label_name))
     if (missing.pickupTime) fields.add(stringResource(Res.string.label_pickup_time))
-    if (missing.street) fields.add(stringResource(Res.string.label_street))
-    if (missing.houseNumber) fields.add(stringResource(Res.string.label_house_number))
     return fields.joinToString(", ")
 }
 

@@ -30,8 +30,6 @@ internal fun buildMissingFieldsMessage(missing: MissingProfileData): String {
     val fields = mutableListOf<String>()
     if (missing.name) fields.add("Name")
     if (missing.pickupTime) fields.add("Abholzeit")
-    if (missing.street) fields.add("Straße")
-    if (missing.houseNumber) fields.add("Hausnummer")
     return "Fehlende Angaben: ${fields.joinToString(", ")}"
 }
 

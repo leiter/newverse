@@ -320,7 +320,7 @@
 
     <!-- Personal Information Section -->
     <string name="section_personal_info">Persönliche Daten</string>
-    <string name="profile_address_optional_self_pickup">Adressangabe optional für Selbstabholer</string>
+    <string name="profile_address_for_delivery">Adresse nur für Lieferungen nötig — bei der Bestellung wird sie von hier übernommen.</string>
 
     <!-- Delivery Preferences Section -->
     <string name="section_delivery_preferences">Gemüsedate</string>
