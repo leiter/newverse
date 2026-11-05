@@ -594,7 +594,11 @@ two auto-save tests caught it.
   read while handing a box over. The number joins the card's accessibility description.
 - **Order detail**: a *Abholung durch* row in the customer section, and the phone row
   that finally fills. It falls back to `buyerProfile.telephoneNumber` for an order
-  written by some other path that does carry a profile.
+  written by some other path that does carry a profile. **The row dials**: the number
+  is put through `ContactChannel.PHONE.normalize` — digits and a leading `+` — and
+  opened with that channel's own `tel:` scheme, so the forgiving field the buyer typed
+  into (`030 / 12 34`) still produces a URI. Nothing dialable left means a plain text
+  row rather than a tap that opens an empty dialler.
 
 ### Validation
 
@@ -610,7 +614,8 @@ Tests: `firebase/tests/order-pickup-time.test.js`,
 
 ### Still open
 
-- Nothing lets the seller *call* the number — no `tel:` link on the detail screen.
+- The order *list* does not dial, only the detail screen. The card is a navigation
+  target, and a second tappable thing inside it competes with opening the order.
 - A name on the order is unverified, and deliberately: the seller decides at the stall
   whether the person in front of them is the one named. Worth saying out loud because
   it is the kind of field an identity check gets bolted onto later.

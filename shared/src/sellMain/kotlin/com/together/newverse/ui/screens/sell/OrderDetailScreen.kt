@@ -1,22 +1,28 @@
 package com.together.newverse.ui.screens.sell
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.ContactChannel
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
 import com.together.newverse.util.formatPrice
@@ -193,10 +199,7 @@ private fun OrderDetailContent(order: Order, pickupSection: @Composable () -> Un
                 val phone = order.statedPickupPhone
                     ?: order.buyerProfile.telephoneNumber.takeIf { it.isNotEmpty() }
                 if (phone != null) {
-                    OrderDetailRow(
-                        label = stringResource(Res.string.label_phone),
-                        value = phone
-                    )
+                    OrderDetailPhoneRow(phone = phone)
                 }
             }
         }
@@ -361,6 +364,80 @@ private fun OrderDetailRow(label: String, value: String) {
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
         )
+    }
+}
+
+/**
+ * The buyer's number, as something to ring rather than something to read.
+ *
+ * The seller holding this screen is standing at a van or a stall with a box nobody has
+ * come for. Copying eleven digits across to the dialler by hand is the whole distance
+ * between "I could call them" and not calling them, so the row dials.
+ *
+ * The scheme comes from [ContactChannel.PHONE], never from the stored string, and the
+ * number goes through the same `normalize` the seller's own contact rows use — digits
+ * and a leading `+`. The buyer typed this into a deliberately forgiving field (spaces,
+ * brackets and slashes are all accepted, because that is how people write their
+ * numbers), and `tel:030 / 12 34` is not a URI.
+ *
+ * Falls back to plain text when nothing dialable is left, rather than offering a tap
+ * that opens an empty dialler.
+ */
+@Composable
+private fun OrderDetailPhoneRow(phone: String) {
+    val uriHandler = LocalUriHandler.current
+    val label = stringResource(Res.string.label_phone)
+    val callLabel = stringResource(Res.string.action_call)
+    val dialable = ContactChannel.PHONE.normalize(phone).takeIf { it.isNotEmpty() }
+
+    if (dialable == null) {
+        OrderDetailRow(label = label, value = phone)
+        return
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClickLabel = callLabel) {
+                uriHandler.openUri(ContactChannel.PHONE.scheme + dialable)
+            }
+            // One stop that says what it is and what tapping does, instead of a
+            // label, a number and an icon read as three.
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$label: $phone"
+                onClick(label = callLabel, action = null)
+            }
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                // The number as the buyer wrote it, not as it was normalised: their
+                // spacing is how they read it out, and the seller is comparing this
+                // against a person, not a URI.
+                text = phone,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Icon(
+                imageVector = Icons.Default.Phone,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
 
