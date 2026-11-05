@@ -142,6 +142,9 @@ private fun MainScreenModernContent(
                                     isInBasket = isInBasket,
                                     isFavourite = isFavourite,
                                     onQuantityChange = { onAction(BuyMainScreenAction.UpdateQuantity(it)) },
+                                    onQuantityFocusChange = {
+                                        onAction(BuyMainScreenAction.SetQuantityInputFocused(it))
+                                    },
                                     onAddToCart = { onAction(BuyMainScreenAction.AddToCart) },
                                     onRemoveFromBasket = { onAction(BuyMainScreenAction.RemoveFromBasket) },
                                     onToggleFavourite = { onAction(BuyMainScreenAction.ToggleFavourite(product.id)) },

@@ -219,6 +219,12 @@ sealed interface BuyMainScreenAction : BuyAction {
     data object RemoveFromBasket : BuyMainScreenAction
     data class ToggleFavourite(val articleId: String) : BuyMainScreenAction
     /**
+     * The hero card's amount field gained or lost focus. Reported rather than
+     * inferred from the keyboard: the search field raises the same keyboard, and a
+     * buyer searching has not asked to be shown their basket.
+     */
+    data class SetQuantityInputFocused(val focused: Boolean) : BuyMainScreenAction
+    /**
      * Tap on the favourite chip. Carries no payload on purpose: the chip has three
      * states and the next one follows from the current one, which
      * [ProductFilterState.cycleFavourite] owns — the UI does not work it out itself.

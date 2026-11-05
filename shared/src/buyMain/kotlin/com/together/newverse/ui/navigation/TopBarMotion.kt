@@ -102,3 +102,15 @@ fun <T> AnimatedContentTransitionScope<T>.topBarActionTransition(): ContentTrans
     (fadeIn(tween(ENTER_MILLIS)) + scaleIn(tween(ENTER_MILLIS), initialScale = 0.8f)) togetherWith
         (fadeOut(tween(EXIT_MILLIS)) + scaleOut(tween(EXIT_MILLIS), targetScale = 0.8f)) using
         SizeTransform(clip = false)
+
+/**
+ * How the basket action comes and goes.
+ *
+ * A plain crossfade, and no [SizeTransform]: the caller holds the seat open with a
+ * spacer of the same width whether the button is in it or not, so there is nothing
+ * to resize and nothing beside it to push. The button appears while the buyer is
+ * reaching for the number pad, which is the worst moment for anything in the bar to
+ * move -- so it only fades up in a space that was already there.
+ */
+fun <T> AnimatedContentTransitionScope<T>.topBarBasketTransition(): ContentTransform =
+    fadeIn(tween(ENTER_MILLIS)) togetherWith fadeOut(tween(EXIT_MILLIS))

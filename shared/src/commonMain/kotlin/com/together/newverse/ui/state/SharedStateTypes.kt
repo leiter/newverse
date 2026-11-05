@@ -600,6 +600,12 @@ data class MainScreenState(
     val articles: List<Article> = emptyList(),
     val selectedArticle: Article? = null,
     val selectedQuantity: Double = 0.0,
+    /**
+     * Whether the buyer has the hero card's amount field open, with the number pad
+     * over the bottom bar. Raised so the bar's basket can be offered somewhere the
+     * keyboard is not covering; nothing else should read it as "is typing".
+     */
+    val isQuantityInputFocused: Boolean = false,
     val cartItemCount: Int = 0,
     val basketItems: List<OrderedProduct> = emptyList(),
     val favouriteArticles: List<String> = emptyList(),

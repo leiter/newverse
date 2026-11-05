@@ -36,11 +36,13 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -86,6 +88,11 @@ internal fun HeroProductCard(
     isInBasket: Boolean,
     isFavourite: Boolean,
     onQuantityChange: (Double) -> Unit,
+    /**
+     * The amount field gained or lost focus. Raised so the top bar can offer the
+     * basket while the number pad covers the one in the bottom bar.
+     */
+    onQuantityFocusChange: (Boolean) -> Unit = {},
     onAddToCart: () -> Unit,
     onRemoveFromBasket: () -> Unit,
     onToggleFavourite: () -> Unit,
@@ -94,6 +101,13 @@ internal fun HeroProductCard(
 ) {
     // Helper function to check if unit is weight-based
     val isWeightBased = product.unit.lowercase() in listOf("kg", "g", "kilogramm", "gramm")
+
+    // onFocusChanged does not necessarily fire when the field is removed rather
+    // than blurred -- another product selected, the screen left -- and a flag left
+    // standing would leave the top bar's basket sitting there with no keyboard.
+    DisposableEffect(Unit) {
+        onDispose { onQuantityFocusChange(false) }
+    }
 
     // Check if quantity has changed from original
     val hasChanges = isInBasket && quantity != originalQuantity
@@ -421,6 +435,7 @@ internal fun HeroProductCard(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(horizontal = 4.dp)
+                                                .onFocusChanged { onQuantityFocusChange(it.isFocused) }
                                                 .semantics {
                                                     contentDescription = quantityFieldLabel
                                                     traversalIndex = 1f

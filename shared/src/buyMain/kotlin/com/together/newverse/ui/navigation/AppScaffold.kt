@@ -836,28 +836,45 @@ private fun AppScaffoldContent(
                     // basket tab, via the same onNavigateToTab, so the two cannot
                     // disagree about where the basket is.
                     //
-                    // Only while the keyboard is over the bottom bar, which is what
-                    // this button is for. The bar already holds the basket, so two
-                    // carts at once is one cart too many -- but the keyboard draws
-                    // straight across the bar and takes it away, and that is exactly
-                    // when the buyer typing a search wants to go and look at what they
-                    // have collected. So it stands in for the bar for as long as the
-                    // bar is gone, and there is never a moment with both.
-                    val basketCoveredInBar = currentRoute == NavRoutes.Home.route &&
-                        showBottomBar && !useNavRail && isKeyboardHidingBottomBar()
-                    AnimatedContent(
-                        targetState = basketCoveredInBar,
-                        transitionSpec = { topBarActionTransition() },
-                        label = "topBarBasket"
-                    ) { show ->
-                        // The empty case is a body of its own so the outgoing button
-                        // has something to animate out of, as with the actions above.
-                        if (show) {
-                            BuyerBasketAction(
-                                basketItemCount = basketItems.size,
-                                tint = topBarColors.content,
-                                onClick = { onNavigateToTab(NavRoutes.Buy.Basket.route) }
-                            )
+                    // Shown for one situation only: the buyer has the hero card's
+                    // amount field open, so the number pad is over the bottom bar and
+                    // the basket tab underneath it cannot be reached -- at the moment
+                    // they have just decided how much of something they want and may
+                    // well want to go and look at the rest. The field is asked
+                    // directly rather than the keyboard, because the search field
+                    // raises the same keyboard and a buyer searching has not asked to
+                    // be shown their basket. The bar already holds a basket whenever
+                    // it is visible, so this is a stand-in, never a second copy.
+                    //
+                    // isKeyboardHidingBottomBar is still part of it: on iOS the scene
+                    // pans and carries the bar up with it, so nothing is ever covered
+                    // and nothing needs standing in for.
+                    val standInForCoveredBasket = currentRoute == NavRoutes.Home.route &&
+                        showBottomBar && !useNavRail &&
+                        appState.mainScreen.isQuantityInputFocused &&
+                        isKeyboardHidingBottomBar()
+                    if (currentRoute == NavRoutes.Home.route) {
+                        // The seat is held open whether or not the button is sitting
+                        // in it. The button arrives exactly as the buyer reaches for
+                        // the number pad, which is the worst possible moment for the
+                        // bar to shuffle sideways under their finger -- so the width
+                        // is spent either way and only the icon fades.
+                        AnimatedContent(
+                            targetState = standInForCoveredBasket,
+                            transitionSpec = { topBarBasketTransition() },
+                            label = "topBarBasket"
+                        ) { show ->
+                            if (show) {
+                                BuyerBasketAction(
+                                    basketItemCount = basketItems.size,
+                                    tint = topBarColors.content,
+                                    onClick = { onNavigateToTab(NavRoutes.Buy.Basket.route) }
+                                )
+                            } else {
+                                // One IconButton's worth, the size BuyerBasketAction
+                                // takes: the minimum touch target.
+                                Spacer(Modifier.width(48.dp))
+                            }
                         }
                     }
                 },
