@@ -97,6 +97,7 @@ fun NavGraph(
                 pricedAtMarketName = appState.adjustedPricingMarketName,
                 eligibleMarkets = appState.eligibleMarkets,
                 profileAddress = DeliveryAddress.fromProfile(appState.customerProfile.profile),
+                profilePickupTime = appState.customerProfile.profile?.defaultPickUpTime.orEmpty(),
                 orderId = orderIdArg ?: appState.basket.currentOrderId,
                 orderDate = orderDateArg ?: appState.basket.currentOrderDate
             )
@@ -141,7 +142,6 @@ fun NavGraph(
                 connectedSellerId = appState.connectedSellerId,
                 connectedSellerDisplayName = appState.connectedSellerDisplayName,
                 isDemoMode = appState.isDemoMode,
-                missingProfileData = appState.missingProfileData,
                 accessRequestDraft = appState.accessRequestDraft,
                 accessStatus = appState.accessStatus,
                 sellerContacts = appState.sellerContacts.sellerContacts.filter { it.isUsable },
@@ -155,7 +155,6 @@ fun NavGraph(
                 pendingInvitations = appState.pendingInvitations,
                 showConnectionConfirmDialog = appState.showConnectionConfirmDialog,
                 onScanQrCode = { onPlatformAction(PlatformAction.ScanQrCode) },
-                showProfileIncompleteDialog = appState.showProfileIncompleteDialog,
                 eligibleMarkets = appState.eligibleMarkets,
                 chosenMarket = appState.chosenDefaultMarket,
                 triggerScrollToAccess = appState.triggerScrollToAccessInProfile

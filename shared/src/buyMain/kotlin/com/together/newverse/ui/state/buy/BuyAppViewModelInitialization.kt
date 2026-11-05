@@ -389,7 +389,13 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
                             fulfilment = fulfilment,
                             deliveryAddress = if (fulfilment == Fulfilment.DELIVERY) {
                                 DeliveryAddress.fromProfile(updatedProfile)
-                            } else DeliveryAddress.NONE
+                            } else DeliveryAddress.NONE,
+                            // The usual collection time, offered rather than imposed:
+                            // the checkout field is editable and may be cleared, and
+                            // an empty profile default simply asks nothing.
+                            pickupTime = if (fulfilment == Fulfilment.PICKUP) {
+                                updatedProfile.defaultPickUpTime
+                            } else ""
                         )
                     }
                 )

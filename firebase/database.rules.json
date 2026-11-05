@@ -185,6 +185,7 @@
               "note": { ".validate": "newData.isString() && newData.val().length < 300" }
             },
             "marketId": { ".validate": "newData.isString() && (newData.val() === '' || root.child('markets').child($sellerId).child(newData.val()).exists())" },
+            "pickupTime": { ".validate": "newData.isString() && newData.val().matches(/^([01][0-9]|2[0-3]):[0-5][0-9]$/)" },
             "pricingRevision": { ".validate": "newData.isNumber() && newData.val() >= 0" }
           }
         }
@@ -207,6 +208,7 @@
               "city": { ".validate": "newData.isString() && newData.val().length < 120" },
               "note": { ".validate": "newData.isString() && newData.val().length < 300" }
             },
+            "pickupTime": { ".validate": "newData.isString() && newData.val().matches(/^([01][0-9]|2[0-3]):[0-5][0-9]$/)" },
             "pricingRevision": { ".validate": "newData.isNumber() && newData.val() >= 0" }
           }
         }

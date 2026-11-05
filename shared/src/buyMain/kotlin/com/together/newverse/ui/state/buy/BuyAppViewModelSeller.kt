@@ -48,8 +48,6 @@ internal fun BuyAppViewModel.handleSellerAction(action: BuySellerAction) {
         is BuySellerAction.UpdateAccessRequestNote -> updateAccessRequestNote(action.note)
         is BuySellerAction.SubmitAccessRequest -> submitAccessRequestDraft()
         is BuySellerAction.DismissAccessRequest -> dismissAccessRequestSheet()
-        is BuySellerAction.DismissProfileIncompleteDialog -> dismissProfileIncompleteDialog()
-        is BuySellerAction.RetryPendingConnection -> retryPendingConnection()
         is BuySellerAction.ShowMarketPicker -> showMarketPicker()
         is BuySellerAction.ChooseDefaultMarket -> chooseDefaultMarket(action.marketId)
         is BuySellerAction.DismissMarketPicker -> dismissMarketPicker()

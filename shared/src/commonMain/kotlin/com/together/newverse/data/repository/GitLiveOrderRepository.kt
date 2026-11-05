@@ -615,6 +615,9 @@ class GitLiveOrderRepository(
                         // reads as PICKUP — those orders were all collected at a stall.
                         fulfilment = Fulfilment.stored(value["fulfilment"] as? String),
                         deliveryAddress = storedDeliveryAddress(value["deliveryAddress"]),
+                        // Absent on every order placed before the time was asked for
+                        // at checkout, and on every order whose buyer named none.
+                        pickupTime = value["pickupTime"] as? String ?: "",
                         pricingRevision = (value["pricingRevision"] as? Number)?.toLong() ?: 0L,
                         pickUpDate = (value["pickUpDate"] as? Number)?.toLong() ?: 0L,
                         message = value["message"] as? String ?: "",
@@ -700,6 +703,10 @@ class GitLiveOrderRepository(
                         "note" to address.note
                     )
                 },
+            // Written only where it means something: a delivery arrives when the
+            // seller's round reaches it, and a buyer who named no time has said all
+            // they intend to. `statedPickupTime` is the one reading of both.
+            "pickupTime" to order.statedPickupTime,
             "pricingRevision" to order.pricingRevision,
             "pickUpDate" to order.pickUpDate,
             "message" to order.message,

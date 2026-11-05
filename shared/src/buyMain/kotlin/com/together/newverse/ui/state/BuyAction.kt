@@ -266,8 +266,6 @@ sealed interface BuySellerAction : BuyAction {
     /** Send it, or redeem the invite token the sheet is standing in front of. */
     data object SubmitAccessRequest : BuySellerAction
     data object DismissAccessRequest : BuySellerAction
-    data object DismissProfileIncompleteDialog : BuySellerAction
-    data object RetryPendingConnection : BuySellerAction
 
     /** Open the market picker deliberately, from the profile rather than onboarding. */
     data object ShowMarketPicker : BuySellerAction
@@ -315,6 +313,19 @@ sealed interface BuyBasketScreenAction : BuyAction {
      * The note is not copied; it belongs to this order, not to the address.
      */
     data object SaveDeliveryAddressToProfile : BuyBasketScreenAction
+
+    /**
+     * When the buyer means to collect this order, `HH:mm`, or blank for no answer.
+     *
+     * Per order, like the address beside it. Asked at checkout and again while the
+     * order is editable, because it is a fact about one collection — and because it
+     * used to be a required profile field that stood in front of the access request
+     * and reached no seller screen at all.
+     */
+    data class SetPickupTime(val time: String) : BuyBasketScreenAction
+
+    /** Keep the time chosen here as the buyer's usual one. Opt-in; blank is ignored. */
+    data object SavePickupTimeToProfile : BuyBasketScreenAction
         data class LoadOrder(val orderId: String, val date: String, val forceLoad: Boolean = false) : BuyBasketScreenAction
     data object UpdateOrder : BuyBasketScreenAction
     data object EnableEditing : BuyBasketScreenAction

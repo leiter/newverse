@@ -99,17 +99,17 @@ class BuyAppViewModelAccessRequestSheetTest {
 
     @Test
     fun `an empty profile no longer blocks the request, it just asks`() = runTest {
-        // No profile at all: the old gate raised showProfileIncompleteDialog here.
+        // No profile at all. The old gate refused here and raised a dialog sending
+        // the buyer to the profile form; that dialog has since been deleted outright,
+        // so the assertion left to make is that the sheet opened and is empty.
         val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.openSheet()
 
-        assertNotNull(viewModel.state.value.accessRequestDraft)
-        assertEquals(
-            false, viewModel.state.value.showProfileIncompleteDialog,
-            "no bounce to the profile form"
-        )
+        val draft = viewModel.state.value.accessRequestDraft
+        assertNotNull(draft, "the request is asked for, not refused")
+        assertEquals("", draft.name)
     }
 
     @Test

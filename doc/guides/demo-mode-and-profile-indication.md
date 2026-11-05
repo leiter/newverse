@@ -1,6 +1,9 @@
 # Demo Mode & Profile Data — Indication Proposal
 
-**Status:** Implemented 2026-10-08 (items 1-5; item 6 deliberately left out)
+**Status:** Implemented 2026-10-08 (items 1-5; item 6 deliberately left out).
+Section 2 rewritten 2026-11-05, when profile data stopped being a gate at all —
+items 1, 2 and 3 below describe machinery that has since been **deleted**, and are
+kept only as the record of why it existed.
 **Scope:** Buy flavor only (`shared/src/buyMain`)
 **Goal:** Tell the buyer two different things in two different ways —
 *"something here is yours to finish"* (incomplete profile data) and
@@ -47,18 +50,31 @@ directions:
    re-reading it from the profile would reopen the sheet whenever the profile write
    had not taken, which is a loop.
 
-   **What is no longer required for access:** the delivery address (moved
-   2026-11-05 to the point of placing or editing a *delivery* order, gated by
-   `DeliveryAddress.isComplete` and enforced by `refuseImpossibleDelivery()`), and
-   the profile-completeness check in front of the request. `MissingProfileData` is
-   down to the default pickup time, which now **gates nothing** — the next step moves
-   it to checkout, after which the type goes away.
+   **Nothing in the profile is required for anything any more.** The three fields
+   that used to gate the access request each moved to the moment they mean
+   something:
 
-   The **"Profil unvollständig" banner is switched off** (commented out in
-   `CustomerProfileScreenModern.kt`) because it now warns about nothing: there is no
-   gate behind it. The text that used to sit next to the *Zugang anfragen* button
-   saying what the request "still needs" is gone for the same reason — the sheet asks
-   for it, and a missing name is raised there.
+   | Field | Where it is asked now |
+   |-------|-----------------------|
+   | Name | The access request sheet itself (2026-11-05) |
+   | Delivery address | When a *delivery* order is placed or edited, gated by `DeliveryAddress.isComplete` and enforced by `refuseImpossibleDelivery()` (2026-11-05) |
+   | Pickup time | At checkout, as `Order.pickupTime` — optional, defaulted from the profile, editable while the order is, and shown to the seller on the order (2026-11-05; see `ordering-business-rules.md` § Pickup time) |
+
+   So the following are **deleted**, not disabled: `MissingProfileData` and
+   `BuyerProfile.missingProfileData()`, `BuyAppState.missingProfileData` /
+   `isProfileIncomplete`, the `ProfileIncompleteNotice` card and its
+   `missingFieldsText` helper, the "Profil unvollständig" dialog with its
+   `showProfileIncompleteDialog` flag and `DismissProfileIncompleteDialog` action,
+   and the vestigial `pendingConnectToken` / `RetryPendingConnection` pair the sheet's
+   own `AccessRequestDraft.pendingToken` replaced. Their strings went with them.
+
+   `BuyAppState.showProfileAttentionBadge` survives as `get() = false`, documented, so
+   the rule it encodes stays written down and a genuinely required field would have
+   somewhere to put its badge. The dot never renders today.
+
+   The text that used to sit next to the *Zugang anfragen* button saying what the
+   request "still needs" is gone for the same reason — the sheet asks for it, and a
+   missing name is raised there.
 
    Note (`note` is buyer-written text in a seller-readable node) is capped at 280
    characters by `database.rules.json`, which also rejects unknown fields on a
@@ -72,7 +88,7 @@ directions:
 | Where | What | Problem |
 |-------|------|---------|
 | Home screen, above the feed (`MainScreenModern.kt:173`) | Permanent `DemoModeBanner`, text swaps to a profile-completion prompt when `isProfileIncomplete` | Spends feed space on every launch; conflates the two messages into one strip; one line can only say one of them |
-| `CommonNavGraph.kt:32` | `isProfileIncomplete = isDemoMode && (displayName blank ‖ pickup time blank ‖ (!selfPickup && (street ‖ houseNumber blank)))` | Second, hand-rolled copy of the `checkProfileCompleteness()` rule — the two can drift |
+| ~~`CommonNavGraph.kt:32`~~ | ~~a second, hand-rolled copy of the completeness rule~~ | Gone: there is no completeness rule left to copy |
 | Profile page (`CustomerProfileScreenModern.kt:461`) | `DemoModeCard` — one line, "Einkaufsdemo" or "Produktivmodus" | Says strictly less than the `AccessStatusCard` directly below it |
 | Profile page | `AccessStatusCard` — status text, buyer id, "Zugang anfragen", QR scan | Never mentions that a complete profile is required before that button can succeed |
 | Bottom navigation | Basket count badge only | No signal that anything needs attention on the profile tab |

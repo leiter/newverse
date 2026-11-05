@@ -317,10 +317,12 @@
     <string name="pickup_time_format">%s</string>
     <string name="pickup_time_unset">--:--</string>
     <string name="pickup_time_unset_hint">Tap to set</string>
+    <string name="profile_pickup_time_is_default">An order suggests this as its pickup time — you can change it or leave it out there.</string>
     <string name="pickup_time_empty">Please enter a pickup time</string>
     <string name="pickup_time_invalid_format">Invalid format. Use HH:mm (e.g. 14:30)</string>
     <string name="pickup_time_outside_hours">Pickup time must be between 7:00 and 18:00</string>
     <string name="pickup_time_dialog_title">Choose pickup time</string>
+    <string name="pickup_time_clear">Give no pickup time</string>
     <string name="pickup_time_hours_hint">Valid from 7:00 to 18:00</string>
     <string name="pickup_time_unit_hour">Hour</string>
     <string name="pickup_time_unit_minute">Minute</string>
@@ -764,16 +766,7 @@
     <string name="label_self_pickup_hint">I will pick up my order myself</string>
 
     <!-- Profile Incomplete -->
-    <string name="profile_incomplete_dialog_title">Profile Incomplete</string>
-    <string name="profile_incomplete_dialog_message">Please fill in name, street, house number, and pickup time before requesting access.</string>
-    <string name="missing_field_name">Name missing</string>
-    <string name="missing_field_street">Street missing</string>
-    <string name="missing_field_house_number">House number missing</string>
-    <string name="missing_field_pickup_time">Pickup time missing</string>
-    <string name="profile_incomplete_go_to_profile">Go to Profile</string>
     <!-- Lists the still-empty required fields: %1$s = comma separated field names -->
-    <string name="missing_fields_list">Missing: %1$s</string>
-    <string name="profile_incomplete_fill_now">Fill in now</string>
     <!-- Precondition shown above the access request button: %1$s = missing fields -->
 
     <!-- ========================================= -->
@@ -907,7 +900,6 @@
     <string name="a11y_state_expanded">expanded</string>
     <string name="a11y_state_collapsed">collapsed</string>
     <string name="a11y_toggle_address">Show or hide the address</string>
-    <string name="a11y_toggle_profile_incomplete">Show or hide the missing details</string>
     <string name="a11y_toggle_order_reminder">Show or hide the reminder settings</string>
     <!-- Frames the demo/production mode indicator: %s = mode name -->
     <string name="a11y_current_mode">Mode: %s</string>
@@ -1271,6 +1263,12 @@
     <string name="seller_actions_announcement_explain">Replaces the home screen title until the customer hides it.</string>
     <string name="a11y_announcement">Announcement from the seller: %1$s</string>
     <string name="a11y_announcement_dismiss">Hide announcement</string>
+    <string name="fulfilment_pickup_time_label">Pickup time (optional)</string>
+    <string name="fulfilment_pickup_time_hint">Not specified — tap to choose</string>
+    <string name="fulfilment_pickup_time_unreadable">Please give a time of day, e.g. 14:30</string>
+    <string name="fulfilment_use_profile_time">Use my usual time</string>
+    <string name="fulfilment_save_time_to_profile">Save as my usual time</string>
+    <string name="order_pickup_time_stated">Coming around %1$s</string>
     <string name="fulfilment_use_profile_address">Use address from profile</string>
     <string name="fulfilment_save_to_profile">Save address to profile</string>
     <!-- Message box the seller publishes into the buy app -->

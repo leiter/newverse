@@ -267,13 +267,6 @@ internal suspend fun BuyAppViewModel.requestAccess(displayName: String, note: St
  * The seller already wrote APPROVED for this UUID, so the buyer sees it immediately.
  */
 /**
- * Dismiss the profile incomplete dialog.
- */
-internal fun BuyAppViewModel.dismissProfileIncompleteDialog() {
-    _state.update { it.copy(showProfileIncompleteDialog = false) }
-}
-
-/**
  * Tell a freshly approved buyer that their demo orders are still theirs to confirm.
  *
  * Approval used to adopt them silently. It no longer does: a demo order is a basket the
@@ -408,20 +401,6 @@ internal fun BuyAppViewModel.transitionDemoOrdersToProduction() {
                 SnackbarType.WARNING
             )
         }
-    }
-}
-
-/**
- * Retry connecting with a previously stored pending token after profile is completed.
- */
-internal fun BuyAppViewModel.retryPendingConnection() {
-    val pending = _state.value.pendingConnectToken
-    _state.update { it.copy(
-        showProfileIncompleteDialog = false,
-        pendingConnectToken = null
-    ) }
-    if (pending != null) {
-        connectWithToken(pending.first, pending.second)
     }
 }
 

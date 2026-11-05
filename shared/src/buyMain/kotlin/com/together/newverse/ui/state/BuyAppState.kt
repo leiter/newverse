@@ -15,8 +15,6 @@ import com.together.newverse.domain.model.MarketClosures
 import com.together.newverse.domain.model.SellerContact
 import com.together.newverse.domain.model.SellerContactDirectory
 import com.together.newverse.domain.model.Invitation
-import com.together.newverse.domain.model.MissingProfileData
-import com.together.newverse.domain.model.missingProfileData
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderReminderSettings
 
@@ -149,8 +147,6 @@ data class BuyAppState(
     // Scroll trigger for access card on profile screen
     val triggerScrollToAccessInProfile: Boolean = false,
 
-    // Profile completeness
-    val showProfileIncompleteDialog: Boolean = false,
     /** The market picker is open, either from onboarding or from the profile. */
     val showMarketPicker: Boolean = false,
     /**
@@ -162,7 +158,6 @@ data class BuyAppState(
      * on it either.
      */
     val marketChoiceDeferred: Boolean = false,
-    val pendingConnectToken: Pair<String, String>? = null, // (sellerId, token) awaiting profile completion
 
     // App metadata
     val meta: AppMetaState = AppMetaState()
@@ -421,24 +416,20 @@ data class BuyAppState(
         else sellerContacts.resolveFor(contextualMarketId)
 
     /**
-     * The one completeness rule, shared by the access gate and every prompt
-     * about it. See [MissingProfileData].
-     */
-    val missingProfileData: MissingProfileData get() = customerProfile.profile.missingProfileData()
-
-    val isProfileIncomplete: Boolean get() = !missingProfileData.isComplete
-
-    /**
-     * Whether the profile tab carries an attention badge.
+     * Whether the profile tab carries an attention badge. It never does.
      *
-     * A badge promises a task the buyer can finish, so it appears only once the
-     * missing data actually stands in their way: in production, where real
-     * orders carry it to the seller, or after a seller token has been parked
-     * waiting for it. A demo buyer who is only browsing is not nagged.
+     * Kept as a named constant rather than deleted at every call site, because the
+     * rule it encodes is worth stating: a badge promises a task the buyer can finish,
+     * and there is no longer any profile data the app requires of them. The name, the
+     * delivery address and the collection time are each asked for at the moment they
+     * matter — in the access request sheet, and at checkout — so nothing is left for
+     * the profile tab to nag about.
+     *
+     * `MissingProfileData` and the "Profil unvollständig" banner it fed were deleted
+     * with the pickup time's move to checkout. Should some genuinely required field
+     * appear later, this is where its badge belongs.
      */
-    val showProfileAttentionBadge: Boolean
-        get() = isProfileIncomplete &&
-            (accessStatus == AccessStatus.APPROVED || pendingConnectToken != null)
+    val showProfileAttentionBadge: Boolean get() = false
 }
 
 /**
@@ -488,11 +479,9 @@ fun BuyAppState.clearedForSignOut(): BuyAppState = copy(
     tappedHistoryOrder = null,
     navigateToBasketAsTopLevel = false,
     triggerScrollToAccessInProfile = false,
-    showProfileIncompleteDialog = false,
     accessRequestDraft = null,
     showMarketPicker = false,
-    marketChoiceDeferred = false,
-    pendingConnectToken = null
+    marketChoiceDeferred = false
 )
 
 /**

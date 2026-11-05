@@ -330,10 +330,12 @@
     <string name="pickup_time_format">%s Uhr</string>
     <string name="pickup_time_unset">--:--</string>
     <string name="pickup_time_unset_hint">Zum Festlegen tippen</string>
+    <string name="profile_pickup_time_is_default">Wird bei einer Bestellung als Abholzeit vorgeschlagen — dort kannst du sie ändern oder weglassen.</string>
     <string name="pickup_time_empty">Bitte geben Sie eine Abholzeit an</string>
     <string name="pickup_time_invalid_format">Ungültiges Format. Verwenden Sie HH:mm (z.B. 14:30)</string>
     <string name="pickup_time_outside_hours">Abholzeit muss zwischen 7:00 und 18:00 liegen</string>
     <string name="pickup_time_dialog_title">Abholzeit wählen</string>
+    <string name="pickup_time_clear">Keine Abholzeit angeben</string>
     <string name="pickup_time_hours_hint">Gültig von 7:00 – 18:00 Uhr</string>
     <string name="pickup_time_unit_hour">Stunde</string>
     <string name="pickup_time_unit_minute">Minute</string>
@@ -817,16 +819,7 @@
     <string name="label_self_pickup_hint">Ich hole meine Bestellung selbst ab</string>
 
     <!-- Profile Incomplete -->
-    <string name="profile_incomplete_dialog_title">Profil unvollständig</string>
-    <string name="profile_incomplete_dialog_message">Bitte fülle Name, Straße, Hausnummer und Abholzeit aus, bevor du Zugang anfragst.</string>
-    <string name="missing_field_name">Name fehlt</string>
-    <string name="missing_field_street">Straße fehlt</string>
-    <string name="missing_field_house_number">Hausnummer fehlt</string>
-    <string name="missing_field_pickup_time">Abholzeit fehlt</string>
-    <string name="profile_incomplete_go_to_profile">Zum Profil</string>
     <!-- Lists the still-empty required fields: %1$s = comma separated field names -->
-    <string name="missing_fields_list">Fehlende Angaben: %1$s</string>
-    <string name="profile_incomplete_fill_now">Jetzt ausfüllen</string>
     <!-- Precondition shown above the access request button: %1$s = missing fields -->
 
     <!-- ========================================= -->
@@ -960,7 +953,6 @@
     <string name="a11y_state_expanded">erweitert</string>
     <string name="a11y_state_collapsed">reduziert</string>
     <string name="a11y_toggle_address">Adresse ein- oder ausblenden</string>
-    <string name="a11y_toggle_profile_incomplete">Fehlende Angaben ein- oder ausblenden</string>
     <string name="a11y_toggle_order_reminder">Erinnerungseinstellungen ein- oder ausblenden</string>
     <!-- Frames the demo/production mode indicator: %s = mode name -->
     <string name="a11y_current_mode">Modus: %s</string>
@@ -1329,6 +1321,12 @@
     <string name="seller_actions_announcement_explain">Ersetzt den Titel der Startseite, bis der Kunde sie ausblendet.</string>
     <string name="a11y_announcement">Ankündigung des Verkäufers: %1$s</string>
     <string name="a11y_announcement_dismiss">Ankündigung ausblenden</string>
+    <string name="fulfilment_pickup_time_label">Abholzeit (optional)</string>
+    <string name="fulfilment_pickup_time_hint">Keine Angabe — zum Wählen tippen</string>
+    <string name="fulfilment_pickup_time_unreadable">Bitte als Uhrzeit angeben, z. B. 14:30</string>
+    <string name="fulfilment_use_profile_time">Übliche Zeit übernehmen</string>
+    <string name="fulfilment_save_time_to_profile">Als übliche Zeit speichern</string>
+    <string name="order_pickup_time_stated">Kommt gegen %1$s Uhr</string>
     <string name="fulfilment_use_profile_address">Adresse aus Profil übernehmen</string>
     <string name="fulfilment_save_to_profile">Adresse im Profil speichern</string>
     <!-- Nachrichtenfeld, das der Verkäufer in die Käufer-App einstellt -->

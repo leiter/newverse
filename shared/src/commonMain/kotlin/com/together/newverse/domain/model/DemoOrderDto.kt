@@ -18,7 +18,16 @@ data class DemoOrderDto(
     val status: String,
     val articles: List<DemoOrderedProductDto>,
     /** Absent in records written before [OrderOrigin] existed; those are all demo orders. */
-    val origin: String = OrderOrigin.DEMO.name
+    val origin: String = OrderOrigin.DEMO.name,
+    /**
+     * `HH:mm`, or empty for a buyer who named no time.
+     *
+     * Carried through the local round trip because a demo order is edited in the
+     * basket like any other, and a field that is dropped on save reappears as blank
+     * the next time the order is opened. Absent in records written before the time
+     * was asked for at checkout.
+     */
+    val pickupTime: String = ""
 )
 
 @Serializable
@@ -43,7 +52,8 @@ fun Order.toDemoDto(): DemoOrderDto = DemoOrderDto(
     message = message,
     status = status.name,
     articles = articles.map { it.toDemoDto() },
-    origin = origin.name
+    origin = origin.name,
+    pickupTime = pickupTime
 )
 
 fun DemoOrderDto.toOrder(): Order = Order(
@@ -57,7 +67,8 @@ fun DemoOrderDto.toOrder(): Order = Order(
     // A stored "DEMO_ORDER" predates the status/origin split and means PLACED.
     status = OrderStatus.entries.find { it.name == status } ?: OrderStatus.PLACED,
     articles = articles.map { it.toOrderedProduct() },
-    origin = OrderOrigin.entries.find { it.name == origin } ?: OrderOrigin.DEMO
+    origin = OrderOrigin.entries.find { it.name == origin } ?: OrderOrigin.DEMO,
+    pickupTime = pickupTime
 )
 
 private fun OrderedProduct.toDemoDto(): DemoOrderedProductDto = DemoOrderedProductDto(

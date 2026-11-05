@@ -124,6 +124,8 @@ fun BasketScreen(
      * one owner, and a copy on the basket would be the stale one.
      */
     profileAddress: DeliveryAddress = DeliveryAddress.NONE,
+    /** The buyer's usual collection time from their profile; empty if they hold none. */
+    profilePickupTime: String = "",
     orderId: String? = null,
     orderDate: String? = null
 ) {
@@ -146,7 +148,8 @@ fun BasketScreen(
         onRequestAccess = onRequestAccess,
         pricedAtMarketName = pricedAtMarketName,
         eligibleMarkets = eligibleMarkets,
-        profileAddress = profileAddress
+        profileAddress = profileAddress,
+        profilePickupTime = profilePickupTime
     )
 }
 
@@ -175,7 +178,9 @@ fun BasketContent(
     onRequestAccess: () -> Unit = {},
     pricedAtMarketName: String = "",
     eligibleMarkets: List<Market> = emptyList(),
-    profileAddress: DeliveryAddress = DeliveryAddress.NONE
+    profileAddress: DeliveryAddress = DeliveryAddress.NONE,
+    /** The buyer's usual collection time from their profile; empty if they hold none. */
+    profilePickupTime: String = ""
 ) {
     // Items the seller has withdrawn since they went into the basket. Derived from
     // the catalogue rather than stored on the state: the basket is persisted and
@@ -238,11 +243,17 @@ fun BasketContent(
             fulfilment = state.fulfilment,
             deliveryAddress = state.deliveryAddress,
             profileAddress = profileAddress,
+            pickupTime = state.pickupTime,
+            profilePickupTime = profilePickupTime,
             orderError = state.orderError,
             onFulfilmentChange = { onAction(BuyBasketScreenAction.SetFulfilment(it)) },
             onDeliveryAddressChange = { onAction(BuyBasketScreenAction.SetDeliveryAddress(it)) },
             onSaveAddressToProfile = {
                 onAction(BuyBasketScreenAction.SaveDeliveryAddressToProfile)
+            },
+            onPickupTimeChange = { onAction(BuyBasketScreenAction.SetPickupTime(it)) },
+            onSavePickupTimeToProfile = {
+                onAction(BuyBasketScreenAction.SavePickupTimeToProfile)
             },
             onConfirm = { onAction(BuyBasketScreenAction.ConfirmCheckout) },
             onChangeSlot = { onAction(BuyBasketScreenAction.ShowDatePicker) },
@@ -317,6 +328,7 @@ fun BasketContent(
             basketMarket = basketMarket,
             addressMissing = addressMissing,
             profileAddress = profileAddress,
+            profilePickupTime = profilePickupTime,
             unorderableIds = unorderableIds,
             nearlyGoneIds = nearlyGoneIds,
             onAction = onAction,
@@ -355,6 +367,8 @@ fun BasketContent(
                     fulfilment = state.fulfilment,
                     deliveryAddress = state.deliveryAddress,
                     profileAddress = profileAddress,
+                    pickupTime = state.pickupTime,
+                    profilePickupTime = profilePickupTime,
                     deliveryOffered = basketMarket?.allowsDelivery != false,
                     addressMissing = addressMissing,
                     onFulfilmentChange = { onAction(BuyBasketScreenAction.SetFulfilment(it)) },
@@ -363,6 +377,10 @@ fun BasketContent(
                     },
                     onSaveAddressToProfile = {
                         onAction(BuyBasketScreenAction.SaveDeliveryAddressToProfile)
+                    },
+                    onPickupTimeChange = { onAction(BuyBasketScreenAction.SetPickupTime(it)) },
+                    onSavePickupTimeToProfile = {
+                        onAction(BuyBasketScreenAction.SavePickupTimeToProfile)
                     },
                     onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
                     onDisableEditing = { onAction(BuyBasketScreenAction.DisableEditing) },
@@ -611,6 +629,8 @@ private fun BasketTwoPane(
     /** Whether a delivery is being asked for with no address to deliver to. */
     addressMissing: Boolean,
     profileAddress: DeliveryAddress,
+    /** The buyer's usual collection time from their profile; empty if none. */
+    profilePickupTime: String,
     /** Article ids the seller has withdrawn; their rows say so and block ordering. */
     unorderableIds: Set<String>,
     /** Article ids the shop is nearly out of; their rows say so, nothing is blocked. */
@@ -705,6 +725,8 @@ private fun BasketTwoPane(
                     fulfilment = state.fulfilment,
                     deliveryAddress = state.deliveryAddress,
                     profileAddress = profileAddress,
+                    pickupTime = state.pickupTime,
+                    profilePickupTime = profilePickupTime,
                     deliveryOffered = basketMarket?.allowsDelivery != false,
                     addressMissing = addressMissing,
                     onFulfilmentChange = { onAction(BuyBasketScreenAction.SetFulfilment(it)) },
@@ -713,6 +735,10 @@ private fun BasketTwoPane(
                     },
                     onSaveAddressToProfile = {
                         onAction(BuyBasketScreenAction.SaveDeliveryAddressToProfile)
+                    },
+                    onPickupTimeChange = { onAction(BuyBasketScreenAction.SetPickupTime(it)) },
+                    onSavePickupTimeToProfile = {
+                        onAction(BuyBasketScreenAction.SavePickupTimeToProfile)
                     },
                     onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
                     onDisableEditing = { onAction(BuyBasketScreenAction.DisableEditing) },
@@ -1141,6 +1167,10 @@ internal fun OrderInfoCard(
     deliveryAddress: DeliveryAddress,
     /** Street and number as the buyer's profile holds them; empty if it holds none. */
     profileAddress: DeliveryAddress,
+    /** When the buyer means to collect this order, `HH:mm`; blank for no answer. */
+    pickupTime: String,
+    /** Their usual time as the profile holds it; empty if it holds none. */
+    profilePickupTime: String,
     /** Whether this order's stall delivers at all. */
     deliveryOffered: Boolean,
     /** A delivery with no address: nothing may be saved while this holds. */
@@ -1148,6 +1178,8 @@ internal fun OrderInfoCard(
     onFulfilmentChange: (Fulfilment) -> Unit,
     onDeliveryAddressChange: (DeliveryAddress) -> Unit,
     onSaveAddressToProfile: () -> Unit,
+    onPickupTimeChange: (String) -> Unit,
+    onSavePickupTimeToProfile: () -> Unit,
     onEnableEditing: () -> Unit,
     onDisableEditing: () -> Unit,
     onUpdateOrder: () -> Unit,
@@ -1229,6 +1261,32 @@ internal fun OrderInfoCard(
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+
+            // The time the buyer said they would come, while they are not editing it.
+            // Shown only when they named one: an absent time is an answer, not a gap,
+            // and a row saying so would read as something still to be filled in.
+            if (fulfilment != Fulfilment.DELIVERY && pickupTime.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics(mergeDescendants = true) { },
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = stringResource(Res.string.label_pickup_time),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = formatString(
+                            stringResource(Res.string.pickup_time_format),
+                            pickupTime
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -1319,9 +1377,13 @@ internal fun OrderInfoCard(
                     profileAddress = profileAddress,
                     deliveryOffered = deliveryOffered,
                     showAddressRequired = addressMissing,
+                    pickupTime = pickupTime,
+                    profilePickupTime = profilePickupTime,
                     onFulfilmentChange = onFulfilmentChange,
                     onDeliveryAddressChange = onDeliveryAddressChange,
-                    onSaveAddressToProfile = onSaveAddressToProfile
+                    onSaveAddressToProfile = onSaveAddressToProfile,
+                    onPickupTimeChange = onPickupTimeChange,
+                    onSavePickupTimeToProfile = onSavePickupTimeToProfile
                 )
             }
 

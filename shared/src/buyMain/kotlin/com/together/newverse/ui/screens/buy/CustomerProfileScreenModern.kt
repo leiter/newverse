@@ -40,7 +40,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LocationOn
@@ -80,8 +79,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -93,11 +90,9 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Invitation
-import com.together.newverse.domain.model.MissingProfileData
 import com.together.newverse.ui.screens.buy.components.AccessRequestSheet
 import com.together.newverse.ui.state.AccessRequestDraft
 import com.together.newverse.ui.screens.buy.components.ConnectionConfirmDialog
@@ -119,7 +114,6 @@ import com.together.newverse.ui.state.ConnectionConfirmation
 import com.together.newverse.util.formatString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_access_id
 import newverse.shared.generated.resources.a11y_current_mode
@@ -128,7 +122,6 @@ import newverse.shared.generated.resources.a11y_state_collapsed
 import newverse.shared.generated.resources.a11y_state_expanded
 import newverse.shared.generated.resources.a11y_toggle_address
 import newverse.shared.generated.resources.a11y_toggle_order_reminder
-import newverse.shared.generated.resources.a11y_toggle_profile_incomplete
 import newverse.shared.generated.resources.access_request_button
 import newverse.shared.generated.resources.access_status_approved
 import newverse.shared.generated.resources.access_status_blocked
@@ -169,17 +162,13 @@ import newverse.shared.generated.resources.pickup_time_invalid_format
 import newverse.shared.generated.resources.pickup_time_outside_hours
 import newverse.shared.generated.resources.pickup_time_unset
 import newverse.shared.generated.resources.pickup_time_unset_hint
-import newverse.shared.generated.resources.profile_incomplete_dialog_message
 import newverse.shared.generated.resources.label_name
-import newverse.shared.generated.resources.missing_fields_list
 import newverse.shared.generated.resources.mode_demo
 import newverse.shared.generated.resources.mode_production
-import newverse.shared.generated.resources.profile_incomplete_fill_now
-import newverse.shared.generated.resources.profile_incomplete_dialog_title
 import newverse.shared.generated.resources.profile_address_for_delivery
-import newverse.shared.generated.resources.profile_incomplete_go_to_profile
 import newverse.shared.generated.resources.profile_new_customer
 import newverse.shared.generated.resources.profile_no_email
+import newverse.shared.generated.resources.profile_pickup_time_is_default
 import newverse.shared.generated.resources.profile_picture
 import newverse.shared.generated.resources.profile_verified
 import newverse.shared.generated.resources.quick_actions_title
@@ -235,7 +224,6 @@ fun CustomerProfileScreenModern(
     connectedSellerId: String = "",
     connectedSellerDisplayName: String = "",
     isDemoMode: Boolean = true,
-    missingProfileData: MissingProfileData = MissingProfileData(),
     /** Non-null while the buyer is composing an access request. */
     accessRequestDraft: AccessRequestDraft? = null,
     accessStatus: AccessStatus = AccessStatus.NONE,
@@ -249,7 +237,6 @@ fun CustomerProfileScreenModern(
     pendingInvitations: List<Invitation> = emptyList(),
     showConnectionConfirmDialog: ConnectionConfirmation? = null,
     onScanQrCode: () -> Unit = {},
-    showProfileIncompleteDialog: Boolean = false,
     /** The markets this buyer may choose between; one or none hides the row. */
     eligibleMarkets: List<Market> = emptyList(),
     /** The market they stated, if it is still eligible. */
@@ -283,16 +270,6 @@ fun CustomerProfileScreenModern(
     val coroutineScope = rememberCoroutineScope()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val personalInfoViewRequester = remember { BringIntoViewRequester() }
-
-    // The notice above the form opens on demand; one line until then.
-    var isIncompleteNoticeExpanded by remember { mutableStateOf(false) }
-
-    // Root-space tops of the scrolling content and of the personal info card.
-    // Their difference is the card's offset inside the content, which is what
-    // "scroll the section to the top" needs — bringIntoView only scrolls far
-    // enough to make it visible.
-    var scrollContentTop by remember { mutableStateOf(0f) }
-    var personalInfoTop by remember { mutableStateOf(0f) }
 
     // Logout Warning Dialog
     if (state.showLogoutWarningDialog) {
@@ -379,22 +356,6 @@ fun CustomerProfileScreenModern(
         )
     }
 
-    // Profile Incomplete Dialog
-    if (showProfileIncompleteDialog) {
-        AlertDialog(
-            onDismissRequest = { onAction(BuySellerAction.DismissProfileIncompleteDialog) },
-            confirmButton = {
-                TextButton(
-                    onClick = { onAction(BuySellerAction.DismissProfileIncompleteDialog) }
-                ) {
-                    Text(stringResource(Res.string.profile_incomplete_go_to_profile))
-                }
-            },
-            title = { Text(stringResource(Res.string.profile_incomplete_dialog_title)) },
-            text = { Text(stringResource(Res.string.profile_incomplete_dialog_message)) }
-        )
-    }
-
     // Re-read the reminder settings whenever this screen is shown. Picks up a
     // notification permission the buyer granted in the system settings since last time,
     // so the "notifications are off" warning does not linger until an app restart.
@@ -449,45 +410,18 @@ fun CustomerProfileScreenModern(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scrollState)
-                        .onGloballyPositioned { scrollContentTop = it.positionInRoot().y }
                         .padding(20.dp)
                         .padding(bottom = if (isEditing) 80.dp else 0.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    // The "Profil unvollständig" banner, switched off.
-                    //
-                    // It warned against a standard the buyer never agreed to, and now
-                    // warns against nothing at all: the access request asks for its own
-                    // name in its own sheet, and the delivery address is asked for at
-                    // the delivery. What is left in `missingProfileData` is the default
-                    // pickup time, which gates nothing — so the banner had become a nag
-                    // with no consequence behind it.
-                    //
-                    // Commented rather than deleted: `ProfileIncompleteNotice` and
-                    // `missingProfileData` still work, and the next step moves the
-                    // pickup time to checkout, after which there is nothing for this to
-                    // say and it can go for good.
-                    //
-                    // if (!missingProfileData.isComplete) {
-                    //     ProfileIncompleteNotice(
-                    //         missing = missingProfileData,
-                    //         expanded = isIncompleteNoticeExpanded,
-                    //         onToggleExpanded = {
-                    //             isIncompleteNoticeExpanded = !isIncompleteNoticeExpanded
-                    //         },
-                    //         onFillInClick = {
-                    //             coroutineScope.launch {
-                    //                 profileViewModel.startEditing()
-                    //                 val target = scrollState.value +
-                    //                     (personalInfoTop - scrollContentTop)
-                    //                 scrollState.animateScrollTo(
-                    //                     target.roundToInt()
-                    //                         .coerceIn(0, scrollState.maxValue)
-                    //                 )
-                    //             }
-                    //         }
-                    //     )
-                    // }
+                    // No "Profil unvollständig" banner, and no profile data this app
+                    // requires of a buyer. It used to warn that a name, a pickup time
+                    // and a street address were missing, and gate the access request
+                    // on all three. Each is now asked where it means something: the
+                    // name in the access request sheet, the address when an order is
+                    // to be delivered, the collection time at checkout. A warning in
+                    // front of a page that nothing depends on is a nag, so it went
+                    // along with `MissingProfileData` and `ProfileIncompleteNotice`.
 
                     // Profile Header Card
                     ProfileHeaderCard(
@@ -502,7 +436,6 @@ fun CustomerProfileScreenModern(
                     // Personal Information Card
                     Box(
                         modifier = Modifier
-                            .onGloballyPositioned { personalInfoTop = it.positionInRoot().y }
                             .bringIntoViewRequester(personalInfoViewRequester)
                     ) {
                         PersonalInfoCard(
@@ -598,7 +531,6 @@ fun CustomerProfileScreenModern(
                         AccessStatusCard(
                             accessStatus = accessStatus,
                             isDemoMode = isDemoMode,
-                            missingProfileData = missingProfileData,
                             buyerId = buyerId,
                             isRequestingAccess = isRequestingAccess,
                             // Always the seller-level list here: an unapproved buyer
@@ -965,7 +897,7 @@ private fun PersonalInfoCard(
 
                     // Said for every buyer, not just the self-collectors it used to
                     // address: the street and number stopped being a precondition for
-                    // the access request (see MissingProfileData), so an empty address
+                    // the access request, so an empty address
                     // here is now unremarkable. What it is *for* is the next delivery
                     // order, which seeds its own copy from these fields and can save a
                     // new one back — so this explains why the fields exist rather than
@@ -1126,6 +1058,16 @@ private fun GemusedateCard(
                     isValid = isPickupTimeValid,
                     errorMessage = errorMessage
                 )
+
+                // What this field is now *for*, said where it is edited. It stopped
+                // being a requirement — it gated the access request and no seller
+                // screen ever read it — and became the default an order starts from.
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(Res.string.profile_pickup_time_is_default),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             } else {
                 val hasPickupTime = pickupTime.isNotBlank()
                 Surface(
@@ -1133,9 +1075,10 @@ private fun GemusedateCard(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp)),
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    // The pencil in the header is small and easy to miss, and an unset
-                    // time is the one thing holding the profile incomplete. The row
-                    // opens the same editor.
+                    // The pencil in the header is small and easy to miss, so the row
+                    // opens the same editor. An unset time holds nothing up any more:
+                    // it means an order asks for no time unless the buyer names one
+                    // at checkout.
                     onClick = onEditClick
                 ) {
                     Row(
@@ -1262,116 +1205,6 @@ private fun GemusedateCard(
                         Text(stringResource(Res.string.button_save))
                     }
                 }
-            }
-        }
-    }
-}
-
-/**
- * Comma separated list of the required fields that are still empty.
- */
-@Composable
-private fun missingFieldsText(missing: MissingProfileData): String {
-    val fields = mutableListOf<String>()
-    if (missing.name) fields.add(stringResource(Res.string.label_name))
-    if (missing.pickupTime) fields.add(stringResource(Res.string.label_pickup_time))
-    return fields.joinToString(", ")
-}
-
-/**
- * Names the profile data that is still missing and opens the form that holds it.
- *
- * This is the buyer's own task — the same data the access gate in
- * `requestAccess()` requires — so it is stated once, here, and nowhere else.
- *
- * It sits above the form it talks about, so it stays one line until tapped:
- * the list of fields is the detail, the warning itself is the headline.
- */
-@Composable
-private fun ProfileIncompleteNotice(
-    missing: MissingProfileData,
-    expanded: Boolean,
-    onToggleExpanded: () -> Unit,
-    onFillInClick: () -> Unit
-) {
-    val fields = missingFieldsText(missing)
-    val message = formatString(stringResource(Res.string.missing_fields_list), fields)
-    val toggleLabel = stringResource(Res.string.a11y_toggle_profile_incomplete)
-    val toggleState = stringResource(
-        if (expanded) Res.string.a11y_state_expanded else Res.string.a11y_state_collapsed
-    )
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                onClickLabel = toggleLabel,
-                role = Role.Button,
-                onClick = onToggleExpanded
-            )
-            .semantics { stateDescription = toggleState },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .animateContentSize(animationSpec = spring())
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(Res.string.profile_incomplete_dialog_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(
-                    onClick = onFillInClick,
-                    contentPadding = ButtonDefaults.TextButtonContentPadding
-                ) {
-                    Text(
-                        text = stringResource(Res.string.profile_incomplete_fill_now),
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        maxLines = 1
-                    )
-                }
-                // Visual affordance only; the card itself is the a11y toggle
-                Icon(
-                    imageVector = if (expanded) {
-                        Icons.Default.ArrowDropDown
-                    } else {
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight
-                    },
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clearAndSetSemantics { }
-                )
-            }
-            if (expanded) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.padding(start = 28.dp, bottom = 8.dp)
-                )
             }
         }
     }
@@ -1914,7 +1747,6 @@ private fun ModernTextField(
 private fun AccessStatusCard(
     accessStatus: AccessStatus,
     isDemoMode: Boolean,
-    missingProfileData: MissingProfileData,
     buyerId: String,
     isRequestingAccess: Boolean = false,
     sellerContacts: List<SellerContact> = emptyList(),

@@ -12,8 +12,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import com.together.newverse.domain.model.DeliveryAddress
 import com.together.newverse.domain.model.Fulfilment
+import com.together.newverse.ui.screens.buy.ProfileValidation
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.fulfilment_address_required
 import newverse.shared.generated.resources.fulfilment_choose
@@ -23,6 +26,11 @@ import newverse.shared.generated.resources.fulfilment_house_number
 import newverse.shared.generated.resources.fulfilment_note_hint
 import newverse.shared.generated.resources.fulfilment_pickup
 import newverse.shared.generated.resources.fulfilment_pickup_only
+import newverse.shared.generated.resources.fulfilment_pickup_time_hint
+import newverse.shared.generated.resources.fulfilment_pickup_time_label
+import newverse.shared.generated.resources.fulfilment_pickup_time_unreadable
+import newverse.shared.generated.resources.fulfilment_save_time_to_profile
+import newverse.shared.generated.resources.fulfilment_use_profile_time
 import newverse.shared.generated.resources.fulfilment_save_to_profile
 import newverse.shared.generated.resources.fulfilment_street
 import newverse.shared.generated.resources.fulfilment_use_profile_address
@@ -30,13 +38,18 @@ import newverse.shared.generated.resources.fulfilment_zip
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Pickup or delivery, and where to deliver to.
+ * Pickup or delivery, and — depending on which — where to take it or when to expect
+ * the buyer.
  *
  * One composable rather than two copies, because it is asked twice about the same
  * order: at the checkout confirmation before it is written, and again in the basket
  * while editing a placed one. The second is not a convenience — a buyer whose profile
  * read as delivery (which is every untouched profile, see [Fulfilment.fromProfile])
  * had no way at all to turn a placed order into a pickup, short of cancelling it.
+ *
+ * The two halves are deliberately exclusive. A delivery has an address and no
+ * collection time, because it arrives when the seller's round reaches it; a pickup has
+ * a time and no address. Asking for both would collect one of them for nobody.
  *
  * Decides nothing itself: [deliveryOffered] is the stall's capability and
  * [showAddressRequired] the caller's reading of its own gate, so the one rule about
@@ -53,9 +66,15 @@ internal fun FulfilmentChoice(
     deliveryOffered: Boolean,
     /** Say the address is missing. The caller owns that judgement, not this row. */
     showAddressRequired: Boolean,
+    /** When the buyer means to collect, `HH:mm`. Blank is an answer: "whenever". */
+    pickupTime: String,
+    /** The buyer's usual time as the profile holds it; empty if it holds none. */
+    profilePickupTime: String,
     onFulfilmentChange: (Fulfilment) -> Unit,
     onDeliveryAddressChange: (DeliveryAddress) -> Unit,
     onSaveAddressToProfile: () -> Unit,
+    onPickupTimeChange: (String) -> Unit,
+    onSavePickupTimeToProfile: () -> Unit,
 ) {
     val isDelivery = fulfilment == Fulfilment.DELIVERY
 
@@ -139,6 +158,71 @@ internal fun FulfilmentChoice(
                     color = MaterialTheme.colorScheme.error
                 )
             }
+        } else {
+            PickupTimeField(
+                pickupTime = pickupTime,
+                profilePickupTime = profilePickupTime,
+                onChange = onPickupTimeChange,
+                onSaveToProfile = onSavePickupTimeToProfile
+            )
+        }
+    }
+}
+
+/**
+ * When the buyer means to collect this order.
+ *
+ * Labelled optional and meant it. This is the field that used to live in the profile
+ * as a *requirement*: a buyer could not ask a seller for access until they had named
+ * an Abholzeit, and no screen in the seller app ever displayed it. Asked here it is
+ * worth asking — the seller reads it on the order, and the buyer is answering about a
+ * collection they are actually arranging rather than filling in a form about
+ * themselves.
+ *
+ * Opens the same time picker the profile's own field does, so no format can be typed
+ * wrong; the error line below is for a value that arrived some other way, and
+ * `refuseUnreadablePickupTime` is the matching gate.
+ *
+ * One offer at a time, like the address above: take the usual time, or keep this one
+ * as the usual time. Never both — once they match there is nothing to copy either way.
+ */
+@Composable
+private fun PickupTimeField(
+    pickupTime: String,
+    profilePickupTime: String,
+    onChange: (String) -> Unit,
+    onSaveToProfile: () -> Unit,
+) {
+    val readable = pickupTime.isBlank() || ProfileValidation.isValidTimeFormat(pickupTime)
+
+    TimePickerField(
+        value = pickupTime,
+        onValueChange = onChange,
+        label = stringResource(Res.string.fulfilment_pickup_time_label),
+        hint = stringResource(Res.string.fulfilment_pickup_time_hint),
+        leadingIcon = Icons.Default.DateRange,
+        isValid = readable,
+        errorMessage = if (readable) null else {
+            stringResource(Res.string.fulfilment_pickup_time_unreadable)
+        },
+        // Optional means reversible: a buyer who named a time must be able to take
+        // it back, both at checkout and while the order is still editable.
+        allowEmpty = true
+    )
+
+    val canFillFromProfile = profilePickupTime.isNotBlank() &&
+        profilePickupTime != pickupTime
+    val canSaveToProfile = !canFillFromProfile &&
+        pickupTime.isNotBlank() && readable &&
+        profilePickupTime != pickupTime
+
+    if (canFillFromProfile) {
+        TextButton(onClick = { onChange(profilePickupTime) }) {
+            Text(stringResource(Res.string.fulfilment_use_profile_time))
+        }
+    } else if (canSaveToProfile) {
+        TextButton(onClick = onSaveToProfile) {
+            Text(stringResource(Res.string.fulfilment_save_time_to_profile))
         }
     }
 }

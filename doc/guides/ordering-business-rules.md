@@ -471,6 +471,71 @@ at all. Tests in `firebase/tests/market-delivery.test.js`.
 - `CheckoutData.deliveryAddress` remains dead code from an older design;
   `BuyOrderAction.PlaceOrder` is a no-op in both flavors.
 
+## Pickup time
+
+**Moved to checkout 2026-11-05.** `Order.pickupTime` — the buyer saying roughly when
+they mean to come — is asked at checkout, carried on the order, and read by the seller.
+
+### Where it was before
+
+It was `BuyerProfile.defaultPickUpTime`: a **required** profile field. Not a soft
+requirement — `MissingProfileData` counted it, the "Profil unvollständig" banner named
+it, and `requestAccess()` refused to send an access request without it. A buyer could
+not ask a seller to let them order until they had named an hour.
+
+And no screen in `sellMain` read it. It was written into `OrderDto.defaultTime`, a DTO
+with no callers; `GitLiveOrderRepository.orderToMap` never wrote it at all. The field
+was compulsory for the buyer and invisible to the seller.
+
+### The shape it has now
+
+Exactly the delivery address's, for the same reasons:
+
+| | |
+|---|---|
+| **Asked** | At the checkout confirmation, and again in the basket while the order is editable — `FulfilmentChoice`, in its pickup branch |
+| **Defaulted** | From `BuyerProfile.defaultPickUpTime`, which is now *only* a default; the profile field says so where it is edited |
+| **Saved back** | On request, `SavePickupTimeToProfile`. Never implicitly: coming early once is not a change of habit. A blank is not written over a stored default |
+| **Snapshotted** | On the order. The seller cannot read `buyer_profile`, so a time that lives only there reaches them not at all |
+| **Optional** | Blank is a complete answer. The picker has a *Keine Abholzeit angeben* way back, because a field that can be filled but not emptied is not optional |
+| **Pickup only** | Written as empty for a delivery, which arrives when the seller's round reaches it. `Order.statedPickupTime` is the one reading of "a time worth showing" |
+
+An edit of it counts as an unsaved change through `BasketScreenState.fulfilmentChanged`,
+the same accessor that carries a fulfilment or address edit past the next basket
+emission, and it is always an edit *on the basket screen* — it is asked nowhere else —
+so it keeps its confirmation rather than being auto-saved (§3.2.1).
+
+### What the seller sees
+
+- **Order list** (`OrdersScreen`): *"Kommt gegen 14:30 Uhr"* under the pickup date, only
+  when the buyer named one. In the card's single accessibility description too.
+- **Order detail**: a row in the *Abholung oder Lieferung* section, beside the
+  fulfilment and the delivery address.
+
+Nothing says "keine Angabe". An absent time is an answer, and a row stating it would
+read as data the app failed to collect — which is the reading that made this a required
+field in the first place.
+
+### Validation
+
+Any readable `HH:mm`, and **no hour range**. The profile form insists on 7:00–18:00; the
+order does not, because a market's own opening hours are not modelled and a stall that
+starts at six has customers who come at six. `refuseUnreadablePickupTime` refuses
+anything that is neither blank nor a time, and `database.rules.json` validates the same
+shape on `orders` and `demo_orders` — written as `null` rather than `""` when absent, so
+the empty string is refused there too. Tests:
+`firebase/tests/order-pickup-time.test.js`, `BuyAppViewModelPickupTimeTest`.
+
+### Still open
+
+- `DemoOrderDto` carries `pickupTime` but still carries neither `fulfilment` nor
+  `deliveryAddress`, so a **local** demo order loses its fulfilment across the local
+  round trip. Pre-existing, and unrelated to the time.
+- `Order.getFormattedPickupDateAndTime()` renders a time of day out of the pickup
+  *timestamp*, which is not a time anyone stated. The seller's card and detail still
+  show it, now with the buyer's real time beneath. Worth collapsing into one line.
+- The profile field's own 7:00–18:00 validation is now stricter than the order's.
+
 ## Order Editing
 
 An editable order is loaded into the basket at startup, so editing an order and

@@ -48,6 +48,7 @@ import newverse.shared.generated.resources.a11y_increment
 import newverse.shared.generated.resources.a11y_selected_time
 import newverse.shared.generated.resources.button_cancel
 import newverse.shared.generated.resources.button_ok
+import newverse.shared.generated.resources.pickup_time_clear
 import newverse.shared.generated.resources.pickup_time_dialog_title
 import newverse.shared.generated.resources.pickup_time_hours_hint
 import newverse.shared.generated.resources.pickup_time_unit_hour
@@ -63,7 +64,16 @@ fun TimePickerField(
     leadingIcon: ImageVector,
     enabled: Boolean = true,
     isValid: Boolean = true,
-    errorMessage: String? = null
+    errorMessage: String? = null,
+    /**
+     * Whether "no time at all" is one of the answers.
+     *
+     * False for the profile's own field, which either holds a time or holds nothing
+     * and is edited by saving the form. True where the time is optional per order: a
+     * field that can be filled but not emptied is not optional, and a buyer who
+     * picked 14:00 once would be stuck with it for every edit of that order.
+     */
+    allowEmpty: Boolean = false
 ) {
     var showTimePicker by remember { mutableStateOf(false) }
     val chooseTimeLabel = stringResource(Res.string.a11y_choose_time)
@@ -156,6 +166,12 @@ fun TimePickerField(
                 onValueChange(newTime)
                 showTimePicker = false
             },
+            onClear = if (allowEmpty) {
+                {
+                    onValueChange("")
+                    showTimePicker = false
+                }
+            } else null,
             onDismiss = { showTimePicker = false }
         )
     }
@@ -165,6 +181,8 @@ fun TimePickerField(
 private fun TimePickerDialog(
     initialTime: String,
     onTimeSelected: (String) -> Unit,
+    /** Non-null where no time is a valid answer; shows the way back to it. */
+    onClear: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
     var hour by remember {
@@ -256,6 +274,15 @@ private fun TimePickerDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                // The way back to no answer. In the content rather than as a third
+                // dialog button, which AlertDialog has no room for, and only where
+                // the caller says an empty time is allowed.
+                if (onClear != null) {
+                    TextButton(onClick = onClear) {
+                        Text(stringResource(Res.string.pickup_time_clear))
+                    }
+                }
             }
         },
         confirmButton = {

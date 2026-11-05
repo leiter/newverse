@@ -149,7 +149,8 @@ internal fun BuyAppViewModel.startNewOrder() {
                     availablePickupDates = previous.availablePickupDates,
                     marketNames = previous.marketNames,
                     fulfilment = previous.fulfilment,
-                    deliveryAddress = previous.deliveryAddress
+                    deliveryAddress = previous.deliveryAddress,
+                    pickupTime = previous.pickupTime
                 )
             )
         }

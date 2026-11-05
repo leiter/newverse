@@ -29,6 +29,26 @@ data class Order(
     /** Where to deliver, for a [Fulfilment.DELIVERY] order. Empty for a pickup. */
     val deliveryAddress: DeliveryAddress = DeliveryAddress.NONE,
     /**
+     * When the buyer means to collect, as `HH:mm`. Empty for "whenever I get there".
+     *
+     * Per order and snapshotted, for the same reason as [deliveryAddress]: the seller
+     * cannot read `buyer_profile`, so a time that lives only in the profile reaches
+     * them not at all. The profile's `defaultPickUpTime` supplies the default and is
+     * not rewritten by this — a buyer who comes later one week has not moved every
+     * future order.
+     *
+     * Optional on purpose. It is a courtesy between two people who will meet at a
+     * stall, not an appointment the seller has agreed to, and it used to be a required
+     * profile field that blocked a buyer from even asking for access. Empty means the
+     * buyer said nothing, which is a complete answer.
+     *
+     * Only meaningful for a [Fulfilment.PICKUP] order: a delivery arrives when the
+     * seller's round reaches it. Written as empty for a delivery rather than carried
+     * along, so an order switched from pickup to delivery cannot keep promising a time
+     * nobody is keeping.
+     */
+    val pickupTime: String = "",
+    /**
      * The [Market.pricingRevision] the articles were priced against.
      *
      * Snapshotted so a price that was charged can always be told apart from the price
@@ -58,6 +78,10 @@ data class Order(
      */
     val isDeliveryWithoutAddress: Boolean
         get() = isDelivery && !deliveryAddress.isComplete
+
+    /** A collection time the buyer actually stated, for a pickup that has one. */
+    val statedPickupTime: String?
+        get() = pickupTime.takeIf { !isDelivery && it.isNotBlank() }
 
     /**
      * Check if this order can be edited based on current time

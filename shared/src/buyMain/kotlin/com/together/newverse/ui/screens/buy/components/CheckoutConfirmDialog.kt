@@ -26,6 +26,7 @@ import com.together.newverse.ui.components.timeUntilDeadlineText
 import com.together.newverse.util.DeadlineWarningLevel
 import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.util.formatPrice
+import com.together.newverse.util.formatString
 import kotlin.time.Clock
 import kotlin.time.Instant
 import newverse.shared.generated.resources.Res
@@ -39,7 +40,9 @@ import newverse.shared.generated.resources.checkout_confirm_time_left
 import newverse.shared.generated.resources.checkout_confirm_title
 import newverse.shared.generated.resources.checkout_confirm_total
 import newverse.shared.generated.resources.checkout_confirm_when
+import newverse.shared.generated.resources.label_pickup_time
 import newverse.shared.generated.resources.market_choice_profile_label
+import newverse.shared.generated.resources.pickup_time_format
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -68,10 +71,16 @@ fun CheckoutConfirmDialog(
     deliveryAddress: DeliveryAddress,
     /** Street and number as the buyer's profile holds them; empty if it holds none. */
     profileAddress: DeliveryAddress,
+    /** When the buyer means to collect, `HH:mm`; blank for no answer. */
+    pickupTime: String,
+    /** Their usual time as the profile holds it; empty if it holds none. */
+    profilePickupTime: String,
     orderError: String?,
     onFulfilmentChange: (Fulfilment) -> Unit,
     onDeliveryAddressChange: (DeliveryAddress) -> Unit,
     onSaveAddressToProfile: () -> Unit,
+    onPickupTimeChange: (String) -> Unit,
+    onSavePickupTimeToProfile: () -> Unit,
     onConfirm: () -> Unit,
     onChangeSlot: () -> Unit,
     onDismiss: () -> Unit,
@@ -135,9 +144,13 @@ fun CheckoutConfirmDialog(
                     profileAddress = profileAddress,
                     deliveryOffered = deliveryOffered,
                     showAddressRequired = addressMissing && orderError == null,
+                    pickupTime = pickupTime,
+                    profilePickupTime = profilePickupTime,
                     onFulfilmentChange = onFulfilmentChange,
                     onDeliveryAddressChange = onDeliveryAddressChange,
-                    onSaveAddressToProfile = onSaveAddressToProfile
+                    onSaveAddressToProfile = onSaveAddressToProfile,
+                    onPickupTimeChange = onPickupTimeChange,
+                    onSavePickupTimeToProfile = onSavePickupTimeToProfile
                 )
 
                 // Named only when there is more than one market to be at: with a
@@ -155,6 +168,19 @@ fun CheckoutConfirmDialog(
                     label = stringResource(Res.string.checkout_confirm_when),
                     value = whenText
                 )
+
+                // Only once the buyer has named one, and only for a pickup. A row
+                // reading "Abholzeit: keine Angabe" would make a non-answer look like
+                // an omission, which is how this field became a requirement before.
+                if (!isDelivery && pickupTime.isNotBlank()) {
+                    ConfirmRow(
+                        label = stringResource(Res.string.label_pickup_time),
+                        value = formatString(
+                            stringResource(Res.string.pickup_time_format),
+                            pickupTime
+                        )
+                    )
+                }
 
                 ConfirmRow(
                     label = stringResource(Res.string.checkout_confirm_total),

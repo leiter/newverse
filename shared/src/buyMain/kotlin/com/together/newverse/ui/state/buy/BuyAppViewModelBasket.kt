@@ -12,6 +12,7 @@ import com.together.newverse.domain.model.UnorderableItem
 import com.together.newverse.domain.model.articleKey
 import com.together.newverse.domain.model.orderableOnly
 import com.together.newverse.domain.model.unorderableAgainst
+import com.together.newverse.ui.screens.buy.ProfileValidation
 import com.together.newverse.ui.state.BasketMergeMode
 import com.together.newverse.ui.state.BasketScreenState
 import com.together.newverse.ui.state.BuyAppViewModel
@@ -210,6 +211,9 @@ internal fun BuyAppViewModel.handleBasketScreenAction(action: BuyBasketScreenAct
             basketScreenSetDeliveryAddress(action.address)
         BuyBasketScreenAction.SaveDeliveryAddressToProfile ->
             basketScreenSaveDeliveryAddressToProfile()
+        is BuyBasketScreenAction.SetPickupTime -> basketScreenSetPickupTime(action.time)
+        BuyBasketScreenAction.SavePickupTimeToProfile ->
+            basketScreenSavePickupTimeToProfile()
         is BuyBasketScreenAction.LoadOrder -> basketScreenLoadOrder(action.orderId, action.date, forceLoad = true)
         BuyBasketScreenAction.UpdateOrder -> basketScreenUpdateOrder()
         BuyBasketScreenAction.EnableEditing -> basketScreenEnableEditing()
@@ -442,8 +446,10 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                                 // the profile says self-pickup.
                                 fulfilment = order.fulfilment,
                                 deliveryAddress = order.deliveryAddress,
+                                pickupTime = order.pickupTime,
                                 originalFulfilment = order.fulfilment,
                                 originalDeliveryAddress = order.deliveryAddress,
+                                originalPickupTime = order.pickupTime,
                                 orderMarketId = order.marketId,
                                 isEditMode = false,
                                 canEdit = canEdit,
@@ -856,10 +862,23 @@ internal fun BuyAppViewModel.basketScreenSetFulfilment(requested: Fulfilment) {
         } else {
             current.basketScreen.deliveryAddress
         }
+        // The mirror of the address, for the same reason: a buyer switching to pickup
+        // should find their usual time already there rather than retype what the app
+        // knows. Only when nothing has been said in this basket yet — a time they
+        // cleared on purpose stays cleared.
+        val seededTime = if (fulfilment == Fulfilment.PICKUP &&
+            current.basketScreen.pickupTime.isBlank() &&
+            current.basketScreen.orderId == null
+        ) {
+            current.customerProfile.profile?.defaultPickUpTime.orEmpty()
+        } else {
+            current.basketScreen.pickupTime
+        }
         current.copy(
             basketScreen = current.basketScreen.copy(
                 fulfilment = fulfilment,
                 deliveryAddress = seeded,
+                pickupTime = seededTime,
                 // Asked only here and in the checkout dialog, so a change to it is
                 // always this screen's and always keeps its confirmation.
                 editedOnBasketScreen = current.basketScreen.orderId != null,
@@ -879,6 +898,98 @@ internal fun BuyAppViewModel.basketScreenSetDeliveryAddress(address: DeliveryAdd
             )
         )
     }
+}
+
+/**
+ * When the buyer means to collect this order.
+ *
+ * Blank is allowed and means they said nothing, which the seller reads as "whenever".
+ * The field offers a time picker, so a value that is neither blank nor `HH:mm` cannot
+ * be typed here — [refuseUnreadablePickupTime] is the backstop for state that arrived
+ * some other way, not a check this action needs to make.
+ */
+internal fun BuyAppViewModel.basketScreenSetPickupTime(time: String) {
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                pickupTime = time,
+                // Asked only on the basket screen and in the checkout dialog, so a
+                // change to it is always this screen's and always keeps its
+                // confirmation. Same reasoning as the fulfilment chips.
+                editedOnBasketScreen = current.basketScreen.orderId != null,
+                orderError = null
+            )
+        )
+    }
+}
+
+/**
+ * Keep the time chosen at checkout as the buyer's usual one, on them asking to.
+ *
+ * Opt-in and separate from [basketScreenSetPickupTime], for the same reason the
+ * address is: the order snapshots its own time, so coming at nine this once must not
+ * re-aim every future order. A blank is not written — clearing the field on one order
+ * is not a statement about the next.
+ */
+internal fun BuyAppViewModel.basketScreenSavePickupTimeToProfile() {
+    viewModelScope.launch {
+        val time = _state.value.basketScreen.pickupTime
+        if (!isReadablePickupTime(time) || time.isBlank()) {
+            bLog("🛒 basketScreenSavePickupTimeToProfile: refused, time='$time'")
+            dispatch(BuyUiAction.ShowSnackbar("Bitte Abholzeit angeben"))
+            return@launch
+        }
+        val current = _state.value.customerProfile.profile
+        if (current == null) {
+            dispatch(BuyUiAction.ShowSnackbar("Fehler: Kein Profil vorhanden"))
+            return@launch
+        }
+        profileRepository.saveBuyerProfile(current.copy(defaultPickUpTime = time))
+            .onSuccess { saved ->
+                _state.update { state ->
+                    state.copy(
+                        customerProfile = state.customerProfile.copy(profile = saved)
+                    )
+                }
+                dispatch(BuyUiAction.ShowSnackbar("Abholzeit im Profil gespeichert"))
+            }.onFailure { error ->
+                bLog("⚠️ basketScreenSavePickupTimeToProfile: ${error.message}")
+                dispatch(BuyUiAction.ShowSnackbar("Fehler beim Speichern: ${error.message}"))
+            }
+    }
+}
+
+/** Blank, or a time a clock could show. Both are answers; anything else is a typo. */
+internal fun isReadablePickupTime(time: String): Boolean =
+    time.isBlank() || ProfileValidation.isValidTimeFormat(time)
+
+/**
+ * Refuse an order whose collection time cannot be read.
+ *
+ * Deliberately the whole of the rule: any `HH:mm` is accepted, including one outside
+ * the hours the *profile* field insists on. A market's own hours are not modelled, and
+ * a stall that opens at six would otherwise have its own customers refused. The
+ * database rules check the same shape, so this is the half that explains itself rather
+ * than the only guard.
+ *
+ * Returns true when it refused, leaving the confirmation open on the reason.
+ */
+internal fun BuyAppViewModel.refuseUnreadablePickupTime(): Boolean {
+    val basket = _state.value.basketScreen
+    if (basket.fulfilment != Fulfilment.PICKUP) return false
+    if (isReadablePickupTime(basket.pickupTime)) return false
+
+    bLog("🛒 refuseUnreadablePickupTime: '${basket.pickupTime}'")
+    _state.update { current ->
+        current.copy(
+            basketScreen = current.basketScreen.copy(
+                isCheckingOut = false,
+                showCheckoutConfirm = true,
+                orderError = "Abholzeit bitte als Uhrzeit angeben, z. B. 14:30"
+            )
+        )
+    }
+    return true
 }
 
 /** Backed out. Nothing was written and the basket keeps its slot. */
@@ -936,6 +1047,7 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
             // chips are inside that dialog, so this is where a delivery chosen there
             // is first seen by a write.
             if (refuseImpossibleDelivery()) return@launch
+            if (refuseUnreadablePickupTime()) return@launch
 
             val buyerProfile = getBuyerProfileOrFallback(currentUserId)
 
@@ -1037,6 +1149,12 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 deliveryAddress = if (_state.value.basketScreen.fulfilment == Fulfilment.DELIVERY) {
                     _state.value.basketScreen.deliveryAddress
                 } else DeliveryAddress.NONE,
+                // The one thing on this order the seller learns about the buyer's own
+                // day, and the reason it is asked here at all: it used to be a
+                // required profile field no seller screen read.
+                pickupTime = if (_state.value.basketScreen.fulfilment == Fulfilment.PICKUP) {
+                    _state.value.basketScreen.pickupTime
+                } else "",
                 // Snapshotted beside the prices it produced: the seller may edit
                 // conditions tomorrow, and this is what says the articles above were
                 // priced against yesterday's.
@@ -1216,8 +1334,10 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                             createdDate = order.createdDate,
                             fulfilment = order.fulfilment,
                             deliveryAddress = order.deliveryAddress,
+                            pickupTime = order.pickupTime,
                             originalFulfilment = order.fulfilment,
                             originalDeliveryAddress = order.deliveryAddress,
+                            originalPickupTime = order.pickupTime,
                             orderMarketId = order.marketId,
                             isEditMode = false,
                             canEdit = canEdit,
@@ -1355,6 +1475,17 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
                 return@launch
             }
 
+            if (refuseUnreadablePickupTime()) {
+                if (silent) {
+                    dispatch(
+                        BuyUiAction.ShowSnackbar(
+                            "Bestellung nicht aktualisiert: Abholzeit ist unlesbar"
+                        )
+                    )
+                }
+                return@launch
+            }
+
             // An edit is the path a placed pickup takes to become a delivery, so it
             // needs the destination just as much as placing one did.
             if (refuseImpossibleDelivery()) {
@@ -1397,6 +1528,9 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
                     deliveryAddress = if (basketState.fulfilment == Fulfilment.DELIVERY) {
                         basketState.deliveryAddress
                     } else DeliveryAddress.NONE,
+                    pickupTime = if (basketState.fulfilment == Fulfilment.PICKUP) {
+                        basketState.pickupTime
+                    } else "",
                     origin = OrderOrigin.DEMO
                 )
             } else {
@@ -1427,6 +1561,9 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
                     deliveryAddress = if (basketState.fulfilment == Fulfilment.DELIVERY) {
                         basketState.deliveryAddress
                     } else DeliveryAddress.NONE,
+                    pickupTime = if (basketState.fulfilment == Fulfilment.PICKUP) {
+                        basketState.pickupTime
+                    } else "",
                     marketId = keptMarketId,
                     pricingRevision = if (keptMarketId == stored.marketId) stored.pricingRevision
                     else _state.value.pricingRevisionOf(keptMarketId)
@@ -1466,6 +1603,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
                             // edit that is already saved.
                             originalFulfilment = updatedOrder.fulfilment,
                             originalDeliveryAddress = updatedOrder.deliveryAddress,
+                            originalPickupTime = updatedOrder.pickupTime,
                             hasChanges = false,
                             editedOnBasketScreen = false
                         )

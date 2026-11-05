@@ -206,6 +206,16 @@ private fun OrderDetailContent(order: Order, pickupSection: @Composable () -> Un
                         else Res.string.fulfilment_pickup
                     )
                 )
+                // When the buyer said they would come. Only on a pickup, and only
+                // when they named one: the field is optional at checkout, and an
+                // empty row would read as data the app failed to collect rather than
+                // a buyer who did not commit to an hour.
+                order.statedPickupTime?.let { time ->
+                    OrderDetailRow(
+                        label = stringResource(Res.string.label_pickup_time),
+                        value = formatString(stringResource(Res.string.pickup_time_format), time)
+                    )
+                }
                 if (order.isDelivery) {
                     val address = order.deliveryAddress
                     if (address.isComplete) {

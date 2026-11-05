@@ -434,8 +434,22 @@ data class BasketScreenState(
     /** The address this order would be delivered to, seeded from the profile. */
     val deliveryAddress: DeliveryAddress = DeliveryAddress.NONE,
     /**
-     * What the loaded order said about [fulfilment] and [deliveryAddress] when it was
-     * read, so an edit of either can be told from no edit at all.
+     * When the buyer means to collect this order, `HH:mm`, seeded from the profile.
+     *
+     * Optional, and asked here rather than in the profile: it is a fact about one
+     * collection, not about the buyer. It used to be a required profile field that
+     * stood between a buyer and asking for access, and no seller screen ever read it.
+     * Now the order carries it and the seller sees it on the order.
+     *
+     * Empty is a complete answer. Only a value that is neither empty nor a readable
+     * `HH:mm` is refused — the time picker cannot produce one, but a restored state
+     * could — and that is `refuseUnreadablePickupTime`'s job.
+     */
+    val pickupTime: String = "",
+    /**
+     * What the loaded order said about [fulfilment], [deliveryAddress] and
+     * [pickupTime] when it was read, so an edit of any of them can be told from no
+     * edit at all.
      *
      * The counterpart of [originalOrderItems], and needed for the same reason: an
      * order is loaded into the basket, so the live fields alone cannot say whether the
@@ -444,6 +458,7 @@ data class BasketScreenState(
      */
     val originalFulfilment: Fulfilment = Fulfilment.PICKUP,
     val originalDeliveryAddress: DeliveryAddress = DeliveryAddress.NONE,
+    val originalPickupTime: String = "",
     /**
      * The market the loaded order stands against, as the order itself records it.
      *
@@ -477,12 +492,15 @@ data class BasketScreenState(
      * basket emission and would lose this on the next one. The address only counts
      * while the order is a delivery: a buyer who switches to pickup leaves whatever
      * they had typed standing in the fields, and [originalDeliveryAddress] is what is
-     * written back as `NONE` anyway.
+     * written back as `NONE` anyway. The collection time is the mirror
+     * image, counting only while the order is a pickup — a delivery arrives when the
+     * seller's round reaches it, not when the buyer would have come to the stall.
      */
     val fulfilmentChanged: Boolean
         get() = orderId != null && (
             fulfilment != originalFulfilment ||
-                (fulfilment == Fulfilment.DELIVERY && deliveryAddress != originalDeliveryAddress)
+                (fulfilment == Fulfilment.DELIVERY && deliveryAddress != originalDeliveryAddress) ||
+                (fulfilment == Fulfilment.PICKUP && pickupTime != originalPickupTime)
             )
 
     /** Anything at all to save on a placed order: its items, or its fulfilment. */

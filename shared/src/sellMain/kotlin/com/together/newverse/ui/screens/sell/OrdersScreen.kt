@@ -325,6 +325,9 @@ private fun SellerOrderCard(
     )
     val openLabel = stringResource(Res.string.a11y_open_order_details)
     val deliveryLabel = stringResource(Res.string.fulfilment_delivery)
+    val pickupTimeLine = order.statedPickupTime?.let { time ->
+        formatString(stringResource(Res.string.order_pickup_time_stated), time)
+    }
     val addressMissingLabel = stringResource(Res.string.fulfilment_address_missing)
     // One stop per card, read in a deliberate order, instead of a stop each for
     // the name, count, pickup date, message and every product row.
@@ -338,6 +341,7 @@ private fun SellerOrderCard(
         }
         append(", "); append(productCountLabel)
         append(", "); append(order.getFormattedPickupDateAndTime())
+        pickupTimeLine?.let { append(", "); append(it) }
         if (order.message.isNotEmpty()) { append(", "); append(order.message) }
         order.articles.forEach { product ->
             append(", ")
@@ -422,6 +426,21 @@ private fun SellerOrderCard(
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold
             )
+
+            // When the buyer said they would come, if they said. A whole day's
+            // pickups sorted by hour is the thing this tells the seller that the
+            // pickup date above cannot — and until now the app asked every buyer for
+            // it and then showed it to nobody.
+            order.statedPickupTime?.let { time ->
+                Text(
+                    text = formatString(
+                        stringResource(Res.string.order_pickup_time_stated),
+                        time
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             // Message (if exists)
             if (order.message.isNotEmpty()) {
