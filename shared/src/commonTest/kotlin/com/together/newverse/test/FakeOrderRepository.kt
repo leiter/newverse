@@ -26,6 +26,17 @@ class FakeOrderRepository : OrderRepository {
     private val _hiddenOrders = mutableListOf<HiddenOrder>()
     val hiddenOrders: List<HiddenOrder> get() = _hiddenOrders.toList()
 
+    /**
+     * The index each [observeBuyerOrders] subscription was keyed on, in order.
+     *
+     * What the flow returns is unaffected, so no existing test changes behaviour.
+     * It exists to tell one subscription from two: a reader that re-subscribes when
+     * the buyer's order index changes leaves a second entry here, and one that
+     * captured the index once does not.
+     */
+    private val _observedIndexes = mutableListOf<Map<String, String>>()
+    val observedIndexes: List<Map<String, String>> get() = _observedIndexes.toList()
+
     // Configuration for test scenarios
     var shouldFailUpdateStatus = false
     var shouldFailHideOrder = false
@@ -64,6 +75,7 @@ class FakeOrderRepository : OrderRepository {
         _ordersFlow.value = emptyList()
         _statusUpdates.clear()
         _hiddenOrders.clear()
+        _observedIndexes.clear()
         shouldFailUpdateStatus = false
         shouldFailHideOrder = false
         shouldFailTransition = false
@@ -91,6 +103,7 @@ class FakeOrderRepository : OrderRepository {
         placedOrderIds: Map<String, String>,
         isDemo: Boolean
     ): Flow<List<Order>> {
+        _observedIndexes.add(placedOrderIds)
         return _ordersFlow.asStateFlow()
     }
 

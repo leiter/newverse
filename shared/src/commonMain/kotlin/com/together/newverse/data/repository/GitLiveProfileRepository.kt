@@ -24,6 +24,13 @@ import com.together.newverse.util.Log
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.database.DataSnapshot
 import dev.gitlive.firebase.database.database
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -59,13 +66,73 @@ class GitLiveProfileRepository(
     private val buyerAccessStatusRef = database.reference("buyer_access_status")
     private val inviteTokensRef = database.reference("invite_tokens")
 
-    // Local cache for performance
+    // A live mirror of /buyer_profile/{uid}, not a snapshot: see [mirrorBuyerProfile].
     private val _buyerProfile = MutableStateFlow<BuyerProfile?>(null)
     private val sellerProfileCache = mutableMapOf<String, SellerProfile>()
+
+    // Owns the mirror subscription. The repository is a Koin singleton that outlives
+    // every ViewModel, so the scope is the repository's own rather than a caller's.
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var mirrorJob: Job? = null
+    private var mirroredUserId: String? = null
+
+    // Startup reads the profile from several coroutines at once. Without this, two of
+    // them can both find no mirror running and each start one, and the job field then
+    // keeps only the second — leaving the first subscribed for the life of the app.
+    private val mirrorLock = Mutex()
 
     override fun observeBuyerProfile(): Flow<BuyerProfile?> {
         Log.d(TAG) { "observeBuyerProfile: Setting up profile observer" }
         return _buyerProfile.asStateFlow()
+    }
+
+    /**
+     * Keep [_buyerProfile] equal to what the database holds for [userId].
+     *
+     * This flow used to be a plain in-memory StateFlow that only ever changed when
+     * *this* device read or wrote the profile, and [getBuyerProfile] returned that
+     * value for the rest of the process once it was set. The node was therefore read
+     * from Firebase exactly once per app start, and a write made anywhere else never
+     * arrived: a buyer who placed an order on one phone kept `placedOrderIds` without
+     * it on the other, so the standing order the second phone rebuilt from that index
+     * was the state at its own launch. Worse, the next `saveBuyerProfile` on that
+     * phone wrote its stale index back over the live one and dropped the order from
+     * the buyer's own record.
+     *
+     * Subscribing makes the same field the single live copy for both: `valueEvents`
+     * delivers the current value immediately and every change after it, so the cache
+     * is a mirror rather than a souvenir and a save always builds on what is there.
+     *
+     * Idempotent per user, and the subscription is replaced when the signed-in user
+     * changes. A read error (sign-out mid-flight, a rules change) leaves the last
+     * known profile standing rather than blanking a screen: absence of news is not
+     * news that the profile is gone.
+     */
+    private suspend fun mirrorBuyerProfile(userId: String) = mirrorLock.withLock {
+        if (mirroredUserId == userId && mirrorJob?.isActive == true) return
+        mirrorJob?.cancel()
+        mirroredUserId = userId
+        mirrorJob = repositoryScope.launch {
+            buyersRef.child(userId).valueEvents
+                .catch { e -> Log.w(TAG) { "mirrorBuyerProfile: stopped - ${e.message}" } }
+                .collect { snapshot ->
+                    _buyerProfile.value = if (snapshot.exists) {
+                        mapSnapshotToBuyerProfile(userId, snapshot)
+                    } else {
+                        // The same default getBuyerProfile hands a new user, so a
+                        // profile that has not been written yet reads as an empty
+                        // one rather than as "not loaded".
+                        createDefaultBuyerProfile(userId)
+                    }
+                }
+        }
+    }
+
+    /** Stop mirroring, e.g. at sign-out, so the next user starts from nothing. */
+    private suspend fun stopMirroringBuyerProfile() = mirrorLock.withLock {
+        mirrorJob?.cancel()
+        mirrorJob = null
+        mirroredUserId = null
     }
 
     override suspend fun getBuyerProfile(): Result<BuyerProfile> {
@@ -78,9 +145,22 @@ class GitLiveProfileRepository(
                 return Result.failure(Exception("User not authenticated"))
             }
 
-            // Check cache first
+            // A cached profile belonging to somebody else is not this user's, so it
+            // is dropped rather than returned. Signing out clears it, but an account
+            // switch that does not pass through clearCache would otherwise be served
+            // the previous user's record.
+            if (mirroredUserId != null && mirroredUserId != userId) {
+                _buyerProfile.value = null
+            }
+
+            // Start (or keep) the live mirror before answering, so every later call
+            // returns what the database holds now rather than what it held at the
+            // first read of this session.
+            mirrorBuyerProfile(userId)
+
+            // Check cache first. It is kept current by the mirror above.
             val cachedProfile = _buyerProfile.value
-            if (cachedProfile != null) {
+            if (cachedProfile != null && cachedProfile.id == userId) {
                 Log.d(TAG) { "getBuyerProfile: Returning cached profile" }
                 return Result.success(cachedProfile)
             }
@@ -147,6 +227,10 @@ class GitLiveProfileRepository(
     }
 
     override suspend fun clearCache() {
+        // The subscription goes first: a live mirror would refill the field the line
+        // below empties, and at sign-out it is reading a node this user is about to
+        // lose access to anyway.
+        stopMirroringBuyerProfile()
         _buyerProfile.value = null
         sellerProfileCache.clear()
         Log.d(TAG) { "clearCache: Cleared cached profiles" }
