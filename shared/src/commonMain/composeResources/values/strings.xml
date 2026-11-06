@@ -254,6 +254,8 @@
     <string name="basket_edit_order">Bestellung bearbeiten</string>
     <string name="basket_finish_editing">Bearbeiten beenden</string>
     <string name="basket_order_modified">Bestellung (geändert)</string>
+    <string name="basket_changed_elsewhere_title">Auf einem anderen Gerät geändert</string>
+    <string name="basket_changed_elsewhere_body">Dieser Warenkorb wurde auf einem anderen Gerät geändert. Deine Änderungen hier bleiben stehen — speichere oder verwirf sie, dann wird die andere Fassung übernommen.</string>
     <string name="basket_order_details">Bestelldetails</string>
     <string name="basket_pickup">Abholung:</string>
     <string name="basket_delivery">Lieferung:</string>

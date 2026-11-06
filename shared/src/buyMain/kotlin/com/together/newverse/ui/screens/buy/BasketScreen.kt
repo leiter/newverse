@@ -386,6 +386,13 @@ fun BasketContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp)
     ) {
+        // Somebody -- the buyer themselves, on their other phone -- changed this
+        // basket while an edit was open here. The change is held rather than applied
+        // over the edit, so it is said out loud instead of resolved silently.
+        if (state.remoteBasketChangePending) {
+            item { RemoteBasketChangeNotice() }
+        }
+
         // Order information card (for existing orders)
         if (state.orderId != null && state.pickupDate != null && state.createdDate != null) {
             item {
@@ -2523,4 +2530,47 @@ private fun PriceChangeDialog(
             }
         }
     )
+}
+
+/**
+ * "Your other device changed this basket, and the change is waiting."
+ *
+ * Shown only while an edit is open here, because that is the only time the change is
+ * held back: an idle screen takes it silently, the way a basket shared between two
+ * phones should behave. Stated rather than offered as a choice -- the buyer resolves
+ * it by finishing or dropping the edit they are already in, which is a decision they
+ * were going to make anyway.
+ */
+@Composable
+private fun RemoteBasketChangeNotice() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(20.dp)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(Res.string.basket_changed_elsewhere_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = stringResource(Res.string.basket_changed_elsewhere_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
+    }
 }

@@ -51,6 +51,7 @@ import com.together.newverse.ui.state.buy.observeGoogleSignInCompletion
 import com.together.newverse.ui.state.buy.observeAuthStateChanges
 import com.together.newverse.ui.state.buy.observeMainScreenBasket
 import com.together.newverse.ui.state.buy.observeMainScreenBuyerProfile
+import com.together.newverse.ui.state.buy.observeOpenBasketRemotely
 import com.together.newverse.ui.state.buy.observePendingInvitations
 import com.together.newverse.ui.state.buy.openDrawer
 import com.together.newverse.ui.state.buy.refreshCustomerProfile
@@ -197,6 +198,11 @@ class BuyAppViewModel(
         // Initialize BasketScreen observers
         Log.d(TAG) { "init: Setting up BasketScreen observers..." }
         initializeBasketScreen()
+
+        // The basket the buyer has open on their other device is the same basket.
+        // Started here and left running: what it watches is keyed off the open
+        // order, so opening, closing and switching one are all the same event.
+        observeOpenBasketRemotely()
 
         // Observe pending invitations
         Log.d(TAG) { "init: Setting up invitation observer..." }

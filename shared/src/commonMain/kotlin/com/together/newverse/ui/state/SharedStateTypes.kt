@@ -409,6 +409,20 @@ data class BasketScreenState(
      * with it, which is the one thing the confirmation exists to prevent.
      */
     val editedOnBasketScreen: Boolean = false,
+    /**
+     * The same basket changed on another device while this one holds unsaved edits.
+     *
+     * A buyer's basket is one basket, wherever they opened it, so a change made on
+     * their other phone is applied here as soon as this screen is idle. It is not
+     * applied over an edit in progress: the amount being typed is the buyer's
+     * current intent and the remote value is a stale instruction to overwrite it.
+     * So the change waits, and this says to tell them it is waiting rather than
+     * letting them save on top of it believing they had the whole picture.
+     *
+     * Cleared the moment the remote state is applied, which is the moment the edit
+     * is saved, discarded or the order reloaded.
+     */
+    val remoteBasketChangePending: Boolean = false,
     val selectedPickupDate: Long? = null,
     val availablePickupDates: List<Long> = emptyList(),
     /**

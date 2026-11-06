@@ -241,6 +241,8 @@
     <string name="basket_reorder">Reorder with different date</string>
     <string name="basket_edit_order">Edit Order</string>
     <string name="basket_order_modified">Order (modified)</string>
+    <string name="basket_changed_elsewhere_title">Changed on another device</string>
+    <string name="basket_changed_elsewhere_body">This basket was changed on another device. Your changes here are kept — save or discard them and the other version will be taken.</string>
     <string name="basket_order_details">Order Details</string>
     <string name="basket_pickup">Pickup:</string>
     <string name="basket_delivery">Delivery:</string>
