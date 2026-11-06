@@ -267,7 +267,10 @@ private fun MainScreenModernContent(
                                     modifier = Modifier.weight(1f),
                                     onClick = {
                                         onAction(BuyMainScreenAction.SelectArticle(product))
-                                    }
+                                    },
+                                    onNavigateToDetail = {
+                                        onNavigateToProductDetail(product.id)
+                                    },
                                 )
                             }
                             // Fill the last row with empty boxes so cards keep their width
