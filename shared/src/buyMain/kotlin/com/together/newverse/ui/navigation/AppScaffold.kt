@@ -32,6 +32,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.animate
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -416,10 +417,33 @@ private fun AppScaffoldContent(
     // back. enterAlways intercepts in both directions in onPreScroll and consumes
     // the delta while the bar is moving, so a pull downwards brings the bar in
     // first and the content only follows once the bar is fully in view.
+    //
+    // While the hero card's amount field has focus the bar is held open: it is
+    // carrying the stand-in basket button the number pad has covered up (see
+    // standInForCoveredBasket below), and a button nobody can see stands in for
+    // nothing. canScroll keeps a scroll from taking it away for as long as the
+    // field is open; the effect underneath brings it back if the field took focus
+    // while the bar was already gone.
+    val amountFieldFocused = appState.mainScreen.isQuantityInputFocused
     val scrollBehavior = if (currentRoute == NavRoutes.Home.route) {
-        TopAppBarDefaults.enterAlwaysScrollBehavior()
+        TopAppBarDefaults.enterAlwaysScrollBehavior(
+            canScroll = { !amountFieldFocused },
+        )
     } else {
         null
+    }
+
+    // Keyed on the flag alone: enterAlwaysScrollBehavior() hands back a fresh
+    // behaviour object every recomposition, but its state is remembered, so the
+    // instance captured here keeps pointing at the right offset.
+    LaunchedEffect(amountFieldFocused) {
+        val state = scrollBehavior?.state
+        if (amountFieldFocused && state != null && state.heightOffset != 0f) {
+            animate(
+                initialValue = state.heightOffset,
+                targetValue = 0f,
+            ) { value, _ -> state.heightOffset = value }
+        }
     }
 
     // Determine if bottom bar should be shown (main screens only)
