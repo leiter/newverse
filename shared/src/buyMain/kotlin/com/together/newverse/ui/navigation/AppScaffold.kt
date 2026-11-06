@@ -408,10 +408,16 @@ private fun AppScaffoldContent(
         else -> null
     }
 
-    // Scroll behavior for collapsing toolbar (only for Home screen)
-    // Using exitUntilCollapsedScrollBehavior for snappy hide/show behavior
+    // Scroll behavior for collapsing toolbar (only for Home screen).
+    //
+    // enterAlways, not exitUntilCollapsed: exitUntilCollapsed only expands the bar
+    // when the list could not consume a downward scroll, i.e. once the list already
+    // sits at its very top, so mid-list a pull downwards could never bring the bar
+    // back. enterAlways intercepts in both directions in onPreScroll and consumes
+    // the delta while the bar is moving, so a pull downwards brings the bar in
+    // first and the content only follows once the bar is fully in view.
     val scrollBehavior = if (currentRoute == NavRoutes.Home.route) {
-        TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+        TopAppBarDefaults.enterAlwaysScrollBehavior()
     } else {
         null
     }

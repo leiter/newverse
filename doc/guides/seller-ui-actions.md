@@ -335,7 +335,7 @@ read of a UI preference.
 Chosen over a hand-rolled offset animation for one specific property: **it animates
 only when the content actually overflows its box.** A short announcement therefore
 sits still, and text that jitters when it already fits reads as a bug. The title also
-lives in the home screen's `exitUntilCollapsedScrollBehavior` bar, so it has to
+lives in the home screen's `enterAlwaysScrollBehavior` bar, so it has to
 tolerate a shrinking container, which the marquee re-measures into.
 
 Accessibility: a marquee animates a *visual* offset, so the node carries the whole

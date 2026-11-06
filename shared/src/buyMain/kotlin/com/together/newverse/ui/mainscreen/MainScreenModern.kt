@@ -1,8 +1,9 @@
 package com.together.newverse.ui.mainscreen
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -35,9 +35,9 @@ import com.together.newverse.ui.adaptive.AdaptiveDefaults
 import com.together.newverse.ui.adaptive.LocalWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.ui.adaptive.constrainedContentWidth
-import com.together.newverse.ui.state.MainScreenState
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyMainScreenAction
+import com.together.newverse.ui.state.MainScreenState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.main_order_locked_snackbar
 import newverse.shared.generated.resources.main_section_fresh_subtitle
@@ -65,7 +65,6 @@ fun MainScreenModern(
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainScreenModernContent(
     state: MainScreenState,
@@ -109,159 +108,175 @@ private fun MainScreenModernContent(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .constrainedContentWidth(max = AdaptiveDefaults.FeedMaxWidth),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxSize()
+                    .constrainedContentWidth(max = AdaptiveDefaults.FeedMaxWidth)
             ) {
-                // Hero Section - Featured Product (sticky header)
-                stickyHeader {
-                    Column(
-                        modifier = Modifier.background(
-                            MaterialTheme.colorScheme.background
+                // The hero, the search field and the chips sit above the grid rather
+                // than inside it as a sticky header. Two things follow: the product
+                // rows can no longer slide underneath the card, and a drag that starts
+                // on the card no longer scrolls the list.
+                //
+                // The scrollable wrapper consumes nothing (`{ 0f }`). Its deltas travel
+                // to the scaffold's nested-scroll parent instead, so a pull downwards on
+                // the hero is spent entirely on bringing the top bar back into view.
+                Column(
+                    modifier = Modifier
+                        .scrollable(
+                            state = rememberScrollableState { 0f },
+                            orientation = Orientation.Vertical,
                         )
-                    ) {
-                        // Show skeleton or actual product
-                        if (state.isLoading && selectedProduct == null) {
-                            HeroProductCardSkeleton()
-                        } else {
-                            selectedProduct?.let { product ->
-                                // Match by id (Firebase key when loaded from order) or productId (Firebase key when freshly added)
-                                val basketItem = basketItems.find { it.id == product.id || it.productId == product.id }
-                                val isInBasket = basketItem != null
-                                val originalQuantity = basketItem?.amountCount ?: 0.0
-                                val isFavourite = state.favouriteArticles.contains(product.id)
-                                HeroProductCard(
-                                    product = product,
-                                    price = state.priceOf(product),
-                                    quantity = quantity,
-                                    originalQuantity = originalQuantity,
-                                    isInBasket = isInBasket,
-                                    isFavourite = isFavourite,
-                                    onQuantityChange = { onAction(BuyMainScreenAction.UpdateQuantity(it)) },
-                                    onQuantityFocusChange = {
-                                        onAction(BuyMainScreenAction.SetQuantityInputFocused(it))
-                                    },
-                                    onAddToCart = { onAction(BuyMainScreenAction.AddToCart) },
-                                    onRemoveFromBasket = { onAction(BuyMainScreenAction.RemoveFromBasket) },
-                                    onToggleFavourite = { onAction(BuyMainScreenAction.ToggleFavourite(product.id)) },
-                                    onNavigateToDetail = { onNavigateToProductDetail(product.id) }
-                                )
-                            }
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                ) {
+                    // Show skeleton or actual product
+                    if (state.isLoading && selectedProduct == null) {
+                        HeroProductCardSkeleton()
+                    } else {
+                        selectedProduct?.let { product ->
+                            // Match by id (Firebase key when loaded from order) or productId (Firebase key when freshly added)
+                            val basketItem = basketItems.find { it.id == product.id || it.productId == product.id }
+                            val isInBasket = basketItem != null
+                            val originalQuantity = basketItem?.amountCount ?: 0.0
+                            val isFavourite = state.favouriteArticles.contains(product.id)
+                            HeroProductCard(
+                                product = product,
+                                price = state.priceOf(product),
+                                quantity = quantity,
+                                originalQuantity = originalQuantity,
+                                isInBasket = isInBasket,
+                                isFavourite = isFavourite,
+                                onQuantityChange = { onAction(BuyMainScreenAction.UpdateQuantity(it)) },
+                                onQuantityFocusChange = {
+                                    onAction(BuyMainScreenAction.SetQuantityInputFocused(it))
+                                },
+                                onAddToCart = { onAction(BuyMainScreenAction.AddToCart) },
+                                onRemoveFromBasket = { onAction(BuyMainScreenAction.RemoveFromBasket) },
+                                onToggleFavourite = { onAction(BuyMainScreenAction.ToggleFavourite(product.id)) },
+                                onNavigateToDetail = { onNavigateToProductDetail(product.id) }
+                            )
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Search Bar
-                        ProductSearchField(
-                            query = state.searchQuery,
-                            onQueryChange = { onAction(BuyMainScreenAction.UpdateSearchQuery(it)) },
-                            onClear = { onAction(BuyMainScreenAction.ClearSearchQuery) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Category Filter Chips
-                        CategoryChips(
-                            filterState = state.filterState,
-                            onCycleFavourite = {
-                                onAction(BuyMainScreenAction.CycleFavouriteFilter)
-                            },
-                            onToggleCategory = { category ->
-                                onAction(BuyMainScreenAction.ToggleCategoryFilter(category))
-                            },
-                            onReset = { onAction(BuyMainScreenAction.ResetFilters) }
-                        )
                     }
-                }
 
-                // Section Header
-                item {
-                    SectionHeader(
-                        title = stringResource(Res.string.main_section_fresh_title),
-                        subtitle = stringResource(Res.string.main_section_fresh_subtitle)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Search Bar
+                    ProductSearchField(
+                        query = state.searchQuery,
+                        onQueryChange = { onAction(BuyMainScreenAction.UpdateSearchQuery(it)) },
+                        onClear = { onAction(BuyMainScreenAction.ClearSearchQuery) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Category Filter Chips
+                    CategoryChips(
+                        filterState = state.filterState,
+                        onCycleFavourite = {
+                            onAction(BuyMainScreenAction.CycleFavouriteFilter)
+                        },
+                        onToggleCategory = { category ->
+                            onAction(BuyMainScreenAction.ToggleCategoryFilter(category))
+                        },
+                        onReset = { onAction(BuyMainScreenAction.ResetFilters) }
                     )
                 }
 
-                // Show loading skeleton
-                if (state.isLoading && products.isEmpty()) {
-                    // Show skeleton product grid (3 rows)
-                    items(3) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 16.dp,
+                        bottom = 16.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Section Header
+                    item {
+                        SectionHeader(
+                            title = stringResource(Res.string.main_section_fresh_title),
+                            subtitle = stringResource(Res.string.main_section_fresh_subtitle)
+                        )
+                    }
+
+                    // Show loading skeleton
+                    if (state.isLoading && products.isEmpty()) {
+                        // Show skeleton product grid (3 rows)
+                        items(3) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                repeat(productColumns) {
+                                    ProductCardSkeleton(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+
+                    if (state.error != null) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    state.error.message,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+
+                    // No results state when search query returns empty
+                    if (!state.isLoading && products.isEmpty() && state.searchQuery.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    stringResource(Res.string.products_search_no_results),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    // Announce the empty result to a screen reader as the query changes
+                                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                                )
+                            }
+                        }
+                    }
+
+                    // Product Grid
+                    items(products.chunked(productColumns)) { productRow ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            repeat(productColumns) {
-                                ProductCardSkeleton(modifier = Modifier.weight(1f))
+                            productRow.forEach { product ->
+                                ModernProductCard(
+                                    product = product,
+                                    price = state.priceOf(product),
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        onAction(BuyMainScreenAction.SelectArticle(product))
+                                    }
+                                )
+                            }
+                            // Fill the last row with empty boxes so cards keep their width
+                            repeat(productColumns - productRow.size) {
+                                Box(modifier = Modifier.weight(1f))
                             }
                         }
                     }
                 }
-
-                if (state.error != null) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                state.error.message,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                }
-
-                // No results state when search query returns empty
-                if (!state.isLoading && products.isEmpty() && state.searchQuery.isNotEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                stringResource(Res.string.products_search_no_results),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                // Announce the empty result to a screen reader as the query changes
-                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-                            )
-                        }
-                    }
-                }
-
-                // Product Grid
-                items(products.chunked(productColumns)) { productRow ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        productRow.forEach { product ->
-                            ModernProductCard(
-                                product = product,
-                                price = state.priceOf(product),
-                                modifier = Modifier.weight(1f),
-                                onClick = {
-                                    onAction(BuyMainScreenAction.SelectArticle(product))
-                                }
-                            )
-                        }
-                        // Fill the last row with empty boxes so cards keep their width
-                        repeat(productColumns - productRow.size) {
-                            Box(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
             } // Column
         }
 
