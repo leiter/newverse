@@ -355,6 +355,26 @@ data class BasketScreenState(
     val orderError: String? = null,
     val orderId: String? = null,
     val orderDate: String? = null,
+    /**
+     * Which trunk the loaded order lives in: `demo_orders/` when true, `orders/` when
+     * false. Meaningless while [orderId] is null.
+     *
+     * Deliberately not `BuyAppState.isDemoMode`. That flag is derived from the buyer's
+     * access status, so it flips the instant the seller approves them — and approval
+     * does not move anything (`promptToConfirmDemoOrders`). Every write then went
+     * looking for the order under `orders/`, where it had never been, and a node that
+     * is not there is *refused* rather than reported absent: the read rule on an order
+     * is `data.child('buyerId').val() === auth.uid` and the level above it is
+     * seller-only, so absent data has no `buyerId` to match. A freshly approved buyer
+     * trying to cancel their demo order was told they had no permission to.
+     *
+     * Where an order lives is a fact about the order. The read side has always known
+     * this — `historyTrunks()` reads both trunks whatever the access status and
+     * `historyOrigin()` takes the provenance from the path — and this is the write
+     * side learning it. Set from the trunk the order was actually found in; see
+     * `basketScreenResolveOrder`.
+     */
+    val orderIsDemo: Boolean = false,
     val pickupDate: Long? = null,
     val createdDate: Long? = null,
     /**

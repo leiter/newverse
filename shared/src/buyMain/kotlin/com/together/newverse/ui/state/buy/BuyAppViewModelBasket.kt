@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state.buy
 
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.data.repository.ORDER_NOT_FOUND
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
@@ -355,19 +356,11 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                 val (orderId, orderDate) = loadedOrderInfo
                 bLog("🛒 BuyAppViewModel.basketScreenLoadMostRecentEditableOrder: Order already loaded - orderId=$orderId, date=$orderDate")
 
-                val isDemo = _state.value.isDemoMode
-                val result = if (isDemo) {
-                    val demoOrder = sellerConfig.loadDemoOrders().find { it.id == orderId }
-                    if (demoOrder != null) {
-                        Result.success(demoOrder)
-                    } else {
-                        val orderPath = "demo_orders/${sellerConfig.sellerId}/$orderDate/$orderId"
-                        orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
-                    }
-                } else {
-                    val orderPath = "orders/${sellerConfig.sellerId}/$orderDate/$orderId"
-                    orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
-                }
+                // Resolved, not assumed — see basketScreenResolveOrder.
+                val resolved = basketScreenResolveOrder(orderId, orderDate)
+                val isDemo = resolved?.second ?: _state.value.isDemoMode
+                val result = resolved?.let { Result.success(it.first) }
+                    ?: Result.failure(Exception("Order not found"))
                 result.onSuccess { loadedOrder ->
                     // Check if order is finalized
                     // Finished orders stay as the seller or buyer left them; in particular a
@@ -443,6 +436,7 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
                             basketScreen = current.basketScreen.copy(
                                 orderId = orderId,
                                 orderDate = orderDate,
+                                orderIsDemo = isDemo,
                                 pickupDate = order.pickUpDate,
                                 createdDate = order.createdDate,
                                 // From the order, not the profile: editing a delivery
@@ -491,6 +485,12 @@ internal fun BuyAppViewModel.basketScreenLoadMostRecentEditableOrder() {
 
             // sellerConfig.isDemoMode is always true because demoSellerId == real sellerId,
             // so use state.isDemoMode to distinguish demo (local) from real (Firebase) orders.
+            //
+            // The account's mode is the right question here, unlike the write paths
+            // below: this is "where should I look for an order to adopt into the
+            // basket", and a demo order a freshly approved buyer still holds is not
+            // theirs to pick up editing — it is theirs to confirm or drop, which is a
+            // flow of its own and not yet built. See orderIsDemo.
             val isDemo = _state.value.isDemoMode
 
             // In demo mode, find the most recent editable order
@@ -621,7 +621,8 @@ private fun BuyAppViewModel.basketScreenResetToEmptyDraft() {
 
         // If it was a real order, remove it from the backend
         if (orderId != null && orderDate != null) {
-            val isDemo = _state.value.isDemoMode
+            // The order's trunk, not the account's mode — see orderIsDemo.
+            val isDemo = basketState.orderIsDemo
             val result = if (isDemo) {
                 if (orderId.startsWith("demo_")) {
                     runCatching { sellerConfig.removeDemoOrder(orderId) }.map { true }
@@ -1225,6 +1226,10 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
 
             // Check if there's an existing order for this pickup date - merge if so
             val dateKey = basketScreenFormatDateKey(selectedDate)
+            // The account's mode again, and again on purpose: this asks what a *new*
+            // order placed now would collide with. A leftover demo order at the same
+            // slot is not something to merge into — confirming it is the move, and
+            // that flow is not built yet. See orderIsDemo.
             val isDemo = _state.value.isDemoMode
 
             val existingOrder = if (isDemo) {
@@ -1408,6 +1413,69 @@ internal fun BuyAppViewModel.basketScreenResetOrderState() {
     }
 }
 
+/**
+ * Find one of this buyer's orders and say which trunk it lives in.
+ *
+ * The trunk is a fact about the order, not about the buyer: approval does not move a
+ * demo order (`promptToConfirmDemoOrders`), so a buyer can be approved and still own
+ * records under `demo_orders/`. Asking `isDemoMode` instead sent every write to
+ * `orders/` the moment they were approved, and the rules answer a missing order there
+ * with a refusal rather than a blank — so cancelling a leftover demo order told the
+ * buyer they had no permission to.
+ *
+ * Probed in the order that costs least and resolves a half-finished transition the way
+ * the read side does:
+ *
+ *  1. local demo storage, by id. Locally held demo orders exist nowhere else, and this
+ *     is a lookup rather than a round trip.
+ *  2. `orders/`, the real trunk first — the same precedence `historyTrunks()` uses, so
+ *     an order sitting in both trunks is taken from the one that counts.
+ *  3. `demo_orders/`.
+ *
+ * A record found under `orders/` that still calls itself [OrderOrigin.DEMO] is the
+ * legacy half-state `historyOrigin` describes. It is reported as living in the demo
+ * trunk only if the demo trunk does not hold it, which also covers the one way the
+ * repository's id-keyed order cache could answer a path it was not asked about.
+ *
+ * Returns the order with the trunk beside it, or null if neither holds it.
+ */
+internal suspend fun BuyAppViewModel.basketScreenResolveOrder(
+    orderId: String,
+    date: String,
+): Pair<Order, Boolean>? {
+    val sellerId = sellerConfig.sellerId
+
+    sellerConfig.loadDemoOrders().find { it.id == orderId }?.let { local ->
+        bLog("\uD83D\uDED2 basketScreenResolveOrder: $orderId is held locally")
+        return local to true
+    }
+
+    val real = orderRepository
+        .loadOrder(sellerId, orderId, "orders/$sellerId/$date/$orderId")
+        .getOrNull()
+    if (real != null && !real.origin.isDemo) {
+        bLog("\uD83D\uDED2 basketScreenResolveOrder: $orderId lives in orders/")
+        return real to false
+    }
+
+    val demo = orderRepository
+        .loadOrder(sellerId, orderId, "demo_orders/$sellerId/$date/$orderId")
+        .getOrNull()
+    if (demo != null) {
+        bLog("\uD83D\uDED2 basketScreenResolveOrder: $orderId lives in demo_orders/")
+        return demo to true
+    }
+
+    // Under orders/ and still stamped DEMO, with nothing in the demo trunk to prefer.
+    if (real != null) {
+        bLog("\uD83D\uDED2 basketScreenResolveOrder: $orderId is a DEMO record under orders/")
+        return real to true
+    }
+
+    bLog("\uD83D\uDED2 basketScreenResolveOrder: $orderId is in neither trunk")
+    return null
+}
+
 internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String, forceLoad: Boolean = false) {
     viewModelScope.launch {
         bLog("🛒 BuyAppViewModel.basketScreenLoadOrder: START - orderId=$orderId, date=$date, forceLoad=$forceLoad")
@@ -1428,21 +1496,13 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
         }
 
         try {
-            val isDemo = _state.value.isDemoMode
-            val result = if (isDemo) {
-                // Try local first
-                val localOrder = sellerConfig.loadDemoOrders().find { it.id == orderId }
-                if (localOrder != null) {
-                    Result.success(localOrder)
-                } else {
-                    // Fall back to Firebase demo_orders
-                    val orderPath = "demo_orders/${sellerConfig.sellerId}/$date/$orderId"
-                    orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
-                }
-            } else {
-                val orderPath = "orders/${sellerConfig.sellerId}/$date/$orderId"
-                orderRepository.loadOrder(sellerConfig.sellerId, orderId, orderPath)
-            }
+            // Found rather than guessed at: a buyer can be approved and still own
+            // records under demo_orders/. The trunk it came from is kept in state and
+            // is what every later write to this order routes on.
+            val resolved = basketScreenResolveOrder(orderId, date)
+            val isDemo = resolved?.second ?: _state.value.isDemoMode
+            val result = resolved?.let { Result.success(it.first) }
+                ?: Result.failure(Exception(ORDER_NOT_FOUND))
 
             result.onSuccess { loadedOrder ->
                 // Apply status transition if needed (PLACED->LOCKED or LOCKED->COMPLETED)
@@ -1474,6 +1534,7 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
                         basketScreen = current.basketScreen.copy(
                             orderId = orderId,
                             orderDate = date,
+                            orderIsDemo = isDemo,
                             pickupDate = order.pickUpDate,
                             createdDate = order.createdDate,
                             fulfilment = order.fulfilment,
@@ -1505,11 +1566,20 @@ internal fun BuyAppViewModel.basketScreenLoadOrder(orderId: String, date: String
             }.onFailure { error ->
                 // Clear loaded order info since loading failed
                 basketRepository.clearBasket()
+                // An order neither trunk holds is a sentence of its own. Appending the
+                // repository's own words put the English "Order not found" in front of
+                // a German-speaking buyer, and before the trunk was resolved properly
+                // it put "Permission denied" there — which is what they saw.
+                val reason = if (error.message == ORDER_NOT_FOUND) {
+                    "Bestellung nicht gefunden"
+                } else {
+                    "Bestellung konnte nicht geladen werden: ${error.message}"
+                }
                 _state.update { current ->
                     current.copy(
                         basketScreen = BasketScreenState(
                             isLoadingOrder = false,
-                            orderError = "Bestellung konnte nicht geladen werden: ${error.message}",
+                            orderError = reason,
                             availablePickupDates = current.basketScreen.availablePickupDates
                         )
                     )
@@ -1667,7 +1737,10 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
             }
 
             val buyerProfile = getBuyerProfileOrFallback(currentUserId)
-            val isDemo = _state.value.isDemoMode
+            // Where this order lives, not where a new one would go — see orderIsDemo.
+            // An approved buyer editing a leftover demo order was writing it to
+            // orders/, which the rules refuse for a node that is not there.
+            val isDemo = basketState.orderIsDemo
             val isLocalDemo = isDemo && orderId.startsWith("demo_")
 
             val editMarketId = basketState.selectedMarketId
@@ -1916,7 +1989,10 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
             bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: sellerId=${sellerConfig.sellerId}")
             bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: orderDate=$orderDate")
             bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: orderId=$orderId")
-            val isDemo = _state.value.isDemoMode
+            // The trunk the order is in, not the one the account would write to. This
+            // is the line that told a freshly approved buyer they had no permission to
+            // cancel their own demo order — see orderIsDemo.
+            val isDemo = basketState.orderIsDemo
             val result = if (isDemo) {
                 if (orderId.startsWith("demo_")) {
                     runCatching { sellerConfig.removeDemoOrder(orderId) }.map { true }
@@ -2502,6 +2578,7 @@ internal fun BuyAppViewModel.basketScreenConfirmMerge() {
                             orderSuccess = true,
                             orderId = existingOrder.id,
                             orderDate = dateKey,
+                            orderIsDemo = existingOrder.origin.isDemo,
                             pickupDate = existingOrder.pickUpDate,
                             createdDate = existingOrder.createdDate,
                             items = mergedItems,

@@ -1,6 +1,6 @@
 # Demo Orders: Provenance, Path and Transition
 
-**Status:** Implemented 2026-10-15
+**Status:** Implemented 2026-10-15; write paths routed by the order's own trunk 2026-11-06
 **Scope:** `shared/src/commonMain` (model + repository), `buyMain` (approval flow),
 `sellMain` (filters), `firebase/database.rules.json`
 
@@ -116,6 +116,53 @@ correct for everything under `orders/`.
 
 ---
 
+## Which trunk a write goes to
+
+**Fixed 2026-11-06.** The order's own trunk decides, never the buyer's access status.
+
+Approval does not move a demo order (see *What does not move*), so an approved buyer can
+still own records under `demo_orders/`. Every write in the basket ViewModel used to pick
+its trunk from `BuyAppState.isDemoMode`, which is derived from the access status and flips
+the instant the seller approves — so those records were written to `orders/`, where they
+had never been.
+
+That failed as a **permission error**, not as "not found", and this is worth knowing
+because it will happen again anywhere an order path is guessed:
+
+> The read rule on one order is `data.child('buyerId').val() === auth.uid`, and the
+> `$sellerId` level above it grants the seller alone. A node that does not exist has no
+> `buyerId` to match, so the read is **refused** rather than answered empty.
+
+A freshly approved buyer pressing *Storno* on their leftover demo order was therefore
+told they had no permission to cancel their own order.
+
+Two things changed:
+
+- `BasketScreenState.orderIsDemo` records the trunk the loaded order was actually found
+  in, and `basketScreenResolveOrder` finds it: local demo storage by id, then `orders/`,
+  then `demo_orders/` — real trunk first, the same precedence `historyTrunks()` uses, so
+  an order sitting in both is taken from the one that counts. Cancelling, editing and
+  resetting an order all route on that field.
+- `readsAsMissingOrder()` maps a refusal on a single-order read to `ORDER_NOT_FOUND`, so
+  callers that already recover from absence recover from this too and no buyer is shown
+  the word "permission" for an order that lives elsewhere. It conflates "not there" with
+  "somebody else's", which hides nothing: no rule would ever have let them read another
+  buyer's order.
+
+The read side had this right all along — `historyTrunks()` reads both trunks whatever the
+access status, `historyOrigin()` takes the provenance from the path, and
+`updateOrder` routes on `order.origin.isDemo`. Two sites still start from `isDemoMode`
+**on purpose**, both marked in the code: finding an order to adopt into the basket, and
+finding what a *new* order would collide with. Neither is a write to a known order, and a
+leftover demo order is not something to edit or merge into — it is something to confirm
+or drop, which is the flow below.
+
+Tests: `BuyAppViewModelDemoOrderTrunkTest`, `MissingOrderReadingTest`, and
+`FakeOrderRepository.loadOrder` now honours the trunk its path names, so a caller asking
+the wrong one fails in tests instead of only on a device.
+
+---
+
 ## Rules
 
 `origin` is validated on both nodes so the path and the flag cannot disagree:
@@ -134,6 +181,28 @@ passes. Covered by six tests in `firebase/tests/profile-orders-events.test.js`.
 ## Still open
 
 Deliberately out of scope here; each is independent of the model above.
+
+### 0. A leftover demo order has no action attached
+
+Approval tells the buyer *"bestätige sie mit einem neuen Abholtermin"* and then offers no
+way to do it. There is no confirm button and no discard button; `CancelOrder` is the only
+thing they can reach, which is why they reached for it.
+
+Both are needed, and neither needs a rules change:
+
+- **Bestätigen** — pick a slot that is open now and move the order.
+  `transitionDemoOrdersToProduction` already exists for this, and
+  `BasketScreenState.confirmingDemoOrderId` is already threaded through checkout.
+- **Verwerfen** — delete `demo_orders/{sellerId}/{date}/{id}` and its `placedOrderIds`
+  entry. The rules already allow it: `data.child('buyerId').val() === auth.uid`.
+
+It should not be called *Storno*. Cancelling is a message to a seller who has your order,
+and the seller never saw this one — they do not subscribe to `demo_orders/`. A `CANCELLED`
+record in a trunk nobody reads is litter; a delete is the honest write.
+
+An order whose pickup day has already passed cannot be confirmed against anything
+(`canTransitionToProduction` knows), so approval should drop those rather than leave them
+in the history to be puzzled over.
 
 ### 1. The demo write budget is not a control
 

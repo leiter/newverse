@@ -417,12 +417,18 @@ class GitLiveOrderRepository(
                 // Clear from cache since it doesn't exist in Firebase
                 ordersCache.remove(orderId)
                 Log.d(TAG) { "cancelOrder: Removed from cache" }
-                Result.failure(Exception("Order not found"))
+                Result.failure(Exception(ORDER_NOT_FOUND))
             }
 
         } catch (e: Exception) {
             Log.e(TAG) { "cancelOrder: Error - ${e.message}" }
-            Result.failure(e)
+            if (e.readsAsMissingOrder()) {
+                // Not there, however the rules phrase it — see readsAsMissingOrder.
+                ordersCache.remove(orderId)
+                Result.failure(Exception(ORDER_NOT_FOUND))
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
@@ -460,12 +466,18 @@ class GitLiveOrderRepository(
                 }
             } else {
                 Log.e(TAG) { "loadOrder: Order not found" }
-                Result.failure(Exception("Order not found"))
+                Result.failure(Exception(ORDER_NOT_FOUND))
             }
 
         } catch (e: Exception) {
             Log.e(TAG) { "loadOrder: Error - ${e.message}" }
-            Result.failure(e)
+            if (e.readsAsMissingOrder()) {
+                // A probe of the wrong trunk, which is an ordinary answer and not an
+                // error worth showing — see readsAsMissingOrder.
+                Result.failure(Exception(ORDER_NOT_FOUND))
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
@@ -1148,6 +1160,32 @@ internal fun storedOrderOrigin(
 
 /** The status value that used to carry demo-ness before [OrderOrigin] existed. */
 internal const val LEGACY_DEMO_STATUS = "DEMO_ORDER"
+
+/** What the repository reports for an order no path of this buyer's holds. */
+internal const val ORDER_NOT_FOUND = "Order not found"
+
+/**
+ * Whether this failure is how the rules say "no order of yours lives here".
+ *
+ * The read rule on a single order is `data.child('buyerId').val() === auth.uid`, and the
+ * level above it grants the seller alone. A node that does not exist therefore has no
+ * `buyerId` to match and the read is **refused** rather than answered empty — so an
+ * order that has moved, or never existed, arrives as a permission error. The same
+ * refusal covers an order belonging to somebody else, and from this buyer's side the two
+ * say the same thing: there is nothing here for them. Nothing is hidden by conflating
+ * them, because no rule would ever have let them read another buyer's order anyway.
+ *
+ * Reported as [ORDER_NOT_FOUND] so the callers that already recover from absence recover
+ * from this too, and so no buyer is shown the word "permission" for an order that simply
+ * lives somewhere else. `basketScreenResolveOrder` is the fix for *why* they were
+ * looking in the wrong trunk; this is the one that keeps a wrong guess legible.
+ */
+internal fun Throwable.readsAsMissingOrder(): Boolean {
+    val text = message ?: return false
+    return text.contains("permission", ignoreCase = true) ||
+        text.contains("denied", ignoreCase = true)
+}
+
 
 /**
  * The trunks a buyer's own order history is read from, real trunk first.

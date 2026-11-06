@@ -56,6 +56,7 @@ class FakeOrderRepository : OrderRepository {
      * Reset repository state for fresh test
      */
     fun reset() {
+        cancelCalls.clear()
         _placedOrders.clear()
         _updatedOrders.clear()
         _ordersFlow.value = emptyList()
@@ -112,12 +113,18 @@ class FakeOrderRepository : OrderRepository {
         return Result.failure(Exception("Order not found"))
     }
 
+    /** One call to [cancelOrder], so a test can say which trunk it was aimed at. */
+    data class CancelCall(val date: String, val orderId: String, val isDemo: Boolean)
+
+    val cancelCalls = mutableListOf<CancelCall>()
+
     override suspend fun cancelOrder(
         sellerId: String,
         date: String,
         orderId: String,
         isDemo: Boolean
     ): Result<Boolean> {
+        cancelCalls.add(CancelCall(date, orderId, isDemo))
         val currentOrders = _ordersFlow.value.toMutableList()
         val index = currentOrders.indexOfFirst { it.id == orderId }
         if (index >= 0) {
@@ -169,13 +176,28 @@ class FakeOrderRepository : OrderRepository {
         return Result.success(true)
     }
 
+    /**
+     * Honours the trunk the path names, which is the whole point of the path.
+     *
+     * A record under `demo_orders/` is a demo order and a record under `orders/` is
+     * not — the same rule `historyOrigin` applies to the real thing. Without this a
+     * fake answers every path with every order, and a caller that asks the wrong trunk
+     * looks correct here and fails on a device, which is exactly what happened to a
+     * freshly approved buyer cancelling a leftover demo order.
+     */
     override suspend fun loadOrder(
         sellerId: String,
         orderId: String,
         orderPath: String
     ): Result<Order> {
         val order = _ordersFlow.value.find { it.id == orderId }
-        return if (order != null) {
+        val trunkMatches = when {
+            order == null -> false
+            orderPath.startsWith("demo_orders/") -> order.origin.isDemo
+            orderPath.startsWith("orders/") -> !order.origin.isDemo
+            else -> true
+        }
+        return if (order != null && trunkMatches) {
             Result.success(order)
         } else {
             Result.failure(Exception("Order not found"))
