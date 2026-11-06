@@ -57,6 +57,8 @@ class FakeOrderRepository : OrderRepository {
      */
     fun reset() {
         cancelCalls.clear()
+        deleteCalls.clear()
+        deleteDemoOrdersFails = false
         _placedOrders.clear()
         _updatedOrders.clear()
         _ordersFlow.value = emptyList()
@@ -230,7 +232,28 @@ class FakeOrderRepository : OrderRepository {
         return Result.success(0)
     }
 
+    /** One `date to orderId` pair handed to [deleteDemoOrders]. */
+    data class DeleteCall(val date: String, val orderId: String)
+
+    /**
+     * Every demo order the code under test asked to have deleted.
+     *
+     * A demo order is removed rather than marked `CANCELLED` (see
+     * `Order.isRemovedNotCancelled`), so this — not [cancelCalls] — is where discarding
+     * one shows up.
+     */
+    val deleteCalls = mutableListOf<DeleteCall>()
+
+    /** Set to make the next [deleteDemoOrders] fail, for the "nothing was removed" path. */
+    var deleteDemoOrdersFails = false
+
     override suspend fun deleteDemoOrders(sellerId: String, dateToOrderId: Map<String, String>): Result<Unit> {
+        if (deleteDemoOrdersFails) return Result.failure(Exception("delete refused"))
+        dateToOrderId.forEach { (date, orderId) -> deleteCalls.add(DeleteCall(date, orderId)) }
+        // Actually gone, so a test can read the trunk back and find nothing — the fake
+        // reporting success while keeping the record is how a delete that never happened
+        // passes a test and fails on a device.
+        _ordersFlow.value = _ordersFlow.value.filterNot { it.id in dateToOrderId.values }
         return Result.success(Unit)
     }
 

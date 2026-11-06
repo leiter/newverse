@@ -165,16 +165,22 @@ class BuyAppViewModelDemoOrderTrunkTest {
     // ===== cancelling =====
 
     @Test
-    fun `cancelling a leftover demo order is aimed at the demo trunk`() = runTest {
+    fun `a leftover demo order is removed from the demo trunk, not cancelled`() = runTest {
         val viewModel = holding(OrderOrigin.DEMO)
 
         viewModel.basketScreenCancelOrder()
         advanceUntilIdle()
 
-        val call = orderRepository.cancelCalls.single()
+        // Removed, because nobody is on the other end: the seller does not subscribe to
+        // demo_orders/, so a CANCELLED record there is litter. See isRemovedNotCancelled.
+        val call = orderRepository.deleteCalls.single()
         assertEquals("order_1", call.orderId)
-        assertEquals(dateKey, call.date)
-        assertTrue(call.isDemo, "the order is in demo_orders/, whatever the account is")
+        assertEquals(dateKey, call.date, "aimed at the trunk the order is actually in")
+        assertTrue(orderRepository.cancelCalls.isEmpty(), "and never marked CANCELLED")
+        assertTrue(
+            viewModel.state.value.basketScreen.discardedDemoOrder,
+            "so the buyer is not told their order was storniert"
+        )
     }
 
     @Test
@@ -185,10 +191,11 @@ class BuyAppViewModelDemoOrderTrunkTest {
         advanceUntilIdle()
 
         assertFalse(orderRepository.cancelCalls.single().isDemo)
+        assertTrue(orderRepository.deleteCalls.isEmpty(), "a real order is cancelled, not deleted")
     }
 
     @Test
-    fun `a cancelled leftover demo order leaves no error behind`() = runTest {
+    fun `a discarded leftover demo order leaves no error behind`() = runTest {
         // The symptom from the buyer's side: the rules' own words, shown verbatim.
         val viewModel = holding(OrderOrigin.DEMO)
 

@@ -276,21 +276,22 @@ internal suspend fun BuyAppViewModel.requestAccess(displayName: String, note: St
  * becomes real only when the buyer confirms it against a slot that is open now.
  *
  * Counted from both trunks and local storage together, because a demo order can be in
- * either, and de-duplicated by id because it can briefly be in both.
+ * either, and de-duplicated by id because it can briefly be in both — see
+ * [remainingDemoOrders], which reads `demo_orders/` rather than `orders/`. This used to
+ * read the real trunk, where `origin` is never `DEMO`, so only the locally held orders
+ * were ever counted and a buyer whose demo orders were all in Firebase was told nothing.
+ *
+ * Orders whose pickup day has already passed are **dropped** rather than counted: there
+ * is nothing to confirm them against. See [dropUnconfirmableDemoOrders].
  */
 internal fun BuyAppViewModel.promptToConfirmDemoOrders() {
     viewModelScope.launch {
-        val profile = profileRepository.getBuyerProfile().getOrNull()
-        val stored = orderRepository
-            .getBuyerOrders(sellerConfig.sellerId, profile?.placedOrderIds ?: emptyMap())
-            .getOrNull()
-            .orEmpty()
-        val waiting = (stored + sellerConfig.loadDemoOrders())
-            .distinctBy { it.id }
-            .count { it.origin.isDemo }
+        val waitingOrders = dropUnconfirmableDemoOrders(remainingDemoOrders())
+        val waiting = waitingOrders.size
 
         // The approval itself changes what the history shows — the badge, and whether
-        // an order is still the buyer's to confirm — so refresh it either way.
+        // an order is still the buyer's to confirm — so refresh it either way, and after
+        // the expired ones have gone so they do not appear and then vanish.
         loadOrderHistory()
 
         if (waiting == 0) {
@@ -304,10 +305,10 @@ internal fun BuyAppViewModel.promptToConfirmDemoOrders() {
         showSnackBar(
             if (waiting == 1) {
                 "Du bist jetzt freigegeben. Deine Demo-Bestellung gilt noch nicht — " +
-                    "bestätige sie mit einem neuen Abholtermin."
+                    "bestätige sie mit einem neuen Abholtermin oder verwirf sie."
             } else {
                 "Du bist jetzt freigegeben. $waiting Demo-Bestellungen gelten noch nicht — " +
-                    "bestätige sie mit einem neuen Abholtermin."
+                    "bestätige sie mit einem neuen Abholtermin oder verwirf sie."
             },
             SnackbarType.INFO
         )

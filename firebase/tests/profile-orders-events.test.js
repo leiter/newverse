@@ -163,6 +163,48 @@ describe("seller profile, orders and the event log", () => {
     );
   });
 
+  it("allows a buyer to discard their own leftover demo order", async () => {
+    // Verwerfen, the other ending to a demo order the buyer is now approved to make
+    // real. It is a delete, not a CANCELLED write: the seller never subscribed to this
+    // tree, and a CANCELLED record here is litter. `.validate` does not run on a
+    // delete, so the owner's `.write` is the whole rule.
+    await seed(env, (db) =>
+      db.ref(`demo_orders/${SELLER}/${DATE}/order_d4`).set({
+        id: "order_d4", buyerId: ALICE, pickUpDate: 9999999999999,
+        status: "PLACED", origin: "DEMO"
+      })
+    );
+    await assertSucceeds(
+      asUser(env, ALICE).ref(`demo_orders/${SELLER}/${DATE}/order_d4`).remove()
+    );
+  });
+
+  it("allows discarding one whose pickup day has long gone", async () => {
+    // What approval now sweeps up. The edit deadline is an app rule, not a rules rule,
+    // and it deliberately does not apply here: nobody was planning around this order.
+    await seed(env, (db) =>
+      db.ref(`demo_orders/${SELLER}/${DATE}/order_d5`).set({
+        id: "order_d5", buyerId: ALICE, pickUpDate: 1000,
+        status: "PLACED", origin: "DEMO"
+      })
+    );
+    await assertSucceeds(
+      asUser(env, ALICE).ref(`demo_orders/${SELLER}/${DATE}/order_d5`).remove()
+    );
+  });
+
+  it("denies discarding somebody else's demo order", async () => {
+    await seed(env, (db) =>
+      db.ref(`demo_orders/${SELLER}/${DATE}/order_d6`).set({
+        id: "order_d6", buyerId: BOB, pickUpDate: 9999999999999,
+        status: "PLACED", origin: "DEMO"
+      })
+    );
+    await assertFails(
+      asUser(env, ALICE).ref(`demo_orders/${SELLER}/${DATE}/order_d6`).remove()
+    );
+  });
+
   it("denies an order written into demo_orders/ claiming to be production", async () => {
     await assertFails(
       asUser(env, ALICE).ref(`demo_orders/${SELLER}/${DATE}/order_d3`).set({

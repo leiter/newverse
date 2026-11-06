@@ -21,6 +21,7 @@ import com.together.newverse.ui.state.buy.clearPendingNavigation
 import com.together.newverse.ui.state.buy.clearPromptError
 import com.together.newverse.ui.state.buy.closeDrawer
 import com.together.newverse.ui.state.buy.confirmDemoOrder
+import com.together.newverse.ui.state.buy.discardDemoOrder
 import com.together.newverse.ui.state.buy.continueAsGuest
 import com.together.newverse.ui.state.buy.dismissPrompt
 import com.together.newverse.ui.state.buy.notePublishedActionUsed
@@ -352,6 +353,7 @@ class BuyAppViewModel(
                                                 is BuyProfileAction.SaveBuyerProfile -> saveBuyerProfile(action.displayName, action.email, action.phone)
             is BuyProfileAction.HistoryOrderTapped -> handleHistoryOrderTap(action.order)
             is BuyProfileAction.ConfirmDemoOrder -> confirmDemoOrder(action.order)
+            is BuyProfileAction.DiscardDemoOrder -> discardDemoOrder(action.order)
             is BuyProfileAction.MergeHistoryOrder -> mergeHistoryOrder()
             is BuyProfileAction.DiscardAndLoadHistoryOrder -> discardAndLoadHistoryOrder()
             is BuyProfileAction.FulfilmentPreferenceSaved ->

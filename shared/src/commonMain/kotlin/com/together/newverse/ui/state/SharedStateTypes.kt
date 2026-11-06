@@ -513,6 +513,14 @@ data class BasketScreenState(
     val orderMarketId: String = "",
     val isCancelling: Boolean = false,
     val cancelSuccess: Boolean = false,
+    /**
+     * The order that just went was a demo order, so it was **removed**, not cancelled.
+     *
+     * Kept beside [cancelSuccess] rather than derived, because the success path resets
+     * the whole screen state and [orderIsDemo] goes with it — and the confirmation the
+     * buyer reads must not claim a Storno the seller was never sent.
+     */
+    val discardedDemoOrder: Boolean = false,
     val showReorderDatePicker: Boolean = false,
     val isReordering: Boolean = false,
     val reorderSuccess: Boolean = false,

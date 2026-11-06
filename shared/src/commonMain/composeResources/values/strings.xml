@@ -236,6 +236,7 @@
     <string name="basket_order_updated">✓ Bestellung erfolgreich aktualisiert!</string>
     <string name="basket_order_placed">✓ Bestellung erfolgreich aufgegeben!</string>
     <string name="basket_order_cancelled">✓ Bestellung erfolgreich storniert!</string>
+    <string name="basket_demo_order_discarded">✓ Demo-Bestellung verworfen</string>
     <string name="basket_order_copied">✓ Bestellung kopiert mit aktualisierten Preisen!</string>
     <string name="basket_review_order">Bitte überprüfen und bestätigen Sie die Bestellung.</string>
     <string name="basket_update_order">Bestellung aktualisieren</string>
@@ -870,6 +871,10 @@
     <string name="order_status_demo">Demo-Bestellung</string>
     <string name="order_demo_confirm_button">Jetzt bestätigen</string>
     <string name="order_demo_confirm_hint">Noch nicht gültig — mit neuem Abholtermin bestätigen</string>
+    <string name="order_demo_discard_button">Verwerfen</string>
+    <string name="order_demo_discard_confirm_title">Demo-Bestellung verwerfen?</string>
+    <string name="order_demo_discard_confirm_message">Die Bestellung wird gelöscht. Der Verkäufer hat sie nie gesehen — es wird nichts storniert.</string>
+    <string name="order_demo_discard_confirm_button">Ja, verwerfen</string>
     <string name="order_history_merge_title">Konflikt</string>
     <string name="order_history_merge_message">Sie haben einen nicht leeren Warenkorb. Möchten Sie den Inhalt zusammenführen oder den aktuellen Warenkorb verwerfen und die alte Bestellung laden?</string>
     <string name="label_total_plain">Gesamt</string>

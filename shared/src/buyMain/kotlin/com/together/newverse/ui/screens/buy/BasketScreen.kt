@@ -113,6 +113,12 @@ fun BasketScreen(
     /** Opens one article's detail page, by article id — where a row's amount is set. */
     onNavigateToProductDetail: (String) -> Unit = {},
     isDemoMode: Boolean = false,
+    /**
+     * Approval as *known and granted*, not `!isDemoMode` — see `BuyAppState.isApproved`.
+     * Together with `state.orderIsDemo` it decides whether the loaded order is a
+     * leftover demo order the buyer still has to confirm or verwerfen.
+     */
+    isApproved: Boolean = false,
     canRequestAccess: Boolean = false,
     onRequestAccess: () -> Unit = {},
     /** The market whose conditions moved these prices; empty when none did. */
@@ -149,6 +155,7 @@ fun BasketScreen(
         onNavigateToOrders = onNavigateToOrders,
         onNavigateToProductDetail = onNavigateToProductDetail,
         isDemoMode = isDemoMode,
+        isApproved = isApproved,
         canRequestAccess = canRequestAccess,
         onRequestAccess = onRequestAccess,
         pricedAtMarketName = pricedAtMarketName,
@@ -181,6 +188,7 @@ fun BasketContent(
     onNavigateToOrders: () -> Unit = {},
     onNavigateToProductDetail: (String) -> Unit = {},
     isDemoMode: Boolean = false,
+    isApproved: Boolean = false,
     canRequestAccess: Boolean = false,
     onRequestAccess: () -> Unit = {},
     pricedAtMarketName: String = "",
@@ -200,6 +208,11 @@ fun BasketContent(
         state.items.unorderableAgainst(currentArticles)
     }
     val unorderableIds = remember(unorderable) { unorderable.map { it.articleId }.toSet() }
+
+    // A demo order the buyer is now approved to make real. Its destructive action is a
+    // delete, not a Storno: the seller never saw it, and past the edit deadline a Storno
+    // is refused outright, which left the buyer holding a record they could not remove.
+    val awaitsConfirmation = state.orderId != null && state.orderIsDemo && isApproved
 
     // The stall this basket is aimed at: the slot the buyer picked, or the market the
     // order being edited was placed at. Loading an order leaves `selectedMarketId`
@@ -334,6 +347,7 @@ fun BasketContent(
     // Cancel order confirmation dialog
     if (state.showCancelConfirmDialog) {
         CancelOrderDialog(
+            isDiscard = awaitsConfirmation,
             onConfirm = { onAction(BuyBasketScreenAction.CancelOrder) },
             onDismiss = { onAction(BuyBasketScreenAction.HideCancelConfirmDialog) }
         )
@@ -356,6 +370,7 @@ fun BasketContent(
             onNavigateToOrders = onNavigateToOrders,
             onNavigateToProductDetail = onNavigateToProductDetail,
             isDemoMode = isDemoMode,
+            awaitsConfirmation = awaitsConfirmation,
             canRequestAccess = canRequestAccess,
             onRequestAccess = onRequestAccess,
             pricedAtMarketName = pricedAtMarketName
@@ -415,6 +430,7 @@ fun BasketContent(
                     onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
                     onDisableEditing = { onAction(BuyBasketScreenAction.DisableEditing) },
                     onUpdateOrder = { onAction(BuyBasketScreenAction.UpdateOrder) },
+                    awaitsConfirmation = awaitsConfirmation,
                     onCancelOrder = { onAction(BuyBasketScreenAction.ShowCancelConfirmDialog) },
                     onShowReorderDatePicker = { onAction(BuyBasketScreenAction.ShowReorderDatePicker) }
                 )
@@ -458,7 +474,11 @@ fun BasketContent(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = stringResource(Res.string.basket_order_cancelled),
+                            text = if (state.discardedDemoOrder) {
+                                stringResource(Res.string.basket_demo_order_discarded)
+                            } else {
+                                stringResource(Res.string.basket_order_cancelled)
+                            },
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
@@ -673,6 +693,8 @@ private fun BasketTwoPane(
     onNavigateToOrders: () -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
     isDemoMode: Boolean,
+    /** A leftover demo order is removed, not cancelled — see `BasketContent`. */
+    awaitsConfirmation: Boolean,
     canRequestAccess: Boolean,
     onRequestAccess: () -> Unit,
     pricedAtMarketName: String = ""
@@ -786,6 +808,7 @@ private fun BasketTwoPane(
                     onEnableEditing = { onAction(BuyBasketScreenAction.EnableEditing) },
                     onDisableEditing = { onAction(BuyBasketScreenAction.DisableEditing) },
                     onUpdateOrder = { onAction(BuyBasketScreenAction.UpdateOrder) },
+                    awaitsConfirmation = awaitsConfirmation,
                     onCancelOrder = { onAction(BuyBasketScreenAction.ShowCancelConfirmDialog) },
                     onShowReorderDatePicker = { onAction(BuyBasketScreenAction.ShowReorderDatePicker) }
                 )
@@ -896,7 +919,11 @@ private fun DemoOrderNotice(
 private fun BasketStatusMessages(state: BasketScreenState) {
     val message: String? = when {
         state.orderSuccess -> if (state.orderId != null) stringResource(Res.string.basket_order_updated) else stringResource(Res.string.basket_order_placed)
-        state.cancelSuccess -> stringResource(Res.string.basket_order_cancelled)
+        state.cancelSuccess -> if (state.discardedDemoOrder) {
+            stringResource(Res.string.basket_demo_order_discarded)
+        } else {
+            stringResource(Res.string.basket_order_cancelled)
+        }
         state.reorderSuccess -> stringResource(Res.string.basket_order_copied)
         else -> null
     }
@@ -1237,6 +1264,8 @@ internal fun OrderInfoCard(
     onEnableEditing: () -> Unit,
     onDisableEditing: () -> Unit,
     onUpdateOrder: () -> Unit,
+    /** A leftover demo order: the destructive action removes it rather than cancelling it. */
+    awaitsConfirmation: Boolean,
     onCancelOrder: () -> Unit,
     onShowReorderDatePicker: () -> Unit
 ) {
@@ -1503,7 +1532,13 @@ internal fun OrderInfoCard(
                                 onClick = onCancelOrder,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(stringResource(Res.string.basket_cancel_order))
+                                Text(
+                                    if (awaitsConfirmation) {
+                                        stringResource(Res.string.order_demo_discard_button)
+                                    } else {
+                                        stringResource(Res.string.basket_cancel_order)
+                                    }
+                                )
                             }
                         }
                     }
@@ -1765,10 +1800,15 @@ fun DatePickerDialog(
 }
 
 /**
- * Cancel Order Confirmation Dialog
+ * Confirms the destructive action on a placed order.
+ *
+ * Two wordings, one dialog. [isDiscard] is a leftover demo order, which is **deleted**
+ * and was never seen by anybody: telling that buyer their order has been "storniert"
+ * implies a message went to a seller who never had it.
  */
 @Composable
 private fun CancelOrderDialog(
+    isDiscard: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -1776,11 +1816,23 @@ private fun CancelOrderDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                stringResource(Res.string.basket_cancel_confirm_title),
+                if (isDiscard) {
+                    stringResource(Res.string.order_demo_discard_confirm_title)
+                } else {
+                    stringResource(Res.string.basket_cancel_confirm_title)
+                },
                 modifier = Modifier.semantics { heading() }
             )
         },
-        text = { Text(stringResource(Res.string.basket_cancel_confirm_message)) },
+        text = {
+            Text(
+                if (isDiscard) {
+                    stringResource(Res.string.order_demo_discard_confirm_message)
+                } else {
+                    stringResource(Res.string.basket_cancel_confirm_message)
+                }
+            )
+        },
         confirmButton = {
             Button(
                 onClick = onConfirm,
@@ -1788,7 +1840,13 @@ private fun CancelOrderDialog(
                     containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text(stringResource(Res.string.basket_cancel_confirm_button))
+                Text(
+                    if (isDiscard) {
+                        stringResource(Res.string.order_demo_discard_confirm_button)
+                    } else {
+                        stringResource(Res.string.basket_cancel_confirm_button)
+                    }
+                )
             }
         },
         dismissButton = {

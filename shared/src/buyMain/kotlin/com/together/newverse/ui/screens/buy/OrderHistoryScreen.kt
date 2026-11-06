@@ -24,15 +24,21 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -219,7 +225,8 @@ fun OrderHistoryScreen(
                             order = order,
                             awaitsConfirmation = order.awaitsConfirmation(isApproved),
                             onClick = { onAction(BuyProfileAction.HistoryOrderTapped(order)) },
-                            onConfirm = { onAction(BuyProfileAction.ConfirmDemoOrder(order)) }
+                            onConfirm = { onAction(BuyProfileAction.ConfirmDemoOrder(order)) },
+                            onDiscard = { onAction(BuyProfileAction.DiscardDemoOrder(order)) }
                         )
                     }
                 }
@@ -233,7 +240,8 @@ private fun OrderHistoryCard(
     order: Order,
     awaitsConfirmation: Boolean,
     onClick: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    onDiscard: () -> Unit
 ) {
     val pickupDate = formatDate(order.pickUpDate)
     val createdDate = formatDate(order.createdDate)
@@ -438,9 +446,72 @@ private fun OrderHistoryCard(
                 ) {
                     Text(text = stringResource(Res.string.order_demo_confirm_button))
                 }
+                // The other honest ending. Without it the only reachable action on a
+                // leftover demo order was Storno on the basket screen, which is the
+                // wrong verb and — past the edit deadline — refused outright.
+                Spacer(modifier = Modifier.height(8.dp))
+                // Local to the card rather than hoisted: it confirms an action the buyer
+                // started here and is gone the moment they answer, unlike the merge
+                // dialog, which the ViewModel raises.
+                var confirmingDiscard by remember { mutableStateOf(false) }
+                OutlinedButton(
+                    onClick = { confirmingDiscard = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(text = stringResource(Res.string.order_demo_discard_button))
+                }
+                if (confirmingDiscard) {
+                    DiscardDemoOrderDialog(
+                        onConfirm = {
+                            confirmingDiscard = false
+                            onDiscard()
+                        },
+                        onDismiss = { confirmingDiscard = false }
+                    )
+                }
             }
         }
     }
+}
+
+/**
+ * Confirms removing a demo order, and says what the Demo badge does not: that the seller
+ * never saw it, so nothing is being cancelled. A buyer who reads "stornieren" assumes a
+ * message went out.
+ */
+@Composable
+private fun DiscardDemoOrderDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(Res.string.order_demo_discard_confirm_title),
+                modifier = Modifier.semantics { heading() }
+            )
+        },
+        text = { Text(stringResource(Res.string.order_demo_discard_confirm_message)) },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text(stringResource(Res.string.order_demo_discard_confirm_button))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.button_dismiss))
+            }
+        }
+    )
 }
 
 @Composable

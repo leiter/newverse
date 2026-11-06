@@ -228,6 +228,7 @@
     <string name="basket_order_updated">✓ Order successfully updated!</string>
     <string name="basket_order_placed">✓ Order successfully placed!</string>
     <string name="basket_order_cancelled">✓ Order successfully cancelled!</string>
+    <string name="basket_demo_order_discarded">✓ Demo order discarded</string>
     <string name="basket_order_copied">✓ Order copied with updated prices!</string>
     <string name="basket_review_order">Please review and confirm your order.</string>
     <string name="basket_update_order">Update Order</string>
@@ -817,6 +818,10 @@
     <string name="order_status_demo">Demo order</string>
     <string name="order_demo_confirm_button">Confirm now</string>
     <string name="order_demo_confirm_hint">Not valid yet — confirm it with a new pickup day</string>
+    <string name="order_demo_discard_button">Discard</string>
+    <string name="order_demo_discard_confirm_title">Discard demo order?</string>
+    <string name="order_demo_discard_confirm_message">The order will be deleted. The seller never saw it, so nothing is cancelled.</string>
+    <string name="order_demo_discard_confirm_button">Yes, discard</string>
     <string name="order_history_merge_title">Conflict</string>
     <string name="order_history_merge_message">You have a non-empty basket. Would you like to merge the contents or discard your current basket and load the old order?</string>
     <string name="label_total_plain">Total</string>

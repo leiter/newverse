@@ -89,6 +89,8 @@ fun NavGraph(
                     navController.navigate(NavRoutes.Buy.ProductDetail.createRoute(articleId))
                 },
                 isDemoMode = appState.isDemoMode,
+                // The conservative half, for a decision about a write — see isApproved.
+                isApproved = appState.isApproved,
                 // BLOCKED and PENDING buyers have nothing left to request.
                 canRequestAccess = appState.accessStatus == AccessStatus.NONE,
                 onRequestAccess = {

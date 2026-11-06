@@ -7,6 +7,7 @@ import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.BuyerProfile
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderOrigin
+import com.together.newverse.domain.model.LOCAL_DEMO_ID_PREFIX
 import com.together.newverse.domain.model.OrderedProduct
 import com.together.newverse.domain.model.prepareForReorder
 import com.together.newverse.domain.model.UnorderableItem
@@ -624,7 +625,7 @@ private fun BuyAppViewModel.basketScreenResetToEmptyDraft() {
             // The order's trunk, not the account's mode — see orderIsDemo.
             val isDemo = basketState.orderIsDemo
             val result = if (isDemo) {
-                if (orderId.startsWith("demo_")) {
+                if (orderId.startsWith(LOCAL_DEMO_ID_PREFIX)) {
                     runCatching { sellerConfig.removeDemoOrder(orderId) }.map { true }
                 } else {
                     orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId, isDemo = true)
@@ -1336,7 +1337,7 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 }
             } else if (sellerConfig.isDemoLocalMode()) {
                 // Post-migration: local-only
-                Result.success(order.copy(id = "demo_${Clock.System.now().toEpochMilliseconds()}"))
+                Result.success(order.copy(id = "$LOCAL_DEMO_ID_PREFIX${Clock.System.now().toEpochMilliseconds()}"))
             } else {
                 // 3rd order: trigger atomic migration
                 handledByMigration = true
@@ -1741,7 +1742,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
             // An approved buyer editing a leftover demo order was writing it to
             // orders/, which the rules refuse for a node that is not there.
             val isDemo = basketState.orderIsDemo
-            val isLocalDemo = isDemo && orderId.startsWith("demo_")
+            val isLocalDemo = isDemo && orderId.startsWith(LOCAL_DEMO_ID_PREFIX)
 
             val editMarketId = basketState.selectedMarketId
                 .ifEmpty { _state.value.contextualMarketId.orEmpty() }
@@ -1978,8 +1979,18 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
                 return@launch
             }
 
+            // The trunk the order is in, not the one the account would write to. This
+            // is the line that told a freshly approved buyer they had no permission to
+            // cancel their own demo order — see orderIsDemo.
+            val isDemo = basketState.orderIsDemo
+
+            // The deadline protects a seller who is planning around the order. Nobody is
+            // planning around a demo order — they do not even subscribe to the trunk it
+            // is in — and approval can land weeks after the day the buyer picked, so
+            // holding a demo order to it leaves a record that can neither be confirmed
+            // nor removed. See Order.isRemovedNotCancelled.
             val canEdit = OrderDateUtils.canEditOrder(Instant.fromEpochMilliseconds(pickupDate))
-            if (!canEdit) {
+            if (!canEdit && !isDemo) {
                 setBasketError("Stornierung nicht mehr möglich (Frist: ${editDeadlineText(pickupDate)})")
                 _state.update { it.copy(basketScreen = it.basketScreen.copy(isCancelling = false)) }
                 return@launch
@@ -1989,15 +2000,16 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
             bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: sellerId=${sellerConfig.sellerId}")
             bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: orderDate=$orderDate")
             bLog("🛒 BuyAppViewModel.basketScreenCancelOrder: orderId=$orderId")
-            // The trunk the order is in, not the one the account would write to. This
-            // is the line that told a freshly approved buyer they had no permission to
-            // cancel their own demo order — see orderIsDemo.
-            val isDemo = basketState.orderIsDemo
             val result = if (isDemo) {
-                if (orderId.startsWith("demo_")) {
+                // Removed, never marked CANCELLED: a cancelled record in a trunk the
+                // seller does not read is litter, and the word is a message to somebody
+                // who never had the order.
+                if (orderId.startsWith(LOCAL_DEMO_ID_PREFIX)) {
                     runCatching { sellerConfig.removeDemoOrder(orderId) }.map { true }
                 } else {
-                    orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId, isDemo = true)
+                    orderRepository
+                        .deleteDemoOrders(sellerConfig.sellerId, mapOf(orderDate to orderId))
+                        .map { true }
                 }
             } else {
                 orderRepository.cancelOrder(sellerConfig.sellerId, orderDate, orderId, isDemo = false)
@@ -2021,6 +2033,7 @@ internal fun BuyAppViewModel.basketScreenCancelOrder() {
                         ),
                         basketScreen = BasketScreenState(
                             cancelSuccess = true,
+                            discardedDemoOrder = isDemo,
                             availablePickupDates = availableDates,
                             isCancelling = false
                         )
@@ -2626,7 +2639,7 @@ internal suspend fun BuyAppViewModel.performDemoMigration(newOrder: Order): Resu
         }
 
         // Assign a stable local ID to the new order before any side effects
-        val localOrder = newOrder.copy(id = "demo_${Clock.System.now().toEpochMilliseconds()}")
+        val localOrder = newOrder.copy(id = "$LOCAL_DEMO_ID_PREFIX${Clock.System.now().toEpochMilliseconds()}")
 
         // Save new order locally
         sellerConfig.saveDemoOrder(localOrder)

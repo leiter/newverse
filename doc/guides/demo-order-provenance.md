@@ -1,6 +1,7 @@
 # Demo Orders: Provenance, Path and Transition
 
-**Status:** Implemented 2026-10-15; write paths routed by the order's own trunk 2026-11-06
+**Status:** Implemented 2026-10-15; write paths routed by the order's own trunk and
+Verwerfen added 2026-11-06
 **Scope:** `shared/src/commonMain` (model + repository), `buyMain` (approval flow),
 `sellMain` (filters), `firebase/database.rules.json`
 
@@ -163,6 +164,60 @@ the wrong one fails in tests instead of only on a device.
 
 ---
 
+## How a leftover demo order ends
+
+**Added 2026-11-06.** Two endings, and nothing else.
+
+| | What it does | Where |
+|---|---|---|
+| **Bestätigen** | Puts the items in the basket against a slot that is open **now** and places a new order. The demo record is cleared only once the replacement exists. | History card (since 2026-10-23) — `confirmDemoOrder` → `basketScreenCheckout` |
+| **Verwerfen** | Deletes the record wherever it is held and drops it from the buyer's `placedOrderIds`. | History card and basket screen — `discardDemoOrder` |
+
+Approval says the order does not count yet and has to be confirmed. Before this,
+*Bestätigen* was the only thing offered, so a buyer who did not want the order reached
+for the one other button on the basket screen — *Storno* — and that is wrong twice:
+
+- **It is the wrong word.** Cancelling is a message to a seller who has your order. The
+  seller never saw this one: `observeSellerOrders` reads `orders/` only. A `CANCELLED`
+  record in a trunk nobody reads is litter, and a buyer told their order was *storniert*
+  believes something went out.
+- **It did not work.** `cancelOrder` refuses an order past its edit deadline, and so did
+  `basketScreenCancelOrder`. That is the right rule for an order a seller is planning
+  around, and a dead end here: approval can arrive weeks after the day the buyer picked,
+  leaving them a record they could neither confirm nor remove. The deadline check is now
+  skipped for a demo order, for that reason and no other.
+
+So a demo order is **removed, never cancelled** — `Order.isRemovedNotCancelled`. Locally
+held ones (id prefixed `demo_`, see `LOCAL_DEMO_ID_PREFIX`) go through
+`MutableSellerConfig.removeDemoOrder`; the rest through `deleteDemoOrders`. The index is
+pruned only for what was actually removed: an index entry pointing at a live record is
+recoverable, the reverse is a history row the buyer can never get rid of.
+
+The rules needed no change. `.write` on one demo order is
+`data.child('buyerId').val() === auth.uid || !data.exists()`, and `.validate` does not run
+on a delete — which the approval move already relied on. Three tests in
+`profile-orders-events.test.js` pin it, including that one buyer cannot discard another's.
+
+### Dropped on approval
+
+A demo order whose pickup day has already passed cannot be confirmed against anything:
+`canTransitionToProduction` refuses to move it, and *Bestätigen* means placing it again
+against a slot that is open now. Left in place it is a history row with a button that
+works and an outcome the buyer does not expect, so `promptToConfirmDemoOrders` now sweeps
+those out before it counts what is waiting (`dropUnconfirmableDemoOrders`) and names
+*verwerfen* as the alternative in what it says.
+
+That count was also reading the wrong trunk: `getBuyerOrders` was called without
+`isDemo`, so it looked under `orders/`, where `origin` is never `DEMO`. Only locally held
+orders were ever counted, and a buyer whose demo orders were all in Firebase was told
+nothing at all. `remainingDemoOrders()` reads both.
+
+Tests: `BuyAppViewModelDemoOrderEndingsTest`, and `FakeOrderRepository.deleteDemoOrders`
+now actually removes the record and records the call — it used to return success and keep
+it, which is how a delete that never happened passes a test and fails on a device.
+
+---
+
 ## Rules
 
 `origin` is validated on both nodes so the path and the flag cannot disagree:
@@ -182,27 +237,10 @@ passes. Covered by six tests in `firebase/tests/profile-orders-events.test.js`.
 
 Deliberately out of scope here; each is independent of the model above.
 
-### 0. A leftover demo order has no action attached
+### ~~0. A leftover demo order has no action attached~~ — done 2026-11-06
 
-Approval tells the buyer *"bestätige sie mit einem neuen Abholtermin"* and then offers no
-way to do it. There is no confirm button and no discard button; `CancelOrder` is the only
-thing they can reach, which is why they reached for it.
-
-Both are needed, and neither needs a rules change:
-
-- **Bestätigen** — pick a slot that is open now and move the order.
-  `transitionDemoOrdersToProduction` already exists for this, and
-  `BasketScreenState.confirmingDemoOrderId` is already threaded through checkout.
-- **Verwerfen** — delete `demo_orders/{sellerId}/{date}/{id}` and its `placedOrderIds`
-  entry. The rules already allow it: `data.child('buyerId').val() === auth.uid`.
-
-It should not be called *Storno*. Cancelling is a message to a seller who has your order,
-and the seller never saw this one — they do not subscribe to `demo_orders/`. A `CANCELLED`
-record in a trunk nobody reads is litter; a delete is the honest write.
-
-An order whose pickup day has already passed cannot be confirmed against anything
-(`canTransitionToProduction` knows), so approval should drop those rather than leave them
-in the history to be puzzled over.
+Kept as a record of what was wrong, because the shape recurs. See *How a leftover demo
+order ends* above.
 
 ### 1. The demo write budget is not a control
 

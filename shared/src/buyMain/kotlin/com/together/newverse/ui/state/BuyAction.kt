@@ -185,6 +185,14 @@ sealed interface BuyProfileAction : BuyAction {
      * being confirmed.
      */
     data class ConfirmDemoOrder(val order: Order) : BuyProfileAction
+
+    /**
+     * The buyer does not want this demo order after all: remove the record outright.
+     *
+     * The other half of [ConfirmDemoOrder], and not a Storno — nobody ever saw this
+     * order, so there is no one to tell. See `Order.isRemovedNotCancelled`.
+     */
+    data class DiscardDemoOrder(val order: Order) : BuyProfileAction
     data object MergeHistoryOrder : BuyProfileAction
     data object DiscardAndLoadHistoryOrder : BuyProfileAction
     data object HideHistoryMergeDialog : BuyProfileAction
