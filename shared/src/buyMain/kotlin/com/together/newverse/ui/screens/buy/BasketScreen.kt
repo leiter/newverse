@@ -1319,13 +1319,17 @@ internal fun OrderInfoCard(
                 }
             }
 
-            // The time the buyer said they would come, while they are not editing it.
-            // Shown only when they named one: an absent time is an answer, not a gap,
-            // and a row saying so would read as something still to be filled in.
-            if (fulfilment != Fulfilment.DELIVERY && pickupTime.isNotBlank()) {
+            // The time the buyer asked for, while they are not editing it. Shown only
+            // when they named one: an absent time is an answer, not a gap, and a row
+            // saying so would read as something still to be filled in. On a delivery
+            // it is when they would like it brought round.
+            if (pickupTime.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 OrderInfoRow(
-                    label = stringResource(Res.string.label_pickup_time),
+                    label = stringResource(
+                        if (fulfilment == Fulfilment.DELIVERY) Res.string.label_delivery_time
+                        else Res.string.label_pickup_time
+                    ),
                     value = formatString(
                         stringResource(Res.string.pickup_time_format),
                         pickupTime

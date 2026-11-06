@@ -105,12 +105,20 @@ class OrderPickupContactTest {
     }
 
     @Test
-    fun `a delivery states no time, whatever it carries`() {
-        // A delivery arrives when the round reaches it. The write path clears this
-        // field; an older record could still hold one, and it is still not a promise.
-        assertNull(
+    fun `a delivery states its time too`() {
+        // Asked of a delivery as well: the hour the buyer would like it brought
+        // round. Still not a promise — the round is the seller's to plan — but the
+        // seller plans it better knowing one buyer is out until four.
+        assertEquals(
+            "14:30",
             order(pickupTime = "14:30", fulfilment = Fulfilment.DELIVERY).statedPickupTime
         )
+    }
+
+    @Test
+    fun `an order with no time states none, delivery or not`() {
+        assertNull(order(pickupTime = "").statedPickupTime)
+        assertNull(order(pickupTime = "", fulfilment = Fulfilment.DELIVERY).statedPickupTime)
     }
 
     @Test

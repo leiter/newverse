@@ -326,6 +326,7 @@
     <string name="section_delivery_preferences">Gemüsedate</string>
     <string name="label_marketplace">Marktplatz</string>
     <string name="label_pickup_time">Abholzeit</string>
+    <string name="label_delivery_time">Wunschzeit</string>
     <string name="label_pickup_time_hint">Gültig von 7:00 - 18:00 Uhr\n(Format: HH:mm)</string>
     <string name="pickup_time_format">%s Uhr</string>
     <string name="pickup_time_unset">--:--</string>
@@ -334,6 +335,7 @@
     <string name="pickup_time_empty">Bitte geben Sie eine Abholzeit an</string>
     <string name="pickup_time_invalid_format">Ungültiges Format. Verwenden Sie HH:mm (z.B. 14:30)</string>
     <string name="pickup_time_outside_hours">Abholzeit muss zwischen 7:00 und 18:00 liegen</string>
+    <string name="delivery_time_outside_hours">Wunschzeit muss zwischen 7:00 und 18:00 liegen</string>
     <string name="pickup_time_dialog_title">Abholzeit wählen</string>
     <string name="pickup_time_clear">Keine Abholzeit angeben</string>
     <string name="pickup_time_hours_hint">Gültig von 7:00 – 18:00 Uhr</string>
@@ -1323,10 +1325,12 @@
     <string name="a11y_announcement">Ankündigung des Verkäufers: %1$s</string>
     <string name="a11y_announcement_dismiss">Ankündigung ausblenden</string>
     <string name="fulfilment_pickup_time_label">Abholzeit (optional)</string>
+    <string name="fulfilment_delivery_time_label">Wunschzeit (optional)</string>
     <string name="fulfilment_pickup_time_hint">Keine Angabe — zum Wählen tippen (7:00 – 18:00)</string>
     <string name="fulfilment_use_profile_time">Übliche Zeit übernehmen</string>
     <string name="fulfilment_save_time_to_profile">Als übliche Zeit speichern</string>
     <string name="order_pickup_time_stated">Kommt gegen %1$s Uhr</string>
+    <string name="order_delivery_time_stated">Wunschzeit gegen %1$s Uhr</string>
     <string name="pickup_contact_pickup_intro">Wer holt ab? Wenn du selbst kommst, lass den Namen einfach stehen.</string>
     <string name="pickup_contact_delivery_intro">Wer nimmt die Lieferung an? Wenn du selbst da bist, lass den Namen einfach stehen.</string>
     <string name="pickup_contact_name_label">Name</string>

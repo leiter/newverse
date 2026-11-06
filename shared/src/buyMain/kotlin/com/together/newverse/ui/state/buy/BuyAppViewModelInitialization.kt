@@ -402,15 +402,14 @@ internal suspend fun BuyAppViewModel.loadUserProfile(authUserInfo: AuthUserInfo?
                                     DeliveryAddress.fromProfile(updatedProfile)
                                 else -> DeliveryAddress.NONE
                             },
-                            // The usual collection time, offered rather than imposed:
-                            // the checkout field is editable and may be cleared, and
-                            // an empty profile default simply asks nothing.
-                            pickupTime = when {
-                                !seedFulfilment -> basket.pickupTime
-                                fulfilment == Fulfilment.PICKUP ->
-                                    updatedProfile.defaultPickUpTime
-                                else -> ""
-                            },
+                            // The usual time, offered rather than imposed: the
+                            // checkout field is editable and may be cleared, and an
+                            // empty profile default simply asks nothing. Offered for a
+                            // delivery too, where it means the hour the buyer would
+                            // like it brought round.
+                            pickupTime = if (seedFulfilment) {
+                                updatedProfile.defaultPickUpTime
+                            } else basket.pickupTime,
                             pickupName = if (seedContact && basket.pickupName.isBlank()) {
                                 updatedProfile.displayName
                             } else basket.pickupName,

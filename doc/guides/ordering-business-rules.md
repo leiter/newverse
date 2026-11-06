@@ -473,8 +473,11 @@ at all. Tests in `firebase/tests/market-delivery.test.js`.
 
 ## Pickup time
 
-**Moved to checkout 2026-11-05.** `Order.pickupTime` — the buyer saying roughly when
-they mean to come — is asked at checkout, carried on the order, and read by the seller.
+**Moved to checkout 2026-11-05. Extended to deliveries 2026-11-06.** `Order.pickupTime`
+— the buyer saying roughly when they want the order — is asked at checkout, carried on
+the order, and read by the seller. On a pickup it is when they mean to come; on a
+delivery, when they would like it brought round. One field, because it is one question
+and the seller reads it the same way; only the wording differs.
 
 ### Where it was before
 
@@ -493,25 +496,32 @@ Exactly the delivery address's, for the same reasons:
 
 | | |
 |---|---|
-| **Asked** | At the checkout confirmation, and again in the basket while the order is editable — `FulfilmentChoice`, in its pickup branch |
+| **Asked** | At the checkout confirmation, and again in the basket while the order is editable — `FulfilmentChoice`, underneath the address rather than instead of it |
 | **Defaulted** | From `BuyerProfile.defaultPickUpTime`, which is now *only* a default; the profile field says so where it is edited |
 | **Saved back** | On request, `SavePickupTimeToProfile`. Never implicitly: coming early once is not a change of habit. A blank is not written over a stored default |
 | **Snapshotted** | On the order. The seller cannot read `buyer_profile`, so a time that lives only there reaches them not at all |
 | **Optional** | Blank is a complete answer. The picker has a *Keine Abholzeit angeben* way back, because a field that can be filled but not emptied is not optional |
 | **Bounded** | A time that *is* given is between 7:00 and 18:59 — one rule, `ProfileValidation.isTimeInBusinessHours`, shared with the profile field and with the picker's own hour range |
-| **Pickup only** | Written as empty for a delivery, which arrives when the seller's round reaches it. `Order.statedPickupTime` is the one reading of "a time worth showing" |
+| **Either fulfilment** | Carried on a delivery as well as a pickup. `Order.statedPickupTime` is the one reading of "a time worth showing", and no longer asks which |
+| **Not a promise** | A delivery does arrive when the seller's round reaches it — which is why this is a wish, not an appointment. The round is planned by someone who is better off knowing one buyer is out until four |
 
-An edit of it counts as an unsaved change through `BasketScreenState.fulfilmentChanged`,
+An edit of it counts as an unsaved change through `BasketScreenState.fulfilmentChanged`
+on both fulfilments — that accessor used to count the time only on a pickup, so a buyer
+who moved their delivery an hour later found no Save button to press —
 the same accessor that carries a fulfilment or address edit past the next basket
 emission, and it is always an edit *on the basket screen* — it is asked nowhere else —
 so it keeps its confirmation rather than being auto-saved (§3.2.1).
 
 ### What the seller sees
 
-- **Order list** (`OrdersScreen`): *"Kommt gegen 14:30 Uhr"* under the pickup date, only
-  when the buyer named one. In the card's single accessibility description too.
+- **Order list** (`OrdersScreen`): *"Kommt gegen 14:30 Uhr"* under the pickup date, or
+  *"Wunschzeit gegen 16:30 Uhr"* on a delivery, only when the buyer named one. In the
+  card's single accessibility description too.
 - **Order detail**: a row in the *Abholung oder Lieferung* section, beside the
-  fulfilment and the delivery address.
+  fulfilment and the delivery address, labelled *Abholzeit* or *Wunschzeit*.
+
+The wording is picked from `order.isDelivery` at every one of those sites, the same way
+the collector's row already picks between *Abholung durch* and *Annahme durch*.
 
 Nothing says "keine Angabe". An absent time is an answer, and a row stating it would
 read as data the app failed to collect — which is the reading that made this a required
@@ -524,8 +534,12 @@ field**, `ProfileValidation.isTimeInBusinessHours`, which is also the range the 
 picker's hour wheel offers. A collection promised at 03:00 is not a promise anyone can
 keep, and the seller reading a day's list has no way to tell one from a typo.
 
-`refuseUnusablePickupTime` refuses anything else and says why, and
-`database.rules.json` validates the same range on `orders` and `demo_orders` —
+`refuseUnusablePickupTime` refuses anything else and says why — on a delivery too,
+since the rules hold the same range whichever way the order reaches the buyer, and
+without the gate the write would be what refuses, far less politely. The rules needed
+**no change** for any of this: they never looked at `fulfilment`, so a delivery with a
+time was always permitted and simply never written. `database.rules.json` validates the
+same range on `orders` and `demo_orders` —
 written as `null` rather than `""` when absent, so the empty string is refused there
 too. Three places state the range, which is one too many: when a market gains its own
 opening hours, `isTimeInBusinessHours` is the one that has to learn them, and the

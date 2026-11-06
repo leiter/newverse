@@ -42,10 +42,11 @@ data class Order(
      * profile field that blocked a buyer from even asking for access. Empty means the
      * buyer said nothing, which is a complete answer.
      *
-     * Only meaningful for a [Fulfilment.PICKUP] order: a delivery arrives when the
-     * seller's round reaches it. Written as empty for a delivery rather than carried
-     * along, so an order switched from pickup to delivery cannot keep promising a time
-     * nobody is keeping.
+     * Asked of a delivery as well as a pickup, and meaning the same thing either way:
+     * the time the buyer would like, not one the seller has agreed to. A delivery used
+     * to blank it on the grounds that a delivery arrives when the seller's round
+     * reaches it — true, and beside the point. The round is planned by someone who is
+     * better off knowing that one buyer is out until four.
      */
     val pickupTime: String = "",
     /**
@@ -111,9 +112,15 @@ data class Order(
     val isDeliveryWithoutAddress: Boolean
         get() = isDelivery && !deliveryAddress.isComplete
 
-    /** A collection time the buyer actually stated, for a pickup that has one. */
+    /**
+     * A time the buyer actually stated, on a pickup or a delivery alike.
+     *
+     * Read by every seller screen that shows the time, which pick their own wording
+     * from [isDelivery]: when the buyer means to come, or when they would like the
+     * box to arrive.
+     */
     val statedPickupTime: String?
-        get() = pickupTime.takeIf { !isDelivery && it.isNotBlank() }
+        get() = pickupTime.takeIf { it.isNotBlank() }
 
     /**
      * A collector worth naming: someone other than the buyer on the order.

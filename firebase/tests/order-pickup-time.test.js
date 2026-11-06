@@ -3,7 +3,8 @@ import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import { createTestEnv, asUser, seed, SELLER, ALICE } from "./helpers.js";
 
 /**
- * `pickupTime` is the buyer saying roughly when they will come to the stall.
+ * `pickupTime` is the buyer saying roughly when they want the order: when they will
+ * come to the stall, or when they would like it brought round.
  *
  * It is the one field on an order that is purely a courtesy: optional, absent on
  * every order placed before it was asked for, and read by a person rather than by
@@ -59,6 +60,22 @@ describe("order pickup time", () => {
 
   it("accepts a time of day", async () => {
     await assertSucceeds(place({ pickupTime: "14:30" }));
+  });
+
+  it("accepts one on a delivery as readily as on a pickup", async () => {
+    // The rule never looked at `fulfilment`; the app used to clear the field on a
+    // delivery and now carries it, so this is the guard on that staying allowed.
+    await assertSucceeds(place({
+      fulfilment: "DELIVERY",
+      deliveryAddress: {
+        street: "Oranienstr.",
+        houseNumber: "1",
+        zipCode: "10999",
+        city: "Berlin",
+        note: ""
+      },
+      pickupTime: "16:30"
+    }));
   });
 
   it("accepts the first minute the stall is open", async () => {

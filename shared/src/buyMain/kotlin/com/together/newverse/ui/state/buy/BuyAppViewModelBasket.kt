@@ -876,12 +876,12 @@ internal fun BuyAppViewModel.basketScreenSetFulfilment(requested: Fulfilment) {
         } else {
             current.basketScreen.deliveryAddress
         }
-        // The mirror of the address, for the same reason: a buyer switching to pickup
-        // should find their usual time already there rather than retype what the app
-        // knows. Only when nothing has been said in this basket yet — a time they
-        // cleared on purpose stays cleared.
-        val seededTime = if (fulfilment == Fulfilment.PICKUP &&
-            current.basketScreen.pickupTime.isBlank() &&
+        // The mirror of the address, for the same reason: a buyer switching how this
+        // order reaches them should find their usual time already there rather than
+        // retype what the app knows. Not conditioned on the fulfilment, because the
+        // question is asked of a delivery too. Only when nothing has been said in this
+        // basket yet — a time they cleared on purpose stays cleared.
+        val seededTime = if (current.basketScreen.pickupTime.isBlank() &&
             current.basketScreen.orderId == null
         ) {
             current.customerProfile.profile?.defaultPickUpTime.orEmpty()
@@ -1110,16 +1110,20 @@ internal fun BuyAppViewModel.refuseUnusablePickupContact(): Boolean {
 
 internal fun BuyAppViewModel.refuseUnusablePickupTime(): Boolean {
     val basket = _state.value.basketScreen
-    if (basket.fulfilment != Fulfilment.PICKUP) return false
+    // Not conditioned on the fulfilment any more: the time is asked of a delivery
+    // too, so an unusable one has to be caught on a delivery too. The database rules
+    // hold the same range whichever way the order reaches the buyer, so without this
+    // the write is what refuses, and far less politely.
     if (isUsablePickupTime(basket.pickupTime)) return false
 
     bLog("🛒 refuseUnusablePickupTime: '${basket.pickupTime}'")
+    val label = if (basket.fulfilment == Fulfilment.DELIVERY) "Wunschzeit" else "Abholzeit"
     _state.update { current ->
         current.copy(
             basketScreen = current.basketScreen.copy(
                 isCheckingOut = false,
                 showCheckoutConfirm = true,
-                orderError = "Abholzeit bitte zwischen 7:00 und 18:00 angeben"
+                orderError = "$label bitte zwischen 7:00 und 18:00 angeben"
             )
         )
     }
@@ -1286,10 +1290,10 @@ internal fun BuyAppViewModel.basketScreenCheckout() {
                 } else DeliveryAddress.NONE,
                 // The one thing on this order the seller learns about the buyer's own
                 // day, and the reason it is asked here at all: it used to be a
-                // required profile field no seller screen read.
-                pickupTime = if (_state.value.basketScreen.fulfilment == Fulfilment.PICKUP) {
-                    _state.value.basketScreen.pickupTime
-                } else "",
+                // required profile field no seller screen read. Carried whichever way
+                // the order reaches the buyer — a delivery round is planned by someone
+                // who is better off knowing one buyer is out until four.
+                pickupTime = _state.value.basketScreen.pickupTime,
                 // Who takes receipt, and how to reach them. Both apply to a delivery
                 // as much as a pickup — somebody is at the door — so neither is
                 // conditioned on the fulfilment.
@@ -1687,9 +1691,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
                     deliveryAddress = if (basketState.fulfilment == Fulfilment.DELIVERY) {
                         basketState.deliveryAddress
                     } else DeliveryAddress.NONE,
-                    pickupTime = if (basketState.fulfilment == Fulfilment.PICKUP) {
-                        basketState.pickupTime
-                    } else "",
+                    pickupTime = basketState.pickupTime,
                     pickupName = basketState.pickupName.trim(),
                     pickupPhone = basketState.pickupPhone.trim(),
                     origin = OrderOrigin.DEMO
@@ -1722,9 +1724,7 @@ internal fun BuyAppViewModel.basketScreenUpdateOrder(silent: Boolean = false) {
                     deliveryAddress = if (basketState.fulfilment == Fulfilment.DELIVERY) {
                         basketState.deliveryAddress
                     } else DeliveryAddress.NONE,
-                    pickupTime = if (basketState.fulfilment == Fulfilment.PICKUP) {
-                        basketState.pickupTime
-                    } else "",
+                    pickupTime = basketState.pickupTime,
                     pickupName = basketState.pickupName.trim(),
                     pickupPhone = basketState.pickupPhone.trim(),
                     marketId = keptMarketId,

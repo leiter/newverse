@@ -326,7 +326,13 @@ private fun SellerOrderCard(
     val openLabel = stringResource(Res.string.a11y_open_order_details)
     val deliveryLabel = stringResource(Res.string.fulfilment_delivery)
     val pickupTimeLine = order.statedPickupTime?.let { time ->
-        formatString(stringResource(Res.string.order_pickup_time_stated), time)
+        formatString(
+            stringResource(
+                if (order.isDelivery) Res.string.order_delivery_time_stated
+                else Res.string.order_pickup_time_stated
+            ),
+            time
+        )
     }
     // Who is coming for it, when that is not the buyer whose name titles the card.
     // The seller handing over a box needs this before the name on their list is the
@@ -441,14 +447,17 @@ private fun SellerOrderCard(
                 fontWeight = FontWeight.Bold
             )
 
-            // When the buyer said they would come, if they said. A whole day's
-            // pickups sorted by hour is the thing this tells the seller that the
-            // pickup date above cannot — and until now the app asked every buyer for
-            // it and then showed it to nobody.
+            // When the buyer said they would come, or when they would like it
+            // brought round, if they said. A whole day's orders sorted by hour is the
+            // thing this tells the seller that the pickup date above cannot — and
+            // it is what a delivery round is planned from.
             order.statedPickupTime?.let { time ->
                 Text(
                     text = formatString(
-                        stringResource(Res.string.order_pickup_time_stated),
+                        stringResource(
+                            if (order.isDelivery) Res.string.order_delivery_time_stated
+                            else Res.string.order_pickup_time_stated
+                        ),
                         time
                     ),
                     style = MaterialTheme.typography.bodyMedium,

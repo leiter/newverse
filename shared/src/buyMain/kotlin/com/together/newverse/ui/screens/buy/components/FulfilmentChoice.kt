@@ -26,6 +26,8 @@ import newverse.shared.generated.resources.fulfilment_house_number
 import newverse.shared.generated.resources.fulfilment_note_hint
 import newverse.shared.generated.resources.fulfilment_pickup
 import newverse.shared.generated.resources.fulfilment_pickup_only
+import newverse.shared.generated.resources.delivery_time_outside_hours
+import newverse.shared.generated.resources.fulfilment_delivery_time_label
 import newverse.shared.generated.resources.fulfilment_pickup_time_hint
 import newverse.shared.generated.resources.fulfilment_pickup_time_label
 import newverse.shared.generated.resources.fulfilment_save_time_to_profile
@@ -66,7 +68,12 @@ internal fun FulfilmentChoice(
     deliveryOffered: Boolean,
     /** Say the address is missing. The caller owns that judgement, not this row. */
     showAddressRequired: Boolean,
-    /** When the buyer means to collect, `HH:mm`. Blank is an answer: "whenever". */
+    /**
+     * The time the buyer would like, `HH:mm`. Blank is an answer: "whenever".
+     *
+     * When they mean to collect a pickup, and when they would like a delivery to
+     * arrive. One field and one question; only the wording differs.
+     */
     pickupTime: String,
     /** The buyer's usual time as the profile holds it; empty if it holds none. */
     profilePickupTime: String,
@@ -158,19 +165,25 @@ internal fun FulfilmentChoice(
                     color = MaterialTheme.colorScheme.error
                 )
             }
-        } else {
-            PickupTimeField(
-                pickupTime = pickupTime,
-                profilePickupTime = profilePickupTime,
-                onChange = onPickupTimeChange,
-                onSaveToProfile = onSavePickupTimeToProfile
-            )
         }
+
+        // Asked of a delivery as well as a pickup, underneath the address rather than
+        // instead of it. A delivery does arrive when the seller's round reaches it,
+        // which is why this is a wish and not an appointment — but the round is
+        // planned by someone who is better off knowing one buyer is out until four.
+        PickupTimeField(
+            pickupTime = pickupTime,
+            profilePickupTime = profilePickupTime,
+            isDelivery = isDelivery,
+            onChange = onPickupTimeChange,
+            onSaveToProfile = onSavePickupTimeToProfile
+        )
     }
 }
 
 /**
- * When the buyer means to collect this order.
+ * The time the buyer would like: when they mean to collect, or when they would like
+ * the box brought round.
  *
  * Labelled optional and meant it. This is the field that used to live in the profile
  * as a *requirement*: a buyer could not ask a seller for access until they had named
@@ -190,6 +203,8 @@ internal fun FulfilmentChoice(
 private fun PickupTimeField(
     pickupTime: String,
     profilePickupTime: String,
+    /** Only the wording: the field, the range and the gate are the same either way. */
+    isDelivery: Boolean,
     onChange: (String) -> Unit,
     onSaveToProfile: () -> Unit,
 ) {
@@ -201,12 +216,18 @@ private fun PickupTimeField(
     TimePickerField(
         value = pickupTime,
         onValueChange = onChange,
-        label = stringResource(Res.string.fulfilment_pickup_time_label),
+        label = stringResource(
+            if (isDelivery) Res.string.fulfilment_delivery_time_label
+            else Res.string.fulfilment_pickup_time_label
+        ),
         hint = stringResource(Res.string.fulfilment_pickup_time_hint),
         leadingIcon = Icons.Default.DateRange,
         isValid = usable,
         errorMessage = if (usable) null else {
-            stringResource(Res.string.pickup_time_outside_hours)
+            stringResource(
+                if (isDelivery) Res.string.delivery_time_outside_hours
+                else Res.string.pickup_time_outside_hours
+            )
         },
         // Optional means reversible: a buyer who named a time must be able to take
         // it back, both at checkout and while the order is still editable.

@@ -234,7 +234,10 @@ private fun OrderDetailContent(order: Order, pickupSection: @Composable () -> Un
                 }
                 order.statedPickupTime?.let { time ->
                     OrderDetailRow(
-                        label = stringResource(Res.string.label_pickup_time),
+                        label = stringResource(
+                            if (order.isDelivery) Res.string.label_delivery_time
+                            else Res.string.label_pickup_time
+                        ),
                         value = formatString(stringResource(Res.string.pickup_time_format), time)
                     )
                 }

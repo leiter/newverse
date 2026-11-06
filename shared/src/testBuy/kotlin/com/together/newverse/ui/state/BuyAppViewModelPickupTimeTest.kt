@@ -22,6 +22,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -178,9 +179,10 @@ class BuyAppViewModelPickupTimeTest {
     }
 
     @Test
-    fun `a delivery order carries no time`() = runTest {
-        // A delivery arrives when the seller's round reaches it. Carrying the time
-        // along would promise an hour nobody is keeping.
+    fun `a delivery order carries the time the buyer asked for`() = runTest {
+        // The round is still the seller's to plan, which is why the time is a wish
+        // and not an appointment. It used to be dropped on that reasoning; the round
+        // is planned better by someone who knows one buyer is out until four.
         startSession(usualTime = "14:00", selfPickup = false)
         val viewModel = ready()
 
@@ -188,7 +190,22 @@ class BuyAppViewModelPickupTimeTest {
 
         val placed = orderRepository.placedOrders.single()
         assertEquals(Fulfilment.DELIVERY, placed.fulfilment)
-        assertEquals("", placed.pickupTime)
+        assertEquals("14:00", placed.pickupTime)
+    }
+
+    @Test
+    fun `a delivery with an unusable time is refused, not written`() = runTest {
+        // The same gate as a pickup, because the database rules hold the same range
+        // whichever way the order reaches the buyer.
+        startSession(usualTime = "14:00", selfPickup = false)
+        val viewModel = ready()
+
+        viewModel.dispatch(BuyBasketScreenAction.SetPickupTime("23:15"))
+        advanceUntilIdle()
+        placeOrder(viewModel)
+
+        assertTrue(orderRepository.placedOrders.isEmpty())
+        assertNotNull(viewModel.state.value.basketScreen.orderError)
     }
 
     @Test
@@ -326,7 +343,7 @@ class BuyAppViewModelPickupTimeTest {
     }
 
     @Test
-    fun `editing a pickup into a delivery drops the time`() = runTest {
+    fun `editing a pickup into a delivery keeps the time`() = runTest {
         startSession(usualTime = "14:00")
         val viewModel = ready()
         placeOrder(viewModel)
@@ -340,7 +357,27 @@ class BuyAppViewModelPickupTimeTest {
 
         val updated = orderRepository.updatedOrders.last()
         assertEquals(Fulfilment.DELIVERY, updated.fulfilment)
-        assertEquals("", updated.pickupTime, "a delivery has no collection time to keep")
+        assertEquals(
+            "14:00",
+            updated.pickupTime,
+            "the hour the buyer is in is as true of a delivery as of a pickup"
+        )
+    }
+
+    @Test
+    fun `editing the time of a placed delivery is an unsaved change`() = runTest {
+        // fulfilmentChanged used to count the time only on a pickup, so a buyer who
+        // moved their delivery an hour later found no Save button to press.
+        startSession(usualTime = "14:00", selfPickup = false)
+        val viewModel = ready()
+        placeOrder(viewModel)
+
+        viewModel.dispatch(BuyBasketScreenAction.EnableEditing)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.SetPickupTime("16:30"))
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.basketScreen.fulfilmentChanged)
     }
 
     // ===== the time the buyer keeps =====

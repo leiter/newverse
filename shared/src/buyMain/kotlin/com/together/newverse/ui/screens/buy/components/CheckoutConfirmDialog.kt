@@ -40,6 +40,7 @@ import newverse.shared.generated.resources.checkout_confirm_time_left
 import newverse.shared.generated.resources.checkout_confirm_title
 import newverse.shared.generated.resources.checkout_confirm_total
 import newverse.shared.generated.resources.checkout_confirm_when
+import newverse.shared.generated.resources.label_delivery_time
 import newverse.shared.generated.resources.label_pickup_time
 import newverse.shared.generated.resources.market_choice_profile_label
 import newverse.shared.generated.resources.pickup_time_format
@@ -192,12 +193,16 @@ fun CheckoutConfirmDialog(
                     value = whenText
                 )
 
-                // Only once the buyer has named one, and only for a pickup. A row
-                // reading "Abholzeit: keine Angabe" would make a non-answer look like
-                // an omission, which is how this field became a requirement before.
-                if (!isDelivery && pickupTime.isNotBlank()) {
+                // Only once the buyer has named one. A row reading "Abholzeit: keine
+                // Angabe" would make a non-answer look like an omission, which is how
+                // this field became a requirement before. Shown for a delivery too,
+                // where it is the time they would like the box brought round.
+                if (pickupTime.isNotBlank()) {
                     ConfirmRow(
-                        label = stringResource(Res.string.label_pickup_time),
+                        label = stringResource(
+                            if (isDelivery) Res.string.label_delivery_time
+                            else Res.string.label_pickup_time
+                        ),
                         value = formatString(
                             stringResource(Res.string.pickup_time_format),
                             pickupTime

@@ -313,6 +313,7 @@
     <string name="section_delivery_preferences">Veggie Date</string>
     <string name="label_marketplace">Marketplace</string>
     <string name="label_pickup_time">Pickup Time</string>
+    <string name="label_delivery_time">Preferred time</string>
     <string name="label_pickup_time_hint">Valid from 7:00 to 18:00\n(format HH:mm)</string>
     <string name="pickup_time_format">%s</string>
     <string name="pickup_time_unset">--:--</string>
@@ -321,6 +322,7 @@
     <string name="pickup_time_empty">Please enter a pickup time</string>
     <string name="pickup_time_invalid_format">Invalid format. Use HH:mm (e.g. 14:30)</string>
     <string name="pickup_time_outside_hours">Pickup time must be between 7:00 and 18:00</string>
+    <string name="delivery_time_outside_hours">Preferred time must be between 7:00 and 18:00</string>
     <string name="pickup_time_dialog_title">Choose pickup time</string>
     <string name="pickup_time_clear">Give no pickup time</string>
     <string name="pickup_time_hours_hint">Valid from 7:00 to 18:00</string>
@@ -1265,10 +1267,12 @@
     <string name="a11y_announcement">Announcement from the seller: %1$s</string>
     <string name="a11y_announcement_dismiss">Hide announcement</string>
     <string name="fulfilment_pickup_time_label">Pickup time (optional)</string>
+    <string name="fulfilment_delivery_time_label">Preferred time (optional)</string>
     <string name="fulfilment_pickup_time_hint">Not specified — tap to choose (7:00 – 18:00)</string>
     <string name="fulfilment_use_profile_time">Use my usual time</string>
     <string name="fulfilment_save_time_to_profile">Save as my usual time</string>
     <string name="order_pickup_time_stated">Coming around %1$s</string>
+    <string name="order_delivery_time_stated">Preferred around %1$s</string>
     <string name="pickup_contact_pickup_intro">Who is collecting? If you are coming yourself, just leave the name as it is.</string>
     <string name="pickup_contact_delivery_intro">Who takes the delivery in? If you are there yourself, just leave the name as it is.</string>
     <string name="pickup_contact_name_label">Name</string>

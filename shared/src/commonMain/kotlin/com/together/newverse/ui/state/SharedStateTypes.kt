@@ -434,10 +434,14 @@ data class BasketScreenState(
     /** The address this order would be delivered to, seeded from the profile. */
     val deliveryAddress: DeliveryAddress = DeliveryAddress.NONE,
     /**
-     * When the buyer means to collect this order, `HH:mm`, seeded from the profile.
+     * The time the buyer would like, `HH:mm`, seeded from the profile.
+     *
+     * When they mean to collect a pickup, and when they would like a delivery to
+     * arrive — one field, because it is one question and the seller reads it the same
+     * way. Neither is an appointment the seller has agreed to.
      *
      * Optional, and asked here rather than in the profile: it is a fact about one
-     * collection, not about the buyer. It used to be a required profile field that
+     * order, not about the buyer. It used to be a required profile field that
      * stood between a buyer and asking for access, and no seller screen ever read it.
      * Now the order carries it and the seller sees it on the order.
      *
@@ -513,12 +517,14 @@ data class BasketScreenState(
      * written back as `NONE` anyway. The collection time is the mirror
      * image, counting only while the order is a pickup — a delivery arrives when the
      * seller's round reaches it, not when the buyer would have come to the stall.
+     * The time is not: it is asked of both, so a change to it is an edit whichever
+     * way the order reaches the buyer.
      */
     val fulfilmentChanged: Boolean
         get() = orderId != null && (
             fulfilment != originalFulfilment ||
                 (fulfilment == Fulfilment.DELIVERY && deliveryAddress != originalDeliveryAddress) ||
-                (fulfilment == Fulfilment.PICKUP && pickupTime != originalPickupTime)
+                pickupTime != originalPickupTime
             )
 
     /**
