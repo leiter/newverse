@@ -256,7 +256,7 @@ fun CustomerProfileScreenModern(
     val street = formState.data.street
     val houseNumber = formState.data.houseNumber
 
-    // Gemüsedate edit state
+    // Gemüsezeit edit state
     val isEditingPickupTime by profileViewModel.isEditingPickupTime.collectAsState()
     val pickupTime by profileViewModel.pickupTime.collectAsState()
     val pickupTimeError by profileViewModel.pickupTimeError.collectAsState()
@@ -463,7 +463,7 @@ fun CustomerProfileScreenModern(
                         )
                     }
 
-                    // Gemüsedate Card
+                    // Gemüsezeit Card
                     GemusedateCard(
                         pickupTime = pickupTime,
                         pickupTimeError = pickupTimeError,
@@ -980,6 +980,9 @@ private fun PersonalInfoCard(
     }
 }
 
+// isSelfPickup and onSelfPickupToggle are still taken, and still passed by the
+// caller, while the toggle that read them is commented out below.
+@Suppress("UNUSED_PARAMETER")
 @Composable
 private fun GemusedateCard(
     pickupTime: String,
@@ -1126,46 +1129,54 @@ private fun GemusedateCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Selbstabholer toggle — the whole row is one switch so a screen
-            // reader hears the label together with the on/off state.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .toggleable(
-                        value = isSelfPickup,
-                        enabled = isEditing,
-                        role = Role.Switch,
-                        onValueChange = onSelfPickupToggle
-                    ),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(Res.string.label_self_pickup),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = stringResource(Res.string.label_self_pickup_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = isSelfPickup,
-                    onCheckedChange = null,
-                    enabled = isEditing,
-                    modifier = Modifier.clearAndSetSemantics { },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.surface,
-                        checkedTrackColor = MaterialTheme.colorScheme.tertiary
-                    )
-                )
-            }
+            // The Selbstabholer toggle stood here. Taken out of the card 2026-11-06
+            // and left in place rather than deleted: only the control is gone, and
+            // `BuyerProfile.isSelfPickup` is still read, still written and still what
+            // `Fulfilment.fromProfile` seeds a basket from. The buyer now says how one
+            // order reaches them at checkout, where the choice belongs to the order
+            // instead of to them. To bring it back, uncomment this and drop the
+            // @Suppress on this function; the imports it needs are all still here.
+            //
+            // Spacer(modifier = Modifier.height(16.dp))
+            //
+            // // The whole row is one switch so a screen reader hears the label
+            // // together with the on/off state.
+            // Row(
+            //     modifier = Modifier
+            //         .fillMaxWidth()
+            //         .toggleable(
+            //             value = isSelfPickup,
+            //             enabled = isEditing,
+            //             role = Role.Switch,
+            //             onValueChange = onSelfPickupToggle
+            //         ),
+            //     horizontalArrangement = Arrangement.SpaceBetween,
+            //     verticalAlignment = Alignment.CenterVertically
+            // ) {
+            //     Column(modifier = Modifier.weight(1f)) {
+            //         Text(
+            //             text = stringResource(Res.string.label_self_pickup),
+            //             style = MaterialTheme.typography.bodyLarge,
+            //             fontWeight = FontWeight.Medium,
+            //             color = MaterialTheme.colorScheme.onSurface
+            //         )
+            //         Text(
+            //             text = stringResource(Res.string.label_self_pickup_hint),
+            //             style = MaterialTheme.typography.bodySmall,
+            //             color = MaterialTheme.colorScheme.onSurfaceVariant
+            //         )
+            //     }
+            //     Switch(
+            //         checked = isSelfPickup,
+            //         onCheckedChange = null,
+            //         enabled = isEditing,
+            //         modifier = Modifier.clearAndSetSemantics { },
+            //         colors = SwitchDefaults.colors(
+            //             checkedThumbColor = MaterialTheme.colorScheme.surface,
+            //             checkedTrackColor = MaterialTheme.colorScheme.tertiary
+            //         )
+            //     )
+            // }
 
             // Save and Cancel Buttons (only show when editing)
             if (isEditing) {

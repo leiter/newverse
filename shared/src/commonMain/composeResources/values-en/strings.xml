@@ -310,7 +310,7 @@
     <string name="profile_address_for_delivery">Address is only needed for deliveries — an order fills it in from here.</string>
 
     <!-- Delivery Preferences Section -->
-    <string name="section_delivery_preferences">Veggie Date</string>
+    <string name="section_delivery_preferences">Veggie Time</string>
     <string name="label_marketplace">Marketplace</string>
     <string name="label_pickup_time">Pickup Time</string>
     <string name="label_delivery_time">Preferred time</string>

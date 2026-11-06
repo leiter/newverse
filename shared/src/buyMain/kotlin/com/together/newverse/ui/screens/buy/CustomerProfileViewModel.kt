@@ -34,7 +34,7 @@ class CustomerProfileViewModel(
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing.asStateFlow()
 
-    // Gemüsedate (pickup time + self-pickup) edit mode
+    // Gemüsezeit (pickup time + self-pickup) edit mode
     private val _isEditingPickupTime = MutableStateFlow(false)
     val isEditingPickupTime: StateFlow<Boolean> = _isEditingPickupTime.asStateFlow()
 
@@ -144,7 +144,7 @@ class CustomerProfileViewModel(
         }
     }
 
-    // --- Gemüsedate edit mode ---
+    // --- Gemüsezeit edit mode ---
 
     fun startEditingPickupTime() {
         _isEditingPickupTime.value = true

@@ -323,7 +323,7 @@
     <string name="profile_address_for_delivery">Adresse nur für Lieferungen nötig — bei der Bestellung wird sie von hier übernommen.</string>
 
     <!-- Delivery Preferences Section -->
-    <string name="section_delivery_preferences">Gemüsedate</string>
+    <string name="section_delivery_preferences">Gemüsezeit</string>
     <string name="label_marketplace">Marktplatz</string>
     <string name="label_pickup_time">Abholzeit</string>
     <string name="label_delivery_time">Wunschzeit</string>
