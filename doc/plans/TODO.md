@@ -303,6 +303,53 @@ The following features are planned but not yet implemented, or are only partiall
     - Bound the picker by the chosen market's `begin`/`end` instead of 7–18.
     - Settle the delivery wording, and resolve `OrderDto`.
 
+### High Priority: R8 deleted enum constants, silently
+
+- **Status:** Fixed 2026-11-09 in `androidApp/proguard-rules.pro`. Verified in both
+  flavors' mapping files and in the buy DEX itself. **Not yet run on a device** — the
+  fixed minified build has been built, not installed.
+- **Symptom:** On a **minified** buy release the top-bar brand mark went straight to
+  About for an approved customer, as if the seller had published no contacts. The same
+  build unminified was fine. Nothing crashed and nothing was logged.
+- **Cause:** Almost every enum in this codebase is written to the database as
+  `.name` and read back as `entries.firstOrNull { it.name == raw }`. R8 cannot see the
+  individual constants referenced anywhere, so it deletes them. Measured on the
+  2026-11-09 buy release, from `mapping.txt` and confirmed against `classes.dex`:
+
+  | Enum | Declared | Survived R8 |
+  |---|---|---|
+  | `ContactChannel` | 9 | **2** — only `PHONE` and `LOCATION`, the two named in code |
+  | `AccessStatus` | 4 | **3** — `PENDING` gone |
+  | `ArticleScarcity` | 4 | **2** |
+
+  `fromStored("EMAIL")` then returns null, `parseContacts` drops the row, the directory
+  is empty, and the mark correctly falls back to About. Every step behaved as written.
+- **Fix:** `-keepclassmembers enum com.together.newverse.** { *; }`. Scoped to our own
+  package, so libraries shrink as before. Cost: **16 KB** on the buy APK
+  (5,521,379 → 5,537,765 bytes). After it, all nine `ContactChannel` constants are back
+  in the DEX, and both flavors keep every constant of every enum.
+- **Why this was invisible, which is the part worth remembering:** the failure has no
+  error path. `fromStored` returns null, the caller falls back to a default, and
+  `observeSellerContacts`'s `.catch` turns an unreadable node into an empty list on
+  purpose. The one diagnostic — `Log.w` — is doubly suppressed in a release build:
+  `Log.minLevel` is `ERROR` unless `isDebugBuild`, **and** `-assumenosideeffects` strips
+  `android.util.Log.w` at the R8 stage anyway. So a minified build cannot report this
+  class of fault at all.
+- **What it means for what has been tested:** every device check so far used the
+  unminified APK the install scripts build by default, so **no finding about app
+  behaviour to date says anything about the minified artifact.** The one that goes to
+  Play is the minified one.
+- **Tasks:**
+  - Install the fixed minified build and re-check contacts, the access card (a
+    `PENDING` buyer read as `NONE` before this) and the scarcity bands.
+  - Consider a build-time guard: compare each `com.together.newverse` enum's constant
+    count in `mapping.txt` against the source and fail the build on a mismatch. Unit
+    tests cannot catch this — they run unminified — so the mapping file is the only
+    place the truth is visible.
+  - Consider whether `fromStored` should map with an explicit `when` instead of
+    iterating `entries`. That references each constant individually and so cannot be
+    shrunk away, making the keep rule a belt rather than the only thing holding it up.
+
 ### High Priority: Release
 
 > **Before any release, work `doc/plans/pre-release-checklist.md`.** It gates the items below
