@@ -1,0 +1,3 @@
+/* Permission prompts. CFBundleDisplayName stays per build configuration (APP_DISPLAY_NAME). */
+"NSCameraUsageDescription" = "We need access to your camera to take product photos.";
+"NSPhotoLibraryUsageDescription" = "We need access to your photo library to upload product images.";

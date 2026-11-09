@@ -12,6 +12,7 @@
 		778C614BDD6BB71B6306E4DD /* Pods_iosApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BED7924BCBBDAEBBD3FD944 /* Pods_iosApp.framework */; };
 		A120FB953AF44FCD84178720 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 66EED40178E44AE3863F156B /* Assets.xcassets */; };
 		D5AA4DF13D1947FF82A51EA1 /* AppleSignInHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE9F4A0C1EE4148AA36449E /* AppleSignInHelper.swift */; };
+		7A1C0DE00000000000000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE00000000000000002 /* InfoPlist.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -28,6 +29,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7A1C0DE00000000000000003 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		7A1C0DE00000000000000004 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		036332E29025203BAA31E562 /* Pods-iosApp.debug-sell.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp.debug-sell.xcconfig"; path = "Target Support Files/Pods-iosApp/Pods-iosApp.debug-sell.xcconfig"; sourceTree = "<group>"; };
 		039A000A61A28704AABDF71B /* Pods-iosApp.release-buy.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp.release-buy.xcconfig"; path = "Target Support Files/Pods-iosApp/Pods-iosApp.release-buy.xcconfig"; sourceTree = "<group>"; };
 		1B53CF6ACFFB7BE1550E04F7 /* Pods-iosApp.debug-buy.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp.debug-buy.xcconfig"; path = "Target Support Files/Pods-iosApp/Pods-iosApp.debug-buy.xcconfig"; sourceTree = "<group>"; };
@@ -85,6 +88,7 @@
 				FDE9F4A0C1EE4148AA36449E /* AppleSignInHelper.swift */,
 				66EED40178E44AE3863F156B /* Assets.xcassets */,
 				B25F993706BC4826911169B7 /* Info.plist */,
+				7A1C0DE00000000000000002 /* InfoPlist.strings */,
 				FC3A9625D65841618D0CDC82 /* iosApp.entitlements */,
 				F5F6E96D91B5444691C647EE /* GoogleService-Info-Debug-Buy.plist */,
 				7737A09674644F13A003196C /* GoogleService-Info-Debug-Sell.plist */,
@@ -150,12 +154,12 @@
 			};
 			buildConfigurationList = 70A17C71C30747B4A5DE4920 /* Build configuration list for PBXProject "iosApp" */;
 			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = en;
+			developmentRegion = de;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				de,
 				en,
 				Base,
-				de,
 			);
 			mainGroup = 038FA5C479F046468F05E420;
 			productRefGroup = 93A1FC44FC9B45EBA05732A1 /* Products */;
@@ -173,6 +177,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A120FB953AF44FCD84178720 /* Assets.xcassets in Resources */,
+				7A1C0DE00000000000000001 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -268,6 +273,18 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		7A1C0DE00000000000000002 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7A1C0DE00000000000000003 /* de */,
+				7A1C0DE00000000000000004 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		00C21913E3BA4F7CAD09135E /* Release-Buy */ = {

@@ -6,6 +6,11 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>de</string>
+		<string>en</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>$(APP_DISPLAY_NAME)</string>
 	<key>CFBundleExecutable</key>
@@ -48,9 +53,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>We need access to your camera to take product photos</string>
+	<string>Wir benötigen Zugriff auf deine Kamera, um Produktfotos aufzunehmen.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to upload product images</string>
+	<string>Wir benötigen Zugriff auf deine Fotomediathek, um Produktbilder hochzuladen.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
