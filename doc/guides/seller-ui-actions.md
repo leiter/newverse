@@ -197,13 +197,34 @@ two things, and the choice is a product decision rather than a refactor:
   seller-controlled *content* the top bar renders, and so the first place a compromised
   seller account could put an arbitrary image inside the app's own chrome.
 
-Until then the mark stays the app's own. `HomeBrandAction` is where either would land,
+Until then the mark stays the app's own. `BrandAction` is where either would land,
 and it is the only place that draws it.
+
+### The mark also holds the contact channels
+
+Since 2026-11-09 the mark is the seller's whole identity affordance, not only the way
+into About, and it sits in the same seat on **Home and Profile**. The rule is one rule:
+
+| What the buyer has | What the mark does |
+|---|---|
+| No contacts (demo, unapproved, or none published) | Straight to About — or to the override, exactly as before |
+| Contacts | A menu: the override first if there is one, then the channels, then **About last** |
+
+This replaced a separate person-glyph button that stood beside the mark on Home and
+Profile and meant the same thing. One seat, one icon, identical bar geometry for a demo
+buyer and an approved one.
+
+Two consequences for this location. **The override is no longer always the whole tap** —
+once there are contacts it becomes the menu's first row instead, so publishing a brand
+row can no longer take the seller's own phone number out of the bar. And **the Profile
+seat passes no override at all**, because `TOPBAR_HOME_BRAND_ICON` is a Home location
+and a seller who pointed the home mark somewhere did not thereby ask for it on Profile.
+Giving Profile its own location belongs with the parked `ActionKind.MENU` work, not here.
 
 ## Visibility: not gated on approval
 
-Unlike the top-bar contact shortcut, which is hidden from unapproved buyers because a
-one-tap call button handed to every anonymous installer is unvetted inbound noise for
+Unlike the seller's contact channels, which are withheld from unapproved buyers because
+a one-tap call button handed to every anonymous installer is unvetted inbound noise for
 a small business, published buttons are shown to **every signed-in user**.
 
 A link the seller chose to publish is the thing they want seen, and a button that
@@ -503,7 +524,7 @@ what made this expensive to find.
 | `sellMain/.../UiActionListEditor.kt` | The seller's editor |
 | `sellMain/.../SellerProfileViewModel.kt` | `uiActions`, `saveUiAction`, `deleteUiAction` |
 | `firebase/tests/seller-ui-actions.test.js` | 31 rule tests: mostly `value`, plus the seat's kind and persistence |
-| `buyMain/.../HomeBrandAction.kt` | The brand icon in the held seat, and the one place an icon override would land |
+| `buyMain/.../BrandAction.kt` | The brand icon in the held seat on Home and Profile, the contact menu behind it, and the one place an icon override would land |
 | `commonTest/.../SellerUiActionTest.kt` | 63 model tests: schemes, slots, audiences, the icon seat |
 | `buyMain/.../BuyAppViewModelAccess.kt` | The live subscription, beside access status |
 | `testBuy/.../BuyAppViewModelUiActionsTest.kt` | 24 tests: the buttons reach the state, live, per audience; the seat's default and override |

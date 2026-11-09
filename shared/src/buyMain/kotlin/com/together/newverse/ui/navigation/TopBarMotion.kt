@@ -90,7 +90,10 @@ fun AnimatedContentTransitionScope<TopBarTitleSlot>.topBarTitleTransition(): Con
 }
 
 /**
- * How a published button or the contact shortcut comes and goes.
+ * How a published button comes and goes.
+ *
+ * The contact shortcut used this too, until the contacts moved into the brand mark,
+ * which is always in the bar and so never arrives or leaves — see [BrandAction].
  *
  * These sit among the app's own icons, so they grow from their own centre rather than
  * sliding: a slide would push the fixed actions sideways, and the whole point of

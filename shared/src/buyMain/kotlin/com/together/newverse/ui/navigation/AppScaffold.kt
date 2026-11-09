@@ -16,7 +16,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,6 +57,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.together.newverse.domain.model.ActionLocation
+import com.together.newverse.domain.model.SellerContact
+import com.together.newverse.domain.model.SellerUiAction
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.ui.adaptive.LocalWindowWidthClass
 import com.together.newverse.ui.adaptive.ProvideWindowWidthClass
@@ -83,7 +84,6 @@ import com.together.newverse.util.isKeyboardHidingBottomBar
 import com.together.newverse.util.keyboardPadding
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
-import newverse.shared.generated.resources.a11y_contact_options
 import newverse.shared.generated.resources.a11y_hero_total
 import newverse.shared.generated.resources.a11y_seller_actions
 import newverse.shared.generated.resources.action_orders
@@ -752,69 +752,11 @@ private fun AppScaffoldContent(
                         }
                     }
 
-                    // The seller's own contact channels, on Profile and Home.
-                    //
-                    // Shown only to approved buyers: a one-tap call button handed to
-                    // every anonymous installer is unvetted inbound noise for a small
-                    // business. Everyone still reaches the same numbers through About.
-                    // Hidden entirely when the seller has published none, rather than
-                    // opening an empty menu.
-                    //
-                    // Animated for the same reason as the published buttons, and now
-                    // with more occasion to move: the directory is a live subscription,
-                    // so a seller adding their first number makes this button appear
-                    // mid-session rather than at the next launch.
-                    val onContactRoute = currentRoute == NavRoutes.Buy.Profile.route ||
-                        currentRoute == NavRoutes.Home.route
-                    val contacts = if (onContactRoute) appState.topBarContacts else emptyList()
-                    val uriHandler = LocalUriHandler.current
-                    AnimatedContent(
-                        targetState = contacts,
-                        transitionSpec = { topBarActionTransition() },
-                        label = "contactShortcut"
-                    ) { shown ->
-                        if (shown.isNotEmpty()) {
-                            var showContactMenu by remember { mutableStateOf(false) }
-
-                            Box(modifier = Modifier.padding(end = 8.dp)) {
-                                IconButton(onClick = { showContactMenu = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = stringResource(Res.string.a11y_contact_options),
-                                        tint = topBarColors.content
-                                    )
-                                }
-
-                                DropdownMenu(
-                                    expanded = showContactMenu,
-                                    onDismissRequest = { showContactMenu = false }
-                                ) {
-                                    shown.forEach { contact ->
-                                        val label = contact.label.ifBlank { contact.channel.displayName() }
-                                        DropdownMenuItem(
-                                            text = {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                                ) {
-                                                    Icon(
-                                                        contact.channel.icon(),
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary
-                                                    )
-                                                    Text(label)
-                                                }
-                                            },
-                                            onClick = {
-                                                uriHandler.openUri(contact.toUri())
-                                                showContactMenu = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                    }
-                    }
+                    // The seller's own contact channels used to sit here as a second
+                    // icon — a person glyph beside the brand mark, both of them meaning
+                    // "about this seller". They are now one seat: the mark holds the
+                    // contacts, and About with them. See [BrandAction], and the seat
+                    // itself further down beside the stand-in basket.
 
                     // The way into the conversation with the seller, on Profile and
                     // Home beside the contact shortcut.
@@ -883,6 +825,38 @@ private fun AppScaffoldContent(
                         showBottomBar && !useNavRail &&
                         appState.mainScreen.isQuantityInputFocused &&
                         isKeyboardHidingBottomBar()
+                    // The brand seat, on the two screens a buyer looks for the seller
+                    // on. Everything it needs is built inside this branch: topBarContacts
+                    // resolves the directory against the buyer's market on every read,
+                    // and no other route spends that.
+                    if (currentRoute == NavRoutes.Home.route ||
+                        currentRoute == NavRoutes.Buy.Profile.route
+                    ) {
+                    // The contacts the mark offers, and the one route into About the
+                    // bar has. topBarContacts is already empty for a buyer in demo mode
+                    // or awaiting approval — it gates on canContactSeller — so the
+                    // "no menu, tap goes to About" case needs no condition of its own
+                    // here. A one-tap call button handed to every anonymous installer
+                    // is unvetted inbound noise for a small business; everyone still
+                    // reaches the same numbers through About, which is in the menu too.
+                    val brandContacts = appState.topBarContacts
+                    val onOpenAbout: () -> Unit = {
+                        navController.navigate(NavRoutes.About.route) {
+                            launchSingleTop = true
+                        }
+                    }
+                    val onOpenContact: (SellerContact) -> Unit = { contact ->
+                        actionUriHandler.openUri(contact.toUri())
+                    }
+                    val onOpenBrandOverride: (SellerUiAction) -> Unit = { action ->
+                        actionUriHandler.openUri(action.toUri())
+                        // Reported like every other published tap. Nothing hides on it
+                        // — the seat has to stay for the basket to appear in — but the
+                        // seller's own counting should not have a hole in it where this
+                        // slot is.
+                        viewModel.dispatch(BuyUiAction.NotePublishedActionUsed(action))
+                    }
+
                     if (currentRoute == NavRoutes.Home.route) {
                         // The seat is held open whether or not the button is sitting
                         // in it. The button arrives exactly as the buyer reaches for
@@ -903,37 +877,43 @@ private fun AppScaffoldContent(
                             } else {
                                 // One IconButton's worth either way, the size
                                 // BuyerBasketAction takes. It held a blank spacer of
-                                // that width; it now holds the brand mark, which opens
-                                // About — the one place that says whose shop this is
-                                // and how to reach them, and which the bar otherwise
-                                // offered no way to.
+                                // that width; it now holds the brand mark — the one
+                                // place that says whose shop this is and how to reach
+                                // them, and which the bar otherwise offered no way to.
                                 //
                                 // The seller can point the tap somewhere else; null is
                                 // the ordinary case and means the app's own mark and
                                 // the app's own action. See
                                 // ActionLocation.TOPBAR_HOME_BRAND_ICON.
-                                HomeBrandAction(
+                                BrandAction(
                                     override = appState.homeBrandIconOverride,
+                                    contacts = brandContacts,
                                     tint = topBarColors.content,
-                                    onOpenAbout = {
-                                        navController.navigate(NavRoutes.About.route) {
-                                            launchSingleTop = true
-                                        }
-                                    },
-                                    onOpenOverride = { action ->
-                                        actionUriHandler.openUri(action.toUri())
-                                        // Reported like every other published tap.
-                                        // Nothing hides on it — the seat has to stay
-                                        // for the basket to appear in — but the
-                                        // seller's own counting should not have a hole
-                                        // in it where this slot is.
-                                        viewModel.dispatch(
-                                            BuyUiAction.NotePublishedActionUsed(action)
-                                        )
-                                    }
+                                    onOpenAbout = onOpenAbout,
+                                    onOpenContact = onOpenContact,
+                                    onOpenOverride = onOpenBrandOverride
                                 )
                             }
                         }
+                    } else {
+                        // The same seat, the same mark, the same rule — so the bar
+                        // reads the same on the two screens a buyer looks for the
+                        // seller on. No stand-in basket here: Profile has no number
+                        // pad to cover the bottom bar, so the seat is never claimed.
+                        //
+                        // No override: TOPBAR_HOME_BRAND_ICON is a Home location, and
+                        // a seller who pointed the home mark at their Instagram did not
+                        // thereby ask for it on the profile page. Giving Profile its
+                        // own location is part of the parked ActionKind.MENU work.
+                        BrandAction(
+                            override = null,
+                            contacts = brandContacts,
+                            tint = topBarColors.content,
+                            onOpenAbout = onOpenAbout,
+                            onOpenContact = onOpenContact,
+                            onOpenOverride = onOpenBrandOverride
+                        )
+                    }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

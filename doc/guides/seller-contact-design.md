@@ -25,7 +25,7 @@ They are read in four places:
 
 | Where | What it does |
 |---|---|
-| `AppScaffold.kt:512-513` | the top-bar contact menu (Home and Profile), `tel:` / `mailto:` |
+| `AppScaffold.kt:512-513` | the top-bar contact menu (Home and Profile), `tel:` / `mailto:` — since 2026-11-09 drawn by `BrandAction.kt` |
 | `AboutScreenModern.kt:256,287` | the About screen's contact block — display text |
 | `AboutScreenModern.kt:267,299` | the same block's click handlers |
 | `CustomerProfileScreenModern.kt:1330-1331` | the profile contact card |
@@ -400,6 +400,15 @@ make a cold start on a bad connection show no contact at all.
 
 **Hide the top-bar icon entirely when the resolved list is empty.** An icon that opens an
 empty dropdown is worse than no icon.
+
+> **Superseded 2026-11-09.** There is no contact icon of its own any more. The channels
+> moved into the brand mark that already sat in the top bar's held seat, on Home and
+> Profile both, and About moved in with them as the menu's last row. So the empty case is
+> no longer "hide something" but "the mark goes straight to About", which is what it did
+> before contacts existed — nothing appears or disappears, and the bar is the same width
+> for every buyer. The approval gate below is unchanged and still does its work, through
+> `topBarContacts`. See `doc/guides/seller-ui-actions.md` § "The mark also holds the
+> contact channels".
 
 ---
 

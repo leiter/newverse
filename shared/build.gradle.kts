@@ -72,6 +72,12 @@ kotlin {
         // Buy flavor test source set - depends on commonTest and buyMain
         val testBuy by creating {
             dependsOn(commonTest.get())
+            dependencies {
+                implementation("org.robolectric:robolectric:4.14.1")
+                implementation("androidx.compose.ui:ui-test-junit4-android:1.9.0")
+                implementation("androidx.compose.ui:ui-test-manifest:1.9.0")
+                implementation("androidx.activity:activity-compose:1.9.3")
+            }
             dependsOn(buyMain)
         }
 
@@ -215,6 +221,8 @@ kotlin {
 
         commonTest.dependencies {
             implementation(kotlin("test"))
+            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+            implementation(compose.uiTest)
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
             implementation("app.cash.turbine:turbine:1.2.0")
         }
@@ -231,6 +239,13 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
     }
 
     // The marketplace has exactly one seller, and which one depends on the Firebase

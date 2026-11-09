@@ -934,7 +934,6 @@
     <string name="a11y_selected_time">Selected time: %1$s</string>
     <string name="a11y_increment">Increase %1$s</string>
     <string name="a11y_decrement">Decrease %1$s</string>
-    <string name="a11y_contact_options">Contact options</string>
     <!-- Remove button in the basket list names its line item: %1$s = product -->
     <string name="a11y_remove_item">Remove %1$s</string>
     <string name="a11y_edit_amount_item">Change amount of %1$s</string>
@@ -1251,6 +1250,7 @@
     <string name="fulfilment_note_hint">Note (doorbell, gate, …)</string>
     <string name="a11y_seller_actions">More from this seller</string>
     <string name="a11y_home_brand_about">Bodenschätze — about this app</string>
+    <string name="a11y_brand_menu">Bodenschätze — contact and about this app</string>
     <string name="seller_actions_title">Your own buttons</string>
     <string name="seller_actions_explain">Shown in the top bar of the customer app.</string>
     <string name="seller_actions_add">Add a button</string>

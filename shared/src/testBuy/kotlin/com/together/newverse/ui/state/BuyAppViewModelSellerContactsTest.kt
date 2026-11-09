@@ -32,9 +32,11 @@ import kotlin.test.assertTrue
  * and the About card see the same edit — they read one field, which is what makes
  * that true by construction rather than by two subscriptions agreeing.
  *
- * The visibility rule is the other half: the top bar's person button is driven by
- * `topBarContacts` being empty, so "no contacts published" and "button hidden" are
- * the same statement.
+ * The visibility rule is the other half: `topBarContacts` being empty is what decides
+ * whether the top bar's brand mark opens a menu or goes straight to About, so "no
+ * contacts to show" and "the mark behaves as it did before contacts existed" are the
+ * same statement. The mark itself is in the bar either way — the seat never changes
+ * width, and a demo buyer and an approved one see an identical bar.
  */
 class BuyAppViewModelSellerContactsTest {
 
@@ -188,8 +190,8 @@ class BuyAppViewModelSellerContactsTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        // topBarContacts empty is exactly the condition AppScaffold hides the
-        // person icon on, so an empty menu can never be opened.
+        // topBarContacts empty is exactly the condition BrandAction falls back to a
+        // direct About tap on, so an empty menu can never be opened.
         assertTrue(viewModel.state.value.topBarContacts.isEmpty())
     }
 

@@ -40,15 +40,16 @@ by what it needs rather than what it tests:
 
 | Source set | What goes there | Files | `@Test` |
 |------------|-----------------|-------|---------|
-| `commonTest` | Model, parser, repository, util, core state — anything flavor-agnostic. Also all the fakes. | 69 | 854 |
-| `testBuy` | Tests that need buy-flavor `BuildKonfig` or `buyMain` types | 14 | 183 |
-| `testSell` | Tests that need sell-flavor `BuildKonfig` or `sellMain` types | 14 | 304 |
-| **Total** | | **97** | **1341** |
+| `commonTest` | Model, parser, repository, util, core state — anything flavor-agnostic. Also all the fakes. | 74 | 948 |
+| `testBuy` | Tests that need buy-flavor `BuildKonfig` or `buyMain` types | 28 | 326 |
+| `testSell` | Tests that need sell-flavor `BuildKonfig` or `sellMain` types | 15 | 315 |
+| **Total** | | **117** | **1589** |
 
-No single run executes all 1341: `commonTest` runs in both flavors, so
-`testBuyDebugUnitTest` reports 1037 (854 + 183) and `testSellDebugUnitTest`
-1158 (854 + 304). Both were green on 2026-10-26, with nothing skipped or
-`@Ignore`d.
+No single run executes all 1589: `commonTest` runs in both flavors, so
+`testBuyDebugUnitTest` reports 1274 (948 + 326) and `testSellDebugUnitTest`
+1263 (948 + 315). Both were green on 2026-11-09, with nothing skipped or
+`@Ignore`d. The file counts include fakes and helpers, which carry no `@Test` of
+their own.
 
 A ViewModel test lands in `testBuy`/`testSell` because `BuyAppViewModel` and
 `SellAppViewModel` live in the flavor source sets. Everything they depend on —
@@ -100,6 +101,47 @@ against the same catalog without duplicating rows.
 > The `BuyerStoriesRunner` / `BuyerStory` scripted walkthroughs described in earlier
 > versions of this guide no longer exist. `androidApp/src/debug/` now holds only
 > `TestContainerActivity` and Compose `Previews`.
+
+## Compose UI tests
+
+New on 2026-11-09, and so far one class: `testBuy/.../BrandActionRenderTest.kt`. These
+run on the JVM with the ordinary unit tests — no device, no emulator — so
+`./gradlew :shared:testBuyDebugUnitTest` runs them with everything else.
+
+What makes that work is in `shared/build.gradle.kts`:
+
+- `compose.uiTest` in `commonTest`,
+- Robolectric, `ui-test-junit4-android`, `ui-test-manifest` and `activity-compose` in
+  the `testBuy` source set,
+- `android.testOptions.unitTests.isIncludeAndroidResources = true`, without which
+  `stringResource` returns nothing and every text assertion fails for the wrong reason.
+
+A test needs the runner, an SDK and a locale, then the rule:
+
+```kotlin
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], qualifiers = "en")
+class MyScreenTest {
+    @get:Rule val composeRule = createComposeRule()
+}
+```
+
+Pin the locale. German lives in `values/` (the default) and English in `values-en/`, so
+asserting on an English string is also an assertion that the resource resolved rather
+than fell back.
+
+**`runComposeUiTest` does not work here** — it throws `NullPointerException`, because
+the shared module has no JVM/desktop target and an Android unit test has no Compose
+platform of its own without Robolectric. Use `createComposeRule()`.
+
+**Prefer pinning the rule, not the pixels.** `BrandAction` keeps its decision in a pure
+`brandSeat()` function that `BrandActionTest` covers with ordinary unit tests; the UI
+test then only asserts what a pure function cannot — that a tap opens the menu rather
+than navigating, that each row calls back with its own target, and that the rows are
+drawn in the promised order. Order is asserted from `positionInRoot.y`, not from the
+semantics tree's print order: a menu composed correctly and drawn wrongly still reads
+wrong to the buyer. Note that `onRoot()` finds **two** roots once a `DropdownMenu` is
+open, since the popup is a root of its own.
 
 ## Firebase security rules tests
 
