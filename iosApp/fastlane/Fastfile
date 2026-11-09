@@ -111,7 +111,9 @@ platform :ios do
 
   desc "Build release for device"
   lane :build do
-    build_shared_framework
+    # No build_shared_framework here: the Pods "[CP-User] Build shared" phase runs
+    # :shared:syncFramework during the archive and links the release framework
+    # anyway, so linking it first just doubled the ~25 min Kotlin/Native step.
     bump_build
     build_app(
       workspace: "iosApp.xcworkspace",
