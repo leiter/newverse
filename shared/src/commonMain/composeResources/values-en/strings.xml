@@ -118,7 +118,7 @@
     <string name="login_password_placeholder">Enter your password</string>
     <string name="login_forgot_password">Forgot Password?</string>
     <string name="password_reset_title">Reset Password</string>
-    <string name="password_reset_description">Enter your email address. We\'ll send you a link to reset your password.</string>
+    <string name="password_reset_description">Enter your email address. We'll send you a link to reset your password.</string>
     <string name="password_reset_send">Send Link</string>
     <string name="password_reset_sent">Password reset email has been sent</string>
     <string name="password_reset_failed">Failed to send reset email</string>
@@ -128,7 +128,7 @@
     <string name="login_google_icon">G</string>
     <string name="login_twitter_icon">𝕏</string>
     <string name="login_apple_icon"></string>
-    <string name="login_no_account">Don\'t have an account? </string>
+    <string name="login_no_account">Don't have an account? </string>
     <string name="login_sign_up_link">Sign Up</string>
     <string name="login_success">Login successful! Redirecting...</string>
     <!-- Seller forced-login screen -->
@@ -254,7 +254,7 @@
     <string name="basket_created">Created:</string>
     <string name="basket_editable_until">Editable until: %s</string>
     <string name="basket_unsaved_changes">⚠ You have unsaved changes</string>
-    <string name="basket_unsaved_changes_message">You have unsaved changes. Tap \'Update Order\' to save them.</string>
+    <string name="basket_unsaved_changes_message">You have unsaved changes. Tap 'Update Order' to save them.</string>
     <string name="basket_pickup_date">Pickup Date</string>
     <string name="basket_orderable_until">Order by: %s</string>
     <string name="basket_select_date">Select Date</string>
@@ -289,7 +289,7 @@
     <string name="basket_conflict_type_removed">Removed</string>
     <string name="basket_conflict_type_changed">Qty changed</string>
     <string name="basket_conflict_add_item">Add: %s %s</string>
-    <string name="basket_conflict_skip_item">Don\'t add</string>
+    <string name="basket_conflict_skip_item">Don't add</string>
     <string name="basket_conflict_remove_item">Remove</string>
 
     <!-- Draft Warning Dialog -->
@@ -538,7 +538,7 @@
     <!-- PICK DAY SCREEN (SELL MODULE) -->
     <!-- ========================================= -->
     <string name="pick_day_title">Pick Delivery Days</string>
-    <string name="pick_day_description">Select the days you\'re available for deliveries</string>
+    <string name="pick_day_description">Select the days you're available for deliveries</string>
     <string name="pick_day_save">Save Delivery Days</string>
 
     <!-- ========================================= -->
@@ -653,7 +653,7 @@
     <string name="invitation_buyer_id_hint">Enter buyer ID</string>
     <string name="invitation_invalid">Invitation invalid or not found</string>
     <string name="invitation_expired_message">This invitation has expired. Please request a new one.</string>
-    <string name="invitation_demo_gate_message">Please scan a seller\'s QR code or accept an invitation</string>
+    <string name="invitation_demo_gate_message">Please scan a seller's QR code or accept an invitation</string>
     <string name="invitation_revoke">Revoke</string>
     <string name="invitation_sent">Invitation sent</string>
     <string name="invitation_accepted">Accepted</string>
@@ -800,7 +800,7 @@
     <!-- ========================================= -->
     <string name="order_history_loading">Loading orders...</string>
     <string name="order_history_empty_title">No Orders</string>
-    <string name="order_history_empty_subtitle">You haven\'t placed any orders yet</string>
+    <string name="order_history_empty_subtitle">You haven't placed any orders yet</string>
     <string name="order_history_count_single">1 order</string>
     <string name="order_history_count_plural">%d orders</string>
     <string name="order_history_created_date">Created: %s</string>
@@ -1197,7 +1197,7 @@
     <!-- Market choice: asked once during onboarding, changeable from the profile -->
     <string name="market_choice_title">Where do you collect?</string>
     <string name="market_choice_message">Prices depend on the market. Choose where you want to collect — you can change this later in your profile.</string>
-    <string name="market_choice_demo_note">Your access has not been approved yet. These are this market\'s real prices; orders stay provisional until you are approved.</string>
+    <string name="market_choice_demo_note">Your access has not been approved yet. These are this market's real prices; orders stay provisional until you are approved.</string>
     <string name="market_choice_confirm">Confirm</string>
     <!-- %1$s = market name, %2$s = day, hours and street, joined with middots -->
     <string name="market_choice_row_a11y">%1$s, %2$s</string>
@@ -1317,4 +1317,50 @@
     <string name="seller_actions_persistence">Disappears</string>
     <string name="seller_actions_persistence_until_cancelled">only when the customer hides it</string>
     <string name="seller_actions_persistence_hide_on_action">once the customer has responded</string>
+    <!-- Added 2026-11-09: these keys existed only in values/, so English users saw German -->
+    <string name="products_detail_title">Product Details</string>
+    <string name="products_detail_add_to_cart">Add to basket</string>
+    <string name="products_detail_update_cart">Update basket</string>
+    <string name="products_detail_remove_from_cart">Remove from basket</string>
+    <string name="products_detail_category">Category</string>
+    <string name="products_detail_description">Description</string>
+    <string name="products_detail_quantity">Quantity</string>
+    <string name="products_detail_not_found">Product not found</string>
+    <string name="basket_cancel_confirm_title">Cancel order?</string>
+    <string name="basket_cancel_confirm_message">Do you really want to cancel this order? This cannot be undone.</string>
+    <string name="basket_cancel_confirm_button">Yes, cancel</string>
+    <string name="button_dismiss">Cancel</string>
+    <string name="basket_finish_editing">Finish editing</string>
+    <string name="seller_profile_payment_cash_only">Only cash payment is supported at the moment</string>
+    <string name="seller_profile_markets">Manage markets</string>
+    <string name="seller_profile_no_markets">No markets set up</string>
+    <string name="seller_profile_add_market">Add market</string>
+    <string name="market_name">Market name</string>
+    <string name="market_street">Street</string>
+    <string name="market_house_number">House number</string>
+    <string name="market_zip_code">Postcode</string>
+    <string name="market_city">City</string>
+    <string name="market_day">Weekday</string>
+    <string name="market_begin">Start</string>
+    <string name="market_end">End</string>
+    <string name="market_save">Save market</string>
+    <string name="market_delete">Delete market</string>
+    <string name="market_edit">Edit market</string>
+    <string name="market_validation_fill_all">All fields must be filled in</string>
+    <string name="market_validation_time">The start must be before the end</string>
+    <string name="overview_total_revenue">Revenue (total)</string>
+    <string name="topbar_sortiment">Range</string>
+    <string name="topbar_orders">Orders</string>
+    <string name="topbar_products">Products</string>
+    <string name="topbar_new_product">New product</string>
+    <string name="topbar_profile">Profile</string>
+    <string name="topbar_notifications">Notifications</string>
+    <string name="topbar_seller">Seller</string>
+    <string name="topbar_select_delete">Select to delete</string>
+    <string name="topbar_change_availability">Change availability</string>
+    <string name="topbar_import_products">Import products</string>
+    <string name="bottomnav_dashboard">Range</string>
+    <string name="bottomnav_demand">Demand</string>
+    <string name="bottomnav_products">Products</string>
+    <string name="bottomnav_profile">Profile</string>
 </resources>
