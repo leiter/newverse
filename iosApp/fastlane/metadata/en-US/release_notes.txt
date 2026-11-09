@@ -1,0 +1,13 @@
+New in this version:
+
+• A fresh look in the colours of our flyer – with dark mode and a new app icon
+• Choose your market and pickup day: you see the prices of the market you collect from
+• Delivery available: enter your delivery address and preferred time when you order
+• Switch between pickup and delivery even after placing your order
+• Your basket stays up to date across all your devices
+• A heads-up when a product is running low
+• News and messages from the market stall, right in the app
+• Get in touch by phone, text or directions – via the logo at the top
+• Optional reminder for your order
+• Change your password in the app
+• Many improvements to the keyboard, forms and layout

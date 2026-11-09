@@ -1,5 +1,13 @@
-Erste Version der Bodenschätze-App.
+Neu in dieser Version:
 
-• Produkte entdecken und vorbestellen
-• Donnerstags am Markt abholen
-• Kundenprofil und Bestellhistorie
+• Neues Aussehen in den Farben unseres Flyers – mit dunklem Modus und neuem App-Symbol
+• Markt und Abholtag wählen: Du siehst die Preise des Marktes, an dem du abholst
+• Lieferung möglich: Lieferadresse und Wunschzeit direkt bei der Bestellung angeben
+• Abholung oder Lieferung auch nach dem Bestellen noch ändern
+• Dein Warenkorb ist auf all deinen Geräten aktuell
+• Hinweis, wenn ein Produkt knapp wird
+• Neuigkeiten und Nachrichten vom Marktstand direkt in der App
+• Kontakt per Telefon, SMS oder Wegbeschreibung – über das Logo oben
+• Optionale Erinnerung an deine Bestellung
+• Passwort in der App ändern
+• Viele Verbesserungen bei Tastatur, Formularen und Darstellung
