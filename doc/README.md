@@ -62,6 +62,7 @@ Proposed. Nothing in here is built unless its banner says which part is.
 | [order-ready-notification-design.md](design/order-ready-notification-design.md) | Options, no decision taken |
 | [seller-buyer-sync-channel-design.md](design/seller-buyer-sync-channel-design.md) | Event direction built, eligibility blocker resolved; `PROFILE_CHANGED` event, producer and seller-side drain still missing |
 | [cas-scale-integration.md](design/cas-scale-integration.md) | Research only — no hardware, no code |
+| [public-catalog-subdomain.md](design/public-catalog-subdomain.md) | Data path decided (periodic snapshot); scope undecided, nothing built |
 
 ## plans/
 

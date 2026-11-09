@@ -352,6 +352,17 @@ The following features are planned but not yet implemented, or are only partiall
   - **Tasks:**
     - Decide whether the markup should be a seller profile setting or chosen in the import preview.
 
+### Medium Priority: The catalogue on a subdomain
+- **Status:** Design only, written 2026-11-09 — `doc/design/public-catalog-subdomain.md`. Nothing built, no rule changed, no hosting configured.
+- **Why it is cheaper than it sounds:** the seller/buyer article split already put exactly the shop-window fields in `/articles` and everything confidential in `/seller_articles`, so there is no data modelling to do; and `imageUrl` already holds a public Firebase Storage URL, so images need no migration at all.
+- **Decided:** a **periodic snapshot** exported with admin credentials to static JSON, not a live public read. That leaves `/articles` at `auth != null` — no rules change — and keeps an uncapped RTDB bandwidth surface from existing.
+- **Tasks:**
+  - **Decide the scope first; everything waits on it.** Read-only shop window ≈ 1–1.5 days. A data feed with no page ≈ half a day. Ordering in the browser, or moving the catalogue off Firebase, are weeks each.
+  - Decide the refresh trigger (cron, a step in the seller's publish, or a manual button), the host (Firebase Hosting — `firebase.json` has no `hosting` block — or GitHub Pages, which has no `CNAME` today), and the subdomain name.
+  - Decide whether `scarcity` ships publicly: it is in `publicFields` and is derived from stock, so on an open page it broadcasts the stall's stock position. Drop it at export rather than at render if the answer is no.
+  - Put the public price-display question (Grundpreis, VAT statement, Impressum on the page) on the tax-advisor list above.
+  - **Do not resurrect `webApp` for this.** It does not compile, web is unmaintained, and a static page costs less than fixing the target.
+
 ### Medium Priority: Business Features
 - **Promo Codes (Buy App)**
   - **Status:** Stubbed
