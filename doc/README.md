@@ -86,6 +86,7 @@ Point-in-time findings. Each is accurate as of its date and no later.
 | [bookkeeping-backfill.md](reports/bookkeeping-backfill.md) | 2026-10-10, completed |
 | [apple-store-release-status.md](reports/apple-store-release-status.md) | 2026-08-05 |
 | [feature-report.md](reports/feature-report.md) | 2026-03-25 — badly out of date |
+| [screenshot-backlog-2026-11-08.md](reports/screenshot-backlog-2026-11-08.md) | 2026-11-08 — 30 screenshots read and verdicted; the open items are now in `plans/TODO.md` |
 
 ## archive/
 

@@ -1,6 +1,6 @@
 # Newverse Feature Status
 
-**Last Updated:** 2026-10-15
+**Last Updated:** 2026-11-09
 
 *Note: This file replaces the previous TODO.md. The TODO.md file in the root directory is now obsolete and should be deleted.*
 
@@ -313,7 +313,31 @@ The following features are planned but not yet implemented, or are only partiall
   - **Tasks:**
     - Record a market sale with a changed price, cancel one, and export the month (the CSV shows "Marktverkauf").
 
+- **A list of unbooked pickups**
+  - **Status:** Open — named on 2026-09-21 as the biggest practical risk in the feature, never built. `grep` finds "unbooked" only in a test name.
+  - **Issue:** Only *confirmed* sales are booked. An order that was picked up but never confirmed is simply missing from the books, and nothing in the app points at it — the seller has no way to notice the gap, which is the part that makes it a risk rather than an inconvenience.
+  - **Tasks:**
+    - A screen or section listing orders whose pickup date has passed with neither a booking nor a "nicht abgeholt".
+
+- **What the Abrechnung deliberately is not**
+  - **Status:** Open — written down here on 2026-11-09 so it is a decision rather than a surprise at the first tax return. None of it is a bug.
+  - **Issue:**
+    - **Revenue only.** Purchases (Terra's invoices) are not exported; the purchase price is used only to show gross profit.
+    - **No cash book.** Payment method is deliberately not recorded, so a separate cash book is still required and the export cannot replace it.
+    - **No customer receipts**, and no tax number or company details in the export.
+    - **Receipt numbers are unique but not consecutive** (e.g. `V-P23oEOE…`). Worth asking the tax advisor whether that is acceptable.
+    - **Retention is unbacked.** Sales cannot be deleted from the app, by design — they must be kept 10 years — but anyone with owner access to the Firebase project still can, and there is no backup of the data.
+  - **Tasks:**
+    - Decide which of these the app should close and which stay the accountant's job.
+    - A backup of `/sales` is the one with no design question in it.
+
 ### Medium Priority: BNN Import (Sell App)
+- **Producer names resolve for only ~10 of 52 supplier codes**
+  - **Status:** Open — found 2026-09-20. **The action is a question to Terra, not a code change.**
+  - **Issue:** The gastro catalogue covers Terra's dry and dairy assortment. The produce codes (`SCH`, `RHO`, `AHR`, `BOA`, `ZAN`, and the lower-case regional ones) appear in no file we hold, so those products import with origin and certification but no "Erzeuger:" line.
+  - **Tasks:**
+    - Ask Terra for the produce supplier list.
+    - Separately: "Berlin/Brandenburg" in `BnnCodeTables.REGIONAL_DESCRIPTION` is our wording, not Terra's. Their legend reads "von der Lausitz bis zur Ostsee", with depots in Berlin, Rostock and Leipzig. Decide whether to widen it.
 - **Availability flag**
   - **Status:** Unverified
   - **Issue:** Only rows with change flag `A` (field 1) are imported as available. In Terra's list 30 rows are `X` and 22 `N` — including articles that are in the offer (e.g. Apfel Topaz). The meaning of the flags needs checking against the BNN spec.
@@ -392,6 +416,17 @@ item below.
       Medium and Expanded.
     - Put it on the screens that branch on width: Home, Basket, ProductDetail.
 
+- **Five pieces the 2026-10-26 audit did not carry over**
+  - **Status:** Open — raised 2026-07-23 when Milestone 2 shipped, recovered from the screenshots on 2026-11-08
+  - **Tasks:**
+    - **A reusable `TwoPaneLayout(list, detail, paneRatio)`** in the adaptive package. Three panes each re-implement "list-or-detail by width" by hand; consolidating them makes the fourth conversion (Messages, above) a few lines.
+    - **Spike `androidx.compose.material3.adaptive`.** `NavigationSuiteScaffold` would replace the hand-rolled rail switch and `ListDetailPaneScaffold` brings real back-handling, predictive-back and pane restoration that the manual selection state does not have. Hand-rolling was the right call to ship, to dodge the CMP/JS artifact-versioning risk; the question is whether that risk is still real. **Spike and decide — not a given.**
+    - **Tablet portrait (Medium, 600–839dp) has had no visual pass.** Everything was checked in landscape. Medium is the width class most likely to look wrong: 2-column grids slightly too tight, forms that feel lost.
+    - **Multi-window / foldables.** The phone portrait lock uses `requestedOrientation`, which interacts oddly with split-screen and freeform. Layout keys off *measured* width, so content should adapt — but confirm the lock does not fight resizable mode on newer large-screen Android.
+    - **Screenshot tests (Roborazzi)** for the converted screens. This was offered in 2026-07 as "what makes everything else safe to change" and never set up. Partly overtaken on 2026-11-09: `shared` now has working Compose UI tests on Robolectric (`doc/guides/testing.md`), so the remaining question is image diffing rather than infrastructure.
+    - Small UX polish, all three still open: auto-select the first item in a detail pane on wide screens instead of showing a placeholder; remember the list scroll position when switching panes; cap the `ProductDetail` description column so text does not run to 900px.
+  - **Dropped:** checking the buy screens resized in a browser window. Web is not maintained.
+
 - **The adaptive conventions are not in `doc/`**
   - **Status:** Open — found 2026-10-26
   - **Issue:** Width-class-never-orientation, the phone portrait lock in
@@ -428,6 +463,84 @@ item below.
       the per-screen behaviour Android now has).
     - Verify on a device before shipping either.
 
+### High Priority: Account deletion reaches no orders
+
+- **`clearUserData` reads a path that no longer exists**
+  - **Status:** Open — found 2026-11-08 by reading the code; not yet observed on a device, but the path mismatch is not in doubt.
+  - **Issue:** `GitLiveProfileRepository.kt:424` loads each of the buyer's orders from
+    `seller_profile/{sellerId}/orders/{date}/{orderId}`. Orders live at
+    `/orders/{sellerId}/{yyyyMMdd}/{orderId}` (`GitLiveOrderRepository.kt:62`, `ORDERS_ROOT`),
+    and this is the **only** site in the Kotlin still reaching for the old shape. So
+    "Konto löschen" walks `placedOrderIds`, finds nothing at any of them, records
+    `"Order X not found"` into `errors`, and deletes the profile and the auth account
+    anyway — leaving the seller holding live future orders for a buyer who no longer
+    exists. The buyer believes their orders were cancelled; the dialog says so.
+  - **Tasks:**
+    - Point it at `ORDERS_ROOT`, and decide whether `demo_orders/` needs the same walk.
+    - Add a test with an order actually present, which is what would have caught this: the existing path returns "not found" for every input, so nothing failed.
+    - Then re-check the three design caveats below against a run that finds orders.
+
+- **Three things account deletion decides by accident**
+  - **Status:** Open — raised 2026-08-21, re-confirmed 2026-11-08. Apple token revocation, the headline of that session, **is done** (`AppleTokenRevoker`, `2ac3a57`).
+  - **Issue:**
+    - **Only the connected seller's orders are cancelled.** `clearUserData(sellerId, …)` takes one seller, but `placedOrderIds` is a flat `Map<date, orderId>` with no seller dimension. A buyer who ever ordered from a second seller leaves those orders standing. Moot while there is one seller; not moot in the data model.
+    - **A cancellation failure does not stop the deletion.** Errors are collected into `CleanUpResult` and the profile and auth account go anyway. `ACCOUNT_DELETED` carries `cancelledOrderCount`, so it is visible in the log, but nothing reacts to it.
+    - **Guest logout cancels nothing at all.** `confirmGuestLogout()` (`BuyAppViewModelAuth.kt:387`) deletes the profile and never calls `clearUserData`. The dialog says so explicitly ("Bestellungen bleiben erhalten"), so it is deliberate — but it is the opposite asymmetry from "Konto löschen" and is worth deciding rather than inheriting.
+  - **Tasks:**
+    - Re-authentication before deletion. `delete()` demands a recent login and sessions here are long-lived, so `deleteAuthAccountOrSignOut` hits its retry-then-record path often — logging an orphan rather than completing a deletion. Prompting for a fresh sign-in on `requires-recent-login` would close that path instead of recording it. (`requiresRecentLogin` appears nowhere in the Kotlin outside a comment.)
+
+### Medium Priority: Recovered from the screenshots, 2026-11-08
+
+Assembled from 30 terminal screenshots spanning 2026-05-04 → 2026-11-06 and checked
+against the code. Full reasoning, including what was dropped as stale and what turned
+out to be already done, is in `doc/reports/screenshot-backlog-2026-11-08.md`.
+
+- **Seller ↔ buyer sync channel: the ordinary work that is left**
+  - **Status:** Open — the eligibility blocker is **resolved** (re-verified 2026-10-21); what remains is not a decision.
+  - **Issue:** `observeEvents` has **no callers** — the whole seller-side read of the channel is unbuilt. Design in `doc/design/seller-buyer-sync-channel-design.md`.
+  - **Tasks:**
+    - A `PROFILE_CHANGED` event type, a producer at the rename site, and a drain on the seller side.
+    - **Do not put the drain cursor in `seller_profile`** — that node's `$field` rule grants read to any authenticated user for every field except the three client lists, so anything added there is world-readable to signed-in users. Use a separate `seller_event_cursor` node.
+    - Retention is on us: RTDB has no server-side TTL and the append-only guard stops buyers deleting their own events, so the drain should prune what it has applied.
+
+- **Buyer-profile data safety: two findings open, and the table contradicts itself**
+  - **Status:** Partly fixed. `doc/reports/buyer-profile-data-safety.md`'s summary table still lists all four as Open; its own banner and the code disagree.
+  - **Issue:**
+    - **#1 — the buyer's email is embedded in every order.** The seller does not need it to fulfil a pickup, and messaging already exists as the contact route. Named in the report's own banner as the main one.
+    - **#2 — `BuyerProfileDto.fromDomain()` carries `placedOrderIds` and `favouriteProductIds` into `OrderDto`**, so the seller sees the buyer's whole order history and favourites.
+    - **#3 (PII in logcat) is fixed** — the `Log` refactor landed and the policy is settled: PII is fine in `Log.d`, out of `Log.w`/`Log.e`.
+    - **#4 (no order schema validation)** looks done — `database.rules.json` now holds 117 `validate` clauses. Confirm the order nodes are among them.
+  - **Tasks:**
+    - Fix #1 and #2; refresh that report's summary table so it stops disagreeing with its own banner.
+
+- **Verification debt — built, never watched run**
+  - **Status:** Open
+  - **Tasks:**
+    - **The stock refill notification has never been seen on a device** (noted 2026-10-20). It fires at 07:00 the morning after an edit deadline, so observing it needs a wait or a device clock change. 19 unit tests cover its rules; none of them is the same as watching it arrive.
+    - **The iOS half of Apple account deletion is uncompiled.** `ContentView.swift` and `AppleSignInHelper.swift` were reviewed but never built, and `pod install` has never run on the Mac. Three checks, all needing macOS: that `import FirebaseAuth` resolves transitively through the shared pod (12.13.0); that `AppleRevokeBridge.shared.setHandler { onSuccess, onError in … }` matches the generated Objective-C header, whose Kotlin function-type params sometimes surface with different labels; and that deleting an Apple-backed account end to end makes the token disappear from **Settings → Apple ID → Sign in with Apple**, which is the check an App Store reviewer performs.
+
+- **Accessibility: the one nav-bar defect never fixed**
+  - **Status:** Open — found 2026-10-15. The other two from that session (the unpluralised `%d Artikel`, and the badge announcing the count before the name) **are fixed**.
+  - **Issue:** `BuyerBottomBar.kt:375-395` runs a four-stage ~450ms rotation on the cart badge on every basket-count change, unconditionally. Users who turned animations off at the OS level (vestibular disorders) still get it.
+  - **Tasks:**
+    - An `expect/actual` reading `Settings.Global.ANIMATOR_DURATION_SCALE` on Android and `UIAccessibility.isReduceMotionEnabled` on iOS — Compose Multiplatform has no common reduce-motion flag, and nothing of the kind exists in the tree today. Fits the `kmp-boundaries` pattern. Low severity: one icon, purely decorative, skipping it costs nothing.
+    - While there: `ContactChannelUi.kt` still has no accessibility semantics at all, and `doc/guides/accessibility.md`'s coverage map is explicitly stale for anything added since 2026-10-20.
+
+- **`ActionKind.MENU` — the design note that was asked for and never written**
+  - **Status:** Parked deliberately on 2026-11-09, in favour of the narrow version that shipped (the brand mark holding the contacts — see below). Reopen only when a **second** menu source actually exists; until then this is a generalisation with one instance.
+  - **Issue:** The idea is letting a seller place contact menus on arbitrary screens as published data. Ten things would need settling first; they are written out in full in `doc/reports/screenshot-backlog-2026-11-08.md` § A5. The load-bearing ones: the kind comes from the *slot*, so it needs new `TOPBAR_*_MENU` locations rather than a new kind alone; the menu must name a **source** rather than hold copies of rows, or it goes stale the moment the seller edits a number and silently loses `resolveFor`'s market union; `ActionAudience.stored(null)` returns `EVERYONE`, which is the wrong default for a phone number; and there is no icon field, which is where "generic menu" starts growing.
+  - **Tasks:**
+    - If it is ever built: `firebase/tests/seller-ui-actions.test.js` needs the new kind and locations too.
+
+- **The brand mark now holds the contacts — not checked on a device or on iOS**
+  - **Status:** Implemented 2026-11-09. Both flavors build; 1274 buy + 1263 sell unit tests green, including 9 rule tests and 7 Compose UI tests. **Nothing has been run on a phone, and nothing on iOS.**
+  - **Issue:** The top-bar contact shortcut (a person glyph) and the brand mark were two adjacent icons meaning one thing. They are now one seat on Home **and Profile**: no contacts → the mark goes straight to About, exactly as before; contacts → a menu of the override, the channels, then About last. `BrandAction.kt`, and `doc/guides/seller-ui-actions.md` § "The mark also holds the contact channels".
+  - **Tasks:**
+    - Check it on a phone as an unapproved buyer and as an approved one, on Home and on Profile.
+    - **Check it on iOS.** `DropdownMenu` anchoring in a CMP top bar is exactly the kind of thing that looks right on Android and wrong on iOS.
+    - **Two overflow menus can sit side by side.** With 2+ published rows the seller's actions collapse into a `MoreVert` menu, which now sits immediately beside the logo menu. Pre-existing in shape — the person icon had the same neighbour — but both being menus is new. Look at it with two published rows before deciding whether it needs anything.
+    - A screen-reader user gets no signal that the mark opens a menu rather than navigating. That matches the `MoreVert` beside it, so improving it is a pass over both, not a patch on one.
+
 ### Low Priority: Housekeeping
 - **Unused build-logic convention plugin**
   - **Status:** Open decision
@@ -437,6 +550,12 @@ item below.
 - **Password visibility toggle**
   - **Status:** Open
   - **Issue:** `ForcedLoginScreen.kt` has no show/hide icon on the password field (TODO in the code).
+- **The `AuthProvider` profile badge heuristic is wrong**
+  - **Status:** Open — cosmetic, deliberately left when `getProviderIds()` was added for the Apple revocation path
+  - **Issue:** `NavGraph.kt:95` derives the provider by sniffing the email address for `@gmail.com`, so a Google user with a non-gmail address shows as "E-Mail". The correct source (`auth.currentUser.providerData`) is already read elsewhere.
+- **`a11y_home_brand_about` is now a misnomer**
+  - **Status:** Open — naming debt only, created 2026-11-09
+  - **Issue:** The string is read on Profile too, since the brand seat is on both screens.
 - **CustomerDetail top bar title**
   - **Status:** Fixed 2026-09-25 — `SellerTopBar.getRouteTitle()` had no case for `NavRoutes.Sell.CustomerDetail`, so it fell back to the generic "Verkäufer" title; now shows the existing `customer_detail_title` string ("Kundendetails" / "Customer details").
 - **Orphaned `bottomnav_new` string**
