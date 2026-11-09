@@ -60,11 +60,13 @@ The following features are planned but not yet implemented, or are only partiall
 
 ### High Priority: User Experience
 - **The keyboard covered the bottom of every form**
-  - **Status:** Fixed 2026-11-04 on Android (compiles, 2381 unit tests pass, both debug
-    APKs build). **Not checked on a device, and not checked on iOS at all.**
-  - **Issue:** The app draws edge to edge (`enableEdgeToEdge` in all three activities, no
-    `windowSoftInputMode` anywhere), so the window is *not* resized when the keyboard
-    opens. Nothing in the app consumed `WindowInsets.ime` — `imePadding` appeared in no
+  - **Status:** Fixed 2026-11-04 on Android, and **checked on two phones on 2026-11-09**
+    — Pixel 2 (Android 11 / API 30) and Pixel 7a (Android 17), both on the buy release
+    build, versionCode 40. The check found one defect, fixed below. **Still not checked
+    on iOS at all.**
+  - **Issue:** The app draws edge to edge (`enableEdgeToEdge` in all three activities, and
+    — until 2026-11-09 — no `windowSoftInputMode` anywhere), so the window is *not*
+    resized when the keyboard opens. Nothing in the app consumed `WindowInsets.ime` — `imePadding` appeared in no
     file. Almost every screen with a field already had a scroll container, but a scroll
     container does not help: the layout still ended behind the keyboard, so there was no
     scroll range to bring the lower fields up. Anything in the bottom half of a form —
@@ -87,11 +89,44 @@ The following features are planned but not yet implemented, or are only partiall
     documented alternative is `OnFocusBehavior.DoNothing` plus explicit insets, which
     would also mean padding every dialog by hand, since an iOS dialog is drawn inside the
     same Compose scene rather than in a window of its own. Left as it was.
+  - **Found on the device, and fixed (2026-11-09): the first focus padded by both.**
+    On the buyer's profile, tapping *edit* and then focusing a field — Anzeigename —
+    left the content padded by the bottom bar's height **plus** the keyboard's, instead
+    of the larger of the two. Closing the keyboard and opening it again gave the correct
+    padding, and it stayed correct from then on.
+    - **The arithmetic named the fault.** The overshoot was exactly
+      `paddingValues.bottom` — M3's `NavigationBar` height plus the navigation-bar inset
+      it applies itself — which means that on the first pass `keyboardPadding()` was not
+      seeing the `consumeWindowInsets(paddingValues)` consumption, and the content got
+      `bar + ime` rather than `max(bar, ime)`.
+    - **Cause: no `windowSoftInputMode` was set anywhere.** Not in any of the five source
+      manifests, not in the merged manifest, not in `AppTheme` or `AppTheme.Splash`. The
+      window was therefore `adjustUnspecified`, which the framework resolves on the
+      *first* keyboard show and then keeps — which is the shape of the bug exactly: wrong
+      once, right every time after.
+    - **Fix:** `android:windowSoftInputMode="adjustResize"` on `BuyMainActivity` and
+      `SellMainActivity`. It is the documented pairing for `enableEdgeToEdge()`: the flag
+      does not make the window resize (`decorFitsSystemWindows=false` still prevents
+      that, so everything written above about insets still holds) — it makes the IME
+      inset **dispatched consistently**, from the first show.
+    - **Verified on both phones**, which matters because they sit on either side of the
+      API 35 line where edge-to-edge became mandatory and soft-input resolution changed:
+      Pixel 2 / Android 11 and Pixel 7a / Android 17, both correct after the change.
+    - **The flag has no reference in Kotlin**, so it looks unused and is the kind of line
+      that gets deleted in a tidy-up. `KeyboardUtils.kt` says what depends on it, in both
+      the `expect` and the Android `actual`. Keep those notes with it.
   - **Tasks:**
-    - Check the five screenshot-run fixes and this one on a phone and on an iOS
-      simulator. Watch for the bottom bar: it stays put behind the keyboard by design,
+    - Check the five screenshot-run fixes on an iOS simulator. On Android they now stand
+      on a device. Watch for the bottom bar: it stays put behind the keyboard by design,
       and on Home the basket stands in for it as a top-bar action for as long as it is
       covered (`isKeyboardHidingBottomBar`, false on iOS because the scene pans there).
+    - **Unverified, raised 2026-11-09:** whether the stand-in basket is still the right
+      behaviour now the flag is explicit. It is driven by `isKeyboardHidingBottomBar()`,
+      which asks whether `WindowInsets.ime` is non-zero. The reasoning says the window is
+      still not resized, so the bar is still covered and the stand-in is still a
+      stand-in — but nobody has looked at Home with a quantity field focused since the
+      change. If the bar turns out to be visible above the keyboard, the stand-in is a
+      second copy rather than a replacement, which its own comment says it must never be.
     - On iOS, confirm a long form (`CustomerProfileScreenModern`) and a dialog with a
       field still reach their lower fields; if not, switch `MainViewController` to
       `OnFocusBehavior.DoNothing` and make `keyboardPadding()` real there — at which

@@ -33,6 +33,12 @@ actual fun rememberKeyboardManager(): KeyboardManager {
 /**
  * The window is never resized for the keyboard here -- the app draws edge to
  * edge -- so the IME inset has to be applied by hand.
+ *
+ * Paired with `android:windowSoftInputMode="adjustResize"` on both launcher
+ * activities, which is what makes the inset arrive consistently on the *first*
+ * keyboard show rather than after the framework has resolved
+ * `adjustUnspecified` its own way. The flag is invisible to the compiler; see
+ * the `expect` declaration for what breaks without it.
  */
 actual fun Modifier.keyboardPadding(): Modifier = imePadding()
 
