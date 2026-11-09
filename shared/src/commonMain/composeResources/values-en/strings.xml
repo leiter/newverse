@@ -1059,7 +1059,7 @@
     <string name="order_reminder_summary_off">No reminder</string>
     <string name="order_reminder_summary">%1$s at %2$s</string>
     <string name="order_reminder_no_days">Pick at least one day</string>
-    <string name="order_reminder_deadline_hint">Orders close Tuesday 23:59 for Thursday pickup</string>
+    <string name="order_reminder_deadline_hint">Orders close %1$s %2$s for %3$s pickup</string>
     <string name="order_reminder_permission_needed">Notifications are turned off for this app. Please allow them in the system settings.</string>
     <string name="stock_reminder_channel_name">Refill</string>
     <string name="stock_reminder_channel_description">Reminder of what to refill before the next market day</string>
@@ -1068,7 +1068,7 @@
     <string name="order_reminder_channel_name">Order reminder</string>
     <string name="order_reminder_channel_description">Reminds you to order before the deadline</string>
     <string name="order_reminder_notification_title">Ordered yet?</string>
-    <string name="order_reminder_notification_text">Orders close Tuesday 23:59. After that the next pickup is a week away.</string>
+    <string name="order_reminder_notification_text">Orders close %1$s %2$s. After that the next pickup is a week away.</string>
     <string name="order_reminder_time_picker_title">Pick a time</string>
     <string name="day_short_monday">Mon</string>
     <string name="day_short_tuesday">Tue</string>

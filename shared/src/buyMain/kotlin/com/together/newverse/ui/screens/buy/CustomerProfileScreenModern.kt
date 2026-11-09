@@ -183,6 +183,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import kotlinx.datetime.DayOfWeek
 import com.together.newverse.ui.state.BuyReminderAction
 import com.together.newverse.domain.model.OrderReminderSettings
+import com.together.newverse.domain.config.OrderScheduleConfig
+import com.together.newverse.domain.reminder.OrderReminderSchedule
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.TimePicker
@@ -230,6 +232,8 @@ fun CustomerProfileScreenModern(
     sellerContacts: List<SellerContact> = emptyList(),
     buyerId: String = "",
     orderReminder: OrderReminderSettings = OrderReminderSettings(),
+    /** The ordering week of the buyer's market, which the reminder card describes. */
+    reminderSchedule: OrderScheduleConfig = OrderReminderSchedule.DEFAULT,
     onRequestNotificationPermission: () -> Unit = {},
     notificationsBlocked: Boolean = false,
     reminderAvailable: Boolean = true,
@@ -487,6 +491,7 @@ fun CustomerProfileScreenModern(
                     if (reminderAvailable) {
                         OrderReminderCard(
                             settings = orderReminder,
+                            schedule = reminderSchedule,
                             notificationsBlocked = notificationsBlocked,
                             onEnabledChange = { enabled ->
                                 onAction(BuyReminderAction.SetReminderEnabled(enabled))
@@ -1449,6 +1454,7 @@ private fun SaveConfirmationDialog(
 @Composable
 private fun OrderReminderCard(
     settings: OrderReminderSettings,
+    schedule: OrderScheduleConfig,
     notificationsBlocked: Boolean,
     onEnabledChange: (Boolean) -> Unit,
     onDayToggle: (DayOfWeek) -> Unit,
@@ -1507,7 +1513,12 @@ private fun OrderReminderCard(
             }
 
             Text(
-                text = stringResource(Res.string.order_reminder_deadline_hint),
+                text = stringResource(
+                    Res.string.order_reminder_deadline_hint,
+                    schedule.deadlineDay.displayName(),
+                    OrderReminderSchedule.deadlineTime(schedule),
+                    schedule.pickupDay.displayName()
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1558,7 +1569,7 @@ private fun OrderReminderCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    REMINDER_DAY_ORDER.forEach { day ->
+                    OrderReminderSchedule.selectableDays(schedule).forEach { day ->
                         FilterChip(
                             selected = day in settings.days,
                             onClick = { onDayToggle(day) },
@@ -1630,18 +1641,6 @@ private fun OrderReminderCard(
         )
     }
 }
-
-/**
- * Saturday first, Tuesday last: the run-up to the Tuesday 23:59 deadline, in the order a
- * buyer lives it. Wednesday to Friday are left out — a reminder then would be about a
- * pickup over a week away, which is not what this feature is for.
- */
-private val REMINDER_DAY_ORDER = listOf(
-    DayOfWeek.SATURDAY,
-    DayOfWeek.SUNDAY,
-    DayOfWeek.MONDAY,
-    DayOfWeek.TUESDAY
-)
 
 private fun DayOfWeek.shortLabel(): StringResource = when (this) {
     DayOfWeek.MONDAY -> Res.string.day_short_monday

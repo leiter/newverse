@@ -2,6 +2,7 @@ package com.together.newverse.ui.components
 
 import androidx.compose.runtime.Composable
 import kotlinx.datetime.DayOfWeek
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.day_friday
@@ -20,15 +21,19 @@ import newverse.shared.generated.resources.day_wednesday
  * Saturday slot labelled "Donnerstag" is worse than no label.
  */
 @Composable
-fun DayOfWeek.displayName(): String = stringResource(
-    when (this) {
-        DayOfWeek.MONDAY -> Res.string.day_monday
-        DayOfWeek.TUESDAY -> Res.string.day_tuesday
-        DayOfWeek.WEDNESDAY -> Res.string.day_wednesday
-        DayOfWeek.THURSDAY -> Res.string.day_thursday
-        DayOfWeek.FRIDAY -> Res.string.day_friday
-        DayOfWeek.SATURDAY -> Res.string.day_saturday
-        DayOfWeek.SUNDAY -> Res.string.day_sunday
-        else -> Res.string.day_monday
-    }
-)
+fun DayOfWeek.displayName(): String = stringResource(nameResource())
+
+/**
+ * The string resource for this weekday's full name, for callers outside composition —
+ * the order reminder's notification is built in a background worker.
+ */
+fun DayOfWeek.nameResource(): StringResource = when (this) {
+    DayOfWeek.MONDAY -> Res.string.day_monday
+    DayOfWeek.TUESDAY -> Res.string.day_tuesday
+    DayOfWeek.WEDNESDAY -> Res.string.day_wednesday
+    DayOfWeek.THURSDAY -> Res.string.day_thursday
+    DayOfWeek.FRIDAY -> Res.string.day_friday
+    DayOfWeek.SATURDAY -> Res.string.day_saturday
+    DayOfWeek.SUNDAY -> Res.string.day_sunday
+    else -> Res.string.day_monday
+}

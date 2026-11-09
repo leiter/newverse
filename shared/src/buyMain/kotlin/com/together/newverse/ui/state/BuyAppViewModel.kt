@@ -80,6 +80,7 @@ import newverse.shared.generated.resources.snackbar_added_to_basket
 import org.jetbrains.compose.resources.getString
 import com.together.newverse.util.Log
 import com.together.newverse.ui.state.buy.loadReminderSettings
+import com.together.newverse.ui.state.buy.observeReminderSchedule
 import com.together.newverse.ui.state.buy.loadDismissedAnnouncements
 import com.together.newverse.ui.state.buy.dismissHomeAnnouncement
 import com.together.newverse.ui.state.buy.handleReminderAction
@@ -181,6 +182,8 @@ class BuyAppViewModel(
         // rather than when the profile screen opens: a buyer who never visits that
         // screen must still be reminded, and the system can drop pending work.
         loadReminderSettings()
+        // ...and keep the reminder on the buyer's own market's week, not Thursday's.
+        observeReminderSchedule()
 
         // Observe Google Sign-In completion (iOS path: token emitted by GoogleSignInState)
         observeGoogleSignInCompletion()

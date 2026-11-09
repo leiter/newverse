@@ -1,5 +1,6 @@
 package com.together.newverse.data.config
 
+import com.together.newverse.domain.config.OrderScheduleConfig
 import com.together.newverse.domain.model.OrderReminderSettings
 
 /**
@@ -33,6 +34,15 @@ expect class OrderReminderStorage {
      */
     fun cachedClosedCycles(): Set<String>
     fun cacheClosedCycles(cycles: Set<String>)
+
+    /**
+     * The ordering schedule of the market the buyer collects at, as the app last saw
+     * it, or null when none has been cached yet. Cached for the same reason as
+     * [cachedClosedCycles]: without it the worker would judge a Friday market's
+     * buyer against the default Thursday week.
+     */
+    fun cachedSchedule(): OrderScheduleConfig?
+    fun cacheSchedule(config: OrderScheduleConfig)
 
     /** The uid these settings belong to, or null when nothing has been stored yet. */
     fun ownerUserId(): String?

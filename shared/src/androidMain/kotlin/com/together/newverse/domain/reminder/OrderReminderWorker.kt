@@ -8,6 +8,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.together.newverse.data.config.OrderReminderStorage
+import com.together.newverse.domain.config.OrderScheduleConfig
+import com.together.newverse.ui.components.nameResource
 import com.together.newverse.util.Log
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
@@ -49,17 +51,22 @@ class OrderReminderWorker(
 
             val timeZone = TimeZone.currentSystemDefault()
             val now = Clock.System.now()
+            // The buyer's own market's week. Without it an order for a Friday market
+            // is looked for under Thursday, never found, and the buyer is reminded
+            // about an order they already placed.
+            val schedule = storage.cachedSchedule() ?: OrderReminderSchedule.DEFAULT
 
             if (OrderReminderEvaluator.isDue(
                     settings = settings,
                     placedCycles = storage.cachedPlacedCycles(),
                     now = now,
                     timeZone = timeZone,
+                    config = schedule,
                     closedCycles = storage.cachedClosedCycles()
                 )
             ) {
                 val today = now.toLocalDateTime(timeZone).date.toString()
-                if (notify()) {
+                if (notify(schedule)) {
                     // Only record the fire when it was actually shown, so a buyer who
                     // grants the notification permission later still gets reminded.
                     storage.save(settings.copy(lastFiredDate = today))
@@ -79,7 +86,7 @@ class OrderReminderWorker(
     }
 
     /** @return true when the notification was handed to the system. */
-    private suspend fun notify(): Boolean {
+    private suspend fun notify(schedule: OrderScheduleConfig): Boolean {
         val manager = NotificationManagerCompat.from(applicationContext)
         if (!manager.areNotificationsEnabled()) {
             Log.d(TAG) { "notify: notifications are disabled for this app" }
@@ -88,14 +95,16 @@ class OrderReminderWorker(
 
         createChannel()
 
+        val text = getString(
+            Res.string.order_reminder_notification_text,
+            getString(schedule.deadlineDay.nameResource()),
+            OrderReminderSchedule.deadlineTime(schedule)
+        )
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle(getString(Res.string.order_reminder_notification_title))
-            .setContentText(getString(Res.string.order_reminder_notification_text))
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText(getString(Res.string.order_reminder_notification_text))
-            )
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()

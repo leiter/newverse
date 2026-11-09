@@ -3,7 +3,9 @@ package com.together.newverse.data.config
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.together.newverse.domain.config.OrderScheduleConfig
 import com.together.newverse.domain.model.OrderReminderSettings
+import com.together.newverse.domain.reminder.OrderReminderSchedule
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
 
@@ -55,6 +57,13 @@ actual class OrderReminderStorage(context: Context) {
         prefs.edit { putStringSet(KEY_CLOSED_CYCLES, cycles.toSet()) }
     }
 
+    actual fun cachedSchedule(): OrderScheduleConfig? =
+        OrderReminderSchedule.decode(prefs.getString(KEY_SCHEDULE, null))
+
+    actual fun cacheSchedule(config: OrderScheduleConfig) {
+        prefs.edit { putString(KEY_SCHEDULE, OrderReminderSchedule.encode(config)) }
+    }
+
     actual fun ownerUserId(): String? = prefs.getString(KEY_OWNER, null)
 
     actual fun setOwnerUserId(userId: String) {
@@ -72,6 +81,7 @@ actual class OrderReminderStorage(context: Context) {
     private companion object {
         const val PREFS_FILE = "newverse_order_reminder"
         const val KEY_CLOSED_CYCLES = "closedCycles"
+        const val KEY_SCHEDULE = "market_schedule"
         const val KEY_ENABLED = "enabled"
         const val KEY_DAYS = "days"
         const val KEY_HOUR = "hour"

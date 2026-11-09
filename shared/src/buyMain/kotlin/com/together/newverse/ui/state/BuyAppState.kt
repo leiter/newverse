@@ -1,5 +1,7 @@
 package com.together.newverse.ui.state
 
+import com.together.newverse.domain.config.OrderScheduleConfig
+import com.together.newverse.util.OrderDateUtils
 import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
@@ -345,6 +347,18 @@ data class BuyAppState(
             customerProfile.profile?.defaultMarket,
         ).firstOrNull { id -> id.isNotEmpty() && eligibleMarkets.any { it.id == id } }
             ?: eligibleMarkets.singleOrNull()?.id
+
+    /**
+     * The ordering week the order reminder is about: the [contextualMarketId] market's
+     * own pickup day and deadline, or the app default while no market is known.
+     *
+     * The same market the reminder's closed days are scoped to, so the two never
+     * describe different stalls.
+     */
+    val reminderSchedule: OrderScheduleConfig
+        get() = OrderDateUtils.scheduleConfigFor(
+            contextualMarketId?.let { id -> eligibleMarkets.firstOrNull { it.id == id } }
+        )
 
     /**
      * The seller's published buttons for one slot, ordered and capped.

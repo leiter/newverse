@@ -5,10 +5,11 @@ import kotlinx.datetime.DayOfWeek
 /**
  * A buyer's settings for the "place your order" reminder.
  *
- * The ordering week is fixed (pickup Thursday, deadline Tuesday 23:59), so the
- * reminder is expressed the way a buyer thinks about their week — on these days, at
- * this time — rather than as a lead time before a deadline they would have to work
- * out for themselves.
+ * The reminder is expressed the way a buyer thinks about their week — on these days,
+ * at this time — rather than as a lead time before a deadline they would have to work
+ * out for themselves. Which days make sense depends on the buyer's market: each keeps
+ * its own pickup day, and [com.together.newverse.domain.reminder.OrderReminderSchedule]
+ * moves the chosen days along when the market's deadline moves.
  *
  * @param days Weekdays the reminder may fire on. Empty means never, whatever
  *   [enabled] says.
@@ -33,8 +34,9 @@ data class OrderReminderSettings(
 
     companion object {
         /**
-         * Monday and Tuesday: the deadline is Tuesday 23:59, so these are the last two
-         * days on which a reminder can still be acted on for the coming Thursday.
+         * Monday and Tuesday: the last two days before the default Tuesday 23:59
+         * deadline. A buyer at a market with another day gets these shifted to that
+         * market's deadline — see `OrderReminderSchedule.defaultDays`.
          */
         val DEFAULT_DAYS = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY)
 

@@ -1,17 +1,22 @@
 package com.together.newverse.ui.state.buy
 
 import com.together.newverse.domain.model.OrderReminderSettings
+import com.together.newverse.domain.reminder.OrderReminderSchedule
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.BuyReminderAction
 import com.together.newverse.util.Log
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 
 private const val TAG = "BuyReminder"
 
 /**
  * Order reminder settings: the buyer's choice of days and time for the nudge to place an
- * order before the Tuesday deadline.
+ * order before their market's deadline.
  *
  * Settings are device-local ([com.together.newverse.data.config.OrderReminderStorage]),
  * because what schedules the reminder is device-local too. Every change is written
@@ -90,6 +95,11 @@ internal fun BuyAppViewModel.syncReminderOrderSnapshot(userId: String?, placedCy
     if (!userId.isNullOrBlank()) {
         // Drops stored settings when a different buyer signs in on this device.
         storage.setOwnerUserId(userId)
+        // A new owner wipes the storage, schedule included; put it straight back so
+        // the worker does not fall back to the default week until the market changes.
+        if (storage.cachedSchedule() == null && _state.value.contextualMarketId != null) {
+            storage.cacheSchedule(_state.value.reminderSchedule)
+        }
     }
     storage.cachePlacedCycles(placedCycles)
     Log.d(TAG) { "syncReminderOrderSnapshot: ${placedCycles.size} placed cycles cached" }
@@ -109,6 +119,62 @@ internal fun BuyAppViewModel.syncReminderClosureSnapshot() {
     val keys = _state.value.sellerClosures.closedCycles(marketId)
     storage.cacheClosedCycles(keys)
     Log.d(TAG) { "syncReminderClosureSnapshot: ${keys.size} closed cycles cached" }
+}
+
+/**
+ * Follow the buyer's market for as long as the app runs.
+ *
+ * The market the reminder is about can change from several places — the seller's
+ * markets loading, the buyer choosing a default, a basket slot at another stall — so
+ * rather than syncing at each of them, this watches the one derived value they all
+ * feed, [com.together.newverse.ui.state.BuyAppState.reminderSchedule].
+ */
+internal fun BuyAppViewModel.observeReminderSchedule() {
+    if (orderReminderStorage == null) return
+    scope.launch {
+        _state
+            // Only once a market is known. Before the seller's markets load — and while
+            // a buyer at several stalls has not said which — the schedule is just the
+            // app default, and caching that would overwrite the real one from the last
+            // run and walk the buyer's days back and forth on every start.
+            .map { state ->
+                state.contextualMarketId?.let { OrderReminderSchedule.encode(state.reminderSchedule) }
+            }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect { syncReminderSchedule() }
+    }
+}
+
+/**
+ * Cache the buyer's market schedule for the worker, and move their reminder days with
+ * it when the deadline moved.
+ *
+ * Days keep their distance to the deadline rather than their weekday
+ * ([OrderReminderSchedule.shiftDays]): Monday and Tuesday before a Tuesday deadline
+ * become Tuesday and Wednesday before a Wednesday one. Done here, once, rather than
+ * at read time, so the card, the stored settings and the worker always agree.
+ */
+internal fun BuyAppViewModel.syncReminderSchedule() {
+    val storage = orderReminderStorage ?: return
+    val schedule = _state.value.reminderSchedule
+    val previous = storage.cachedSchedule() ?: OrderReminderSchedule.DEFAULT
+    storage.cacheSchedule(schedule)
+    Log.d(TAG) { "syncReminderSchedule: ${OrderReminderSchedule.encode(schedule)}" }
+
+    if (OrderReminderSchedule.sameSchedule(previous, schedule)) return
+    val current = _state.value.orderReminder
+    val shifted = OrderReminderSchedule.shiftDays(current.days, previous, schedule)
+    if (shifted == current.days) return
+
+    // Not through updateReminder: that clears lastFiredDate, which is right when the
+    // buyer moves their own time but would let a market switch fire a second
+    // reminder on a day that already had one.
+    val updated = current.copy(days = shifted)
+    storage.save(updated)
+    _state.update { it.copy(orderReminder = updated) }
+    orderReminderScheduler?.reschedule()
+    Log.d(TAG) { "syncReminderSchedule: days moved with the deadline to $shifted" }
 }
 
 /**

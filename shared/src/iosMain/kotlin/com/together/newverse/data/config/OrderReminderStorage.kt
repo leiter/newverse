@@ -1,6 +1,8 @@
 package com.together.newverse.data.config
 
+import com.together.newverse.domain.config.OrderScheduleConfig
 import com.together.newverse.domain.model.OrderReminderSettings
+import com.together.newverse.domain.reminder.OrderReminderSchedule
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
 import platform.Foundation.NSUserDefaults
@@ -59,6 +61,13 @@ actual class OrderReminderStorage {
         defaults.setObject(cycles.toList(), forKey = KEY_CLOSED_CYCLES)
     }
 
+    actual fun cachedSchedule(): OrderScheduleConfig? =
+        OrderReminderSchedule.decode(defaults.stringForKey(KEY_SCHEDULE))
+
+    actual fun cacheSchedule(config: OrderScheduleConfig) {
+        defaults.setObject(OrderReminderSchedule.encode(config), forKey = KEY_SCHEDULE)
+    }
+
     actual fun ownerUserId(): String? = defaults.stringForKey(KEY_OWNER)
 
     actual fun setOwnerUserId(userId: String) {
@@ -70,7 +79,8 @@ actual class OrderReminderStorage {
     actual fun clear() {
         listOf(
             KEY_ENABLED, KEY_DAYS, KEY_HOUR, KEY_MINUTE,
-            KEY_ONLY_NOT_ORDERED, KEY_LAST_FIRED, KEY_PLACED_CYCLES, KEY_OWNER
+            KEY_ONLY_NOT_ORDERED, KEY_LAST_FIRED, KEY_PLACED_CYCLES, KEY_CLOSED_CYCLES,
+            KEY_SCHEDULE, KEY_OWNER
         ).forEach { defaults.removeObjectForKey(it) }
     }
 
@@ -83,6 +93,7 @@ actual class OrderReminderStorage {
         const val KEY_LAST_FIRED = "newverse_reminder_last_fired"
         const val KEY_PLACED_CYCLES = "newverse_reminder_placed_cycles"
         const val KEY_CLOSED_CYCLES = "newverse_reminder_closed_cycles"
+        const val KEY_SCHEDULE = "newverse_reminder_market_schedule"
         const val KEY_OWNER = "newverse_reminder_owner"
     }
 }

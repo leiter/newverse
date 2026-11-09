@@ -863,6 +863,31 @@ already does: `OrderReminderStorage.cacheClosedCycles`, written by the buy app w
 it loads them, scoped to the buyer's contextual market so another stall's closure does
 not silence their reminder.
 
+### The reminder follows the buyer's market's week — built 2026-11-09
+
+Until then the reminder assumed the default week throughout: the profile card said
+"Bestellschluss ist Dienstag 23:59 für die Abholung am Donnerstag" whatever the market,
+the notification said Tuesday, the day chips were fixed to Sat–Tue, and — the real bug —
+the worker evaluated against the default config. For a Friday-market buyer it looked for
+an order under Thursday's cycle key, never found the Friday one, and with
+"only when not ordered" on (the default) reminded buyers who had already ordered.
+
+Now `BuyAppState.reminderSchedule` is the contextual market's `scheduleConfig`, and:
+
+- The worker reads it from `OrderReminderStorage.cacheSchedule`, cached the same way as
+  closures, and passes it to `OrderReminderEvaluator`. The buy app writes it from
+  `observeReminderSchedule`, but only once a market is known, so the default never
+  overwrites a real cached schedule at start-up.
+- The card text, the notification text and the selectable days (the deadline day and
+  the three before it) all come from it — `OrderReminderSchedule`.
+- When the buyer's market changes, their chosen days move with the deadline: each keeps
+  its distance to the deadline rather than its weekday (`OrderReminderSchedule.shiftDays`).
+  This deliberately does not clear `lastFiredDate`, so a market switch cannot fire a
+  second reminder on the same day.
+
+Tests: `OrderReminderScheduleTest`. iOS still schedules no reminder at all (see
+`doc/design/order-ready-notification-design.md` C5); there only the card is affected.
+
 ---
 
 ## Suggested order of work
