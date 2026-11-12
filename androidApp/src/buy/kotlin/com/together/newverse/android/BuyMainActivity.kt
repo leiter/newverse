@@ -45,6 +45,7 @@ import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import android.Manifest
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.net.toUri
 
 /**
  * Buy flavor MainActivity
@@ -192,7 +193,7 @@ class BuyMainActivity : ComponentActivity() {
                 Log.d("BuyMainActivity", "QR scanned: $rawValue")
 
                 // Try to parse as deep link
-                val uri = Uri.parse(rawValue)
+                val uri = rawValue.toUri()
                 if (uri.scheme == "newverse" && uri.host == "connect") {
                     val sellerParam = uri.getQueryParameter("seller")
                     val tokenParam = uri.getQueryParameter("token")

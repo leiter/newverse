@@ -46,6 +46,41 @@ NavRoutes.hasBuyFeatures()    // IS_BUY_APP || combined
 NavRoutes.hasSellFeatures()   // IS_SELL_APP || combined
 ```
 
+## Why the IDE used to mark flavor code unresolved
+
+The flavor screens live in KMP source sets (`shared/src/buyMain`, `shared/src/sellMain`),
+and each Android flavor reaches them through an intermediate source set: `androidBuy`
+→ `androidMain` + `buyMain`, `androidSell` → `androidMain` + `sellMain`. Gradle honours
+that — `android/buyDebug` compiles `buyMain` — but **Android Studio models the entire
+Android target of a KMP module as one IDE module (`shared.main`) and copies only
+`androidMain`'s own `dependsOn` edges into it.** An edge declared on a flavor source set
+is dropped, so `buyMain` never landed on the Android classpath and
+`androidApp/src/buy/.../BuyMainActivity.kt` reported `BuyAppViewModel` as an unresolved
+reference while every build was green. No amount of cache-clearing or re-syncing changed
+that: the model Gradle handed over was missing the edge.
+
+`shared/build.gradle.kts` now adds the edge where the importer looks, **during sync
+only**:
+
+```kotlin
+if (isIdeSync) {                      // System.getProperty("idea.sync.active")
+    androidMain.get().dependsOn(if (ideFlavor == "sell") sellMain else buyMain)
+}
+```
+
+It cannot apply to a real build: `buyMain` and `sellMain` both declare
+`com.together.newverse.di.AppModule` and `ui.navigation.NavGraph`, so exactly one of
+them may be on the path — which `androidBuy`/`androidSell` already arrange per variant.
+
+For the same reason the IDE resolves **one** flavor at a time. It is buy by default; to
+work on the seller screens put
+
+```properties
+newverse.ideFlavor=sell
+```
+
+in `gradle.properties` and re-sync (and pick the matching build variant).
+
 ## Usage
 
 ```kotlin

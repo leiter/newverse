@@ -17,6 +17,33 @@ plugins {
 val DEV_SELLER_ID = "cPkcZSiF3LMXjWoqW6AqpA9paoO2"
 val PROD_SELLER_ID = "x64pN9m4wcYlZqB2qMTxpwIm9DD2"
 
+// Detect the flavor from gradle tasks being executed.
+// These must stay ABOVE the kotlin {} block: a build script's top-level properties are
+// initialised in declaration order, so a source set that reads isSellFlavor from below
+// this point sees the uninitialised default (false) instead of the detected flavor.
+val requestedTasks = gradle.startParameter.taskRequests.flatMap { it.args }
+val isBuyFlavor = requestedTasks.any { it.contains("Buy", ignoreCase = true) }
+val isSellFlavor = requestedTasks.any { it.contains("Sell", ignoreCase = true) }
+
+// Determine current flavor:
+// - "buy" for Buy-only builds
+// - "sell" for Sell-only builds
+// - "combined" for builds with both Buy and Sell features (default for development)
+val currentFlavor = when {
+    isBuyFlavor && !isSellFlavor -> "buy"
+    isSellFlavor && !isBuyFlavor -> "sell"
+    else -> "combined" // Default to combined build (both features enabled)
+}
+
+// Which flavor's source set the IDE should resolve. Android Studio asks Gradle for the
+// model with no flavor task on the command line, so the detection above cannot tell it
+// apart; set newverse.ideFlavor=sell in gradle.properties to work on the seller screens
+// in the IDE. See the androidMain wiring in the sourceSets block below.
+val ideFlavor = providers.gradleProperty("newverse.ideFlavor").getOrElse("buy")
+
+// True only while Android Studio / IntelliJ is syncing the project, never in a build.
+val isIdeSync = System.getProperty("idea.sync.active").toBoolean()
+
 kotlin {
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -123,6 +150,22 @@ kotlin {
         // JS target source set: always buy flavor (web v1 is buy-only)
         jsMain.get().apply {
             dependsOn(buyMain)
+        }
+
+        // Android Studio models the whole Android target of a KMP module as ONE module
+        // ("shared.main") and copies only androidMain's own dependsOn edges into it.
+        // buyMain is reached from androidBuy, a flavor source set the importer drops, so
+        // the IDE never puts buyMain on the Android classpath: BuyMainActivity in
+        // androidApp shows BuyAppViewModel as an unresolved reference even though every
+        // Gradle compilation resolves it (android/buyDebug includes buyMain via
+        // androidBuy). During sync only, hang the flavor source set off androidMain too,
+        // which is the edge the importer does follow.
+        // Sync-only on purpose: buyMain and sellMain both declare
+        // com.together.newverse.di.AppModule and ui.navigation.NavGraph, so a real build
+        // must keep exactly one of them on the path -- which androidBuy/androidSell
+        // already arrange per variant.
+        if (isIdeSync) {
+            androidMain.get().dependsOn(if (ideFlavor == "sell") sellMain else buyMain)
         }
 
         commonMain.dependencies {
@@ -314,21 +357,6 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-}
-
-// Detect the flavor from gradle tasks being executed
-val requestedTasks = gradle.startParameter.taskRequests.flatMap { it.args }
-val isBuyFlavor = requestedTasks.any { it.contains("Buy", ignoreCase = true) }
-val isSellFlavor = requestedTasks.any { it.contains("Sell", ignoreCase = true) }
-
-// Determine current flavor:
-// - "buy" for Buy-only builds
-// - "sell" for Sell-only builds
-// - "combined" for builds with both Buy and Sell features (default for development)
-val currentFlavor = when {
-    isBuyFlavor && !isSellFlavor -> "buy"
-    isSellFlavor && !isBuyFlavor -> "sell"
-    else -> "combined" // Default to combined build (both features enabled)
 }
 
 buildkonfig {
