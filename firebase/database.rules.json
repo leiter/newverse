@@ -147,6 +147,7 @@
             "$index": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 48" }
           },
           "selectionMode": { ".validate": "newData.parent().child('kind').val() === 'CHOICE' && (newData.val() === 'SINGLE' || newData.val() === 'MULTI')" },
+          "icon": { ".validate": "newData.parent().child('kind').val() === 'CHOICE' && (newData.val() === 'HELP' || newData.val() === 'INFO' || newData.val() === 'CART' || newData.val() === 'BASKET' || newData.val() === 'STORE' || newData.val() === 'LEAF' || newData.val() === 'BREAD' || newData.val() === 'EGG' || newData.val() === 'DRINK' || newData.val() === 'CLOCK' || newData.val() === 'CALENDAR' || newData.val() === 'DELIVERY' || newData.val() === 'GIFT' || newData.val() === 'STAR' || newData.val() === 'HEART' || newData.val() === 'MESSAGE' || newData.val() === 'LIST' || newData.val() === 'WARNING')" },
           "$other": { ".validate": false }
         }
       }

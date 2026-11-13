@@ -1327,6 +1327,26 @@
     <string name="seller_actions_selection_multi">Several answers</string>
     <string name="seller_actions_options_too_few">At least two different answers</string>
     <string name="inbox_chose_of">Chosen from %1$d answers</string>
+    <string name="seller_actions_icon">Icon</string>
+    <string name="seller_actions_icon_default">Default (question mark)</string>
+    <string name="seller_actions_icon_help">Question mark</string>
+    <string name="seller_actions_icon_info">Info</string>
+    <string name="seller_actions_icon_cart">Shopping cart</string>
+    <string name="seller_actions_icon_basket">Basket</string>
+    <string name="seller_actions_icon_store">Stall</string>
+    <string name="seller_actions_icon_leaf">Leaf</string>
+    <string name="seller_actions_icon_bread">Bread</string>
+    <string name="seller_actions_icon_egg">Egg</string>
+    <string name="seller_actions_icon_drink">Drink</string>
+    <string name="seller_actions_icon_clock">Clock</string>
+    <string name="seller_actions_icon_calendar">Calendar</string>
+    <string name="seller_actions_icon_delivery">Delivery</string>
+    <string name="seller_actions_icon_gift">Gift</string>
+    <string name="seller_actions_icon_star">Star</string>
+    <string name="seller_actions_icon_heart">Heart</string>
+    <string name="seller_actions_icon_message">Message</string>
+    <string name="seller_actions_icon_list">List</string>
+    <string name="seller_actions_icon_warning">Notice</string>
     <!-- The seller's inbox -->
     <string name="inbox_title">Wishes</string>
     <string name="inbox_open">Customer wishes</string>

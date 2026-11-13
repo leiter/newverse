@@ -383,6 +383,51 @@ middle answer leaves `{"0":…, "2":…}`. `stringListFromStored` accepts both a
 a map by its numeric key — without it, one seller edit would empty the picker on every
 buyer's phone.
 
+### The icon is the seller's, from a set the app ships
+
+`ActionIcon` is a closed enum of 18 names — `HELP`, `CART`, `LEAF`, `BREAD`… — and
+the picker is drawn with the one the row names, or with a question mark when it names
+none. The same discipline `ActionKind.scheme` follows: the row names an asset the app
+**has**, rather than carrying something the app must trust. The top bar is the one
+piece of chrome a buyer reads as the app's own, so a seller who could store a URL or
+a drawable name could put an arbitrary image there.
+
+**A name, not a number.** A number is a position in a list somebody can renumber:
+delete the fifth icon, reuse the five later, and every stored row means something else
+with no error and no way to notice. That is the failure `selections` rejected indices
+over, and it is no less real for being cosmetic.
+
+**An unknown icon degrades; it does not skip the row.** This is the one place that
+differs from `ActionKind` and `ActionLocation`, which drop a row whose stored name
+they do not know — unknown *behaviour* cannot be guessed at safely. An icon is
+cosmetic, so an app version that meets a newer icon draws the default rather than
+taking the picker away.
+
+**The default is per kind, and it is codified too.** `ActionKind.defaultIcon` says
+what a row with no icon of its own is drawn with — `HELP` for a picker — and
+`SellerUiAction.effectiveIcon` is the one place that resolves *which icon*, leaving
+the UI to resolve only *which drawing*. So `ActionIcon.vector()` takes no fallback:
+by the time it is called there is nothing left to fall back from.
+
+This matters more than it looks. The default started life hardcoded at the three
+places that draw a picker, which is three independent assertions that a picker is a
+question mark — exactly the duplication codifying the icon was supposed to remove.
+Now one `when` branch in `ActionIcons.kt` is the only place in the app that knows what
+a question mark looks like, and a test pins `ActionKind.CHOICE.defaultIcon` to it.
+
+Per kind rather than one global constant, because the obvious global candidate is
+worse than generic: `MoreVert` means "overflow menu", so a buyer would tap it
+expecting a menu and get a panel.
+
+**A `when`, not a `Map`.** `Icons.Default.*` are lazily built `ImageVector`s, so a
+top-level map would construct every icon in it at class-init to answer one lookup. It
+is also the shape that survives R8 without a keep rule — this app has already shipped
+a bug where R8 removed enum constants it could not see used (`139fc2a`).
+
+The icon is **not** part of `dismissalKey`. Recolouring a question is not asking a new
+one, and folding it in would un-dismiss every closed row the moment a seller tidied up
+their icons.
+
 ### Counting the answers is the seller's problem
 
 The same hole the wishbox has, and sharper here. The inbox is add-only, has no rate
@@ -404,6 +449,8 @@ honest buyer; it is not a control.
 | `buyMain/.../components/QuickMessageInput.kt` | The field |
 | `buyMain/.../components/ChoicePicker.kt` | The question mark and the panel |
 | `data/repository/RtdbStringLists.kt` | Reads a list RTDB may hand back as a map |
+| `domain/model/ActionIcon.kt` | The closed icon set, and why a name not a number |
+| `commonMain/.../ui/components/ActionIcons.kt` | `vector()` — the one `when` that names a drawable |
 | `buyMain/.../BuyAppState.kt` | `titlePromptFor`, `dismissedRows` |
 | `buyMain/.../AppScaffold.kt` | The title slot, and who wins it |
 | `buyMain/.../BuyAppViewModelUi.kt` | `sendPrompt`, `dismissPrompt`, `rememberDismissed` |

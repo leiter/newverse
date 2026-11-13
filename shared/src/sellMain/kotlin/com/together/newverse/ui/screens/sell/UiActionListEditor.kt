@@ -2,10 +2,13 @@ package com.together.newverse.ui.screens.sell
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -18,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,54 +34,77 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.ActionAudience
+import com.together.newverse.domain.model.ActionIcon
 import com.together.newverse.domain.model.ActionKind
 import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.ActionPersistence
 import com.together.newverse.domain.model.SelectionMode
 import com.together.newverse.domain.model.SellerUiAction
+import com.together.newverse.ui.components.vector
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.button_save
+import newverse.shared.generated.resources.seller_actions_active
 import newverse.shared.generated.resources.seller_actions_add
+import newverse.shared.generated.resources.seller_actions_announcement
+import newverse.shared.generated.resources.seller_actions_announcement_explain
 import newverse.shared.generated.resources.seller_actions_audience
 import newverse.shared.generated.resources.seller_actions_audience_all
+import newverse.shared.generated.resources.seller_actions_audience_approved
 import newverse.shared.generated.resources.seller_actions_audience_demo
-import newverse.shared.generated.resources.seller_actions_announcement
 import newverse.shared.generated.resources.seller_actions_choice
 import newverse.shared.generated.resources.seller_actions_choice_explain
+import newverse.shared.generated.resources.seller_actions_explain
+import newverse.shared.generated.resources.seller_actions_full
+import newverse.shared.generated.resources.seller_actions_icon
+import newverse.shared.generated.resources.seller_actions_icon_basket
+import newverse.shared.generated.resources.seller_actions_icon_bread
+import newverse.shared.generated.resources.seller_actions_icon_calendar
+import newverse.shared.generated.resources.seller_actions_icon_cart
+import newverse.shared.generated.resources.seller_actions_icon_clock
+import newverse.shared.generated.resources.seller_actions_icon_default
+import newverse.shared.generated.resources.seller_actions_icon_delivery
+import newverse.shared.generated.resources.seller_actions_icon_drink
+import newverse.shared.generated.resources.seller_actions_icon_egg
+import newverse.shared.generated.resources.seller_actions_icon_gift
+import newverse.shared.generated.resources.seller_actions_icon_heart
+import newverse.shared.generated.resources.seller_actions_icon_help
+import newverse.shared.generated.resources.seller_actions_icon_info
+import newverse.shared.generated.resources.seller_actions_icon_leaf
+import newverse.shared.generated.resources.seller_actions_icon_list
+import newverse.shared.generated.resources.seller_actions_icon_message
+import newverse.shared.generated.resources.seller_actions_icon_star
+import newverse.shared.generated.resources.seller_actions_icon_store
+import newverse.shared.generated.resources.seller_actions_icon_warning
+import newverse.shared.generated.resources.seller_actions_incomplete
+import newverse.shared.generated.resources.seller_actions_label
+import newverse.shared.generated.resources.seller_actions_location
+import newverse.shared.generated.resources.seller_actions_location_home
+import newverse.shared.generated.resources.seller_actions_location_home_brand
 import newverse.shared.generated.resources.seller_actions_location_home_choice
+import newverse.shared.generated.resources.seller_actions_location_home_input
+import newverse.shared.generated.resources.seller_actions_location_home_title
+import newverse.shared.generated.resources.seller_actions_location_profile
 import newverse.shared.generated.resources.seller_actions_location_profile_choice
+import newverse.shared.generated.resources.seller_actions_location_profile_input
 import newverse.shared.generated.resources.seller_actions_option_add
 import newverse.shared.generated.resources.seller_actions_option_hint
 import newverse.shared.generated.resources.seller_actions_option_remove
 import newverse.shared.generated.resources.seller_actions_options
 import newverse.shared.generated.resources.seller_actions_options_too_few
-import newverse.shared.generated.resources.seller_actions_selection_mode
-import newverse.shared.generated.resources.seller_actions_selection_multi
-import newverse.shared.generated.resources.seller_actions_selection_single
-import newverse.shared.generated.resources.seller_actions_announcement_explain
-import newverse.shared.generated.resources.seller_actions_audience_approved
-import newverse.shared.generated.resources.seller_actions_explain
-import newverse.shared.generated.resources.seller_actions_full
-import newverse.shared.generated.resources.seller_actions_incomplete
-import newverse.shared.generated.resources.seller_actions_label
-import newverse.shared.generated.resources.seller_actions_location
-import newverse.shared.generated.resources.seller_actions_location_home
-import newverse.shared.generated.resources.seller_actions_location_home_title
-import newverse.shared.generated.resources.seller_actions_location_profile
-import newverse.shared.generated.resources.seller_actions_location_home_brand
-import newverse.shared.generated.resources.seller_actions_location_home_input
-import newverse.shared.generated.resources.seller_actions_location_profile_input
-import newverse.shared.generated.resources.seller_actions_prompt
-import newverse.shared.generated.resources.seller_actions_prompt_explain
-import newverse.shared.generated.resources.seller_actions_remove
-import newverse.shared.generated.resources.seller_actions_active
 import newverse.shared.generated.resources.seller_actions_persistence
 import newverse.shared.generated.resources.seller_actions_persistence_hide_on_action
 import newverse.shared.generated.resources.seller_actions_persistence_until_cancelled
+import newverse.shared.generated.resources.seller_actions_prompt
+import newverse.shared.generated.resources.seller_actions_prompt_explain
+import newverse.shared.generated.resources.seller_actions_remove
 import newverse.shared.generated.resources.seller_actions_save_failed
+import newverse.shared.generated.resources.seller_actions_selection_mode
+import newverse.shared.generated.resources.seller_actions_selection_multi
+import newverse.shared.generated.resources.seller_actions_selection_single
 import newverse.shared.generated.resources.seller_actions_title
 import newverse.shared.generated.resources.seller_actions_value
 import org.jetbrains.compose.resources.stringResource
@@ -527,6 +554,42 @@ private fun ChoiceOptionsEditor(
             )
         }
 
+        // Which icon the question mark is replaced by. A row of the icons
+        // themselves rather than a dropdown of their names: the seller is choosing
+        // what a buyer will *see*, and a list reading "Einkaufswagen" asks them to
+        // imagine it. The names are still there for a screen reader.
+        Text(
+            text = stringResource(Res.string.seller_actions_icon),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // The default sits in the row as an option of its own, so "no icon
+            // chosen" is something the seller can get back to. Clearing a choice is
+            // otherwise impossible without deleting the row.
+            IconToggle(
+                // Drawn as whatever the kind's default actually is, read from the
+                // kind rather than restated here, so this tile cannot promise a
+                // question mark while the buy app draws something else.
+                icon = action.kind.defaultIcon,
+                description = stringResource(Res.string.seller_actions_icon_default),
+                selected = action.icon == null,
+                onClick = { onChange(action.copy(icon = null)) }
+            )
+            ActionIcon.entries.forEach { candidate ->
+                IconToggle(
+                    icon = candidate,
+                    description = candidate.displayName(),
+                    selected = action.icon == candidate,
+                    onClick = { onChange(action.copy(icon = candidate)) }
+                )
+            }
+        }
+
         Column {
             OutlinedTextField(
                 value = action.selectionMode.displayName(),
@@ -556,6 +619,72 @@ private fun ChoiceOptionsEditor(
             }
         }
     }
+}
+
+/**
+ * One icon in the chooser: the drawing, with its name carried for a screen reader.
+ *
+ * A reader gets the name and the selected state and never the drawing, which is why
+ * [description] is required rather than defaulted — an unlabelled icon in a grid of
+ * eighteen is eighteen identical buttons.
+ */
+@Composable
+private fun IconToggle(
+    icon: ActionIcon,
+    description: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val background =
+        if (selected) MaterialTheme.colorScheme.secondaryContainer
+        else MaterialTheme.colorScheme.surfaceVariant
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = background,
+        modifier = Modifier
+            .size(44.dp)
+            .clickable(onClick = onClick)
+            .semantics {
+                contentDescription = description
+                this.selected = selected
+            }
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                // The same resolver the buy app draws with, so the seller is choosing
+                // from exactly what a buyer will see rather than from a parallel list
+                // that can drift out of step with it.
+                imageVector = icon.vector(),
+                contentDescription = null,
+                tint =
+                    if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/** What the seller sees beside each icon. Never shown to a buyer. */
+@Composable
+private fun ActionIcon.displayName(): String = when (this) {
+    ActionIcon.HELP -> stringResource(Res.string.seller_actions_icon_help)
+    ActionIcon.INFO -> stringResource(Res.string.seller_actions_icon_info)
+    ActionIcon.CART -> stringResource(Res.string.seller_actions_icon_cart)
+    ActionIcon.BASKET -> stringResource(Res.string.seller_actions_icon_basket)
+    ActionIcon.STORE -> stringResource(Res.string.seller_actions_icon_store)
+    ActionIcon.LEAF -> stringResource(Res.string.seller_actions_icon_leaf)
+    ActionIcon.BREAD -> stringResource(Res.string.seller_actions_icon_bread)
+    ActionIcon.EGG -> stringResource(Res.string.seller_actions_icon_egg)
+    ActionIcon.DRINK -> stringResource(Res.string.seller_actions_icon_drink)
+    ActionIcon.CLOCK -> stringResource(Res.string.seller_actions_icon_clock)
+    ActionIcon.CALENDAR -> stringResource(Res.string.seller_actions_icon_calendar)
+    ActionIcon.DELIVERY -> stringResource(Res.string.seller_actions_icon_delivery)
+    ActionIcon.GIFT -> stringResource(Res.string.seller_actions_icon_gift)
+    ActionIcon.STAR -> stringResource(Res.string.seller_actions_icon_star)
+    ActionIcon.HEART -> stringResource(Res.string.seller_actions_icon_heart)
+    ActionIcon.MESSAGE -> stringResource(Res.string.seller_actions_icon_message)
+    ActionIcon.LIST -> stringResource(Res.string.seller_actions_icon_list)
+    ActionIcon.WARNING -> stringResource(Res.string.seller_actions_icon_warning)
 }
 
 /**

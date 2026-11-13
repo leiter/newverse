@@ -1385,6 +1385,26 @@
     <string name="seller_actions_selection_multi">Mehrere Antworten</string>
     <string name="seller_actions_options_too_few">Mindestens zwei verschiedene Antworten</string>
     <string name="inbox_chose_of">Gewählt aus %1$d Antworten</string>
+    <string name="seller_actions_icon">Symbol</string>
+    <string name="seller_actions_icon_default">Standard (Fragezeichen)</string>
+    <string name="seller_actions_icon_help">Fragezeichen</string>
+    <string name="seller_actions_icon_info">Info</string>
+    <string name="seller_actions_icon_cart">Einkaufswagen</string>
+    <string name="seller_actions_icon_basket">Korb</string>
+    <string name="seller_actions_icon_store">Stand</string>
+    <string name="seller_actions_icon_leaf">Blatt</string>
+    <string name="seller_actions_icon_bread">Brot</string>
+    <string name="seller_actions_icon_egg">Ei</string>
+    <string name="seller_actions_icon_drink">Getränk</string>
+    <string name="seller_actions_icon_clock">Uhr</string>
+    <string name="seller_actions_icon_calendar">Kalender</string>
+    <string name="seller_actions_icon_delivery">Lieferung</string>
+    <string name="seller_actions_icon_gift">Geschenk</string>
+    <string name="seller_actions_icon_star">Stern</string>
+    <string name="seller_actions_icon_heart">Herz</string>
+    <string name="seller_actions_icon_message">Nachricht</string>
+    <string name="seller_actions_icon_list">Liste</string>
+    <string name="seller_actions_icon_warning">Hinweis</string>
     <!-- Posteingang des Verkäufers -->
     <string name="inbox_title">Wünsche</string>
     <string name="inbox_open">Wünsche der Kunden</string>

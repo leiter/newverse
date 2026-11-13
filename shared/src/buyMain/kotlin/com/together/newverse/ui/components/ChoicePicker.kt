@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -65,13 +65,22 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun ChoicePickerIcon(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * What to draw.
+     *
+     * Required rather than defaulted to a question mark: which icon a picker with
+     * none of its own gets is `ActionKind.defaultIcon`'s to say, and a default here
+     * would be a second opinion on it that nothing keeps in step.
+     */
+    icon: ImageVector,
 ) {
     val barColors = LocalBarColors.current
     IconButton(onClick = onClick, modifier = modifier.size(40.dp)) {
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.HelpOutline,
-            // The icon is the only thing a screen reader has here: a question mark
-            // drawn in a bar has no text to fall back on.
+            imageVector = icon,
+            // What the thing *does*, never which icon the seller picked. A screen
+            // reader has nothing else here, and "shopping cart" would describe the
+            // drawing rather than the question behind it.
             contentDescription = stringResource(Res.string.choice_open),
             tint = barColors.content
         )

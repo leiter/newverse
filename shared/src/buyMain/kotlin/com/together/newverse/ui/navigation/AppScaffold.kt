@@ -65,6 +65,7 @@ import com.together.newverse.ui.adaptive.LocalWindowWidthClass
 import com.together.newverse.ui.adaptive.ProvideWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.ui.components.ChoicePickerIcon
+import com.together.newverse.ui.components.vector
 import com.together.newverse.ui.components.ChoicePickerPanel
 import com.together.newverse.ui.components.QuickMessageInput
 import com.together.newverse.ui.components.SellerAnnouncementTitle
@@ -694,7 +695,13 @@ private fun AppScaffoldContent(
                     }
                     val choicePicker = choiceSlot?.let { appState.choicePickerFor(it) }
                     if (choiceSlot != null && choicePicker != null) {
-                        ChoicePickerIcon(onClick = { openChoice = choiceSlot })
+                        ChoicePickerIcon(
+                            onClick = { openChoice = choiceSlot },
+                            // The seller's icon, or the kind's. An icon this version
+                            // does not know has already become the default by here,
+                            // rather than taking the picker away.
+                            icon = choicePicker.effectiveIcon.vector()
+                        )
                     }
 
                     // Buttons the seller published for this screen.

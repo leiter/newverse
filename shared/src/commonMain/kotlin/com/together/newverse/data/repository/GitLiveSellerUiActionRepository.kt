@@ -1,6 +1,7 @@
 package com.together.newverse.data.repository
 
 import com.together.newverse.domain.model.ActionAudience
+import com.together.newverse.domain.model.ActionIcon
 import com.together.newverse.domain.model.ActionKind
 import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.ActionPersistence
@@ -151,6 +152,11 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
             // Tolerates both shapes RTDB returns for a list -- see
             // [stringListFromStored]. A seller deleting a middle option must not
             // empty the picker on every buyer's phone.
+            // Absent *or* unknown reads as null, which means the kind's own icon.
+            // Unlike every other stored enum here this does not skip the row: an
+            // icon is cosmetic, and a button disappearing because a newer version
+            // knew one more icon would be the worse failure.
+            val icon = ActionIcon.stored(fields["icon"] as? String)
             val options = stringListFromStored(
                 fields["options"],
                 SellerUiAction.MAX_OPTION_LENGTH
@@ -177,7 +183,8 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
                 isActive = isActive,
                 persistence = persistence,
                 options = options,
-                selectionMode = selectionMode
+                selectionMode = selectionMode,
+                icon = icon
             )
                 // A hand-written picker with one answer, or with the same answer
                 // twice, is an icon that opens a panel nobody can answer. Dropped
@@ -206,6 +213,10 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
         if (action.kind == ActionKind.CHOICE) {
             put("options", action.options)
             put("selectionMode", action.selectionMode.name)
+            // Only when the seller chose one. A null would be refused as a child the
+            // rules do not allow to be empty, and "no icon" is already expressed by
+            // the field being absent.
+            action.icon?.let { put("icon", it.name) }
         }
     }
 }

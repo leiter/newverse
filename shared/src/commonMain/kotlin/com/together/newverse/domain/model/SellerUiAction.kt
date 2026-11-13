@@ -76,6 +76,19 @@ data class SellerUiAction(
      * [ActionKind.CHOICE].
      */
     val selectionMode: SelectionMode = SelectionMode.SINGLE,
+    /**
+     * Which icon the row is drawn with, or null for the one its kind would have had.
+     *
+     * Only meaningful for [ActionKind.CHOICE] today — the one kind whose whole
+     * affordance *is* an icon. A published button renders as its label on purpose
+     * ("Wünsche" says what an icon could not), so giving buttons icons would undo
+     * that decision rather than extend this one.
+     *
+     * Deliberately **not** part of [dismissalKey]. Recolouring a question is not
+     * asking a new one, and folding the icon in would un-dismiss every row a buyer
+     * had already closed the moment a seller tidied up their icons.
+     */
+    val icon: ActionIcon? = null,
 ) {
     /**
      * A button with nothing to say or nowhere to go is not shown, and neither is a
@@ -156,13 +169,28 @@ data class SellerUiAction(
         val storedOptions =
             if (storedKind == ActionKind.CHOICE) distinctOptions().take(MAX_OPTIONS)
             else emptyList()
+        // Cleared for a kind that is not drawn as an icon, for the reason the
+        // options are: the rules refuse an `icon` child anywhere else and would
+        // reject the whole row over the one field.
+        val storedIcon = if (storedKind == ActionKind.CHOICE) icon else null
         return copy(
             kind = storedKind,
             label = storedLabel,
             persistence = storedPersistence,
             options = storedOptions,
+            icon = storedIcon,
         )
     }
+
+    /**
+     * The icon this row is actually drawn with: the seller's, or its kind's.
+     *
+     * The one place that resolves "which icon", leaving the UI to resolve only
+     * "which drawing". A stored name this version does not know has already become
+     * null by the time it gets here — see [ActionIcon.stored] — so an unknown icon
+     * and no icon arrive at the same answer, which is the intended degradation.
+     */
+    val effectiveIcon: ActionIcon get() = icon ?: kind.defaultIcon
 
     /**
      * The options as they should be stored: trimmed, capped, blanks dropped and
@@ -311,6 +339,20 @@ enum class ActionKind(
      * cannot honour.
      */
     val hasAction: Boolean = true,
+    /**
+     * The icon a row of this kind is drawn with when it names none of its own.
+     *
+     * Here rather than at the call sites that draw it, because three places each
+     * asserting "a picker is a question mark" is three places to miss when it
+     * changes — the duplication codifying the icon was meant to remove. Expressed as
+     * an [ActionIcon] rather than a drawable so that exactly one place in the app
+     * knows what a question mark looks like: the `when` in `ActionIcons.kt`.
+     *
+     * Only read for a kind that is actually rendered as an icon, which today is
+     * [CHOICE] alone. The others carry the default because a nullable field would
+     * push a null check onto every call site to express something no caller asks.
+     */
+    val defaultIcon: ActionIcon = ActionIcon.HELP,
 ) {
     OPEN_URL("https://"),
 

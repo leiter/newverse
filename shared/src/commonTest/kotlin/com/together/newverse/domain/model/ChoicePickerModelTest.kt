@@ -175,6 +175,83 @@ class ChoicePickerModelTest {
         )
     }
 
+    // --- the icon -------------------------------------------------------------
+
+    @Test
+    fun `an absent icon means the kind's own`() {
+        assertNull(ActionIcon.stored(null))
+    }
+
+    @Test
+    fun `an unknown icon degrades rather than skipping the row`() {
+        // Unlike every other stored enum: a kind or a location this version does not
+        // know makes the row unrenderable, but an icon is cosmetic. null here means
+        // "draw the default", and the row is still shown.
+        assertNull(ActionIcon.stored("SKULL"))
+    }
+
+    @Test
+    fun `a known icon reads back`() {
+        assertEquals(ActionIcon.CART, ActionIcon.stored("CART"))
+    }
+
+    @Test
+    fun `a picker with no icon of its own is drawn with its kind's`() {
+        assertEquals(ActionKind.CHOICE.defaultIcon, picker().effectiveIcon)
+    }
+
+    @Test
+    fun `a picker's own icon wins over the kind's`() {
+        assertEquals(ActionIcon.CART, picker().copy(icon = ActionIcon.CART).effectiveIcon)
+    }
+
+    @Test
+    fun `an icon this version does not know resolves to the kind's default`() {
+        // The whole degradation path end to end: a newer name is stored, this
+        // version cannot name it, and the row is still drawn -- with the icon it
+        // would have had rather than with nothing.
+        val stored = ActionIcon.stored("FISH")
+        assertEquals(
+            ActionKind.CHOICE.defaultIcon,
+            picker().copy(icon = stored).effectiveIcon
+        )
+    }
+
+    @Test
+    fun `a choice defaults to the question mark`() {
+        // Pinned because three call sites used to assert this independently; now
+        // only the kind does, and this is what holds it to it.
+        assertEquals(ActionIcon.HELP, ActionKind.CHOICE.defaultIcon)
+    }
+
+    @Test
+    fun `readyToStore keeps a picker's icon`() {
+        assertEquals(ActionIcon.CART, picker().copy(icon = ActionIcon.CART).readyToStore().icon)
+    }
+
+    @Test
+    fun `readyToStore clears an icon from a kind that is not drawn as one`() {
+        val prompt = SellerUiAction(
+            id = "act_4",
+            kind = ActionKind.QUICK_MESSAGE,
+            value = "Was fehlt euch?",
+            location = ActionLocation.TOPBAR_HOME_INPUT,
+            icon = ActionIcon.CART,
+        )
+        assertNull(prompt.readyToStore().icon)
+    }
+
+    @Test
+    fun `changing the icon does not re-ask a buyer who already answered`() {
+        // The icon is deliberately outside dismissalKey: recolouring a question is
+        // not asking a new one, and folding it in would un-dismiss every closed row
+        // the moment a seller tidied up their icons.
+        assertEquals(
+            picker().dismissalKey,
+            picker().copy(icon = ActionIcon.CART).dismissalKey
+        )
+    }
+
     // --- the stored selection mode -------------------------------------------
 
     @Test

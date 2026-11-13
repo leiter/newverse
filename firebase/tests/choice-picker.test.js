@@ -151,6 +151,40 @@ describe("choice picker", () => {
     await assertFails(publish(SELLER, "act_choice", row({ selectionMode: "RANKED" })));
   });
 
+  // --- the icon -------------------------------------------------------------
+
+  it("lets the seller pick an icon from the set the app ships", async () => {
+    await assertSucceeds(publish(SELLER, "act_choice", row({ icon: "CART" })));
+  });
+
+  it("refuses an icon the app does not ship", async () => {
+    // The closed list is the whole protection: a seller who could store a free
+    // string could aim the top bar at an asset the app never vetted.
+    await assertFails(publish(SELLER, "act_choice", row({ icon: "SKULL" })));
+  });
+
+  it("refuses an icon stored as a number", async () => {
+    // Names, not positions -- a number is an index into a list somebody can
+    // renumber, and every stored row would silently change meaning.
+    await assertFails(publish(SELLER, "act_choice", row({ icon: 3 })));
+  });
+
+  it("refuses an icon on a kind that is not drawn as one", async () => {
+    await assertFails(publish(SELLER, "act_q", {
+      id: "act_q",
+      kind: "QUICK_MESSAGE",
+      label: "Was fehlt",
+      value: "Was fehlt euch?",
+      location: "TOPBAR_HOME_INPUT",
+      icon: "CART"
+    }));
+  });
+
+  it("accepts a picker with no icon at all", async () => {
+    // Absent means the question mark. The field is optional by design.
+    await assertSucceeds(publish(SELLER, "act_choice", row({ icon: null })));
+  });
+
   // --- answering it ---------------------------------------------------------
 
   it("lets a buyer send a choice answer", async () => {
