@@ -403,6 +403,46 @@ they do not know — unknown *behaviour* cannot be guessed at safely. An icon is
 cosmetic, so an app version that meets a newer icon draws the default rather than
 taking the picker away.
 
+### Adding a field: an older seller app will strip it
+
+Read this before adding any child to a published row.
+
+`saveAction` writes with `setValue(actionToMap(stored))`, which is a **whole-node
+replace**, and `UiActionListEditor` saves *every* complete row rather than the edited
+one:
+
+```kotlin
+onClick = { rows.filter { it.isComplete }.forEach { onSave(it.readyToStore()) } }
+```
+
+So a seller running an app version that does not know some field will, on pressing
+save once, rewrite all their rows without it — silently, and across rows they never
+touched.
+
+**This does not bite today, and the reason is worth understanding.** An app that does
+not know `CHOICE` has `ActionKind.fromStored` return null, so `parseActions` drops the
+row entirely: it never reaches the editor and cannot be re-saved. `options`,
+`selectionMode` and `icon` are therefore safe against every version shipped so far,
+because the first version that understands any of them understands all of them.
+
+The hole opens with the **next** field added after a kind ships, where an older build
+parses the row happily and simply has nothing to write back. It is exactly the cost of
+choosing *degrade* over *skip*: a row kept on screen is a row that can be saved back.
+
+The fix, when a field needs it, is to keep what you do not understand — hold the raw
+stored value beside the parsed one and write it back when the parse failed:
+
+```kotlin
+val icon: ActionIcon? = null,
+val iconRaw: String = "",          // what was stored, if we did not recognise it
+// on write: icon?.name ?: iconRaw.ifEmpty { null }
+```
+
+Deliberately not built yet: it is twenty speculative lines today and twenty motivated,
+testable ones on the day a fourth field lands. Weigh it harder if that field is
+*behavioural* rather than cosmetic — a stripped icon is a wrong drawing, a stripped
+audience or schedule is a row doing something the seller did not ask for.
+
 **The default is per kind, and it is codified too.** `ActionKind.defaultIcon` says
 what a row with no icon of its own is drawn with — `HELP` for a picker — and
 `SellerUiAction.effectiveIcon` is the one place that resolves *which icon*, leaving
