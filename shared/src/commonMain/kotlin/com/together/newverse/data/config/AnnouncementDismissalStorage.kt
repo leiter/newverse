@@ -1,17 +1,45 @@
 package com.together.newverse.data.config
 
 /**
- * How many dismissal keys one device keeps.
+ * How many keys one device keeps.
  *
- * Bounded because nothing ever removes one: a seller publishing a fresh announcement
- * every week would otherwise grow this set forever. The oldest are dropped first, and
- * the worst an evicted key can do is show one very old announcement again — which
- * cannot happen in practice, because the seller deleted that row long ago.
+ * Bounded because a seller publishing a fresh announcement every week would otherwise
+ * grow this set forever. The oldest are dropped first.
+ *
+ * **What eviction costs is no longer nothing.** While a key could only mean "dismissed
+ * for good", losing the oldest was harmless — the row it named had been deleted by the
+ * seller long before. Now a plain key means *collapsed*, and a collapsed row is
+ * usually still published: evicting its key puts it back in the title, where the buyer
+ * has to collapse it again. So this is a **soft** guarantee. Collapse is sticky, not
+ * permanent, and a buyer who wants a row gone for good long-presses its icon, which
+ * stores an [ANSWERED_PREFIX] key that eviction treats no differently but which is
+ * only reached deliberately.
+ *
+ * 50 is chosen against one seller publishing a handful of rows: reaching it means
+ * fifty distinct wordings on one device, which is years of weekly announcements. If a
+ * seller ever churns rows fast enough to matter, the fix is to evict *collapsed* keys
+ * before answered ones rather than to raise the number — an answered row is a promise
+ * to the seller, a collapsed one is a convenience for the buyer.
  *
  * A top-level constant rather than a member of the expect class, so each platform
  * implementation does not have to restate a companion object to get at it.
  */
 const val MAX_DISMISSAL_KEYS = 50
+
+/**
+ * How many times a buyer is told that long-pressing a collapsed row's icon hides it
+ * for good.
+ *
+ * Shown on the first few collapses and then never again. A gesture with no visible
+ * affordance is a gesture nobody finds, and the alternative — a permanent "hide
+ * forever" button beside every collapsed icon — would put the destructive option back
+ * one stray tap away, which is the problem collapsing was introduced to fix.
+ *
+ * Five rather than once: the first collapse is also the moment the buyer is working out
+ * what just happened to the announcement, and a hint read while surprised is a hint
+ * unread.
+ */
+const val MAX_COLLAPSE_HINTS = 5
 
 /** Separates the stored keys. Not a character a [dismissalKey] can contain. */
 internal const val DISMISSAL_SEPARATOR = "\n"
@@ -70,4 +98,10 @@ expect class AnnouncementDismissalStorage {
      * answered one is stored behind [ANSWERED_PREFIX] and nothing offers to undo it.
      */
     fun restore(key: String)
+
+    /** How many times the long-press hint has been shown on this device. */
+    fun collapseHintsShown(): Int
+
+    /** Remember that the long-press hint has been shown once more. */
+    fun noteCollapseHintShown()
 }

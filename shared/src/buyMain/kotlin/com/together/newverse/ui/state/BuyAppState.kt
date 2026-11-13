@@ -106,6 +106,14 @@ data class BuyAppState(
      */
     val collapsedRows: Set<String> = emptySet(),
     /**
+     * How many times this device has been told that long-pressing a collapsed row's
+     * icon hides it for good.
+     *
+     * In state rather than read from storage on each collapse for [dismissedRows]'s
+     * reason: the decision is made on the same frame as the tap.
+     */
+    val collapseHintsShown: Int = 0,
+    /**
      * Where a message the buyer typed into a published box currently stands.
      *
      * One slot of state for both input slots, because a buyer can only be sending

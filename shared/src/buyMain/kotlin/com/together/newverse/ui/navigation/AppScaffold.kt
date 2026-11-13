@@ -2,6 +2,7 @@ package com.together.newverse.ui.navigation
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animate
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
@@ -28,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
@@ -94,9 +98,12 @@ import newverse.shared.generated.resources.a11y_seller_actions
 import newverse.shared.generated.resources.action_orders
 import newverse.shared.generated.resources.app_name
 import newverse.shared.generated.resources.back
+import newverse.shared.generated.resources.collapsed_row_dismissed
 import newverse.shared.generated.resources.collapsed_row_expand
+import newverse.shared.generated.resources.collapsed_row_hint
 import newverse.shared.generated.resources.contacts_title
 import newverse.shared.generated.resources.nav_shopping_basket
+import newverse.shared.generated.resources.pickup_undo
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -323,6 +330,12 @@ private fun AppScaffoldContent(
     // open the other.
     var openChoice by remember { mutableStateOf<ActionLocation?>(null) }
 
+    // The key of a row just hidden for good, until its snackbar resolves. Held here
+    // rather than in app state because the undo needs the snackbar's *result*, and the
+    // shared snackbar path discards it -- an actionLabel passed through state renders
+    // a button whose press goes nowhere.
+    var pendingRowUndo by remember { mutableStateOf<String?>(null) }
+
     val quickMessageError = appState.quickMessage.error
     val quickMessageErrorText = quickMessageError?.let { stringResource(it) }
     LaunchedEffect(quickMessageError) {
@@ -330,6 +343,24 @@ private fun AppScaffoldContent(
             snackbarHostState.showSnackbar(quickMessageErrorText)
             viewModel.dispatch(BuyUiAction.ClearPromptError)
         }
+    }
+
+    // A row hidden for good, with one chance to take it back.
+    //
+    // The offer is the whole reason a long-press is allowed to be destructive at all:
+    // the gesture is deliberate, and if it was not, this is the way back.
+    val rowDismissedText = stringResource(Res.string.collapsed_row_dismissed)
+    val undoText = stringResource(Res.string.pickup_undo)
+    LaunchedEffect(pendingRowUndo) {
+        val key = pendingRowUndo ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = rowDismissedText,
+            actionLabel = undoText
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            viewModel.dispatch(BuyUiAction.RestoreRow(key))
+        }
+        pendingRowUndo = null
     }
 
     // Observe snackbar state changes from ViewModel
@@ -704,18 +735,44 @@ private fun AppScaffoldContent(
                     collapsibleSlots.forEach { slot ->
                         val collapsed = appState.collapsedRowFor(slot)
                         if (collapsed != null) {
-                            IconButton(
-                                onClick = { viewModel.dispatch(BuyUiAction.ExpandRow(slot)) },
-                                modifier = Modifier.size(40.dp)
+                            val expandLabel = stringResource(Res.string.collapsed_row_expand)
+                            val dismissLabel = stringResource(Res.string.collapsed_row_hint)
+                            // A Box with combinedClickable rather than an IconButton,
+                            // which has no long-press. Sized and shaped to match the
+                            // bar's other icons so the odd one out is not the one with
+                            // the extra gesture.
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .combinedClickable(
+                                        onClick = {
+                                            viewModel.dispatch(BuyUiAction.ExpandRow(slot))
+                                        },
+                                        onLongClick = {
+                                            // Captured before the dispatch: once the
+                                            // row is hidden the slot resolves to
+                                            // nothing, and the undo needs the key.
+                                            pendingRowUndo = collapsed.dismissalKey
+                                            viewModel.dispatch(BuyUiAction.DismissRow(slot))
+                                        },
+                                        // Both gestures named, because an icon with a
+                                        // second meaning a reader cannot hear has one
+                                        // meaning.
+                                        onClickLabel = expandLabel,
+                                        onLongClickLabel = dismissLabel
+                                    )
+                                    .semantics {
+                                        contentDescription = expandLabel
+                                    },
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = collapsed.effectiveIcon.vector(),
                                     // What tapping it does, not what it depicts: the
                                     // seller may have chosen the drawing, and a
                                     // reader needs the behaviour.
-                                    contentDescription = stringResource(
-                                        Res.string.collapsed_row_expand
-                                    ),
+                                    contentDescription = null,
                                     tint = topBarColors.content
                                 )
                             }

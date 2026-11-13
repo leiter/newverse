@@ -12,11 +12,13 @@ import com.together.newverse.ui.state.DialogState
 import com.together.newverse.ui.state.SnackbarState
 import com.together.newverse.ui.state.SnackbarType
 import com.together.newverse.data.config.ANSWERED_PREFIX
+import com.together.newverse.data.config.MAX_COLLAPSE_HINTS
 import com.together.newverse.util.Log
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.choice_failed
+import newverse.shared.generated.resources.collapsed_row_hint
 import newverse.shared.generated.resources.choice_sent
 import newverse.shared.generated.resources.quick_message_failed
 import newverse.shared.generated.resources.quick_message_sent
@@ -184,10 +186,19 @@ internal fun BuyAppViewModel.loadDismissedAnnouncements() {
     val answered = dismissed.filter { it.startsWith(ANSWERED_PREFIX) }
         .map { it.removePrefix(ANSWERED_PREFIX) }
     val collapsed = dismissed.filterNot { it.startsWith(ANSWERED_PREFIX) }
+    val hintsShown = try {
+        storage.collapseHintsShown()
+    } catch (e: Exception) {
+        Log.w("BuyVMUi") { "loadDismissedAnnouncements: hint count - ${e.message}" }
+        // The hint being offered once too often is a smaller cost than the read
+        // failing startup, and a smaller one than never offering it at all.
+        0
+    }
     _state.update {
         it.copy(
             dismissedRows = it.dismissedRows + answered,
             collapsedRows = it.collapsedRows + collapsed,
+            collapseHintsShown = hintsShown,
         )
     }
 }
@@ -239,6 +250,61 @@ internal fun BuyAppViewModel.collapsePrompt(location: ActionLocation) {
  * `dismissedRows`, which [BuyAppState.collapsedRowFor] excludes, so no icon is drawn
  * for it and nothing can ask to expand it.
  */
+/**
+ * Hide a collapsed row for good — the buyer long-pressed its icon.
+ *
+ * The deliberate counterpart to [collapseHomeAnnouncement] and [collapsePrompt]. They
+ * answer "not now"; this answers "not ever", which is what a buyer who does not want
+ * to be asked actually means and what collapsing alone could not say.
+ *
+ * Resolved from the row the *state* holds for the slot, like every other close here,
+ * so a stale icon cannot hide a row the seller has since replaced. Only a collapsed
+ * row can reach this: the icon is the only way in, and
+ * [BuyAppState.collapsedRowFor] draws one for nothing else.
+ *
+ * The undo lives with the snackbar in `AppScaffold`, not here — see [restoreRow].
+ */
+internal fun BuyAppViewModel.dismissRow(location: ActionLocation) {
+    val key = _state.value.collapsedRowFor(location)?.dismissalKey ?: return
+    // Out of the reversible set and into the final one, so no icon is drawn for it
+    // and nothing offers to bring it back.
+    _state.update { it.copy(collapsedRows = it.collapsedRows - key) }
+    try {
+        announcementDismissalStorage?.restore(key)
+    } catch (e: Exception) {
+        Log.w("BuyVMUi") { "dismissRow: $key not un-collapsed - ${e.message}" }
+    }
+    rememberDismissed(key)
+}
+
+/**
+ * Put back a row the buyer has just hidden for good, from the snackbar's undo.
+ *
+ * Takes the key rather than the slot — the one place here that does. Everything else
+ * resolves from state so a stale frame cannot act on the wrong row; an undo needs the
+ * opposite, because it has to restore exactly what was hidden even if the seller
+ * changed the published row while the snackbar was up.
+ *
+ * Restores it to **collapsed**, not expanded: the buyer's last deliberate word on this
+ * row was that they did not want it in the title, and undoing the step after that
+ * should not undo the one before it too.
+ */
+internal fun BuyAppViewModel.restoreRow(dismissalKey: String) {
+    if (dismissalKey.isEmpty()) return
+    _state.update {
+        it.copy(
+            dismissedRows = it.dismissedRows - dismissalKey,
+            collapsedRows = it.collapsedRows + dismissalKey,
+        )
+    }
+    try {
+        announcementDismissalStorage?.restore(ANSWERED_PREFIX + dismissalKey)
+        announcementDismissalStorage?.dismiss(dismissalKey)
+    } catch (e: Exception) {
+        Log.w("BuyVMUi") { "restoreRow: $dismissalKey not restored - ${e.message}" }
+    }
+}
+
 internal fun BuyAppViewModel.expandRow(location: ActionLocation) {
     val key = _state.value.collapsedRowFor(location)?.dismissalKey ?: return
     _state.update { it.copy(collapsedRows = it.collapsedRows - key) }
@@ -512,6 +578,34 @@ private fun BuyAppViewModel.rememberCollapsed(key: String) {
         announcementDismissalStorage?.dismiss(key)
     } catch (e: Exception) {
         Log.w("BuyVMUi") { "rememberCollapsed: $key not persisted - ${e.message}" }
+    }
+    offerLongPressHint()
+}
+
+/**
+ * Tell the buyer, a few times, that long-pressing the icon hides the row for good.
+ *
+ * Here rather than at the two close buttons because this is where both of them meet:
+ * one place decides whether the hint is owed, and one counter answers it.
+ *
+ * The counter is advanced whether or not the snackbar resolves, and whether or not the
+ * write lands. Showing it one time fewer than intended is invisible; a counter that
+ * failed to advance would offer the same hint on every collapse forever, which is how
+ * a help message becomes noise.
+ */
+private fun BuyAppViewModel.offerLongPressHint() {
+    if (_state.value.collapseHintsShown >= MAX_COLLAPSE_HINTS) return
+    _state.update { it.copy(collapseHintsShown = it.collapseHintsShown + 1) }
+    try {
+        announcementDismissalStorage?.noteCollapseHintShown()
+    } catch (e: Exception) {
+        Log.w("BuyVMUi") { "offerLongPressHint: not persisted - ${e.message}" }
+    }
+    viewModelScope.launch {
+        // A label that cannot be resolved -- as it cannot in a plain JVM test -- must
+        // not turn a collapse into a reported failure. The row has already collapsed.
+        runCatching { getString(Res.string.collapsed_row_hint) }
+            .onSuccess { showSnackBar(it, SnackbarType.INFO) }
     }
 }
 

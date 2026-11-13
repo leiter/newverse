@@ -24,7 +24,9 @@ import com.together.newverse.ui.state.buy.confirmDemoOrder
 import com.together.newverse.ui.state.buy.discardDemoOrder
 import com.together.newverse.ui.state.buy.continueAsGuest
 import com.together.newverse.ui.state.buy.collapsePrompt
+import com.together.newverse.ui.state.buy.dismissRow
 import com.together.newverse.ui.state.buy.expandRow
+import com.together.newverse.ui.state.buy.restoreRow
 import com.together.newverse.ui.state.buy.notePublishedActionUsed
 import com.together.newverse.ui.state.buy.observeSellerContacts
 import com.together.newverse.ui.state.buy.sendChoice
@@ -336,6 +338,8 @@ class BuyAppViewModel(
             is BuyUiAction.CollapseHomeAnnouncement -> collapseHomeAnnouncement()
             is BuyUiAction.CollapsePrompt -> collapsePrompt(action.location)
             is BuyUiAction.ExpandRow -> expandRow(action.location)
+            is BuyUiAction.DismissRow -> dismissRow(action.location)
+            is BuyUiAction.RestoreRow -> restoreRow(action.dismissalKey)
             is BuyUiAction.SendPrompt -> sendPrompt(action.location, action.text)
             is BuyUiAction.SendChoice -> sendChoice(action.location, action.selections)
             is BuyUiAction.ClearPromptError -> clearPromptError()

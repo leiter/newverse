@@ -127,6 +127,31 @@ sealed interface BuyUiAction : BuyAction {
     data class ExpandRow(val location: ActionLocation) : BuyUiAction
 
     /**
+     * The buyer long-pressed a collapsed row's icon: hide it for good.
+     *
+     * The deliberate way out, as against [CollapseHomeAnnouncement] and
+     * [CollapsePrompt], which are the reversible one. Both exist because they answer
+     * different things: "not now" and "not ever". Collapsing used to have to serve as
+     * both, which made the accidental tap and the considered one indistinguishable.
+     *
+     * Behind a long-press rather than a second button, because a destructive choice
+     * one tap from a non-destructive one is the problem collapsing was introduced to
+     * fix. The snackbar that follows carries an undo.
+     */
+    data class DismissRow(val location: ActionLocation) : BuyUiAction
+
+    /**
+     * Undo a [DismissRow] — the buyer took the snackbar's offer.
+     *
+     * Carries the **key**, not the slot, and is the one action here that does. Every
+     * other one takes a slot so a stale frame cannot act on a row the seller has since
+     * replaced; an undo wants the opposite guarantee. It must put back exactly what
+     * was just hidden, even if the published row has changed underneath in the seconds
+     * the snackbar was up.
+     */
+    data class RestoreRow(val dismissalKey: String) : BuyUiAction
+
+    /**
      * The buyer pressed send in the message box on [location].
      *
      * The text comes from the UI because it is the buyer's own typing and lives in

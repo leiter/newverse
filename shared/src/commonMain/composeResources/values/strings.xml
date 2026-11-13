@@ -1386,6 +1386,8 @@
     <string name="seller_actions_options_too_few">Mindestens zwei verschiedene Antworten</string>
     <string name="inbox_chose_of">Gewählt aus %1$d Antworten</string>
     <string name="collapsed_row_expand">Mitteilung des Verkäufers wieder anzeigen</string>
+    <string name="collapsed_row_hint">Lange drücken, um dauerhaft auszublenden</string>
+    <string name="collapsed_row_dismissed">Wird nicht mehr angezeigt</string>
     <string name="seller_actions_icon">Symbol</string>
     <string name="seller_actions_icon_default">Standard (Fragezeichen)</string>
     <string name="seller_actions_icon_help">Fragezeichen</string>

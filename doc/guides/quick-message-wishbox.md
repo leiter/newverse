@@ -496,6 +496,64 @@ nothing offers to expand it.
 One file and a prefix rather than two storages, so there is still one place a device
 records what it has stopped showing, and one eviction policy over it.
 
+### Three answers, not two
+
+Collapsing alone could not say everything a buyer means by closing something, so there
+are now three gestures on a title-slot row:
+
+| Gesture | Means | Reversible |
+|---|---|---|
+| Tap × | not now | yes — tap the icon |
+| Tap the icon | show it again | — |
+| **Long-press the icon** | **not ever** | only via the snackbar's undo |
+
+The long-press exists because collapsing on its own took something away. Before it,
+closing was permanent, which made the accidental tap and the considered one
+indistinguishable — and collapsing fixed the accident by removing the deliberate
+option, leaving a buyer who genuinely did not want to be asked with an icon they could
+never get rid of.
+
+It is a long-press rather than a second button on purpose: a destructive choice one tap
+from a non-destructive one is the problem collapsing was introduced to fix. The undo in
+the snackbar is what makes a deliberate gesture safe to honour, and it restores the row
+to **collapsed**, not expanded — the buyer's last deliberate word was that they did not
+want it in the title, and undoing the step after that should not undo the one before.
+
+`RestoreRow` carries the **key**, the only action here that does. Every other one takes
+a slot so a stale frame cannot act on a row the seller has since replaced; an undo
+needs the opposite guarantee, because it has to put back exactly what was hidden even
+if the published row changed while the snackbar was up.
+
+The undo snackbar is handled in `AppScaffold` rather than through the shared snackbar
+state, because that path discards `SnackbarResult` — an `actionLabel` passed through
+state renders a button whose press goes nowhere.
+
+### The gesture has to be announced
+
+A long-press with no affordance is a gesture nobody finds. So the first
+`MAX_COLLAPSE_HINTS` (5) collapses show a snackbar saying it exists, counted per
+install, and then it stops — a help message that never stops is noise. Five rather than
+one because the first collapse is also the moment the buyer is working out what just
+happened to the announcement, and a hint read while surprised is a hint unread.
+
+The counter advances whether or not the write lands: showing it one time fewer than
+intended is invisible, while a counter that failed to advance would offer the same hint
+on every collapse forever.
+
+### Collapse is sticky, not guaranteed
+
+`MAX_DISMISSAL_KEYS` is 50 and the oldest key is evicted first. That used to cost
+nothing — a key could only mean "dismissed for good", and the row it named had been
+deleted long before. Now a plain key means *collapsed*, and a collapsed row is usually
+still published, so **evicting its key puts it back in the title** and the buyer has to
+collapse it again.
+
+50 is measured against one seller publishing a handful of rows: reaching it means fifty
+distinct wordings on one device, which is years of weekly announcements. If a seller
+ever churns rows fast enough to matter, the fix is to evict *collapsed* keys before
+answered ones rather than to raise the number — an answered row is a promise to the
+seller, a collapsed one is a convenience for the buyer.
+
 ### What falls out of it
 
 On home the announcement and the wishbox contend for one title, and the announcement

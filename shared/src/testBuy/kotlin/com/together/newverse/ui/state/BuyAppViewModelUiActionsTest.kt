@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import com.together.newverse.data.config.MAX_COLLAPSE_HINTS
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -353,6 +354,80 @@ class BuyAppViewModelUiActionsTest {
         advanceUntilIdle()
 
         assertEquals("Heute ab 9: Bodenschätze", viewModel.state.value.homeTitleAnnouncement?.value)
+    }
+
+    @Test
+    fun `long-pressing the icon hides the row for good`() = runTest {
+        // The deliberate way out, as against collapsing, which is the reversible one.
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.dispatch(BuyUiAction.CollapseHomeAnnouncement)
+        advanceUntilIdle()
+
+        viewModel.dispatch(BuyUiAction.DismissRow(ActionLocation.TOPBAR_HOME_TITLE))
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        // Out of the title and out of the bar: no icon is drawn for a row the buyer
+        // is finished with, so there is nothing left to tap.
+        assertEquals(null, state.homeTitleAnnouncement)
+        assertEquals(null, state.collapsedRowFor(ActionLocation.TOPBAR_HOME_TITLE))
+    }
+
+    @Test
+    fun `a row hidden for good cannot be expanded again`() = runTest {
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.dispatch(BuyUiAction.CollapseHomeAnnouncement)
+        viewModel.dispatch(BuyUiAction.DismissRow(ActionLocation.TOPBAR_HOME_TITLE))
+        advanceUntilIdle()
+
+        viewModel.dispatch(BuyUiAction.ExpandRow(ActionLocation.TOPBAR_HOME_TITLE))
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.state.value.homeTitleAnnouncement)
+    }
+
+    @Test
+    fun `undo puts a row back as collapsed, not expanded`() = runTest {
+        // The buyer's last deliberate word was that they did not want it in the
+        // title; undoing the step after that must not undo the one before it.
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.dispatch(BuyUiAction.CollapseHomeAnnouncement)
+        advanceUntilIdle()
+        val key = viewModel.state.value
+            .collapsedRowFor(ActionLocation.TOPBAR_HOME_TITLE)!!.dismissalKey
+        viewModel.dispatch(BuyUiAction.DismissRow(ActionLocation.TOPBAR_HOME_TITLE))
+        advanceUntilIdle()
+
+        viewModel.dispatch(BuyUiAction.RestoreRow(key))
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(null, state.homeTitleAnnouncement)
+        assertNotNull(state.collapsedRowFor(ActionLocation.TOPBAR_HOME_TITLE))
+    }
+
+    @Test
+    fun `the long-press hint is offered on the first few collapses and then stops`() = runTest {
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // Collapse and expand repeatedly, past the cap.
+        repeat(MAX_COLLAPSE_HINTS + 3) {
+            viewModel.dispatch(BuyUiAction.CollapseHomeAnnouncement)
+            advanceUntilIdle()
+            viewModel.dispatch(BuyUiAction.ExpandRow(ActionLocation.TOPBAR_HOME_TITLE))
+            advanceUntilIdle()
+        }
+
+        // Counted, not shown-forever: a help message that never stops is noise.
+        assertEquals(MAX_COLLAPSE_HINTS, viewModel.state.value.collapseHintsShown)
     }
 
     @Test

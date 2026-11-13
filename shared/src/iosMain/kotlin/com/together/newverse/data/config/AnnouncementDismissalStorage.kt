@@ -33,6 +33,13 @@ actual class AnnouncementDismissalStorage {
         )
     }
 
+    actual fun collapseHintsShown(): Int =
+        defaults.integerForKey(KEY_COLLAPSE_HINTS).toInt()
+
+    actual fun noteCollapseHintShown() {
+        defaults.setInteger((collapseHintsShown() + 1).toLong(), forKey = KEY_COLLAPSE_HINTS)
+    }
+
     private fun stored(): List<String> =
         defaults.stringForKey(KEY_DISMISSED)
             ?.split(DISMISSAL_SEPARATOR)
@@ -41,5 +48,6 @@ actual class AnnouncementDismissalStorage {
 
     companion object {
         private const val KEY_DISMISSED = "dismissed_announcements"
+        private const val KEY_COLLAPSE_HINTS = "collapse_hints_shown"
     }
 }

@@ -21,6 +21,13 @@ actual class AnnouncementDismissalStorage {
         localStorage.setItem(KEY_DISMISSED, (current - key).joinToString(DISMISSAL_SEPARATOR))
     }
 
+    actual fun collapseHintsShown(): Int =
+        localStorage.getItem(KEY_COLLAPSE_HINTS)?.toIntOrNull() ?: 0
+
+    actual fun noteCollapseHintShown() {
+        localStorage.setItem(KEY_COLLAPSE_HINTS, (collapseHintsShown() + 1).toString())
+    }
+
     private fun stored(): List<String> =
         localStorage.getItem(KEY_DISMISSED)
             ?.split(DISMISSAL_SEPARATOR)
@@ -29,5 +36,6 @@ actual class AnnouncementDismissalStorage {
 
     companion object {
         private const val KEY_DISMISSED = "dismissed_announcements"
+        private const val KEY_COLLAPSE_HINTS = "collapse_hints_shown"
     }
 }

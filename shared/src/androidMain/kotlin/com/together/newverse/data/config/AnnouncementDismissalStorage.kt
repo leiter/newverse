@@ -35,6 +35,12 @@ actual class AnnouncementDismissalStorage(private val context: Context) {
         }
     }
 
+    actual fun collapseHintsShown(): Int = prefs.getInt(KEY_COLLAPSE_HINTS, 0)
+
+    actual fun noteCollapseHintShown() {
+        prefs.edit { putInt(KEY_COLLAPSE_HINTS, collapseHintsShown() + 1) }
+    }
+
     private fun stored(): List<String> =
         prefs.getString(KEY_DISMISSED, null)
             ?.split(DISMISSAL_SEPARATOR)
@@ -44,5 +50,6 @@ actual class AnnouncementDismissalStorage(private val context: Context) {
     companion object {
         private const val PREFS_FILE = "newverse_announcements"
         private const val KEY_DISMISSED = "dismissed_keys"
+        private const val KEY_COLLAPSE_HINTS = "collapse_hints_shown"
     }
 }
