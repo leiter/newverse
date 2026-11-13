@@ -61,8 +61,39 @@ data class SellerInboxMessage(
     val requestId: String = "",
     /** The question as the buyer saw it, snapshotted. See the note on this class. */
     val prompt: String = "",
-    /** What the buyer typed. The point of the whole record. */
+    /** What the buyer typed, or the answers they picked, joined. See [selections]. */
     val text: String = "",
+    /**
+     * The answers a buyer picked from a [ActionKind.CHOICE], as **labels**.
+     *
+     * Empty for every other kind, and the rules refuse the child there.
+     *
+     * Labels rather than positions into [SellerUiAction.options], deliberately and
+     * at some cost in bytes. A position is only meaningful beside the list it indexes,
+     * and that list lives on a row which — as [requestId] says plainly — is usually
+     * gone by the time anyone reads the message. Worse, it moves: a seller inserting
+     * an answer would silently re-map every reply already filed, with no error and no
+     * way to notice. The same reason [OrderedProduct] snapshots the price it was
+     * charged instead of pointing at one that moves.
+     *
+     * The cost is that rewording an answer splits its tally. That is the honest
+     * result — a reworded question is a different question, and
+     * [SellerUiAction.dismissalKey] already re-asks everyone when the options change,
+     * so the split is the intended behaviour rather than an accident of storage.
+     *
+     * [text] carries the same labels joined, so a seller's inbox that knows nothing
+     * about pickers still shows something a human can read.
+     */
+    val selections: List<String> = emptyList(),
+    /**
+     * Everything the picker offered, snapshotted at send time. Empty for other kinds.
+     *
+     * Stored beside [selections] so the seller can see what the buyer chose *from*,
+     * which is what makes a tally mean anything: three people picking "Eier" out of
+     * three options is not the same finding as three out of eight. Snapshotted for
+     * the reason [prompt] is — the row it came from may be gone.
+     */
+    val options: List<String> = emptyList(),
     /** When it was sent, epoch millis, from the sending device's clock. */
     val timestamp: Long = 0L,
     /**
@@ -74,7 +105,13 @@ data class SellerInboxMessage(
      */
     val timestampIso: String = "",
 ) {
-    /** A message with nothing in it is not sent. */
+    /**
+     * A message with nothing in it is not sent.
+     *
+     * A choice answers with [selections], not with typing, but [text] carries those
+     * same labels joined — so one check covers both kinds, and a picker that somehow
+     * sent an empty selection is caught by the same gate as an empty wish.
+     */
     val isSendable: Boolean get() = text.isNotBlank() && buyerId.isNotEmpty()
 
     companion object {

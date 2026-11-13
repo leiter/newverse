@@ -1,0 +1,61 @@
+{
+  "seller_ui_actions/cPkcZSiF3LMXjWoqW6AqpA9paoO2/act_choice_dev_multi": {
+    "id": "act_choice_dev_multi",
+    "kind": "CHOICE",
+    "label": "Was sollen wir",
+    "value": "Was sollen wir nächste Woche mitbringen?",
+    "options": [
+      "Bergkäse",
+      "Dinkelmehl",
+      "Eier",
+      "Honig",
+      "Rohmilch",
+      "Ziegenfrischkäse"
+    ],
+    "selectionMode": "MULTI",
+    "location": "TOPBAR_HOME_CHOICE",
+    "audience": "EVERYONE",
+    "active": true,
+    "persistence": "UNTIL_CANCELLED"
+  },
+
+  "seller_ui_actions/cPkcZSiF3LMXjWoqW6AqpA9paoO2/act_choice_dev_single": {
+    "id": "act_choice_dev_single",
+    "kind": "CHOICE",
+    "label": "Wann kommt ihr",
+    "value": "Wann kommt ihr am liebsten an den Stand?",
+    "options": [
+      "Früh, vor 10 Uhr",
+      "Mittags",
+      "Nachmittags",
+      "Kurz vor Schluss"
+    ],
+    "selectionMode": "SINGLE",
+    "location": "TOPBAR_PROFILE_CHOICE",
+    "audience": "EVERYONE",
+    "active": true,
+    "persistence": "HIDE_ON_ACTION"
+  },
+
+  "seller_ui_actions/cPkcZSiF3LMXjWoqW6AqpA9paoO2/act_choice_dev_overflow": {
+    "id": "act_choice_dev_overflow",
+    "kind": "CHOICE",
+    "label": "Sortiment",
+    "value": "Welche dieser Sorten fehlen euch im Sortiment? Mehrfachauswahl ist möglich, wir bestellen danach.",
+    "options": [
+      "Kartoffeln festkochend",
+      "Kartoffeln mehligkochend",
+      "Zwiebeln rot",
+      "Zwiebeln weiß",
+      "Möhren mit Grün",
+      "Pastinaken",
+      "Schwarzwurzeln",
+      "Topinambur"
+    ],
+    "selectionMode": "MULTI",
+    "location": "TOPBAR_HOME_CHOICE",
+    "audience": "EVERYONE",
+    "active": false,
+    "persistence": "UNTIL_CANCELLED"
+  }
+}

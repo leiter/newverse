@@ -107,8 +107,9 @@ Enforced in three places, deliberately:
 ## Where buttons appear
 
 `ActionLocation` names whole slots — `TOPBAR_HOME`, `TOPBAR_PROFILE`,
-`TOPBAR_HOME_TITLE`, which is not a button at all, the two message-box slots
-`quick-message-wishbox.md` adds, and `TOPBAR_HOME_BRAND_ICON`, which is occupied
+`TOPBAR_HOME_TITLE`, which is not a button at all, the two message-box slots and the
+two choice-picker slots `quick-message-wishbox.md` adds, and
+`TOPBAR_HOME_BRAND_ICON`, which is occupied
 before any seller publishes anything — rather than
 carrying a free-form surface and screen pair. A typo in `"topbar,profileScreen"`
 either renders nowhere and looks like data loss, or renders everywhere; an unknown

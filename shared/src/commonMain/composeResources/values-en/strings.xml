@@ -1306,6 +1306,27 @@
     <string name="quick_message_failed">Could not be sent</string>
     <string name="quick_message_dismiss">Hide field</string>
     <string name="a11y_quick_message">Question from the seller: %1$s</string>
+    <string name="choice_open">Open the seller's question</string>
+    <string name="choice_close">Close</string>
+    <string name="choice_send">Send</string>
+    <string name="choice_sent">Thanks, that arrived</string>
+    <string name="choice_failed">Could not be sent</string>
+    <string name="choice_hint_single">Pick one answer</string>
+    <string name="choice_hint_multi">You can pick several</string>
+    <string name="a11y_choice">Question from the seller: %1$s</string>
+    <string name="seller_actions_location_home_choice">Home, question mark</string>
+    <string name="seller_actions_location_profile_choice">Profile, question mark</string>
+    <string name="seller_actions_choice">Question</string>
+    <string name="seller_actions_choice_explain">A question mark in the bar. Tapping it opens your question with the answers to pick from. At least two answers, at most %1$d.</string>
+    <string name="seller_actions_options">Answers</string>
+    <string name="seller_actions_option_add">Add an answer</string>
+    <string name="seller_actions_option_remove">Remove this answer</string>
+    <string name="seller_actions_option_hint">Answer %1$d</string>
+    <string name="seller_actions_selection_mode">Selection</string>
+    <string name="seller_actions_selection_single">One answer</string>
+    <string name="seller_actions_selection_multi">Several answers</string>
+    <string name="seller_actions_options_too_few">At least two different answers</string>
+    <string name="inbox_chose_of">Chosen from %1$d answers</string>
     <!-- The seller's inbox -->
     <string name="inbox_title">Wishes</string>
     <string name="inbox_open">Customer wishes</string>

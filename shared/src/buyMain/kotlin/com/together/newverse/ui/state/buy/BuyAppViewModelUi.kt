@@ -15,6 +15,8 @@ import com.together.newverse.util.Log
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
+import newverse.shared.generated.resources.choice_failed
+import newverse.shared.generated.resources.choice_sent
 import newverse.shared.generated.resources.quick_message_failed
 import newverse.shared.generated.resources.quick_message_sent
 import org.jetbrains.compose.resources.getString
@@ -318,6 +320,117 @@ internal fun BuyAppViewModel.sendPrompt(location: ActionLocation, text: String) 
                         quickMessage = it.quickMessage.copy(
                             isSending = false,
                             error = Res.string.quick_message_failed
+                        )
+                    )
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Send the answers the buyer picked in the choice picker on [location].
+ *
+ * The same shape as [sendPrompt] and deliberately not folded into it: what travels is
+ * a list rather than a sentence, and the one thing this does that typing cannot need
+ * is **check the answers against the row that is live now**. A buyer can have the
+ * panel open while the seller rewrites the options; sending a label the row no longer
+ * offers would file an answer to a question nobody asked. Those are dropped, and if
+ * nothing survives the send is abandoned rather than written empty.
+ *
+ * `text` carries the same labels joined, so a seller's inbox that knows nothing about
+ * pickers still shows a readable line — and so [SellerInboxMessage.isSendable], which
+ * asks about text, covers a choice too.
+ *
+ * Hiding the row afterwards is [notePublishedActionUsed]'s business, as it is for a
+ * message box: the seller's [ActionPersistence] decides, and only a landed send counts.
+ */
+internal fun BuyAppViewModel.sendChoice(location: ActionLocation, selections: List<String>) {
+    if (selections.isEmpty()) return
+
+    val picker = _state.value.choicePickerFor(location)
+    if (picker == null) {
+        // The picker went away between the tap and the dispatch — the seller deleted
+        // the row, or switched it off. Nothing to answer.
+        Log.w("BuyVMUi") { "sendChoice: no picker in $location" }
+        return
+    }
+
+    // In the seller's order, not the buyer's tap order, and only what is still
+    // offered. `options` is already trimmed and deduplicated by `readyToStore`.
+    val offered = picker.options
+    val picked = offered.filter { it in selections }
+    if (picked.isEmpty()) {
+        Log.w("BuyVMUi") { "sendChoice: nothing picked is still offered in $location" }
+        return
+    }
+
+    val sellerId = _state.value.connectedSellerId
+    val repository = sellerInboxRepository
+    if (sellerId.isEmpty() || repository == null) {
+        _state.update {
+            it.copy(quickMessage = it.quickMessage.copy(error = Res.string.choice_failed))
+        }
+        return
+    }
+
+    _state.update {
+        it.copy(quickMessage = it.quickMessage.copy(isSending = true, error = null))
+    }
+
+    viewModelScope.launch {
+        val buyerId = authRepository.getCurrentUserId()
+        if (buyerId.isNullOrEmpty()) {
+            _state.update {
+                it.copy(
+                    quickMessage = it.quickMessage.copy(
+                        isSending = false,
+                        error = Res.string.choice_failed
+                    )
+                )
+            }
+            return@launch
+        }
+
+        val result = repository.send(
+            SellerInboxMessage(
+                sellerId = sellerId,
+                buyerId = buyerId,
+                buyerName = _state.value.customerProfile.profile?.displayName.orEmpty(),
+                requestKind = picker.kind,
+                requestId = picker.id,
+                // Snapshotted, not referenced — the question *and* what it offered.
+                // Three people picking one of three answers is not the same finding
+                // as three of eight, and the row this came from may be gone.
+                prompt = picker.value,
+                options = offered,
+                selections = picked,
+                text = picked.joinToString(", ")
+            )
+        )
+
+        result.fold(
+            onSuccess = {
+                _state.update { current ->
+                    current.copy(
+                        quickMessage = current.quickMessage.copy(
+                            isSending = false,
+                            error = null,
+                            sentCount = current.quickMessage.sentCount + 1
+                        )
+                    )
+                }
+                notePublishedActionUsed(picker)
+                runCatching { getString(Res.string.choice_sent) }
+                    .onSuccess { showSnackBar(it, SnackbarType.SUCCESS) }
+            },
+            onFailure = { e ->
+                Log.w("BuyVMUi") { "sendChoice: refused - ${e.message}" }
+                _state.update {
+                    it.copy(
+                        quickMessage = it.quickMessage.copy(
+                            isSending = false,
+                            error = Res.string.choice_failed
                         )
                     )
                 }

@@ -7,6 +7,7 @@ import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.SellerUiAction
 import com.together.newverse.domain.model.announcementFor
+import com.together.newverse.domain.model.choiceFor
 import com.together.newverse.domain.model.overrideFor
 import com.together.newverse.domain.model.promptFor
 import com.together.newverse.domain.model.forLocation
@@ -418,6 +419,28 @@ data class BuyAppState(
     fun titlePromptFor(location: ActionLocation): SellerUiAction? =
         sellerUiActions
             .promptFor(
+                location = location,
+                // The *loaded* status, for the reason [topBarActionsFor] gives.
+                isApproved = canContactSeller,
+                isDemo = isDemoMode
+            )
+            ?.takeUnless { it.dismissalKey in dismissedRows }
+
+    /**
+     * The seller's choice picker for one slot, or null — audience-filtered and
+     * checked against what this device has suppressed.
+     *
+     * The same cases as [titlePromptFor] collapse to null, with one difference worth
+     * stating because it is the whole reason this slot exists: a picker is **not** in
+     * the buyer's way, so nothing here is ever closed-but-published. The only thing
+     * [dismissedRows] can hide is a picker the seller set to
+     * [com.together.newverse.domain.model.ActionPersistence.HIDE_ON_ACTION] that this
+     * buyer has already answered — which
+     * is the seller running a one-off poll, exactly as they asked.
+     */
+    fun choicePickerFor(location: ActionLocation): SellerUiAction? =
+        sellerUiActions
+            .choiceFor(
                 location = location,
                 // The *loaded* status, for the reason [topBarActionsFor] gives.
                 isApproved = canContactSeller,

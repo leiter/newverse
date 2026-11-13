@@ -1,7 +1,8 @@
 # The Seller's Message Box in the Buy App
 
-**Status:** Implemented 2026-10-30. Not yet run on a device, and the rules are not yet
-deployed — **deploy the rules first**, see *Deploying this is two steps*.
+**Status:** Message box implemented 2026-10-30, rules deployed 2026-11-05. The choice
+picker was added 2026-11-13 with its rules deployed to dev and prod the same day.
+Neither has been run on a device.
 **Scope:** `shared/src/commonMain` (model + repositories), `buyMain` (the field, app
 state), `sellMain` (editor slots, inbox screen), `firebase/database.rules.json`
 (+ `firebase/tests/seller-inbox.test.js`)
@@ -310,21 +311,107 @@ the editor.
 - **The inbox is not exported.** It is read and deleted in the app; the CSV work in
   `seller-bookkeeping` does not cover it.
 
+## The choice picker
+
+**Built 2026-11-13. Rules deployed to dev and prod the same day. Not yet run on a
+device.** The second kind of box: a question with a fixed set of answers.
+
+| Field | Example |
+|---|---|
+| `location` | Top bar, home screen (question mark) |
+| `kind` | `CHOICE` (the slot decides, as always) |
+| `value` | `Was sollen wir nächste Woche mitbringen?` |
+| `options` | `["Bergkäse", "Dinkelmehl", "Eier", "Honig"]` |
+| `selectionMode` | `MULTI` (absent reads as `SINGLE`) |
+| `label` | `Was sollen wir` (derived; the seller is not asked) |
+
+### What makes it different from a message box
+
+**The seat.** A message box takes a screen's whole title; a picker is an icon among
+the top bar's actions that opens a panel over the content. Two things follow, and
+both are the reason the slots are separate rather than the kind being a flag:
+
+- **A picker and an announcement can both be published.** The home title holds one
+  thing and the announcement wins it, so a wishbox there is hidden until the
+  announcement is read. A picker never contends for it.
+- **A picker needs no dismissal.** Nothing is put in front of a buyer who has not
+  tapped the icon, so there is nothing to close. The close button collapses the panel
+  and the icon stays. The only thing `dismissedRows` can hide is a picker the seller
+  set to `HIDE_ON_ACTION` that this buyer has already answered — which is the seller
+  running a one-off poll, exactly as they asked.
+
+### Answers are labels, never positions
+
+`SellerInboxMessage.selections` stores the chosen option **strings**, and the message
+snapshots the whole `options` list beside them.
+
+Storing a position instead was considered and rejected. It is smaller, and it is
+wrong for this node's own stated reasons: `requestId`'s doc says the row a message
+names is usually gone by the time anyone reads it, so an index points at something
+that may not exist — and worse, at something that *moves*. A seller inserting an
+answer at position 2 would silently re-map every reply already filed, with no error
+and no way to notice. Same argument as `OrderedProduct` snapshotting the price it was
+charged.
+
+The cost is that rewording an answer splits its tally. That is the honest result: a
+reworded question is a different question, and `dismissalKey` re-asks everyone when
+the options change, so the split is the intended behaviour rather than an accident.
+
+`text` carries the same labels joined with ", ", so a seller's inbox that knew nothing
+about pickers would still show a readable line, and `isSendable` — which asks about
+text — covers a choice without a second rule.
+
+### `dismissalKey` had to grow
+
+It was `"$id:${value.stableHash()}"`. It now hashes the question **and** the options,
+because changing the answers changes the question as the buyer experiences it. A row
+with no options hashes exactly what it hashed before, so every announcement and
+message box already dismissed on a device stays dismissed — pinned by a test.
+
+### The caps are arithmetic, not taste
+
+8 answers, 48 characters each. Eight joined with ", " is 398 characters, inside the
+500 the `text` rule enforces, so **a buyer can never assemble an answer the database
+then refuses**. Two distinct answers is the minimum: the rules can require a non-empty
+list but cannot count it, so `isComplete` does the counting and an unanswerable picker
+never reaches a buyer as an icon that opens an empty panel.
+
+### `options` may come back as an object
+
+RTDB has no list type. A dense array reads back as a list, but a seller deleting a
+middle answer leaves `{"0":…, "2":…}`. `stringListFromStored` accepts both and sorts
+a map by its numeric key — without it, one seller edit would empty the picker on every
+buyer's phone.
+
+### Counting the answers is the seller's problem
+
+The same hole the wishbox has, and sharper here. The inbox is add-only, has no rate
+limit, and a buyer cannot read it back — so nothing stops one person answering fifty
+times, and a poll is exactly where that stops being theoretical, because the seller
+*will* count the rows. **A seller tallying a picker must deduplicate by `buyerId`.**
+`HIDE_ON_ACTION` plus the device's dismissal makes repeat answers inconvenient for an
+honest buyer; it is not a control.
+
 ## Files
 
 | Where | What |
 |---|---|
-| `domain/model/SellerUiAction.kt` | `QUICK_MESSAGE`, the two input slots, `active`, `persistence`, `promptFor` |
+| `domain/model/SellerUiAction.kt` | `QUICK_MESSAGE`, `CHOICE`, the input and picker slots, `SelectionMode`, `options`, `promptFor`, `choiceFor` |
 | `domain/model/SellerInboxMessage.kt` | The message, and what it snapshots |
 | `domain/repository/SellerInboxRepository.kt` | The interface |
 | `data/repository/GitLiveSellerInboxRepository.kt` | RTDB implementation |
 | `ui/state/QuickMessageState.kt` | What the field cannot know by itself |
 | `buyMain/.../components/QuickMessageInput.kt` | The field |
+| `buyMain/.../components/ChoicePicker.kt` | The question mark and the panel |
+| `data/repository/RtdbStringLists.kt` | Reads a list RTDB may hand back as a map |
 | `buyMain/.../BuyAppState.kt` | `titlePromptFor`, `dismissedRows` |
 | `buyMain/.../AppScaffold.kt` | The title slot, and who wins it |
 | `buyMain/.../BuyAppViewModelUi.kt` | `sendPrompt`, `dismissPrompt`, `rememberDismissed` |
-| `sellMain/.../UiActionListEditor.kt` | The slot, the switch, the persistence picker |
+| `sellMain/.../UiActionListEditor.kt` | The slot, the switch, the persistence picker, the answer fields |
 | `sellMain/.../SellerInboxScreen.kt` | The seller's end |
 | `firebase/tests/seller-inbox.test.js` | 25 rule tests, mostly about who may read |
+| `firebase/tests/choice-picker.test.js` | 21 rule tests; labels-not-indices is enforced there |
+| `firebase/fixtures/choice-picker-dev-rows.json` | Seedable dev rows, keyed by RTDB path |
+| `commonTest/.../ChoicePickerModelTest.kt` | 20 tests: completeness, storage, the key |
 | `commonTest/.../SellerUiActionTest.kt` | The model's half |
 | `testBuy/.../BuyAppViewModelQuickMessageTest.kt` | 20 tests: live, sent, and gone |

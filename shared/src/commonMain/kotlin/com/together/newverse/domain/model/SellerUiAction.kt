@@ -59,6 +59,23 @@ data class SellerUiAction(
      * stay so a buyer with a second wish can send it. See [ActionPersistence].
      */
     val persistence: ActionPersistence = ActionPersistence.UNTIL_CANCELLED,
+    /**
+     * The answers a [ActionKind.CHOICE] offers, in the order the seller wrote them.
+     * Empty for every other kind, and the rules refuse them there.
+     *
+     * **Labels, not ids.** What a buyer picks is stored on the message as the label
+     * itself — see [SellerInboxMessage.selections] — so this list is free to be a
+     * plain list of strings with no identity of its own. The alternative, storing a
+     * position and resolving it later, was rejected: the row is usually gone by the
+     * time the seller reads the answers, and inserting an option would silently
+     * re-map every answer already filed.
+     */
+    val options: List<String> = emptyList(),
+    /**
+     * Whether a buyer may pick one answer or several. Only meaningful for
+     * [ActionKind.CHOICE].
+     */
+    val selectionMode: SelectionMode = SelectionMode.SINGLE,
 ) {
     /**
      * A button with nothing to say or nowhere to go is not shown, and neither is a
@@ -89,7 +106,12 @@ data class SellerUiAction(
             // for the seller to label and nothing to withhold the row for.
             // [readyToStore] derives the `label` the rules still require from the
             // text itself.
-            (label.isNotBlank() || kind.labelIsDerived)
+            (label.isNotBlank() || kind.labelIsDerived) &&
+            // A picker with one answer is not a question, and one with none is a
+            // question nobody can answer. Checked here rather than only in the
+            // editor so a row written by hand cannot reach a buyer unanswerable --
+            // the rules can require the list to be non-empty but cannot count it.
+            (kind != ActionKind.CHOICE || distinctOptions().size >= MIN_OPTIONS)
 
     /**
      * This row as it should be written: the slot's kind, and a label the rules accept.
@@ -125,7 +147,36 @@ data class SellerUiAction(
             } else {
                 ActionPersistence.UNTIL_CANCELLED
             }
-        return copy(kind = storedKind, label = storedLabel, persistence = storedPersistence)
+        // The options are settled here for the reason the kind and the label are: so
+        // the editor and the repository cannot disagree about what a saved row looks
+        // like. Blanks are dropped and duplicates collapsed because both are answers
+        // a buyer cannot tell apart -- and a duplicate would split its own tally.
+        // Cleared outright for a kind that has no options, since the rules refuse an
+        // `options` child on anything but a CHOICE and would reject the whole row.
+        val storedOptions =
+            if (storedKind == ActionKind.CHOICE) distinctOptions().take(MAX_OPTIONS)
+            else emptyList()
+        return copy(
+            kind = storedKind,
+            label = storedLabel,
+            persistence = storedPersistence,
+            options = storedOptions,
+        )
+    }
+
+    /**
+     * The options as they should be stored: trimmed, capped, blanks dropped and
+     * duplicates collapsed, in the seller's own order.
+     *
+     * Case-insensitive on the duplicate check, because "Eier" and "eier" are one
+     * answer to every buyer reading them and two rows in any tally built from them.
+     */
+    fun distinctOptions(): List<String> {
+        val seen = mutableSetOf<String>()
+        return options.mapNotNull { raw ->
+            val option = raw.trim().take(MAX_OPTION_LENGTH)
+            if (option.isEmpty() || !seen.add(option.lowercase())) null else option
+        }
     }
 
     /**
@@ -152,7 +203,25 @@ data class SellerUiAction(
      * euch?" has said they do not want to be asked; the seller asking a *different*
      * question is a new question, and should reach them.
      */
-    val dismissalKey: String get() = "$id:${value.stableHash()}"
+    val dismissalKey: String get() = "$id:${dismissalMaterial().stableHash()}"
+
+    /**
+     * What [dismissalKey] hashes: the question, and a picker's answers with it.
+     *
+     * The options are folded in because changing *them* changes the question as the
+     * buyer experiences it — a picker whose choices were rewritten is asking
+     * something new and should reach someone who already answered the old one. Keyed
+     * on the value alone, it never would: the same silent-stale-configuration failure
+     * this feature has been bitten by twice.
+     *
+     * A row with no options hashes exactly what it hashed before this existed, so
+     * every announcement and message box a buyer has already dismissed stays
+     * dismissed. Joined on a unit separator, which no seller can type, so two
+     * different option lists cannot collide by concatenation.
+     */
+    private fun dismissalMaterial(): String =
+        if (options.isEmpty()) value
+        else (listOf(value) + distinctOptions()).joinToString(OPTION_SEPARATOR)
 
     /**
      * The URI handed to the platform's URI handler.
@@ -182,6 +251,29 @@ data class SellerUiAction(
 
         /** What [value] is allowed to be, matching the rules' own cap. */
         const val MAX_VALUE_LENGTH = 500
+
+        /**
+         * How many answers a picker may offer.
+         *
+         * A phone-width [options] grid stays readable to about here, and the cap is
+         * also what keeps a full multi-select inside
+         * [SellerInboxMessage.MAX_TEXT_LENGTH]: eight options of
+         * [MAX_OPTION_LENGTH] joined with ", " is 398 characters, so a buyer can
+         * never assemble an answer the database then refuses.
+         */
+        const val MAX_OPTIONS = 8
+
+        /** Fewer than this is not a choice. See [isComplete]. */
+        const val MIN_OPTIONS = 2
+
+        /** What one answer is allowed to be, matching the rules' own cap. */
+        const val MAX_OPTION_LENGTH = 48
+
+        /**
+         * Joins the parts of [dismissalKey]'s material. A unit separator, because it
+         * is not on any keyboard a seller writes options with.
+         */
+        internal const val OPTION_SEPARATOR = "\u001F"
     }
 }
 
@@ -250,7 +342,27 @@ enum class ActionKind(
      * is rendered; the stored messages then say which box each one came from without
      * the seller having to guess from the wording.
      */
-    QUICK_MESSAGE("", labelIsDerived = true);
+    QUICK_MESSAGE("", labelIsDerived = true),
+
+    /**
+     * A question with a fixed set of answers: an icon in the top bar that opens a
+     * panel of chips and a send button.
+     *
+     * The second kind to carry a question rather than a target, so it has an empty
+     * scheme and an identity [normalize] for [QUICK_MESSAGE]'s reason, and the rules
+     * let its value carry a colon for the same one.
+     *
+     * What separates it from [QUICK_MESSAGE] is not the answer but the **seat**: a
+     * message box takes a screen's whole title, while a picker is an icon that opens
+     * only when tapped. So a seller may run a picker *and* an announcement at once,
+     * which a message box can never do — the home title holds one thing and the
+     * announcement wins it. It is also why a picker needs no dismissal: nothing is
+     * being put in front of a buyer who has not asked for it.
+     *
+     * Its answers are stored on the message as **labels**, never as positions into
+     * [SellerUiAction.options] — see [SellerInboxMessage.selections].
+     */
+    CHOICE("", labelIsDerived = true);
 
     /**
      * Strip what the scheme must not carry. Applied when the seller saves, so the
@@ -265,7 +377,7 @@ enum class ActionKind(
             .removePrefix("http://")
             .trimStart('/')
         // Trimmed only. The seller's own sentence, kept as written.
-        ANNOUNCE, QUICK_MESSAGE -> raw.trim()
+        ANNOUNCE, QUICK_MESSAGE, CHOICE -> raw.trim()
     }
 
     companion object {
@@ -359,10 +471,40 @@ enum class ActionLocation(
      * description — an icon with no name is unreachable by a screen reader, so this is
      * the one slot where the label is read out rather than drawn.
      */
-    TOPBAR_HOME_BRAND_ICON(ActionKind.OPEN_URL, maxActions = 1);
+    TOPBAR_HOME_BRAND_ICON(ActionKind.OPEN_URL, maxActions = 1),
+
+    /**
+     * The home top bar's question mark, which opens the seller's choice picker.
+     *
+     * Unlike [TOPBAR_HOME_INPUT] this does **not** take the title: it is an icon
+     * among the actions, and the panel it opens is drawn over the content below.
+     * That is the whole reason the slot exists separately — a picker and an
+     * announcement can both be published, because they are not competing for the
+     * same row.
+     *
+     * One per slot, like the other single-row slots: two question marks in one bar
+     * are indistinguishable, and a buyer's answer would not say which they opened.
+     */
+    TOPBAR_HOME_CHOICE(ActionKind.CHOICE, maxActions = 1),
+
+    /**
+     * The profile screen's question mark. The second picker slot exists for the
+     * reason [TOPBAR_PROFILE_INPUT] does: a seller running two questions at once
+     * needs somewhere to put the second.
+     */
+    TOPBAR_PROFILE_CHOICE(ActionKind.CHOICE, maxActions = 1);
 
     /** Whether this slot renders a message box rather than a button or a title. */
     val isInput: Boolean get() = kind == ActionKind.QUICK_MESSAGE
+
+    /**
+     * Whether this slot renders a choice picker — an icon that opens a panel.
+     *
+     * Asked rather than inferred from [isButtonSlot] being false, because a picker
+     * *is* drawn among the top bar's icons and a call site reading it is deciding
+     * where an icon goes, not whether to draw a title.
+     */
+    val isChoice: Boolean get() = kind == ActionKind.CHOICE
 
     /**
      * Whether this slot overrides one of the app's own icons rather than adding a row.
@@ -480,6 +622,32 @@ enum class ActionPersistence {
 }
 
 /**
+ * Whether a [ActionKind.CHOICE] takes one answer or several.
+ *
+ * The seller's call per row, because both are ordinary questions: "wann kommt ihr am
+ * liebsten?" has one answer and "was fehlt euch?" has as many as the buyer likes.
+ *
+ * Stored by [name] and **optional**, like [ActionAudience] and [ActionPersistence]:
+ * absent reads as [SINGLE], the narrower of the two, so a row written without it
+ * cannot accidentally collect more than it meant to. An unknown name reads as null
+ * and the row is skipped, for the reason an unknown persistence skips it — a picker
+ * whose selection rule this version does not understand cannot be drawn honestly.
+ */
+enum class SelectionMode {
+    /** One answer. The chips behave as radio buttons. */
+    SINGLE,
+
+    /** Any number of answers, including all of them. The chips are checkboxes. */
+    MULTI;
+
+    companion object {
+        /** Absent means [SINGLE]; an unknown name means null, and the row is skipped. */
+        fun stored(raw: String?): SelectionMode? =
+            if (raw == null) SINGLE else entries.firstOrNull { it.name == raw }
+    }
+}
+
+/**
  * The buttons for one slot, in a stable order and already capped.
  *
  * Sorted by label so the order does not depend on RTDB key iteration — two buttons
@@ -523,6 +691,25 @@ fun List<SellerUiAction>.announcementFor(
  * and a call site asking for a prompt should say so.
  */
 fun List<SellerUiAction>.promptFor(
+    location: ActionLocation,
+    isApproved: Boolean,
+    isDemo: Boolean,
+): SellerUiAction? = singleFor(location, isApproved, isDemo)
+
+/**
+ * The one choice picker for a slot, or null.
+ *
+ * The same resolution as [promptFor] — a picker slot holds exactly one row — under
+ * its own name, because a call site asking for a picker should say so, and because
+ * this is the one single-row accessor whose result is rendered as an *icon* rather
+ * than in place of a title.
+ *
+ * A row whose options did not survive [SellerUiAction.readyToStore] is not returned:
+ * [SellerUiAction.isUsable] requires [SellerUiAction.isComplete], which requires two
+ * distinct answers. A picker with nothing to pick would otherwise be an icon that
+ * opens an empty panel.
+ */
+fun List<SellerUiAction>.choiceFor(
     location: ActionLocation,
     isApproved: Boolean,
     isDemo: Boolean,

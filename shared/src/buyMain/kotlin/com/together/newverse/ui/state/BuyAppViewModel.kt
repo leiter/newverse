@@ -26,6 +26,7 @@ import com.together.newverse.ui.state.buy.continueAsGuest
 import com.together.newverse.ui.state.buy.dismissPrompt
 import com.together.newverse.ui.state.buy.notePublishedActionUsed
 import com.together.newverse.ui.state.buy.observeSellerContacts
+import com.together.newverse.ui.state.buy.sendChoice
 import com.together.newverse.ui.state.buy.sendPrompt
 import com.together.newverse.ui.state.buy.handleAccountAction
 import com.together.newverse.ui.state.buy.handleBasketScreenAction
@@ -334,6 +335,7 @@ class BuyAppViewModel(
             is BuyUiAction.DismissHomeAnnouncement -> dismissHomeAnnouncement()
             is BuyUiAction.DismissPrompt -> dismissPrompt(action.location)
             is BuyUiAction.SendPrompt -> sendPrompt(action.location, action.text)
+            is BuyUiAction.SendChoice -> sendChoice(action.location, action.selections)
             is BuyUiAction.ClearPromptError -> clearPromptError()
             is BuyUiAction.NotePublishedActionUsed -> notePublishedActionUsed(action.action)
             is BuyUiAction.ShowSnackbar -> showSnackbar(action.message, action.type)

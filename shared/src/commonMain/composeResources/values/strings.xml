@@ -1364,6 +1364,27 @@
     <string name="quick_message_failed">Konnte nicht gesendet werden</string>
     <string name="quick_message_dismiss">Feld ausblenden</string>
     <string name="a11y_quick_message">Frage des Verkäufers: %1$s</string>
+    <string name="choice_open">Frage des Verkäufers öffnen</string>
+    <string name="choice_close">Schließen</string>
+    <string name="choice_send">Senden</string>
+    <string name="choice_sent">Danke, ist angekommen</string>
+    <string name="choice_failed">Konnte nicht gesendet werden</string>
+    <string name="choice_hint_single">Eine Antwort auswählen</string>
+    <string name="choice_hint_multi">Mehrere Antworten möglich</string>
+    <string name="a11y_choice">Frage des Verkäufers: %1$s</string>
+    <string name="seller_actions_location_home_choice">Startseite, Fragezeichen</string>
+    <string name="seller_actions_location_profile_choice">Profil, Fragezeichen</string>
+    <string name="seller_actions_choice">Frage</string>
+    <string name="seller_actions_choice_explain">Ein Fragezeichen in der Leiste. Tippen die Kundinnen darauf, öffnet sich deine Frage mit den Antworten zur Auswahl. Mindestens zwei Antworten, höchstens %1$d.</string>
+    <string name="seller_actions_options">Antworten</string>
+    <string name="seller_actions_option_add">Antwort hinzufügen</string>
+    <string name="seller_actions_option_remove">Antwort entfernen</string>
+    <string name="seller_actions_option_hint">Antwort %1$d</string>
+    <string name="seller_actions_selection_mode">Auswahl</string>
+    <string name="seller_actions_selection_single">Eine Antwort</string>
+    <string name="seller_actions_selection_multi">Mehrere Antworten</string>
+    <string name="seller_actions_options_too_few">Mindestens zwei verschiedene Antworten</string>
+    <string name="inbox_chose_of">Gewählt aus %1$d Antworten</string>
     <!-- Posteingang des Verkäufers -->
     <string name="inbox_title">Wünsche</string>
     <string name="inbox_open">Wünsche der Kunden</string>

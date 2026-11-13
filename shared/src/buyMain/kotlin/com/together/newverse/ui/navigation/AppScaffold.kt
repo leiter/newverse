@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -63,6 +64,8 @@ import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.ui.adaptive.LocalWindowWidthClass
 import com.together.newverse.ui.adaptive.ProvideWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
+import com.together.newverse.ui.components.ChoicePickerIcon
+import com.together.newverse.ui.components.ChoicePickerPanel
 import com.together.newverse.ui.components.QuickMessageInput
 import com.together.newverse.ui.components.SellerAnnouncementTitle
 import com.together.newverse.ui.components.displayName
@@ -310,6 +313,13 @@ private fun AppScaffoldContent(
     // Resolved here because the ViewModel holds it as a StringResource: it has no
     // resource environment to resolve one in, and `getString` throws in a plain JVM
     // test. Cleared after showing, so a recomposition does not announce it again.
+    // Which choice picker is open, or null. Held here because the two halves are
+    // drawn in different places -- the question mark among the top bar's actions, the
+    // panel over the content below -- so neither can own it. The *slot* rather than a
+    // boolean: home and profile can each publish a picker, and opening one must not
+    // open the other.
+    var openChoice by remember { mutableStateOf<ActionLocation?>(null) }
+
     val quickMessageError = appState.quickMessage.error
     val quickMessageErrorText = quickMessageError?.let { stringResource(it) }
     LaunchedEffect(quickMessageError) {
@@ -670,6 +680,23 @@ private fun AppScaffoldContent(
                             )
                         }
                     }
+                    // The seller's choice picker for this screen: a question mark
+                    // that opens a panel over the content.
+                    //
+                    // An icon rather than the title slot, which is what lets a picker
+                    // and an announcement both be published -- they are not competing
+                    // for the same row. Drawn inboard of the app's own icons for the
+                    // reason the published buttons below are.
+                    val choiceSlot = when (currentRoute) {
+                        NavRoutes.Home.route -> ActionLocation.TOPBAR_HOME_CHOICE
+                        NavRoutes.Buy.Profile.route -> ActionLocation.TOPBAR_PROFILE_CHOICE
+                        else -> null
+                    }
+                    val choicePicker = choiceSlot?.let { appState.choicePickerFor(it) }
+                    if (choiceSlot != null && choicePicker != null) {
+                        ChoicePickerIcon(onClick = { openChoice = choiceSlot })
+                    }
+
                     // Buttons the seller published for this screen.
                     //
                     // Drawn before the fixed actions so the app's own affordances keep
@@ -927,6 +954,7 @@ private fun AppScaffoldContent(
             )
         }
     ) { paddingValues ->
+      Box(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
                 .padding(paddingValues)
@@ -960,6 +988,44 @@ private fun AppScaffoldContent(
                 )
             }
         }
+
+        // The open picker's panel, over the content and under the bars.
+        //
+        // Inside the Scaffold's content rather than over the whole window, so the
+        // question mark the buyer just tapped stays visible above it: a panel that
+        // covered its own opener would leave no sign of where it came from.
+        //
+        // Resolved from state on every frame, not captured when the icon was tapped.
+        // The seller can switch the row off while the panel is open, and the panel
+        // must go with it rather than collect an answer to a question that has been
+        // withdrawn.
+        val openPicker = openChoice?.let { appState.choicePickerFor(it) }
+        if (openChoice != null && openPicker != null) {
+            // A landed send closes the panel. Driven by the count for the reason the
+            // selection is cleared by it: a *refused* send must leave the panel open
+            // with the buyer's answers still in it.
+            LaunchedEffect(appState.quickMessage.sentCount) {
+                if (appState.quickMessage.sentCount > 0) openChoice = null
+            }
+            ChoicePickerPanel(
+                prompt = openPicker.value,
+                options = openPicker.options,
+                selectionMode = openPicker.selectionMode,
+                onSend = { selections ->
+                    viewModel.dispatch(
+                        BuyUiAction.SendChoice(openChoice!!, selections)
+                    )
+                },
+                // Closes the panel and nothing more. A picker is opened rather than
+                // put in the buyer's way, so there is nothing to dismiss: the icon
+                // stays and they can open it again.
+                onDismiss = { openChoice = null },
+                isSending = appState.quickMessage.isSending,
+                sentCount = appState.quickMessage.sentCount,
+                modifier = Modifier.padding(paddingValues)
+            )
+        }
+      }
     }
 
     // Asked at the scaffold, not on a screen: where the buyer collects decides the

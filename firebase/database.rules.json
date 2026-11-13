@@ -135,13 +135,18 @@
         "$actionId": {
           ".validate": "newData.hasChildren(['id', 'kind', 'label', 'value', 'location']) && newData.child('id').val() === $actionId",
           "id": { ".validate": "newData.isString()" },
-          "kind": { ".validate": "(newData.val() === 'OPEN_URL' && (newData.parent().child('location').val() === 'TOPBAR_HOME' || newData.parent().child('location').val() === 'TOPBAR_PROFILE' || newData.parent().child('location').val() === 'TOPBAR_HOME_BRAND_ICON')) || (newData.val() === 'ANNOUNCE' && newData.parent().child('location').val() === 'TOPBAR_HOME_TITLE') || (newData.val() === 'QUICK_MESSAGE' && (newData.parent().child('location').val() === 'TOPBAR_HOME_INPUT' || newData.parent().child('location').val() === 'TOPBAR_PROFILE_INPUT'))" },
+          "kind": { ".validate": "(newData.val() === 'OPEN_URL' && (newData.parent().child('location').val() === 'TOPBAR_HOME' || newData.parent().child('location').val() === 'TOPBAR_PROFILE' || newData.parent().child('location').val() === 'TOPBAR_HOME_BRAND_ICON')) || (newData.val() === 'ANNOUNCE' && newData.parent().child('location').val() === 'TOPBAR_HOME_TITLE') || (newData.val() === 'QUICK_MESSAGE' && (newData.parent().child('location').val() === 'TOPBAR_HOME_INPUT' || newData.parent().child('location').val() === 'TOPBAR_PROFILE_INPUT')) || (newData.val() === 'CHOICE' && (newData.parent().child('location').val() === 'TOPBAR_HOME_CHOICE' || newData.parent().child('location').val() === 'TOPBAR_PROFILE_CHOICE'))" },
           "label": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 24" },
-          "value": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500 && (newData.parent().child('kind').val() === 'ANNOUNCE' || newData.parent().child('kind').val() === 'QUICK_MESSAGE' || (!newData.val().contains(':') && !newData.val().beginsWith('/')))" },
-          "location": { ".validate": "newData.val() === 'TOPBAR_HOME' || newData.val() === 'TOPBAR_PROFILE' || newData.val() === 'TOPBAR_HOME_TITLE' || newData.val() === 'TOPBAR_HOME_INPUT' || newData.val() === 'TOPBAR_PROFILE_INPUT' || newData.val() === 'TOPBAR_HOME_BRAND_ICON'" },
+          "value": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500 && (newData.parent().child('kind').val() === 'ANNOUNCE' || newData.parent().child('kind').val() === 'QUICK_MESSAGE' || newData.parent().child('kind').val() === 'CHOICE' || (!newData.val().contains(':') && !newData.val().beginsWith('/')))" },
+          "location": { ".validate": "newData.val() === 'TOPBAR_HOME' || newData.val() === 'TOPBAR_PROFILE' || newData.val() === 'TOPBAR_HOME_TITLE' || newData.val() === 'TOPBAR_HOME_INPUT' || newData.val() === 'TOPBAR_PROFILE_INPUT' || newData.val() === 'TOPBAR_HOME_BRAND_ICON' || newData.val() === 'TOPBAR_HOME_CHOICE' || newData.val() === 'TOPBAR_PROFILE_CHOICE'" },
           "audience": { ".validate": "newData.val() === 'EVERYONE' || newData.val() === 'DEMO_ONLY' || newData.val() === 'APPROVED_ONLY'" },
           "active": { ".validate": "newData.isBoolean()" },
           "persistence": { ".validate": "newData.val() === 'UNTIL_CANCELLED' || (newData.val() === 'HIDE_ON_ACTION' && newData.parent().child('kind').val() !== 'ANNOUNCE' && newData.parent().child('location').val() !== 'TOPBAR_HOME_BRAND_ICON')" },
+          "options": {
+            ".validate": "newData.parent().child('kind').val() === 'CHOICE' && newData.hasChildren()",
+            "$index": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 48" }
+          },
+          "selectionMode": { ".validate": "newData.parent().child('kind').val() === 'CHOICE' && (newData.val() === 'SINGLE' || newData.val() === 'MULTI')" },
           "$other": { ".validate": false }
         }
       }
@@ -156,12 +161,20 @@
           "sellerId": { ".validate": "newData.isString()" },
           "buyerId": { ".validate": "newData.isString() && newData.val() === auth.uid" },
           "buyerName": { ".validate": "newData.isString() && newData.val().length <= 120" },
-          "requestKind": { ".validate": "newData.val() === 'QUICK_MESSAGE'" },
+          "requestKind": { ".validate": "newData.val() === 'QUICK_MESSAGE' || newData.val() === 'CHOICE'" },
           "requestId": { ".validate": "newData.isString() && newData.val().length <= 80" },
           "prompt": { ".validate": "newData.isString() && newData.val().length <= 500" },
           "text": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500" },
           "timestamp": { ".validate": "newData.isNumber()" },
           "timestampIso": { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "selections": {
+            ".validate": "newData.parent().child('requestKind').val() === 'CHOICE' && newData.hasChildren()",
+            "$index": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 48" }
+          },
+          "options": {
+            ".validate": "newData.parent().child('requestKind').val() === 'CHOICE' && newData.hasChildren()",
+            "$index": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 48" }
+          },
           "$other": { ".validate": false }
         }
       }

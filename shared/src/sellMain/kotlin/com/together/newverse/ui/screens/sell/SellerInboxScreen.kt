@@ -3,12 +3,14 @@ package com.together.newverse.ui.screens.sell
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -19,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -31,11 +34,13 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.together.newverse.domain.model.ActionKind
 import com.together.newverse.domain.model.SellerInboxMessage
 import com.together.newverse.ui.state.core.AsyncState
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.back
 import newverse.shared.generated.resources.inbox_anonymous
+import newverse.shared.generated.resources.inbox_chose_of
 import newverse.shared.generated.resources.inbox_delete
 import newverse.shared.generated.resources.inbox_empty
 import newverse.shared.generated.resources.inbox_title
@@ -176,10 +181,51 @@ private fun InboxMessageRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                text = message.text,
-                style = MaterialTheme.typography.bodyLarge
-            )
+            // A choice is shown as the chips the buyer actually tapped, not as the
+            // joined line. `text` carries the same labels and stays the fallback --
+            // it is what a message written before pickers existed has, and what a
+            // newer kind of box this version does not understand would have.
+            if (message.requestKind == ActionKind.CHOICE && message.selections.isNotEmpty()) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically
+                ) {
+                    message.selections.forEach { selection ->
+                        // Not a chip: a chip invites a tap, and nothing here is
+                        // tappable. A filled label says "this was picked" without
+                        // promising an action the seller's inbox does not have.
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Text(
+                                text = selection,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+                // What they chose *from*. Three people picking one answer out of
+                // three is not the finding three out of eight is, and the row the
+                // question came from is usually gone by now -- which is why the
+                // message snapshots its own options.
+                if (message.options.isNotEmpty()) {
+                    Text(
+                        text = stringResource(Res.string.inbox_chose_of, message.options.size),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Text(
+                    text = message.text,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
             // The name is what the buyer calls themselves and may be empty — a guest
             // has none to give. The date is the readable half of the two timestamps.
             Text(

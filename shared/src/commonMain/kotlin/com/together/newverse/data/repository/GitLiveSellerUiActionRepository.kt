@@ -4,6 +4,7 @@ import com.together.newverse.domain.model.ActionAudience
 import com.together.newverse.domain.model.ActionKind
 import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.ActionPersistence
+import com.together.newverse.domain.model.SelectionMode
 import com.together.newverse.domain.model.SellerUiAction
 import com.together.newverse.domain.repository.SellerUiActionRepository
 import com.together.newverse.util.Log
@@ -143,6 +144,17 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
             // field existed were doing; an unknown name skips the row.
             val persistence = ActionPersistence.stored(fields["persistence"] as? String)
                 ?: return@mapNotNull null
+            // Absent reads as SINGLE, the narrower rule; an unknown name skips the
+            // row, like every other stored enum here.
+            val selectionMode = SelectionMode.stored(fields["selectionMode"] as? String)
+                ?: return@mapNotNull null
+            // Tolerates both shapes RTDB returns for a list -- see
+            // [stringListFromStored]. A seller deleting a middle option must not
+            // empty the picker on every buyer's phone.
+            val options = stringListFromStored(
+                fields["options"],
+                SellerUiAction.MAX_OPTION_LENGTH
+            )
             // Absent reads as active: rows written before the switch existed were
             // being shown, and must go on being shown.
             val isActive = fields["active"] as? Boolean ?: true
@@ -163,19 +175,37 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
                 location = location,
                 audience = audience,
                 isActive = isActive,
-                persistence = persistence
+                persistence = persistence,
+                options = options,
+                selectionMode = selectionMode
             )
+                // A hand-written picker with one answer, or with the same answer
+                // twice, is an icon that opens a panel nobody can answer. Dropped
+                // here because the rules can require the list to be non-empty but
+                // cannot count its children.
+                .takeIf { it.kind != ActionKind.CHOICE || it.isComplete }
         }
     }
 
-    private fun actionToMap(action: SellerUiAction): Map<String, Any?> = mapOf(
-        "id" to action.id,
-        "kind" to action.kind.name,
-        "label" to action.label,
-        "value" to action.value,
-        "location" to action.location.name,
-        "audience" to action.audience.name,
-        "active" to action.isActive,
-        "persistence" to action.persistence.name
-    )
+    /**
+     * The row as the database should hold it.
+     *
+     * `options` and `selectionMode` are written **only** for a picker and left out
+     * entirely otherwise, rather than written empty: the rules refuse either child on
+     * any other kind, and a null would take the whole row down with it.
+     */
+    private fun actionToMap(action: SellerUiAction): Map<String, Any?> = buildMap {
+        put("id", action.id)
+        put("kind", action.kind.name)
+        put("label", action.label)
+        put("value", action.value)
+        put("location", action.location.name)
+        put("audience", action.audience.name)
+        put("active", action.isActive)
+        put("persistence", action.persistence.name)
+        if (action.kind == ActionKind.CHOICE) {
+            put("options", action.options)
+            put("selectionMode", action.selectionMode.name)
+        }
+    }
 }

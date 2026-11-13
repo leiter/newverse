@@ -36,6 +36,7 @@ import com.together.newverse.domain.model.ActionAudience
 import com.together.newverse.domain.model.ActionKind
 import com.together.newverse.domain.model.ActionLocation
 import com.together.newverse.domain.model.ActionPersistence
+import com.together.newverse.domain.model.SelectionMode
 import com.together.newverse.domain.model.SellerUiAction
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.button_save
@@ -44,6 +45,18 @@ import newverse.shared.generated.resources.seller_actions_audience
 import newverse.shared.generated.resources.seller_actions_audience_all
 import newverse.shared.generated.resources.seller_actions_audience_demo
 import newverse.shared.generated.resources.seller_actions_announcement
+import newverse.shared.generated.resources.seller_actions_choice
+import newverse.shared.generated.resources.seller_actions_choice_explain
+import newverse.shared.generated.resources.seller_actions_location_home_choice
+import newverse.shared.generated.resources.seller_actions_location_profile_choice
+import newverse.shared.generated.resources.seller_actions_option_add
+import newverse.shared.generated.resources.seller_actions_option_hint
+import newverse.shared.generated.resources.seller_actions_option_remove
+import newverse.shared.generated.resources.seller_actions_options
+import newverse.shared.generated.resources.seller_actions_options_too_few
+import newverse.shared.generated.resources.seller_actions_selection_mode
+import newverse.shared.generated.resources.seller_actions_selection_multi
+import newverse.shared.generated.resources.seller_actions_selection_single
 import newverse.shared.generated.resources.seller_actions_announcement_explain
 import newverse.shared.generated.resources.seller_actions_audience_approved
 import newverse.shared.generated.resources.seller_actions_explain
@@ -165,6 +178,7 @@ fun UiActionListEditor(
                     onClick = {
                         val slot = slotsWithRoom.first()
                         rows = rows + SellerUiAction(location = slot, kind = slot.kind)
+                            .withBlanksForKind()
                     }
                 ) {
                     Icon(
@@ -226,12 +240,14 @@ private fun UiActionRow(
 
     val isAnnouncement = action.kind == ActionKind.ANNOUNCE
     val isPrompt = action.kind == ActionKind.QUICK_MESSAGE
-    // Both of these are the seller's own prose rather than an address, so they get the
-    // room and the wording a sentence needs — and neither asks for a label.
-    val isProse = isAnnouncement || isPrompt
+    val isChoice = action.kind == ActionKind.CHOICE
+    // All three of these are the seller's own prose rather than an address, so they
+    // get the room and the wording a sentence needs — and none asks for a label.
+    val isProse = isAnnouncement || isPrompt || isChoice
     val valueLabel = when {
         isAnnouncement -> Res.string.seller_actions_announcement
         isPrompt -> Res.string.seller_actions_prompt
+        isChoice -> Res.string.seller_actions_choice
         else -> Res.string.seller_actions_value
     }
 
@@ -269,6 +285,7 @@ private fun UiActionRow(
                                 // screen to say why.
                                 onChange(
                                     action.copy(location = location, kind = location.kind)
+                                        .withBlanksForKind()
                                 )
                                 locationMenuOpen = false
                             }
@@ -394,18 +411,170 @@ private fun UiActionRow(
             minLines = if (isProse) 2 else 1
         )
 
+        // The answers, and how many of them a buyer may give. Below the question,
+        // because they only make sense once there is one.
+        if (isChoice) {
+            ChoiceOptionsEditor(action = action, onChange = onChange)
+        }
+
         if (isProse) {
             Text(
-                text = stringResource(
-                    if (isPrompt) Res.string.seller_actions_prompt_explain
-                    else Res.string.seller_actions_announcement_explain
-                ),
+                text = when {
+                    isChoice -> stringResource(
+                        Res.string.seller_actions_choice_explain,
+                        SellerUiAction.MAX_OPTIONS
+                    )
+                    isPrompt -> stringResource(Res.string.seller_actions_prompt_explain)
+                    else -> stringResource(Res.string.seller_actions_announcement_explain)
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
+
+/**
+ * The answers a picker offers, and whether a buyer may give one or several.
+ *
+ * A row of fields rather than one comma-separated box, deliberately. A separator is
+ * a rule the seller has to be told and cannot see: the first answer with a comma in
+ * it silently becomes two, and there is no way to escape it. Fields cost more taps
+ * and lose nothing.
+ *
+ * The list is edited in place and handed back whole on every keystroke, because the
+ * parent holds the row — the same shape every other field here uses. Nothing is
+ * trimmed or deduplicated while typing: [SellerUiAction.readyToStore] does that on
+ * save, and collapsing a duplicate under the seller's cursor as they type the second
+ * letter of it would be unusable.
+ */
+@Composable
+private fun ChoiceOptionsEditor(
+    action: SellerUiAction,
+    onChange: (SellerUiAction) -> Unit,
+) {
+    var modeMenuOpen by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(Res.string.seller_actions_options),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        action.options.forEachIndexed { index, option ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                OutlinedTextField(
+                    value = option,
+                    onValueChange = { typed ->
+                        // Capped where it is typed as well as where it is saved, so
+                        // the seller finds out at the keyboard rather than at the
+                        // refusal -- the same rule the buyer's field follows.
+                        val capped = typed.take(SellerUiAction.MAX_OPTION_LENGTH)
+                        onChange(
+                            action.copy(
+                                options = action.options.toMutableList()
+                                    .also { it[index] = capped }
+                            )
+                        )
+                    },
+                    label = { Text(stringResource(Res.string.seller_actions_option_hint, index + 1)) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                IconButton(
+                    onClick = {
+                        onChange(
+                            action.copy(
+                                options = action.options.filterIndexed { i, _ -> i != index }
+                            )
+                        )
+                    }
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(Res.string.seller_actions_option_remove),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+
+        if (action.options.size < SellerUiAction.MAX_OPTIONS) {
+            TextButton(onClick = { onChange(action.copy(options = action.options + "")) }) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(stringResource(Res.string.seller_actions_option_add))
+            }
+        }
+
+        // Said here rather than only by the save button being dead, because a dead
+        // button with no reason beside it is the hardest kind to get past.
+        if (action.value.isNotBlank() &&
+            action.distinctOptions().size < SellerUiAction.MIN_OPTIONS
+        ) {
+            Text(
+                text = stringResource(Res.string.seller_actions_options_too_few),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        Column {
+            OutlinedTextField(
+                value = action.selectionMode.displayName(),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(Res.string.seller_actions_selection_mode)) },
+                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { modeMenuOpen = true },
+                singleLine = true,
+                enabled = false
+            )
+            DropdownMenu(
+                expanded = modeMenuOpen,
+                onDismissRequest = { modeMenuOpen = false }
+            ) {
+                SelectionMode.entries.forEach { mode ->
+                    DropdownMenuItem(
+                        text = { Text(mode.displayName()) },
+                        onClick = {
+                            onChange(action.copy(selectionMode = mode))
+                            modeMenuOpen = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A picker that has just become one starts with empty answer fields on screen.
+ *
+ * Without this the seller meets a heading and a lone "add an answer" button, which
+ * reads as a section that is not ready yet rather than as two blanks to fill in. Two
+ * because two is the minimum a picker can be saved with — the shape of the thing is
+ * the instruction.
+ *
+ * Only ever *adds* blanks, so switching a row to a picker and back does not throw
+ * away answers the seller already typed.
+ */
+private fun SellerUiAction.withBlanksForKind(): SellerUiAction =
+    if (kind == ActionKind.CHOICE && options.isEmpty()) {
+        copy(options = List(SellerUiAction.MIN_OPTIONS) { "" })
+    } else {
+        this
+    }
 
 /** What the seller sees in the picker for what makes a row go away. */
 @Composable
@@ -440,4 +609,18 @@ private fun ActionLocation.displayName(): String = when (this) {
     // buyer can already make rather than add something new.
     ActionLocation.TOPBAR_HOME_BRAND_ICON ->
         stringResource(Res.string.seller_actions_location_home_brand)
+    // Named by the icon rather than by the slot, like the logo seat above: what the
+    // seller is choosing is where the question mark appears, and "Titel" would be
+    // wrong -- a picker is the one published row that does not take a title.
+    ActionLocation.TOPBAR_HOME_CHOICE ->
+        stringResource(Res.string.seller_actions_location_home_choice)
+    ActionLocation.TOPBAR_PROFILE_CHOICE ->
+        stringResource(Res.string.seller_actions_location_profile_choice)
+}
+
+/** What the seller sees in the picker for how many answers a buyer may give. */
+@Composable
+private fun SelectionMode.displayName(): String = when (this) {
+    SelectionMode.SINGLE -> stringResource(Res.string.seller_actions_selection_single)
+    SelectionMode.MULTI -> stringResource(Res.string.seller_actions_selection_multi)
 }

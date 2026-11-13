@@ -126,6 +126,23 @@ sealed interface BuyUiAction : BuyAction {
     data class SendPrompt(val location: ActionLocation, val text: String) : BuyUiAction
 
     /**
+     * The buyer pressed send in the choice picker on [location].
+     *
+     * Carries the picked **labels**, resolved from state in every other respect for
+     * [SendPrompt]'s reason. Labels rather than positions because that is what gets
+     * stored — see `SellerInboxMessage.selections` — and because a position sent from
+     * a frame drawn against an older row would file the answer under a different
+     * option than the buyer tapped.
+     *
+     * The selections are checked against the row the *state* holds before anything is
+     * written, so a label that is no longer offered is dropped rather than sent.
+     */
+    data class SendChoice(
+        val location: ActionLocation,
+        val selections: List<String>,
+    ) : BuyUiAction
+
+    /**
      * A failed send has been shown to the buyer, so stop holding on to it.
      *
      * The failure is kept in state as a `StringResource` rather than a resolved

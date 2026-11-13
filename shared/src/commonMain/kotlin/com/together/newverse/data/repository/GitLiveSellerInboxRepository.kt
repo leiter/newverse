@@ -50,6 +50,15 @@ class GitLiveSellerInboxRepository : SellerInboxRepository {
                 text = message.text.trim().take(SellerInboxMessage.MAX_TEXT_LENGTH),
                 buyerName = message.buyerName.trim().take(SellerInboxMessage.MAX_NAME_LENGTH),
                 prompt = message.prompt.trim().take(SellerUiAction.MAX_VALUE_LENGTH),
+                // Capped here as well as where they are picked, for `text`'s reason:
+                // a caller that did not truncate should not have its whole answer
+                // refused by the rules.
+                selections = message.selections.map {
+                    it.trim().take(SellerUiAction.MAX_OPTION_LENGTH)
+                },
+                options = message.options.map {
+                    it.trim().take(SellerUiAction.MAX_OPTION_LENGTH)
+                },
                 timestamp = now.toEpochMilliseconds(),
                 timestampIso = now.toString(),
             )
@@ -121,6 +130,14 @@ class GitLiveSellerInboxRepository : SellerInboxRepository {
                 requestId = data["requestId"] as? String ?: "",
                 prompt = data["prompt"] as? String ?: "",
                 text = text,
+                selections = stringListFromStored(
+                    data["selections"],
+                    SellerUiAction.MAX_OPTION_LENGTH
+                ),
+                options = stringListFromStored(
+                    data["options"],
+                    SellerUiAction.MAX_OPTION_LENGTH
+                ),
                 timestamp = (data["timestamp"] as? Number)?.toLong() ?: 0L,
                 timestampIso = data["timestampIso"] as? String ?: "",
             )
@@ -130,16 +147,27 @@ class GitLiveSellerInboxRepository : SellerInboxRepository {
         }
     }
 
-    private fun messageToMap(message: SellerInboxMessage): Map<String, Any?> = mapOf(
-        "id" to message.id,
-        "sellerId" to message.sellerId,
-        "buyerId" to message.buyerId,
-        "buyerName" to message.buyerName,
-        "requestKind" to message.requestKind.name,
-        "requestId" to message.requestId,
-        "prompt" to message.prompt,
-        "text" to message.text,
-        "timestamp" to message.timestamp,
-        "timestampIso" to message.timestampIso,
-    )
+    /**
+     * The message as the database should hold it.
+     *
+     * `selections` and `options` are written only for a choice and omitted
+     * otherwise, never written empty: the rules refuse both children on a
+     * QUICK_MESSAGE, and an empty list is a null to RTDB anyway.
+     */
+    private fun messageToMap(message: SellerInboxMessage): Map<String, Any?> = buildMap {
+        put("id", message.id)
+        put("sellerId", message.sellerId)
+        put("buyerId", message.buyerId)
+        put("buyerName", message.buyerName)
+        put("requestKind", message.requestKind.name)
+        put("requestId", message.requestId)
+        put("prompt", message.prompt)
+        put("text", message.text)
+        put("timestamp", message.timestamp)
+        put("timestampIso", message.timestampIso)
+        if (message.requestKind == ActionKind.CHOICE) {
+            put("selections", message.selections)
+            put("options", message.options)
+        }
+    }
 }

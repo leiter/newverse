@@ -1,0 +1,26 @@
+{
+  "seller_inbox/cPkcZSiF3LMXjWoqW6AqpA9paoO2/msg_choice_example": {
+    "id": "msg_choice_example",
+    "sellerId": "cPkcZSiF3LMXjWoqW6AqpA9paoO2",
+    "buyerId": "REPLACE_WITH_SENDING_BUYER_AUTH_UID",
+    "buyerName": "Testkäuferin",
+    "requestKind": "CHOICE",
+    "requestId": "act_choice_dev_multi",
+    "prompt": "Was sollen wir nächste Woche mitbringen?",
+    "options": [
+      "Bergkäse",
+      "Dinkelmehl",
+      "Eier",
+      "Honig",
+      "Rohmilch",
+      "Ziegenfrischkäse"
+    ],
+    "selections": [
+      "Dinkelmehl",
+      "Eier"
+    ],
+    "text": "Dinkelmehl, Eier",
+    "timestamp": 1763035200000,
+    "timestampIso": "2026-11-13T12:00:00Z"
+  }
+}
