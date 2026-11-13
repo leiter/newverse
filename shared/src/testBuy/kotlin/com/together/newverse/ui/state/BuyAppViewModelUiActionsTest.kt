@@ -20,6 +20,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -285,7 +286,7 @@ class BuyAppViewModelUiActionsTest {
         advanceUntilIdle()
         assertTrue(viewModel.state.value.homeTitleAnnouncement != null)
 
-        viewModel.dispatch(BuyUiAction.DismissHomeAnnouncement)
+        viewModel.dispatch(BuyUiAction.CollapseHomeAnnouncement)
         advanceUntilIdle()
 
         assertEquals(null, viewModel.state.value.homeTitleAnnouncement)
@@ -296,7 +297,7 @@ class BuyAppViewModelUiActionsTest {
         uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
         val viewModel = createViewModel()
         advanceUntilIdle()
-        viewModel.dispatch(BuyUiAction.DismissHomeAnnouncement)
+        viewModel.dispatch(BuyUiAction.CollapseHomeAnnouncement)
         advanceUntilIdle()
 
         // The live subscription re-emits the same row. A dismissal that did not
@@ -308,6 +309,53 @@ class BuyAppViewModelUiActionsTest {
     }
 
     @Test
+    fun `a closed announcement leaves an icon behind`() = runTest {
+        // The point of collapsing rather than dismissing: the row is out of the
+        // title but still reachable.
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.dispatch(BuyUiAction.CollapseHomeAnnouncement)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(null, state.homeTitleAnnouncement)
+        assertNotNull(state.collapsedRowFor(ActionLocation.TOPBAR_HOME_TITLE))
+    }
+
+    @Test
+    fun `tapping the icon puts the announcement back`() = runTest {
+        // The half that never existed. Closing used to be permanent, so a buyer who
+        // caught the close button by accident lost the announcement until the seller
+        // reworded it.
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.dispatch(BuyUiAction.CollapseHomeAnnouncement)
+        advanceUntilIdle()
+
+        viewModel.dispatch(BuyUiAction.ExpandRow(ActionLocation.TOPBAR_HOME_TITLE))
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals("Heute ab 9: Bodenschätze", state.homeTitleAnnouncement?.value)
+        assertEquals(null, state.collapsedRowFor(ActionLocation.TOPBAR_HOME_TITLE))
+    }
+
+    @Test
+    fun `expanding a slot with nothing collapsed does nothing`() = runTest {
+        uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9: Bodenschätze"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.dispatch(BuyUiAction.ExpandRow(ActionLocation.TOPBAR_HOME_TITLE))
+        advanceUntilIdle()
+
+        assertEquals("Heute ab 9: Bodenschätze", viewModel.state.value.homeTitleAnnouncement?.value)
+    }
+
+    @Test
     fun `re-wording an announcement brings it back`() = runTest {
         // The reason the dismissal key hashes the text. The seller corrects the time
         // on the row they already have; every buyer who closed the old one must see
@@ -315,7 +363,7 @@ class BuyAppViewModelUiActionsTest {
         uiActionRepository.seed("demo_seller_id", announcement("n1", "Heute ab 9 Uhr"))
         val viewModel = createViewModel()
         advanceUntilIdle()
-        viewModel.dispatch(BuyUiAction.DismissHomeAnnouncement)
+        viewModel.dispatch(BuyUiAction.CollapseHomeAnnouncement)
         advanceUntilIdle()
         assertEquals(null, viewModel.state.value.homeTitleAnnouncement)
 

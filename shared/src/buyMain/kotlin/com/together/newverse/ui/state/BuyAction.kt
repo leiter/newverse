@@ -102,18 +102,29 @@ sealed interface BuyUiAction : BuyAction {
      * would let a stale recomposition dismiss an announcement the seller replaced
      * while the frame was in flight.
      */
-    data object DismissHomeAnnouncement : BuyUiAction
+    data object CollapseHomeAnnouncement : BuyUiAction
 
     /**
-     * The buyer closed the seller's message box on [location].
+     * The buyer closed the seller's message box on [location], collapsing it to an icon.
      *
-     * Carries the slot rather than the key, for the reason [DismissHomeAnnouncement]
+     * Carries the slot rather than the key, for the reason [CollapseHomeAnnouncement]
      * carries nothing: the state resolves which row is in that slot, so a stale
      * recomposition cannot suppress a question the seller published while the frame
      * was in flight. The slot *is* needed — there are two input slots, and closing
      * the one on the profile screen must not take the one on home away.
      */
-    data class DismissPrompt(val location: ActionLocation) : BuyUiAction
+    data class CollapsePrompt(val location: ActionLocation) : BuyUiAction
+
+    /**
+     * The buyer tapped the icon a collapsed row left behind, and wants it back.
+     *
+     * The half that never existed. Closing used to be permanent — the dismissal set
+     * only ever grew — so a buyer who caught the × by accident had lost that
+     * announcement until the seller reworded it. Carries the slot rather than the
+     * key, like its two counterparts, so a stale frame cannot reopen a row the seller
+     * has since replaced.
+     */
+    data class ExpandRow(val location: ActionLocation) : BuyUiAction
 
     /**
      * The buyer pressed send in the message box on [location].

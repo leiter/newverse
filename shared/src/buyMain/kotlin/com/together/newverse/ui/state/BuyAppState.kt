@@ -93,6 +93,19 @@ data class BuyAppState(
      */
     val dismissedRows: Set<String> = emptySet(),
     /**
+     * Which published rows this buyer has **collapsed** on this device.
+     *
+     * Separate from [dismissedRows], and the difference is the whole point: a
+     * collapsed row is still there, drawn as an icon in the top bar, and tapping that
+     * icon brings it back. A dismissed one is finished with — the seller asked once,
+     * got their answer, and `HIDE_ON_ACTION` took the row away.
+     *
+     * Closing used to mean the second thing. A buyer who caught the × by accident had
+     * lost that announcement until the seller reworded it, because nothing ever
+     * removed a key from the set.
+     */
+    val collapsedRows: Set<String> = emptySet(),
+    /**
      * Where a message the buyer typed into a published box currently stands.
      *
      * One slot of state for both input slots, because a buyer can only be sending
@@ -403,7 +416,7 @@ data class BuyAppState(
                 isApproved = canContactSeller,
                 isDemo = isDemoMode
             )
-            ?.takeUnless { it.dismissalKey in dismissedRows }
+            ?.takeUnless { it.isHiddenHere }
 
     /**
      * The seller's message box for one title slot, or null — audience-filtered and
@@ -414,7 +427,9 @@ data class BuyAppState(
      * this slot and deliberate: a box is **not** hidden after a message is sent. A
      * buyer with a second wish should be able to send it, and the seller asked a
      * standing question rather than ran a one-answer poll. Closing it is how a buyer
-     * says they are done — see [BuyUiAction.DismissPrompt].
+     * says they are done with the question *for now* — see
+     * [BuyUiAction.CollapsePrompt], which collapses it to an icon rather than
+     * destroying it.
      */
     fun titlePromptFor(location: ActionLocation): SellerUiAction? =
         sellerUiActions
@@ -424,7 +439,7 @@ data class BuyAppState(
                 isApproved = canContactSeller,
                 isDemo = isDemoMode
             )
-            ?.takeUnless { it.dismissalKey in dismissedRows }
+            ?.takeUnless { it.isHiddenHere }
 
     /**
      * The seller's choice picker for one slot, or null — audience-filtered and
@@ -446,7 +461,34 @@ data class BuyAppState(
                 isApproved = canContactSeller,
                 isDemo = isDemoMode
             )
-            ?.takeUnless { it.dismissalKey in dismissedRows }
+            ?.takeUnless { it.isHiddenHere }
+
+    /**
+     * The row for a title slot that this buyer has collapsed, or null.
+     *
+     * What the top bar draws an icon for. The mirror of [homeTitleAnnouncement] and
+     * [titlePromptFor]: exactly one of the two returns a row for a given slot, never
+     * both — either it is in the title or it is an icon.
+     *
+     * A row the buyer is **done** with is not returned, because there is nothing to
+     * reopen: `HIDE_ON_ACTION` means the seller asked once and got their answer, and
+     * an icon that brought the question back would invite a second.
+     */
+    fun collapsedRowFor(location: ActionLocation): SellerUiAction? =
+        sellerUiActions
+            .singleForSlot(location)
+            ?.takeIf { it.dismissalKey in collapsedRows && it.dismissalKey !in dismissedRows }
+
+    /** Whether this row is out of its slot on this device, collapsed or finished. */
+    private val SellerUiAction.isHiddenHere: Boolean
+        get() = dismissalKey in dismissedRows || dismissalKey in collapsedRows
+
+    /** The one row for a single-row slot, audience-filtered, ignoring what is hidden. */
+    private fun List<SellerUiAction>.singleForSlot(location: ActionLocation): SellerUiAction? =
+        when {
+            location.isInput -> promptFor(location, canContactSeller, isDemoMode)
+            else -> announcementFor(location, canContactSeller, isDemoMode)
+        }
 
     /**
      * What the seller has put in the home bar's brand-icon seat, or null for the

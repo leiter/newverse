@@ -11,6 +11,7 @@ import com.together.newverse.ui.state.BottomSheetState
 import com.together.newverse.ui.state.DialogState
 import com.together.newverse.ui.state.SnackbarState
 import com.together.newverse.ui.state.SnackbarType
+import com.together.newverse.data.config.ANSWERED_PREFIX
 import com.together.newverse.util.Log
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -178,41 +179,74 @@ internal fun BuyAppViewModel.loadDismissedAnnouncements() {
         Log.w("BuyVMUi") { "loadDismissedAnnouncements: ${e.message}" }
         return
     }
-    _state.update { it.copy(dismissedRows = it.dismissedRows + dismissed) }
+    // One file, two meanings: a key behind ANSWERED_PREFIX is a row the buyer is
+    // finished with, anything else is a row they collapsed and can reopen.
+    val answered = dismissed.filter { it.startsWith(ANSWERED_PREFIX) }
+        .map { it.removePrefix(ANSWERED_PREFIX) }
+    val collapsed = dismissed.filterNot { it.startsWith(ANSWERED_PREFIX) }
+    _state.update {
+        it.copy(
+            dismissedRows = it.dismissedRows + answered,
+            collapsedRows = it.collapsedRows + collapsed,
+        )
+    }
 }
 
 /**
- * Stop showing the announcement currently in the home title.
+ * Collapse the announcement currently in the home title to its icon.
  *
  * The key is taken from state rather than from the caller, so a tap can only ever
- * dismiss the sentence that was on screen. State is updated whether or not the write
+ * close the sentence that was on screen. State is updated whether or not the write
  * succeeds: the buyer asked for the banner to go away, and it going away is the part
- * they can see. A failed write means it comes back next launch, which is a far smaller
- * surprise than a close button that does nothing.
+ * they can see. A failed write means it is expanded again next launch, which is a far
+ * smaller surprise than a close button that does nothing.
+ *
+ * Reversible, unlike what this used to do. See [expandRow].
  */
-internal fun BuyAppViewModel.dismissHomeAnnouncement() {
+internal fun BuyAppViewModel.collapseHomeAnnouncement() {
     val key = _state.value.homeTitleAnnouncement?.dismissalKey ?: return
-    rememberDismissed(key)
+    rememberCollapsed(key)
 }
 
 // ===== The seller's published message box ==================================
 
 /**
- * Stop showing the message box in [location].
+ * Collapse the message box in [location] to its icon.
  *
  * The buyer's way out of being asked, and the reason the slot needs one at all: an
  * announcement can be read and ignored, while a text field in the title of a screen
  * the buyer opens every day is a standing request. A buyer who does not want to be
- * asked closes it, and it stays closed.
+ * asked right now closes it, and it stays closed until they say otherwise.
  *
- * Keyed and persisted exactly like a dismissed announcement — the id *and* a hash of
+ * Keyed and persisted exactly like a collapsed announcement — the id *and* a hash of
  * the question — so re-wording the question asks again and re-publishing the same
- * question does not. [dismissHomeAnnouncement] explains why state is updated whether
+ * question does not. [collapseHomeAnnouncement] explains why state is updated whether
  * or not the write lands; the same holds here.
  */
-internal fun BuyAppViewModel.dismissPrompt(location: ActionLocation) {
+internal fun BuyAppViewModel.collapsePrompt(location: ActionLocation) {
     val key = _state.value.titlePromptFor(location)?.dismissalKey ?: return
-    rememberDismissed(key)
+    rememberCollapsed(key)
+}
+
+/**
+ * Put a collapsed row back in its slot.
+ *
+ * The key comes from the row the *state* holds for that slot, never from the caller,
+ * so tapping a stale icon cannot reopen a row the seller has since replaced — it
+ * reopens whatever is published there now, or nothing.
+ *
+ * Only a collapsed row is offered this: a row the buyer is finished with is in
+ * `dismissedRows`, which [BuyAppState.collapsedRowFor] excludes, so no icon is drawn
+ * for it and nothing can ask to expand it.
+ */
+internal fun BuyAppViewModel.expandRow(location: ActionLocation) {
+    val key = _state.value.collapsedRowFor(location)?.dismissalKey ?: return
+    _state.update { it.copy(collapsedRows = it.collapsedRows - key) }
+    try {
+        announcementDismissalStorage?.restore(key)
+    } catch (e: Exception) {
+        Log.w("BuyVMUi") { "expandRow: $key not restored - ${e.message}" }
+    }
 }
 
 /**
@@ -458,9 +492,26 @@ internal fun BuyAppViewModel.clearPromptError() {
 private fun BuyAppViewModel.rememberDismissed(key: String) {
     _state.update { it.copy(dismissedRows = it.dismissedRows + key) }
     try {
-        announcementDismissalStorage?.dismiss(key)
+        // Behind the prefix, so a reload can tell "finished with this" from "closed
+        // this for now" and only the second one gets an icon to come back through.
+        announcementDismissalStorage?.dismiss(ANSWERED_PREFIX + key)
     } catch (e: Exception) {
         Log.w("BuyVMUi") { "rememberDismissed: $key not persisted - ${e.message}" }
+    }
+}
+
+/**
+ * Remember that one row is collapsed on this device — closed, but not finished with.
+ *
+ * Fails soft like [rememberDismissed], and for the same reason: the buyer can see the
+ * row close, and a failed write only means it is open again next launch.
+ */
+private fun BuyAppViewModel.rememberCollapsed(key: String) {
+    _state.update { it.copy(collapsedRows = it.collapsedRows + key) }
+    try {
+        announcementDismissalStorage?.dismiss(key)
+    } catch (e: Exception) {
+        Log.w("BuyVMUi") { "rememberCollapsed: $key not persisted - ${e.message}" }
     }
 }
 

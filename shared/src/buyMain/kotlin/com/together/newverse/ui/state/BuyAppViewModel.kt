@@ -23,7 +23,8 @@ import com.together.newverse.ui.state.buy.closeDrawer
 import com.together.newverse.ui.state.buy.confirmDemoOrder
 import com.together.newverse.ui.state.buy.discardDemoOrder
 import com.together.newverse.ui.state.buy.continueAsGuest
-import com.together.newverse.ui.state.buy.dismissPrompt
+import com.together.newverse.ui.state.buy.collapsePrompt
+import com.together.newverse.ui.state.buy.expandRow
 import com.together.newverse.ui.state.buy.notePublishedActionUsed
 import com.together.newverse.ui.state.buy.observeSellerContacts
 import com.together.newverse.ui.state.buy.sendChoice
@@ -83,7 +84,7 @@ import com.together.newverse.util.Log
 import com.together.newverse.ui.state.buy.loadReminderSettings
 import com.together.newverse.ui.state.buy.observeReminderSchedule
 import com.together.newverse.ui.state.buy.loadDismissedAnnouncements
-import com.together.newverse.ui.state.buy.dismissHomeAnnouncement
+import com.together.newverse.ui.state.buy.collapseHomeAnnouncement
 import com.together.newverse.ui.state.buy.handleReminderAction
 import com.together.newverse.domain.reminder.OrderReminderScheduler
 import com.together.newverse.data.config.AnnouncementDismissalStorage
@@ -332,8 +333,9 @@ class BuyAppViewModel(
 
     private fun handleUiAction(action: BuyUiAction) {
         when (action) {
-            is BuyUiAction.DismissHomeAnnouncement -> dismissHomeAnnouncement()
-            is BuyUiAction.DismissPrompt -> dismissPrompt(action.location)
+            is BuyUiAction.CollapseHomeAnnouncement -> collapseHomeAnnouncement()
+            is BuyUiAction.CollapsePrompt -> collapsePrompt(action.location)
+            is BuyUiAction.ExpandRow -> expandRow(action.location)
             is BuyUiAction.SendPrompt -> sendPrompt(action.location, action.text)
             is BuyUiAction.SendChoice -> sendChoice(action.location, action.selections)
             is BuyUiAction.ClearPromptError -> clearPromptError()

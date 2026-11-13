@@ -348,9 +348,11 @@ enum class ActionKind(
      * an [ActionIcon] rather than a drawable so that exactly one place in the app
      * knows what a question mark looks like: the `when` in `ActionIcons.kt`.
      *
-     * Only read for a kind that is actually rendered as an icon, which today is
-     * [CHOICE] alone. The others carry the default because a nullable field would
-     * push a null check onto every call site to express something no caller asks.
+     * Read for a kind that is rendered as an icon: [CHOICE], which is one all the
+     * time, and [ANNOUNCE] and [QUICK_MESSAGE], which become one when the buyer
+     * collapses them. [OPEN_URL] carries the default and never reads it, because a
+     * nullable field would push a null check onto every call site to express
+     * something no caller asks.
      */
     val defaultIcon: ActionIcon = ActionIcon.HELP,
 ) {
@@ -367,7 +369,7 @@ enum class ActionKind(
      * ordinary sentence, and running it through the URL normalizer would quietly
      * mangle it.
      */
-    ANNOUNCE("", labelIsDerived = true, hasAction = false),
+    ANNOUNCE("", labelIsDerived = true, hasAction = false, defaultIcon = ActionIcon.INFO),
 
     /**
      * A one-line text field with a send button, whose [SellerUiAction.value] is the
@@ -384,7 +386,7 @@ enum class ActionKind(
      * is rendered; the stored messages then say which box each one came from without
      * the seller having to guess from the wording.
      */
-    QUICK_MESSAGE("", labelIsDerived = true),
+    QUICK_MESSAGE("", labelIsDerived = true, defaultIcon = ActionIcon.MESSAGE),
 
     /**
      * A question with a fixed set of answers: an icon in the top bar that opens a

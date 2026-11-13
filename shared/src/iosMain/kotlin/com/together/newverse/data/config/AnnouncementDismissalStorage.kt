@@ -23,6 +23,16 @@ actual class AnnouncementDismissalStorage {
         defaults.setObject(next.joinToString(DISMISSAL_SEPARATOR), forKey = KEY_DISMISSED)
     }
 
+    actual fun restore(key: String) {
+        if (key.isBlank()) return
+        val current = stored()
+        if (key !in current) return
+        defaults.setObject(
+            (current - key).joinToString(DISMISSAL_SEPARATOR),
+            forKey = KEY_DISMISSED
+        )
+    }
+
     private fun stored(): List<String> =
         defaults.stringForKey(KEY_DISMISSED)
             ?.split(DISMISSAL_SEPARATOR)

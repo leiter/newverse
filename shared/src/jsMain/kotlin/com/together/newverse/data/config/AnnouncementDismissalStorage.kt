@@ -14,6 +14,13 @@ actual class AnnouncementDismissalStorage {
         localStorage.setItem(KEY_DISMISSED, next.joinToString(DISMISSAL_SEPARATOR))
     }
 
+    actual fun restore(key: String) {
+        if (key.isBlank()) return
+        val current = stored()
+        if (key !in current) return
+        localStorage.setItem(KEY_DISMISSED, (current - key).joinToString(DISMISSAL_SEPARATOR))
+    }
+
     private fun stored(): List<String> =
         localStorage.getItem(KEY_DISMISSED)
             ?.split(DISMISSAL_SEPARATOR)

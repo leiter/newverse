@@ -308,7 +308,7 @@ class BuyAppViewModelQuickMessageTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.dispatch(BuyUiAction.DismissPrompt(ActionLocation.TOPBAR_HOME_INPUT))
+        viewModel.dispatch(BuyUiAction.CollapsePrompt(ActionLocation.TOPBAR_HOME_INPUT))
         advanceUntilIdle()
 
         assertNull(viewModel.state.value.titlePromptFor(ActionLocation.TOPBAR_HOME_INPUT))
@@ -324,7 +324,7 @@ class BuyAppViewModelQuickMessageTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.dispatch(BuyUiAction.DismissPrompt(ActionLocation.TOPBAR_HOME_INPUT))
+        viewModel.dispatch(BuyUiAction.CollapsePrompt(ActionLocation.TOPBAR_HOME_INPUT))
         advanceUntilIdle()
 
         val state = viewModel.state.value

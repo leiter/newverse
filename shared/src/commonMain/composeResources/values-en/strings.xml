@@ -1327,6 +1327,7 @@
     <string name="seller_actions_selection_multi">Several answers</string>
     <string name="seller_actions_options_too_few">At least two different answers</string>
     <string name="inbox_chose_of">Chosen from %1$d answers</string>
+    <string name="collapsed_row_expand">Show the seller's message again</string>
     <string name="seller_actions_icon">Icon</string>
     <string name="seller_actions_icon_default">Default (question mark)</string>
     <string name="seller_actions_icon_help">Question mark</string>

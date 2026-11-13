@@ -1,16 +1,18 @@
 package com.together.newverse.ui.navigation
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animate
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -32,7 +34,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.animation.core.animate
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -65,12 +66,12 @@ import com.together.newverse.ui.adaptive.LocalWindowWidthClass
 import com.together.newverse.ui.adaptive.ProvideWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.ui.components.ChoicePickerIcon
-import com.together.newverse.ui.components.vector
 import com.together.newverse.ui.components.ChoicePickerPanel
 import com.together.newverse.ui.components.QuickMessageInput
 import com.together.newverse.ui.components.SellerAnnouncementTitle
 import com.together.newverse.ui.components.displayName
 import com.together.newverse.ui.components.icon
+import com.together.newverse.ui.components.vector
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.screens.rememberSplashVisible
 import com.together.newverse.ui.state.BuyAppViewModel
@@ -83,9 +84,9 @@ import com.together.newverse.ui.theme.SystemBarIcons
 import com.together.newverse.util.Log
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.formatString
-import com.together.newverse.util.rememberKeyboardManager
 import com.together.newverse.util.isKeyboardHidingBottomBar
 import com.together.newverse.util.keyboardPadding
+import com.together.newverse.util.rememberKeyboardManager
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.a11y_basket_item_count
 import newverse.shared.generated.resources.a11y_hero_total
@@ -93,6 +94,7 @@ import newverse.shared.generated.resources.a11y_seller_actions
 import newverse.shared.generated.resources.action_orders
 import newverse.shared.generated.resources.app_name
 import newverse.shared.generated.resources.back
+import newverse.shared.generated.resources.collapsed_row_expand
 import newverse.shared.generated.resources.contacts_title
 import newverse.shared.generated.resources.nav_shopping_basket
 import org.jetbrains.compose.resources.pluralStringResource
@@ -602,7 +604,7 @@ private fun AppScaffoldContent(
                                 },
                                 onDismiss = {
                                     viewModel.dispatch(
-                                        BuyUiAction.DismissPrompt(slot.location)
+                                        BuyUiAction.CollapsePrompt(slot.location)
                                     )
                                 },
                                 isSending = appState.quickMessage.isSending,
@@ -615,7 +617,7 @@ private fun AppScaffoldContent(
                             // the buyer is acting on, which an announcement must not hide.
                             SellerAnnouncementTitle(
                                 text = slot.text,
-                                onDismiss = { viewModel.dispatch(BuyUiAction.DismissHomeAnnouncement) }
+                                onDismiss = { viewModel.dispatch(BuyUiAction.CollapseHomeAnnouncement) }
                             )
                         } else if (slot is TopBarTitleSlot.Plain) {
                             Text(
@@ -681,6 +683,45 @@ private fun AppScaffoldContent(
                             )
                         }
                     }
+                    // Rows this buyer has collapsed, as the icons they left behind.
+                    //
+                    // The reason closing is worth having at all now: it used to be
+                    // permanent, so a × caught by accident lost that announcement
+                    // until the seller reworded it. The icon is the way back.
+                    //
+                    // Drawn for the slots this screen owns, which on home is both the
+                    // announcement and the wishbox -- they contend for one title, so
+                    // collapsing the announcement is also how a buyer reaches the
+                    // question underneath it.
+                    val collapsibleSlots = when (currentRoute) {
+                        NavRoutes.Home.route -> listOf(
+                            ActionLocation.TOPBAR_HOME_TITLE,
+                            ActionLocation.TOPBAR_HOME_INPUT
+                        )
+                        NavRoutes.Buy.Profile.route -> listOf(ActionLocation.TOPBAR_PROFILE_INPUT)
+                        else -> emptyList()
+                    }
+                    collapsibleSlots.forEach { slot ->
+                        val collapsed = appState.collapsedRowFor(slot)
+                        if (collapsed != null) {
+                            IconButton(
+                                onClick = { viewModel.dispatch(BuyUiAction.ExpandRow(slot)) },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = collapsed.effectiveIcon.vector(),
+                                    // What tapping it does, not what it depicts: the
+                                    // seller may have chosen the drawing, and a
+                                    // reader needs the behaviour.
+                                    contentDescription = stringResource(
+                                        Res.string.collapsed_row_expand
+                                    ),
+                                    tint = topBarColors.content
+                                )
+                            }
+                        }
+                    }
+
                     // The seller's choice picker for this screen: a question mark
                     // that opens a panel over the content.
                     //

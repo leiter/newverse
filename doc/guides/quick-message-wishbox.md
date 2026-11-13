@@ -468,6 +468,46 @@ The icon is **not** part of `dismissalKey`. Recolouring a question is not asking
 one, and folding it in would un-dismiss every closed row the moment a seller tidied up
 their icons.
 
+## Closing collapses, it does not destroy
+
+**Built 2026-11-13.** Closing an announcement or a message box used to be
+**permanent**: the × wrote the row's `dismissalKey` into a set that nothing ever
+removed a key from, so a buyer who caught it by accident had lost that announcement
+until the seller reworded it. There was no undo and no way to ask for it back.
+
+Now the × **collapses** the row to an icon in the top bar, and tapping that icon puts
+it back. The icon is `ActionKind.defaultIcon` — `INFO` for an announcement, `MESSAGE`
+for a message box — or the seller's own, once pickers taught the app to carry one.
+
+### Two meanings in one stored set
+
+`AnnouncementDismissalStorage` now holds both, separated by a prefix:
+
+| Stored | Means | Reversible |
+|---|---|---|
+| `act_1:9f3a…` | collapsed — closed for now | yes, by tapping its icon |
+| `!act_1:9f3a…` | answered — `HIDE_ON_ACTION` fired | no |
+
+The distinction is load-bearing. A picker the seller set to `HIDE_ON_ACTION` has been
+answered; drawing an icon that reopened it would invite a second answer to a question
+the seller asked once. So `collapsedRowFor` returns nothing for an answered row, and
+nothing offers to expand it.
+
+One file and a prefix rather than two storages, so there is still one place a device
+records what it has stopped showing, and one eviction policy over it.
+
+### What falls out of it
+
+On home the announcement and the wishbox contend for one title, and the announcement
+wins. Collapsing the announcement is therefore also **how a buyer reaches the question
+underneath it** — previously that cost them the announcement for good.
+
+### Not every row collapses
+
+Only the two that take a title. A picker is already an icon, so its × closes the panel
+and nothing else. A published button is a button; its only disappearing act is
+`HIDE_ON_ACTION`, which is the irreversible kind.
+
 ### Counting the answers is the seller's problem
 
 The same hole the wishbox has, and sharper here. The inbox is add-only, has no rate
@@ -493,7 +533,8 @@ honest buyer; it is not a control.
 | `commonMain/.../ui/components/ActionIcons.kt` | `vector()` — the one `when` that names a drawable |
 | `buyMain/.../BuyAppState.kt` | `titlePromptFor`, `dismissedRows` |
 | `buyMain/.../AppScaffold.kt` | The title slot, and who wins it |
-| `buyMain/.../BuyAppViewModelUi.kt` | `sendPrompt`, `dismissPrompt`, `rememberDismissed` |
+| `buyMain/.../BuyAppViewModelUi.kt` | `sendPrompt`, `collapsePrompt`, `expandRow`, the two remember-ers |
+| `data/config/AnnouncementDismissalStorage.kt` | `dismiss`/`restore`, and the answered prefix |
 | `sellMain/.../UiActionListEditor.kt` | The slot, the switch, the persistence picker, the answer fields |
 | `sellMain/.../SellerInboxScreen.kt` | The seller's end |
 | `firebase/tests/seller-inbox.test.js` | 25 rule tests, mostly about who may read |

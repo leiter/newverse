@@ -26,6 +26,15 @@ actual class AnnouncementDismissalStorage(private val context: Context) {
         prefs.edit { putString(KEY_DISMISSED, next.joinToString(DISMISSAL_SEPARATOR)) }
     }
 
+    actual fun restore(key: String) {
+        if (key.isBlank()) return
+        val current = stored()
+        if (key !in current) return
+        prefs.edit {
+            putString(KEY_DISMISSED, (current - key).joinToString(DISMISSAL_SEPARATOR))
+        }
+    }
+
     private fun stored(): List<String> =
         prefs.getString(KEY_DISMISSED, null)
             ?.split(DISMISSAL_SEPARATOR)
