@@ -1,5 +1,6 @@
 package com.together.newverse.ui.components
 
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,6 +67,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * keystroke to a repository and ate half-typed rows, and a draft in app state would
  * recompose the entire top bar per character. [sentCount] coming back changed is how
  * this composable learns a send landed and clears itself.
+ *
+ * The question scrolls when it does not fit ([basicMarquee]), so the seller can ask
+ * something longer than the field is wide without it being cut off.
  *
  * Accessibility: the field carries the seller's question as its [contentDescription],
  * because the question is drawn as a placeholder and a placeholder is not reliably
@@ -155,13 +159,27 @@ fun QuickMessageInput(
                 decorationBox = { innerTextField ->
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (draft.isEmpty()) {
+                            // Scrolls rather than truncating, for the same reason
+                            // SellerAnnouncementTitle does: the seller writes a
+                            // question, not a label, and half a question is worse
+                            // than none -- and here the field is narrower still,
+                            // sharing the bar with two buttons. basicMarquee moves
+                            // only when the text actually overflows, so a short
+                            // prompt sits still. It is drawn only while the field is
+                            // empty, so nothing animates behind what the buyer types.
                             Text(
                                 text = prompt,
                                 style = fieldStyle.copy(
                                     color = barColors.content.copy(alpha = 0.7f)
                                 ),
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                // Reached only by the frames before the marquee
+                                // measures; an ellipsis here would flash a "..." the
+                                // scrolling text then has to explain away.
+                                overflow = TextOverflow.Clip,
+                                modifier = Modifier.basicMarquee(
+                                    iterations = Int.MAX_VALUE
+                                )
                             )
                         }
                         innerTextField()
@@ -218,8 +236,16 @@ fun QuickMessageInput(
 fun QuickMessagePreview() {
     NewverseTheme {
         Column {
+            // Short enough to fit: the marquee stays still.
             QuickMessageInput(
-                prompt = "sdfa",
+                prompt = "Was fehlt euch?",
+                onSend = { },
+                onDismiss = { }
+            )
+            // Longer than the field: this one scrolls.
+            QuickMessageInput(
+                prompt = "Was fehlt euch im Angebot? Schreibt uns, was ihr " +
+                    "naechste Woche am Marktstand sehen wollt.",
                 onSend = { },
                 onDismiss = { }
             )

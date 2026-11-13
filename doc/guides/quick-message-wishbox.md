@@ -259,6 +259,13 @@ that appears as you type would move the close button under the finger reaching f
 The spinner replaces the send button in place rather than sitting beside it, so the row
 does not reflow while the write is in flight.
 
+The placeholder **scrolls** when the question is wider than the field
+(`basicMarquee`), the same device `SellerAnnouncementTitle` uses and for the same
+reason: the seller is writing a question, not a label, and half a question is worse
+than none — more so here, where the field shares the bar with two buttons. It animates
+only on actual overflow, so a short question sits still, and it is drawn only while the
+field is empty, so nothing moves behind what the buyer types.
+
 Accessibility: the question is drawn as a placeholder and a placeholder is not reliably
 announced, so the field carries it as its `contentDescription`. Send and close are
 labelled separately — they are opposite answers to the same request and must not be
