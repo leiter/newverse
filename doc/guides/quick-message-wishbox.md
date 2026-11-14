@@ -385,6 +385,25 @@ the options change, so the split is the intended behaviour rather than an accide
 about pickers would still show a readable line, and `isSendable` — which asks about
 text — covers a choice without a second rule.
 
+### A closed panel keeps what was ticked
+
+Closing the panel removes `ChoicePickerPanel` from the tree, so the selection
+`remember`ed inside it died with it: a buyer who had ticked four answers out of eight,
+closed the panel to re-read the question, and opened it again found all four gone. The
+panel now hands each tap out through `onSelectionChange` and reads it back through
+`initialSelection`, and `AppScaffold` remembers a `ChoiceSelections` above the panel —
+the picker's half of what `QuickMessageDrafts` does for the field, down to the plain
+non-snapshot map and the `dismissalKey`. Because that key hashes the options along with
+the question, an edited option list opens a fresh panel instead of restoring a label
+that is no longer offered, so nothing has to be filtered on the way back in.
+
+Two counter comparisons went with it, both for the reason the field's did — and the
+second was worse than a lost selection. `AppScaffold` closed the panel on
+`sentCount > 0`, evaluated when the panel *opened*, so once anything had been sent in
+the session the panel closed on its first frame and the question mark could not be
+opened again at all. Both now compare against the count as it stood when the panel
+opened.
+
 ### `dismissalKey` had to grow
 
 It was `"$id:${value.stableHash()}"`. It now hashes the question **and** the options,
@@ -609,7 +628,9 @@ honest buyer; it is not a control.
 | `data/repository/GitLiveSellerInboxRepository.kt` | RTDB implementation |
 | `ui/state/QuickMessageState.kt` | What the field cannot know by itself |
 | `buyMain/.../components/QuickMessageInput.kt` | The field |
+| `buyMain/.../components/QuickMessageDrafts.kt` | Unsent text, parked while the box is collapsed |
 | `buyMain/.../components/ChoicePicker.kt` | The question mark and the panel |
+| `buyMain/.../components/ChoiceSelections.kt` | Unsent answers, parked while the panel is shut |
 | `data/repository/RtdbStringLists.kt` | Reads a list RTDB may hand back as a map |
 | `domain/model/ActionIcon.kt` | The closed icon set, and why a name not a number |
 | `commonMain/.../ui/components/ActionIcons.kt` | `vector()` — the one `when` that names a drawable |

@@ -71,11 +71,10 @@ import com.together.newverse.ui.adaptive.ProvideWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.ui.components.ChoicePickerIcon
 import com.together.newverse.ui.components.ChoicePickerPanel
+import com.together.newverse.ui.components.ChoiceSelections
 import com.together.newverse.ui.components.QuickMessageDrafts
 import com.together.newverse.ui.components.QuickMessageInput
 import com.together.newverse.ui.components.SellerAnnouncementTitle
-import com.together.newverse.ui.components.displayName
-import com.together.newverse.ui.components.icon
 import com.together.newverse.ui.components.vector
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.screens.rememberSplashVisible
@@ -107,7 +106,6 @@ import newverse.shared.generated.resources.nav_shopping_basket
 import newverse.shared.generated.resources.pickup_undo
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -453,6 +451,11 @@ private fun AppScaffoldContent(
             appState.titlePromptFor(ActionLocation.TOPBAR_PROFILE_INPUT)
         else -> null
     }
+
+    // Answers ticked but not sent, parked outside the panel that opens and closes
+    // over them. The picker's half of the problem the drafts below solve: a buyer who
+    // closed the panel to re-read the question lost everything they had picked.
+    val choiceSelections = remember { ChoiceSelections() }
 
     // Unsent wishes, parked outside the title slot. Remembered here rather than in
     // the field because collapsing the row takes the field out of the tree, and a
@@ -1123,8 +1126,14 @@ private fun AppScaffoldContent(
             // A landed send closes the panel. Driven by the count for the reason the
             // selection is cleared by it: a *refused* send must leave the panel open
             // with the buyer's answers still in it.
+            //
+            // Against the count as it stood when this panel opened, not against zero:
+            // once anything had been sent this session, a panel opening with the count
+            // already past zero closed itself on its first frame, and the picker could
+            // not be opened again at all.
+            val sentCountAtOpen = remember(openChoice) { appState.quickMessage.sentCount }
             LaunchedEffect(appState.quickMessage.sentCount) {
-                if (appState.quickMessage.sentCount > 0) openChoice = null
+                if (appState.quickMessage.sentCount > sentCountAtOpen) openChoice = null
             }
             ChoicePickerPanel(
                 prompt = openPicker.value,
@@ -1141,6 +1150,10 @@ private fun AppScaffoldContent(
                 onDismiss = { openChoice = null },
                 isSending = appState.quickMessage.isSending,
                 sentCount = appState.quickMessage.sentCount,
+                initialSelection = choiceSelections.of(openPicker.dismissalKey),
+                onSelectionChange = { selected ->
+                    choiceSelections.put(openPicker.dismissalKey, selected)
+                },
                 modifier = Modifier.padding(paddingValues)
             )
         }

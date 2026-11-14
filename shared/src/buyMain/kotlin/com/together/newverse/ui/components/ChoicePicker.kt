@@ -97,7 +97,7 @@ fun ChoicePickerIcon(
  * message box cannot, and why **it has no dismissal**. Closing it closes the panel;
  * the icon stays, because nothing was imposed on the buyer to begin with.
  *
- * ### The selection stays here
+ * ### The selection stays here, and is parked when this closes
  *
  * What the buyer has picked is `remember`ed in this composable and leaves it once,
  * when send is pressed — [QuickMessageInput]'s reasoning exactly, and for the same
@@ -105,6 +105,14 @@ fun ChoicePickerIcon(
  * this feature has already been bitten by handing half-finished input to a
  * repository. [sentCount] coming back changed is how this composable learns a send
  * landed and clears itself.
+ *
+ * Closing the panel, though, removes this composable from the tree — so the selection
+ * is also handed out through [onSelectionChange] and read back through
+ * [initialSelection], which the scaffold holds in a [ChoiceSelections] above the
+ * panel it opens and closes. Without it, a buyer who closed the panel to re-read the
+ * question lost every answer they had ticked. The hand-out is a plain function call
+ * into a plain map, not a state write, so a tap still recomposes nothing but the
+ * panel.
  *
  * Selections are held as the option **labels**, not as positions, so that what this
  * composable hands to [onSend] is already what gets stored — see
@@ -137,20 +145,36 @@ fun ChoicePickerPanel(
     isSending: Boolean = false,
     /** How many answers this session has sent. A change clears the selection. */
     sentCount: Int = 0,
+    /**
+     * What this buyer had already ticked in this picker and not sent — see the note
+     * on the selection above. Read once, when the panel is composed.
+     */
+    initialSelection: Set<String> = emptySet(),
+    /** Hands every change out to whoever is holding the selection while this is shut. */
+    onSelectionChange: (Set<String>) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var selected by remember { mutableStateOf(emptySet<String>()) }
+    var selected by remember { mutableStateOf(initialSelection) }
     val description = formatString(stringResource(Res.string.a11y_choice), prompt)
     // The scrim and the card both swallow taps, and neither should show a ripple for
     // it: one is a dismissal, the other is a non-event.
     val scrimInteraction = remember { MutableInteractionSource() }
     val cardInteraction = remember { MutableInteractionSource() }
 
+    // What the counter stood at when this panel opened, compared against rather than
+    // against zero: a panel reopened after an earlier send composes with the count
+    // already past zero, and clearing on that would empty the parked selection the
+    // moment it was restored.
+    val sentCountAtEntry = remember { sentCount }
+
     // A landed send clears the selection, for the reason the message box clears its
     // field: driven by the count rather than by the tap, so a refused write leaves
     // the buyer's answer intact to try again.
     LaunchedEffect(sentCount) {
-        if (sentCount > 0) selected = emptySet()
+        if (sentCount > sentCountAtEntry) {
+            selected = emptySet()
+            onSelectionChange(emptySet())
+        }
     }
 
     Box(
@@ -249,6 +273,7 @@ fun ChoicePickerPanel(
                                     option in selected -> selected - option
                                     else -> selected + option
                                 }
+                                onSelectionChange(selected)
                             },
                             enabled = !isSending,
                             label = { Text(option) }
