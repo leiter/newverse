@@ -71,6 +71,7 @@ import com.together.newverse.ui.adaptive.ProvideWindowWidthClass
 import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.ui.components.ChoicePickerIcon
 import com.together.newverse.ui.components.ChoicePickerPanel
+import com.together.newverse.ui.components.QuickMessageDrafts
 import com.together.newverse.ui.components.QuickMessageInput
 import com.together.newverse.ui.components.SellerAnnouncementTitle
 import com.together.newverse.ui.components.displayName
@@ -453,6 +454,11 @@ private fun AppScaffoldContent(
         else -> null
     }
 
+    // Unsent wishes, parked outside the title slot. Remembered here rather than in
+    // the field because collapsing the row takes the field out of the tree, and a
+    // buyer who collapsed a box mid-sentence and reopened it found it empty.
+    val quickMessageDrafts = remember { QuickMessageDrafts() }
+
     // Scroll behavior for collapsing toolbar (only for Home screen).
     //
     // enterAlways, not exitUntilCollapsed: exitUntilCollapsed only expands the bar
@@ -568,7 +574,11 @@ private fun AppScaffoldContent(
                     val titleSlot: TopBarTitleSlot = when {
                         isBasketScreen -> TopBarTitleSlot.Basket
                         titlePrompt != null ->
-                            TopBarTitleSlot.Prompt(titlePrompt.location, titlePrompt.value)
+                            TopBarTitleSlot.Prompt(
+                                location = titlePrompt.location,
+                                question = titlePrompt.value,
+                                draftKey = titlePrompt.dismissalKey
+                            )
                         homeAnnouncement != null ->
                             TopBarTitleSlot.Announcement(homeAnnouncement.value)
                         else -> TopBarTitleSlot.Plain(displayTitle)
@@ -639,7 +649,11 @@ private fun AppScaffoldContent(
                                     )
                                 },
                                 isSending = appState.quickMessage.isSending,
-                                sentCount = appState.quickMessage.sentCount
+                                sentCount = appState.quickMessage.sentCount,
+                                initialDraft = quickMessageDrafts.of(slot.draftKey),
+                                onDraftChange = { text ->
+                                    quickMessageDrafts.put(slot.draftKey, text)
+                                }
                             )
                         } else if (slot is TopBarTitleSlot.Announcement) {
                             // The seller's announcement takes the whole title slot on the

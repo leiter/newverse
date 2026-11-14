@@ -233,7 +233,31 @@ in app state would recompose the whole top bar per character.
 
 `sentCount` is a counter rather than the id of the last message, because its only job
 is to tell the field a send landed so it can clear itself, and a buyer sending a second
-wish through the same box would not change a key.
+wish through the same box would not change a key. The field compares it against what it
+stood at when the field appeared, not against zero: a box reopened after an earlier send
+composes with the count already past zero, and clearing on that would wipe the draft the
+moment it came back and take the keyboard from a buyer who had just reopened the box.
+
+### …but it is parked while the field is away
+
+Collapsing a row takes `QuickMessageInput` out of the tree — the title slot's
+`AnimatedContent` swaps the `Prompt` for a `Plain` — so a `remember` inside it dies with
+it, and a half-written wish was lost on every collapse/expand. `rememberSaveable` does
+not help: it restores state across a configuration change, not across a composable
+removed on purpose.
+
+So the field hands each change out through `onDraftChange` and reads it back through
+`initialDraft`, and `AppScaffold` remembers a `QuickMessageDrafts` above the slot that
+comes and goes. It is a plain map, not snapshot state — writing to it recomposes
+nothing, which is the whole point of keeping the draft in the field — keyed by the row's
+`dismissalKey`, so the home box and the profile box keep separate drafts and a question
+the seller has reworded opens empty rather than holding an answer to the question it
+replaced. `TopBarTitleSlot.Prompt` carries that key, so the outgoing half of a
+transition looks up its own draft rather than the one replacing it.
+
+A draft therefore also survives walking to another screen and back, and deliberately
+does not survive the process: an unsent sentence is worth keeping for a session, not
+resurrecting days later beside a question that may be gone.
 
 ## What the buyer sees fail
 

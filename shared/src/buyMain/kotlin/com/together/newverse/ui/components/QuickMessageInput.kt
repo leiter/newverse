@@ -60,7 +60,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * Takes the whole title slot for the announcement's reason, more sharply: a field
  * squeezed in beside the app name fits nothing worth sending.
  *
- * ### The draft stays here
+ * ### The draft stays here, and is parked when this leaves
  *
  * What the buyer types is `remember`ed in this composable and leaves it once, when
  * send is pressed. Not because state could not hold it, but because every alternative
@@ -68,6 +68,13 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * keystroke to a repository and ate half-typed rows, and a draft in app state would
  * recompose the entire top bar per character. [sentCount] coming back changed is how
  * this composable learns a send landed and clears itself.
+ *
+ * Collapsing the row, though, removes this composable from the tree — so the draft is
+ * also handed out through [onDraftChange] and read back through [initialDraft], which
+ * the scaffold holds in a [QuickMessageDrafts] above the slot that comes and goes.
+ * Without it a half-written wish died on every collapse. The hand-out is a plain
+ * function call into a plain map, not a state write, so typing still recomposes
+ * nothing but this field.
  *
  * The question scrolls when it does not fit ([basicMarquee]), so the seller can ask
  * something longer than the field is wide without it being cut off.
@@ -92,21 +99,36 @@ fun QuickMessageInput(
      * note on the draft above.
      */
     sentCount: Int = 0,
+    /**
+     * What this buyer had already typed into this box and not sent — see the note on
+     * the draft above. Read once, when the field is composed.
+     */
+    initialDraft: String = "",
+    /** Hands every change out to whoever is holding the draft while this is away. */
+    onDraftChange: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var draft by remember { mutableStateOf("") }
+    var draft by remember { mutableStateOf(initialDraft) }
     val barColors = LocalBarColors.current
     val keyboard = LocalSoftwareKeyboardController.current
     // Resolved here rather than inside the semantics block, which is not a
     // composable call site.
     val description = formatString(stringResource(Res.string.a11y_quick_message), prompt)
 
+    // What the counter stood at when this field appeared. Compared against rather
+    // than against zero, because a field reopened after an earlier send composes with
+    // the count already past zero -- and clearing on that would wipe the parked draft
+    // the moment it was restored, and snatch the keyboard away from a buyer who had
+    // just reopened the box to type.
+    val sentCountAtEntry = remember { sentCount }
+
     // A landed send clears the field and puts the keyboard away. Driven by the count
     // rather than by the tap, so the field still holds what the buyer wrote if the
     // write was refused and they want to try again.
     LaunchedEffect(sentCount) {
-        if (sentCount > 0) {
+        if (sentCount > sentCountAtEntry) {
             draft = ""
+            onDraftChange("")
             keyboard?.hide()
         }
     }
@@ -147,6 +169,7 @@ fun QuickMessageInput(
                     // Capped where it is typed as well as where it is sent, so the
                     // buyer finds out at the keyboard rather than at the refusal.
                     draft = it.take(SellerInboxMessage.MAX_TEXT_LENGTH)
+                    onDraftChange(draft)
                 },
                 textStyle = fieldStyle,
                 cursorBrush = SolidColor(barColors.content),

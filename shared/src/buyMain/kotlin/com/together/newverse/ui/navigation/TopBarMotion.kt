@@ -53,8 +53,19 @@ sealed interface TopBarTitleSlot {
     /** The basket's own heading, which carries live figures and so keys on nothing. */
     data object Basket : TopBarTitleSlot
 
-    /** The seller's question, holding the title slot until the buyer answers or closes it. */
-    data class Prompt(val location: ActionLocation, val question: String) : TopBarTitleSlot
+    /**
+     * The seller's question, holding the title slot until the buyer answers or closes it.
+     *
+     * Carries the row's `dismissalKey` as well as its text, so the field drawn for this
+     * slot can find the draft parked under it (see `QuickMessageDrafts`) without
+     * reaching past the animation to the current row -- the outgoing half of a
+     * transition must keep looking up its own draft, not the one replacing it.
+     */
+    data class Prompt(
+        val location: ActionLocation,
+        val question: String,
+        val draftKey: String,
+    ) : TopBarTitleSlot
 
     /** The seller's sentence to every buyer, in place of the home title. */
     data class Announcement(val text: String) : TopBarTitleSlot
