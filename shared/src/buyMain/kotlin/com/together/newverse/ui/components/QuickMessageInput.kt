@@ -81,7 +81,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  *
  * Accessibility: the field carries the seller's question as its [contentDescription],
  * because the question is drawn as a placeholder and a placeholder is not reliably
- * announced. The send button and the close button are labelled separately — they are
+ * announced. The send button and the close button are labeled separately — they are
  * opposite answers to the same request and must not be confusable.
  *
  * See `doc/guides/quick-message-wishbox.md`.

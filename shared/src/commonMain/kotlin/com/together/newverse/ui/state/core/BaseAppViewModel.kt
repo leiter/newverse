@@ -181,6 +181,11 @@ abstract class BaseAppViewModel<S : Any, A : Any>(
      * next *identical* message, the scaffold's effect keying on a [SnackbarState] that
      * never changed. Use the flavor's own helper until something actually collects
      * [globalUiState].
+     *
+     * These are **members**, so they beat an extension of the same name whatever a
+     * file imports — which is why the buy flavor's own helpers are spelled
+     * differently (`showSnackBar`, `showDialogInState`) rather than shadowing these.
+     * A plainly-named call inside a subclass lands here and nothing warns.
      */
     protected fun showSnackbar(message: String, type: SnackbarType = SnackbarType.INFO) {
         _globalUiState.update { current ->

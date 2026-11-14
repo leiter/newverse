@@ -32,11 +32,11 @@ import org.jetbrains.compose.resources.getString
  * Extracted functions:
  * - showSnackbar
  * - hideSnackbar
- * - showDialog
- * - hideDialog
+ * - showDialogInState
+ * - hideDialogInState
  * - showBottomSheet
  * - hideBottomSheet
- * - setRefreshing
+ * - setRefreshingInState
  * - showPasswordResetDialog
  * - hidePasswordResetDialog
  */
@@ -59,7 +59,18 @@ internal fun BuyAppViewModel.hideSnackBar() {
     }
 }
 
-internal fun BuyAppViewModel.showDialog(dialog: DialogState) {
+/**
+ * Puts a dialog in `state.ui`, which is what this flavor's UI reads.
+ *
+ * Named `...InState`, as the sell flavor names its snackbar helpers, because
+ * [BaseAppViewModel] has a `showDialog` of its own that writes `globalUiState` —
+ * a flow nothing here collects. A member wins over an extension in Kotlin, so a
+ * plainly-named `showDialog` call inside the ViewModel silently resolved to the base
+ * one no matter which import was present: `BuyUiAction.ShowDialog` set a dialog
+ * nobody could see, and the compiler had nothing to complain about. The name is the
+ * only thing that keeps the two apart.
+ */
+internal fun BuyAppViewModel.showDialogInState(dialog: DialogState) {
     _state.update { current ->
         current.copy(
             ui = current.ui.copy(dialog = dialog)
@@ -67,7 +78,8 @@ internal fun BuyAppViewModel.showDialog(dialog: DialogState) {
     }
 }
 
-internal fun BuyAppViewModel.hideDialog() {
+/** Clears the dialog in `state.ui`. Named for [showDialogInState]'s reason. */
+internal fun BuyAppViewModel.hideDialogInState() {
     _state.update { current ->
         current.copy(
             ui = current.ui.copy(dialog = null)
@@ -91,7 +103,8 @@ internal fun BuyAppViewModel.hideBottomSheet() {
     }
 }
 
-internal fun BuyAppViewModel.setRefreshing(isRefreshing: Boolean) {
+/** Sets the refresh flag in `state.ui`. Named for [showDialogInState]'s reason. */
+internal fun BuyAppViewModel.setRefreshingInState(isRefreshing: Boolean) {
     _state.update { current ->
         current.copy(
             ui = current.ui.copy(isRefreshing = isRefreshing)

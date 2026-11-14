@@ -336,6 +336,41 @@ class BuyAppViewModelTest {
     }
 
     @Test
+    fun `ShowDialog reaches the state the UI reads`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.dispatch(
+            BuyUiAction.ShowDialog(DialogState.Information(title = "T", message = "M"))
+        )
+
+        // It did not, until the helper was renamed: the base class's `showDialog` is a
+        // member and beat the extension of the same name, so the dialog went into
+        // `globalUiState`, which nothing here collects.
+        assertNotNull(viewModel.state.value.ui.dialog)
+    }
+
+    @Test
+    fun `HideDialog clears the state the UI reads`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.dispatch(
+            BuyUiAction.ShowDialog(DialogState.Information(title = "T", message = "M"))
+        )
+        viewModel.dispatch(BuyUiAction.HideDialog)
+
+        assertNull(viewModel.state.value.ui.dialog)
+    }
+
+    @Test
+    fun `SetRefreshing reaches the state the UI reads`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.dispatch(BuyUiAction.SetRefreshing(true))
+
+        assertTrue(viewModel.state.value.ui.isRefreshing)
+    }
+
+    @Test
     fun `initial ui state has no dialog`() = runTest {
         val viewModel = createViewModel()
 

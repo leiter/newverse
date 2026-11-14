@@ -1,83 +1,92 @@
 package com.together.newverse.ui.state
 
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Job
+import com.together.newverse.data.config.AnnouncementDismissalStorage
+import com.together.newverse.data.config.OrderReminderStorage
 import com.together.newverse.data.config.PendingInviteTokenStorage
 import com.together.newverse.domain.config.MutableSellerConfig
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.OrderedProduct
+import com.together.newverse.domain.reminder.OrderReminderScheduler
 import com.together.newverse.domain.repository.ArticleRepository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.BasketRepository
 import com.together.newverse.domain.repository.BuyerContactRepository
 import com.together.newverse.domain.repository.InvitationRepository
+import com.together.newverse.domain.repository.MarketRepository
 import com.together.newverse.domain.repository.MessageRepository
 import com.together.newverse.domain.repository.OrderRepository
-import com.together.newverse.domain.repository.MarketRepository
-import com.together.newverse.domain.repository.SellerUiActionRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.domain.repository.SellerEventRepository
+import com.together.newverse.domain.repository.SellerInboxRepository
+import com.together.newverse.domain.repository.SellerUiActionRepository
 import com.together.newverse.ui.state.buy.clearPendingNavigation
 import com.together.newverse.ui.state.buy.clearPromptError
 import com.together.newverse.ui.state.buy.closeDrawer
-import com.together.newverse.ui.state.buy.confirmDemoOrder
-import com.together.newverse.ui.state.buy.discardDemoOrder
-import com.together.newverse.ui.state.buy.continueAsGuest
+import com.together.newverse.ui.state.buy.collapseHomeAnnouncement
 import com.together.newverse.ui.state.buy.collapsePrompt
+import com.together.newverse.ui.state.buy.confirmDemoOrder
+import com.together.newverse.ui.state.buy.continueAsGuest
+import com.together.newverse.ui.state.buy.discardAndLoadHistoryOrder
+import com.together.newverse.ui.state.buy.discardDemoOrder
 import com.together.newverse.ui.state.buy.dismissRow
 import com.together.newverse.ui.state.buy.expandRow
-import com.together.newverse.ui.state.buy.restoreRow
-import com.together.newverse.ui.state.buy.notePublishedActionUsed
-import com.together.newverse.ui.state.buy.observeSellerContacts
-import com.together.newverse.ui.state.buy.sendChoice
-import com.together.newverse.ui.state.buy.sendPrompt
 import com.together.newverse.ui.state.buy.handleAccountAction
 import com.together.newverse.ui.state.buy.handleBasketScreenAction
+import com.together.newverse.ui.state.buy.handleHistoryOrderTap
 import com.together.newverse.ui.state.buy.handleMainScreenAction
+import com.together.newverse.ui.state.buy.handleReminderAction
 import com.together.newverse.ui.state.buy.handleSellerAction
 import com.together.newverse.ui.state.buy.hideBottomSheet
-import com.together.newverse.ui.state.buy.hideDialog
-import com.together.newverse.ui.state.buy.hideSnackBar
+import com.together.newverse.ui.state.buy.hideDialogInState
+import com.together.newverse.ui.state.buy.hideHistoryMergeDialog
 import com.together.newverse.ui.state.buy.hidePasswordResetDialog
+import com.together.newverse.ui.state.buy.hideSnackBar
 import com.together.newverse.ui.state.buy.initializeApp
 import com.together.newverse.ui.state.buy.initializeBasketScreen
 import com.together.newverse.ui.state.buy.loadCustomerProfile
+import com.together.newverse.ui.state.buy.loadDismissedAnnouncements
 import com.together.newverse.ui.state.buy.loadOrderHistory
 import com.together.newverse.ui.state.buy.loadProfile
+import com.together.newverse.ui.state.buy.loadReminderSettings
 import com.together.newverse.ui.state.buy.login
 import com.together.newverse.ui.state.buy.loginWithApple
 import com.together.newverse.ui.state.buy.loginWithGoogle
 import com.together.newverse.ui.state.buy.loginWithTwitter
 import com.together.newverse.ui.state.buy.logout
-import com.together.newverse.ui.state.buy.notifyProfileFulfilmentDiffersFromOrder
+import com.together.newverse.ui.state.buy.mergeHistoryOrder
 import com.together.newverse.ui.state.buy.navigateBack
 import com.together.newverse.ui.state.buy.navigateTo
+import com.together.newverse.ui.state.buy.notePublishedActionUsed
+import com.together.newverse.ui.state.buy.notifyProfileFulfilmentDiffersFromOrder
 import com.together.newverse.ui.state.buy.observeAppleSignInCompletion
-import com.together.newverse.ui.state.buy.observeGoogleSignInCompletion
 import com.together.newverse.ui.state.buy.observeAuthStateChanges
+import com.together.newverse.ui.state.buy.observeGoogleSignInCompletion
 import com.together.newverse.ui.state.buy.observeMainScreenBasket
 import com.together.newverse.ui.state.buy.observeMainScreenBuyerProfile
 import com.together.newverse.ui.state.buy.observeOpenBasketRemotely
 import com.together.newverse.ui.state.buy.observePendingInvitations
+import com.together.newverse.ui.state.buy.observeReminderSchedule
+import com.together.newverse.ui.state.buy.observeSellerContacts
 import com.together.newverse.ui.state.buy.openDrawer
 import com.together.newverse.ui.state.buy.refreshCustomerProfile
 import com.together.newverse.ui.state.buy.register
+import com.together.newverse.ui.state.buy.restoreRow
 import com.together.newverse.ui.state.buy.saveBuyerProfile
+import com.together.newverse.ui.state.buy.sendChoice
 import com.together.newverse.ui.state.buy.sendPasswordResetEmail
-import com.together.newverse.ui.state.buy.setAuthMode
+import com.together.newverse.ui.state.buy.sendPrompt
 import com.together.newverse.ui.state.buy.setAuthError
-import com.together.newverse.ui.state.buy.setRefreshing
+import com.together.newverse.ui.state.buy.setAuthMode
+import com.together.newverse.ui.state.buy.setRefreshingInState
 import com.together.newverse.ui.state.buy.showBottomSheet
-import com.together.newverse.ui.state.buy.showDialog
-import com.together.newverse.ui.state.buy.showSnackBar
+import com.together.newverse.ui.state.buy.showDialogInState
 import com.together.newverse.ui.state.buy.showPasswordResetDialog
-import com.together.newverse.ui.state.buy.handleHistoryOrderTap
-import com.together.newverse.ui.state.buy.mergeHistoryOrder
-import com.together.newverse.ui.state.buy.discardAndLoadHistoryOrder
-import com.together.newverse.ui.state.buy.hideHistoryMergeDialog
-import com.together.newverse.ui.navigation.NavRoutes
+import com.together.newverse.ui.state.buy.showSnackBar
 import com.together.newverse.ui.state.core.AuthFlowCoordinator
 import com.together.newverse.ui.state.core.BaseAppViewModel
+import com.together.newverse.util.Log
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -87,17 +96,6 @@ import kotlinx.coroutines.launch
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.snackbar_added_to_basket
 import org.jetbrains.compose.resources.getString
-import com.together.newverse.util.Log
-import com.together.newverse.ui.state.buy.loadReminderSettings
-import com.together.newverse.ui.state.buy.observeReminderSchedule
-import com.together.newverse.ui.state.buy.loadDismissedAnnouncements
-import com.together.newverse.ui.state.buy.collapseHomeAnnouncement
-import com.together.newverse.ui.state.buy.handleReminderAction
-import com.together.newverse.domain.reminder.OrderReminderScheduler
-import com.together.newverse.data.config.AnnouncementDismissalStorage
-import com.together.newverse.domain.repository.SellerInboxRepository
-import com.together.newverse.data.config.OrderReminderStorage
-
 
 private const val TAG = "BuyVM"
 
@@ -350,23 +348,27 @@ class BuyAppViewModel(
             is BuyUiAction.ClearPromptError -> clearPromptError()
             is BuyUiAction.NotePublishedActionUsed -> notePublishedActionUsed(action.action)
             // The extensions on this class, which write `state.ui.snackbar` -- what
-            // AppScaffold actually observes. The base class's same-named helpers write
-            // `globalUiState`, which nothing in this flavor reads: a snackbar shown
-            // through them never appeared, and a hide through them never cleared the
-            // one on screen. A stuck snackbar then swallowed the *next* identical
-            // message, because the scaffold's effect keys on the value and
-            // SnackbarState is a data class -- which is how a second "thank you" from
-            // the choice picker went missing.
+            // AppScaffold actually observes. The base class's helpers are spelled with
+            // a small b and write `globalUiState`, which nothing in this flavor reads:
+            // a snackbar shown through them never appeared, and a hide through them
+            // never cleared the one on screen. A stuck snackbar then swallowed the
+            // *next* identical message, because the scaffold's effect keys on the
+            // value and SnackbarState is a data class -- which is how a second "thank
+            // you" from the choice picker went missing.
             is BuyUiAction.ShowSnackbar -> showSnackBar(action.message, action.type)
             is BuyUiAction.HideSnackbar -> hideSnackBar()
-            // The extensions again, for the reason given above: these three branches
-            // wrote `globalUiState` too, so a dialog or a spinner asked for through
-            // an action never reached the state the UI reads.
-            is BuyUiAction.ShowDialog -> showDialog(action.dialog)
-            is BuyUiAction.HideDialog -> hideDialog()
+            // `...InState` for the same reason, and renamed rather than imported: the
+            // base class's `showDialog`, `hideDialog` and `setRefreshing` are members,
+            // and a member beats an extension of the same name whatever is imported,
+            // so these three wrote `globalUiState` however they were spelled here. A
+            // dialog or a spinner asked for through an action never reached the UI,
+            // and nothing could warn about it. The bottom-sheet pair has no namesake
+            // on the base class, so it was always resolving to the extension.
+            is BuyUiAction.ShowDialog -> showDialogInState(action.dialog)
+            is BuyUiAction.HideDialog -> hideDialogInState()
             is BuyUiAction.ShowBottomSheet -> showBottomSheet(action.sheet)
             is BuyUiAction.HideBottomSheet -> hideBottomSheet()
-            is BuyUiAction.SetRefreshing -> setRefreshing(action.isRefreshing)
+            is BuyUiAction.SetRefreshing -> setRefreshingInState(action.isRefreshing)
             is BuyUiAction.ShowPasswordResetDialog -> showPasswordResetDialog()
             is BuyUiAction.HidePasswordResetDialog -> hidePasswordResetDialog()
             is BuyUiAction.SetAuthMode -> setAuthMode(action.mode)
