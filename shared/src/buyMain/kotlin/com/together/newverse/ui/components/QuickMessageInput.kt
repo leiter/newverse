@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
@@ -167,20 +168,32 @@ fun QuickMessageInput(
                             // only when the text actually overflows, so a short
                             // prompt sits still. It is drawn only while the field is
                             // empty, so nothing animates behind what the buyer types.
-                            Text(
-                                text = prompt,
-                                style = fieldStyle.copy(
-                                    color = barColors.content.copy(alpha = 0.7f)
-                                ),
-                                maxLines = 1,
-                                // Reached only by the frames before the marquee
-                                // measures; an ellipsis here would flash a "..." the
-                                // scrolling text then has to explain away.
-                                overflow = TextOverflow.Clip,
-                                modifier = Modifier.basicMarquee(
-                                    iterations = Int.MAX_VALUE
+                            //
+                            // The marquee sits on a full-width wrapper rather than on
+                            // the Text itself: on iOS a marquee on the hint Text inside
+                            // decorationBox never moved, while the same marquee in the
+                            // announcement title does. The wrapper pins the container
+                            // to the field's width, so the overflow the marquee checks
+                            // for is measured against the field, not against the text.
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clipToBounds()
+                                    .basicMarquee(iterations = Int.MAX_VALUE)
+                            ) {
+                                Text(
+                                    text = prompt,
+                                    style = fieldStyle.copy(
+                                        color = barColors.content.copy(alpha = 0.7f)
+                                    ),
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    // Reached only by the frames before the marquee
+                                    // measures; an ellipsis here would flash a "..."
+                                    // the scrolling text then has to explain away.
+                                    overflow = TextOverflow.Clip
                                 )
-                            )
+                            }
                         }
                         innerTextField()
                     }
