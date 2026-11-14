@@ -52,11 +52,13 @@ import newverse.shared.generated.resources.price_preview_unchanged
 import com.together.newverse.domain.model.PriceCondition
 import com.together.newverse.domain.model.PriceEffect
 import com.together.newverse.domain.model.PriceScope
+import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.ui.components.displayName
 import org.jetbrains.compose.resources.stringResource
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.price_condition_add
-import newverse.shared.generated.resources.price_condition_amount
+import newverse.shared.generated.resources.price_condition_amount_euro
+import newverse.shared.generated.resources.price_condition_amount_percent
 import newverse.shared.generated.resources.price_condition_cause
 import newverse.shared.generated.resources.price_condition_effect
 import newverse.shared.generated.resources.price_condition_note
@@ -294,10 +296,19 @@ private fun ConditionRow(
             is PriceScope.SingleArticle -> Res.string.price_scope_article
         }
     )
+    // What the seller sees and types: a percentage for a factor, euros otherwise.
+    // The option is labelled "Prozentual", so "3" has to mean +3 % (factor 1.03).
+    // Taking the typed number as the factor itself made "3" a factor of 3.0 —
+    // +200 % on every article — which is how 3,80 became 14,40 at one market.
+    val isFactor = condition.effect is PriceEffect.Factor
     val amount = when (val e = condition.effect) {
-        is PriceEffect.Factor -> e.value
+        is PriceEffect.Factor -> ProductPricing.factorToPercent(e.value)
         is PriceEffect.Surcharge -> e.amount
         is PriceEffect.Discount -> e.amount
+    }
+    // Held as text so a half-typed "3," is not reformatted under the cursor.
+    var amountText by remember(isFactor) {
+        mutableStateOf(if (amount == 0.0) "" else ProductPricing.formatPercent(amount))
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -342,7 +353,7 @@ private fun ConditionRow(
                 modifier = Modifier.weight(1f)
             ) {
                 listOf(
-                    Res.string.price_effect_factor to PriceEffect.Factor(amount.takeIf { it > 0 } ?: 1.0),
+                    Res.string.price_effect_factor to PriceEffect.Factor(ProductPricing.percentToFactor(amount)),
                     Res.string.price_effect_surcharge to PriceEffect.Surcharge(amount),
                     Res.string.price_effect_discount to PriceEffect.Discount(amount)
                 ).forEach { (label, effect) ->
@@ -354,20 +365,28 @@ private fun ConditionRow(
             }
 
             OutlinedTextField(
-                value = if (amount == 0.0) "" else amount.toString(),
+                value = amountText,
                 onValueChange = { typed ->
-                    val parsed = typed.replace(',', '.').toDoubleOrNull() ?: 0.0
+                    amountText = typed
+                    val parsed = ProductPricing.parseDecimal(typed) ?: 0.0
                     onChange(
                         condition.copy(
                             effect = when (condition.effect) {
-                                is PriceEffect.Factor -> PriceEffect.Factor(parsed)
+                                is PriceEffect.Factor -> PriceEffect.Factor(ProductPricing.percentToFactor(parsed))
                                 is PriceEffect.Surcharge -> PriceEffect.Surcharge(parsed)
                                 is PriceEffect.Discount -> PriceEffect.Discount(parsed)
                             }
                         )
                     )
                 },
-                label = { Text(stringResource(Res.string.price_condition_amount)) },
+                label = {
+                    Text(
+                        stringResource(
+                            if (isFactor) Res.string.price_condition_amount_percent
+                            else Res.string.price_condition_amount_euro
+                        )
+                    )
+                },
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )

@@ -1241,7 +1241,8 @@
     <string name="price_condition_remove">Bedingung entfernen</string>
     <string name="price_condition_cause">Grund</string>
     <string name="price_condition_effect">Art</string>
-    <string name="price_condition_amount">Betrag</string>
+    <string name="price_condition_amount_euro">Betrag (€)</string>
+    <string name="price_condition_amount_percent">Prozent (%)</string>
     <string name="price_condition_scope">Gilt für</string>
     <string name="price_condition_note">Hinweis für Kunden (optional)</string>
     <string name="price_effect_factor">Prozentual</string>

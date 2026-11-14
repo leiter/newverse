@@ -1182,7 +1182,8 @@
     <string name="price_condition_remove">Remove condition</string>
     <string name="price_condition_cause">Reason</string>
     <string name="price_condition_effect">Kind</string>
-    <string name="price_condition_amount">Amount</string>
+    <string name="price_condition_amount_euro">Amount (€)</string>
+    <string name="price_condition_amount_percent">Percent (%)</string>
     <string name="price_condition_scope">Applies to</string>
     <string name="price_condition_note">Note for customers (optional)</string>
     <string name="price_effect_factor">Percentage</string>
