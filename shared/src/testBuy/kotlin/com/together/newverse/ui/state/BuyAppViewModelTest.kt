@@ -307,6 +307,35 @@ class BuyAppViewModelTest {
     }
 
     @Test
+    fun `ShowSnackbar reaches the state the scaffold reads`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.dispatch(BuyUiAction.ShowSnackbar("Danke", SnackbarType.SUCCESS))
+
+        // `state.ui`, not `globalUiState`: the base class has same-named helpers that
+        // write a flow nothing in this flavor collects, and dispatch used to call
+        // those -- so an action-shown snackbar never appeared at all.
+        assertEquals("Danke", viewModel.state.value.ui.snackbar?.message)
+        assertEquals(SnackbarType.SUCCESS, viewModel.state.value.ui.snackbar?.type)
+    }
+
+    @Test
+    fun `HideSnackbar clears it, so the same message can be shown again`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.dispatch(BuyUiAction.ShowSnackbar("Danke", SnackbarType.SUCCESS))
+        viewModel.dispatch(BuyUiAction.HideSnackbar)
+        assertNull(viewModel.state.value.ui.snackbar)
+
+        // The point of clearing: the scaffold's effect keys on the SnackbarState, and
+        // a stuck one is equal to the next identical message -- which is how a second
+        // "thank you" from the choice picker went missing.
+        viewModel.dispatch(BuyUiAction.ShowSnackbar("Danke", SnackbarType.SUCCESS))
+
+        assertEquals("Danke", viewModel.state.value.ui.snackbar?.message)
+    }
+
+    @Test
     fun `initial ui state has no dialog`() = runTest {
         val viewModel = createViewModel()
 

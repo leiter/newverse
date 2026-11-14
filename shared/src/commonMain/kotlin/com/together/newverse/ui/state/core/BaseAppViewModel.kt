@@ -170,7 +170,17 @@ abstract class BaseAppViewModel<S : Any, A : Any>(
     // ===== Global UI Helpers =====
 
     /**
-     * Shows a snackbar with the given message and type.
+     * Shows a snackbar with the given message and type — **in [globalUiState]**.
+     *
+     * Neither flavor's scaffold observes that flow: both read `state.ui.snackbar` and
+     * write it through their own helpers (`showSnackBar`/`hideSnackBar` in buy,
+     * `showSnackbarInState`/`hideSnackbarInState` in sell). Calling this one instead
+     * is silent in both directions — the message never appears, and the hide never
+     * clears the snackbar that is on screen. That left `BuyAppViewModel.dispatch`
+     * routing `ShowSnackbar`/`HideSnackbar` here, so a stuck snackbar swallowed the
+     * next *identical* message, the scaffold's effect keying on a [SnackbarState] that
+     * never changed. Use the flavor's own helper until something actually collects
+     * [globalUiState].
      */
     protected fun showSnackbar(message: String, type: SnackbarType = SnackbarType.INFO) {
         _globalUiState.update { current ->
@@ -180,9 +190,7 @@ abstract class BaseAppViewModel<S : Any, A : Any>(
         }
     }
 
-    /**
-     * Hides the current snackbar.
-     */
+    /** Hides the current snackbar — in [globalUiState]. See [showSnackbar]. */
     protected fun hideSnackbar() {
         _globalUiState.update { current ->
             current.copy(snackbar = null)

@@ -36,6 +36,8 @@ import com.together.newverse.ui.state.buy.handleBasketScreenAction
 import com.together.newverse.ui.state.buy.handleMainScreenAction
 import com.together.newverse.ui.state.buy.handleSellerAction
 import com.together.newverse.ui.state.buy.hideBottomSheet
+import com.together.newverse.ui.state.buy.hideDialog
+import com.together.newverse.ui.state.buy.hideSnackBar
 import com.together.newverse.ui.state.buy.hidePasswordResetDialog
 import com.together.newverse.ui.state.buy.initializeApp
 import com.together.newverse.ui.state.buy.initializeBasketScreen
@@ -64,7 +66,10 @@ import com.together.newverse.ui.state.buy.saveBuyerProfile
 import com.together.newverse.ui.state.buy.sendPasswordResetEmail
 import com.together.newverse.ui.state.buy.setAuthMode
 import com.together.newverse.ui.state.buy.setAuthError
+import com.together.newverse.ui.state.buy.setRefreshing
 import com.together.newverse.ui.state.buy.showBottomSheet
+import com.together.newverse.ui.state.buy.showDialog
+import com.together.newverse.ui.state.buy.showSnackBar
 import com.together.newverse.ui.state.buy.showPasswordResetDialog
 import com.together.newverse.ui.state.buy.handleHistoryOrderTap
 import com.together.newverse.ui.state.buy.mergeHistoryOrder
@@ -344,8 +349,19 @@ class BuyAppViewModel(
             is BuyUiAction.SendChoice -> sendChoice(action.location, action.selections)
             is BuyUiAction.ClearPromptError -> clearPromptError()
             is BuyUiAction.NotePublishedActionUsed -> notePublishedActionUsed(action.action)
-            is BuyUiAction.ShowSnackbar -> showSnackbar(action.message, action.type)
-            is BuyUiAction.HideSnackbar -> hideSnackbar()
+            // The extensions on this class, which write `state.ui.snackbar` -- what
+            // AppScaffold actually observes. The base class's same-named helpers write
+            // `globalUiState`, which nothing in this flavor reads: a snackbar shown
+            // through them never appeared, and a hide through them never cleared the
+            // one on screen. A stuck snackbar then swallowed the *next* identical
+            // message, because the scaffold's effect keys on the value and
+            // SnackbarState is a data class -- which is how a second "thank you" from
+            // the choice picker went missing.
+            is BuyUiAction.ShowSnackbar -> showSnackBar(action.message, action.type)
+            is BuyUiAction.HideSnackbar -> hideSnackBar()
+            // The extensions again, for the reason given above: these three branches
+            // wrote `globalUiState` too, so a dialog or a spinner asked for through
+            // an action never reached the state the UI reads.
             is BuyUiAction.ShowDialog -> showDialog(action.dialog)
             is BuyUiAction.HideDialog -> hideDialog()
             is BuyUiAction.ShowBottomSheet -> showBottomSheet(action.sheet)
