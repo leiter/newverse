@@ -83,7 +83,9 @@ fun SellerTopBar(
                 SellerSearchField(
                     query = searchQuery,
                     onQueryChange = onSearchQueryChange,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    // The bar's own X clears it; see the actions slot below.
+                    showClearButton = false
                 )
                 return@TopAppBar
             }
@@ -134,12 +136,23 @@ fun SellerTopBar(
         actions = {
             // While searching, the field needs the whole bar: search, refresh and
             // overflow beside a full-width text field leave it a few characters wide
-            // on a phone. Close is the only action that still makes sense.
+            // on a phone. Clear-then-close is the only action that still makes sense.
             if (showSearchField) {
-                IconButton(onClick = onToggleSearch) {
+                // One X, two steps: it empties the query, and once there is no query
+                // it closes the search. The field used to carry a clear button of its
+                // own, which put two X's in the bar a touch target apart -- one
+                // emptying the field, one closing the whole thing -- with nothing to
+                // say which did what. Stepping through them in that order is also the
+                // order the seller wants them in: a query is corrected far more often
+                // than the search is abandoned.
+                val hasQuery = searchQuery.isNotEmpty()
+                IconButton(onClick = { if (hasQuery) onSearchQueryChange("") else onToggleSearch() }) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(Res.string.cd_close_search)
+                        contentDescription = stringResource(
+                            if (hasQuery) Res.string.products_search_clear
+                            else Res.string.cd_close_search
+                        )
                     )
                 }
                 return@TopAppBar

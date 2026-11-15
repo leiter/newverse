@@ -40,6 +40,12 @@ import org.jetbrains.compose.resources.stringResource
  * for: in a selection mode it is offered alongside the list, and a keyboard over the
  * rows the seller is about to tick is the opposite of helpful.
  *
+ * [showClearButton] is for the same reason. In the top bar the bar's own close button
+ * does the clearing — one X that empties the query and then, pressed again, closes the
+ * search — so a second X inside the field 48dp away from it was two buttons for one
+ * job, and the reason the seller had to work out which was which. Standing alone in a
+ * selection mode there is no bar button to lean on, so the field keeps its own.
+ *
  * Accessibility: an explicit label from a string resource, because the placeholder
  * disappears as soon as there is a query and cannot be relied on as the name.
  */
@@ -48,7 +54,8 @@ fun SellerSearchField(
     query: String,
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    autoFocus: Boolean = true
+    autoFocus: Boolean = true,
+    showClearButton: Boolean = true
 ) {
     val label = stringResource(Res.string.cd_product_search)
     val keyboardManager = rememberKeyboardManager()
@@ -64,7 +71,7 @@ fun SellerSearchField(
             .semantics { contentDescription = label },
         placeholder = { Text(stringResource(Res.string.products_search_placeholder)) },
         trailingIcon = {
-            if (query.isNotEmpty()) {
+            if (showClearButton && query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
                     Icon(
                         imageVector = Icons.Default.Clear,
