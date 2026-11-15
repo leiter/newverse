@@ -289,4 +289,40 @@ class AvailabilityPublisherTest {
 
         assertEquals(1, articleRepository.availabilityWrites.size)
     }
+
+    @Test
+    fun `it can be started again after being stopped`() = runTest {
+        // The publisher is a Koin `single` and outlives the ViewModel that starts it:
+        // backing out of the app clears that ViewModel, the next one starts the same
+        // instance. A scope cancelled for good on the first stop left it silently dead
+        // for the rest of the process — worse than the screen-scoped pass it replaced,
+        // because nothing said so.
+        articleRepository.setArticles(listOf(settledApple))
+        stocked(6.0)
+        val publisher = running()
+        publisher.stop()
+
+        publisher.start()
+        advanceUntilIdle()
+        orderRepository.setOrders(listOf(order("o1", amount = 6.0)))
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(mapOf("apple" to false)),
+            articleRepository.availabilityWrites,
+            "a restarted publisher never corrected anything"
+        )
+    }
+
+    @Test
+    fun `stopping twice is harmless`() = runTest {
+        articleRepository.setArticles(listOf(settledApple))
+        stocked(6.0)
+        val publisher = running()
+
+        publisher.stop()
+        publisher.stop()
+
+        assertTrue(articleRepository.publicationWrites.isEmpty())
+    }
 }

@@ -123,8 +123,14 @@ class SellAppViewModel(
         Log.d(TAG) { "init: END" }
     }
 
+    /**
+     * Stopped, not released: this ViewModel is per Activity while the publisher is a
+     * Koin `single` that outlives it, so the next Activity's ViewModel starts the same
+     * instance again. Releasing it here left it unable to restart for the rest of the
+     * process.
+     */
     override fun onCleared() {
-        availabilityPublisher?.close()
+        availabilityPublisher?.stop()
         super.onCleared()
     }
 

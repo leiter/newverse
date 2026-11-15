@@ -10,7 +10,6 @@ import com.together.newverse.domain.repository.StockRepository
 import com.together.newverse.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.catch
@@ -20,6 +19,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Keeps the public half of the catalogue saying what the seller and the shelf say.
@@ -66,19 +66,30 @@ class AvailabilityPublisher(
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
     /**
-     * The scope the watching runs in. [Dispatchers.Main] rather than `Default`
-     * because that is what `viewModelScope` gave this work before it moved here, and
-     * the work itself is a few comparisons over a catalogue — the listeners it waits
-     * on do their own IO elsewhere. Overridden in tests, where `Dispatchers.setMain`
-     * is what a test scheduler can drive.
+     * What the watching runs on. [Dispatchers.Main] rather than `Default` because that
+     * is what `viewModelScope` gave this work before it moved here, and the work itself
+     * is a few comparisons over a catalogue — the listeners it waits on do their own IO
+     * elsewhere. Overridden in tests, where `Dispatchers.setMain` is what a test
+     * scheduler can drive.
      */
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
+    private val context: CoroutineContext = Dispatchers.Main,
 ) {
 
     private companion object {
         private const val TAG = "AvailabilityPublisher"
     }
-    private var job: Job? = null
+    /**
+     * The scope of the current watch, or null while not watching.
+     *
+     * Built per [start] and discarded by [stop], rather than held for the object's
+     * life. This is a Koin `single` and so lives as long as the process, while the
+     * ViewModel that starts it is per Activity: with one long-lived scope, the
+     * ViewModel being cleared cancelled it for good, and the next Activity's `start()`
+     * launched into a cancelled scope and silently did nothing for the rest of the
+     * process. A scope that is created and thrown away removes that state entirely —
+     * there is no terminal condition to get stuck in.
+     */
+    private var scope: CoroutineScope? = null
 
     /** The last set of corrections written or attempted; see the class comment. */
     private var attempted = mapOf<String, ArticlePublication>()
@@ -92,8 +103,10 @@ class AvailabilityPublisher(
      * seller's corrections over.
      */
     fun start() {
-        if (job?.isActive == true) return
-        job = scope.launch {
+        if (scope != null) return
+        val watching = CoroutineScope(SupervisorJob() + context)
+        scope = watching
+        watching.launch {
             authRepository.observeAuthState()
                 .distinctUntilChanged()
                 .flatMapLatest { sellerId ->
@@ -108,18 +121,14 @@ class AvailabilityPublisher(
         }
     }
 
-    /** Stops watching. The catalogue is left exactly as it is. */
+    /**
+     * Stops watching. The catalogue is left exactly as it is, and [start] may be
+     * called again — which it will be, by the next Activity's ViewModel.
+     */
     fun stop() {
-        job?.cancel()
-        job = null
+        scope?.cancel()
+        scope = null
         attempted = emptyMap()
-    }
-
-    /** Releases the scope for good; the publisher cannot be started again. */
-    fun close() {
-        job = null
-        attempted = emptyMap()
-        scope.cancel()
     }
 
     /**
