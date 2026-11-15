@@ -1,0 +1,36 @@
+Winterkatalog, erzeugt von WinterCatalogJsonTest
+Preisliste: Obst & Gemüse KW 47/26 (Terra Naturkost Handels GmbH), gültig 20261116-20261122
+Verkäufer:  cPkcZSiF3LMXjWoqW6AqpA9paoO2
+Artikel:    31
+
+Speisekartoffel Leyla      122803  netto   1,29  VK   1,99 /kg     Faktor 1,4417  Marge 30,6 %  REG
+Speisekartoffel Karelia    122776  netto   1,29  VK   1,99 /kg     Faktor 1,4417  Marge 30,6 %  REG
+Zwiebeln, gelb             124229  netto   1,60  VK   2,29 /kg     Faktor 1,3376  Marge 25,2 %  REG
+Zwiebeln, rot              124249  netto   1,88  VK   2,79 /kg     Faktor 1,3870  Marge 27,9 %  REG
+Knoblauch                  124410  netto   0,37  VK   0,59 /Stück  Faktor 1,4903  Marge 32,9 %  ES
+Möhren Robila              120631  netto   1,75  VK   2,49 /kg     Faktor 1,3298  Marge 24,8 %  REG
+Rote Bete Robuschka        122407  netto   1,54  VK   2,19 /kg     Faktor 1,3290  Marge 24,8 %  REG
+Pastinaken                 120900  netto   2,79  VK   3,99 /kg     Faktor 1,3365  Marge 25,2 %  REG
+Knollensellerie            122504  netto   2,06  VK   2,99 /kg     Faktor 1,3565  Marge 26,3 %  REG
+Rettich, weiß              121110  netto   3,22  VK   4,49 /kg     Faktor 1,3032  Marge 23,3 %  DE
+Weißkohl                   126044  netto   1,89  VK   2,69 /kg     Faktor 1,3302  Marge 24,8 %  REG
+Rotkohl                    125895  netto   2,06  VK   2,99 /kg     Faktor 1,3565  Marge 26,3 %  REG
+Grünkohl                   125750  netto   3,75  VK   5,49 /kg     Faktor 1,3682  Marge 26,9 %  REG
+Rosenkohl                  125804  netto   4,38  VK   6,29 /kg     Faktor 1,3421  Marge 25,5 %  DE
+Kohlrabi                   122235  netto   1,09  VK   1,49 /Stück  Faktor 1,2775  Marge 21,7 %  IT
+Kürbis Hokkaido            127465  netto   1,45  VK   1,99 /kg     Faktor 1,2826  Marge 22,0 %  REG
+Lauch / Porree             124505  netto   2,79  VK   3,99 /kg     Faktor 1,3365  Marge 25,2 %  REG
+Spinat, lose               125615  netto   4,14  VK   5,99 /kg     Faktor 1,3522  Marge 26,0 %  REG
+Radieschen                 120950  netto   1,08  VK   1,49 /Bund   Faktor 1,2894  Marge 22,4 %  IT
+Suppengrün                 126702  netto   2,03  VK   2,99 /Bund   Faktor 1,3765  Marge 27,4 %  REG
+Petersilie, glatt          126707  netto   1,32  VK   1,89 /Bund   Faktor 1,3381  Marge 25,3 %  DE
+Zucchini                   1273821 netto   2,84  VK   3,99 /kg     Faktor 1,3130  Marge 23,8 %  IT
+Strauchtomaten             1271758 netto   3,89  VK   5,49 /kg     Faktor 1,3190  Marge 24,2 %  ES
+Paprika, rot               127222  netto   5,44  VK   7,49 /kg     Faktor 1,2868  Marge 22,3 %  ES
+Stangenbohnen              127579  netto   8,48  VK  10,99 /kg     Faktor 1,2112  Marge 17,4 %  ES
+Apfel Roter Jonagold       1121841 netto   2,12  VK   2,99 /kg     Faktor 1,3181  Marge 24,1 %  REG
+Apfel Roter Boskoop        112076  netto   2,32  VK   3,29 /kg     Faktor 1,3253  Marge 24,5 %  DE
+Birne Alexander Lucas      112228  netto   2,56  VK   3,69 /kg     Faktor 1,3471  Marge 25,8 %  DE
+Trauben, weiß kernlos      117099  netto   4,64  VK   6,49 /kg     Faktor 1,3072  Marge 23,5 %  IT
+Zitronen Fino              111120  netto   2,42  VK   3,49 /kg     Faktor 1,3478  Marge 25,8 %  ES
+Bananen                    116404  netto   1,59  VK   2,19 /kg     Faktor 1,2873  Marge 22,3 %  DO
