@@ -42,6 +42,7 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.together.newverse.ui.state.SearchScope
 import com.together.newverse.ui.state.SellAppViewModel
 
 @Composable
@@ -62,11 +63,11 @@ fun OverviewScreen(
     // The search field is in the top bar and writes to SellAppViewModel, the one view
     // model the bar and this screen share. Mirror it into the list's own view model
     // so all three filters are applied in one testable place.
-    val isSearchExpanded by sellAppViewModel.searchExpanded.collectAsState()
-    val searchQuery by sellAppViewModel.searchQuery.collectAsState()
-    val selectedCategory by sellAppViewModel.selectedCategory.collectAsState()
+    val search by sellAppViewModel.search(SearchScope.CATALOGUE).collectAsState()
+    val isSearchExpanded = search.expanded
+    val searchQuery = search.query
     LaunchedEffect(searchQuery) { viewModel.setSearchQuery(searchQuery) }
-    LaunchedEffect(selectedCategory) { viewModel.setSelectedCategory(selectedCategory) }
+    LaunchedEffect(search.category) { viewModel.setSelectedCategory(search.category) }
 
     // No back-press handling: Compose Multiplatform's common BackHandler is both
     // experimental and already deprecated in favour of a NavigationEventHandler that
@@ -142,17 +143,21 @@ fun OverviewScreen(
                     currentFilter = currentFilter,
                     onFilterChange = { viewModel.setFilter(it) },
                     isSearchExpanded = isSearchExpanded,
-                    onSelectCategory = sellAppViewModel::setSelectedCategory,
+                    onSelectCategory = { category ->
+                        sellAppViewModel.setSelectedCategory(SearchScope.CATALOGUE, category)
+                    },
                     onResetFilters = {
-                        sellAppViewModel.setSearchQuery("")
-                        sellAppViewModel.setSelectedCategory(null)
+                        sellAppViewModel.setSearchQuery(SearchScope.CATALOGUE, "")
+                        sellAppViewModel.setSelectedCategory(SearchScope.CATALOGUE, null)
                         viewModel.setFilter(ProductFilter.ALL)
                     },
                     isSelectionMode = inSelectionMode,
                     selectedArticleIds = selectedArticleIds,
                     onArticleSelectionToggle = viewModel::toggleArticleSelection,
                     searchQuery = searchQuery,
-                    onSearchQueryChange = sellAppViewModel::setSearchQuery,
+                    onSearchQueryChange = { query ->
+                        sellAppViewModel.setSearchQuery(SearchScope.CATALOGUE, query)
+                    },
                     onEditArticle = onEditArticle,
                     onCreateArticle = onCreateArticle
                 )

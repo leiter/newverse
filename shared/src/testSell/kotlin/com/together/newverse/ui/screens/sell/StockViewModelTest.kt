@@ -69,7 +69,14 @@ class StockViewModelTest {
     private lateinit var scale: TestWeightSource
 
     private val apple = SellerArticle(
-        Article(id = "apple", productId = "112108", productName = "Apfel", unit = "kg"),
+        Article(
+            id = "apple",
+            productId = "112108",
+            productName = "Apfel",
+            searchTerms = "topaz,obst",
+            category = "Obst",
+            unit = "kg"
+        ),
         SellerArticleData(acquirePrice = 1.96, reorderLevel = 5.0)
     )
     private val nuts = SellerArticle(
@@ -163,6 +170,49 @@ class StockViewModelTest {
 
         assertEquals(listOf("nuts"), vm.state.value.matchingStanding.map { it.articleId })
         assertEquals(listOf("apple"), vm.state.value.refillNeeds.map { it.articleId })
+    }
+
+    @Test
+    fun `the standing is searched by article number, which is what the seller is holding`() = runTest {
+        // The number on the delivery note. It used to find nothing here, because the
+        // standing matched the product name alone -- on the one screen the seller is
+        // standing in front of a shelf with the note in their hand.
+        val vm = loaded()
+        vm.setQuery("112108")
+
+        assertEquals(listOf("apple"), vm.state.value.matchingStanding.map { it.articleId })
+    }
+
+    @Test
+    fun `the standing is searched by the seller's own search terms`() = runTest {
+        val vm = loaded()
+        vm.setQuery("topaz")
+
+        assertEquals(listOf("apple"), vm.state.value.matchingStanding.map { it.articleId })
+    }
+
+    @Test
+    fun `the standing is searched by category`() = runTest {
+        val vm = loaded()
+        vm.setQuery("obst")
+
+        assertEquals(listOf("apple"), vm.state.value.matchingStanding.map { it.articleId })
+    }
+
+    @Test
+    fun `a query matching nothing empties the standing rather than ignoring itself`() = runTest {
+        val vm = loaded()
+        vm.setQuery("kohlrabi")
+
+        assertTrue(vm.state.value.matchingStanding.isEmpty())
+    }
+
+    @Test
+    fun `a blank query is the whole standing`() = runTest {
+        val vm = loaded()
+        vm.setQuery("   ")
+
+        assertEquals(2, vm.state.value.matchingStanding.size)
     }
 
     @Test

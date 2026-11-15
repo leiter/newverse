@@ -54,6 +54,98 @@ class SellAppViewModelTest {
         profileRepository = FakeProfileRepository()
     )
 
+    // ===== Search, one state per searchable list =====
+
+    @Test
+    fun `each list starts with no search`() = runTest {
+        val viewModel = createViewModel()
+
+        for (scope in SearchScope.entries) {
+            assertEquals(SellerSearch(), viewModel.search(scope).value)
+        }
+    }
+
+    @Test
+    fun `the Lager query is not the Sortiment query`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.setSearchQuery(SearchScope.CATALOGUE, "apfel")
+        viewModel.setSearchQuery(SearchScope.STOCK, "112108")
+
+        assertEquals("apfel", viewModel.search(SearchScope.CATALOGUE).value.query)
+        assertEquals("112108", viewModel.search(SearchScope.STOCK).value.query)
+    }
+
+    @Test
+    fun `clearing one list leaves the other alone`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.setSearchQuery(SearchScope.CATALOGUE, "apfel")
+        viewModel.expandSearch(SearchScope.STOCK)
+        viewModel.setSearchQuery(SearchScope.STOCK, "112108")
+
+        // Closing the Lager's search throws away the Lager's query and nothing else.
+        viewModel.collapseSearch(SearchScope.STOCK)
+
+        assertEquals(SellerSearch(), viewModel.search(SearchScope.STOCK).value)
+        assertEquals("apfel", viewModel.search(SearchScope.CATALOGUE).value.query)
+    }
+
+    @Test
+    fun `expanding one list does not open the other`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.expandSearch(SearchScope.STOCK)
+
+        assertTrue(viewModel.search(SearchScope.STOCK).value.expanded)
+        assertFalse(viewModel.search(SearchScope.CATALOGUE).value.expanded)
+    }
+
+    @Test
+    fun `collapsing clears the query and the chip together`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.expandSearch(SearchScope.CATALOGUE)
+        viewModel.setSearchQuery(SearchScope.CATALOGUE, "apfel")
+        viewModel.setSelectedCategory(SearchScope.CATALOGUE, "Obst")
+
+        viewModel.toggleSearch(SearchScope.CATALOGUE)
+
+        // Leaving either set hides most of the catalogue behind a magnifier with
+        // nothing on screen to say why the list is short.
+        assertEquals(SellerSearch(), viewModel.search(SearchScope.CATALOGUE).value)
+    }
+
+    @Test
+    fun `toggling opens a closed search and starts it clean`() = runTest {
+        val viewModel = createViewModel()
+        // A query left over from a collapse that somehow kept it must not come back.
+        viewModel.setSearchQuery(SearchScope.CATALOGUE, "stale")
+
+        viewModel.toggleSearch(SearchScope.CATALOGUE)
+
+        assertTrue(viewModel.search(SearchScope.CATALOGUE).value.expanded)
+    }
+
+    @Test
+    fun `expanding an already open search keeps what is typed in it`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.expandSearch(SearchScope.CATALOGUE)
+        viewModel.setSearchQuery(SearchScope.CATALOGUE, "apfel")
+
+        // A second selection mode starting must not wipe a query mid-use.
+        viewModel.expandSearch(SearchScope.CATALOGUE)
+
+        assertEquals("apfel", viewModel.search(SearchScope.CATALOGUE).value.query)
+    }
+
+    @Test
+    fun `the state flow of one scope is the same instance every time`() = runTest {
+        val viewModel = createViewModel()
+
+        // Composition keys collection on the instance; a new wrapper per call would
+        // restart it on every recomposition.
+        assertTrue(viewModel.search(SearchScope.STOCK) === viewModel.search(SearchScope.STOCK))
+    }
+
     // ===== A. Initial State (4 tests) =====
 
     // SellAppState declares Guest as its default, but the auth observer supersedes it

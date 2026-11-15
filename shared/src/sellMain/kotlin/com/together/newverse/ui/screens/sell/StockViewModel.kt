@@ -8,6 +8,7 @@ import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.QuantitySource
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.RefillNeed
+import com.together.newverse.domain.model.matchesQuery
 import com.together.newverse.domain.model.RefillState
 import com.together.newverse.domain.model.SellerArticle
 import com.together.newverse.domain.model.StockLevel
@@ -439,13 +440,15 @@ data class StockUiState(
      */
     val nothingWatched: Boolean get() = refillNeeds.isEmpty() && !hasWatchedArticles
 
-    /** The standing filtered by [query]; the refill list is never filtered. */
+    /**
+     * The standing filtered by [query]; the refill list is never filtered.
+     *
+     * The same rule as the catalogue's search, article number included — it used to
+     * match the product name and nothing else, so the number on the delivery note in
+     * the seller's hand found nothing on the one screen they are holding it for.
+     */
     val matchingStanding: List<RefillNeed>
-        get() {
-            val q = query.trim().lowercase()
-            if (q.isEmpty()) return standing
-            return standing.filter { it.productName.lowercase().contains(q) }
-        }
+        get() = if (query.isBlank()) standing else standing.filter { it.matchesQuery(query) }
 
     /** Whether offering to weigh makes sense on this device. */
     val canWeigh: Boolean get() = scaleStatus.canWeigh

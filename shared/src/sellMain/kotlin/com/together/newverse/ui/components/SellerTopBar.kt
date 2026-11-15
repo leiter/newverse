@@ -59,8 +59,15 @@ fun SellerTopBar(
     // Selection and availability mode both take over the whole bar, so search gives
     // way to them rather than competing: three independent bar states would each
     // need to know about the other two.
-    val showSearchField = isSearchExpanded && !isInSelectionMode
-    val searchAvailable = currentRoute == NavRoutes.Sell.Overview.route && !isInSelectionMode
+    //
+    // Two screens have a list worth searching: the Sortiment and the Lager. Each keeps
+    // its own query (SearchScope), and the route is checked for drawing the field as
+    // well as for offering it, so the bar cannot end up holding a field for a screen
+    // that has nothing to filter.
+    val searchRoute = currentRoute == NavRoutes.Sell.Overview.route ||
+        currentRoute == NavRoutes.Sell.Stock.route
+    val showSearchField = isSearchExpanded && !isInSelectionMode && searchRoute
+    val searchAvailable = searchRoute && !isInSelectionMode
 
     // Get localized titles
     val sortimentTitle = stringResource(Res.string.topbar_sortiment)

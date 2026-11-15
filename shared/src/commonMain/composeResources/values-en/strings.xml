@@ -1128,7 +1128,6 @@
     <string name="stock_message_failed">Message could not be sent</string>
     <string name="stock_no_buyer_to_message">No customer account is recorded for this order</string>
     <string name="stock_ordered_by">ordered</string>
-    <string name="stock_search">Search articles</string>
     <string name="stock_from_scale">From the scale</string>
     <string name="stock_scale_unavailable">No scale connected</string>
     <string name="bottomnav_stock">Stock</string>

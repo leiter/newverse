@@ -58,21 +58,26 @@ class SellAppViewModel(
     // composable(…) block is scoped to that back stack entry and would hand the two
     // of them different instances. It sits here, where both already share one, and
     // survives configuration changes for free.
-    private val _searchExpanded = MutableStateFlow(false)
-    val searchExpanded: StateFlow<Boolean> = _searchExpanded.asStateFlow()
+    //
+    // One state per searchable list, not one for the app. See [SearchScope].
+    private val searchStates: Map<SearchScope, MutableStateFlow<SellerSearch>> =
+        SearchScope.entries.associateWith { MutableStateFlow(SellerSearch()) }
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    // Read-only views, built once: `asStateFlow()` makes a new wrapper per call, and
+    // handing composition a different instance on every recomposition would restart
+    // the collection each time.
+    private val searchFlows: Map<SearchScope, StateFlow<SellerSearch>> =
+        searchStates.mapValues { (_, state) -> state.asStateFlow() }
 
-    private val _selectedCategory = MutableStateFlow<String?>(null)
-    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
+    /** The search state of one list. Stable across recompositions. */
+    fun search(scope: SearchScope): StateFlow<SellerSearch> = searchFlows.getValue(scope)
 
-    fun setSearchQuery(query: String) {
-        _searchQuery.value = query
+    fun setSearchQuery(scope: SearchScope, query: String) {
+        searchStates.getValue(scope).update { it.copy(query = query) }
     }
 
-    fun setSelectedCategory(category: String?) {
-        _selectedCategory.value = category
+    fun setSelectedCategory(scope: SearchScope, category: String?) {
+        searchStates.getValue(scope).update { it.copy(category = category) }
     }
 
     /**
@@ -81,13 +86,13 @@ class SellAppViewModel(
      * Leaving them set would hide most of the catalog behind a magnifier icon with
      * nothing on screen to say why the list is short — the seller's own articles
      * simply appear to be missing. Expanding starts clean for the same reason.
+     *
+     * Only the scope being toggled is touched: the other list's query is its own and
+     * is none of this one's business.
      */
-    fun toggleSearch() {
-        val expanded = !_searchExpanded.value
-        _searchExpanded.value = expanded
-        if (!expanded) {
-            _searchQuery.value = ""
-            _selectedCategory.value = null
+    fun toggleSearch(scope: SearchScope) {
+        searchStates.getValue(scope).update { current ->
+            if (current.expanded) SellerSearch() else current.copy(expanded = true)
         }
     }
 
@@ -99,20 +104,16 @@ class SellAppViewModel(
      * screen, under the top bar, because the bar's title is busy saying which mode is
      * running. Starts clean for the same reason [toggleSearch] does.
      */
-    fun expandSearch() {
-        if (!_searchExpanded.value) {
-            _searchExpanded.value = true
-            _searchQuery.value = ""
-            _selectedCategory.value = null
+    fun expandSearch(scope: SearchScope) {
+        searchStates.getValue(scope).update { current ->
+            if (current.expanded) current else SellerSearch(expanded = true)
         }
     }
 
     /** Collapse without the toggle, for a back press or leaving the screen. */
-    fun collapseSearch() {
-        if (_searchExpanded.value) {
-            _searchExpanded.value = false
-            _searchQuery.value = ""
-            _selectedCategory.value = null
+    fun collapseSearch(scope: SearchScope) {
+        searchStates.getValue(scope).update { current ->
+            if (current.expanded) SellerSearch() else current
         }
     }
 
@@ -789,3 +790,36 @@ class SellAppViewModel(
         }
     }
 }
+
+/**
+ * Which list a search belongs to.
+ *
+ * The Sortiment and the Lager both have a searchable list and they are not the same
+ * question: "which article do I want to change" against "what is on the shelf". With
+ * one query behind both, walking from one screen to the other carried the query along
+ * and narrowed a list the seller had not asked to narrow — and clearing it on one
+ * screen threw away what they had typed on the other.
+ *
+ * A scope per list, so each remembers its own. Adding a third searchable screen means
+ * adding a constant here and nothing else.
+ */
+enum class SearchScope {
+    /** The Sortiment: the article catalogue. */
+    CATALOGUE,
+
+    /** The Lager: the stock standing. */
+    STOCK
+}
+
+/**
+ * One list's search, as the bar and the screen see it.
+ *
+ * [category] is the chip row's selection. Only the Sortiment draws one, so the Lager's
+ * stays null — it is on the state rather than beside it because expanding, collapsing
+ * and clearing have to treat the two as one thing.
+ */
+data class SellerSearch(
+    val expanded: Boolean = false,
+    val query: String = "",
+    val category: String? = null
+)

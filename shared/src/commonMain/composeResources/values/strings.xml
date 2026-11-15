@@ -1188,7 +1188,6 @@
     <string name="stock_message_failed">Nachricht konnte nicht gesendet werden</string>
     <string name="stock_no_buyer_to_message">Zu dieser Bestellung ist kein Kundenkonto hinterlegt</string>
     <string name="stock_ordered_by">bestellt</string>
-    <string name="stock_search">Artikel suchen</string>
     <string name="stock_from_scale">Von der Waage</string>
     <string name="stock_scale_unavailable">Keine Waage verbunden</string>
     <string name="bottomnav_stock">Lager</string>

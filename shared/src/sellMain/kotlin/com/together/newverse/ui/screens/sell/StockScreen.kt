@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -47,18 +48,35 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.together.newverse.ui.state.SearchScope
+import com.together.newverse.ui.state.SellAppViewModel
 
 /**
  * The storage screen: what needs refilling, the full standing underneath, and the
  * bookings that change either.
  */
 @Composable
-fun StockScreen(viewModel: StockViewModel = koinViewModel()) {
+fun StockScreen(
+    viewModel: StockViewModel = koinViewModel(),
+    sellAppViewModel: SellAppViewModel = koinViewModel()
+) {
     val state by viewModel.state.collectAsState()
+
+    // The search field is in the top bar now, and the bar writes to SellAppViewModel —
+    // the one view model the bar and every screen share. Mirrored into this screen's
+    // own view model so the filtering stays in one testable place, exactly as the
+    // Sortiment does it.
+    //
+    // It was an OutlinedTextField inside the LazyColumn, above the standing rows: the
+    // seller scrolled down to read the standing and the box that filtered it scrolled
+    // off the top.
+    // SearchScope.STOCK: the Lager's query is its own. Carrying the Sortiment's over
+    // would narrow the standing to whatever the seller last looked up in the catalogue.
+    val search by sellAppViewModel.search(SearchScope.STOCK).collectAsState()
+    LaunchedEffect(search.query) { viewModel.setQuery(search.query) }
 
     StockContent(
         state = state,
-        onQueryChange = viewModel::setQuery,
         onBook = viewModel::startBooking,
         onQuantityChange = viewModel::setQuantity,
         onNoteChange = viewModel::setNote,
@@ -75,7 +93,6 @@ fun StockScreen(viewModel: StockViewModel = koinViewModel()) {
 @Composable
 fun StockContent(
     state: StockUiState,
-    onQueryChange: (String) -> Unit,
     onBook: (String, StockMovementKind) -> Unit,
     onQuantityChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
@@ -158,16 +175,6 @@ fun StockContent(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics { heading() }
-            )
-        }
-
-        item {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = onQueryChange,
-                label = { Text(stringResource(Res.string.stock_search)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
             )
         }
 

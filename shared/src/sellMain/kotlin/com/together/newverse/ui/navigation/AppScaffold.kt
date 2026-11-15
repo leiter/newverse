@@ -30,6 +30,7 @@ import com.together.newverse.ui.components.SellerBottomNavigationBar
 import com.together.newverse.ui.components.SellerNavigationRail
 import androidx.savedstate.read
 import com.together.newverse.ui.components.SellerTopBar
+import com.together.newverse.ui.state.SearchScope
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.screens.rememberSplashVisible
 import com.together.newverse.ui.state.NotificationAction
@@ -77,12 +78,6 @@ private fun AppScaffoldContent(
     val viewModel = koinViewModel<SellAppViewModel>()
     val state by viewModel.state.collectAsState()
 
-    // Product search. It lives in SellAppViewModel because the field is in the top
-    // bar here while the list it filters is a nav destination, and this is the one
-    // view model both of them already share.
-    val isSearchExpanded by viewModel.searchExpanded.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val selectedCategory by viewModel.selectedCategory.collectAsState()
 
     // Get orders ViewModel for pending orders count
     val ordersViewModel = koinViewModel<OrdersViewModel>()
@@ -202,6 +197,22 @@ private fun AppScaffoldContent(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.Sell.Overview.route
 
+    // Product search. It lives in SellAppViewModel because the field is in the top
+    // bar here while the list it filters is a nav destination, and this is the one
+    // view model both of them already share.
+    //
+    // One state per searchable list (see SearchScope), so the bar reads whichever
+    // belongs to the screen the seller is on -- and the Lager's query is not the
+    // Sortiment's. Off those two routes there is nothing to search: the bar is handed
+    // a collapsed state, and CATALOGUE is only named to have something to read.
+    val searchScope = when (currentRoute) {
+        NavRoutes.Sell.Overview.route -> SearchScope.CATALOGUE
+        NavRoutes.Sell.Stock.route -> SearchScope.STOCK
+        else -> null
+    }
+    val search by viewModel.search(searchScope ?: SearchScope.CATALOGUE).collectAsState()
+    val isSearchExpanded = searchScope != null && search.expanded
+
     // Create and edit are one route with an optional articleId, so the argument is the
     // only thing that says which of the two the seller is looking at.
     val isEditingArticle = currentRoute == NavRoutes.Sell.Create.route &&
@@ -246,9 +257,11 @@ private fun AppScaffoldContent(
                 isSelectionMode = isSelectionMode,
                 isAvailabilityMode = isAvailabilityMode,
                 isSearchExpanded = isSearchExpanded,
-                searchQuery = searchQuery,
-                onSearchQueryChange = viewModel::setSearchQuery,
-                onToggleSearch = viewModel::toggleSearch,
+                searchQuery = search.query,
+                onSearchQueryChange = { query ->
+                    searchScope?.let { viewModel.setSearchQuery(it, query) }
+                },
+                onToggleSearch = { searchScope?.let(viewModel::toggleSearch) },
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -266,12 +279,16 @@ private fun AppScaffoldContent(
                 onToggleSelectionMode = {
                     isAvailabilityMode = false
                     isSelectionMode = !isSelectionMode
-                    if (isSelectionMode) viewModel.expandSearch() else viewModel.collapseSearch()
+                    // The selection modes are the Sortiment's, so the scope is named
+                    // rather than taken from the route.
+                    if (isSelectionMode) viewModel.expandSearch(SearchScope.CATALOGUE)
+                    else viewModel.collapseSearch(SearchScope.CATALOGUE)
                 },
                 onToggleAvailabilityMode = {
                     isSelectionMode = false
                     isAvailabilityMode = !isAvailabilityMode
-                    if (isAvailabilityMode) viewModel.expandSearch() else viewModel.collapseSearch()
+                    if (isAvailabilityMode) viewModel.expandSearch(SearchScope.CATALOGUE)
+                    else viewModel.collapseSearch(SearchScope.CATALOGUE)
                 },
                 onImportProducts = {
                     documentPicker?.let { picker ->
@@ -366,12 +383,14 @@ private fun AppScaffoldContent(
                     // bar's Close. The field goes with it either way.
                     onSelectionModeChange = {
                         isSelectionMode = it
-                        if (it) viewModel.expandSearch() else viewModel.collapseSearch()
+                        if (it) viewModel.expandSearch(SearchScope.CATALOGUE)
+                        else viewModel.collapseSearch(SearchScope.CATALOGUE)
                     },
                     getAvailabilityMode = { isAvailabilityMode },
                     onAvailabilityModeChange = {
                         isAvailabilityMode = it
-                        if (it) viewModel.expandSearch() else viewModel.collapseSearch()
+                        if (it) viewModel.expandSearch(SearchScope.CATALOGUE)
+                        else viewModel.collapseSearch(SearchScope.CATALOGUE)
                     },
                     onNavigateToImportPreview = {
                         navController.navigate(NavRoutes.Sell.ImportPreview.route)
