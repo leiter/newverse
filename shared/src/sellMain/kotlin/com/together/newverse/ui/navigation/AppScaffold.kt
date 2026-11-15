@@ -28,6 +28,7 @@ import com.together.newverse.ui.adaptive.WindowWidthClass
 import com.together.newverse.ui.components.AppDialog
 import com.together.newverse.ui.components.SellerBottomNavigationBar
 import com.together.newverse.ui.components.SellerNavigationRail
+import androidx.savedstate.read
 import com.together.newverse.ui.components.SellerTopBar
 import com.together.newverse.ui.screens.SplashScreen
 import com.together.newverse.ui.screens.rememberSplashVisible
@@ -200,6 +201,11 @@ private fun AppScaffoldContent(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.Sell.Overview.route
+
+    // Create and edit are one route with an optional articleId, so the argument is the
+    // only thing that says which of the two the seller is looking at.
+    val isEditingArticle = currentRoute == NavRoutes.Sell.Create.route &&
+        navBackStackEntry?.arguments?.read { getStringOrNull("articleId") } != null
     val focusManager = LocalFocusManager.current
     val keyboardManager = rememberKeyboardManager()
 
@@ -236,6 +242,7 @@ private fun AppScaffoldContent(
         topBar = {
             SellerTopBar(
                 currentRoute = currentRoute,
+                isEditingArticle = isEditingArticle,
                 isSelectionMode = isSelectionMode,
                 isAvailabilityMode = isAvailabilityMode,
                 isSearchExpanded = isSearchExpanded,

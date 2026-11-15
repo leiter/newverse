@@ -511,6 +511,13 @@
     <string name="create_product_description">Beschreibung</string>
     <string name="create_product_button">Produkt erstellen</string>
     <string name="create_product_success">Produkt erfolgreich gespeichert!</string>
+    <string name="create_product_delete">Produkt löschen</string>
+    <string name="create_product_delete_title">Produkt löschen?</string>
+    <string name="create_product_delete_confirm">%1$s wird endgültig gelöscht, mit Einkaufspreis, Aufschlag und Herkunft. Das lässt sich nicht rückgängig machen.</string>
+    <string name="create_product_this_product">Dieses Produkt</string>
+    <string name="create_product_hide_instead">Nur ausblenden</string>
+    <string name="create_product_deleted">Produkt gelöscht</string>
+    <string name="create_product_hidden">Produkt ausgeblendet</string>
     <string name="create_product_error">Fehler: %s</string>
     <string name="create_product_name_required">Produktname *</string>
     <string name="create_product_search_terms">Suchbegriffe *</string>
@@ -624,6 +631,7 @@
     <string name="topbar_orders">Bestellungen</string>
     <string name="topbar_products">Produkte</string>
     <string name="topbar_new_product">Neues Produkt</string>
+    <string name="topbar_edit_product">Produkt bearbeiten</string>
     <string name="topbar_profile">Profil</string>
     <string name="topbar_notifications">Benachrichtigungen</string>
     <string name="topbar_seller">Verkäufer</string>

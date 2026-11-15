@@ -20,8 +20,11 @@ import coil3.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -34,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +51,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.ProductUnit
@@ -86,6 +92,9 @@ fun CreateProductScreen(
     val formState by viewModel.formState.collectAsState()
     val uploadProgress by viewModel.uploadProgress.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
+    val removal by viewModel.removal.collectAsState()
+
+    var showRemoveDialog by remember { mutableStateOf(false) }
 
     // Extract form data for easier access
     val formData = formState.data
@@ -144,6 +153,19 @@ fun CreateProductScreen(
             viewModel.resetState()
             onNavigateBack()
         }
+    }
+
+    // Deleted or withdrawn: same exit as a save, different word for it.
+    val deletedMessage = stringResource(Res.string.create_product_deleted)
+    val hiddenMessage = stringResource(Res.string.create_product_hidden)
+    LaunchedEffect(removal) {
+        when (removal) {
+            RemovalOutcome.DELETED -> showSnackbar(deletedMessage)
+            RemovalOutcome.HIDDEN -> showSnackbar(hiddenMessage)
+            null -> return@LaunchedEffect
+        }
+        viewModel.resetState()
+        onNavigateBack()
     }
 
     // Handle validation errors
@@ -435,7 +457,87 @@ fun CreateProductScreen(
                 Text(stringResource(Res.string.button_cancel))
             }
 
+            // Only in edit mode -- a product being created has nothing to delete.
+            //
+            // Last, lowest weight, and held off from Cancel by a gap: it sits one
+            // thumb away from the two buttons the seller presses on every visit, and
+            // the whole point of a destructive action is that reaching it should be a
+            // decision rather than a slip. The dialog behind it names the article.
+            if (articleId != null) {
+                Spacer(modifier = Modifier.height(24.dp))
+                TextButton(
+                    onClick = { showRemoveDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSubmitting,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(Res.string.create_product_delete))
+                }
+            }
+
         Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    // Deleting is irreversible and takes the purchase price, the markup and the
+    // sourcing with it, so the dialog offers the calmer version of the same wish
+    // beside it: withdrawing the article from the shop, which the seller can undo by
+    // switching it back on. The article is named rather than counted -- a seller can
+    // see from "Topaz Apfel wirklich löschen?" that they are on the row they meant,
+    // which a bare "1 Produkt" cannot tell them.
+    if (showRemoveDialog) {
+        AlertDialog(
+            onDismissRequest = { showRemoveDialog = false },
+            title = {
+                Text(
+                    stringResource(Res.string.create_product_delete_title),
+                    modifier = Modifier.semantics { heading() }
+                )
+            },
+            text = {
+                Text(
+                    stringResource(
+                        Res.string.create_product_delete_confirm,
+                        productName.ifBlank { stringResource(Res.string.create_product_this_product) }
+                    )
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showRemoveDialog = false
+                        viewModel.deleteArticle()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(stringResource(Res.string.button_delete))
+                }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { showRemoveDialog = false }) {
+                        Text(stringResource(Res.string.button_cancel))
+                    }
+                    TextButton(
+                        onClick = {
+                            showRemoveDialog = false
+                            viewModel.hideArticle()
+                        }
+                    ) {
+                        Text(stringResource(Res.string.create_product_hide_instead))
+                    }
+                }
+            }
+        )
     }
 }
 

@@ -413,6 +413,34 @@ The following features are planned but not yet implemented, or are only partiall
     - Decide which of these the app should close and which stay the accountant's job.
     - A backup of `/sales` is the one with no design question in it.
 
+### Medium Priority: Warn before deleting an article a buyer has ordered
+
+- **Status:** Open — deliberately deferred 2026-11-15, when per-article delete shipped
+- **Why it is not urgent:** past orders are safe without it. An `OrderedProduct`
+  snapshots the name, the charged price and its breakdown, so a completed order reads
+  correctly after the article behind it is gone — this was checked against prod in the
+  2026-11-15 catalogue cleanup, where the three articles deleted were referenced only
+  by COMPLETED orders from 2022.
+- **What is missing:** an article in an **upcoming** PLACED or LOCKED order can be
+  deleted with no warning. The order survives, but the seller has removed something a
+  buyer is coming to collect, and nothing told them so. The confirmation dialog in
+  `CreateProductScreen` should say "in 2 offenen Bestellungen" when that is the case.
+- **Why it was deferred:** the edit screen has no orders. `CreateProductViewModel` takes
+  `SellerArticleRepository`, `AuthRepository`, `StorageRepository` and
+  `ProductCatalogConfig` — reaching the open orders means either giving it
+  `OrderRepository` or passing a count down from the Sortiment, and neither is worth
+  holding up the delete button for.
+- **Tasks:**
+  - Decide where the count comes from (`OrderRepository` in the edit view model, or a
+    count passed through the nav argument from `OverviewViewModel`, which already
+    observes seller orders).
+  - Count only upcoming PLACED/LOCKED orders — `isUpcomingPlacedOrder` in
+    `OverviewViewModel` is the existing rule, and matching an order line to a
+    catalogue row is `OrderedProduct.articleKey()`, which is the single rule for it.
+  - Add the sentence to the dialog when the count is non-zero; leave the dialog as it
+    is when it is zero, rather than saying "in 0 Bestellungen".
+  - Consider whether "Nur ausblenden" should be the default action in that case.
+
 ### Medium Priority: BNN Import (Sell App)
 - **Producer names resolve for only ~10 of 52 supplier codes**
   - **Status:** Open — found 2026-09-20. **The action is a question to Terra, not a code change.**

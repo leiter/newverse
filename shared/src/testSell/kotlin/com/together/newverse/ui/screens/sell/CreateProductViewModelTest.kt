@@ -632,6 +632,122 @@ class CreateProductViewModelTest {
         assertEquals("BOA", sellerData.supplier)
     }
 
+    // ===== Deleting, and the reversible version of it =====
+
+    @Test
+    fun `deleting removes the article being edited`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(SellerArticle(storedArticle, storedSellerData)))
+        val viewModel = createViewModel()
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+
+        viewModel.deleteArticle()
+        advanceUntilIdle()
+
+        assertEquals(listOf("seller_123" to "article_1"), articleRepository.deletedArticles)
+        assertEquals(RemovalOutcome.DELETED, viewModel.removal.value)
+    }
+
+    @Test
+    fun `deleting does nothing when there is nothing to delete`() = runTest {
+        // A product being created, or an article whose load failed -- neither enters
+        // edit mode, and neither may delete anything.
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        fillRequiredFields(viewModel)
+
+        viewModel.deleteArticle()
+        advanceUntilIdle()
+
+        assertTrue(articleRepository.deletedArticles.isEmpty())
+        assertNull(viewModel.removal.value)
+    }
+
+    @Test
+    fun `a failed delete says so and keeps the article`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(SellerArticle(storedArticle, storedSellerData)))
+        articleRepository.shouldFailDelete = true
+        val viewModel = createViewModel()
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+
+        viewModel.deleteArticle()
+        advanceUntilIdle()
+
+        assertNull(viewModel.removal.value)
+        assertNotNull(viewModel.formState.value.submitError)
+    }
+
+    @Test
+    fun `hiding withdraws the article instead of deleting it`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(SellerArticle(storedArticle, storedSellerData)))
+        val viewModel = createViewModel()
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+
+        viewModel.hideArticle()
+        advanceUntilIdle()
+
+        assertTrue(articleRepository.deletedArticles.isEmpty())
+        assertFalse(lastSaved().article.available)
+        assertEquals(false, assertNotNull(lastSaved().sellerData).sellerAvailable)
+        assertEquals(RemovalOutcome.HIDDEN, viewModel.removal.value)
+    }
+
+    @Test
+    fun `hiding keeps the stored article, not the half-edited form`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(SellerArticle(storedArticle, storedSellerData)))
+        val viewModel = createViewModel()
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+
+        // The seller was mid-edit -- a price typed into nonsense and the name cleared.
+        // "Just hide it" must not save any of that, and must not fail on it either.
+        viewModel.onPriceChange("")
+        viewModel.onProductNameChange("")
+        viewModel.hideArticle()
+        advanceUntilIdle()
+
+        assertEquals(RemovalOutcome.HIDDEN, viewModel.removal.value)
+        assertEquals("Apfel Topaz", lastSaved().article.productName)
+        assertEquals(3.5, lastSaved().article.price)
+        assertFalse(lastSaved().article.available)
+    }
+
+    @Test
+    fun `hiding an article without seller data does not invent any`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(SellerArticle(storedArticle, sellerData = null)))
+        val viewModel = createViewModel()
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+
+        viewModel.hideArticle()
+        advanceUntilIdle()
+
+        assertNull(lastSaved().sellerData)
+        assertFalse(lastSaved().article.available)
+    }
+
+    @Test
+    fun `resetState clears the removal signal`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        articleRepository.setArticles(listOf(SellerArticle(storedArticle, storedSellerData)))
+        val viewModel = createViewModel()
+        viewModel.loadArticle("article_1")
+        advanceUntilIdle()
+        viewModel.deleteArticle()
+        advanceUntilIdle()
+
+        viewModel.resetState()
+
+        assertNull(viewModel.removal.value)
+    }
+
     @Test
     fun `tax rate is saved with the article`() = runTest {
         authRepository.setCurrentUserId("seller_123")

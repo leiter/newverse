@@ -35,6 +35,12 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun SellerTopBar(
     currentRoute: String,
+    /**
+     * The Create route is also the edit route -- `sell/create?articleId=…` -- and
+     * [currentRoute] is the pattern, so it cannot tell the two apart on its own. The
+     * bar said "Neues Produkt" over an article the seller was editing.
+     */
+    isEditingArticle: Boolean = false,
     isSelectionMode: Boolean = false,
     isAvailabilityMode: Boolean = false,
     isSearchExpanded: Boolean = false,
@@ -60,6 +66,7 @@ fun SellerTopBar(
     val sortimentTitle = stringResource(Res.string.topbar_sortiment)
     val ordersTitle = stringResource(Res.string.topbar_orders)
     val newProductTitle = stringResource(Res.string.topbar_new_product)
+    val editProductTitle = stringResource(Res.string.topbar_edit_product)
     val profileTitle = stringResource(Res.string.topbar_profile)
     val notificationsTitle = stringResource(Res.string.topbar_notifications)
     val abrechnungTitle = stringResource(Res.string.topbar_abrechnung)
@@ -88,7 +95,7 @@ fun SellerTopBar(
                         currentRoute,
                         sortimentTitle,
                         ordersTitle,
-                        newProductTitle,
+                        if (isEditingArticle) editProductTitle else newProductTitle,
                         profileTitle,
                         notificationsTitle,
                         abrechnungTitle,

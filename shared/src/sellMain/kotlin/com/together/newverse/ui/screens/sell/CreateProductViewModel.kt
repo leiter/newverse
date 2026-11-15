@@ -124,6 +124,12 @@ class CreateProductViewModel(
     private val _saveSuccess = MutableStateFlow(false)
     val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
 
+    // How the article left this screen, for the message the seller gets afterwards.
+    // Separate from [saveSuccess] because "gespeichert" is the wrong word for both of
+    // them, and because the screen navigates back either way.
+    private val _removal = MutableStateFlow<RemovalOutcome?>(null)
+    val removal: StateFlow<RemovalOutcome?> = _removal.asStateFlow()
+
     // Edit mode: holds the existing article's Firebase ID
     private var editingArticleId: String? = null
     val isEditMode: Boolean get() = editingArticleId != null
@@ -594,13 +600,106 @@ class CreateProductViewModel(
     }
 
     /**
+     * Delete the article being edited, both halves and its stock level
+     * ([com.together.newverse.data.firebase.ArticleNodes.deleteUpdate]).
+     *
+     * Edit mode only: creating a product has nothing to delete, and a failed
+     * [loadArticle] deliberately does not enter edit mode, so a half-loaded form
+     * cannot delete the article it failed to read.
+     *
+     * Irreversible, and it takes the purchase price, the markup and the sourcing with
+     * it -- which is why the screen offers [hideArticle] in the same breath and why
+     * neither is reachable without confirming.
+     */
+    fun deleteArticle() {
+        val articleId = editingArticleId ?: run {
+            Log.w(TAG) { "deleteArticle: not in edit mode" }
+            return
+        }
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId()
+            if (sellerId == null) {
+                Log.e(TAG) { "deleteArticle: not authenticated" }
+                _formState.update { it.submitFailure("Authentication required to delete this product") }
+                return@launch
+            }
+            _formState.update { it.submitting() }
+            sellerArticleRepository.deleteSellerArticle(sellerId, articleId)
+                .onSuccess {
+                    Log.d(TAG) { "deleteArticle: $articleId deleted" }
+                    _removal.value = RemovalOutcome.DELETED
+                }
+                .onFailure { error ->
+                    Log.e(TAG) { "deleteArticle: $articleId - ${error.message}" }
+                    _formState.update { it.submitFailure("Failed to delete product: ${error.message}") }
+                }
+        }
+    }
+
+    /**
+     * Withdraw the article from the shop instead of deleting it.
+     *
+     * The reversible half of the same wish. Written as a targeted availability change
+     * rather than by setting the form's switch and saving: the seller may have the form
+     * in a state that will not validate, and "just hide it" must not fail on a price
+     * field they were in the middle of editing.
+     *
+     * Re-read before writing so the rest of the stored article is the stored one, not
+     * whatever the form holds. Switching *off* is published at once even for a gated
+     * article -- narrowing is always safe, and the same rule as
+     * [OverviewViewModel.updateArticlesAvailability].
+     */
+    fun hideArticle() {
+        val articleId = editingArticleId ?: run {
+            Log.w(TAG) { "hideArticle: not in edit mode" }
+            return
+        }
+        viewModelScope.launch {
+            val sellerId = authRepository.getCurrentUserId()
+            if (sellerId == null) {
+                Log.e(TAG) { "hideArticle: not authenticated" }
+                _formState.update { it.submitFailure("Authentication required to update this product") }
+                return@launch
+            }
+            _formState.update { it.submitting() }
+            val stored = sellerArticleRepository.getSellerArticle(sellerId, articleId).getOrNull()
+            val article = stored?.article
+            if (stored == null || article == null) {
+                Log.e(TAG) { "hideArticle: $articleId could not be read" }
+                _formState.update { it.submitFailure("Failed to load product") }
+                return@launch
+            }
+            val result = sellerArticleRepository.saveSellerArticle(
+                sellerId,
+                SellerArticle(
+                    article = article.copy(available = false),
+                    sellerData = stored.sellerData?.copy(sellerAvailable = false)
+                )
+            )
+            result
+                .onSuccess {
+                    Log.d(TAG) { "hideArticle: $articleId withdrawn from the shop" }
+                    _removal.value = RemovalOutcome.HIDDEN
+                }
+                .onFailure { error ->
+                    Log.e(TAG) { "hideArticle: $articleId - ${error.message}" }
+                    _formState.update { it.submitFailure("Failed to update product: ${error.message}") }
+                }
+        }
+    }
+
+    /**
      * Reset to idle state (for navigation)
      */
     fun resetState() {
         _saveSuccess.value = false
+        _removal.value = null
         clearError()
     }
 }
+
+/** How an article left the edit screen, for the message that follows it. */
+enum class RemovalOutcome { DELETED, HIDDEN }
 
 /**
  * UI states for product creation

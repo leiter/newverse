@@ -107,10 +107,24 @@ class ArticleNodesTest {
     // --- delete ---
 
     @Test
-    fun `delete removes both halves`() {
+    fun `delete removes both halves and the stock level`() {
         assertEquals(
-            mapOf("articles/seller1/a1" to null, "seller_articles/seller1/a1" to null),
+            mapOf(
+                "articles/seller1/a1" to null,
+                "seller_articles/seller1/a1" to null,
+                "stock/seller1/a1" to null
+            ),
             ArticleNodes.deleteUpdate(sellerId, articleId)
+        )
+    }
+
+    @Test
+    fun `delete leaves the movement ledger alone`() {
+        // The level is a cache and goes; the bookings behind it are the books.
+        assertTrue(
+            ArticleNodes.deleteUpdate(sellerId, articleId).keys.none {
+                it.startsWith("stock_movements/")
+            }
         )
     }
 

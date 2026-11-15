@@ -99,11 +99,25 @@ internal object ArticleNodes {
     }
 
     /** The update map that removes both halves of an article. */
+    /**
+     * Both halves of an article and its stock level, removed in one update.
+     *
+     * The stock level goes because it is a cache keyed by article id
+     * ([StockNodes.levelPath]) and nothing would ever read it again, nor could the
+     * seller see it to clear it -- the stock screen lists articles, and this one is
+     * gone. What stays is `/stock_movements`: the ledger is the truth, it is
+     * append-only by rule, and last month's bookings are part of the books whether or
+     * not the article is still sold.
+     *
+     * The level has no `.validate` barrier against this: RTDB does not validate a
+     * delete, and `/stock/{sellerId}` is writable by its owner.
+     */
     fun deleteUpdate(sellerId: String, articleId: String): Map<String, Any?> {
         require(articleId.isNotEmpty()) { "articleId must not be empty" }
         return mapOf(
             publicPath(sellerId, articleId) to null,
-            privatePath(sellerId, articleId) to null
+            privatePath(sellerId, articleId) to null,
+            StockNodes.levelPath(sellerId, articleId) to null
         )
     }
 

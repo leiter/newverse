@@ -497,6 +497,13 @@
     <string name="create_product_description">Description</string>
     <string name="create_product_button">Create Product</string>
     <string name="create_product_success">Product saved successfully!</string>
+    <string name="create_product_delete">Delete product</string>
+    <string name="create_product_delete_title">Delete product?</string>
+    <string name="create_product_delete_confirm">%1$s will be deleted for good, along with its purchase price, markup and sourcing. This cannot be undone.</string>
+    <string name="create_product_this_product">This product</string>
+    <string name="create_product_hide_instead">Just hide it</string>
+    <string name="create_product_deleted">Product deleted</string>
+    <string name="create_product_hidden">Product hidden</string>
     <string name="create_product_error">Error: %s</string>
     <string name="create_product_name_required">Product Name *</string>
     <string name="create_product_search_terms">Search Terms *</string>
@@ -1403,6 +1410,7 @@
     <string name="topbar_orders">Orders</string>
     <string name="topbar_products">Products</string>
     <string name="topbar_new_product">New product</string>
+    <string name="topbar_edit_product">Edit product</string>
     <string name="topbar_profile">Profile</string>
     <string name="topbar_notifications">Notifications</string>
     <string name="topbar_seller">Seller</string>
