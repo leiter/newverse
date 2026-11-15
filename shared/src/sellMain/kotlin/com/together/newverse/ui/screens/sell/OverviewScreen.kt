@@ -112,9 +112,14 @@ fun OverviewScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
+            // No bottom padding: the product list is the last thing in this column
+            // and it runs to the bottom bar. Padding here would be a strip of empty
+            // surface under a scrollable list -- it reads as the list having ended
+            // when it has not. The branches that do not end in a list carry their
+            // own bottom padding instead.
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp)
         ) {
             // Content based on state using AsyncStateContent helper
             AsyncStateContent(
@@ -601,9 +606,12 @@ private fun SuccessContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         if (data.recentArticles.isEmpty()) {
-            // Empty state
+            // Empty state. Keeps its own bottom padding -- unlike the list, a card
+            // is a finished object and should not touch the bottom bar.
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
@@ -650,11 +658,15 @@ private fun SuccessContent(
                 }
             }
         } else {
-            // Product list (height constrained to show 5 items)
+            // The product list takes whatever height is left, down to the bottom bar.
+            // It was pinned to 400dp "to show 5 items", which on any phone taller than
+            // the one that was measured left a band of empty surface between the last
+            // row and the navigation bar -- and gave the seller a 400dp window to
+            // scroll a 100-article catalogue through regardless of screen size.
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(400.dp),
+                    .weight(1f),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 items(data.recentArticles) { article ->
