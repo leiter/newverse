@@ -8,9 +8,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,12 +21,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.together.newverse.ui.navigation.NavRoutes
-import com.together.newverse.util.formatString
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -41,7 +35,6 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun SellerTopBar(
     currentRoute: String,
-    pendingOrdersCount: Int,
     isSelectionMode: Boolean = false,
     isAvailabilityMode: Boolean = false,
     isSearchExpanded: Boolean = false,
@@ -49,7 +42,6 @@ fun SellerTopBar(
     onSearchQueryChange: (String) -> Unit = {},
     onToggleSearch: () -> Unit = {},
     onNavigateBack: () -> Unit,
-    onNavigateToOrders: () -> Unit,
     onRefresh: () -> Unit = {},
     onToggleSelectionMode: () -> Unit = {},
     onToggleAvailabilityMode: () -> Unit = {},
@@ -133,7 +125,7 @@ fun SellerTopBar(
             }
         },
         actions = {
-            // While searching, the field needs the whole bar: cart, refresh and
+            // While searching, the field needs the whole bar: search, refresh and
             // overflow beside a full-width text field leave it a few characters wide
             // on a phone. Close is the only action that still makes sense.
             if (showSearchField) {
@@ -147,31 +139,13 @@ fun SellerTopBar(
             }
             // Hide normal actions when in selection mode for cleaner UI
             if (!isInSelectionMode) {
-                if (pendingOrdersCount > 0) {
-                    val pendingOrdersLabel = formatString(
-                        stringResource(Res.string.a11y_pending_orders_badge),
-                        pendingOrdersCount
-                    )
-                    BadgedBox(
-                        badge = {
-                            Badge(
-                                modifier = Modifier.clearAndSetSemantics {
-                                    contentDescription = pendingOrdersLabel
-                                }
-                            ) {
-                                Text(pendingOrdersCount.toString())
-                            }
-                        }
-                    ) {
-                        IconButton(onClick = onNavigateToOrders) {
-                            Icon(
-                                imageVector = Icons.Default.ShoppingCart,
-                                contentDescription = stringResource(Res.string.topbar_orders)
-                            )
-                        }
-                    }
-                }
-
+                // No orders shortcut here. It was a badged cart on every route, and
+                // it was the second one: the "Nachfrage" item in SellerBottomBar /
+                // SellerNavigationRail carries the same pendingOrdersCount badge, from
+                // the same value in AppScaffold, and is the way the seller actually
+                // navigates. One count in two places can only ever agree or look
+                // broken, and the bar's width is better spent on the actions that
+                // belong to the screen the seller is on.
                 if (searchAvailable) {
                     IconButton(onClick = onToggleSearch) {
                         Icon(

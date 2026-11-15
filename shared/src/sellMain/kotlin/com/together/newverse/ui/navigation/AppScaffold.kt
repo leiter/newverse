@@ -236,7 +236,6 @@ private fun AppScaffoldContent(
         topBar = {
             SellerTopBar(
                 currentRoute = currentRoute,
-                pendingOrdersCount = pendingOrdersCount,
                 isSelectionMode = isSelectionMode,
                 isAvailabilityMode = isAvailabilityMode,
                 isSearchExpanded = isSearchExpanded,
@@ -245,9 +244,6 @@ private fun AppScaffoldContent(
                 onToggleSearch = viewModel::toggleSearch,
                 onNavigateBack = {
                     navController.popBackStack()
-                },
-                onNavigateToOrders = {
-                    navController.navigate(NavRoutes.Sell.Orders.route)
                 },
                 onRefresh = {
                     // Recreate the screen to trigger refresh
