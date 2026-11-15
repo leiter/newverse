@@ -63,6 +63,7 @@ Proposed. Nothing in here is built unless its banner says which part is.
 | [seller-buyer-sync-channel-design.md](design/seller-buyer-sync-channel-design.md) | Event direction built, eligibility blocker resolved; `PROFILE_CHANGED` event, producer and seller-side drain still missing |
 | [cas-scale-integration.md](design/cas-scale-integration.md) | Research only — no hardware, no code |
 | [public-catalog-subdomain.md](design/public-catalog-subdomain.md) | Data path decided (periodic snapshot); scope undecided, nothing built |
+| [derived-price-and-availability.md](design/derived-price-and-availability.md) | Disclosure boundary decided; app-scoped `AvailabilityPublisher` built 2026-11-15; price direction (§4) and below-cost check (§5) open |
 
 ## plans/
 

@@ -189,11 +189,27 @@ write `sellerAvailable`, and switching **off** publishes at once — narrowing i
 safe, and a seller who hides something expects it gone now. Switching a *gated* article
 on waits for the ledger to agree.
 
-`StockViewModel.correctAvailability()` is the only writer of the derived fields
+`AvailabilityPublisher` is the only writer of the derived fields
 (`publicationCorrections` → `setArticlePublication`). It writes differences only, so a
 settled catalogue writes nothing and its own write re-emits the catalogue with nothing
 left to do. It runs on the seller's device because only the seller's uid may write
-`/articles`.
+`/articles` — and because no other party can even *read* the inputs, which live under
+`auth.uid === $sellerId`.
+
+It is **app-scoped, not screen-scoped**: a `single` in the sell Koin module, started by
+`SellAppViewModel` and watching `observeAuthState()` for which seller is signed in. It
+used to live in `StockViewModel`, which meant the catalogue was corrected only while
+the stock screen was open. Two of its three inputs do move with the seller's own
+actions, but the third does not — **committed demand rises when a buyer orders**, with
+no seller app in the loop — so the last two kilos of a gated article could be ordered
+at 21:00 and the article stayed on sale until someone happened to open that one screen.
+
+> **Known bound.** A closed app computes nothing. Availability is eventually consistent
+> with the shelf, bounded by *the next time the seller app runs*. The move from a screen
+> to the app narrowed that window; it did not close it. Closing it needs the derivation
+> to run somewhere always awake — a trusted server process, which may legitimately read
+> both halves — and this project has no Cloud Functions setup at all. See
+> `doc/design/derived-price-and-availability.md` § 3.
 
 **Three guards, each load-bearing:**
 
@@ -224,6 +240,33 @@ ordering (`BasketAvailability.kt`):
 **An empty catalogue judges nothing.** Articles arrive over a listener, so "nothing
 available" and "nothing loaded yet" are the same picture, and refusing someone's whole
 basket because the network is slow is the worse failure.
+
+**Only the increase is judged.** `unorderableAgainst` takes the order's
+`originalOrderItems` as `committed`, and those amounts are not checked against the
+catalogue at all. A buyer who orders exactly the seller's whole stock closes the
+article for everybody else — that is the flag working — and the shelf behind their own
+line has already been counted. Judging it again told them to remove the very line the
+stock was set aside for, which is the app contradicting itself. So:
+
+| The line | What happens |
+|---|---|
+| unchanged, or reduced | never flagged, whatever `available` says |
+| grown past what the order holds | `OVER_COMMITTED`, with the committed amount as the number to fall back to — "reduce", not "remove" |
+| new, on a closed article | `WITHDRAWN`, as before: nothing was set aside, so there is no smaller number |
+| missing from the catalogue | `GONE`, however much the order holds: no price, name or unit to carry forward |
+
+A draft and a reorder pass no `committed` list and are judged exactly as before — new
+demand is new demand.
+
+The band follows the same rule: `nearlyGoneAgainst` says nothing about an amount a
+placed order already holds, because what it warns is that *nothing is reserving this
+for you*, and for a placed order something is.
+
+One consequence worth stating: an article the seller withdraws outright is no longer
+reported to a buyer who already has it in a placed order below the committed amount.
+That is deliberate — the seller accepted the order, and telling the buyer is the
+seller's move through the shortfall message (`OrderShortfalls`), not a demand that the
+buyer delete something already agreed.
 
 ### What this cannot do
 
@@ -283,6 +326,7 @@ race above is hit more often, not less.
 | Affected orders, draft | `OrderShortfalls.kt` |
 | Reminder rules | `StockReminderEvaluator.kt`, `StockReminderSnapshots.kt` |
 | Reminder plumbing | `StockReminderStorage` (expect/actual), `AndroidStockReminderScheduler`, `StockReminderWorker` |
+| Derived-field writer | `AvailabilityPublisher.kt` (app-scoped, sell flavor) |
 | Seller UI | `StockScreen.kt`, `StockViewModel.kt`, `CreateProduct*`, `OverviewViewModel` |
 | Buyer UI | `BasketScreen.kt`, `ProductDetailScreen.kt`, `HeroProductCard.kt` |
 | Rules tests | `firebase/tests/articles.test.js`, `firebase/tests/stock.test.js` |
