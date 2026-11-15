@@ -1194,6 +1194,153 @@ class OverviewViewModelTest {
         assertTrue(!state.data.isSearchNarrowed)
     }
 
+    // ===== Selection, and the order it puts the list in =====
+
+    @Test
+    fun `ticking a row does not move it`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+        viewModel.beginSelection()
+        advanceUntilIdle()
+
+        // Lauch is last. Ticking it must not take it to the top under the finger.
+        viewModel.toggleArticleSelection("4")
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Topaz Apfel", "Braeburn Apfel", "Möhren", "Lauch"),
+            names(viewModel)
+        )
+        assertEquals(setOf("4"), viewModel.selectedArticleIds.value)
+    }
+
+    @Test
+    fun `clearing the query floats what was ticked to the top`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+        viewModel.beginSelection()
+
+        // Search, tick, clear: the two picks are at the top and the rest keeps the
+        // catalogue order behind them.
+        viewModel.setSearchQuery("apfel")
+        advanceUntilIdle()
+        viewModel.toggleArticleSelection("2")
+        viewModel.setSearchQuery("")
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Braeburn Apfel", "Topaz Apfel", "Möhren", "Lauch"),
+            names(viewModel)
+        )
+    }
+
+    @Test
+    fun `a tick after the query cleared waits for the next clear`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+        viewModel.beginSelection()
+
+        viewModel.setSearchQuery("apfel")
+        advanceUntilIdle()
+        viewModel.toggleArticleSelection("2")
+        viewModel.setSearchQuery("")
+        advanceUntilIdle()
+
+        // Lauch is ticked while the list is already unqueried, so it stays put ...
+        viewModel.toggleArticleSelection("4")
+        advanceUntilIdle()
+        assertEquals(
+            listOf("Braeburn Apfel", "Topaz Apfel", "Möhren", "Lauch"),
+            names(viewModel)
+        )
+
+        // ... until a query comes and goes again, which re-takes the ordering.
+        viewModel.setSearchQuery("x")
+        advanceUntilIdle()
+        viewModel.setSearchQuery("")
+        advanceUntilIdle()
+        assertEquals(
+            listOf("Braeburn Apfel", "Lauch", "Topaz Apfel", "Möhren"),
+            names(viewModel)
+        )
+    }
+
+    @Test
+    fun `no selection mode means no reordering`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSearchQuery("apfel")
+        advanceUntilIdle()
+        viewModel.setSearchQuery("")
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Topaz Apfel", "Braeburn Apfel", "Möhren", "Lauch"),
+            names(viewModel)
+        )
+    }
+
+    @Test
+    fun `leaving selection mode gives the catalogue order back`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+        viewModel.beginSelection()
+
+        viewModel.setSearchQuery("apfel")
+        advanceUntilIdle()
+        viewModel.toggleArticleSelection("2")
+        viewModel.setSearchQuery("")
+        advanceUntilIdle()
+        assertEquals("Braeburn Apfel", names(viewModel).first())
+
+        viewModel.clearSelection()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Topaz Apfel", "Braeburn Apfel", "Möhren", "Lauch"),
+            names(viewModel)
+        )
+        assertEquals(emptySet(), viewModel.selectedArticleIds.value)
+    }
+
+    @Test
+    fun `beginSelection drops a selection left over from the last mode`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.beginSelection()
+        viewModel.toggleArticleSelection("1")
+        assertEquals(setOf("1"), viewModel.selectedArticleIds.value)
+
+        viewModel.beginSelection()
+        advanceUntilIdle()
+
+        assertEquals(emptySet(), viewModel.selectedArticleIds.value)
+        assertEquals(
+            listOf("Topaz Apfel", "Braeburn Apfel", "Möhren", "Lauch"),
+            names(viewModel)
+        )
+    }
+
     @Test
     fun `totalProducts stays the whole catalog while the list is filtered`() = runTest {
         authRepository.setCurrentUserId("seller_123")

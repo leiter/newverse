@@ -34,8 +34,11 @@ import org.jetbrains.compose.resources.stringResource
  * [androidx.compose.material3.OutlinedTextField]: inside a top bar an outlined box
  * reads as a second surface stacked on the bar, and the bar is already the container.
  *
- * It takes focus and raises the keyboard on appearing, since it only exists because
- * the seller just tapped search — making them tap again would be a wasted step.
+ * It takes focus and raises the keyboard on appearing, since it usually only exists
+ * because the seller just tapped search — making them tap again would be a wasted
+ * step. [autoFocus] turns that off for the one case where the field was not asked
+ * for: in a selection mode it is offered alongside the list, and a keyboard over the
+ * rows the seller is about to tick is the opposite of helpful.
  *
  * Accessibility: an explicit label from a string resource, because the placeholder
  * disappears as soon as there is a query and cannot be relied on as the name.
@@ -44,13 +47,14 @@ import org.jetbrains.compose.resources.stringResource
 fun SellerSearchField(
     query: String,
     onQueryChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    autoFocus: Boolean = true
 ) {
     val label = stringResource(Res.string.cd_product_search)
     val keyboardManager = rememberKeyboardManager()
     val focusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(autoFocus) { if (autoFocus) focusRequester.requestFocus() }
 
     TextField(
         value = query,

@@ -251,13 +251,20 @@ private fun AppScaffoldContent(
                         popUpTo(NavRoutes.Sell.Overview.route) { inclusive = true }
                     }
                 },
+                // Entering either mode opens the search field, which the Sortiment
+                // screen then draws under the bar (the bar's title is busy naming the
+                // mode). Leaving closes it, which clears the query with it -- a
+                // narrowed list left behind with nothing on screen to say why is the
+                // seller's own articles appearing to be missing.
                 onToggleSelectionMode = {
                     isAvailabilityMode = false
                     isSelectionMode = !isSelectionMode
+                    if (isSelectionMode) viewModel.expandSearch() else viewModel.collapseSearch()
                 },
                 onToggleAvailabilityMode = {
                     isSelectionMode = false
                     isAvailabilityMode = !isAvailabilityMode
+                    if (isAvailabilityMode) viewModel.expandSearch() else viewModel.collapseSearch()
                 },
                 onImportProducts = {
                     documentPicker?.let { picker ->
@@ -348,9 +355,17 @@ private fun AppScaffoldContent(
                     onNotificationAction = onNotificationAction,
                     notificationPlatformContent = notificationPlatformContent,
                     getSelectionMode = { isSelectionMode },
-                    onSelectionModeChange = { isSelectionMode = it },
+                    // A mode can also end from a confirmed dialog, not only from the
+                    // bar's Close. The field goes with it either way.
+                    onSelectionModeChange = {
+                        isSelectionMode = it
+                        if (it) viewModel.expandSearch() else viewModel.collapseSearch()
+                    },
                     getAvailabilityMode = { isAvailabilityMode },
-                    onAvailabilityModeChange = { isAvailabilityMode = it },
+                    onAvailabilityModeChange = {
+                        isAvailabilityMode = it
+                        if (it) viewModel.expandSearch() else viewModel.collapseSearch()
+                    },
                     onNavigateToImportPreview = {
                         navController.navigate(NavRoutes.Sell.ImportPreview.route)
                     },

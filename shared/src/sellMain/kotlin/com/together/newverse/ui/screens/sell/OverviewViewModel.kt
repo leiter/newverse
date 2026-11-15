@@ -61,6 +61,21 @@ class OverviewViewModel(
     private val _searchQuery = MutableStateFlow("")
     private val _selectedCategory = MutableStateFlow<String?>(null)
 
+    // Which rows are ticked in selection mode. It lives here rather than in the screen
+    // because the list's order depends on it, and the order is worked out in
+    // [updateUiState] with everything else.
+    private val _selectedArticleIds = MutableStateFlow<Set<String>>(emptySet())
+    val selectedArticleIds: StateFlow<Set<String>> = _selectedArticleIds.asStateFlow()
+
+    // The selection as it was when the current unqueried list was built -- *not* the
+    // live one. With an empty query the ticked rows are floated to the top, which is
+    // what makes "search, tick, clear, see what you picked" work; doing it live would
+    // mean a row leaping from position 40 to the top the instant it was tapped, taking
+    // thirty-nine others down with it under the seller's finger. So it is re-taken at
+    // the moments the ordering is worth re-doing -- a mode starting, a query being
+    // cleared -- and is otherwise left alone while the seller keeps ticking.
+    private var pinnedArticleIds: Set<String> = emptySet()
+
     private var articles = listOf<SellerArticle>()
     private var activeOrdersCount = 0
     private var allOrders = listOf<Order>()
@@ -135,12 +150,22 @@ class OverviewViewModel(
         // front of them, so it is a search key here even though it is not for buyers.
         val filteredArticles = byCategory.filterByQuery(_searchQuery.value, includeProductId = true)
 
+        // Ticked rows first while there is no query. sortedBy is stable, so within
+        // each of the two groups the catalogue order is untouched. See
+        // [pinnedArticleIds] for why this reads a snapshot and not the live selection.
+        val ordered =
+            if (_searchQuery.value.isBlank() && pinnedArticleIds.isNotEmpty()) {
+                filteredArticles.sortedBy { if (it.id in pinnedArticleIds) 0 else 1 }
+            } else {
+                filteredArticles
+            }
+
         _overviewState.value = AsyncState.Success(
             OverviewData(
                 totalProducts = articles.size,
                 activeOrders = activeOrdersCount,
                 totalRevenue = calculateTotalRevenue(),
-                recentArticles = filteredArticles,
+                recentArticles = ordered,
                 // From the whole catalog on purpose: derived from the filtered list,
                 // picking a chip would leave that chip as the only one on screen.
                 categories = publicArticles.presentCategories(),
@@ -174,8 +199,43 @@ class OverviewViewModel(
 
     fun setSearchQuery(query: String) {
         if (_searchQuery.value == query) return
+        // Going from a query to none is the moment the seller wants to see what they
+        // picked, so that is when the ordering is re-taken.
+        if (query.isBlank() && _searchQuery.value.isNotBlank()) {
+            pinnedArticleIds = _selectedArticleIds.value
+        }
         _searchQuery.value = query
         updateUiState()
+    }
+
+    /**
+     * A selection mode has started: nothing is ticked and nothing is pinned.
+     *
+     * Called instead of [clearSelection] so that entering a mode and leaving one are
+     * two readable things at the call site rather than the same one twice.
+     */
+    fun beginSelection() {
+        pinnedArticleIds = emptySet()
+        if (_selectedArticleIds.value.isNotEmpty()) {
+            _selectedArticleIds.value = emptySet()
+        }
+        updateUiState()
+    }
+
+    /** Tick or untick one row. Deliberately does not re-order the list -- see
+     * [pinnedArticleIds]. */
+    fun toggleArticleSelection(articleId: String) {
+        val current = _selectedArticleIds.value
+        _selectedArticleIds.value =
+            if (articleId in current) current - articleId else current + articleId
+    }
+
+    /** Selection mode is over: the ticks go, and so does the ordering they caused. */
+    fun clearSelection() {
+        val hadPins = pinnedArticleIds.isNotEmpty()
+        pinnedArticleIds = emptySet()
+        _selectedArticleIds.value = emptySet()
+        if (hadPins) updateUiState()
     }
 
     /** null clears the chip, showing every category the other two filters allow. */

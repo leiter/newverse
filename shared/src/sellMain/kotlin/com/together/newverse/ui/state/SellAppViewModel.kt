@@ -91,6 +91,22 @@ class SellAppViewModel(
         }
     }
 
+    /**
+     * Expand without the toggle, for a selection mode starting.
+     *
+     * A selection mode is the seller going looking for particular articles, so the
+     * field is offered rather than waited for -- in that mode it is drawn by the
+     * screen, under the top bar, because the bar's title is busy saying which mode is
+     * running. Starts clean for the same reason [toggleSearch] does.
+     */
+    fun expandSearch() {
+        if (!_searchExpanded.value) {
+            _searchExpanded.value = true
+            _searchQuery.value = ""
+            _selectedCategory.value = null
+        }
+    }
+
     /** Collapse without the toggle, for a back press or leaving the screen. */
     fun collapseSearch() {
         if (_searchExpanded.value) {

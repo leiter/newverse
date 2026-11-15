@@ -6,6 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.width
 import com.together.newverse.ui.components.CategoryChipRow
 import com.together.newverse.ui.components.ProductListItem
+import com.together.newverse.ui.components.SellerSearchField
 import com.together.newverse.ui.state.core.AsyncState
 import com.together.newverse.ui.state.core.AsyncStateContent
 import com.together.newverse.util.formatPrice
@@ -75,7 +77,7 @@ fun OverviewScreen(
     // Observe pending import content directly from SellAppViewModel (survives config changes)
     val pendingImportContent by sellAppViewModel.pendingImportContent.collectAsState()
 
-    var selectedArticleIds by remember { mutableStateOf(setOf<String>()) }
+    val selectedArticleIds by viewModel.selectedArticleIds.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAvailableDialog by remember { mutableStateOf(false) }
     var showImportResultDialog by remember { mutableStateOf(false) }
@@ -103,11 +105,12 @@ fun OverviewScreen(
     }
     var showUnavailableDialog by remember { mutableStateOf(false) }
 
-    // Clear selections when exiting selection modes
-    LaunchedEffect(isSelectionMode, isAvailabilityMode) {
-        if (!isSelectionMode && !isAvailabilityMode) {
-            selectedArticleIds = setOf()
-        }
+    // A mode starting takes a fresh selection and a fresh ordering; a mode ending
+    // gives both back. The view model owns the selection because the list's order
+    // depends on it.
+    val inSelectionMode = isSelectionMode || isAvailabilityMode
+    LaunchedEffect(inSelectionMode) {
+        if (inSelectionMode) viewModel.beginSelection() else viewModel.clearSelection()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -145,15 +148,11 @@ fun OverviewScreen(
                         sellAppViewModel.setSelectedCategory(null)
                         viewModel.setFilter(ProductFilter.ALL)
                     },
-                    isSelectionMode = isSelectionMode || isAvailabilityMode,
+                    isSelectionMode = inSelectionMode,
                     selectedArticleIds = selectedArticleIds,
-                    onArticleSelectionToggle = { articleId ->
-                        selectedArticleIds = if (selectedArticleIds.contains(articleId)) {
-                            selectedArticleIds - articleId
-                        } else {
-                            selectedArticleIds + articleId
-                        }
-                    },
+                    onArticleSelectionToggle = viewModel::toggleArticleSelection,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = sellAppViewModel::setSearchQuery,
                     onEditArticle = onEditArticle,
                     onCreateArticle = onCreateArticle
                 )
@@ -225,7 +224,6 @@ fun OverviewScreen(
                         onClick = {
                             viewModel.deleteArticles(selectedArticleIds)
                             showDeleteDialog = false
-                            selectedArticleIds = setOf()
                             onSelectionModeChange(false)
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -261,7 +259,6 @@ fun OverviewScreen(
                         onClick = {
                             viewModel.updateArticlesAvailability(selectedArticleIds, available = true)
                             showAvailableDialog = false
-                            selectedArticleIds = setOf()
                             onAvailabilityModeChange(false)
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -297,7 +294,6 @@ fun OverviewScreen(
                         onClick = {
                             viewModel.updateArticlesAvailability(selectedArticleIds, available = false)
                             showUnavailableDialog = false
-                            selectedArticleIds = setOf()
                             onAvailabilityModeChange(false)
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -478,6 +474,8 @@ private fun SuccessContent(
     isSelectionMode: Boolean = false,
     selectedArticleIds: Set<String> = emptySet(),
     onArticleSelectionToggle: (String) -> Unit = {},
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
     onEditArticle: (String) -> Unit = {},
     onCreateArticle: () -> Unit = {}
 ) {
@@ -505,11 +503,43 @@ private fun SuccessContent(
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            CategoryChipRow(
-                categories = data.categories,
-                selected = data.selectedCategory,
-                onSelect = onSelectCategory
-            )
+            Column {
+                // In a selection mode the field is here rather than in the top bar,
+                // and that is the whole reason this branch exists. The bar's title
+                // slot is saying *which* mode is running -- deleting articles or
+                // changing their availability -- and those two are not
+                // interchangeable, so neither can give its title up to a text field.
+                // In availability mode nothing else on screen says what is happening
+                // until something is ticked, which would leave a bar that looked like
+                // ordinary search while taps were silently selecting.
+                //
+                // Outside a selection mode the bar owns the field and this draws
+                // nothing: two fields writing one query would be absurd.
+                if (isSelectionMode) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        // autoFocus = false: the seller asked for a selection mode,
+                        // not for the keyboard, and the rows they are about to tick
+                        // are what the keyboard would cover.
+                        SellerSearchField(
+                            query = searchQuery,
+                            onQueryChange = onSearchQueryChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            autoFocus = false
+                        )
+                    }
+                }
+                CategoryChipRow(
+                    categories = data.categories,
+                    selected = data.selectedCategory,
+                    onSelect = onSelectCategory
+                )
+            }
         }
 
         // Stats Cards
