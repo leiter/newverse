@@ -486,7 +486,13 @@ private fun SuccessContent(
     // Empty because of a filter, or empty because there is nothing? All three filters
     // count here, including the dropdown — "Nicht verfügbar" with nothing unavailable
     // is a narrowed list, not an empty catalog.
-    val isFiltered = data.isSearchNarrowed || currentFilter != ProductFilter.ALL
+    //
+    // totalProducts is what tells the two apart now that the dropdown starts at
+    // Verfügbar: a seller with no articles at all is filtered by that default too, and
+    // "nothing matched, reset the filters" is the wrong and rather bleak thing to say
+    // to someone who has simply not created their first product yet.
+    val isFiltered = data.totalProducts > 0 &&
+        (data.isSearchNarrowed || currentFilter != ProductFilter.ALL)
 
     Column(
         modifier = Modifier.fillMaxSize()

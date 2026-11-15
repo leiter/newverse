@@ -168,17 +168,17 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun `initial filter is ALL`() = runTest {
+    fun `initial filter is AVAILABLE`() = runTest {
         // Given authenticated user
         authRepository.setCurrentUserId("seller_123")
 
         // When creating ViewModel
         val viewModel = createViewModel()
 
-        // Then initial filter is ALL
+        // Then the Sortiment opens on the live shop, not the whole catalogue
         viewModel.currentFilter.test {
             val filter = awaitItem()
-            assertEquals(ProductFilter.ALL, filter)
+            assertEquals(ProductFilter.AVAILABLE, filter)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -348,7 +348,7 @@ class OverviewViewModelTest {
         emitArticle(createArticle("2", "Not Available", available = false, mode = MODE_ADDED))
         advanceUntilIdle()
 
-        // When filter is ALL (default)
+        // When filter is widened to ALL
         viewModel.setFilter(ProductFilter.ALL)
         advanceUntilIdle()
 
@@ -993,8 +993,16 @@ class OverviewViewModelTest {
 
     // ===== Search and category, and how they compose with availability =====
 
-    /** Four articles spanning both categories and both availabilities. */
+    /**
+     * Four articles spanning both categories and both availabilities.
+     *
+     * Opens the availability dropdown to ALL, because these tests are about how the
+     * query and the chip compose and two of the four articles would otherwise be
+     * filtered out before they were reached — the screen starts at AVAILABLE. The
+     * tests that are about the dropdown set it themselves, after this.
+     */
     private suspend fun seedCatalog(viewModel: OverviewViewModel) {
+        viewModel.setFilter(ProductFilter.ALL)
         emitArticle(createArticle("1", "Topaz Apfel", available = true, category = "Obst"))
         emitArticle(createArticle("2", "Braeburn Apfel", available = false, category = "Obst"))
         emitArticle(createArticle("3", "Möhren", available = true, category = "Gemüse",

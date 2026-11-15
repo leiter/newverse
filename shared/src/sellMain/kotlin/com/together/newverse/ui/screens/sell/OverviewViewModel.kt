@@ -46,7 +46,13 @@ class OverviewViewModel(
     private val _importState = MutableStateFlow<ImportState>(ImportState.Idle)
     val importState: StateFlow<ImportState> = _importState.asStateFlow()
 
-    private val _currentFilter = MutableStateFlow(ProductFilter.ALL)
+    // Verfügbar, not Alle. What the seller is looking at the Sortiment for is the shop
+    // as the buyer sees it; a withdrawn article is one they have already decided about,
+    // and during a tryout phase the withdrawn rows outnumber the live ones several to
+    // one (25 of 99 at the time of writing). The dropdown still reaches all three, and
+    // "Zurücksetzen" in the empty state widens to ALL rather than back to this default,
+    // so the button cannot land the seller on a second empty list.
+    private val _currentFilter = MutableStateFlow(ProductFilter.AVAILABLE)
     val currentFilter: StateFlow<ProductFilter> = _currentFilter.asStateFlow()
 
     // Driven from the UI exactly as [setFilter] is: the search field sits in the top
