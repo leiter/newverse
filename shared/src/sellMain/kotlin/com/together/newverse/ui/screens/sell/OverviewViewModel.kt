@@ -160,12 +160,24 @@ class OverviewViewModel(
                 filteredArticles
             }
 
+        // The same query and chip with the availability step left out: how many
+        // articles the seller would reach by widening the dropdown. The screen says so
+        // instead of reporting a bare "nothing found" for an article that exists and is
+        // merely withdrawn -- which, since the dropdown opens on Verfügbar, is the most
+        // likely one to be searched for.
+        val categoryOnly =
+            if (category == null) publicArticles
+            else publicArticles.filter { it.category.equals(category, ignoreCase = true) }
+        val matchesIgnoringAvailability =
+            categoryOnly.filterByQuery(_searchQuery.value, includeProductId = true).size
+
         _overviewState.value = AsyncState.Success(
             OverviewData(
                 totalProducts = articles.size,
                 activeOrders = activeOrdersCount,
                 totalRevenue = calculateTotalRevenue(),
                 recentArticles = ordered,
+                matchesIgnoringAvailability = matchesIgnoringAvailability,
                 // From the whole catalog on purpose: derived from the filtered list,
                 // picking a chip would leave that chip as the only one on screen.
                 categories = publicArticles.presentCategories(),
@@ -476,6 +488,13 @@ data class OverviewData(
     val totalRevenue: Double,
     /** The list after availability, category and query have all been applied. */
     val recentArticles: List<Article>,
+    /**
+     * How many articles the query and the category chip match when the availability
+     * dropdown is ignored. Equal to `recentArticles.size` while the dropdown is on
+     * ALL; larger than it is the only interesting case, and it is what lets an empty
+     * list offer to widen rather than claim there is nothing.
+     */
+    val matchesIgnoringAvailability: Int = 0,
     val recentOrders: List<Order>,
     /** Every category in use in the catalog, for the chip row. */
     val categories: List<String> = emptyList(),

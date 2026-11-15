@@ -1341,6 +1341,66 @@ class OverviewViewModelTest {
         )
     }
 
+    // ===== What the dropdown is hiding =====
+
+    @Test
+    fun `an empty result counts the matches the dropdown is hiding`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        // Braeburn is withdrawn, so Verfügbar + "braeburn" is empty -- but the article
+        // is there, and the screen has to be able to say so.
+        viewModel.setFilter(ProductFilter.AVAILABLE)
+        viewModel.setSearchQuery("braeburn")
+        advanceUntilIdle()
+
+        val state = viewModel.overviewState.value
+        assertIs<AsyncState.Success<OverviewData>>(state)
+        assertEquals(emptyList(), state.data.recentArticles)
+        assertEquals(1, state.data.matchesIgnoringAvailability)
+    }
+
+    @Test
+    fun `the hidden count respects the category chip`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        // Braeburn is Obst, so a Gemüse chip must not count it as reachable.
+        viewModel.setFilter(ProductFilter.AVAILABLE)
+        viewModel.setSelectedCategory("Gemüse")
+        viewModel.setSearchQuery("braeburn")
+        advanceUntilIdle()
+
+        val state = viewModel.overviewState.value
+        assertIs<AsyncState.Success<OverviewData>>(state)
+        assertEquals(0, state.data.matchesIgnoringAvailability)
+    }
+
+    @Test
+    fun `nothing is hidden when the dropdown is already open`() = runTest {
+        authRepository.setCurrentUserId("seller_123")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        seedCatalog(viewModel)
+        advanceUntilIdle()
+
+        viewModel.setSearchQuery("apfel")
+        advanceUntilIdle()
+
+        val state = viewModel.overviewState.value
+        assertIs<AsyncState.Success<OverviewData>>(state)
+        // seedCatalog opens the dropdown to ALL, so the two counts agree and the
+        // screen has nothing to offer.
+        assertEquals(2, state.data.recentArticles.size)
+        assertEquals(2, state.data.matchesIgnoringAvailability)
+    }
+
     @Test
     fun `totalProducts stays the whole catalog while the list is filtered`() = runTest {
         authRepository.setCurrentUserId("seller_123")

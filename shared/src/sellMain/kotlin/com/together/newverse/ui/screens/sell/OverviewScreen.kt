@@ -686,6 +686,28 @@ private fun SuccessContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
+                    // The article exists, it is just not in the band the dropdown is
+                    // showing -- which is the likely case now that the dropdown opens
+                    // on Verfügbar and a withdrawn article is the one worth searching
+                    // for. Offered as one tap that keeps the query, rather than having
+                    // the query widen the dropdown by itself: a filter that moves when
+                    // you type is a filter the seller stops trusting.
+                    if (currentFilter != ProductFilter.ALL &&
+                        data.matchesIgnoringAvailability > 0
+                    ) {
+                        Text(
+                            text = stringResource(
+                                Res.string.overview_matches_outside_filter,
+                                data.matchesIgnoringAvailability
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Button(onClick = { onFilterChange(ProductFilter.ALL) }) {
+                            Text(stringResource(Res.string.overview_show_all_products))
+                        }
+                    }
                     if (isFiltered) {
                         TextButton(onClick = onResetFilters) {
                             Text(stringResource(Res.string.overview_reset_filters))

@@ -1135,6 +1135,8 @@
     <string name="a11y_category_filter">Category: %1$s</string>
     <string name="overview_reset_filters">Reset filters</string>
     <string name="overview_no_match_hint">No article matches the search, category and availability.</string>
+    <string name="overview_matches_outside_filter">%1$d matches outside the current filter</string>
+    <string name="overview_show_all_products">Show all</string>
     <string name="contact_section_seller">Business contact</string>
     <string name="contact_section_market">Contact for this market</string>
     <string name="contact_add">Add contact</string>
