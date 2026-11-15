@@ -16,8 +16,6 @@ import com.together.newverse.domain.model.OrderShortfall
 import com.together.newverse.domain.model.StockMovementKind
 import com.together.newverse.domain.model.draftShortfallMessage
 import com.together.newverse.domain.model.shortfallsAgainst
-import com.together.newverse.domain.model.ArticlePublication
-import com.together.newverse.domain.model.publicationCorrections
 import com.together.newverse.domain.model.committedDemand
 import com.together.newverse.domain.model.refillNeeds
 import com.together.newverse.domain.model.refillStanding
@@ -87,9 +85,6 @@ class StockViewModel(
     private var demand = mapOf<String, ArticleDemand>()
     private var orders = listOf<Order>()
 
-    /** The last set of corrections written or attempted; see [correctAvailability]. */
-    private var attempted = mapOf<String, ArticlePublication>()
-
     init {
         reminderStorage?.let { storage ->
             _state.update { it.copy(reminderEnabled = storage.load().enabled) }
@@ -122,46 +117,7 @@ class StockViewModel(
                     // next slot per market anyway.
                     demand = sellerOrders.committedDemand()
                     _state.update { it.withStock() }
-                    correctAvailability()
                     cacheReminder(sellerOrders)
-                }
-        }
-    }
-
-    /**
-     * Brings the public availability flag of gated articles in line with the ledger.
-     *
-     * Runs here rather than in a service because only the seller's device may write
-     * `/articles` (database rules), and because stock only moves when this app writes
-     * a movement. Demand is the exception — a buyer ordering raises it while the app
-     * is closed — which is why this runs on every catalogue, level *and* order
-     * emission, not only after a booking.
-     *
-     * Writes only differences, so it settles: the write re-emits the catalogue, and
-     * the next pass finds nothing to correct. [attempted] keeps a failed write from
-     * being retried in a tight loop against a listener that keeps re-emitting; the
-     * next genuine change clears it.
-     */
-    private fun correctAvailability() {
-        val corrections = catalog.publicationCorrections(levels, demand)
-        if (corrections.isEmpty()) {
-            attempted = emptyMap()
-            return
-        }
-        if (corrections == attempted) return
-        attempted = corrections
-
-        viewModelScope.launch {
-            val sellerId = authRepository.getCurrentUserId() ?: return@launch
-            sellerArticleRepository.setArticlePublication(sellerId, corrections)
-                .onSuccess {
-                    Log.d(TAG) { "correctAvailability: ${corrections.size} article(s) -> $corrections" }
-                }
-                .onFailure { error ->
-                    // Not surfaced: the seller did not ask for this, and the refill
-                    // list they are looking at is still correct. The next emission
-                    // tries again.
-                    Log.w(TAG) { "correctAvailability: ${error.message}" }
                 }
         }
     }

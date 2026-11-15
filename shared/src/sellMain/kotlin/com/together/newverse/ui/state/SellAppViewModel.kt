@@ -1,6 +1,7 @@
 package com.together.newverse.ui.state
 
 import androidx.lifecycle.viewModelScope
+import com.together.newverse.domain.availability.AvailabilityPublisher
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.ui.navigation.NavRoutes
@@ -29,7 +30,16 @@ private const val TAG = "SellVM"
  */
 class SellAppViewModel(
     authRepository: AuthRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    /**
+     * Started here because this is the longest-lived thing in the sell app that is
+     * not a screen: the public catalogue has to be corrected whenever a buyer orders
+     * against a gated article, which is not an event any screen is watching for. It
+     * is given the whole app's life rather than a screen's. Null in tests that are
+     * not about the catalogue.
+     * See `doc/design/derived-price-and-availability.md` § 3.
+     */
+    private val availabilityPublisher: AvailabilityPublisher? = null
 ) : BaseAppViewModel<SellAppState, SellAction>(authRepository) {
 
     override val _state = MutableStateFlow(SellAppState())
@@ -106,7 +116,16 @@ class SellAppViewModel(
         // Initialize app on startup
         Log.d(TAG) { "init: Calling initializeApp()..." }
         initializeApp()
+
+        // Watches for itself which seller is signed in, so it needs no auth state
+        // from here and survives a sign-out and a sign-in as someone else.
+        availabilityPublisher?.start()
         Log.d(TAG) { "init: END" }
+    }
+
+    override fun onCleared() {
+        availabilityPublisher?.close()
+        super.onCleared()
     }
 
     /**

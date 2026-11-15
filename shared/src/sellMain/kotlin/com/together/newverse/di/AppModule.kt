@@ -8,6 +8,7 @@ import com.together.newverse.ui.screens.sell.CreateProductViewModel
 import com.together.newverse.ui.screens.sell.OrdersViewModel
 import com.together.newverse.ui.screens.sell.OverviewViewModel
 import com.together.newverse.ui.screens.sell.PickupViewModel
+import com.together.newverse.domain.availability.AvailabilityPublisher
 import com.together.newverse.ui.screens.sell.StockViewModel
 import com.together.newverse.ui.screens.sell.WalkInSaleViewModel
 import com.together.newverse.data.repository.GitLiveInvitationRepository
@@ -40,11 +41,23 @@ val appModule = module {
     // Product import service
     single<ProductImportService> { BnnProductImportService(get()) }
 
+    // Corrects the public catalogue against the shelf, for as long as the app runs
+    // rather than for as long as one screen is open.
+    single {
+        AvailabilityPublisher(
+            sellerArticleRepository = get(),
+            stockRepository = get(),
+            orderRepository = get(),
+            authRepository = get()
+        )
+    }
+
     // Main Sell App ViewModel
     viewModel {
         SellAppViewModel(
             authRepository = get(),
-            profileRepository = get()
+            profileRepository = get(),
+            availabilityPublisher = get()
         )
     }
 
