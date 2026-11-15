@@ -227,8 +227,11 @@
     <string name="product_scarcity_limited">Nur noch wenig verfügbar</string>
     <string name="product_scarcity_last_few">Fast ausverkauft</string>
     <string name="basket_item_unavailable">Nicht mehr verfügbar</string>
+    <string name="basket_item_reduce">Menge reduzieren</string>
     <string name="basket_unorderable_title">Einige Artikel sind nicht mehr verfügbar</string>
     <string name="basket_unorderable_body">Bitte entfernen Sie die markierten Artikel, um zu bestellen.</string>
+    <string name="basket_over_committed_title">Mehr ist derzeit nicht verfügbar</string>
+    <string name="basket_over_committed_body">Bitte reduzieren Sie die markierten Mengen auf das, was Ihre Bestellung bereits enthält.</string>
     <string name="basket_empty_title">Ihr Warenkorb ist leer</string>
     <string name="basket_empty_description">Fügen Sie Artikel vom Produktbildschirm hinzu</string>
     <string name="basket_checkout_processing">Wird bearbeitet...</string>

@@ -59,6 +59,8 @@ import com.together.newverse.domain.model.Fulfilment
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.articleKey
 import com.together.newverse.domain.model.nearlyGoneAgainst
+import com.together.newverse.domain.model.UnorderableItem
+import com.together.newverse.domain.model.UnorderableReason
 import com.together.newverse.domain.model.unorderableAgainst
 import com.together.newverse.domain.model.Market
 import com.together.newverse.domain.model.Order
@@ -204,10 +206,20 @@ fun BasketContent(
     // Items the seller has withdrawn since they went into the basket. Derived from
     // the catalogue rather than stored on the state: the basket is persisted and
     // long-lived, and a stored copy would be the stale one.
-    val unorderable = remember(state.items, currentArticles) {
-        state.items.unorderableAgainst(currentArticles)
+    val unorderable = remember(state.items, currentArticles, state.originalOrderItems) {
+        state.items.unorderableAgainst(currentArticles, committed = state.originalOrderItems)
     }
     val unorderableIds = remember(unorderable) { unorderable.map { it.articleId }.toSet() }
+
+    // Rows whose remedy is a smaller number rather than an empty line. Kept apart from
+    // `unorderableIds` because the two want opposite things from the row: a withdrawn
+    // article offers nothing but removal, while this one must keep the control that
+    // sets the amount — the row told the buyer to reduce and then hid the only button
+    // that could.
+    val overCommittedIds = remember(unorderable) {
+        unorderable.filter { it.reason == UnorderableReason.OVER_COMMITTED }
+            .map { it.articleId }.toSet()
+    }
 
     // A demo order the buyer is now approved to make real. Its destructive action is a
     // delete, not a Storno: the seller never saw it, and past the edit deadline a Storno
@@ -229,8 +241,8 @@ fun BasketContent(
 
     // Items the shop is nearly out of. Nothing holds them for this buyer, and
     // without a word here their first notice is checkout refusing the order.
-    val nearlyGoneIds = remember(state.items, currentArticles) {
-        state.items.nearlyGoneAgainst(currentArticles)
+    val nearlyGoneIds = remember(state.items, currentArticles, state.originalOrderItems) {
+        state.items.nearlyGoneAgainst(currentArticles, committed = state.originalOrderItems)
     }
 
     // Show dialogs outside the LazyColumn
@@ -365,6 +377,8 @@ fun BasketContent(
             profilePhone = profilePhone,
             profileName = profileName,
             unorderableIds = unorderableIds,
+            unorderable = unorderable,
+            overCommittedIds = overCommittedIds,
             nearlyGoneIds = nearlyGoneIds,
             onAction = onAction,
             onNavigateToOrders = onNavigateToOrders,
@@ -595,7 +609,7 @@ fun BasketContent(
             }
         } else {
             if (unorderable.isNotEmpty()) {
-                item { UnorderableNoticeCard() }
+                item { UnorderableNoticeCard(unorderable) }
             }
             // Basket items
             items(state.items) { item ->
@@ -606,6 +620,7 @@ fun BasketContent(
                     quantity = item.amountCount,
                     canEdit = state.isEditMode || state.orderId == null,
                     isUnorderable = item.articleKey() in unorderableIds,
+                    isOverCommitted = item.articleKey() in overCommittedIds,
                     isNearlyGone = item.articleKey() in nearlyGoneIds,
                     onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) },
                     onOpenDetail = item.articleKey()
@@ -694,6 +709,10 @@ private fun BasketTwoPane(
     profileName: String,
     /** Article ids the seller has withdrawn; their rows say so and block ordering. */
     unorderableIds: Set<String>,
+    /** The same items with their reasons, for the notice card's wording. */
+    unorderable: List<UnorderableItem>,
+    /** Of those, the ones to be reduced rather than removed. */
+    overCommittedIds: Set<String>,
     /** Article ids the shop is nearly out of; their rows say so, nothing is blocked. */
     nearlyGoneIds: Set<String>,
     onAction: (BuyBasketScreenAction) -> Unit,
@@ -729,7 +748,7 @@ private fun BasketTwoPane(
         ) {
             BasketStatusMessages(state)
             if (unorderableIds.isNotEmpty() && state.items.isNotEmpty()) {
-                UnorderableNoticeCard()
+                UnorderableNoticeCard(unorderable)
                 Spacer(modifier = Modifier.height(8.dp))
             }
             if (state.items.isEmpty()) {
@@ -750,6 +769,7 @@ private fun BasketTwoPane(
                             quantity = item.amountCount,
                             canEdit = state.isEditMode || state.orderId == null,
                             isUnorderable = item.articleKey() in unorderableIds,
+                            isOverCommitted = item.articleKey() in overCommittedIds,
                             isNearlyGone = item.articleKey() in nearlyGoneIds,
                             onRemove = { onAction(BuyBasketScreenAction.RemoveItem(item.productId)) },
                             onOpenDetail = item.articleKey()
@@ -1062,7 +1082,12 @@ private fun BasketTotalCard(total: Double) {
  * same list twice on a phone screen.
  */
 @Composable
-private fun UnorderableNoticeCard() {
+private fun UnorderableNoticeCard(unorderable: List<UnorderableItem>) {
+    // "Please remove" is wrong for a line the buyer can still have most of, so the
+    // wording follows what is actually in the list. A mixed list gets the removal
+    // wording, which is the stronger instruction of the two.
+    val onlyOverCommitted = unorderable.isNotEmpty() &&
+        unorderable.all { it.reason == UnorderableReason.OVER_COMMITTED }
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -1071,13 +1096,19 @@ private fun UnorderableNoticeCard() {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = stringResource(Res.string.basket_unorderable_title),
+                text = stringResource(
+                    if (onlyOverCommitted) Res.string.basket_over_committed_title
+                    else Res.string.basket_unorderable_title
+                ),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = stringResource(Res.string.basket_unorderable_body),
+                text = stringResource(
+                    if (onlyOverCommitted) Res.string.basket_over_committed_body
+                    else Res.string.basket_unorderable_body
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -1094,6 +1125,12 @@ private fun BasketItemCard(
     canEdit: Boolean = true,
     /** The seller withdrew this article; the order cannot be placed while it is here. */
     isUnorderable: Boolean = false,
+    /**
+     * This row is over the amount the order already holds. Still an [isUnorderable]
+     * row — it blocks the order — but the remedy is a smaller number, so the row keeps
+     * its amount control and says "reduzieren" rather than "nicht mehr verfügbar".
+     */
+    isOverCommitted: Boolean = false,
     /**
      * The shop is nearly out of this article. A fact, not a warning about this
      * buyer's claim on it — there is none. Ignored while [isUnorderable], which is
@@ -1155,7 +1192,10 @@ private fun BasketItemCard(
         ) {
             if (isUnorderable) {
                 Text(
-                    text = stringResource(Res.string.basket_item_unavailable),
+                    text = stringResource(
+                        if (isOverCommitted) Res.string.basket_item_reduce
+                        else Res.string.basket_item_unavailable
+                    ),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -1211,7 +1251,7 @@ private fun BasketItemCard(
                 ) {
                     // Changing the amount before removing it: the destructive one
                     // stays last, where it was.
-                    if (onOpenDetail != null && !isUnorderable) {
+                    if (onOpenDetail != null && (!isUnorderable || isOverCommitted)) {
                         TextButton(
                             onClick = onOpenDetail,
                             modifier = Modifier.semantics { contentDescription = editAmountLabel }

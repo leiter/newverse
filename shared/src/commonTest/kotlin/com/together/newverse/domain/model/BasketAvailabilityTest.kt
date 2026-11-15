@@ -164,4 +164,116 @@ class BasketAvailabilityTest {
         )
         assertEquals(setOf("nuts"), listOf(item("nuts")).nearlyGoneAgainst(shop))
     }
+
+    // --- what the order already holds -----------------------------------------
+    //
+    // A buyer who orders exactly the seller's whole stock closes the article for
+    // everyone else, which is `available` working correctly. Their own line must not
+    // then be reported back to them as withdrawn.
+
+    @Test
+    fun `an exact match on the whole stock is not reported at all`() {
+        val committed = listOf(item("nuts", amount = 6.0))
+
+        val unorderable = listOf(item("nuts", amount = 6.0))
+            .unorderableAgainst(catalog, committed = committed)
+
+        assertTrue(unorderable.isEmpty(), "asked the buyer to remove the line their own stock was set aside for")
+    }
+
+    @Test
+    fun `reducing a line on a closed article is fine`() {
+        val committed = listOf(item("nuts", amount = 6.0))
+
+        val unorderable = listOf(item("nuts", amount = 2.0))
+            .unorderableAgainst(catalog, committed = committed)
+
+        assertTrue(unorderable.isEmpty())
+    }
+
+    @Test
+    fun `asking for more than the order holds asks for a smaller number`() {
+        val committed = listOf(item("nuts", amount = 6.0))
+
+        val unorderable = listOf(item("nuts", amount = 8.0))
+            .unorderableAgainst(catalog, committed = committed)
+            .single()
+
+        assertEquals(UnorderableReason.OVER_COMMITTED, unorderable.reason)
+        assertEquals(6.0, unorderable.maxAmount)
+        assertEquals("Nüsse", unorderable.productName)
+    }
+
+    @Test
+    fun `a new line on a closed article is still withdrawn`() {
+        // Nothing was set aside for it, so there is no smaller number to fall back to.
+        val committed = listOf(item("apple", amount = 3.0))
+
+        val unorderable = listOf(item("nuts", amount = 1.0))
+            .unorderableAgainst(catalog, committed = committed)
+            .single()
+
+        assertEquals(UnorderableReason.WITHDRAWN, unorderable.reason)
+        assertEquals(0.0, unorderable.maxAmount)
+    }
+
+    @Test
+    fun `an article the catalogue lost is refused however much the order holds`() {
+        val committed = listOf(item("pears", "Birnen", amount = 4.0))
+
+        val unorderable = listOf(item("pears", "Birnen", amount = 4.0))
+            .unorderableAgainst(catalog, committed = committed)
+            .single()
+
+        assertEquals(UnorderableReason.GONE, unorderable.reason)
+    }
+
+    @Test
+    fun `a draft is judged exactly as before`() {
+        // No committed amounts: every existing caller passes nothing, and must keep
+        // the behaviour it had.
+        val unorderable = listOf(item("nuts", amount = 6.0)).unorderableAgainst(catalog).single()
+
+        assertEquals(UnorderableReason.WITHDRAWN, unorderable.reason)
+    }
+
+    @Test
+    fun `the band is not said about an amount the order already holds`() {
+        val scarce = listOf(article("apple", "Apfel").copy(scarcity = ArticleScarcity.LAST_FEW))
+        val committed = listOf(item("apple", amount = 5.0))
+
+        assertTrue(
+            listOf(item("apple", amount = 5.0)).nearlyGoneAgainst(scarce, committed = committed).isEmpty(),
+            "warned that nothing is reserving an amount a placed order reserves"
+        )
+    }
+
+    @Test
+    fun `the band is still said about an increase`() {
+        val scarce = listOf(article("apple", "Apfel").copy(scarcity = ArticleScarcity.LAST_FEW))
+        val committed = listOf(item("apple", amount = 5.0))
+
+        assertEquals(
+            setOf("apple"),
+            listOf(item("apple", amount = 7.0)).nearlyGoneAgainst(scarce, committed = committed)
+        )
+    }
+
+    @Test
+    fun `the finding carries the unit, so an amount can be stated as 1 kg`() {
+        // Without it the message said "max. 1" and did not say of what.
+        val unorderable = listOf(item("nuts", amount = 8.0))
+            .unorderableAgainst(catalog, committed = listOf(item("nuts", amount = 6.0)))
+            .single()
+
+        assertEquals("kg", unorderable.unit)
+    }
+
+    @Test
+    fun `a withdrawn finding carries no amount to reduce to`() {
+        val unorderable = listOf(item("nuts")).unorderableAgainst(catalog).single()
+
+        assertEquals(0.0, unorderable.maxAmount)
+        assertEquals("", unorderable.unit)
+    }
 }

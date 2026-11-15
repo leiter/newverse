@@ -21,6 +21,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -212,5 +213,55 @@ class BuyAppViewModelAvailabilityGateTest {
         advanceUntilIdle()
 
         assertEquals(1, orderRepository.placedOrders.size)
+    }
+
+    // --- the refusal is an answer to an attempt, not a property of the basket ---
+
+    @Test
+    fun `changing the basket clears a refusal the buyer has acted on`() = runTest {
+        // The banner outlived its cause: a buyer who did exactly what it asked went on
+        // reading it, with no way to dismiss what they had already fixed. It bites
+        // hardest on the reduce path, which is fixed in place rather than by removing
+        // the row — and the fix has to live where every edit arrives, not at the basket
+        // screen's own handlers: "Menge ändern" opens the product-detail page, which
+        // changes the quantity by another route entirely.
+        val viewModel = readyWith(
+            basket = listOf(item("a1", "Möhren", 2.80), item("a2", "Spargel", 9.90)),
+            catalog = listOf(moehren, spargel.copy(available = false, mode = Article.MODE_CHANGED))
+        )
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+        assertNotNull(viewModel.state.value.basketScreen.orderError, "no refusal to clear")
+
+        // Any route that reaches the basket repository, including the detail page's.
+        basketRepository.updateQuantity("a2", 1.0)
+        advanceUntilIdle()
+
+        assertNull(
+            viewModel.state.value.basketScreen.orderError,
+            "the banner survived the edit it asked for"
+        )
+    }
+
+    @Test
+    fun `a refusal survives until the buyer actually changes something`() = runTest {
+        // A re-emission of the same items must not wipe a refusal nobody has acted on.
+        val viewModel = readyWith(
+            basket = listOf(item("a1", "Möhren", 2.80), item("a2", "Spargel", 9.90)),
+            catalog = listOf(moehren, spargel.copy(available = false, mode = Article.MODE_CHANGED))
+        )
+        viewModel.dispatch(BuyBasketScreenAction.Checkout)
+        advanceUntilIdle()
+        viewModel.dispatch(BuyBasketScreenAction.ConfirmCheckout)
+        advanceUntilIdle()
+        val refusal = viewModel.state.value.basketScreen.orderError
+        assertNotNull(refusal)
+
+        basketRepository.setBasketItems(basketRepository.observeBasket().value)
+        advanceUntilIdle()
+
+        assertEquals(refusal, viewModel.state.value.basketScreen.orderError)
     }
 }

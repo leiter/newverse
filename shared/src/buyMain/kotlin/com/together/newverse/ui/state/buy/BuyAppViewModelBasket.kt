@@ -13,6 +13,8 @@ import com.together.newverse.domain.model.prepareForReorder
 import com.together.newverse.domain.model.UnorderableItem
 import com.together.newverse.domain.model.articleKey
 import com.together.newverse.domain.model.orderableOnly
+import com.together.newverse.domain.model.ProductPricing
+import com.together.newverse.domain.model.UnorderableReason
 import com.together.newverse.domain.model.unorderableAgainst
 import com.together.newverse.ui.screens.buy.ProfileValidation
 import com.together.newverse.ui.state.BasketMergeMode
@@ -106,7 +108,12 @@ private fun bLog(message: String) {
  * `doc/guides/stock-driven-availability-design.md` § "The gate at placement".
  */
 internal fun BuyAppViewModel.unorderableInBasket(items: List<OrderedProduct>): List<UnorderableItem> =
-    items.unorderableAgainst(_state.value.mainScreen.articles)
+    items.unorderableAgainst(
+        _state.value.mainScreen.articles,
+        // What the placed order already holds is not judged: see `unorderableAgainst`.
+        // Empty for a draft, which is then checked exactly as before.
+        committed = _state.value.basketScreen.originalOrderItems
+    )
 
 /**
  * What to tell the buyer about items the seller cannot accept.
@@ -115,13 +122,46 @@ internal fun BuyAppViewModel.unorderableInBasket(items: List<OrderedProduct>): L
  * against a catalogue by hand.
  */
 internal fun unorderableBasketMessage(unorderable: List<UnorderableItem>): String {
-    val names = unorderable.map { it.productName.ifEmpty { "Artikel" } }.distinct()
-    val list = names.joinToString(", ")
-    return if (names.size == 1) {
-        "$list ist nicht mehr verfügbar. Bitte aus dem Warenkorb entfernen."
-    } else {
-        "Diese Artikel sind nicht mehr verfügbar: $list. Bitte aus dem Warenkorb entfernen."
-    }
+    // Asking for more than the order already holds is a different message: the
+    // article is not gone, the buyer's own share of it is simply all there is, and
+    // the remedy is a smaller number. Told separately rather than folded in, because
+    // "bitte entfernen" about something they can still have most of is wrong.
+    val (over, missing) = unorderable.partition { it.reason == UnorderableReason.OVER_COMMITTED }
+
+    val missingPart = missing
+        .map { it.productName.ifEmpty { "Artikel" } }
+        .distinct()
+        .takeIf { it.isNotEmpty() }
+        ?.let { names ->
+            if (names.size == 1) "${names.single()} ist nicht mehr verfügbar. Bitte aus dem Warenkorb entfernen."
+            else "Diese Artikel sind nicht mehr verfügbar: ${names.joinToString(", ")}. Bitte aus dem Warenkorb entfernen."
+        }
+
+    val overPart = over
+        .takeIf { it.isNotEmpty() }
+        ?.let { items ->
+            // "Von X (max. 1) ist nicht mehr verfügbar" read as a sentence with no
+            // subject on the device, and the bare number did not say of what. The
+            // amount is the buyer's own committed quantity, so naming it discloses
+            // nothing about the shelf.
+            fun amount(item: UnorderableItem): String {
+                val n = ProductPricing.formatQuantity(item.maxAmount)
+                return if (item.unit.isBlank()) n else "$n ${item.unit}"
+            }
+            if (items.size == 1) {
+                val item = items.single()
+                "Von ${item.productName.ifEmpty { "diesem Artikel" }} ist nur noch " +
+                    "${amount(item)} verfügbar. Bitte die Menge reduzieren."
+            } else {
+                val listed = items.joinToString(", ") {
+                    "${it.productName.ifEmpty { "Artikel" }} (${amount(it)})"
+                }
+                "Von diesen Artikeln ist weniger verfügbar als bestellt: $listed. " +
+                    "Bitte die Mengen reduzieren."
+            }
+        }
+
+    return listOfNotNull(missingPart, overPart).joinToString(" ")
 }
 
 /** What to tell the buyer about items a reorder left behind. */
@@ -261,12 +301,24 @@ internal fun BuyAppViewModel.observeBasketScreenItems() {
         basketRepository.observeBasket().collect { items ->
             val hasChanges = basketScreenCheckIfHasChanges(items, _state.value.basketScreen.originalOrderItems)
             _state.update { current ->
+                // Every path that changes the basket arrives here — the basket screen,
+                // the product-detail page the "Menge ändern" button opens, the hero
+                // card — so this is the one place that sees them all. Clearing the
+                // refusal at each of those call sites instead missed the detail page,
+                // which is precisely where a buyer goes to do what the refusal asked.
+                val itemsChanged = items != current.basketScreen.items
                 current.copy(
                     basketScreen = current.basketScreen.copy(
                         items = items,
                         total = basketRepository.getTotal(),
                         hasChanges = hasChanges,
-                        orderSuccess = false // Hide success message on any change
+                        orderSuccess = false, // Hide success message on any change
+                        // And the refusal, for the same reason the success banner goes:
+                        // it answered an attempt on a basket that no longer exists. Only
+                        // on a real change, so a re-emission of the same items does not
+                        // wipe a refusal the buyer has not acted on yet — the refusals
+                        // themselves never change the items, so this cannot swallow one.
+                        orderError = if (itemsChanged) null else current.basketScreen.orderError
                     )
                 )
             }

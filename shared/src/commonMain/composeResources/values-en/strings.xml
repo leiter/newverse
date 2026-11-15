@@ -219,8 +219,11 @@
     <string name="product_scarcity_limited">Only a little left</string>
     <string name="product_scarcity_last_few">Almost sold out</string>
     <string name="basket_item_unavailable">No longer available</string>
+    <string name="basket_item_reduce">Reduce amount</string>
     <string name="basket_unorderable_title">Some items are no longer available</string>
     <string name="basket_unorderable_body">Please remove the marked items to place your order.</string>
+    <string name="basket_over_committed_title">No more is available right now</string>
+    <string name="basket_over_committed_body">Please reduce the marked amounts to what your order already holds.</string>
     <string name="basket_empty_title">Your basket is empty</string>
     <string name="basket_empty_description">Add items from the Products screen</string>
     <string name="basket_checkout_processing">Processing...</string>
