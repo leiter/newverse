@@ -99,6 +99,13 @@ internal fun HeroProductCard(
     onNavigateToDetail: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    // Whether this article can be ordered at all. The selection is kept on sale by
+    // `loadMainScreenArticles`, so this should always be true — it is here because the
+    // card must not be the thing that offers an order checkout would refuse, whatever
+    // put the article in front of it. An unavailable hero says so and its add button
+    // goes off, rather than filling a basket that fails at the till.
+    val isSellable = product.available
+
     // Helper function to check if unit is weight-based
     val isWeightBased = product.unit.lowercase() in listOf("kg", "g", "kilogramm", "gramm")
 
@@ -124,12 +131,17 @@ internal fun HeroProductCard(
     // One spoken summary for the whole card: name, price per unit, and — once an
     // amount is chosen — the running total and the amount itself.
     val priceLabel = productPriceLabel(price.gross, product.unit)
-    val scarcityLabel = when (product.scarcity) {
-        ArticleScarcity.LAST_FEW -> stringResource(Res.string.product_scarcity_last_few)
-        ArticleScarcity.LIMITED -> stringResource(Res.string.product_scarcity_limited)
+    val scarcityLabel = when {
+        // "nicht mehr verfügbar" outranks any band: a withdrawn article is not
+        // "running low", and the band would read as an invitation to hurry.
+        !isSellable -> stringResource(Res.string.basket_item_unavailable)
+        product.scarcity == ArticleScarcity.LAST_FEW ->
+            stringResource(Res.string.product_scarcity_last_few)
+        product.scarcity == ArticleScarcity.LIMITED ->
+            stringResource(Res.string.product_scarcity_limited)
         // Nothing to say about an article nobody is running out of, or one the
         // seller has not gated on stock at all.
-        ArticleScarcity.PLENTIFUL, ArticleScarcity.UNKNOWN -> null
+        else -> null
     }
     val cardSummary = buildString {
         append(product.productName)
@@ -489,7 +501,7 @@ internal fun HeroProductCard(
                             // Apply Changes Button (disabled if no changes)
                             Button(
                                 onClick = onAddToCart,
-                                enabled = hasChanges,
+                                enabled = hasChanges && isSellable,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.tertiary,
                                     disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -520,7 +532,7 @@ internal fun HeroProductCard(
                             // Add to Cart Button (for items not in basket)
                             Button(
                                 onClick = onAddToCart,
-                                enabled = quantity > 0.0,
+                                enabled = quantity > 0.0 && isSellable,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.tertiary,
                                     disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant

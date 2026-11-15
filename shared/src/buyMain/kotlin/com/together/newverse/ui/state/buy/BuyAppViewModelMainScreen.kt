@@ -516,13 +516,48 @@ internal fun BuyAppViewModel.loadMainScreenArticles() {
                     )
                 }
 
-                // Auto-select first article if none selected (using proper selection logic)
+                // The hero card shows whatever is selected, so the selection has to
+                // obey the same rule as the grid: only an article on sale.
+                //
+                // `articles` is the whole catalogue, withdrawn rows included — that is
+                // what lets a withdrawal arrive as a MODE_CHANGED rather than having to
+                // be re-fetched — while the grid renders `filteredArticles`, which
+                // filters on `available`. Selecting out of the unfiltered list put a
+                // withdrawn article on the hero card that appeared nowhere in the grid
+                // below it, and offered to add it to a basket that checkout would then
+                // refuse. It went unnoticed while the first article happened to be on
+                // sale; withdrawing everything unstocked made the first one withdrawn.
+                //
+                // The selection is also re-made when the article it points at is
+                // withdrawn, which is not only tidiness: during a trial an article sells
+                // out while somebody has it on screen, and a sold-out hero with a live
+                // add button is the same bug arriving from the other direction.
                 val currentSelectedArticle = _state.value.mainScreen.selectedArticle
                 val currentArticles = _state.value.mainScreen.articles
-                if (currentSelectedArticle == null && currentArticles.isNotEmpty()) {
-                    val firstArticle = currentArticles.first()
-                    Log.d(TAG) { "loadMainScreenArticles: Auto-selecting first article: ${firstArticle.productName}" }
-                    selectMainScreenArticle(firstArticle)  // ✅ Use proper selection method
+                val selectionStillSellable = currentSelectedArticle != null &&
+                    currentArticles.any { it.id == currentSelectedArticle.id && it.available }
+                if (!selectionStillSellable) {
+                    val firstSellable = currentArticles.firstOrNull { it.available }
+                    if (firstSellable != null) {
+                        Log.d(TAG) {
+                            "loadMainScreenArticles: selecting ${firstSellable.productName}" +
+                                (currentSelectedArticle?.let { " (${it.productName} is no longer on sale)" } ?: "")
+                        }
+                        selectMainScreenArticle(firstSellable)
+                    } else if (currentSelectedArticle != null) {
+                        // Nothing is on sale at all. Showing the last withdrawn article
+                        // would be worse than showing none: the screen has an empty-state
+                        // for this, and the card would invite an order nobody can fill.
+                        Log.d(TAG) { "loadMainScreenArticles: nothing on sale, clearing the selection" }
+                        _state.update { current ->
+                            current.copy(
+                                mainScreen = current.mainScreen.copy(
+                                    selectedArticle = null,
+                                    selectedQuantity = 0.0
+                                )
+                            )
+                        }
+                    }
                 }
             }
     }
