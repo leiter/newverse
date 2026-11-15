@@ -20,6 +20,59 @@ class StockRefillTest {
     private fun level(articleId: String, onHand: Double, countedAt: Long? = null) =
         StockLevel(articleId = articleId, onHand = onHand, unit = "kg", lastCountedAt = countedAt)
 
+    // --- the search fields the stock screen carries ---
+
+    @Test
+    fun `a need carries what the search reads`() {
+        val need = SellerArticle(
+            article = Article(
+                id = "a1",
+                productId = "112108",
+                productName = "Apfel Topaz",
+                searchTerms = "topaz,obst",
+                category = "Obst",
+                unit = "kg"
+            ),
+            sellerData = SellerArticleData(reorderLevel = 5.0)
+        ).refillNeed(level("a1", 12.0))
+
+        assertEquals("112108", need.productId)
+        assertEquals("topaz,obst", need.searchTerms)
+        assertEquals("Obst", need.category)
+    }
+
+    @Test
+    fun `a need matches the same things an article does`() {
+        val article = Article(
+            id = "a1",
+            productId = "112108",
+            productName = "Apfel Topaz",
+            searchTerms = "topaz,obst",
+            category = "Obst",
+            unit = "kg"
+        )
+        val need = SellerArticle(article, SellerArticleData(reorderLevel = 5.0))
+            .refillNeed(level("a1", 12.0))
+
+        // One rule, two models: whatever the catalogue finds for the seller, the
+        // storage screen finds too.
+        for (query in listOf("apfel", "topaz", "obst", "112108", "APFEL", " topaz ")) {
+            assertTrue(need.matchesQuery(query), "need should match '$query'")
+            assertTrue(
+                article.matchesQuery(query, includeProductId = true),
+                "article should match '$query'"
+            )
+        }
+        assertTrue(!need.matchesQuery("kohlrabi"))
+    }
+
+    @Test
+    fun `an empty query matches everything`() {
+        val need = article("apple").refillNeed(level("apple", 12.0))
+        assertTrue(need.matchesQuery(""))
+        assertTrue(need.matchesQuery("   "))
+    }
+
     @Test
     fun `plenty on hand needs nothing`() {
         val need = article("apple").refillNeed(level("apple", 12.0))

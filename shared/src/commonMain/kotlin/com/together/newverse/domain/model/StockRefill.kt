@@ -50,6 +50,16 @@ enum class RefillState {
 data class RefillNeed(
     val articleId: String,
     val productName: String,
+    /**
+     * The supplier's article number, and the seller's own search terms and category.
+     *
+     * Carried so the stock screen's search can be the same search as the catalogue's
+     * — see [matchesQuery]. They are not shown anywhere on the stock screen; they are
+     * here to be searched.
+     */
+    val productId: String = "",
+    val searchTerms: String = "",
+    val category: String = "",
     val unit: String,
     val onHand: Double,
     val reorderLevel: Double,
@@ -151,6 +161,9 @@ fun SellerArticle.refillNeed(level: StockLevel?, demand: ArticleDemand? = null):
     return RefillNeed(
         articleId = id,
         productName = article.productName,
+        productId = article.productId,
+        searchTerms = article.searchTerms,
+        category = article.category,
         unit = article.unit,
         onHand = onHand,
         reorderLevel = reorderLevel,
@@ -178,6 +191,23 @@ fun List<SellerArticle>.refillNeeds(
     refillStanding(levels, demand)
         .filter { it.needsAttention }
         .sortedWith(compareBy({ it.state.ordinal }, { -it.shortfall }, { it.productName.lowercase() }))
+
+/**
+ * Whether [query] appears in this article's name, search terms, category or article
+ * number — the same rule as [Article.matchesQuery], from the same place.
+ *
+ * The article number is always searchable here: the stock screen has no buyers on it,
+ * and a seller standing in front of a shelf with a delivery note is the case it exists
+ * for.
+ */
+fun RefillNeed.matchesQuery(query: String): Boolean = searchFieldsMatch(
+    query = query,
+    productName = productName,
+    searchTerms = searchTerms,
+    category = category,
+    productId = productId,
+    includeProductId = true
+)
 
 /** The refill standing of every article, whether or not it needs attention. */
 fun List<SellerArticle>.refillStanding(

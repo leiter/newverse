@@ -19,7 +19,34 @@ package com.together.newverse.domain.model
  * a supplier invoice or a BNN printout with the number on it. A buyer typing "117"
  * means something else entirely, so it stays off by default.
  */
-fun Article.matchesQuery(query: String, includeProductId: Boolean = false): Boolean {
+fun Article.matchesQuery(query: String, includeProductId: Boolean = false): Boolean =
+    searchFieldsMatch(
+        query = query,
+        productName = productName,
+        searchTerms = searchTerms,
+        category = category,
+        productId = productId,
+        includeProductId = includeProductId
+    )
+
+/**
+ * The rule itself, over the fields it reads rather than over [Article].
+ *
+ * Here because a second model needs the same rule: [RefillNeed] is its own value
+ * object, built per article for the stock screen, and the seller searching their
+ * storage is the same seller with the same invoice in their hand as the one searching
+ * the catalogue. Two copies of "name, terms, category, and the article number if you
+ * are the seller" would drift, and the one that drifted would quietly stop finding
+ * things.
+ */
+internal fun searchFieldsMatch(
+    query: String,
+    productName: String,
+    searchTerms: String,
+    category: String,
+    productId: String,
+    includeProductId: Boolean
+): Boolean {
     val needle = query.trim().lowercase()
     if (needle.isEmpty()) return true
     return productName.lowercase().contains(needle) ||
