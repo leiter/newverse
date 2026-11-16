@@ -1166,6 +1166,12 @@
     <string name="stock_unit_changed">Einheit geändert</string>
     <string name="stock_unit_changed_hint">Offene Bestellungen nutzen eine andere Einheit. Bitte Bestand und Bestellungen prüfen.</string>
     <string name="stock_all_articles">Alle Artikel</string>
+    <string name="stock_filter_all">Alle</string>
+    <string name="stock_filter_watched">Überwacht</string>
+    <string name="stock_filter_refill">Nachfüllen</string>
+    <string name="stock_filter_uncounted">Ungezählt</string>
+    <string name="stock_no_articles_in_filter">Kein Artikel in diesem Filter.</string>
+    <string name="a11y_stock_filter">Lagerfilter: %1$s, %2$d Artikel</string>
     <string name="stock_intake">Zugang</string>
     <string name="stock_stocktake">Zählen</string>
     <string name="stock_loss">Verlust</string>

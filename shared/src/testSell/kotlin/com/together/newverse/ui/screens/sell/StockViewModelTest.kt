@@ -215,6 +215,117 @@ class StockViewModelTest {
         assertEquals(2, vm.state.value.matchingStanding.size)
     }
 
+    // ===== The standing's filter chips =====
+
+    @Test
+    fun `the filter starts at ALL, so nothing is hidden from a lookup`() = runTest {
+        val vm = loaded()
+
+        assertEquals(StockFilter.ALL, vm.state.value.filter)
+        assertEquals(2, vm.state.value.matchingStanding.size)
+    }
+
+    @Test
+    fun `watched means a reorder level, not merely a state that is not UNWATCHED`() = runTest {
+        // The trap: refillNeed gives UNWATCHED when the reorder level is 0 AND nothing
+        // is ordered -- so an unwatched article that has been counted and then oversold
+        // gets a real state instead, and filtering on `state != UNWATCHED` would call
+        // that article watched. Nüsse is counted and oversold here, and watches nothing.
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("nuts", MeasuredQuantity.typed(1.0, "kg"), recordedAt = 1_000L)
+        ))
+        orderRepository.setOrders(listOf(order("o1", articleId = "nuts", amount = 4.0)))
+        val vm = loaded()
+
+        val nuts = vm.state.value.standing.first { it.articleId == "nuts" }
+        assertTrue(nuts.state != RefillState.UNWATCHED, "demand should give it a real state")
+        assertEquals(0.0, nuts.reorderLevel)
+
+        vm.setFilter(StockFilter.WATCHED)
+
+        assertEquals(listOf("apple"), vm.state.value.matchingStanding.map { it.articleId })
+    }
+
+    @Test
+    fun `uncounted means no movement, watched or not`() = runTest {
+        // UNCOUNTED as a state is only ever given to watched articles. The seller
+        // going round with a scale wants every article nobody has counted.
+        val vm = loaded()
+        vm.setFilter(StockFilter.UNCOUNTED)
+
+        assertEquals(
+            listOf("apple", "nuts"),
+            vm.state.value.matchingStanding.map { it.articleId }.sorted()
+        )
+    }
+
+    @Test
+    fun `a counted article leaves the uncounted filter`() = runTest {
+        stockRepository.setMovements(listOf(
+            StockMovement.intake("apple", MeasuredQuantity.typed(12.0, "kg"), recordedAt = 1_000L)
+        ))
+        val vm = loaded()
+        vm.setFilter(StockFilter.UNCOUNTED)
+
+        assertEquals(listOf("nuts"), vm.state.value.matchingStanding.map { it.articleId })
+    }
+
+    @Test
+    fun `the refill filter shows what the refill list shows`() = runTest {
+        val vm = loaded()
+        vm.setFilter(StockFilter.NEEDS_REFILL)
+
+        assertEquals(
+            vm.state.value.refillNeeds.map { it.articleId }.toSet(),
+            vm.state.value.matchingStanding.map { it.articleId }.toSet()
+        )
+    }
+
+    @Test
+    fun `the filter and the query both have to hold`() = runTest {
+        val vm = loaded()
+        vm.setFilter(StockFilter.WATCHED)
+        vm.setQuery("nüs")
+
+        // Nüsse matches the query but is not watched, so nothing is left.
+        assertTrue(vm.state.value.matchingStanding.isEmpty())
+    }
+
+    @Test
+    fun `the counts are taken after the query`() = runTest {
+        val vm = loaded()
+        vm.setQuery("apf")
+
+        val counts = vm.state.value.filterCounts
+        // One article matches the query, and it is the watched one.
+        assertEquals(1, counts[StockFilter.ALL])
+        assertEquals(1, counts[StockFilter.WATCHED])
+        assertEquals(0, counts.getValue(StockFilter.ALL) - counts.getValue(StockFilter.UNCOUNTED))
+    }
+
+    @Test
+    fun `every chip is counted, including the ones that would show nothing`() = runTest {
+        val vm = loaded()
+        vm.setQuery("nüs")
+
+        val counts = vm.state.value.filterCounts
+        // A chip reading 0 is an answer; a chip that vanished as the seller typed
+        // would be a surprise.
+        assertEquals(StockFilter.entries.toSet(), counts.keys)
+        assertEquals(0, counts[StockFilter.WATCHED])
+        assertEquals(1, counts[StockFilter.ALL])
+    }
+
+    @Test
+    fun `the refill list itself is never filtered`() = runTest {
+        val vm = loaded()
+        val before = vm.state.value.refillNeeds.map { it.articleId }
+
+        vm.setFilter(StockFilter.UNCOUNTED)
+
+        assertEquals(before, vm.state.value.refillNeeds.map { it.articleId })
+    }
+
     @Test
     fun `an oversold article is on the list even though nothing is watched`() = runTest {
         // Caught by running the app: the screen asked "is anything watched?" before

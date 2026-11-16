@@ -1106,6 +1106,12 @@
     <string name="stock_unit_changed">Unit changed</string>
     <string name="stock_unit_changed_hint">Outstanding orders use a different unit. Please check stock and orders.</string>
     <string name="stock_all_articles">All articles</string>
+    <string name="stock_filter_all">All</string>
+    <string name="stock_filter_watched">Watched</string>
+    <string name="stock_filter_refill">Refill</string>
+    <string name="stock_filter_uncounted">Uncounted</string>
+    <string name="stock_no_articles_in_filter">No article in this filter.</string>
+    <string name="a11y_stock_filter">Stock filter: %1$s, %2$d articles</string>
     <string name="stock_intake">Intake</string>
     <string name="stock_stocktake">Count</string>
     <string name="stock_loss">Loss</string>

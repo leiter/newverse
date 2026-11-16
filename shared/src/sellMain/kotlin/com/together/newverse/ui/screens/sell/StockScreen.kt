@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -39,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
+import com.together.newverse.ui.components.StockFilterChipRow
 import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.RefillNeed
 import com.together.newverse.domain.model.OrderShortfall
@@ -87,6 +90,7 @@ fun StockScreen(
 
     StockContent(
         state = state,
+        onFilterChange = viewModel::setFilter,
         onBook = viewModel::startBooking,
         onQuantityChange = viewModel::setQuantity,
         onNoteChange = viewModel::setNote,
@@ -100,9 +104,11 @@ fun StockScreen(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StockContent(
     state: StockUiState,
+    onFilterChange: (StockFilter) -> Unit,
     onBook: (String, StockMovementKind) -> Unit,
     onQuantityChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
@@ -178,16 +184,40 @@ fun StockContent(
             }
         }
 
-        item {
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text(
-                text = stringResource(Res.string.stock_all_articles),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.semantics { heading() }
-            )
+        // Sticky, and the chips ride with it. They belong to this section -- the
+        // refill list above is never filtered -- so pinning them to the top of the
+        // screen would claim they filter everything; leaving them in the scroll would
+        // repeat the mistake the search field made, out of reach exactly when the
+        // seller is deep in the list they narrow. Sticking to the section gives both.
+        stickyHeader {
+            Column(
+                modifier = Modifier.background(MaterialTheme.colorScheme.background)
+            ) {
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Text(
+                    text = stringResource(Res.string.stock_all_articles),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.semantics { heading() }
+                )
+                StockFilterChipRow(
+                    selected = state.filter,
+                    counts = state.filterCounts,
+                    onSelect = onFilterChange
+                )
+            }
         }
 
+        if (state.matchingStanding.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(Res.string.stock_no_articles_in_filter),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+        }
         items(state.matchingStanding, key = { "all_${it.articleId}" }) { need ->
             StandingRow(need = need, onBook = onBook)
         }

@@ -266,6 +266,10 @@ class StockViewModel(
         _state.update { it.copy(query = query) }
     }
 
+    fun setFilter(filter: StockFilter) {
+        _state.update { it.copy(filter = filter) }
+    }
+
     // ----- Booking -----
 
     /** Open the booking editor for one article. */
@@ -417,6 +421,8 @@ data class StockUiState(
     /** False when no article has a reorder level, which is a different empty state. */
     val hasWatchedArticles: Boolean = false,
     val query: String = "",
+    /** Which band of the standing is shown. The refill list above is never filtered. */
+    val filter: StockFilter = StockFilter.ALL,
     val editor: StockEditor? = null,
     val scaleStatus: ScaleStatus = ScaleStatus.Unsupported,
     val scaleReading: MeasuredQuantity? = null,
@@ -448,7 +454,22 @@ data class StockUiState(
      * the seller's hand found nothing on the one screen they are holding it for.
      */
     val matchingStanding: List<RefillNeed>
+        get() = queriedStanding.filter(filter::matches)
+
+    /**
+     * The standing after the query alone, which is what the chips count against.
+     *
+     * Counting the whole catalogue instead would offer "Nachfüllen 7" over a list
+     * that, with this query, holds two of them.
+     */
+    private val queriedStanding: List<RefillNeed>
         get() = if (query.isBlank()) standing else standing.filter { it.matchesQuery(query) }
+
+    /** How many rows each chip would show, given the query that is already typed. */
+    val filterCounts: Map<StockFilter, Int>
+        get() = queriedStanding.let { rows ->
+            StockFilter.entries.associateWith { filter -> rows.count(filter::matches) }
+        }
 
     /** Whether offering to weigh makes sense on this device. */
     val canWeigh: Boolean get() = scaleStatus.canWeigh
@@ -472,6 +493,56 @@ data class ShortfallDraft(
     val buyerName: String,
     val text: String
 )
+
+/**
+ * Which band of the standing the Lager shows.
+ *
+ * A different axis from the Sortiment's dropdown, which asks whether buyers can see an
+ * article. This one asks about the shelf, and the states it reads already exist —
+ * nothing here needs a new field.
+ *
+ * [ALL] is the default rather than [WATCHED], although watched articles are the ones
+ * the seller manages. The Lager already shows the refill list at the top, so the
+ * working set is in front of them regardless; the standing underneath is what they
+ * come to *look something up* in, and a default that hides what is being looked up is
+ * the trap the Sortiment's "Verfügbar" default needed an escape hatch for.
+ */
+enum class StockFilter {
+    /** Everything. */
+    ALL,
+
+    /**
+     * The articles the seller asked to be warned about — a reorder level is set.
+     *
+     * Deliberately `reorderLevel > 0.0` and not `state != UNWATCHED`: an *unwatched*
+     * article that has been counted and then oversold is given a real state instead of
+     * UNWATCHED, so the enum says "not unwatched" for an article the seller never asked
+     * to watch. (Without a level it stays UNWATCHED, demand or not — which is why this
+     * cannot be read off the state either way round.)
+     * `StockRefill.kt` has that rule, and `an oversold article is on the list even
+     * though nothing is watched` is the test that pins it.
+     */
+    WATCHED,
+
+    /** On the refill list: short, empty, low, or watched and never counted. */
+    NEEDS_REFILL,
+
+    /**
+     * Never counted — the ledger has no movement for it, so its 0.0 is not a level.
+     *
+     * `hasLevel` and not `state == UNCOUNTED`, because that state is only ever given
+     * to *watched* articles; an unwatched article nobody has counted is just as
+     * uncounted, and is exactly what a seller going round with a scale wants listed.
+     */
+    UNCOUNTED;
+
+    fun matches(need: RefillNeed): Boolean = when (this) {
+        ALL -> true
+        WATCHED -> need.reorderLevel > 0.0
+        NEEDS_REFILL -> need.state.needsAttention
+        UNCOUNTED -> !need.hasLevel
+    }
+}
 
 enum class StockMessage {
     LOAD_FAILED,
