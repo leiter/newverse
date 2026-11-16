@@ -6,8 +6,13 @@ import androidx.compose.ui.draw.clip
 import newverse.shared.generated.resources.fulfilment_address_missing
 import newverse.shared.generated.resources.fulfilment_delivery
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
@@ -27,6 +32,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.together.newverse.domain.model.Order
@@ -78,7 +84,7 @@ fun OrdersScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
         ) {
             AsyncStateContent(
                 state = ordersState,
@@ -215,11 +221,29 @@ private fun OrdersContent(
     val visibleOrders = remember(orders, showOutdated, startOfToday) {
         if (showOutdated) orders else orders.filter { it.pickUpDate >= startOfToday }
     }
+    // A cancellation whose pickup day is still ahead is the one thing on this screen
+    // the seller has no work for: it must not be packed, and it must not take a card's
+    // worth of space from an order that does. Folded into a single row, countable,
+    // openable when the seller wants to know who called it off. A cancellation whose
+    // day has gone by is already archive and stays in the outdated bucket.
+    val cancelledUpcoming = remember(visibleOrders, startOfToday) {
+        visibleOrders.filter { it.status == OrderStatus.CANCELLED && it.pickUpDate >= startOfToday }
+    }
+    val workOrders = remember(visibleOrders, cancelledUpcoming) {
+        val folded = cancelledUpcoming.map { it.id }.toSet()
+        visibleOrders.filter { it.id !in folded }
+    }
+
     val showAllLabel = formatString(
         stringResource(Res.string.orders_show_outdated),
         outdatedCount
     )
     val hideLabel = stringResource(Res.string.orders_hide_outdated)
+
+    // Which cards are open. Per visit, not persisted: the seller opens one card,
+    // packs it, and the screen should come back closed the next time they look.
+    var expandedIds by remember { mutableStateOf(emptySet<String>()) }
+    var cancelledExpanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         if (outdatedCount > 0) {
@@ -263,9 +287,27 @@ private fun OrdersContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(visibleOrders) { order ->
+                if (cancelledUpcoming.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        CancelledOrdersCard(
+                            orders = cancelledUpcoming,
+                            expanded = cancelledExpanded,
+                            onToggleExpand = { cancelledExpanded = !cancelledExpanded },
+                            onOrderClick = onOrderClick
+                        )
+                    }
+                }
+                items(workOrders) { order ->
                     SellerOrderCard(
                         order = order,
+                        expanded = order.id in expandedIds,
+                        onToggleExpand = {
+                            expandedIds = if (order.id in expandedIds) {
+                                expandedIds - order.id
+                            } else {
+                                expandedIds + order.id
+                            }
+                        },
                         onClick = { onOrderClick(order.id) }
                     )
                 }
@@ -280,16 +322,117 @@ private fun OrdersContent(
         ) {
             Text(text = stringResource(Res.string.demo_orders_clear_button))
         }
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
 /**
- * Seller order card displaying detailed order information
- * Based on universe project's item_next_order.xml layout
+ * The cancelled-but-not-yet-past orders, as one row that counts them and opens into
+ * a list. Each line still reaches its order detail: a seller ringing a customer back
+ * about a cancellation needs the order, not just the fact of it.
+ */
+@Composable
+private fun CancelledOrdersCard(
+    orders: List<Order>,
+    expanded: Boolean,
+    onToggleExpand: () -> Unit,
+    onOrderClick: (String) -> Unit
+) {
+    val headerLabel = formatString(
+        stringResource(Res.string.orders_cancelled_group),
+        orders.size
+    )
+    val hint = stringResource(Res.string.orders_cancelled_group_hint)
+    val toggleLabel = stringResource(Res.string.a11y_toggle_section)
+    val stateLabel = stringResource(
+        if (expanded) Res.string.a11y_state_expanded else Res.string.a11y_state_collapsed
+    )
+    val openLabel = stringResource(Res.string.a11y_open_order_details)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggleExpand)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "$headerLabel, $hint"
+                        stateDescription = stateLabel
+                        onClick(label = toggleLabel, action = null)
+                    }
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = headerLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        text = hint,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null
+                )
+            }
+
+            if (expanded) {
+                HorizontalDivider()
+                orders.forEach { order ->
+                    val line = "${order.buyerProfile.displayName}, ${order.getFormattedPickupDateAndTime()}"
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOrderClick(order.id) }
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = line
+                                onClick(label = openLabel, action = null)
+                            }
+                            .padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = order.buyerProfile.displayName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = order.getFormattedPickupDateAndTime(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Seller order card. Collapsed it is an overview — who, how many items, delivery or
+ * not, and when — so a day's orders can be counted down a screen instead of scrolled
+ * through. Expanded it adds what is only needed with the box in hand: who is
+ * collecting, the buyer's message and the product rows. Tapping the card still opens
+ * the order; the chevron is what unfolds it.
  */
 @Composable
 private fun SellerOrderCard(
     order: Order,
+    expanded: Boolean,
+    onToggleExpand: () -> Unit,
     onClick: () -> Unit = {}
 ) {
     // Check if order is cancelled
@@ -324,6 +467,10 @@ private fun SellerOrderCard(
         order.articles.size
     )
     val openLabel = stringResource(Res.string.a11y_open_order_details)
+    val toggleLabel = stringResource(Res.string.a11y_toggle_order)
+    val stateLabel = stringResource(
+        if (expanded) Res.string.a11y_state_expanded else Res.string.a11y_state_collapsed
+    )
     val deliveryLabel = stringResource(Res.string.fulfilment_delivery)
     val pickupTimeLine = order.statedPickupTime?.let { time ->
         formatString(
@@ -348,7 +495,9 @@ private fun SellerOrderCard(
     }
     val addressMissingLabel = stringResource(Res.string.fulfilment_address_missing)
     // One stop per card, read in a deliberate order, instead of a stop each for
-    // the name, count, pickup date, message and every product row.
+    // the name, count, pickup date, message and every product row. The card reads
+    // whole to a screen reader whether or not it is unfolded on screen: folding is a
+    // way to save room, and a screen reader has no room to save.
     val cardDescription = buildString {
         append(order.buyerProfile.displayName)
         if (isCancelled) { append(", "); append(cancelledLabel) }
@@ -383,12 +532,11 @@ private fun SellerOrderCard(
         border = borderStroke
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 16.dp)
         ) {
-            // Customer name and product count
+            // Customer name, product count, and the control that unfolds the card
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -404,6 +552,22 @@ private fun SellerOrderCard(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 8.dp)
                 )
+
+                // Its own merged node: the card above merges its descendants, which
+                // would otherwise swallow this control and leave a screen-reader user
+                // no way to unfold the card.
+                IconButton(
+                    onClick = onToggleExpand,
+                    modifier = Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = toggleLabel
+                        stateDescription = stateLabel
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null
+                    )
+                }
             }
 
             // A delivery has to be told apart at a glance: the seller is sorting a
@@ -449,68 +613,67 @@ private fun SellerOrderCard(
 
             // When the buyer said they would come, or when they would like it
             // brought round, if they said. A whole day's orders sorted by hour is the
-            // thing this tells the seller that the pickup date above cannot — and
-            // it is what a delivery round is planned from.
-            order.statedPickupTime?.let { time ->
+            // thing this tells the seller that the pickup date above cannot -- and
+            // it is what a delivery round is planned from. It stays in the collapsed
+            // overview for that reason.
+            pickupTimeLine?.let { line ->
                 Text(
-                    text = formatString(
-                        stringResource(
-                            if (order.isDelivery) Res.string.order_delivery_time_stated
-                            else Res.string.order_pickup_time_stated
-                        ),
-                        time
-                    ),
+                    text = line,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            // Emphasised rather than greyed: this is the line that contradicts the
-            // name at the top of the card, and it is read while handing a box over.
-            collectorLine?.let { line ->
-                Text(
-                    text = line,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            // Message (if exists)
-            if (order.message.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = order.message,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            // Ordered products list
-            if (order.articles.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    order.articles.forEach { product ->
-                        OrderedProductItem(product = product)
-                    }
-                }
-            }
-
-            // Status indicator at bottom
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Show "Storniert" label for cancelled orders
+            // Show "Storniert" label for cancelled orders. A cancelled card that is
+            // still on the list -- its pickup day already gone -- says so folded.
             if (isCancelled) {
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = cancelledLabel,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.error
                 )
-                Spacer(modifier = Modifier.height(4.dp))
             }
+
+            if (expanded) {
+                // Emphasised rather than greyed: this is the line that contradicts the
+                // name at the top of the card, and it is read while handing a box over.
+                collectorLine?.let { line ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = line,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Message (if exists)
+                if (order.message.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = order.message,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Ordered products list
+                if (order.articles.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        order.articles.forEach { product ->
+                            OrderedProductItem(product = product)
+                        }
+                    }
+                }
+            }
+
+            // Status indicator at bottom
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Divider color based on order state
             HorizontalDivider(
