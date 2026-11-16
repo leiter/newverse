@@ -13,6 +13,7 @@ import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 
 /**
  * Firebase Realtime Database implementation of InvitationRepository.
@@ -80,6 +81,7 @@ class GitLiveInvitationRepository(
             Log.d(TAG) { "Invitation created: $id for seller $sellerId" }
             Result.success(invitation)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to create invitation: ${e.message}" }
             Result.failure(e)
         }
@@ -113,6 +115,7 @@ class GitLiveInvitationRepository(
 
             Result.success(snapshot)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to get invitation: ${e.message}" }
             Result.failure(e)
         }
@@ -158,6 +161,7 @@ class GitLiveInvitationRepository(
             Log.d(TAG) { "Invitation $invitationId accepted by buyer $buyerId" }
             Result.success(accepted)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to accept invitation: ${e.message}" }
             Result.failure(e)
         }
@@ -174,6 +178,7 @@ class GitLiveInvitationRepository(
             Log.d(TAG) { "Invitation $invitationId rejected by buyer $buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to reject invitation: ${e.message}" }
             Result.failure(e)
         }
@@ -197,6 +202,7 @@ class GitLiveInvitationRepository(
                         }
                     }
                 } catch (e: Exception) {
+                    e.rethrowIfCancellation()
                     Log.d(TAG) { "Failed to fetch invitation $invitationId: ${e.message}" }
                 }
             }
@@ -220,6 +226,7 @@ class GitLiveInvitationRepository(
             Log.d(TAG) { "Invitation $invitationId revoked" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to revoke invitation: ${e.message}" }
             Result.failure(e)
         }
@@ -233,6 +240,7 @@ class GitLiveInvitationRepository(
             status = try {
                 InvitationStatus.valueOf(snapshot.child("status").value<String>())
             } catch (e: Exception) {
+                e.rethrowIfCancellation()
                 InvitationStatus.PENDING
             },
             createdAt = snapshot.child("createdAt").value<Long>(),
@@ -240,6 +248,7 @@ class GitLiveInvitationRepository(
             sellerDisplayName = try {
                 snapshot.child("sellerDisplayName").value<String>()
             } catch (e: Exception) {
+                e.rethrowIfCancellation()
                 ""
             }
         )

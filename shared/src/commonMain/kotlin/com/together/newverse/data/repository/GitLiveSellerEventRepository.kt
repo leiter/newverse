@@ -13,6 +13,7 @@ import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 
 /**
  * Firebase Realtime Database implementation of [SellerEventRepository].
@@ -71,6 +72,7 @@ class GitLiveSellerEventRepository : SellerEventRepository {
             Log.d(TAG) { "📒 GitLiveSellerEventRepository.logEvent: ${type.name} for buyer $buyerId → seller $sellerId" }
             Result.success(event)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "logEvent: Failed - ${e.message}" }
             Result.failure(e)
         }
@@ -126,6 +128,7 @@ class GitLiveSellerEventRepository : SellerEventRepository {
                 details = data["details"] as? String ?: ""
             )
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "parseEvent: Skipping malformed event - ${e.message}" }
             null
         }

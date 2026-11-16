@@ -35,6 +35,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 
 /**
  * GitLive implementation of OrderRepository for cross-platform order management.
@@ -109,21 +110,25 @@ class GitLiveOrderRepository(
         } catch (e: CancellationException) {
             // Leaving the screen cancels the collector, and that is not a failure.
             // CancellationException is an Exception, so the catch below used to take
-            // it: it logged "Job was cancelled" at error level and then emitted an
-            // empty list into a coroutine that was already going away.
+            // it: it logged "Job was cancelled" at error level -- three such lines in
+            // a release capture, from navigating between screens -- and then tried to
+            // emit an empty list into a coroutine that was already going away.
             //
-            // The empty list is the part that matters. Downstream, StockViewModel
-            // combines orders with the catalogue and the stock levels, so no orders
-            // reads as no committed demand -- it recomputes the refill list from that
-            // and hands cacheReminder a snapshot with nothing in it. The reminder that
-            // tells the seller what to buy before market day is built from that
-            // snapshot, and the worker wakes with no database of its own to check it
-            // against. A wrong answer with nothing on screen to question it.
+            // The empty list was the alarming part and is not in fact the bug: an
+            // emit into a cancelled collector throws on its own, so the fallback was
+            // attempted and dropped, never delivered to StockViewModel or to the
+            // refill snapshot the reminder is built from. Checked by experiment on
+            // 2026-11-16, after this comment first claimed otherwise;
+            // CancellationTest holds the result.
             //
-            // Rethrowing is also what lets the cancellation reach the machinery that
-            // asked for it, instead of being swallowed here.
+            // What is left is reason enough: a false error for a navigation, and a
+            // cancellation that does not reach the machinery that asked for it.
+            // The same catch in a suspend function has a worse ending -- it returns
+            // Result.failure, and the caller shows the user an error. Hence the
+            // rethrow at the head of every broad catch in this layer.
             throw e
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "observeSellerOrders: Error - ${e.message}" }
             // Emit empty list on error
             emit(emptyList())
@@ -250,6 +255,7 @@ class GitLiveOrderRepository(
                             }
                         }
                     } catch (e: Exception) {
+                        e.rethrowIfCancellation()
                         Log.w(TAG) { "getBuyerOrders: Failed to fetch order $orderId: ${e.message}" }
                     }
                 }
@@ -259,6 +265,7 @@ class GitLiveOrderRepository(
             Result.success(orders)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "getBuyerOrders: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -327,6 +334,7 @@ class GitLiveOrderRepository(
             Result.success(finalOrder)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "placeOrder: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -378,6 +386,7 @@ class GitLiveOrderRepository(
             Result.success(Unit)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "updateOrder: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -439,6 +448,7 @@ class GitLiveOrderRepository(
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "cancelOrder: Error - ${e.message}" }
             if (e.readsAsMissingOrder()) {
                 // Not there, however the rules phrase it — see readsAsMissingOrder.
@@ -488,6 +498,7 @@ class GitLiveOrderRepository(
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "loadOrder: Error - ${e.message}" }
             if (e.readsAsMissingOrder()) {
                 // A probe of the wrong trunk, which is an ordinary answer and not an
@@ -538,6 +549,7 @@ class GitLiveOrderRepository(
             Result.success(editableOrder)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "getOpenEditableOrder: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -582,6 +594,7 @@ class GitLiveOrderRepository(
             Result.success(upcomingOrder)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "getUpcomingOrder: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -665,6 +678,7 @@ class GitLiveOrderRepository(
                         )
                     )
                 } catch (e: Exception) {
+                    e.rethrowIfCancellation()
                     Log.e(TAG) { "Error mapping order snapshot: ${e.message}" }
                     null
                 }
@@ -792,6 +806,7 @@ class GitLiveOrderRepository(
             Result.success(true)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "hideOrderForSeller: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -813,6 +828,7 @@ class GitLiveOrderRepository(
             Result.success(true)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "hideOrderForBuyer: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -843,6 +859,7 @@ class GitLiveOrderRepository(
             Result.success(Unit)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "updateOrderStatus: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -957,6 +974,7 @@ class GitLiveOrderRepository(
             }
             Result.success(result)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "transitionDemoOrders: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -1015,6 +1033,7 @@ class GitLiveOrderRepository(
                             Log.d(TAG) { "deleteOldDemoOrders: Deleted $dateKey" }
                         }
                     } catch (e: Exception) {
+                        e.rethrowIfCancellation()
                         Log.w(TAG) { "deleteOldDemoOrders: Failed to parse date key '$dateKey': ${e.message}" }
                     }
                 }
@@ -1024,6 +1043,7 @@ class GitLiveOrderRepository(
             Result.success(deletedCount)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "deleteOldDemoOrders: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -1042,6 +1062,7 @@ class GitLiveOrderRepository(
             Log.d(TAG) { "deleteDemoOrders: Success" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "deleteDemoOrders: Error - ${e.message}" }
             Result.failure(e)
         }

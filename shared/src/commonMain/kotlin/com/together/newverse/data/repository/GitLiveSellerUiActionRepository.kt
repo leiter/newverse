@@ -9,6 +9,7 @@ import com.together.newverse.domain.model.SelectionMode
 import com.together.newverse.domain.model.SellerUiAction
 import com.together.newverse.domain.repository.SellerUiActionRepository
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
@@ -50,6 +51,7 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
             if (sellerId.isEmpty()) return Result.success(emptyList())
             Result.success(parseActions(actionsRef.child(sellerId).valueEvents.first().value))
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "getActions: $sellerId unreadable - ${e.message}" }
             // Not a failure the caller can act on, and the buy app's startup path
             // treats an empty list the same way. Reported as success-with-nothing.
@@ -102,6 +104,7 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
             Log.d(TAG) { "saveAction: $id -> ${stored.location} for $sellerId" }
             Result.success(stored)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "saveAction: ${e.message}" }
             Result.failure(e)
         }
@@ -113,6 +116,7 @@ class GitLiveSellerUiActionRepository : SellerUiActionRepository {
             actionsRef.child(sellerId).child(actionId).removeValue()
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "deleteAction: ${e.message}" }
             Result.failure(e)
         }

@@ -413,42 +413,51 @@ The following features are planned but not yet implemented, or are only partiall
     - Decide which of these the app should close and which stay the accountant's job.
     - A backup of `/sales` is the one with no design question in it.
 
-### High Priority: Repositories swallow CancellationException
+### Fixed 2026-11-16: Repositories swallowed CancellationException
 
-- **Status:** Open — found 2026-11-16 in a logcat capture from a release build on a
-  Pixel 7a, while verifying something else. One instance fixed, the pattern not.
+- **Status:** Fixed 2026-11-16 across `data/repository/` — 159 broad catches in 19
+  files now begin with `rethrowIfCancellation()`. Filed as high priority on the same
+  day on a worse reading of the consequences than the one that held up; see below.
 - **What was seen:** three `E/OrderRepo: observeSellerOrders: Error - Job was
-  cancelled` lines, logged simply by navigating between screens.
-- **Why it is not only noise:** `CancellationException` is an `Exception`, so a
-  `catch (e: Exception)` around a flow body takes it, and these catches end by
-  emitting a fallback value — `emit(emptyList())` in the case found. Leaving a screen
-  therefore publishes "no orders" rather than stopping. Downstream of
-  `observeSellerOrders`, `StockViewModel` combines orders with the catalogue and the
-  levels, so no orders reads as no committed demand: it recomputes the refill list
-  from that and hands `cacheReminder` an empty snapshot. The refill reminder is built
-  from that snapshot by a worker that has no database of its own to check it against,
-  so the failure mode is the seller being told there is nothing to buy. Swallowing it
-  also stops the cancellation reaching whatever asked for it.
-- **Fixed so far:** `GitLiveOrderRepository.observeSellerOrders` rethrows
-  `CancellationException` before the general catch. Nothing else was touched.
-- **The size of it:** `CancellationException` appears nowhere else in `commonMain`,
-  and `data/repository/` has 19 files using `catch (e: Exception)` —
-  `GitLiveProfileRepository` 26 of them, `GitLiveMessageRepository` 23,
-  `GitLiveOrderRepository` 17 (16 left), `GitLiveAuthRepository` 15. Five are flow
-  builders, which are the ones that can emit a fallback into a dying coroutine; the
-  rest are suspend functions, where swallowing cancellation is wrong for its own
-  reasons but has no bogus value to publish.
-- **Tasks:**
-  - Go through the five `= flow {` builders first: anything that emits in a catch is
-    the same bug and can publish the same kind of wrong answer. `observeBuyerOrders`
-    is in that set and serves the buy flavor.
-  - Then the suspend functions, where the fix is the same rethrow and the risk is a
-    coroutine that will not stop.
-  - Consider whether this belongs in a lint rule or a shared helper rather than 19
-    files of discipline — a `runCatchingNonCancellation` would make the right thing
-    the short thing.
-  - A test is awkward against the GitLive SDK but not against the fakes: cancelling a
-    collector and asserting no further emission would have caught this.
+  cancelled` lines in a release capture from a Pixel 7a, logged simply by navigating
+  between screens.
+- **Why it happens:** `CancellationException` is an `Exception`, so a
+  `catch (e: Exception)` takes it along with real errors and runs the error path —
+  a `Log.e` line, a `Result.failure`, a fallback value.
+- **What it costs, corrected:** the first reading of this was that the fallback
+  reaches the collector, so that `observeSellerOrders` publishing `emptyList()` would
+  read downstream as a market day with no committed demand and hand the refill
+  reminder an empty snapshot. **That does not happen, and was checked by experiment
+  rather than argued:** `emit` into a cancelled collector throws on its own, so the
+  fallback is attempted and dropped. No wrong value was ever published. What is real:
+  - A **suspend function** returning `Result.failure` for a call that was merely
+    cancelled. Nothing distinguishes it from a database that cannot be reached, so
+    the caller acts on it — this is the half with a user-visible consequence, and it
+    is the shape most of the 159 sites have.
+  - A cancellation that **never reaches the scope that asked for it**, so the
+    coroutine runs past the point it was told to stop.
+  - A **false error log per navigation**, which is how it was noticed.
+- **How it is fixed:** `util/Cancellation.kt` — `Throwable.rethrowIfCancellation()`
+  as the first line of a broad catch, and `runCatchingNonCancellation {}` for new
+  call sites that want a `Result`. Applied mechanically to every multi-line
+  `catch (e: Exception)` in `data/repository/`, which is harmless at the sites whose
+  `try` cannot suspend. `CancellationTest` pins both halves, including the
+  measurement that corrects the claim above.
+- **Not touched, deliberately:** `Flow.catch { }` operators, which are already
+  ownership-safe and do not catch the collector's own cancellation — `observeBuyerOrders`,
+  `observeSellerContacts`, `observeAllowedMarkets` and `observeAccessStatus` are all
+  of that shape, so the buy flavor never had the seller-side bug. Also untouched:
+  one-line parsing catches (`BnnParser`, `BuyerSellerConfig`) and the non-suspending
+  `GitLiveFirebaseInit`, where there is no cancellation to catch; and the broad
+  catches outside `data/`, which have not been surveyed.
+- **Left open:**
+  - The same sweep over ViewModels and `domain/`, not yet looked at. The buy
+    flavor's `withTimeoutOrNull` call sites are the ones to read first: they now
+    receive a propagating cancellation where they used to get a `Result.failure`,
+    which is the better path (the existing `null` branch handles it) but was not
+    designed for.
+  - A lint rule would keep this from coming back; the project has no detekt or
+    ktlint setup to hang one on.
 
 ### Medium Priority: Warn before deleting an article a buyer has ordered
 

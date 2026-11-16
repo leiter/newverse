@@ -1,5 +1,6 @@
 package com.together.newverse.data.repository
 
+import com.together.newverse.util.rethrowIfCancellation
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.Article.Companion.MODE_ADDED
 import com.together.newverse.domain.repository.ArticleRepository
@@ -42,6 +43,7 @@ class MockArticleRepository : ArticleRepository {
                 Result.failure(Exception("Article not found"))
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -53,6 +55,7 @@ class MockArticleRepository : ArticleRepository {
             // In real implementation, this would trigger Firebase write and emit CHANGED/ADDED event
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -64,6 +67,7 @@ class MockArticleRepository : ArticleRepository {
             // In real implementation, this would trigger Firebase delete and emit REMOVED event
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }

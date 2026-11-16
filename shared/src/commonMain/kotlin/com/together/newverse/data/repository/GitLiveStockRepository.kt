@@ -6,6 +6,7 @@ import com.together.newverse.domain.model.StockMovement
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.StockRepository
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.database.ServerValue
 import dev.gitlive.firebase.database.database
@@ -108,6 +109,7 @@ class GitLiveStockRepository(
                     .sortedByDescending { it.recordedAt }
             )
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "movementsForArticle: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -156,6 +158,7 @@ class GitLiveStockRepository(
             }
             Result.success(recorded)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "recordMovements: Error - ${e.message}" }
             Result.failure(e)
         }

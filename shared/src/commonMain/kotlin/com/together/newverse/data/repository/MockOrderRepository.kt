@@ -1,5 +1,6 @@
 package com.together.newverse.data.repository
 
+import com.together.newverse.util.rethrowIfCancellation
 import com.together.newverse.domain.model.DemoTransitionResult
 import com.together.newverse.domain.model.Order
 import com.together.newverse.domain.model.OrderStatus
@@ -31,6 +32,7 @@ class MockOrderRepository : OrderRepository {
             }
             Result.success(filteredOrders.ifEmpty { PreviewData.sampleOrders })
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -52,6 +54,7 @@ class MockOrderRepository : OrderRepository {
             _orders.value = currentOrders
             Result.success(newOrder)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -69,6 +72,7 @@ class MockOrderRepository : OrderRepository {
                 Result.failure(Exception("Order not found"))
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -87,6 +91,7 @@ class MockOrderRepository : OrderRepository {
                 Result.failure(Exception("Order not found"))
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -101,6 +106,7 @@ class MockOrderRepository : OrderRepository {
                 Result.failure(Exception("Order not found"))
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -124,6 +130,7 @@ class MockOrderRepository : OrderRepository {
             val mostRecent = editableOrders.maxByOrNull { it.pickUpDate }
             Result.success(mostRecent)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -146,6 +153,7 @@ class MockOrderRepository : OrderRepository {
             val mostRecent = upcomingOrders.maxByOrNull { it.pickUpDate }
             Result.success(mostRecent)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -164,6 +172,7 @@ class MockOrderRepository : OrderRepository {
                 Result.failure(Exception("Order not found"))
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -182,6 +191,7 @@ class MockOrderRepository : OrderRepository {
                 Result.failure(Exception("Order not found"))
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -221,6 +231,7 @@ class MockOrderRepository : OrderRepository {
                 Result.failure(Exception("Order not found"))
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }

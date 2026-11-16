@@ -12,6 +12,7 @@ import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 
 /**
  * Firebase Realtime Database implementation of MessageRepository.
@@ -46,6 +47,7 @@ class GitLiveMessageRepository : MessageRepository {
                         conversations.add(parseConversation(conversationId, convSnapshot))
                     }
                 } catch (e: Exception) {
+                    e.rethrowIfCancellation()
                     Log.d(TAG) { "Failed to fetch conversation $conversationId: ${e.message}" }
                 }
             }
@@ -62,6 +64,7 @@ class GitLiveMessageRepository : MessageRepository {
                 try {
                     messages.add(parseMessage(conversationId, child))
                 } catch (e: Exception) {
+                    e.rethrowIfCancellation()
                     Log.d(TAG) { "Failed to parse message: ${e.message}" }
                 }
             }
@@ -83,6 +86,7 @@ class GitLiveMessageRepository : MessageRepository {
                         totalUnread += conv.getUnreadCount(userId)
                     }
                 } catch (e: Exception) {
+                    e.rethrowIfCancellation()
                     // Skip failed conversations
                 }
             }
@@ -159,6 +163,7 @@ class GitLiveMessageRepository : MessageRepository {
             Log.d(TAG) { "Message sent: $messageId in conversation $conversationId" }
             Result.success(message)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to send message: ${e.message}" }
             Result.failure(e)
         }
@@ -186,12 +191,14 @@ class GitLiveMessageRepository : MessageRepository {
                             .child("isRead").setValue(true)
                     }
                 } catch (e: Exception) {
+                    e.rethrowIfCancellation()
                     // Skip malformed messages
                 }
             }
 
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to mark as read: ${e.message}" }
             Result.failure(e)
         }
@@ -247,6 +254,7 @@ class GitLiveMessageRepository : MessageRepository {
             Log.d(TAG) { "Conversation created: $conversationId" }
             Result.success(conversation)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to create conversation: ${e.message}" }
             Result.failure(e)
         }
@@ -285,6 +293,7 @@ class GitLiveMessageRepository : MessageRepository {
             }
             countRef.setValue(currentCount + 1)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to increment unread count: ${e.message}" }
         }
     }
@@ -298,6 +307,7 @@ class GitLiveMessageRepository : MessageRepository {
             }
             blocked
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             false
         }
     }

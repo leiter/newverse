@@ -1,5 +1,6 @@
 package com.together.newverse.data.repository
 
+import com.together.newverse.util.rethrowIfCancellation
 import com.together.newverse.domain.model.AccessRequest
 import com.together.newverse.domain.model.AccessStatus
 import com.together.newverse.domain.model.BuyerAccess
@@ -43,6 +44,7 @@ class MockProfileRepository : ProfileRepository {
                 Result.success(defaultProfile)
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -53,6 +55,7 @@ class MockProfileRepository : ProfileRepository {
             _buyerProfile.value = profile
             Result.success(profile)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -73,6 +76,7 @@ class MockProfileRepository : ProfileRepository {
             // For mock, always return the sample seller profile
             Result.success(PreviewData.sampleSellerProfile)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -83,6 +87,7 @@ class MockProfileRepository : ProfileRepository {
             _sellerProfile.value = profile
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -100,6 +105,7 @@ class MockProfileRepository : ProfileRepository {
                 profileDeleted = true
             ))
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -110,6 +116,7 @@ class MockProfileRepository : ProfileRepository {
             _buyerProfile.value = null
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -123,6 +130,7 @@ class MockProfileRepository : ProfileRepository {
             }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }
@@ -136,6 +144,7 @@ class MockProfileRepository : ProfileRepository {
             }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(e)
         }
     }

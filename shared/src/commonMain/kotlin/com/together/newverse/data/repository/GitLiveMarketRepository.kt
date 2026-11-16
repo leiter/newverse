@@ -8,6 +8,7 @@ import com.together.newverse.domain.model.PriceScope
 import com.together.newverse.domain.model.SellerContact
 import com.together.newverse.domain.repository.MarketRepository
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.flow.Flow
@@ -55,6 +56,7 @@ class GitLiveMarketRepository : MarketRepository {
 
             Result.success(if (includeInactive) markets else markets.filter { it.active })
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "getMarkets: ${e.message}" }
             Result.failure(e)
         }
@@ -66,6 +68,7 @@ class GitLiveMarketRepository : MarketRepository {
             marketsRef.child(sellerId).child(market.id).setValue(marketToMap(market))
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "saveMarket: ${e.message}" }
             Result.failure(e)
         }
@@ -76,6 +79,7 @@ class GitLiveMarketRepository : MarketRepository {
             marketsRef.child(sellerId).child(marketId).child("active").setValue(false)
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "deactivateMarket: ${e.message}" }
             Result.failure(e)
         }
@@ -99,6 +103,7 @@ class GitLiveMarketRepository : MarketRepository {
             }
             Result.success(missing.size)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "migrateLegacyMarkets: ${e.message}" }
             Result.failure(e)
         }
@@ -107,6 +112,7 @@ class GitLiveMarketRepository : MarketRepository {
     private suspend fun legacyMarkets(sellerId: String): List<Market> = try {
         parseMarkets(sellersRef.child(sellerId).child("markets").valueEvents.first().value)
     } catch (e: Exception) {
+        e.rethrowIfCancellation()
         Log.w(TAG) { "legacyMarkets: $sellerId unreadable - ${e.message}" }
         emptyList()
     }

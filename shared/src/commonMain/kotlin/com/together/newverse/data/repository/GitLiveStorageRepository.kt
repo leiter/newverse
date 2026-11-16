@@ -6,6 +6,7 @@ import dev.gitlive.firebase.storage.storage
 import dev.gitlive.firebase.storage.StorageReference
 import kotlinx.coroutines.flow.first
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 
 /**
  * GitLive implementation of StorageRepository for cross-platform storage
@@ -67,6 +68,7 @@ class GitLiveStorageRepository : StorageRepository {
             Result.success(downloadUrl)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "uploadImage: Error - ${e.message}" }
             e.printStackTrace()
             Result.failure(e)
@@ -99,6 +101,7 @@ class GitLiveStorageRepository : StorageRepository {
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "deleteImage: Error - ${e.message}" }
             e.printStackTrace()
             Result.failure(e)
@@ -135,6 +138,7 @@ class GitLiveStorageRepository : StorageRepository {
                 null
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "parseStorageReference: Error parsing URL - ${e.message}" }
             null
         }

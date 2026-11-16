@@ -21,6 +21,7 @@ import com.together.newverse.domain.model.toContactDirectory
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.ProfileRepository
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.database.DataSnapshot
 import dev.gitlive.firebase.database.database
@@ -183,6 +184,7 @@ class GitLiveProfileRepository(
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "getBuyerProfile: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -221,6 +223,7 @@ class GitLiveProfileRepository(
             Result.success(profileWithCorrectId)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "saveBuyerProfile: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -247,6 +250,7 @@ class GitLiveProfileRepository(
             val displayName = snapshot.value as? String ?: ""
             Result.success(displayName)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "getSellerDisplayName: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -333,6 +337,7 @@ class GitLiveProfileRepository(
             val raw = sellersRef.child(sellerId).child("closures").valueEvents.first().value
             Result.success(MarketClosures(parseClosures(raw)))
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "getSellerClosures: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -376,6 +381,7 @@ class GitLiveProfileRepository(
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "getSellerProfile: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -398,6 +404,7 @@ class GitLiveProfileRepository(
             Result.success(Unit)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "saveSellerProfile: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -457,6 +464,7 @@ class GitLiveProfileRepository(
                         errors.add("Order $orderId not found")
                     }
                 } catch (e: Exception) {
+                    e.rethrowIfCancellation()
                     Log.e(TAG) { "clearUserData: Error processing order $orderId - ${e.message}" }
                     errors.add("Failed to process order $orderId: ${e.message}")
                 }
@@ -467,6 +475,7 @@ class GitLiveProfileRepository(
                 deleteBuyerProfile(buyerProfile.id)
                 true
             } catch (e: Exception) {
+                e.rethrowIfCancellation()
                 errors.add("Failed to delete profile: ${e.message}")
                 false
             }
@@ -488,6 +497,7 @@ class GitLiveProfileRepository(
             Result.success(result)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "clearUserData: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -507,6 +517,7 @@ class GitLiveProfileRepository(
             Result.success(Unit)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "deleteBuyerProfile: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -533,6 +544,7 @@ class GitLiveProfileRepository(
             Result.success(Unit)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "saveDraftBasket: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -558,6 +570,7 @@ class GitLiveProfileRepository(
             Result.success(Unit)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "clearDraftBasket: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -905,6 +918,7 @@ class GitLiveProfileRepository(
             Log.d(TAG) { "submitAccessRequest: sellerId=$sellerId uid=$uid" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "submitAccessRequest: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -919,6 +933,7 @@ class GitLiveProfileRepository(
             Log.d(TAG) { "cancelAccessRequest: sellerId=$sellerId" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "cancelAccessRequest: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -961,6 +976,7 @@ class GitLiveProfileRepository(
             Log.d(TAG) { "redeemInviteToken: redeemed for sellerId=$sellerId uid=$uid" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "redeemInviteToken: Failed for sellerId=$sellerId - ${e.message}" }
             Result.failure(e)
         }
@@ -971,6 +987,7 @@ class GitLiveProfileRepository(
             val uid = authRepository.getCurrentUserId() ?: return AccessStatus.NONE
             parseStatus(buyerAccessStatusRef.child(sellerId).child(uid).valueEvents.first())
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "getAccessStatus: sellerId=$sellerId - ${e.message}" }
             AccessStatus.NONE
         }
@@ -984,6 +1001,7 @@ class GitLiveProfileRepository(
                     .valueEvents.first().value as? String
             )
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             // Same reasoning as observeAllowedMarkets: an unreadable scope must read as
             // "all", never as "none". A caller that narrows on failure would refuse a
             // buyer their own orders because of a transient read error.
@@ -1033,6 +1051,7 @@ class GitLiveProfileRepository(
             buyerAccessStatusRef.child(sellerId).child(uid).child("displayName").setValue(displayName)
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "updateOwnDisplayName: sellerId=$sellerId - ${e.message}" }
             Result.failure(e)
         }
@@ -1094,6 +1113,7 @@ class GitLiveProfileRepository(
             )
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "setAllowedMarkets: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -1118,6 +1138,7 @@ class GitLiveProfileRepository(
             Log.d(TAG) { "approveAccessRequest: approved buyerId=$buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "approveAccessRequest: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -1135,6 +1156,7 @@ class GitLiveProfileRepository(
             Log.d(TAG) { "blockBuyer: blocked buyerId=$buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "blockBuyer: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -1151,6 +1173,7 @@ class GitLiveProfileRepository(
             Log.d(TAG) { "unblockBuyer: unblocked buyerId=$buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "unblockBuyer: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -1180,6 +1203,7 @@ class GitLiveProfileRepository(
             Log.d(TAG) { "createInviteToken: minted a token for sellerId=$sellerId" }
             Result.success(id)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "createInviteToken: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -1202,6 +1226,7 @@ class GitLiveProfileRepository(
         try {
             buyersRef.child(uid).child("linkedSellerIds").child(sellerId).setValue(true)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "rememberLinkedSeller: sellerId=$sellerId - ${e.message}" }
         }
     }
@@ -1222,6 +1247,7 @@ class GitLiveProfileRepository(
                     buyerAccessStatusRef.child(sellerId).child(userId)
                         .child("displayName").setValue(displayName)
                 } catch (e: Exception) {
+                    e.rethrowIfCancellation()
                     // A blocked seller relationship rejects this write - expected, and
                     // it must not stop the name reaching the buyer's other sellers.
                     Log.w(TAG) { "syncDisplayNameToLinkedSellers: sellerId=$sellerId - ${e.message}" }
@@ -1229,6 +1255,7 @@ class GitLiveProfileRepository(
             }
             Log.d(TAG) { "syncDisplayNameToLinkedSellers: pushed name to ${sellerIds.size} seller(s)" }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "syncDisplayNameToLinkedSellers: Error - ${e.message}" }
         }
     }

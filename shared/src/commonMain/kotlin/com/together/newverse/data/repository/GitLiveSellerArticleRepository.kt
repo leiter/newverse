@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 
 /**
  * GitLive implementation of [SellerArticleRepository].
@@ -81,6 +82,7 @@ class GitLiveSellerArticleRepository(
                 )
             )
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "getSellerArticle: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -109,6 +111,7 @@ class GitLiveSellerArticleRepository(
             Log.d(TAG) { "saveSellerArticles: saved ${ids.size} article(s), $withSellerData with seller-only data" }
             Result.success(ids)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "saveSellerArticles: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -128,6 +131,7 @@ class GitLiveSellerArticleRepository(
             Log.d(TAG) { "setArticlePublication: ${publication.size} article(s) -> $publication" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "setArticlePublication: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -141,6 +145,7 @@ class GitLiveSellerArticleRepository(
             rootRef.updateChildren(ArticleNodes.deleteUpdate(sellerId, articleId))
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "deleteSellerArticle: Error - ${e.message}" }
             Result.failure(e)
         }

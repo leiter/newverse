@@ -3,6 +3,7 @@ package com.together.newverse.data.repository
 import com.together.newverse.domain.repository.AuthRepository
 import com.together.newverse.domain.repository.AuthUserInfo
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.auth.FirebaseAuth
@@ -44,6 +45,7 @@ class GitLiveAuthRepository : AuthRepository {
                     currentUser.getIdToken(true)
                     Log.d(TAG) { "checkPersistedAuth: getIdToken SUCCESS" }
                 } catch (tokenError: Exception) {
+                    tokenError.rethrowIfCancellation()
                     Log.w(TAG) { "checkPersistedAuth: getIdToken FAILED - ${tokenError.message}" }
                     // Don't fail the whole auth check if token refresh fails
                     // User might still be valid, just couldn't refresh token
@@ -55,6 +57,7 @@ class GitLiveAuthRepository : AuthRepository {
                 Result.success(null)
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "checkPersistedAuth: ERROR - ${e.message}" }
             Log.e(TAG) { "checkPersistedAuth: Stack trace: ${e.stackTraceToString()}" }
             Result.failure(Exception("Failed to check auth status: ${e.message}"))
@@ -86,6 +89,7 @@ class GitLiveAuthRepository : AuthRepository {
         return try {
             auth.currentUser?.providerData?.map { it.providerId } ?: emptyList()
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "getProviderIds: Error - ${e.message}" }
             emptyList()
         }
@@ -115,6 +119,7 @@ class GitLiveAuthRepository : AuthRepository {
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             handleAuthException(e, "Sign in")
         }
     }
@@ -143,6 +148,7 @@ class GitLiveAuthRepository : AuthRepository {
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             handleAuthException(e, "Sign up")
         }
     }
@@ -160,6 +166,7 @@ class GitLiveAuthRepository : AuthRepository {
             Log.d(TAG) { "signOut: Success" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Sign out failed: ${e.message}"))
         }
     }
@@ -181,6 +188,7 @@ class GitLiveAuthRepository : AuthRepository {
             Log.d(TAG) { "deleteAccount: Success" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Account deletion failed: ${e.message}"))
         }
     }
@@ -203,6 +211,7 @@ class GitLiveAuthRepository : AuthRepository {
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Anonymous sign in failed: ${e.message}"))
         }
     }
@@ -233,6 +242,7 @@ class GitLiveAuthRepository : AuthRepository {
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Google sign in failed: ${e.message}"))
         }
     }
@@ -256,6 +266,7 @@ class GitLiveAuthRepository : AuthRepository {
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Twitter sign in failed: ${e.message}"))
         }
     }
@@ -289,6 +300,7 @@ class GitLiveAuthRepository : AuthRepository {
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "signInWithApple: Exception - ${e.message}" }
             Result.failure(Exception("Apple sign in failed: ${e.message}"))
         }
@@ -310,6 +322,7 @@ class GitLiveAuthRepository : AuthRepository {
             Log.d(TAG) { "sendPasswordResetEmail: Success" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             val errorMessage = when {
                 e.message?.contains("USER_NOT_FOUND") == true -> "No account found with this email"
                 e.message?.contains("INVALID_EMAIL") == true -> "Invalid email format"
@@ -352,6 +365,7 @@ class GitLiveAuthRepository : AuthRepository {
             Log.d(TAG) { "reauthenticateWithPassword: Success" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             handlePasswordChangeException(e, "Re-authentication")
         }
     }
@@ -379,6 +393,7 @@ class GitLiveAuthRepository : AuthRepository {
             Log.d(TAG) { "updatePassword: Success" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             handlePasswordChangeException(e, "Password change")
         }
     }
@@ -418,6 +433,7 @@ class GitLiveAuthRepository : AuthRepository {
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             handleLinkingException(e)
         }
     }
@@ -455,6 +471,7 @@ class GitLiveAuthRepository : AuthRepository {
         try {
             providerData.any { it.providerId == "password" }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "hasPasswordProvider: Error - ${e.message}" }
             // Let the operation proceed and fail with the provider's own error
             // rather than refusing on a reading we could not take.

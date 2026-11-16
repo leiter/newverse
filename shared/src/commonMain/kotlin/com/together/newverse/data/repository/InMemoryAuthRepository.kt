@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.time.Clock
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 
 /**
  * In-memory implementation of AuthRepository for testing and development.
@@ -85,6 +86,7 @@ class InMemoryAuthRepository : AuthRepository {
                 Result.success(_currentUserId.value)
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Failed to check auth status: ${e.message}"))
         }
     }
@@ -122,6 +124,7 @@ class InMemoryAuthRepository : AuthRepository {
 
             Result.success(user.userId)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Sign in failed: ${e.message}"))
         }
     }
@@ -164,6 +167,7 @@ class InMemoryAuthRepository : AuthRepository {
 
             Result.success(userId)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Sign up failed: ${e.message}"))
         }
     }
@@ -176,6 +180,7 @@ class InMemoryAuthRepository : AuthRepository {
             reauthenticatedUserId = null
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Sign out failed: ${e.message}"))
         }
     }
@@ -196,6 +201,7 @@ class InMemoryAuthRepository : AuthRepository {
 
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Delete account failed: ${e.message}"))
         }
     }
@@ -216,6 +222,7 @@ class InMemoryAuthRepository : AuthRepository {
 
             Result.success(userId)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Anonymous sign in failed: ${e.message}"))
         }
     }
@@ -258,6 +265,7 @@ class InMemoryAuthRepository : AuthRepository {
             Log.d(TAG) { "Password reset email sent to $email (simulated)" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Failed to send reset email: ${e.message}"))
         }
     }
@@ -293,6 +301,7 @@ class InMemoryAuthRepository : AuthRepository {
             Log.d(TAG) { "Linked anonymous account with email $email" }
             Result.success(currentUserId)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Account linking failed: ${e.message}"))
         }
     }
@@ -322,6 +331,7 @@ class InMemoryAuthRepository : AuthRepository {
             Log.d(TAG) { "Re-authenticated ${user.email}" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Re-authentication failed: ${e.message}"))
         }
     }
@@ -362,6 +372,7 @@ class InMemoryAuthRepository : AuthRepository {
             Log.d(TAG) { "Password changed for ${user.email}" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Result.failure(Exception("Password change failed: ${e.message}"))
         }
     }

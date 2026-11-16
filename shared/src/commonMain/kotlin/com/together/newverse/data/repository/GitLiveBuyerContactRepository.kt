@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 
 /**
  * Firebase Realtime Database implementation of BuyerContactRepository.
@@ -41,6 +42,7 @@ class GitLiveBuyerContactRepository : BuyerContactRepository {
                         )
                     )
                 } catch (e: Exception) {
+                    e.rethrowIfCancellation()
                     Log.d(TAG) { "Failed to parse contact: ${e.message}" }
                 }
             }
@@ -60,6 +62,7 @@ class GitLiveBuyerContactRepository : BuyerContactRepository {
             Log.d(TAG) { "Contact added: ${contact.userId} for buyer $buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to add contact: ${e.message}" }
             Result.failure(e)
         }
@@ -71,6 +74,7 @@ class GitLiveBuyerContactRepository : BuyerContactRepository {
             Log.d(TAG) { "Contact removed: $contactUserId for buyer $buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to remove contact: ${e.message}" }
             Result.failure(e)
         }
@@ -82,6 +86,7 @@ class GitLiveBuyerContactRepository : BuyerContactRepository {
             Log.d(TAG) { "Contact blocked: $contactUserId by buyer $buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to block contact: ${e.message}" }
             Result.failure(e)
         }
@@ -93,6 +98,7 @@ class GitLiveBuyerContactRepository : BuyerContactRepository {
             Log.d(TAG) { "Contact unblocked: $contactUserId by buyer $buyerId" }
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.d(TAG) { "Failed to unblock contact: ${e.message}" }
             Result.failure(e)
         }

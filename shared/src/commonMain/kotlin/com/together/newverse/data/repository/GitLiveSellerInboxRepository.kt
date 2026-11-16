@@ -5,6 +5,7 @@ import com.together.newverse.domain.model.SellerInboxMessage
 import com.together.newverse.domain.model.SellerUiAction
 import com.together.newverse.domain.repository.SellerInboxRepository
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.database.DataSnapshot
 import dev.gitlive.firebase.database.database
@@ -70,6 +71,7 @@ class GitLiveSellerInboxRepository : SellerInboxRepository {
             Log.d(TAG) { "send: ${stored.id} from ${stored.buyerId} to ${stored.sellerId}" }
             Result.success(stored)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "send: ${e.message}" }
             Result.failure(e)
         }
@@ -99,6 +101,7 @@ class GitLiveSellerInboxRepository : SellerInboxRepository {
             inboxRef.child(sellerId).child(messageId).removeValue()
             Result.success(Unit)
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "deleteMessage: ${e.message}" }
             Result.failure(e)
         }
@@ -142,6 +145,7 @@ class GitLiveSellerInboxRepository : SellerInboxRepository {
                 timestampIso = data["timestampIso"] as? String ?: "",
             )
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.w(TAG) { "parseMessage: skipping malformed row - ${e.message}" }
             null
         }

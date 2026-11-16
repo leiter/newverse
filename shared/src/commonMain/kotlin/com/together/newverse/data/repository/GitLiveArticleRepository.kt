@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 
 /**
  * GitLive implementation of ArticleRepository for cross-platform article management.
@@ -123,6 +124,7 @@ class GitLiveArticleRepository(
                 articlesCache[targetSellerId] = currentArticles.toMutableMap()
             }
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "observeArticles: Error - ${e.message}" }
             throw e
         }
@@ -180,6 +182,7 @@ class GitLiveArticleRepository(
             }
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "getArticle: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -224,6 +227,7 @@ class GitLiveArticleRepository(
             Result.success(Unit)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "saveArticle: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -253,6 +257,7 @@ class GitLiveArticleRepository(
             Result.success(Unit)
 
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "deleteArticle: Error - ${e.message}" }
             Result.failure(e)
         }

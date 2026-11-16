@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.TimeZone
 import com.together.newverse.util.Log
+import com.together.newverse.util.rethrowIfCancellation
 
 /**
  * GitLive implementation of [SaleRepository]. Layout and update maps come from
@@ -70,6 +71,7 @@ class GitLiveSaleRepository(
             }
             Result.success(sales.sortedBy { it.confirmedAt })
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "salesForOrder: Error - ${e.message}" }
             Result.failure(e)
         }
@@ -89,6 +91,7 @@ class GitLiveSaleRepository(
             Log.d(TAG) { "recordSale: $saleId for order ${sale.orderId} (${sale.lines.size} lines, ${sale.grossCents} cents${if (sale.isReversal) ", cancellation" else ""})" }
             Result.success(sale.copy(id = saleId))
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
             Log.e(TAG) { "recordSale: Error - ${e.message}" }
             Result.failure(e)
         }
