@@ -19,6 +19,7 @@ import com.together.newverse.domain.repository.ProfileRepository
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.database.DataSnapshot
 import dev.gitlive.firebase.database.database
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -105,6 +106,23 @@ class GitLiveOrderRepository(
                 Log.d(TAG) { "observeSellerOrders: Emitting ${orders.size} orders" }
                 emit(orders)
             }
+        } catch (e: CancellationException) {
+            // Leaving the screen cancels the collector, and that is not a failure.
+            // CancellationException is an Exception, so the catch below used to take
+            // it: it logged "Job was cancelled" at error level and then emitted an
+            // empty list into a coroutine that was already going away.
+            //
+            // The empty list is the part that matters. Downstream, StockViewModel
+            // combines orders with the catalogue and the stock levels, so no orders
+            // reads as no committed demand -- it recomputes the refill list from that
+            // and hands cacheReminder a snapshot with nothing in it. The reminder that
+            // tells the seller what to buy before market day is built from that
+            // snapshot, and the worker wakes with no database of its own to check it
+            // against. A wrong answer with nothing on screen to question it.
+            //
+            // Rethrowing is also what lets the cancellation reach the machinery that
+            // asked for it, instead of being swallowed here.
+            throw e
         } catch (e: Exception) {
             Log.e(TAG) { "observeSellerOrders: Error - ${e.message}" }
             // Emit empty list on error

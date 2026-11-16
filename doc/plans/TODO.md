@@ -413,6 +413,43 @@ The following features are planned but not yet implemented, or are only partiall
     - Decide which of these the app should close and which stay the accountant's job.
     - A backup of `/sales` is the one with no design question in it.
 
+### High Priority: Repositories swallow CancellationException
+
+- **Status:** Open — found 2026-11-16 in a logcat capture from a release build on a
+  Pixel 7a, while verifying something else. One instance fixed, the pattern not.
+- **What was seen:** three `E/OrderRepo: observeSellerOrders: Error - Job was
+  cancelled` lines, logged simply by navigating between screens.
+- **Why it is not only noise:** `CancellationException` is an `Exception`, so a
+  `catch (e: Exception)` around a flow body takes it, and these catches end by
+  emitting a fallback value — `emit(emptyList())` in the case found. Leaving a screen
+  therefore publishes "no orders" rather than stopping. Downstream of
+  `observeSellerOrders`, `StockViewModel` combines orders with the catalogue and the
+  levels, so no orders reads as no committed demand: it recomputes the refill list
+  from that and hands `cacheReminder` an empty snapshot. The refill reminder is built
+  from that snapshot by a worker that has no database of its own to check it against,
+  so the failure mode is the seller being told there is nothing to buy. Swallowing it
+  also stops the cancellation reaching whatever asked for it.
+- **Fixed so far:** `GitLiveOrderRepository.observeSellerOrders` rethrows
+  `CancellationException` before the general catch. Nothing else was touched.
+- **The size of it:** `CancellationException` appears nowhere else in `commonMain`,
+  and `data/repository/` has 19 files using `catch (e: Exception)` —
+  `GitLiveProfileRepository` 26 of them, `GitLiveMessageRepository` 23,
+  `GitLiveOrderRepository` 17 (16 left), `GitLiveAuthRepository` 15. Five are flow
+  builders, which are the ones that can emit a fallback into a dying coroutine; the
+  rest are suspend functions, where swallowing cancellation is wrong for its own
+  reasons but has no bogus value to publish.
+- **Tasks:**
+  - Go through the five `= flow {` builders first: anything that emits in a catch is
+    the same bug and can publish the same kind of wrong answer. `observeBuyerOrders`
+    is in that set and serves the buy flavor.
+  - Then the suspend functions, where the fix is the same rethrow and the risk is a
+    coroutine that will not stop.
+  - Consider whether this belongs in a lint rule or a shared helper rather than 19
+    files of discipline — a `runCatchingNonCancellation` would make the right thing
+    the short thing.
+  - A test is awkward against the GitLive SDK but not against the fakes: cancelling a
+    collector and asserting no further emission would have caught this.
+
 ### Medium Priority: Warn before deleting an article a buyer has ordered
 
 - **Status:** Open — deliberately deferred 2026-11-15, when per-article delete shipped
