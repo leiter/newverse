@@ -17,6 +17,10 @@
 # builds faster and its stack traces are readable. That makes it a sideload
 # build, not what Play gets — pass --minify to reproduce the shipping APK.
 #
+# It is still not debuggable, so it logs nothing below Log.e: the log level
+# follows android:debuggable, not R8. The release block in androidApp/build.gradle.kts
+# has the one line to uncomment when you want an unminified release to talk.
+#
 # Usage: ./install-sell-release.sh [--device <serial>] [--no-clean] [--minify]
 #        ./install-sell-release.sh --list
 #

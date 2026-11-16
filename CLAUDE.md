@@ -269,3 +269,9 @@ adb logcat -s "BasketViewModel" -s "GitLiveAuthRepository"
 # Check auth state
 adb logcat | grep -E "Auth|Firebase"
 ```
+
+Both need a **debug** build. A release APK logs nothing below `Log.e`, even the
+unminified one `install-sell-release.sh` sideloads: the level follows
+`android:debuggable`, not R8 (`Log.kt`, `DebugConfig.android.kt`). The release block
+in `androidApp/build.gradle.kts` has the line to uncomment when a sideloaded release
+needs to talk.

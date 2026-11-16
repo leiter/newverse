@@ -103,6 +103,24 @@ android {
             // Anything heading for Play leaves the property alone and is minified.
             isMinifyEnabled = !skipMinify
             isShrinkResources = !skipMinify // Remove unused resources; needs minify on
+
+            // This does NOT turn logging on, and the two are easy to confuse. R8 is
+            // about what the APK looks like; the log level is about android:debuggable.
+            // `Log.minLevel` is DEBUG only when `isDebugBuild` is true, and on Android
+            // that reads ApplicationInfo.FLAG_DEBUGGABLE (see DebugConfig.android.kt),
+            // which AGP sets for the debug build type and not for this one. So a
+            // sideloaded release is unminified with readable stack traces and still
+            // emits nothing below Log.e -- every Log.d in the app is compiled in and
+            // dropped at runtime.
+            //
+            // To watch an unminified release talk, uncomment this for the session:
+            //
+            //     isDebuggable = skipMinify
+            //
+            // It applies only to builds that passed -Pnewverse.skipMinify=true, so the
+            // Play path is untouched. Leave it commented in the repo: a debuggable APK
+            // lets anyone holding the phone attach a debugger and read the app's data,
+            // and that must not be what someone else is handed. Dev phone, then back.
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
