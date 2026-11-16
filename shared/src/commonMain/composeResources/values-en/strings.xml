@@ -1111,6 +1111,12 @@
     <string name="stock_filter_refill">Refill</string>
     <string name="stock_filter_uncounted">Uncounted</string>
     <string name="stock_no_articles_in_filter">No article in this filter.</string>
+    <string name="stock_sort">Sort</string>
+    <string name="stock_sort_name">Name</string>
+    <string name="stock_sort_on_hand">On hand</string>
+    <string name="stock_sort_shortfall">Shortfall</string>
+    <string name="stock_sort_last_counted">Last counted</string>
+    <string name="a11y_stock_sort">Sorted by: %1$s</string>
     <string name="a11y_stock_filter">Stock filter: %1$s, %2$d articles</string>
     <string name="stock_intake">Intake</string>
     <string name="stock_stocktake">Count</string>

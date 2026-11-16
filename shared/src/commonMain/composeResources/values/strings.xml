@@ -1171,6 +1171,12 @@
     <string name="stock_filter_refill">Nachfüllen</string>
     <string name="stock_filter_uncounted">Ungezählt</string>
     <string name="stock_no_articles_in_filter">Kein Artikel in diesem Filter.</string>
+    <string name="stock_sort">Sortieren</string>
+    <string name="stock_sort_name">Name</string>
+    <string name="stock_sort_on_hand">Bestand</string>
+    <string name="stock_sort_shortfall">Fehlmenge</string>
+    <string name="stock_sort_last_counted">Zuletzt gezählt</string>
+    <string name="a11y_stock_sort">Sortierung: %1$s</string>
     <string name="a11y_stock_filter">Lagerfilter: %1$s, %2$d Artikel</string>
     <string name="stock_intake">Zugang</string>
     <string name="stock_stocktake">Zählen</string>

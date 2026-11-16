@@ -326,6 +326,108 @@ class StockViewModelTest {
         assertEquals(before, vm.state.value.refillNeeds.map { it.articleId })
     }
 
+    // ===== The standing's order =====
+
+    private fun stocked(id: String, name: String, reorderLevel: Double) = SellerArticle(
+        Article(id = id, productName = name, unit = "kg"),
+        SellerArticleData(reorderLevel = reorderLevel)
+    )
+
+    /** Four articles whose numbers differ on every axis the sort offers. */
+    private fun TestScope.sortable(): StockViewModel {
+        articleRepository.setArticles(listOf(
+            stocked("beet", "Rote Bete", reorderLevel = 10.0),
+            stocked("apple", "Apfel", reorderLevel = 5.0),
+            stocked("carrot", "Karotte", reorderLevel = 0.0),
+            stocked("dill", "Dill", reorderLevel = 2.0)
+        ))
+        stockRepository.setMovements(listOf(
+            // beet: plenty counted long ago. apple: almost gone, counted recently.
+            // dill: a little, never counted by a stocktake. carrot: no movement at all.
+            StockMovement.intake("beet", MeasuredQuantity.typed(40.0, "kg"), recordedAt = 1_000L),
+            StockMovement.intake("apple", MeasuredQuantity.typed(1.0, "kg"), recordedAt = 2_000L),
+            StockMovement.intake("dill", MeasuredQuantity.typed(3.0, "kg"), recordedAt = 3_000L)
+        ))
+        return loaded()
+    }
+
+    private fun names(vm: StockViewModel) = vm.state.value.matchingStanding.map { it.productName }
+
+    @Test
+    fun `the standing is sorted by name to begin with`() = runTest {
+        val vm = sortable()
+
+        assertEquals(StockSort.NAME, vm.state.value.sort)
+        assertEquals(listOf("Apfel", "Dill", "Karotte", "Rote Bete"), names(vm))
+    }
+
+    @Test
+    fun `by stock puts what is nearly gone first`() = runTest {
+        val vm = sortable()
+        vm.setSort(StockSort.ON_HAND)
+
+        // Karotte has no level at all, which reads as 0.0 and sorts with the empty.
+        assertEquals(listOf("Karotte", "Apfel", "Dill", "Rote Bete"), names(vm))
+    }
+
+    @Test
+    fun `by shortfall puts the biggest gap first and the settled last`() = runTest {
+        val vm = sortable()
+        vm.setSort(StockSort.SHORTFALL)
+
+        // beet is above its level and carrot is unwatched, so both need nothing and
+        // fall to the bottom in name order. apple wants 4, dill wants... less.
+        val ordered = names(vm)
+        assertEquals("Apfel", ordered.first())
+        assertEquals(listOf("Karotte", "Rote Bete"), ordered.takeLast(2))
+    }
+
+    @Test
+    fun `by last counted puts what was never counted first`() = runTest {
+        val vm = sortable()
+        vm.setSort(StockSort.LAST_COUNTED)
+
+        // An intake is not a count, so nothing here has a lastCountedAt and the whole
+        // list is "no evidence", in name order.
+        assertEquals(listOf("Apfel", "Dill", "Karotte", "Rote Bete"), names(vm))
+    }
+
+    @Test
+    fun `a counted article sorts after everything never counted`() = runTest {
+        val vm = sortable()
+        vm.startBooking("beet", StockMovementKind.STOCKTAKE)
+        vm.setQuantity("40")
+        vm.book()
+        advanceUntilIdle()
+        vm.setSort(StockSort.LAST_COUNTED)
+
+        // Rote Bete is the only one a count has confirmed, so it goes last: never
+        // counted is no evidence at all, not merely old evidence.
+        assertEquals("Rote Bete", names(vm).last())
+    }
+
+    @Test
+    fun `the sort holds while the filter and the query narrow`() = runTest {
+        val vm = sortable()
+        vm.setSort(StockSort.ON_HAND)
+        vm.setFilter(StockFilter.WATCHED)
+
+        // Karotte is unwatched and drops out; the rest keep the on-hand order.
+        assertEquals(listOf("Apfel", "Dill", "Rote Bete"), names(vm))
+    }
+
+    @Test
+    fun `the refill list keeps its own order whatever the standing does`() = runTest {
+        val vm = sortable()
+        val before = vm.state.value.refillNeeds.map { it.productName }
+
+        vm.setSort(StockSort.LAST_COUNTED)
+
+        // Urgency, then how much is missing, then name -- the order the seller buys
+        // in, which is an answer rather than a presentation.
+        assertEquals(before, vm.state.value.refillNeeds.map { it.productName })
+    }
+
     @Test
     fun `an oversold article is on the list even though nothing is watched`() = runTest {
         // Caught by running the app: the screen asked "is anything watched?" before

@@ -270,6 +270,10 @@ class StockViewModel(
         _state.update { it.copy(filter = filter) }
     }
 
+    fun setSort(sort: StockSort) {
+        _state.update { it.copy(sort = sort) }
+    }
+
     // ----- Booking -----
 
     /** Open the booking editor for one article. */
@@ -423,6 +427,8 @@ data class StockUiState(
     val query: String = "",
     /** Which band of the standing is shown. The refill list above is never filtered. */
     val filter: StockFilter = StockFilter.ALL,
+    /** What order the standing is in. The refill list above keeps its own. */
+    val sort: StockSort = StockSort.NAME,
     val editor: StockEditor? = null,
     val scaleStatus: ScaleStatus = ScaleStatus.Unsupported,
     val scaleReading: MeasuredQuantity? = null,
@@ -454,7 +460,7 @@ data class StockUiState(
      * the seller's hand found nothing on the one screen they are holding it for.
      */
     val matchingStanding: List<RefillNeed>
-        get() = queriedStanding.filter(filter::matches)
+        get() = sort.sort(queriedStanding.filter(filter::matches))
 
     /**
      * The standing after the query alone, which is what the chips count against.
@@ -541,6 +547,54 @@ enum class StockFilter {
         WATCHED -> need.reorderLevel > 0.0
         NEEDS_REFILL -> need.state.needsAttention
         UNCOUNTED -> !need.hasLevel
+    }
+}
+
+/**
+ * What order the "Alle Artikel" standing is in.
+ *
+ * Only that list. The refill list above it is sorted by urgency, then by how much is
+ * missing, then by name (`refillNeeds` in `StockRefill.kt`), and that order is the
+ * order the seller buys in -- it is an answer, not a presentation, so it is not
+ * offered here to be rearranged.
+ *
+ * Every value reads a field [RefillNeed] already carries, so none of this needs the
+ * model to change. Each sorts by name within equal values, so the list is stable and
+ * two articles with nothing on the shelf do not swap places between recompositions.
+ */
+enum class StockSort {
+    /** Alphabetical. What the screen has always done, and still the default. */
+    NAME,
+
+    /** Least on hand first: what am I nearly out of. */
+    ON_HAND,
+
+    /** Biggest gap first: what do I buy most of. Articles needing nothing sort last. */
+    SHORTFALL,
+
+    /**
+     * Longest since a count first, never-counted before everything.
+     *
+     * An arithmetic level is weaker evidence than a weighed one, so this is "what have
+     * I not checked in ages" -- the list to walk with a scale, and the companion to
+     * the Ungezählt chip.
+     */
+    LAST_COUNTED;
+
+    fun sort(rows: List<RefillNeed>): List<RefillNeed> {
+        val byName = compareBy<RefillNeed> { it.productName.lowercase() }
+        return when (this) {
+            NAME -> rows.sortedWith(byName)
+            ON_HAND -> rows.sortedWith(compareBy<RefillNeed> { it.onHand }.then(byName))
+            // Descending, so the biggest gap is first; 0.0 for everything that needs
+            // nothing, which therefore lands at the bottom in name order.
+            SHORTFALL -> rows.sortedWith(compareByDescending<RefillNeed> { it.shortfall }.then(byName))
+            // Never counted is not "counted long ago", it is no evidence at all, so it
+            // comes first rather than being sorted among the old dates.
+            LAST_COUNTED -> rows.sortedWith(
+                compareBy<RefillNeed> { it.lastCountedAt ?: Long.MIN_VALUE }.then(byName)
+            )
+        }
     }
 }
 

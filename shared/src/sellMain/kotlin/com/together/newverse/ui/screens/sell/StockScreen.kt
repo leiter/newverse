@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.together.newverse.ui.components.StockFilterChipRow
+import com.together.newverse.ui.components.StockSortMenu
 import com.together.newverse.domain.model.ProductPricing
 import com.together.newverse.domain.model.RefillNeed
 import com.together.newverse.domain.model.OrderShortfall
@@ -91,6 +92,7 @@ fun StockScreen(
     StockContent(
         state = state,
         onFilterChange = viewModel::setFilter,
+        onSortChange = viewModel::setSort,
         onBook = viewModel::startBooking,
         onQuantityChange = viewModel::setQuantity,
         onNoteChange = viewModel::setNote,
@@ -109,6 +111,7 @@ fun StockScreen(
 fun StockContent(
     state: StockUiState,
     onFilterChange: (StockFilter) -> Unit,
+    onSortChange: (StockSort) -> Unit,
     onBook: (String, StockMovementKind) -> Unit,
     onQuantityChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
@@ -194,12 +197,27 @@ fun StockContent(
                 modifier = Modifier.background(MaterialTheme.colorScheme.background)
             ) {
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                Text(
-                    text = stringResource(Res.string.stock_all_articles),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.semantics { heading() }
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(Res.string.stock_all_articles),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .weight(1f)
+                            .semantics { heading() }
+                    )
+                    // Beside the heading rather than in the top bar's overflow. The
+                    // bar cannot see this screen's view model -- StockViewModel is
+                    // resolved per back stack entry -- so putting the control up there
+                    // would mean lifting the Lager's sort into the shared app view
+                    // model, which search only does because the *field* has to live in
+                    // the bar. Nothing forces that here, and this orders the same
+                    // section the chips below narrow.
+                    StockSortMenu(selected = state.sort, onSelect = onSortChange)
+                }
                 StockFilterChipRow(
                     selected = state.filter,
                     counts = state.filterCounts,
