@@ -47,8 +47,9 @@ import com.together.newverse.ui.state.SellAppViewModel
 
 @Composable
 fun OverviewScreen(
+    /** The scaffold's instance, not defaulted -- see the note in [StockScreen]. */
+    sellAppViewModel: SellAppViewModel,
     viewModel: OverviewViewModel = koinViewModel(),
-    sellAppViewModel: SellAppViewModel = koinViewModel(),
     isSelectionMode: Boolean = false,
     onSelectionModeChange: (Boolean) -> Unit = {},
     isAvailabilityMode: Boolean = false,

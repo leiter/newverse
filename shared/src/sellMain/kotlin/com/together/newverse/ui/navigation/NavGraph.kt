@@ -126,7 +126,7 @@ fun NavGraphBuilder.navGraph(
     }
 
     composable(NavRoutes.Sell.Stock.route) {
-        StockScreen()
+        StockScreen(sellAppViewModel = sellAppViewModel)
     }
 
     composable(

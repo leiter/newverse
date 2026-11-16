@@ -57,8 +57,18 @@ import com.together.newverse.ui.state.SellAppViewModel
  */
 @Composable
 fun StockScreen(
-    viewModel: StockViewModel = koinViewModel(),
-    sellAppViewModel: SellAppViewModel = koinViewModel()
+    /**
+     * The scaffold's instance, passed in and deliberately not defaulted.
+     *
+     * `koinViewModel()` here would resolve against this back stack entry rather than
+     * the host, so the screen would get a SellAppViewModel of its own -- and the top
+     * bar would be writing the query into the scaffold's one while this screen read an
+     * instance nobody writes to. The search would simply do nothing. See the note on
+     * SellAppViewModel's search state; having no default is what stops a caller
+     * rediscovering this.
+     */
+    sellAppViewModel: SellAppViewModel,
+    viewModel: StockViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 

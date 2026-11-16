@@ -12,6 +12,7 @@ import com.together.newverse.ui.screens.sell.OverviewScreen
 import com.together.newverse.ui.screens.sell.PickDayScreen
 import com.together.newverse.ui.screens.sell.SellerProfileScreen
 import com.together.newverse.ui.theme.NewverseTheme
+import org.koin.compose.viewmodel.koinViewModel
 import com.together.newverse.util.ImagePicker
 import com.together.newverse.util.LocalImagePicker
 
@@ -24,7 +25,7 @@ import com.together.newverse.util.LocalImagePicker
 fun OverviewScreenPreview() {
     NewverseTheme {
         Surface {
-            OverviewScreen()
+            OverviewScreen(sellAppViewModel = koinViewModel())
         }
     }
 }
@@ -85,7 +86,7 @@ fun PickDayScreenPreview() {
 fun OverviewScreenThemesPreview() {
     NewverseTheme {
         Surface {
-            OverviewScreen()
+            OverviewScreen(sellAppViewModel = koinViewModel())
         }
     }
 }
