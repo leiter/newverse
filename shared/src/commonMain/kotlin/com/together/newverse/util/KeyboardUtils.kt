@@ -65,3 +65,24 @@ expect fun Modifier.keyboardPadding(): Modifier
  */
 @Composable
 expect fun isKeyboardHidingBottomBar(): Boolean
+
+/**
+ * Whether the platform itself lifts a focused field above the keyboard, by moving
+ * the whole scene rather than by anything the layout does.
+ *
+ * The third member of the family, and true for the same reason [keyboardPadding]
+ * is a no-op on iOS: `ComposeUIViewController` runs with the default
+ * [OnFocusBehavior.FocusableAboveKeyboard], which pans the entire scene when a
+ * field takes focus. Android does nothing of the kind -- the window is not
+ * resized and nothing pans -- so there the answer is no.
+ *
+ * Ask it before a screen rearranges itself to make room for the keyboard. A
+ * layout that collapses something away on focus is doing the same job as the pan,
+ * and where both run the focused field travels twice: the pan is measured while
+ * the collapsing content is still at full height, so the field ends up lifted
+ * further than it needed to be, over the gap the collapse just opened.
+ *
+ * The buy home screen folds its hero card away while the search field has focus,
+ * and asks this first (`MainScreenModern.kt`).
+ */
+expect fun liftsFocusedContentAboveKeyboard(): Boolean

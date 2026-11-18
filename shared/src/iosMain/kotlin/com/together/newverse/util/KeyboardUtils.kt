@@ -43,3 +43,10 @@ actual fun Modifier.keyboardPadding(): Modifier = this
  */
 @Composable
 actual fun isKeyboardHidingBottomBar(): Boolean = false
+
+/**
+ * Yes -- `OnFocusBehavior.FocusableAboveKeyboard` pans the whole scene, which is
+ * why [keyboardPadding] is a no-op here too. A screen that also rearranges itself
+ * on focus would move the field a second time.
+ */
+actual fun liftsFocusedContentAboveKeyboard(): Boolean = true

@@ -47,6 +47,7 @@ import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyMainScreenAction
 import com.together.newverse.ui.state.MainScreenState
+import com.together.newverse.util.liftsFocusedContentAboveKeyboard
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.main_order_locked_snackbar
 import newverse.shared.generated.resources.main_section_fresh_subtitle
@@ -96,6 +97,13 @@ private fun MainScreenModernContent(
     // isQuantityInputFocused, which is in the state only because AppScaffold reads it.
     // Nothing outside this screen needs to know the search field has focus.
     var isSearchFocused by remember { mutableStateOf(false) }
+
+    // ...but only where the platform leaves the job to the layout. iOS pans the whole
+    // scene to lift a focused field above the keyboard, and folding the card away as
+    // well would move the field twice -- the pan is measured while the card is still
+    // at full height, so the field would end up above the gap the fold just opened.
+    // Same reason keyboardPadding() is a no-op there.
+    val collapsesHero = !liftsFocusedContentAboveKeyboard()
 
     // Two product columns on phones, three on tablets (feed width is capped below)
     val productColumns = when (LocalWindowWidthClass.current) {
@@ -151,7 +159,7 @@ private fun MainScreenModernContent(
                         .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                 ) {
                     AnimatedVisibility(
-                        visible = !isSearchFocused,
+                        visible = !(isSearchFocused && collapsesHero),
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut(),
                     ) {

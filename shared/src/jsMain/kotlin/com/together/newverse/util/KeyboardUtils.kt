@@ -16,3 +16,6 @@ actual fun Modifier.keyboardPadding(): Modifier = this
 /** A browser has no soft keyboard to cover anything. */
 @Composable
 actual fun isKeyboardHidingBottomBar(): Boolean = false
+
+/** A browser has no soft keyboard, so nothing is lifted above one. */
+actual fun liftsFocusedContentAboveKeyboard(): Boolean = false
