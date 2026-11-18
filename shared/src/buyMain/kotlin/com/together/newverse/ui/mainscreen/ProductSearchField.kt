@@ -14,6 +14,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -33,6 +35,10 @@ import org.jetbrains.compose.resources.stringResource
  * placeholder — the placeholder disappears once text is entered, so it is not a
  * reliable label. The leading magnifier is decorative; the trailing clear button
  * is labelled and only present while there is a query.
+ *
+ * [onFocusChanged] reports focus so the caller can give the search its own room:
+ * the main screen collapses the hero card away while the field is focused and
+ * brings it back when focus leaves.
  */
 @Composable
 fun ProductSearchField(
@@ -40,14 +46,18 @@ fun ProductSearchField(
     onQueryChange: (String) -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
+    onFocusChanged: (Boolean) -> Unit = {},
 ) {
     val label = stringResource(Res.string.cd_product_search)
     val keyboardManager = rememberKeyboardManager()
+    val focusManager = LocalFocusManager.current
 
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = modifier.semantics { contentDescription = label },
+        modifier = modifier
+            .onFocusChanged { onFocusChanged(it.isFocused) }
+            .semantics { contentDescription = label },
         placeholder = { Text(stringResource(Res.string.products_search_placeholder)) },
         leadingIcon = {
             Icon(
@@ -69,7 +79,15 @@ fun ProductSearchField(
         },
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { keyboardManager.hide() }),
+        // The IME's search key gives focus up as well as hiding the keyboard. Hiding
+        // alone would leave the field focused, and the caller watching focus would
+        // keep the hero card folded away with the keyboard already gone.
+        keyboardActions = KeyboardActions(
+            onSearch = {
+                keyboardManager.hide()
+                focusManager.clearFocus()
+            }
+        ),
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,

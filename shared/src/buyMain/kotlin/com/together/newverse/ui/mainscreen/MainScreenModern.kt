@@ -1,5 +1,10 @@
 package com.together.newverse.ui.mainscreen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.rememberScrollableState
@@ -24,9 +29,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -76,6 +85,17 @@ private fun MainScreenModernContent(
     val quantity = state.selectedQuantity
     val basketItems = state.basketItems
     val snackbarHostState = remember { SnackbarHostState() }
+    val focusManager = LocalFocusManager.current
+
+    // While the search field holds focus the hero card folds away, so the field and
+    // the chips rise to the top and the keyboard leaves as many product rows visible
+    // as possible. Focus is the only trigger: a query still standing in the field
+    // does not keep the card hidden once focus has gone.
+    //
+    // The flag stays local rather than going through BuyMainScreenAction, unlike
+    // isQuantityInputFocused, which is in the state only because AppScaffold reads it.
+    // Nothing outside this screen needs to know the search field has focus.
+    var isSearchFocused by remember { mutableStateOf(false) }
 
     // Two product columns on phones, three on tablets (feed width is capped below)
     val productColumns = when (LocalWindowWidthClass.current) {
@@ -130,42 +150,53 @@ private fun MainScreenModernContent(
                         .background(MaterialTheme.colorScheme.background)
                         .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                 ) {
-                    // Show skeleton or actual product
-                    if (state.isLoading && selectedProduct == null) {
-                        HeroProductCardSkeleton()
-                    } else {
-                        selectedProduct?.let { product ->
-                            // Match by id (Firebase key when loaded from order) or productId (Firebase key when freshly added)
-                            val basketItem = basketItems.find { it.id == product.id || it.productId == product.id }
-                            val isInBasket = basketItem != null
-                            val originalQuantity = basketItem?.amountCount ?: 0.0
-                            val isFavourite = state.favouriteArticles.contains(product.id)
-                            HeroProductCard(
-                                product = product,
-                                price = state.priceOf(product),
-                                quantity = quantity,
-                                originalQuantity = originalQuantity,
-                                isInBasket = isInBasket,
-                                isFavourite = isFavourite,
-                                onQuantityChange = { onAction(BuyMainScreenAction.UpdateQuantity(it)) },
-                                onQuantityFocusChange = {
-                                    onAction(BuyMainScreenAction.SetQuantityInputFocused(it))
-                                },
-                                onAddToCart = { onAction(BuyMainScreenAction.AddToCart) },
-                                onRemoveFromBasket = { onAction(BuyMainScreenAction.RemoveFromBasket) },
-                                onToggleFavourite = { onAction(BuyMainScreenAction.ToggleFavourite(product.id)) },
-                                onNavigateToDetail = { onNavigateToProductDetail(product.id) }
-                            )
+                    AnimatedVisibility(
+                        visible = !isSearchFocused,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
+                    ) {
+                        Column {
+                            // Show skeleton or actual product
+                            if (state.isLoading && selectedProduct == null) {
+                                HeroProductCardSkeleton()
+                            } else {
+                                selectedProduct?.let { product ->
+                                    // Match by id (Firebase key when loaded from order) or productId (Firebase key when freshly added)
+                                    val basketItem = basketItems.find { it.id == product.id || it.productId == product.id }
+                                    val isInBasket = basketItem != null
+                                    val originalQuantity = basketItem?.amountCount ?: 0.0
+                                    val isFavourite = state.favouriteArticles.contains(product.id)
+                                    HeroProductCard(
+                                        product = product,
+                                        price = state.priceOf(product),
+                                        quantity = quantity,
+                                        originalQuantity = originalQuantity,
+                                        isInBasket = isInBasket,
+                                        isFavourite = isFavourite,
+                                        onQuantityChange = { onAction(BuyMainScreenAction.UpdateQuantity(it)) },
+                                        onQuantityFocusChange = {
+                                            onAction(BuyMainScreenAction.SetQuantityInputFocused(it))
+                                        },
+                                        onAddToCart = { onAction(BuyMainScreenAction.AddToCart) },
+                                        onRemoveFromBasket = { onAction(BuyMainScreenAction.RemoveFromBasket) },
+                                        onToggleFavourite = { onAction(BuyMainScreenAction.ToggleFavourite(product.id)) },
+                                        onNavigateToDetail = { onNavigateToProductDetail(product.id) }
+                                    )
+                                }
+                            }
+
+                            // Inside the collapsing block, so the gap goes with the card
+                            // instead of leaving a 16.dp hole above the search field.
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Search Bar
                     ProductSearchField(
                         query = state.searchQuery,
                         onQueryChange = { onAction(BuyMainScreenAction.UpdateSearchQuery(it)) },
                         onClear = { onAction(BuyMainScreenAction.ClearSearchQuery) },
+                        onFocusChanged = { isSearchFocused = it },
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -266,6 +297,11 @@ private fun MainScreenModernContent(
                                     price = state.priceOf(product),
                                     modifier = Modifier.weight(1f),
                                     onClick = {
+                                        // Picking a card loads it into the hero, so the
+                                        // search field has to let go of focus first —
+                                        // otherwise the card the buyer just chose stays
+                                        // folded away behind the keyboard.
+                                        focusManager.clearFocus()
                                         onAction(BuyMainScreenAction.SelectArticle(product))
                                     },
                                     onNavigateToDetail = {
