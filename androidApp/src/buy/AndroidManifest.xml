@@ -12,6 +12,22 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"
         tools:node="remove" />
 
+    <!-- play-services-code-scanner merges in GmsBarcodeScanningDelegateActivity with
+         android:screenOrientation="portrait". An activity asking for a fixed
+         orientation *implies* uses-feature android.hardware.screen.portrait with
+         required="true", and Play applies that implication to the whole app: the
+         listing then refuses to install on anything that cannot do portrait, which
+         Play counts as phones, tablets, desktop and XR. ML Kit locks that activity
+         only to stop an invisible delegate being recreated, so the requirement is
+         not ours to make.
+
+         Declaring the feature here explicitly is what suppresses the implied one.
+         It does not unlock the app's own orientation: the buy app stays portrait on
+         phones by width class, which is a layout decision and not a hardware claim. -->
+    <uses-feature
+        android:name="android.hardware.screen.portrait"
+        android:required="false" />
+
     <application>
         <!-- Buy flavor Activity -->
         <!-- adjustResize, with enableEdgeToEdge() in the activity, is the documented

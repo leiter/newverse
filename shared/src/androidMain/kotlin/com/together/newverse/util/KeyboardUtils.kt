@@ -57,10 +57,3 @@ actual fun isKeyboardHidingBottomBar(): Boolean {
     val hiding by remember(density, ime) { derivedStateOf { ime.getBottom(density) > 0 } }
     return hiding
 }
-
-/**
- * No. Nothing moves on its own here: the window is not resized for the keyboard
- * and there is no scene to pan, so a screen that wants a focused field clear of
- * the keyboard has to arrange that itself.
- */
-actual fun liftsFocusedContentAboveKeyboard(): Boolean = false

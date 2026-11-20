@@ -47,7 +47,6 @@ import com.together.newverse.ui.adaptive.constrainedContentWidth
 import com.together.newverse.ui.state.BuyAction
 import com.together.newverse.ui.state.BuyMainScreenAction
 import com.together.newverse.ui.state.MainScreenState
-import com.together.newverse.util.liftsFocusedContentAboveKeyboard
 import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.main_order_locked_snackbar
 import newverse.shared.generated.resources.main_section_fresh_subtitle
@@ -98,12 +97,16 @@ private fun MainScreenModernContent(
     // Nothing outside this screen needs to know the search field has focus.
     var isSearchFocused by remember { mutableStateOf(false) }
 
-    // ...but only where the platform leaves the job to the layout. iOS pans the whole
-    // scene to lift a focused field above the keyboard, and folding the card away as
-    // well would move the field twice -- the pan is measured while the card is still
-    // at full height, so the field would end up above the gap the fold just opened.
-    // Same reason keyboardPadding() is a no-op there.
-    val collapsesHero = !liftsFocusedContentAboveKeyboard()
+    // Both platforms, and iOS is not the exception it looks like. ComposeUIViewController
+    // runs with OnFocusBehavior.FocusableAboveKeyboard, which sounds as though it already
+    // does this job by panning the scene -- it does not. Read directionalFocusOffset in
+    // Compose 1.10.3: the pan is a rescue for a field the keyboard would cover, and it
+    // returns 0 whenever the field's bottom is already above the keyboard's top. This
+    // search field sits in the upper half of the screen, so iOS pans by nothing at all,
+    // and gating the fold off there left the iPhone with neither the pan nor the fold.
+    //
+    // Nor can the two fight once both run: folding moves the field *up*, which only makes
+    // the pan's hiddenToPart more negative, so it stays at zero.
 
     // Two product columns on phones, three on tablets (feed width is capped below)
     val productColumns = when (LocalWindowWidthClass.current) {
@@ -159,7 +162,7 @@ private fun MainScreenModernContent(
                         .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                 ) {
                     AnimatedVisibility(
-                        visible = !(isSearchFocused && collapsesHero),
+                        visible = !isSearchFocused,
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut(),
                     ) {
