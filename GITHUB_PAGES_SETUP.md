@@ -1,38 +1,47 @@
 # GitHub Pages Setup Guide
 
-GitHub Pages has been configured for the Newverse project with support, privacy, and terms pages using pure HTML.
+**Verified against the live site and the repository on 2026-11-20.** Pure HTML with
+embedded CSS, no Jekyll, no Markdown, no build step.
 
-## What Was Created
+## What is served
 
-### 📄 HTML Pages (in `docs/`)
+### There are two parallel page sets, and both are live
 
-1. **index.html** - Main landing page
-   - Clean, modern design with gradient logo
-   - App overview and features
-   - Centered layout (600px max width)
-   - Matches qreverywhere.github.io style
+This is the first thing to know, because it is easy to edit one and think the job is
+done. The legal pages exist twice:
 
-2. **support.html** - Support & FAQ page
-   - Common questions for customers and sellers
-   - Contact information
-   - Account deletion instructions
+| Set | Linked from | Shape |
+|---|---|---|
+| `docs/privacy.html`, `support.html`, `terms.html` | the **store listings** (App Store Connect, Play Console — the URLs below) | English, longer |
+| `docs/de/*` and `docs/en/*` | the **app**, `AboutScreenModern.kt` opens `…/newverse/de/privacy.html` | localized, shorter |
 
-3. **privacy.html** - Privacy Policy
-   - Complete GDPR and CCPA compliant policy
-   - Firebase data collection disclosure
-   - User rights and data management
+`docs/index.html` is **only a language picker** — two buttons into `de/` and `en/`. It
+is not the landing page; `docs/de/index.html` and `docs/en/index.html` are, and they
+carry the logo, features and download sections.
 
-4. **terms.html** - Terms of Service
-   - User agreement and responsibilities
-   - Liability limitations
-   - Dispute resolution
+Neither set is dead. **A change to one needs the same change to the other.**
 
-### ⚙️ Configuration Files
+### The pages
 
-5. **.github/workflows/pages.yml** - GitHub Actions workflow
-   - Simple HTML deployment (no Jekyll needed)
-   - Automatic deployment on push to main
-   - Triggers when `docs/` files change
+1. **index.html** — language picker into `de/` and `en/`
+2. **de/index.html**, **en/index.html** — the actual landing pages: gradient logo, app
+   overview, feature lists for customers and sellers, links to the three legal pages
+3. **support.html** (+ `de/`, `en/`) — Support & FAQ, contact, account deletion
+4. **privacy.html** (+ `de/`, `en/`) — GDPR/CCPA policy, Firebase disclosure, user rights
+5. **terms.html** (+ `de/`, `en/`) — user agreement, liability, dispute resolution
+
+### How it deploys
+
+**Deploy from a branch: `main`, folder `/docs`.** There is no workflow in this
+repository — no `.github/` directory has ever existed here, in any branch. GitHub
+itself creates a "pages build and deployment" run on each push, which is why the
+Actions tab shows deployments that no file in the repo describes.
+
+So: **push `docs/` changes to `main` and they go live in a couple of minutes.** No
+other step, no script.
+
+There is also no `CNAME`, so the site serves on `leiter.github.io/newverse/` and not on
+a custom domain.
 
 ### 🎨 Design Features
 
@@ -55,44 +64,42 @@ All pages feature:
 
 ---
 
-## 🚀 Deploy to GitHub Pages
+## 🚀 Publishing a change
 
-### Step 1: Push to GitHub
+Pages is already enabled; this is the whole routine.
 
 ```bash
-cd /Users/user289697/Documents/newverse
-git add .
-git commit -m "Add GitHub Pages with HTML support pages"
-git push origin main
+git add docs/
+git commit -m "..."
+git push origin main        # live in ~2 minutes
 ```
 
-Or use the automated script:
+Then **check it rather than assume it**, because a push that succeeds says nothing
+about what the CDN serves:
+
 ```bash
-./DEPLOY_PAGES.sh
+curl -s https://leiter.github.io/newverse/privacy.html | grep -o '#[0-9a-fA-F]\{6\}' | sort -u
 ```
 
-### Step 2: Enable GitHub Pages
+If the old values are still coming back after a few minutes, the deployment is behind,
+not the file.
 
-1. Go to https://github.com/leiter/newverse/settings/pages
-2. Under **Source**, select **GitHub Actions**
-3. The workflow will automatically deploy
+**Only `main` publishes.** A `docs/` change committed on a feature branch is invisible
+until it merges — which matters when a long-lived branch is being held back, as
+`price-per-100g` was in November 2026.
 
-### Step 3: Wait for Deployment
-
-- First deployment takes 2-5 minutes
-- Check **Actions** tab to monitor progress
-- Green checkmark = successful deployment
-
-### Step 4: Verify Your Pages
-
-Once deployed, pages will be available at:
+### The URLs
 
 ```
-Main:        https://leiter.github.io/newverse/
-Support:     https://leiter.github.io/newverse/support.html
-Privacy:     https://leiter.github.io/newverse/privacy.html
-Terms:       https://leiter.github.io/newverse/terms.html
+Language picker:  https://leiter.github.io/newverse/
+Landing (de/en):  https://leiter.github.io/newverse/de/index.html
+Support:          https://leiter.github.io/newverse/support.html
+Privacy:          https://leiter.github.io/newverse/privacy.html
+Terms:            https://leiter.github.io/newverse/terms.html
 ```
+
+The store listings use the three root URLs. The app opens the localized ones under
+`de/` — same pages, different copies.
 
 ---
 
@@ -124,12 +131,13 @@ These URLs have been added to `iosApp/APP_STORE_METADATA.md`.
 
 Currently: **bodenschaetze@cutthecrap.link**
 
-To change:
+To change — note `*.html` alone misses the localized set, which is half the site:
 ```bash
 cd docs
-# Replace in all HTML files
-sed -i '' 's/bodenschaetze@cutthecrap.link/your-new-email@example.com/g' *.html
+sed -i 's/bodenschaetze@cutthecrap.link/your-new-email@example.com/g' \
+    *.html de/*.html en/*.html
 ```
+(`sed -i ''` in an earlier version of this file was macOS syntax and fails on Linux.)
 
 ### Update Brand Colors
 
@@ -148,10 +156,12 @@ The logo uses an inline SVG. To change it, edit the `<svg>` element in each HTML
 
 ### Add New Pages
 
-1. Create a new HTML file in `docs/` directory
-2. Copy the structure from an existing page
-3. Update navigation links in all pages
-4. Push to GitHub - automatic deployment
+1. Create the HTML file in `docs/`, and the `de/` and `en/` copies if it is a page the
+   app links to
+2. Copy the structure from an existing page — the CSS is embedded per file, so there is
+   no shared stylesheet to add it to
+3. Update the navigation links in **every** page, both sets
+4. Push to `main`
 
 ---
 
@@ -186,28 +196,23 @@ them — in particular the orange is a **fill, never a text colour**.
 
 ## 📊 Monitoring
 
-### Check Deployment
+https://github.com/leiter/newverse/actions lists the "pages build and deployment" runs
+GitHub generates. They are not from a workflow in this repo, so there is no workflow
+file to fix if one fails — the failure is in the Pages settings or in the HTML.
 
-Visit https://github.com/leiter/newverse/actions to see deployment status.
-
-### Update Pages
-
-Any changes to `docs/` folder pushed to `main` branch will automatically redeploy in 2-3 minutes.
+Any `docs/` change pushed to `main` redeploys in 2–3 minutes.
 
 ---
 
-## ✅ Pre-Launch Checklist
+## ✅ Checklist when the legal pages change
 
-Before submitting to App Store:
-
-- [ ] Push files to GitHub repository
-- [ ] Enable GitHub Pages in repository settings
-- [ ] Verify all pages load correctly
-- [ ] Test navigation links between pages
-- [ ] Check pages on mobile devices
-- [ ] Verify contact email is correct
-- [ ] Update App Store Connect with URLs
-- [ ] Test external links (Firebase, Google)
+- [ ] Both sets updated — root **and** `de/` + `en/` (see the table at the top)
+- [ ] Navigation links between pages still correct
+- [ ] Contact email correct in all of them
+- [ ] Pushed to `main`, and the live page checked with `curl`, not assumed
+- [ ] Layout still sane at phone width
+- [ ] External links (Firebase, Google) still resolve
+- [ ] App Store Connect / Play Console URLs still point at the root copies
 
 ---
 
@@ -215,10 +220,12 @@ Before submitting to App Store:
 
 ### Pages Not Deploying
 
-1. Check **Actions** tab for errors
-2. Ensure GitHub Pages source is set to **GitHub Actions**
-3. Verify workflow file exists: `.github/workflows/pages.yml`
-4. Check that `docs/` folder contains HTML files
+1. Confirm the change is on **`main`** — a feature branch publishes nothing
+2. Check the **Actions** tab for a failed "pages build and deployment"
+3. Check Settings → Pages still reads **Deploy from a branch**, `main` / `/docs`.
+   Do **not** switch it to "GitHub Actions": there is no workflow in this repo, so
+   that setting would stop the site deploying altogether
+4. Check `docs/` still contains the HTML files
 
 ### 404 Errors
 
@@ -256,19 +263,9 @@ Before submitting to App Store:
 
 ---
 
-## 🔗 Comparison with qreverywhere
-
-Your pages now match the qreverywhere.github.io style:
-- ✅ Pure HTML with embedded CSS
-- ✅ Centered, single-column layout (600px)
-- ✅ Gradient logo design
-- ✅ Card-based content sections
-- ✅ Clean, modern aesthetic
-- ✅ Smooth hover animations
-- ✅ Mobile-responsive
-
----
-
-*Setup created: April 5, 2025*
+*Setup created: April 5, 2025. Recoloured onto the Bodenschätze palette and this guide
+corrected against the live site on 2026-11-20 — the workflow it used to describe
+(`.github/workflows/pages.yml`) never existed, and `DEPLOY_PAGES.sh`, which referenced
+it, was deleted the same day.*
 *Repository: https://github.com/leiter/newverse*
-*Style: HTML + CSS (no Jekyll/Markdown)*
+*Style: HTML + CSS, one embedded stylesheet per file (no Jekyll, no Markdown, no build)*
