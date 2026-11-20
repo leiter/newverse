@@ -508,16 +508,11 @@ The following features are planned but not yet implemented, or are only partiall
   - **Tasks:**
     - Decide whether the markup should be a seller profile setting or chosen in the import preview.
 
-### Medium Priority: The catalogue on a subdomain
-- **Status:** Design only, written 2026-11-09 — `doc/design/public-catalog-subdomain.md`. Nothing built, no rule changed, no hosting configured.
-- **Why it is cheaper than it sounds:** the seller/buyer article split already put exactly the shop-window fields in `/articles` and everything confidential in `/seller_articles`, so there is no data modelling to do; and `imageUrl` already holds a public Firebase Storage URL, so images need no migration at all.
-- **Decided:** a **periodic snapshot** exported with admin credentials to static JSON, not a live public read. That leaves `/articles` at `auth != null` — no rules change — and keeps an uncapped RTDB bandwidth surface from existing.
-- **Tasks:**
-  - **Decide the scope first; everything waits on it.** Read-only shop window ≈ 1–1.5 days. A data feed with no page ≈ half a day. Ordering in the browser, or moving the catalogue off Firebase, are weeks each.
-  - Decide the refresh trigger (cron, a step in the seller's publish, or a manual button), the host (Firebase Hosting — `firebase.json` has no `hosting` block — or GitHub Pages, which has no `CNAME` today), and the subdomain name.
-  - Decide whether `scarcity` ships publicly: it is in `publicFields` and is derived from stock, so on an open page it broadcasts the stall's stock position. Drop it at export rather than at render if the answer is no.
-  - Put the public price-display question (Grundpreis, VAT statement, Impressum on the page) on the tax-advisor list above.
-  - **Do not resurrect `webApp` for this.** It does not compile, web is unmaintained, and a static page costs less than fixing the target.
+### Medium Priority: The Sortiment on a subdomain
+- **Status:** Designed and decided 2026-11-20 — `doc/design/catalogue-on-cutthecrap-subdomain.md`. Nothing built yet; the brand migration of `docs/` (its open question 4) is done.
+- **Decided:** a read-only shop window on `bodenschaetze.cutthecrap.link`, with `dev.bodenschaetze.cutthecrap.link` behind basic auth; only `available` articles; a market picker; `scarcity` dropped at export; a daily refresh; served as static files from the existing Apache box, fed by a snapshot whose prices are precomputed on the JVM with the real `resolvePrice`/`priceDisplayFor`. **Not** the Compose `webApp`, which stays dead.
+- **Tasks:** the five-row table in §9 of that doc. Two days with the picker.
+- **Carries one item for the tax advisor:** public prices bring Grundpreis, a VAT statement and an Impressum on the page — see the list above and §7.2 of that doc.
 
 ### Medium Priority: Business Features
 - **Promo Codes (Buy App)**
@@ -528,21 +523,11 @@ The following features are planned but not yet implemented, or are only partiall
     - Add validation logic in the `BuyAppViewModel`.
     - Apply discounts to the order total during checkout.
 
-### Medium Priority: Web Buyer App
-- **Blocking gaps**
-  - **Status:** Open — last assessed 2026-05-25 (`doc/archive/web-implementation-audit.md`), may be out of date
-  - **Tasks:**
-    - Fill in the Firebase config placeholders in `webApp/src/jsMain/resources/index.html`.
-    - Test login → order → message end to end.
-    - Check the Firebase Storage CORS rules for image loading.
-- **Polish**
-  - **Tasks:**
-    - Replace the non-working "Scan QR Code" button with a code input, or remove it.
-    - Tell users on the login screen that Google/Apple sign-in is not available on web.
-    - Test the layout on desktop and tablet widths.
-- **Later**
-  - **Tasks:**
-    - Google OAuth web flow, FCM with a service worker, offline caching, keyboard handling on mobile web.
+### Not planned: the Compose Web Buyer App
+- **Status:** Dropped, re-confirmed 2026-11-20. Not a backlog item; there is no task list here on purpose.
+- The `js(IR)` target and `:webApp` stay in the build but dead. The public web surface is the static Sortiment page above, which needs none of it.
+- If it is ever genuinely resumed, the entry cost is in §6 of `doc/design/catalogue-on-cutthecrap-subdomain.md`: five compile errors (not three — two `expect class`es have no `jsMain` actual), a Firebase bootstrap that is wrong rather than merely unconfigured, an unresolved question about whether CMP still supports `js(IR)` canvas at all, and the login-wall problem that a public URL on the buy flavor creates.
+- The 2026-05-25 audit that used to be cited here (`doc/archive/web-implementation-audit.md`) was deleted on 2026-11-20: a frozen snapshot of a code read that was never run against a backend, describing a target that is not coming back. `git log` has it.
 
 ### Medium Priority: Tablet Layout
 

@@ -38,14 +38,16 @@ GitHub Pages has been configured for the Newverse project with support, privacy,
 
 All pages feature:
 - **Responsive Design**: Mobile-friendly, centered layout
-- **Brand Colors**: Teal/Green gradient (#008577 to #0A6308)
+- **Brand Colors**: the Bodenschätze flyer palette — brand green `#0A6308` with
+  soil brown `#5A3E2B`, badge orange `#FA9C4D` on paper `#F6F2E8`
 
-> **The site and the app no longer match.** On 2026-10-26 the app moved to the
-> Bodenschätze flyer palette: brand green `#0A6308`, badge orange `#FA9C4D`,
-> soil brown `#5A3E2B` on paper `#F6F2E8` (`doc/guides/theme.md`). The teal
-> `#008577` below is still what `docs/` actually serves — this section is
-> accurate about the site, not a description of the app's brand. Bringing the
-> site across is an open decision, not an oversight.
+> **The site is on the app's palette since 2026-11-20.** It previously served the
+> pre-2026-10-26 teal `#008577`, which left site and app looking like two products.
+> The migration was a pure recolour — no copy, markup or layout changed — and it
+> fixed two contrast failures on the way: the teal was 4.35:1 on the old background
+> (used for links and bold text, so under the 4.5:1 AA bar) and the footer grey was
+> 2.73:1. Every text pair on the site now clears AA, the worst at 5.98:1.
+> `doc/guides/theme.md` is the source of truth for the palette.
 - **Modern UI**: Card-based layout with shadows and rounded corners
 - **Clean Typography**: System fonts for fast loading
 - **Smooth Animations**: Hover effects on links and buttons
@@ -133,9 +135,12 @@ sed -i '' 's/bodenschaetze@cutthecrap.link/your-new-email@example.com/g' *.html
 
 Edit the CSS in each HTML file:
 ```css
-background: linear-gradient(135deg, #008577 0%, #0A6308 100%);
-color: #008577;  /* Primary color */
+background: linear-gradient(135deg, #0A6308 0%, #5A3E2B 100%);
+color: #0A6308;  /* Primary color */
 ```
+
+Take new values from `doc/guides/theme.md`, not from here — that guide is kept in
+step with `ui/theme/Color.kt`, and this file is a copy that can fall behind it.
 
 ### Update Logo
 
@@ -153,11 +158,16 @@ The logo uses an inline SVG. To change it, edit the `<svg>` element in each HTML
 ## 🎨 Design System
 
 ### Colors
-- **Primary**: #008577 (Teal)
-- **Secondary**: #0A6308 (Dark Green)
-- **Background**: #fafafa (Light Gray)
-- **Cards**: #ffffff (White)
-- **Text**: #333333 (Dark Gray)
+
+The flyer palette, same values as the app. Roles as `doc/guides/theme.md` assigns
+them — in particular the orange is a **fill, never a text colour**.
+
+- **Primary**: `#0A6308` (BodenGreen) — h1, h2, links, list ticks
+- **Secondary**: `#5A3E2B` (BodenSoil) — h3, gradient end, link hover
+- **Accent**: `#FA9C4D` (BodenOrange) — the highlight box's left rule
+- **Background**: `#F6F2E8` (BodenPaper)
+- **Cards**: `#FFFDF8` (BodenCard)
+- **Text**: `#1B2A16` (BodenInk), muted `#4A5145` (BodenMuted)
 
 ### Layout
 - **Max Width**: 600px (centered)

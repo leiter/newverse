@@ -85,4 +85,6 @@ Features:
 - iOS: Full support with Ktor Darwin client
 - Desktop/Web: nominally supported via Skiko, but **the web target is not
   maintained** and does not currently compile. Do not treat a web break here as a
-  regression — see `archive/web-implementation-audit.md`.
+  regression. The public web surface is a static page instead and loads these same
+  `imageUrl`s straight from Firebase Storage — see
+  `doc/design/catalogue-on-cutthecrap-subdomain.md`.

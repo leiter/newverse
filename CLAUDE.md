@@ -241,8 +241,11 @@ Most-used:
 - `doc/plans/pre-release-checklist.md` - What must happen before a release reaches a user
 
 Note: `docs/` at the repo root is the GitHub Pages site (privacy/terms/support),
-not developer documentation. It is still on the **old** teal brand (`#008577`),
-which the app left behind on 2026-10-26 — see `GITHUB_PAGES_SETUP.md`.
+not developer documentation. It is on the Bodenschätze palette since 2026-11-20,
+the same values as the app — see `GITHUB_PAGES_SETUP.md`. The store listings point
+at the **root** copies (`docs/privacy.html` and siblings) while the app's About
+screen links the localized `docs/de/`; both sets are live, so a change to one needs
+the same change to the other.
 
 Guest access, for the avoidance of doubt: **the buy flavor does not sign anyone in
 automatically.** A buyer with no session sees the login screen, and an anonymous
@@ -252,12 +255,13 @@ account is created only if they tap "Continue as Guest".
 
 - Android: Functional for both flavors
 - iOS: In progress with known issues
-- Web: **Not maintained.** The `js(IR)` browser target and `webApp` module are still
-  in the build, but nothing is kept working there and the target does not currently
-  compile (three `jsMain` files call `Log.d(TAG)` without a `TAG`, left behind by the
-  Log refactor in `d659337`). Do not treat a web break as a regression, and do not
-  spend effort keeping `jsMain` compiling unless the platform is picked up again.
-  Earlier assessment, now stale: `doc/archive/web-implementation-audit.md`.
+- Web: the **Compose web app is not maintained** and is not coming back. The `js(IR)`
+  target and `webApp` module stay in the build but dead; `compileKotlinJs` is expected
+  to fail, the breakage grows with every new `expect` in `commonMain`, and a web break
+  is not a regression. Do not add `jsMain` actuals.
+  The public web surface is a **static Sortiment page** instead, on
+  `bodenschaetze.cutthecrap.link` — designed, not yet built:
+  `doc/design/catalogue-on-cutthecrap-subdomain.md`.
 - Localization: German (primary), English
 
 ## Debug Tips

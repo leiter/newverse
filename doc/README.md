@@ -62,7 +62,7 @@ Proposed. Nothing in here is built unless its banner says which part is.
 | [order-ready-notification-design.md](design/order-ready-notification-design.md) | Options, no decision taken |
 | [seller-buyer-sync-channel-design.md](design/seller-buyer-sync-channel-design.md) | Event direction built, eligibility blocker resolved; `PROFILE_CHANGED` event, producer and seller-side drain still missing |
 | [cas-scale-integration.md](design/cas-scale-integration.md) | Research only — no hardware, no code |
-| [public-catalog-subdomain.md](design/public-catalog-subdomain.md) | Data path decided (periodic snapshot); scope undecided, nothing built |
+| [catalogue-on-cutthecrap-subdomain.md](design/catalogue-on-cutthecrap-subdomain.md) | Scope, hosting, both subdomain names, refresh and the pricing-rule location all decided; nothing built. Replaced `public-catalog-subdomain.md`, deleted 2026-11-20 |
 | [derived-price-and-availability.md](design/derived-price-and-availability.md) | Disclosure boundary decided; app-scoped `AvailabilityPublisher` built 2026-11-15; price direction (§4) and below-cost check (§5) open |
 
 ## plans/
@@ -106,7 +106,6 @@ saying what replaced it. Nothing here should be used to decide current behaviour
 | [seller-product-creation-implementation.md](archive/seller-product-creation-implementation.md) | Done; predates `ArticleNodes` | `CreateProductViewModel` |
 | [buy-viewmodel-refactoring.md](archive/buy-viewmodel-refactoring.md) | Completion report, 2025-12-19 | — |
 | [production-db-migration.md](archive/production-db-migration.md) | Applied; a root import is no longer safe | — |
-| [web-implementation-audit.md](archive/web-implementation-audit.md) | Web is not maintained; target does not compile | — |
 
 Plus one raw chat transcript from the flavor-distinction exploration, kept as a
 `.txt` because it is a conversation, not documentation.
