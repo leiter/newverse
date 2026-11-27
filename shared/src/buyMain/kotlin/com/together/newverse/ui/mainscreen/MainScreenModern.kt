@@ -1,9 +1,11 @@
 package com.together.newverse.ui.mainscreen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
@@ -11,6 +13,7 @@ import androidx.compose.foundation.gestures.rememberScrollableState
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
@@ -87,15 +91,20 @@ private fun MainScreenModernContent(
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
 
-    // While the search field holds focus the hero card folds away, so the field and
-    // the chips rise to the top and the keyboard leaves as many product rows visible
-    // as possible. Focus is the only trigger: a query still standing in the field
-    // does not keep the card hidden once focus has gone.
+    // While the buyer is searching, the hero card folds away so the field, the chips
+    // and as many product rows as possible are what the keyboard leaves on screen.
+    //
+    // Set when the field takes focus and cleared when it gives focus up -- but not
+    // only then. Focus is not a reliable way *out* on a tablet: a tap on the page
+    // does not take focus off the field, so a fold driven by focus alone left the
+    // buyer searching with no way to ask for the card back. So the flag is also
+    // cleared by the things that mean the search is over: emptying the field with
+    // its X, and picking a product, which is what the card is for.
     //
     // The flag stays local rather than going through BuyMainScreenAction, unlike
     // isQuantityInputFocused, which is in the state only because AppScaffold reads it.
-    // Nothing outside this screen needs to know the search field has focus.
-    var isSearchFocused by remember { mutableStateOf(false) }
+    // Nothing outside this screen needs to know the buyer is searching.
+    var isSearching by remember { mutableStateOf(false) }
 
     // Both platforms, and iOS is not the exception it looks like. ComposeUIViewController
     // runs with OnFocusBehavior.FocusableAboveKeyboard, which sounds as though it already
@@ -108,11 +117,28 @@ private fun MainScreenModernContent(
     // Nor can the two fight once both run: folding moves the field *up*, which only makes
     // the pan's hiddenToPart more negative, so it stays at zero.
 
+    val widthClass = LocalWindowWidthClass.current
+
     // Two product columns on phones, three on tablets (feed width is capped below)
-    val productColumns = when (LocalWindowWidthClass.current) {
+    val productColumns = when (widthClass) {
         WindowWidthClass.Compact -> 2
         else -> 3
     }
+
+    // Tablets get the hero beside the search field and its chips instead of a card
+    // stretched across the whole feed width -- Medium (portrait, >= 600dp) as well as
+    // Expanded (landscape), so a tablet's top section does not change shape when it is
+    // turned. Keyed off the width class, never off orientation. Only Compact stacks
+    // them, where half a phone's width would leave neither pane usable.
+    val isTwoPaneHeader = widthClass != WindowWidthClass.Compact
+
+    // Crossing the Compact breakpoint rebuilds the header -- the hero folds sideways
+    // in one shape and vertically in the other -- and a search in progress does not
+    // survive the move: the field is rebuilt and the focus event that would end the
+    // fold never comes. So the flag is cleared on the way across, leaving the card
+    // visible, which is the state a buyer can always recover from. Rotating a tablet
+    // does not trip this: both of its widths are two-pane.
+    LaunchedEffect(isTwoPaneHeader) { isSearching = false }
 
     // Show snackbar when order is not editable and user tries to modify
     val orderLockedMessage = stringResource(Res.string.main_order_locked_snackbar)
@@ -161,69 +187,74 @@ private fun MainScreenModernContent(
                         .background(MaterialTheme.colorScheme.background)
                         .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                 ) {
-                    AnimatedVisibility(
-                        visible = !isSearchFocused,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                    ) {
-                        Column {
-                            // Show skeleton or actual product
-                            if (state.isLoading && selectedProduct == null) {
-                                HeroProductCardSkeleton()
-                            } else {
-                                selectedProduct?.let { product ->
-                                    // Match by id (Firebase key when loaded from order) or productId (Firebase key when freshly added)
-                                    val basketItem = basketItems.find { it.id == product.id || it.productId == product.id }
-                                    val isInBasket = basketItem != null
-                                    val originalQuantity = basketItem?.amountCount ?: 0.0
-                                    val isFavourite = state.favouriteArticles.contains(product.id)
-                                    HeroProductCard(
-                                        product = product,
-                                        price = state.priceOf(product),
-                                        quantity = quantity,
-                                        originalQuantity = originalQuantity,
-                                        isInBasket = isInBasket,
-                                        isFavourite = isFavourite,
-                                        onQuantityChange = { onAction(BuyMainScreenAction.UpdateQuantity(it)) },
-                                        onQuantityFocusChange = {
-                                            onAction(BuyMainScreenAction.SetQuantityInputFocused(it))
-                                        },
-                                        onAddToCart = { onAction(BuyMainScreenAction.AddToCart) },
-                                        onRemoveFromBasket = { onAction(BuyMainScreenAction.RemoveFromBasket) },
-                                        onToggleFavourite = { onAction(BuyMainScreenAction.ToggleFavourite(product.id)) },
-                                        onNavigateToDetail = { onNavigateToProductDetail(product.id) }
+                    if (isTwoPaneHeader) {
+                        // Left half the hero, right half the search field with the
+                        // chips below it -- and while the field holds focus the hero
+                        // folds away sideways and the search column takes the whole
+                        // width, the same fold the stacked layout does vertically.
+                        //
+                        // The hero is given a width rather than a weight: a weight
+                        // would keep its half of the row reserved while it was gone,
+                        // leaving the buyer searching next to an empty pane.
+                        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                            val paneGap = 16.dp
+                            val heroPaneWidth = (maxWidth - paneGap) / 2
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.Top,
+                            ) {
+                                AnimatedVisibility(
+                                    visible = !isSearching,
+                                    enter = expandHorizontally() + fadeIn(),
+                                    exit = shrinkHorizontally() + fadeOut(),
+                                ) {
+                                    HeroSection(
+                                        state = state,
+                                        onAction = onAction,
+                                        onNavigateToProductDetail = onNavigateToProductDetail,
+                                        // The gap belongs to the hero's slot, so it
+                                        // goes with the card instead of leaving a
+                                        // 16.dp hole in front of the search field.
+                                        modifier = Modifier
+                                            .width(heroPaneWidth + paneGap)
+                                            .padding(end = paneGap),
                                     )
                                 }
+                                SearchAndFilters(
+                                    state = state,
+                                    onAction = onAction,
+                                    onSearchFocusChanged = { isSearching = it },
+                                    onSearchDismissed = { isSearching = false },
+                                    modifier = Modifier.weight(1f),
+                                )
                             }
-
-                            // Inside the collapsing block, so the gap goes with the card
-                            // instead of leaving a 16.dp hole above the search field.
-                            Spacer(modifier = Modifier.height(16.dp))
                         }
+                    } else {
+                        AnimatedVisibility(
+                            visible = !isSearching,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut(),
+                        ) {
+                            Column {
+                                HeroSection(
+                                    state = state,
+                                    onAction = onAction,
+                                    onNavigateToProductDetail = onNavigateToProductDetail,
+                                )
+
+                                // Inside the collapsing block, so the gap goes with the
+                                // card instead of leaving a 16.dp hole above the field.
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+
+                        SearchAndFilters(
+                            state = state,
+                            onAction = onAction,
+                            onSearchFocusChanged = { isSearching = it },
+                            onSearchDismissed = { isSearching = false },
+                        )
                     }
-
-                    // Search Bar
-                    ProductSearchField(
-                        query = state.searchQuery,
-                        onQueryChange = { onAction(BuyMainScreenAction.UpdateSearchQuery(it)) },
-                        onClear = { onAction(BuyMainScreenAction.ClearSearchQuery) },
-                        onFocusChanged = { isSearchFocused = it },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Category Filter Chips
-                    CategoryChips(
-                        filterState = state.filterState,
-                        onCycleFavourite = {
-                            onAction(BuyMainScreenAction.CycleFavouriteFilter)
-                        },
-                        onToggleCategory = { category ->
-                            onAction(BuyMainScreenAction.ToggleCategoryFilter(category))
-                        },
-                        onReset = { onAction(BuyMainScreenAction.ResetFilters) }
-                    )
                 }
 
                 LazyColumn(
@@ -308,11 +339,16 @@ private fun MainScreenModernContent(
                                     price = state.priceOf(product),
                                     modifier = Modifier.weight(1f),
                                     onClick = {
-                                        // Picking a card loads it into the hero, so the
-                                        // search field has to let go of focus first —
-                                        // otherwise the card the buyer just chose stays
-                                        // folded away behind the keyboard.
+                                        // Picking a card loads it into the hero, which
+                                        // is folded away while the field holds focus --
+                                        // in either layout. So the field has to let go
+                                        // first, or the card the buyer just chose stays
+                                        // hidden.
                                         focusManager.clearFocus()
+                                        // Not left to the blur: on a tablet the field
+                                        // may keep focus through this, and the card the
+                                        // buyer just picked has to be on screen.
+                                        isSearching = false
                                         onAction(BuyMainScreenAction.SelectArticle(product))
                                     },
                                     onNavigateToDetail = {
@@ -334,6 +370,85 @@ private fun MainScreenModernContent(
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+/**
+ * The selected article's hero card, its loading skeleton, or nothing at all when no
+ * article is selected. Extracted so the stacked (phone/portrait) and the side-by-side
+ * (landscape tablet) header can share one definition.
+ */
+@Composable
+private fun HeroSection(
+    state: MainScreenState,
+    onAction: (BuyAction) -> Unit,
+    onNavigateToProductDetail: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val selectedProduct = state.selectedArticle
+    Box(modifier = modifier) {
+        if (state.isLoading && selectedProduct == null) {
+            HeroProductCardSkeleton()
+        } else {
+            selectedProduct?.let { product ->
+                // Match by id (Firebase key when loaded from order) or productId
+                // (Firebase key when freshly added)
+                val basketItem = state.basketItems.find {
+                    it.id == product.id || it.productId == product.id
+                }
+                HeroProductCard(
+                    product = product,
+                    price = state.priceOf(product),
+                    quantity = state.selectedQuantity,
+                    originalQuantity = basketItem?.amountCount ?: 0.0,
+                    isInBasket = basketItem != null,
+                    isFavourite = state.favouriteArticles.contains(product.id),
+                    onQuantityChange = { onAction(BuyMainScreenAction.UpdateQuantity(it)) },
+                    onQuantityFocusChange = {
+                        onAction(BuyMainScreenAction.SetQuantityInputFocused(it))
+                    },
+                    onAddToCart = { onAction(BuyMainScreenAction.AddToCart) },
+                    onRemoveFromBasket = { onAction(BuyMainScreenAction.RemoveFromBasket) },
+                    onToggleFavourite = { onAction(BuyMainScreenAction.ToggleFavourite(product.id)) },
+                    onNavigateToDetail = { onNavigateToProductDetail(product.id) }
+                )
+            }
+        }
+    }
+}
+
+/** The search field with the category chips underneath it. */
+@Composable
+private fun SearchAndFilters(
+    state: MainScreenState,
+    onAction: (BuyAction) -> Unit,
+    onSearchFocusChanged: (Boolean) -> Unit,
+    /** The buyer emptied the field with its X: the search is over whatever focus says. */
+    onSearchDismissed: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        ProductSearchField(
+            query = state.searchQuery,
+            onQueryChange = { onAction(BuyMainScreenAction.UpdateSearchQuery(it)) },
+            onClear = {
+                onAction(BuyMainScreenAction.ClearSearchQuery)
+                onSearchDismissed()
+            },
+            onFocusChanged = onSearchFocusChanged,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        CategoryChips(
+            filterState = state.filterState,
+            onCycleFavourite = { onAction(BuyMainScreenAction.CycleFavouriteFilter) },
+            onToggleCategory = { category ->
+                onAction(BuyMainScreenAction.ToggleCategoryFilter(category))
+            },
+            onReset = { onAction(BuyMainScreenAction.ResetFilters) }
         )
     }
 }

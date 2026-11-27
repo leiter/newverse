@@ -68,7 +68,19 @@ fun ProductSearchField(
         },
         trailingIcon = {
             if (query.isNotEmpty()) {
-                IconButton(onClick = onClear) {
+                IconButton(
+                    onClick = {
+                        // Gives focus up as well as emptying the field. The caller
+                        // folds the hero card away while this field is focused, and
+                        // on a tablet a tap on the page does not reliably take focus
+                        // off it -- so without this the X is pressed, the search is
+                        // over, and the card the buyer wants back stays folded with
+                        // no way left to ask for it.
+                        onClear()
+                        keyboardManager.hide()
+                        focusManager.clearFocus()
+                    }
+                ) {
                     Icon(
                         imageVector = Icons.Default.Clear,
                         contentDescription = stringResource(Res.string.products_search_clear),
