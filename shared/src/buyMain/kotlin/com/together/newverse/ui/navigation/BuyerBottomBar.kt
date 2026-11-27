@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -146,6 +147,18 @@ fun BuyerBottomNavigationBar(
 }
 
 /**
+ * How wide the rail is, and therefore how far the top bar's own content has to
+ * start from the left edge to line up with the page beside the rail rather than
+ * hang over the rail's column.
+ *
+ * A minimum, not a fixed width: the rail may still grow for a longer label or a
+ * larger font scale, and the top bar would rather be a few dp short of the page
+ * edge than clip "Bodenschätze". Wide enough for the longest label at the default
+ * font scale, which is what the rail measured before it was given a floor.
+ */
+val BuyerNavRailWidth = 112.dp
+
+/**
  * Side navigation rail shown instead of the bottom bar on Expanded windows
  * (tablet landscape). Same items, routes, badges and cart shake as the bottom bar.
  */
@@ -167,6 +180,7 @@ fun BuyerNavigationRail(
     )
 
     NavigationRail(
+        modifier = Modifier.widthIn(min = BuyerNavRailWidth),
         containerColor = barColors.container,
         contentColor = barColors.content,
     ) {

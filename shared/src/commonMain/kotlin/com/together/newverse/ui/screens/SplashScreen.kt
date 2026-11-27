@@ -32,42 +32,6 @@ import newverse.shared.generated.resources.Res
 import newverse.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Duration.Companion.milliseconds
-
-/**
- * How long the splash stays up at the very least, however fast initialization
- * finishes.
- *
- * Without a floor the splash is a flash: on a warm start with a cached session the
- * whole of initializeApp resolves in well under the time it takes to recognise a
- * logo, so the first thing a buyer sees is a shape that is already gone. The point
- * of this screen is not the progress text — it is the mark and the name, and they
- * need a beat to land.
- *
- * 1600ms is long enough to read the lockup and short enough not to feel like a
- * stall. It is a floor, not a delay: a slow start is never made slower, because the
- * wait runs alongside initialization rather than after it.
- */
-val SPLASH_MINIMUM_VISIBLE = 1600.milliseconds
-
-/**
- * True while the splash should stay on screen: either the app is still starting up,
- * or it finished so quickly that [SPLASH_MINIMUM_VISIBLE] has not elapsed yet.
- *
- * Lives here rather than in either flavor's scaffold so the buy and the sell app
- * cannot drift apart on how long their first screen lasts. Call it unconditionally
- * at the point the scaffold decides what to draw — the timer starts with the first
- * composition, so it is already running while auth resolves.
- */
-@Composable
-fun rememberSplashVisible(isInitializing: Boolean): Boolean {
-    var minimumElapsed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(SPLASH_MINIMUM_VISIBLE)
-        minimumElapsed = true
-    }
-    return isInitializing || !minimumElapsed
-}
 
 /**
  * Splash screen shown during app initialization

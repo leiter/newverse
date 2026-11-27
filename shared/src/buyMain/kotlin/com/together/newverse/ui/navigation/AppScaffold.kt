@@ -77,7 +77,6 @@ import com.together.newverse.ui.components.QuickMessageInput
 import com.together.newverse.ui.components.SellerAnnouncementTitle
 import com.together.newverse.ui.components.vector
 import com.together.newverse.ui.screens.SplashScreen
-import com.together.newverse.ui.screens.rememberSplashVisible
 import com.together.newverse.ui.state.BuyAppViewModel
 import com.together.newverse.ui.state.BuySellerAction
 import com.together.newverse.ui.state.BuyUiAction
@@ -85,6 +84,7 @@ import com.together.newverse.ui.state.DeepLinkRouter
 import com.together.newverse.ui.theme.LocalBarColors
 import com.together.newverse.ui.theme.NewverseTheme
 import com.together.newverse.ui.theme.SystemBarIcons
+import com.together.newverse.ui.theme.SystemNavigationBarScrim
 import com.together.newverse.util.Log
 import com.together.newverse.util.formatPrice
 import com.together.newverse.util.formatString
@@ -220,9 +220,11 @@ private fun AppScaffoldContent(
     // forced NewverseLightTheme/NewverseDarkTheme is still obeyed.
     val darkPage = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    // Held for a minimum beat even on a warm start, so the logo is seen rather
-    // than flashed -- see rememberSplashVisible.
-    val showSplash = rememberSplashVisible(appState.meta.isInitializing)
+    // Up for exactly as long as startup actually takes, and no longer: a warm
+    // start with a cached session resolves in a few frames and goes straight to
+    // content. There is no minimum hold — the system splash screen already shows
+    // the mark on a cold start, and a floor here only taxed every launch.
+    val showSplash = appState.meta.isInitializing
     val showAuth = appState.user is com.together.newverse.ui.state.UserState.NotAuthenticated
     val showForcedLogin = appState.requiresLogin
 
@@ -507,13 +509,20 @@ private fun AppScaffoldContent(
     // On Expanded windows (tablet landscape) the tabs render as a side rail instead
     val useNavRail = LocalWindowWidthClass.current == WindowWidthClass.Expanded
 
-    // The brown top bar is behind the status bar on every route in here. The
-    // navigation bar only has the brown bottom bar behind it when that bar is
-    // actually shown — not on a detail screen, and not at Expanded width, where
-    // the rail takes the left edge and leaves the bottom to the page.
+    // The rail stands under the left end of the top bar, which runs the full width
+    // of the window. A title left at the default inset therefore starts over the
+    // rail's column rather than where the page beside it starts -- most visibly with
+    // the seller's quick-message prompt, whose hint is long enough to read as part of
+    // the rail. Shifted by the rail's width on exactly the routes that show one.
+    val titleStartInset = if (showBottomBar && useNavRail) BuyerNavRailWidth else 0.dp
+
+    // The brown top bar is behind the status bar on every route in here, and the
+    // bottom bar or SystemNavigationBarScrim puts the same brown behind the
+    // navigation bar. Both bars are dark in both schemes, so the icons are light
+    // throughout and no longer need to follow the page.
     SystemBarIcons(
         lightStatusIcons = true,
-        lightNavIcons = (showBottomBar && !useNavRail) || darkPage,
+        lightNavIcons = true,
     )
 
     val onNavigateToTab: (String) -> Unit = { route ->
@@ -547,6 +556,13 @@ private fun AppScaffoldContent(
                     showProfileBadge = appState.showProfileAttentionBadge,
                     onNavigate = onNavigateToTab
                 )
+            } else {
+                // Every other route: the rail's half of the window at Expanded width,
+                // and detail screens at any width. The band is what puts brown behind
+                // the system navigation bar wherever no bottom bar does, so the app is
+                // framed top and bottom on every screen inside the scaffold rather
+                // than only on the three that carry tabs.
+                SystemNavigationBarScrim()
             }
         },
         modifier = Modifier
@@ -590,7 +606,8 @@ private fun AppScaffoldContent(
                     AnimatedContent(
                         targetState = titleSlot,
                         transitionSpec = { topBarTitleTransition() },
-                        label = "topBarTitle"
+                        label = "topBarTitle",
+                        modifier = Modifier.padding(start = titleStartInset),
                     ) { slot ->
                         if (slot is TopBarTitleSlot.Basket) {
                             val basketCount = appState.basketScreen.items.size

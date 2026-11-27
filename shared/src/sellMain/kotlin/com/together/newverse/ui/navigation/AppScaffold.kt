@@ -32,7 +32,6 @@ import androidx.savedstate.read
 import com.together.newverse.ui.components.SellerTopBar
 import com.together.newverse.ui.state.SearchScope
 import com.together.newverse.ui.screens.SplashScreen
-import com.together.newverse.ui.screens.rememberSplashVisible
 import com.together.newverse.ui.state.NotificationAction
 import com.together.newverse.ui.state.NotificationSettings
 import com.together.newverse.ui.state.SellAppViewModel
@@ -48,6 +47,7 @@ import com.together.newverse.util.DocumentPickerResult
 import com.together.newverse.util.LocalDocumentPicker
 import com.together.newverse.util.rememberKeyboardManager
 import com.together.newverse.util.keyboardPadding
+import com.together.newverse.ui.theme.SystemNavigationBarScrim
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -171,9 +171,8 @@ private fun AppScaffoldContent(
     }
 
     // Check if app is still initializing
-    // Held for a minimum beat even on a warm start, so the logo is seen rather
-    // than flashed -- see rememberSplashVisible.
-    if (rememberSplashVisible(state.meta.isInitializing)) {
+    // Only while startup actually runs — no minimum hold; see the buy scaffold.
+    if (state.meta.isInitializing) {
         SplashScreen(
             initializationStep = state.meta.initializationStep
         )
@@ -310,10 +309,9 @@ private fun AppScaffoldContent(
             )
         },
         bottomBar = {
-            if (!useNavRail &&
-                currentRoute != NavRoutes.Sell.CustomerDetail.route &&
+            val showsNav = currentRoute != NavRoutes.Sell.CustomerDetail.route &&
                 currentRoute != NavRoutes.Sell.Create.route
-            ) {
+            if (!useNavRail && showsNav) {
                 SellerBottomNavigationBar(
                     currentRoute = currentRoute,
                     pendingOrdersCount = pendingOrdersCount,
@@ -321,6 +319,11 @@ private fun AppScaffoldContent(
                     refillCount = refillCount,
                     onNavigate = onNavigateToTab
                 )
+            } else {
+                // Every other route: the rail's half of the window at Expanded width,
+                // and the screens that carry no bar at all. The band is what puts brown
+                // behind the system navigation bar wherever no bottom bar does.
+                SystemNavigationBarScrim()
             }
         },
         snackbarHost = {
