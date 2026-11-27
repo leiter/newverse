@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -60,6 +61,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import com.together.newverse.domain.model.Article
 import com.together.newverse.domain.model.ArticleScarcity
 import com.together.newverse.domain.model.ResolvedPrice
@@ -292,7 +294,20 @@ internal fun HeroProductCard(
                                     overflow = TextOverflow.Ellipsis
                                 )
 
+                                // The total is titleMedium (a 24.sp line) next to a
+                                // bodyMedium unit price (20.sp), so the row grew by
+                                // 4.sp the moment an amount was entered and nudged
+                                // everything below it -- the amount field and the
+                                // buttons -- down with it. Hold the taller line's
+                                // height whether or not there is a total to show.
+                                //
+                                // Measured from the style rather than written as a dp
+                                // constant, so it still matches at any font scale.
+                                val priceRowHeight = with(LocalDensity.current) {
+                                    MaterialTheme.typography.titleMedium.lineHeight.toDp()
+                                }
                                 Row(
+                                    modifier = Modifier.heightIn(min = priceRowHeight),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
